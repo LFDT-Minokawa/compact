@@ -1,0 +1,9 @@
+export circuit a(a: Field,): [] { }
+
+export circuit b(a: Field, b: Field,): Uint<32> {
+  return 1;
+}
+
+export circuit c(a: Uint<32>, b: Uint<32>, c: Uint<32>): [Uint<32>, Uint<32>,] {
+  return [1,2];
+}

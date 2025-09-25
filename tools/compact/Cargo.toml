@@ -1,0 +1,36 @@
+[package]
+name = "compact"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/midnight-ntwrk/artifacts"
+homepage = "https://docs.midnight.network"
+license = "Apache-2.0"
+description = "Manages multiple version of the compact toolchain"
+authors = ["The Midnight Dev. Team"]
+
+[dependencies]
+anyhow = "1.0.94"
+axoupdater = { version = "0.9.0", default-features = false, features = ["github_releases"] }
+bytes = "1.9.0"
+clap = { version = "4.5.23", features = ["env", "derive"] }
+console = "0.15.10"
+dialoguer = "0.11.0"
+dirs = "5.0.1"
+futures = "0.3.31"
+indicatif = "0.17.9"
+octocrab = "0.44.1"
+reqwest = { version = "0.12.9", features = ["json", "gzip", "stream", "rustls-tls"], default-features = false }
+semver = { version = "1.0.24", features = ["serde"] }
+serde = { version = "1.0.216", features = ["derive"] }
+serde_json = "1.0.133"
+tokio = { version = "1.42.0", features = ["full", "macros"] }
+
+[profile.release]
+# This is similar to “fat” (or "true"), but takes substantially less time
+# to run while still achieving performance gains similar to “fat” (or "true").
+lto = "thin"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"

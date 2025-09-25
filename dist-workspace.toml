@@ -1,0 +1,56 @@
+# This file is part of Compact.
+# Copyright (C) 2025 Midnight Foundation
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# 	http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[workspace]
+members = ["cargo:tools/compact"]
+
+# Config for 'dist'
+[dist]
+# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.28.5"
+# Whether to auto-include files like READMEs, LICENSEs, and CHANGELOGs (default true)
+auto-includes = false
+# CI backends to support
+ci = "github"
+# Skip checking whether the specified configuration files are up to date
+allow-dirty = ["ci"]
+# A prefix git tags must include for dist to care about them
+tag-namespace = "compact"
+# Publish GitHub Releases to this repo instead
+github-releases-repo = "midnightntwrk/compact"
+# The installers to generate for each app
+installers = ["shell", "powershell"]
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-msvc",
+]
+# Path that installers should place binaries in
+install-path = "~/.compact/bin"
+# Whether to install an updater program
+install-updater = false
+# Generate and dist a source tarball
+source-tarball = false
+
+[dist.github-custom-runners]
+# Use native Apple Silicon builds for macOS rather than cross-compilation
+aarch64-apple-darwin = "macos-14"
+# x86_64-apple-darwin = "macos-13" (already the default)
+# Moving to Ubuntu 22.04 from 20.04 (now sunset). Using 22.04 ensures glibc forwards
+# compatibility with 24.04 while maintaining backwards compatibility.
+x86_64-unknown-linux-gnu = "ubuntu-22.04"
+x86_64-unknown-linux-musl = "ubuntu-22.04"

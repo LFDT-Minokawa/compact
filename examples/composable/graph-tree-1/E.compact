@@ -1,0 +1,25 @@
+import CompactStandardLibrary;
+
+contract D {
+    circuit up(x: Uint<16>): [];
+    circuit down(x: Uint<16>): [];
+}
+
+contract B {
+    circuit up(x: Uint<16>): [];
+    circuit down(x: Uint<16>): [];
+}
+
+export ledger c: Counter;
+
+constructor() {
+    c.increment(1);
+}
+
+export circuit up(i: Uint<16>): [] {
+    return c.increment(disclose(i));
+}
+
+export circuit down(i: Uint<16>): [] {
+    return c.decrement(disclose(i));
+}

@@ -1,0 +1,38 @@
+pragma language_version >= 0.14.0;
+
+import CompactStandardLibrary;
+
+export ledger round: Counter;
+export ledger bob: Map<Vector<10, Boolean>, Counter>;
+export ledger c: List<Vector<20, Vector<20, Vector<20, Field>>>>;
+
+export ledger counter: Counter;
+export ledger boberto: Vector<10, Boolean>;
+
+circuit tom(s: Boolean): Uint<16> {
+    return 1 - (s ? 1 : (true ?  0 - 1 : 0 - 1));
+}
+
+constructor(){
+  for(const i of boberto) {
+    counter.increment(tom(false));
+    counter.increment(tom(true));
+    boberto = default<Vector<10, Boolean>>;
+  }
+}
+
+export circuit increment(): [] {
+  for(const y of 1..10) {
+    disclose(round.increment(1));
+  }
+
+  round.increment(1);
+}
+
+export circuit decrement(): [] {
+  for(const y of 1..10) {
+    disclose(round.decrement(1));
+  }
+
+  round.decrement(1);
+}

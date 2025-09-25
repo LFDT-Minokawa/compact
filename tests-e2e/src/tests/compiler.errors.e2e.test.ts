@@ -1,0 +1,61 @@
+import { Result } from 'execa';
+import { describe, test } from 'vitest';
+import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '..';
+
+describe('[Errors] Compiler', () => {
+    const CONTRACTS_ROOT = '../examples/errors/';
+
+    test.each([
+        ['unbound.compact', /Exception: unbound.compact line 16 char 59: unbound identifier Maybe/],
+        [
+            'maybe.compact',
+            /Exception: maybe.compact line 19 char 3: mismatch between type struct Maybe<is_some: Boolean, value: Field> and type \[] of condition branches/,
+        ],
+        [
+            'multiSource.compact',
+            /Exception: multiSource.compact line 28 char 10: no compatible function named enabledPower is in scope at this call; one function is incompatible with the supplied argument types; supplied argument types: \(Uint<0..0>, Field\); declared argument types for function at line 19 char 1: \(Boolean, Field\)/,
+        ],
+        [
+            'multiSource2.compact',
+            /Exception: multiSource2.compact line 21 char 47: call site ambiguity \(multiple compatible functions\) in call to foo; supplied argument types: \(\); compatible functions: line 17 char 12; line 19 char 1/,
+        ],
+        [
+            'multiSource4.compact',
+            /Exception: multiSource4.compact line 18 char 10: incompatible arguments in call to anonymous circuit; supplied argument types: \(Uint<0..0>, Field\); declared circuit type: \(Field, Field, Field\)/,
+        ],
+        [
+            'typeParams.compact',
+            /Exception: typeParams.compact line 22 char 10: no compatible function named none is in scope at this call; one function is incomptable with the supplied generic values; supplied generic values: <>; declared generics for function at <standard library>: <type>/,
+        ],
+        [
+            'missing.compact',
+            /Exception: error opening source file: failed for ..\/examples\/errors\/missing.compact: no such file or directory/,
+        ],
+        [
+            'missing file with  spaces   in    name.compact',
+            /Exception: error opening source file: failed for "..\/examples\/errors\/missing file with  spaces   in    name.compact": no such file or directory/,
+        ],
+        [
+            'missing-include.compact',
+            /Exception: missing-include.compact line 17 char 1: failed to locate file "missing file {2}with {3}spaces.compact"/,
+        ],
+        [
+            'spreadParams.compact',
+            /Exception: spreadParams.compact line 21 char 22: spread initializer found after positional or named initializers in struct creation syntax/,
+        ],
+        [
+            'tuple.compact',
+            /Exception: tuple.compact line 6 char 11: expected right-hand-side of = to have type \[Field, Boolean] but received \[Field, Field]/,
+        ],
+    ])('should throw errors for contract: %s', async (fileName: string, expectedError: RegExp) => {
+        let filePath = CONTRACTS_ROOT + fileName;
+        if (fileName.includes(' ')) {
+            filePath = '"' + filePath + '"';
+        }
+        const outputDir = createTempFolder();
+        const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+        expectCompilerResult(result).toReturn(expectedError, compilerDefaultOutput(), 255);
+        expectFiles(outputDir).thatNoFilesAreGenerated();
+    });
+});

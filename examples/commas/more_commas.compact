@@ -1,0 +1,25 @@
+import CompactStandardLibrary;
+
+circuit fred(a: Field, b: Field,): Field {
+  return a + b;
+}
+
+export circuit jerry(b: Field, c: Field): [] {
+  fold(fred, 0, [1, 2, 3, 4, ]);
+}
+
+contract test {
+  circuit a(a: Field,): [],
+  circuit b(a: Field, b: Field,): Uint<32>,
+  circuit c(a: Uint<32>, b: Uint<32>, c: Uint<32>): [Uint<32>, Uint<32>,],
+}
+
+export circuit franz(a: Field, b: Field, c: Field): [] {
+  map(fred, [1, 2, ], [1, 2, ],);
+}
+
+circuit boo(b: Boolean, x: Field,): Boolean { return true; }
+
+export circuit d(v: Vector<1, Field>,): Boolean {
+  return fold(boo, true, v);
+}

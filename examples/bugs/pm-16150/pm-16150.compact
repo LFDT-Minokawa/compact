@@ -1,0 +1,21 @@
+import CompactStandardLibrary;
+pragma language_version >= 0.15.0;
+
+module AccessControl {
+
+    export enum Role {
+        Admin,
+        Lp,
+        Trader,
+        None
+    };
+
+    export ledger roleCommits: MerkleTree<10, Bytes<32>>;
+    export ledger hashUserRole: Set<Boolean>;
+}
+
+import AccessControl prefix AccessControl_;
+
+export { Maybe, MerkleTreePath, ZswapCoinPublicKey };
+export { AccessControl_Role, AccessControl_roleCommits };
+export { AccessControl_hashUserRole };

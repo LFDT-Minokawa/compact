@@ -1,0 +1,6 @@
+import CompactStandardLibrary;
+
+circuit bob(): Uint<8> {
+  kernel.checkpoint();
+  return 1;
+}

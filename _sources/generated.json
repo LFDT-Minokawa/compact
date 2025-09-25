@@ -1,0 +1,42 @@
+{
+    "nanopass": {
+        "cargoLocks": null,
+        "date": "2022-08-30",
+        "extract": null,
+        "name": "nanopass",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "deepClone": false,
+            "fetchSubmodules": false,
+            "leaveDotGit": false,
+            "name": null,
+            "owner": "nanopass",
+            "repo": "nanopass-framework-scheme",
+            "rev": "f3100cedaf9ed7fb89647a770d855997b32cf17e",
+            "sha256": "sha256-NsY+V0r/lgycSIVTeHcNjJ398YwEijLlaGySNdTopxw=",
+            "type": "github"
+        },
+        "version": "f3100cedaf9ed7fb89647a770d855997b32cf17e"
+    },
+    "rough-draft": {
+        "cargoLocks": null,
+        "date": "2023-02-13",
+        "extract": null,
+        "name": "rough-draft",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "deepClone": false,
+            "fetchSubmodules": false,
+            "leaveDotGit": false,
+            "name": null,
+            "owner": "akeep",
+            "repo": "rough-draft",
+            "rev": "6a5e64aa325d2fd7ab1e161cfcb45ba2f9a057de",
+            "sha256": "sha256-/as+XqStSyHc/vLImmGgowxgVjqi/jITolH9D6AJfek=",
+            "type": "github"
+        },
+        "version": "6a5e64aa325d2fd7ab1e161cfcb45ba2f9a057de"
+    }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "src-maps",
+  "version": "1.0.0",
+  "description": "Check source maps generated for compact smart contracts",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@types/node": "^22.15.30",
+    "source-map": "^0.7.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "vlq": "^2.0.4"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@d2t/vitest-ctrf-json-reporter": "^1.1.0",
+    "@fast-check/vitest": "^0.2.1",
+    "@vitest/runner": "^3.2.3",
+    "@vitest/ui": "^3.2.3",
+    "allure-vitest": "^3.2.2",
+    "fast-check": "^4.1.1",
+    "vitest": "^3.2.3"
+  }
+}

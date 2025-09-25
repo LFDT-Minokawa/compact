@@ -1,0 +1,17 @@
+constructor() {
+  for (const i of 1..10) {
+    for (const i of 1..10) {
+      return true;
+      return false;
+      return default<Uint<32>>;
+    }
+    return true;
+    return false;
+  }
+
+  return;
+  return;
+  assert(true == false, "bob");
+  return true;
+  return;
+}

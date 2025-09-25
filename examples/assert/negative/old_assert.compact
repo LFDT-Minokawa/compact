@@ -1,0 +1,7 @@
+pragma language_version >= 0.15.0;
+
+import CompactStandardLibrary;
+
+constructor(b: Boolean) {
+  assert 1 > 2 "bob";
+}

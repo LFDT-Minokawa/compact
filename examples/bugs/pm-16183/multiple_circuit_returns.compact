@@ -1,0 +1,16 @@
+export circuit tom(b: Boolean, c: Boolean): Uint<32> {
+    return ((b: Boolean, c: Boolean) : Uint<32> => {
+      if(b != c) {
+        {
+          return (1 * (b as Uint<8>)) as Uint<16>;
+        }
+        return false;
+      } else {
+        return (1 * (c as Uint<16>)) as Uint<32>;
+        {
+          return true;
+        }
+        return false;
+      }
+    })(b, c);
+}

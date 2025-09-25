@@ -1,0 +1,33 @@
+import CompactStandardLibrary;
+
+ledger x: Field;
+export ledger y: Boolean;
+export ledger set: Set<Field>;
+export ledger caroline: List<Boolean>;
+export ledger counter: Counter;
+
+constructor(a: Field, b: Boolean) {
+  const p = anton(a);
+  graham(disclose(b));
+  andy(a, a);
+}
+
+export circuit anton(a: Field) : [Field, Field] {
+  x = disclose(a);
+  return [x - a, x - a];
+}
+
+circuit graham(b: Boolean) : [] {
+  return true ? set.insert(b as Field) : set.insert(b as Field);
+}
+
+circuit andy(a: Field, b: Field) : [Field, Field] {
+  x = disclose(a) + disclose(b);
+  return [x, x];
+}
+
+export circuit switch(a: Boolean): [] {
+  for (const i of [disclose(a), disclose(a), disclose(a),]) {
+    y = i;
+  }
+}

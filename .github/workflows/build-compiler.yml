@@ -1,0 +1,173 @@
+name: Compiler Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+  schedule:
+    - cron: '0 1 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest-16-core-x64
+    # It takes 90+ minutes to build without Nix caching
+    timeout-minutes: 120
+    steps:
+      - name: Setup api.github.com credentials
+        uses: extractions/netrc@v2
+        with:
+          machine: api.github.com
+          username: ${{ secrets.GH_USERNAME }}
+          password: ${{ secrets.GH_PASSWORD }}
+
+      - name: Setup github.com credentials
+        uses: extractions/netrc@v2
+        with:
+          machine: github.com
+          username: ${{ secrets.GH_USERNAME }}
+          password: ${{ secrets.GH_PASSWORD }}
+
+      - name: Configure git rewrite
+        run: |
+          mkdir -p $HOME/.config/git
+          echo '[url "https://github.com/"]' >> $HOME/.config/git/config
+          echo '  insteadOf = "git@github.com:"' >> $HOME/.config/git/config
+          echo '  insteadOf = "git@github.com/"' >> $HOME/.config/git/config
+          echo '  insteadOf = "ssh://git@github.com/"' >> $HOME/.config/git/config
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          #github_access_token: ${{ secrets.GH_PASSWORD }}
+          nix_path: nixpkgs=channel:nixos-unstable
+
+          extra_nix_config: |
+            netrc-file = ~/.netrc
+            access-tokens = github.com=${{ secrets.GH_PASSWORD }} api.github.com=${{ secrets.GH_PASSWORD }}
+            extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
+            extra-substituters = https://cache.iog.io
+            accept-flake-config = true
+
+      - name: Cache Nix
+        uses: input-output-hk/actions/attic@latest
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          endpoint: https://attic.ci.iog.io
+          cache: midnight
+          access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
+
+      - name: Checkout compactc repository
+        uses: actions/checkout@v4
+
+      - name: Check compiler and language versions in internal documentation
+        run: |
+          # check compiler version
+          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
+          DOCS_COMPILER=$(grep -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
+
+          echo "Compiler version: $COMPILER_VERSION"
+          echo "Compiler version in docs: $DOCS_COMPILER"
+
+          if [ "$COMPILER_VERSION" != "$DOCS_COMPILER" ]; then
+            echo "Compiler version mismatch, please update"
+            exit 1
+          fi
+
+          echo "Compiler versions match"
+
+          # check language version
+          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
+          DOCS_LANGUAGE=$(grep -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
+
+          echo "Language version: $LANGUAGE_VERSION"
+          echo "Language version in docs: $DOCS_LANGUAGE"
+
+          if [ "$LANGUAGE_VERSION" != "$DOCS_LANGUAGE" ]; then
+            echo "Language versions mismatch, please update"
+            exit 1
+          fi
+
+          echo "Language versions match"
+
+      - name: Build compiler
+        run: |
+          nix build
+
+      - name: Run compiler tests
+        run: |
+          nix develop --command ./compiler/go
+          nix develop --command ./srcMaps/test.sh
+          test coverage
+
+      - name: Run src-maps tests
+        run: |
+          cd test-src-maps
+          nix develop .#compiler --command yarn install
+          nix develop .#compiler --command yarn test
+
+      - name: Execute binary - smoke test
+        run: |
+          nix develop .#compiler --command compactc --version
+          nix develop .#compiler --command compactc --help
+          nix develop .#compiler --command compactc ./test-center/compact/test.compact ./compact-output/
+          nix develop .#compiler --command compactc ./examples/tiny.compact ./tiny-output/
+
+      - name: Merge report as ZIP
+        run: |
+          mv coverage coverage_$(date +"%Y%m%d%H%M%S")
+          zip -r compiler-coverage.zip coverage*
+
+      - name: Upload Artifact - coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Coverage Report
+          path: compiler-coverage.zip
+
+      - name: Test E2E
+        run: |
+          cd tests-e2e
+          nix develop .#compiler --command yarn install
+          nix develop .#compiler --command yarn test
+
+      - name: Upload CTRF test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-ctrf-summary
+          path: tests-e2e/reports/ctrf-report.json
+
+      - name: Upload Junit test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-junit-summary
+          path: tests-e2e/reports/test-report.xml
+
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Compactc E2E Tests Report
+          path: |
+            !(node_modules)/**/reports/test-report.xml
+          reporter: jest-junit
+
+      - name: Publish Test Summary
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          check_name: Compactc E2E Tests Results
+          files: |
+            **/reports/test-report.xml
+            !(node_modules)/**/test-report.xml
+
+      - name: Publish Test Summary Results
+        if: always()
+        run: |
+          npx github-actions-ctrf tests-e2e/reports/ctrf-report.json --title "E2E test results"
+          npx github-actions-ctrf pull-request tests-e2e/reports/ctrf-report.json --title "E2E test results"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,39 @@
+{
+  "name": "@midnight-ntwrk/compact-runtime",
+  "version": "0.9.0",
+  "description": "Compact Runtime",
+  "main": "dist/runtime.js",
+  "types": "dist/runtime.d.ts",
+  "scripts": {
+    "clean": "rm -rf tsconfig.tsbuildinfo && rm -rf ./dist || :",
+    "build": "npm run clean; CHEZSCHEMELIBDIRS=\"$CHEZSCHEMELIBDIRS:../compiler:../third_party/compiler\" scheme --script export-version.ss; tsc -b",
+    "prepare": "npm run build",
+    "test": "npm run build; vitest run",
+    "generate-docs": "rm -rf ../doc/api/runtime && npx typedoc --plugin typedoc-plugin-markdown src/runtime.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "IOG",
+  "license": "Apache-2.0",
+  "nixDependencies": [
+    "@midnight-ntwrk/onchain-runtime"
+  ],
+  "dependencies": {
+    "@midnight-ntwrk/onchain-runtime": "^0.4.0-alpha",
+    "@types/object-inspect": "^1.8.1",
+    "object-inspect": "^1.12.3"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.1",
+    "glob": "^11.0.1",
+    "@types/node": "^22.15.29",
+    "typedoc": "^0.28.1",
+    "typedoc-plugin-markdown": "4.6.4",
+    "typescript": "^5.8.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/midnight-ntwrk/artifacts.git"
+  }
+}

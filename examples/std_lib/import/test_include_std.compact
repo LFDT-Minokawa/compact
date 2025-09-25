@@ -1,0 +1,6 @@
+include "std";
+
+circuit bob(): Uint<8> {
+  kernel.checkpoint();
+  return 1;
+}

@@ -1,0 +1,7 @@
+import CompactStandardLibrary;
+
+ledger field: Field;
+
+constructor(x: Field) {
+    const p = map((x: Field, y: Boolean): Field => x, [],[]);
+}

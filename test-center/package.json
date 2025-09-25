@@ -1,0 +1,22 @@
+{
+  "name": "test-center",
+  "version": "0.0.1",
+  "description": "test center",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "files": [
+    "contract"
+  ],
+  "author": "IOG",
+  "license": "Apache-2.0",
+  "dependencies": {    
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "glob": "^11.0.1",
+    "typescript": "^5.0.0",
+    "vitest": "^3.1.1"
+  }
+}

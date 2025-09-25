@@ -1,0 +1,8 @@
+{
+  "version":3,
+  "file":"neg.js",
+  "sourceRoot":"",
+  "sources":["../neg.compact"],
+  "names":[],
+  "mappings":";;;;;;;;;;;;;;;;;;AAeA,SAAe,KAAK,CAAC,GAAY;IAC/B,MAAM,GAAG,GAAY,CAAC,GAAG,CAAC;IAC1B,OAAO,GAAG,CAAC;AACb,CAAC;AAHD,sBAGC"
+}
