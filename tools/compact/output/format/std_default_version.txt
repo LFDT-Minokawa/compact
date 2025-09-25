@@ -1,0 +1,1 @@
+compact-format [COMPACT_VERSION]

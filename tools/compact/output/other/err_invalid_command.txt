@@ -1,0 +1,4 @@
+Error: Failed to run compactc
+
+Caused by:
+    Unknown command (jump), did you mean `compile'?

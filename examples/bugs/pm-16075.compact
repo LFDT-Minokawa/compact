@@ -1,0 +1,57 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+pragma language_version >= 0.14.0;
+
+import CompactStandardLibrary;
+
+export ledger round: Counter;
+export ledger y: Map<Boolean, Vector<1, []>>;
+
+export circuit adam(): [] {
+
+    if(y.isEmpty()) {
+      return;
+    }
+
+    const p = y.lookup(true);
+
+    for (const i of p) {
+       round.increment(1);
+    }
+}
+
+constructor() {
+
+  y.insert(true, (() => {
+    if(y.isEmpty()) {
+      y.insert(true, [adam()]);
+    }
+
+    return [adam()];
+  })());
+
+  adam();
+}
+
+export circuit increment(): [] {
+  round.increment(1);
+}
+
+export circuit decrement(): [] {
+  round.decrement(1);
+}
+
+// export circuit d(): [] { return (() => a())(); }

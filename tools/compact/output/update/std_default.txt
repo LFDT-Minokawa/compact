@@ -1,0 +1,2 @@
+compact: [SYSTEM_VERSION] -- [LATEST_COMPACTC_VERSION] -- installed
+compact: [SYSTEM_VERSION] -- [LATEST_COMPACTC_VERSION] -- default.

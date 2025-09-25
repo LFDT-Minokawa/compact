@@ -1,0 +1,110 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+ledger maps: Map<Field, Field>;
+ledger field: Field;
+ledger arron: Field;
+ledger set: Set<Uint<16>>;
+ledger counter: Counter;
+export ledger arnold: Set<Boolean>;
+export ledger august: Map<Field, []>;
+export ledger june: Map<Field, Bytes<1>>;
+ledger list: List<Uint<16>>;
+
+export circuit martin(z: Vector<3, Field>): [] {
+    august.insert(1, field = disclose(z[0]));
+    june.insert(1, disclose(z[0] as Bytes<1>));
+}
+
+export circuit donna(z: Field): Vector<3, []> {
+  return map((n) => arron.write(disclose(z) + n), [arron.read(), arron.read(), arron.read()]);
+}
+
+export circuit aldo(z: Field): [] {
+  {
+    if(disclose(z) as Uint<16> > 0) { set.remove(1); }
+  }
+  return (() => { return (field = disclose(z)); })();
+}
+
+export circuit adonis(p: Field): [] {
+   for (const x of 0..1) {
+     set.insert(disclose(x + p as Uint<16>));
+   }
+
+   const u = disclose(p as Uint<16>);
+   for (const y of counter -= u, counter += u, counter += u) {
+     maps.insert(p, p);
+     field.write(p);
+   }
+
+   don(anna([disclose(p), disclose(p), disclose(p)]));
+}
+
+circuit don(z: Vector<3, Field>): Vector<3, Field> {
+  field = z[0];
+  maps.insert(z[0], z[1]);
+  return z;
+}
+
+export circuit anna(z: Vector<3, Field>): Vector<3, Field> {
+  return z;
+}
+
+export circuit fred(x :Field, b: Boolean): Field {
+  const p = counter += disclose(x as Uint<16>);
+  const z = counter -= disclose(x as Uint<16>);
+  const c = field = disclose(x as Uint<16>);
+  const d = counter += disclose(x as Uint<16>);
+
+  set.remove(disclose(x) as Uint<16>);
+
+  const flag = Either<Boolean, Boolean> { is_left: disclose(b), left: disclose(b), right: disclose(b) };
+
+  if (flag.is_left) {
+    return counter += disclose(x as Uint<16>), x * x * counter.read() as Field;
+  } else {
+    return counter += disclose(x as Uint<16>), counter.increment(disclose(x as Uint<16>)), maps.insert(disclose(x), disclose(x)), maps.insert(2, disclose(x)), x * x;
+  }
+}
+
+constructor(x: Field, b: Boolean) {
+  const a = (x) => (field.write(disclose(x)))(x);
+
+  () => {
+    const f = disclose([x, x, x]);
+    const z = [disclose(x), disclose(x), disclose(x)];
+
+    maps.insert(f[0], f[1]);
+    maps.insert(z[0], z[1]);
+  }();
+
+  for (const y of []) {
+    maps.insert(x, x);
+    field.write(x);
+  }
+
+  return ((y) => field = y)((() => disclose(x))());
+}
+
+circuit greg(x: Uint<16>) : [] {
+  return counter -= x;
+}
+
+circuit eduardo(x : Field): [] {
+  return field = x;
+}

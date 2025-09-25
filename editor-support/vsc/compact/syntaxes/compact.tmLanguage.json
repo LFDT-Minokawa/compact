@@ -1,0 +1,142 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "compact",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#support"
+		}
+	],
+	"repository": {
+		"support": {
+			"patterns": [
+				{
+					"match": "\\b(Bytes|Boolean|Field|Opaque|Uint|Vector)\\b",
+					"name": "support.class.compact"
+				}
+			]
+		},
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.compact",
+					  "match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|enum|fold|for|if|include|ledger|map|of|pad|pragma|prefix|return|struct|witness|pure|sealed|slice)\\b"
+			    },
+				{
+					"name": "keyword.control.import.compact",
+					"match": "\\b(import|module|export)\\b"
+				},
+				{
+					"match": "\\b(true|false)\\b",
+					"name": "constant.language.boolean.compact"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.compact",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.compact",
+					"match": "\\\\."
+				}
+			]
+		},
+		"numbers": {
+			"patterns": [
+				{
+					"match": "\\b(?<!\\$)0(x|X)[0-9a-fA-F]+\\b(?!\\$)",
+					"name": "constant.numeric.hex.compact"
+				},
+				{
+					"match": "\\b(?<!\\$)0(b|B)[01]+\\b(?!\\$)",
+					"name": "constant.numeric.binary.compact"
+				},
+				{
+					"match": "\\b(?<!\\$)0(o|O)?[0-7]+\\b(?!\\$)",
+					"name": "constant.numeric.octal.compact"
+				},
+				{
+					"match": "(?x)\n(?<!\\$)(?:\n  (?:\\b[0-9]+(\\.)[0-9]+[eE][+-]?[0-9]+\\b)| # 1.1E+3\n  (?:\\b[0-9]+(\\.)[eE][+-]?[0-9]+\\b)|       # 1.E+3\n  (?:\\B(\\.)[0-9]+[eE][+-]?[0-9]+\\b)|       # .1E+3\n  (?:\\b[0-9]+[eE][+-]?[0-9]+\\b)|            # 1E+3\n  (?:\\b[0-9]+(\\.)[0-9]+\\b)|                # 1.1\n  (?:\\b[0-9]+(\\.)\\B)|                      # 1.\n  (?:\\B(\\.)[0-9]+\\b)|                      # .1\n  (?:\\b[0-9]+\\b(?!\\.))                     # 1\n)(?!\\$)",
+					"captures": {
+						"0": {
+							"name": "constant.numeric.decimal.compact"
+						},
+						"1": {
+							"name": "meta.delimiter.decimal.period.compact"
+						},
+						"2": {
+							"name": "meta.delimiter.decimal.period.compact"
+						},
+						"3": {
+							"name": "meta.delimiter.decimal.period.compact"
+						},
+						"4": {
+							"name": "meta.delimiter.decimal.period.compact"
+						},
+						"5": {
+							"name": "meta.delimiter.decimal.period.compact"
+						},
+						"6": {
+							"name": "meta.delimiter.decimal.period.compact"
+						}
+					}
+				}
+			]
+		},
+		"comments": {
+			"patterns": [
+				{
+					"captures": {
+						"1": {
+							"name": "punctuation.definition.comment.begin.compact"
+						},
+						"2": {
+							"name": "punctuation.definition.comment.end.compact"
+						}
+					},
+					"match": "(/\\*)(\\*/)",
+					"name": "comment.block.empty.compact"
+				},
+				{
+					"begin": "/\\*",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.comment.begin.compact"
+						}
+					},
+					"end": "\\*/",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.comment.end.compact"
+						}
+					},
+					"name": "comment.block.compact"
+				},
+				{
+					"begin": "//",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.comment.compact"
+						}
+					},
+					"end": "$",
+					"name": "comment.line.double-slash.compact"
+				}
+			]
+		}
+	},
+	"scopeName": "source.compact"
+}

@@ -1,0 +1,511 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// Test 1: Spread Bytes
+export ledger test1_var: Bytes<10>;
+
+circuit test1a(): Bytes<5> {
+    return Bytes[0x00, 0xFF, 0b11111111, 0o377, 128];
+}
+
+circuit test1b(): Bytes<10> {
+    const b = test1a();
+    return Bytes[...b, ...b];
+}
+
+circuit test1c(): Bytes<128> {
+    const b = default<Bytes<128>>;
+    return b;
+}
+
+circuit test1d(a: Bytes<0>, b:Bytes<0>): Bytes<0> {
+    return Bytes[...a, ...b];
+}
+
+export circuit test1() : Bytes<10> {
+    const a = test1b();
+    const b = [...a, ...test1c()];
+    const c = test1d(default<Bytes<0>>, Bytes[]);
+
+    test1_var = a;
+    
+    // Assertions for bytes spreading
+    assert(test1_var[0] == 0 as Uint<8>, "First byte should be 0");
+    assert(test1_var[1] == 255 as Uint<8>, "Second byte should be 255");
+    assert(test1_var[5] == 0 as Uint<8>, "Sixth byte should be 0 (repeated)");
+    assert(test1_var[9] == 128 as Uint<8>, "Last byte should be 128");
+    assert(c == Bytes[], "Empty bytes spread should remain empty");
+    
+    return test1_var;
+}
+
+// Test 2: map with Bytes
+export ledger test2_var: Vector<8, Bytes<1>>;
+export ledger test2a_var: Vector<3, Bytes<2>>;
+
+export circuit test2(): Vector<8, Bytes<1>> {
+    const fields = [0, 1, 2, 3, 4, 5, 6, 7];
+    test2_var = map((x: Field) => Bytes[x as Uint<8>], fields);
+
+    const vec_bytes = [Bytes[1, 2], Bytes[3, 4], Bytes[5, 6]];
+    const modified = map((b: Bytes<2>) => Bytes[b[1] + 1 as Uint<8>, b[0] + 1 as Uint<8>], vec_bytes);
+    test2a_var = modified;
+
+    const bytes = Bytes[10, 20, 30, 40, 50];
+
+    const mapped_bytes = map((x: Uint<8>) => Bytes[(x + 5) as Uint<8>], bytes);
+    const mapped_doubled = map((x: Uint<8>) => Bytes[(x * 2) as Uint<8>], slice<3>(bytes, 0));
+
+    // Assertions for map operations
+    assert(test2_var[0][0] == 0 as Uint<8>, "First mapped field should be 0");
+    assert(test2_var[7][0] == 7 as Uint<8>, "Last mapped field should be 7");
+    assert(test2a_var[0][0] == 3 as Uint<8>, "First modified byte should be 3 (2+1)");
+    assert(test2a_var[0][1] == 2 as Uint<8>, "Second modified byte should be 2 (1+1)");
+    assert(mapped_bytes[0][0] == 15 as Uint<8>, "First mapped byte should be 15 (10+5)");
+    assert(mapped_doubled[0][0] == 20 as Uint<8>, "First doubled byte should be 20 (10*2)");
+
+    return test2_var;
+}
+
+// Test 3: Slice Bytes
+export ledger test3_var: Bytes<1>;
+
+circuit test3a(): Bytes<1> {
+    const b = Bytes[1, 2, 3, 4, 5];
+    return slice<1>(b, 4);
+}
+
+circuit test3b(): Bytes<0> {
+    const b = Bytes[1, 2, 3, 4, 5];
+    return slice<0>(b, 5);
+}
+
+export circuit test3(): [Bytes<1>] {
+    const last = test3a();
+    const empty = test3b();
+    const combined = Bytes[...last, ...empty];
+    
+    test3_var = combined;
+    
+    // Assertions for slice operations
+    assert(last[0] == 5 as Uint<8>, "Sliced last element should be 5");
+    assert(empty == Bytes[], "Empty slice should be empty");
+    assert(test3_var[0] == 5 as Uint<8>, "Combined should contain the sliced element");
+    
+    return [test3_var];
+}
+
+// Test 4: Multiple spreads
+export ledger test4_var: Bytes<15>;
+
+export circuit test4(): Bytes<15> {
+    const b1 = Bytes[1, 2, 3];
+    const b2 = Bytes[4, 5];
+    const b3 = Bytes[6, 7, 8, 9];
+    const b4 = Bytes[10];
+    
+    const result = Bytes[...b1, ...b2, ...b3, ...b4, 11, 12, 13, 14, 15];
+    test4_var = result;
+    
+    // Assertions for multiple spreads
+    assert(test4_var[0] == 1 as Uint<8>, "First element from b1");
+    assert(test4_var[3] == 4 as Uint<8>, "First element from b2");
+    assert(test4_var[5] == 6 as Uint<8>, "First element from b3");
+    assert(test4_var[9] == 10 as Uint<8>, "Element from b4");
+    assert(test4_var[14] == 15 as Uint<8>, "Last literal element");
+    
+    return test4_var;
+}
+
+// Test 5: fold with Bytes
+export ledger test5_var: Uint<8>;
+export ledger test5a_var: Field;
+export ledger test5b_var: Boolean;
+
+export circuit test5(): Uint<8> {
+    const bytes = Bytes[1, 2, 3, 4, 5];
+    const sum = fold((acc: Uint<8>, x: Uint<8>) => (acc + x) as Uint<8>, 0 as Uint<8>, bytes);
+    test5_var = sum;
+
+    const bytes2 = Bytes[1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const v = Bytes[1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const result2 = fold((acc, x) => (acc as Uint<64>) >= 15 ? acc : acc + x, 0 as Field, v);
+    test5a_var = result2;
+
+    const result3 =  fold((acc: Boolean, x: Uint<8>) => acc && (x > 0), true, bytes);
+    test5b_var = result3;
+
+    // Assertions for fold operations
+    assert(test5_var == 15 as Uint<8>, "Sum should be 15 (1+2+3+4+5)");
+    assert(test5a_var == 15 as Field, "Early termination fold should be 15 (1+2+3+4+5, then stop)");
+    assert(test5b_var == true, "All elements should be positive");
+
+    return (test5_var + test5a_var + (test5b_var as Uint<8>)) as Uint<8>;
+}
+
+// Test 6: Nested Bytes spread
+export ledger test6_var: Bytes<12>;
+
+circuit test6a(): Bytes<3> {
+    return Bytes[1, 2, 3];
+}
+
+circuit test6b(): Bytes<6> {
+    const b3 = test6a();
+    return Bytes[...b3, ...b3];
+}
+
+circuit test6c(): Bytes<12> {
+    const b6 = test6b();
+    return Bytes[...b6, ...b6];
+}
+
+export circuit test6(): Bytes<12> {
+    const result = test6c();
+    test6_var = result;
+    
+    // Assertions for nested bytes spread
+    assert(test6_var[0] == 1 as Uint<8>, "First element should be 1");
+    assert(test6_var[3] == 1 as Uint<8>, "Fourth element should be 1 (repeated)");
+    assert(test6_var[6] == 1 as Uint<8>, "Seventh element should be 1 (second repetition)");
+    assert(test6_var[11] == 3 as Uint<8>, "Last element should be 3");
+    
+    return test6_var;
+}
+
+// Test 7: For loop with Bytes
+export ledger test7_var: Field;
+export ledger test7b_var: Field;
+
+export circuit test7(): [] {
+    const b1 = Bytes[1, 2, 3, 4];
+    const b2 = Bytes[5, 6, 7, 8];
+    const bytes = Bytes[...b1, ...b2];
+    const bytes2 = Bytes[...b2, ...b1, 1];
+
+    for (const b of bytes) {
+        test7_var = test7_var + 0xf;
+    }
+
+    for (const b of Bytes[]) {
+        const a = Bytes[1, 2, 3, 4];
+        test7_var = test7_var + a[b];
+    }
+
+    for (const b of [...Bytes[]]) {
+        test7_var = test7_var + b;
+    }
+
+    // index
+    for (const b of bytes) {
+        test7b_var = test7b_var + bytes2[b];
+    }
+}
+
+// Test 8: Empty Bytes
+export ledger test8_var: [Bytes<0>, Field, Boolean];
+export ledger test8a_var: Field;
+
+export circuit test8(): [Bytes<0>, Field, Boolean] {
+
+    const empty1 = Bytes[];
+    const empty2 = default<Bytes<0>>;
+    const empty3 = slice<0>(Bytes[1, 2, 3], 1);
+
+    const test8a_var = empty1 == Bytes[] ? 100 : 0;
+
+    // Operations on empty bytes
+    const as_field = empty1 as Field;
+    const equals_check = empty1 == empty2;
+    const slice_empty = slice<0>(empty1, 0);
+
+    // Spread empty bytes
+    const spread_empty = Bytes[...empty1, ...empty2];
+
+    test8_var = [spread_empty, as_field, equals_check];
+    
+    // Assertions for empty bytes
+    assert(as_field == 0 as Field, "Empty bytes as field should be 0");
+    assert(equals_check == true, "Empty bytes should equal each other");
+    assert(spread_empty == Bytes[], "Spread of empty bytes should be empty");
+    assert(empty3 == Bytes[], "Sliced empty should be empty");
+    
+    return [spread_empty, as_field, equals_check];
+}
+
+// Test 9: Bytes[] in structs
+struct test9_var {
+    data: Bytes<4>,
+    size: Uint<8>,
+    empty: Bytes<0>
+}
+
+export ledger test9a_var: test9_var;
+
+export circuit test9(): test9_var {
+    const container = test9_var {
+        data: Bytes[10, 20, 30, 40],
+        size: 4 as Uint<8>,
+        empty: Bytes[]
+    };
+
+    const sliced_data = slice<2>(container.data, 1);
+    const spread_data = Bytes[...sliced_data, ...container.empty, 50, 60];
+
+    const modified_container = test9_var {
+        data: spread_data,
+        size: container.size,
+        empty: container.empty
+    };
+
+    test9a_var = modified_container;
+    
+    // Assertions for struct bytes operations
+    assert(sliced_data[0] == 20 as Uint<8>, "Sliced data first element should be 20");
+    assert(sliced_data[1] == 30 as Uint<8>, "Sliced data second element should be 30");
+    assert(test9a_var.data[2] == 50 as Uint<8>, "Modified container should have 50");
+    assert(test9a_var.size == 4 as Uint<8>, "Size should remain 4");
+    assert(test9a_var.empty == Bytes[], "Empty field should remain empty");
+    
+    return test9a_var;
+}
+
+// Test 10: Nested Bytes[] structures
+export ledger test10_var: Vector<3, Vector<2, Bytes<1>>>;
+
+export circuit test10(): Vector<3, Vector<2, Bytes<1>>> {
+    const nested = [
+        [Bytes[1], Bytes[2]],
+        [Bytes[3], Bytes[4]],
+        [Bytes[5], Bytes[6]]
+    ];
+
+    const modified = map((row: Vector<2, Bytes<1>>) => map((b: Bytes<1>) => Bytes[(b[0] * 2) as Uint<8>], row), nested);
+
+    test10_var = modified;
+    
+    // Assertions for nested bytes structures
+    assert(test10_var[0][0][0] == 2 as Uint<8>, "First nested byte should be 2 (1*2)");
+    assert(test10_var[0][1][0] == 4 as Uint<8>, "Second nested byte should be 4 (2*2)");
+    assert(test10_var[2][1][0] == 12 as Uint<8>, "Last nested byte should be 12 (6*2)");
+    
+    return test10_var;
+}
+
+// Test 11: Bytes[] with conditional logic
+export ledger test11_var: Bytes<6>;
+
+export circuit test11(flag: Boolean): Bytes<6> {
+    const condition = disclose(flag);
+    const bytes1 = Bytes[1, 2, 3];
+    const bytes2 = Bytes[4, 5, 6];
+
+    const selected = condition ? bytes1 : bytes2;
+    const result = condition ? Bytes[...bytes1, ...bytes2] : Bytes[...bytes2, ...bytes1];
+
+    test11_var = result;
+    return test11_var;
+}
+
+// Test 12: Bytes[] indexing
+export ledger test12_var: [Uint<8>, Uint<8>, Uint<8>];
+
+export circuit test12(): [Uint<8>, Uint<8>, Uint<8>] {
+    const bytes = Bytes[10, 20, 30, 40, 50, 60, 70, 80];
+
+    test12_var = [bytes[0], bytes[4], bytes[7]];
+    return test12_var;
+}
+
+// Test 13: Bytes[] with struct (access)
+enum BytesType {
+    Small,
+    Medium,
+    Large,
+    Empty
+}
+
+struct BytesTypeContainer {
+    bytes_type: BytesType,
+    data: Bytes<16>
+}
+
+export ledger test13_var: Field;
+
+export circuit test13(): Field {
+    const small_data = Bytes[1, 2, 3, 4];
+    const medium_data = Bytes[10, 20, 30, 40, 50, 60, 70, 80];
+
+    const container1 = BytesTypeContainer {
+        bytes_type: BytesType.Small,
+        data: Bytes[...small_data, ...default<Bytes<12>>]
+    };
+
+    const container2 = BytesTypeContainer {
+        bytes_type: BytesType.Medium,
+        data: Bytes[...medium_data, ...default<Bytes<8>>]
+    };
+
+    const result1 = container1.bytes_type == BytesType.Small ?
+        fold((acc: Field, x: Uint<8>) => acc + (x as Field), 0 as Field, slice<4>(container1.data, 0)) :
+        0 as Field;
+
+    const result2 = container2.bytes_type == BytesType.Medium ?
+        fold((acc: Field, x: Uint<8>) => acc + (x as Field), 0 as Field, slice<4>(container2.data, 2)) :
+        0 as Field;
+
+    test13_var = result1 + result2;
+    return test13_var;
+}
+
+// Test 14: Manually update bytes
+export ledger test14_a: Bytes<10>;
+
+export circuit test14(): Bytes<10> {
+    const base_data = [1, 4, 9, 16, 25, 36, 49, 64, 81, 100];
+    test14_a = Bytes[0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    for (const i of 0..10) {
+        const computed_byte = (base_data[i] > 50 ? (base_data[i] - 50) : base_data[i]) as Uint<8>;
+
+        test14_a = i == 0 ? Bytes[computed_byte, test14_a[1], test14_a[2], test14_a[3], test14_a[4], test14_a[5], test14_a[6], test14_a[7], test14_a[8], test14_a[9]] :
+                      i == 1 ? Bytes[test14_a[0], computed_byte, test14_a[2], test14_a[3], test14_a[4], test14_a[5], test14_a[6], test14_a[7], test14_a[8], test14_a[9]] :
+                      i == 2 ? Bytes[test14_a[0], test14_a[1], computed_byte, test14_a[3], test14_a[4], test14_a[5], test14_a[6], test14_a[7], test14_a[8], test14_a[9]] :
+                      i == 3 ? Bytes[test14_a[0], test14_a[1], test14_a[2], computed_byte, test14_a[4], test14_a[5], test14_a[6], test14_a[7], test14_a[8], test14_a[9]] :
+                      i == 4 ? Bytes[test14_a[0], test14_a[1], test14_a[2], test14_a[3], computed_byte, test14_a[5], test14_a[6], test14_a[7], test14_a[8], test14_a[9]] :
+                      i == 5 ? Bytes[test14_a[0], test14_a[1], test14_a[2], test14_a[3], test14_a[4], computed_byte, test14_a[6], test14_a[7], test14_a[8], test14_a[9]] :
+                      i == 6 ? Bytes[test14_a[0], test14_a[1], test14_a[2], test14_a[3], test14_a[4], test14_a[5], computed_byte, test14_a[7], test14_a[8], test14_a[9]] :
+                      i == 7 ? Bytes[test14_a[0], test14_a[1], test14_a[2], test14_a[3], test14_a[4], test14_a[5], test14_a[6], computed_byte, test14_a[8], test14_a[9]] :
+                      i == 8 ? Bytes[test14_a[0], test14_a[1], test14_a[2], test14_a[3], test14_a[4], test14_a[5], test14_a[6], test14_a[7], computed_byte, test14_a[9]] :
+                      Bytes[test14_a[0], test14_a[1], test14_a[2], test14_a[3], test14_a[4], test14_a[5], test14_a[6], test14_a[7], test14_a[8], computed_byte];
+    }
+
+    assert(test14_a[0] == 1 as Uint<8>, "First byte should be 1");
+    assert(test14_a[4] == 25 as Uint<8>, "Fifth byte should be 25");
+    assert(test14_a[9] == 50 as Uint<8>, "Last byte should be 50 (100-50)");
+
+    return test14_a;
+}
+
+// Test 15: Mixed operations
+export ledger test15_var: Field;
+
+export circuit test15(): Field {
+
+    const empty = Bytes[];
+    const single = Bytes[99];
+    const multiple = Bytes[1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+    const mixed = Bytes[...empty, ...single, ...multiple];
+    const mixed_fold = fold((acc: Field, x: Uint<8>) => acc + (x as Field), 0 as Field, mixed);
+
+    const complex = fold((acc: Field, x: Uint<8>) => acc + (x as Field), 0 as Field,
+                         map((x: Uint<8>) => (x + 1) as Uint<8>,
+                             slice<2>(Bytes[...single, ...single], 0)));
+    
+    test15_var = mixed_fold + complex;
+    
+    // Assertions for mixed operations
+    assert(mixed[0] == 99 as Uint<8>, "First byte of mixed should be 99 from single");
+    assert(mixed[1] == 1 as Uint<8>, "Second byte should be 1 from multiple");
+    assert(mixed_fold == 144 as Field, "Sum should be 99 + 45 (sum of 1..9)");
+    assert(complex == 200 as Field, "Complex should be 200 (100+100 from two 99s incremented)");
+    
+    return test15_var;
+}
+
+// Test 16: Generic module with both size and type parameters for Bytes operations
+module BytesProcessor<T, #size1, #size2, #size3, #size4> {
+    // Generic slice with size parameters
+    export circuit slice_bytes(input: Bytes<size1>): Bytes<size2> {
+        return slice<size2>(input, 0);
+    }
+    
+    // Generic combine with size parameters  
+    export circuit combine_bytes(a: Bytes<size1>, b: Bytes<size2>): Bytes<size3> {
+        return Bytes[...a, ...b];
+    }
+    
+    // Generic spread operation
+    export circuit spread_triple(first: Bytes<size1>, second: Bytes<size2>, third: Bytes<size1>): Bytes<size4> {
+        return Bytes[...first, ...second, ...third];
+    }
+    
+    // Generic sum operation (specialized for Field when T=Field)
+    export circuit sum_bytes_as_field(input: Bytes<size1>): Field {
+        return fold((acc: Field, x: Uint<8>) => acc + (x as Field), 0 as Field, input);
+    }
+    
+    // Generic double operation
+    export circuit double_bytes(input: Bytes<size1>): Vector<size1, Uint<8>> {
+        return map((x: Uint<8>) => (x * 2) as Uint<8>, input);
+    }
+    
+    // Generic conversion to type T
+    export circuit first_as_type(input: Bytes<size1>): T {
+        return input[0] as T;
+    }
+}
+
+import BytesProcessor<Field, 5, 3, 8, 13>;
+export { slice_bytes, combine_bytes, spread_triple, sum_bytes_as_field, double_bytes, first_as_type };
+
+export ledger test16_result: Field;
+export ledger test16_combined: Bytes<8>;
+export ledger test16_spread: Bytes<13>;
+export ledger test16_doubled: Vector<5, Uint<8>>;
+export ledger test16_first_as_field: Field;
+
+export circuit test16(): Field {
+    // Test generic module with Field type and size parameters: 5,3,8,13
+    const input5 = Bytes[10, 20, 30, 40, 50];
+    const sliced3 = slice_bytes(input5);
+    const combined8 = combine_bytes(input5, sliced3);
+    
+    // Test spread operation with size parameters (5+3+5=13)
+    const spread13 = spread_triple(input5, sliced3, input5);
+    
+    // Test Field-specialized sum operation
+    const sum = sum_bytes_as_field(input5);
+    
+    // Test generic double operation
+    const doubled_bytes = double_bytes(input5);
+    
+    // Test generic type conversion to Field
+    const first_as_field = first_as_type(input5);
+    
+    // Store results
+    test16_result = sum;
+    test16_combined = combined8;
+    test16_spread = spread13;
+    test16_doubled = doubled_bytes;
+    test16_first_as_field = first_as_field;
+    
+    // Assertions for generic module operations with type and size parameters
+    assert(sliced3[0] == 10 as Uint<8>, "Generic slice: first byte should be 10");
+    assert(sliced3[2] == 30 as Uint<8>, "Generic slice: third byte should be 30");
+    assert(combined8[5] == 10 as Uint<8>, "Generic combine: sixth byte should be 10 (first of sliced)");
+    assert(spread13[0] == 10 as Uint<8>, "Generic spread: first byte should be 10");
+    assert(spread13[8] == 10 as Uint<8>, "Generic spread: ninth byte should be 10 (start of third array)");
+    assert(spread13[12] == 50 as Uint<8>, "Generic spread: last byte should be 50");
+    assert(sum == 150 as Field, "Generic sum: should be 150 (10+20+30+40+50)");
+    assert(doubled_bytes[0] == 20 as Uint<8>, "Generic double: first should be 20 (10*2)");
+    assert(doubled_bytes[4] == 100 as Uint<8>, "Generic double: last should be 100 (50*2)");
+    assert(first_as_field == 10 as Field, "Generic type conversion: first byte as Field should be 10");
+    
+    return sum + first_as_field + (doubled_bytes[0] as Field); // 150 + 10 + 20 = 180
+}

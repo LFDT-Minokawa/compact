@@ -1,0 +1,31 @@
+# Ignore Compact Generated Files
+gen
+
+# generated files
+**/*.typegen.ts
+
+# Logs
+logs
+*.log
+*.log*
+package-lock.json
+*.tsbuildinfo
+
+dist
+node_modules
+*.local
+.env
+.direnv
+result
+coverage
+reports
+
+# Editor directories and files
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+

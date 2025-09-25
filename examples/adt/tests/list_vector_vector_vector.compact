@@ -1,0 +1,46 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger c: List<Vector<8, Vector<8, Vector<8, Uint<8>>>>>;
+
+constructor() {
+  const v = default<Vector<8, Vector<8, Vector<8, Uint<8>>>>>;
+  c.pushFront(v);
+}
+
+export circuit test(): [] {
+  const zero = default<Vector<8, Vector<8, Vector<8, Uint<8>>>>>;
+  const one = zero;
+
+  assert(c.isEmpty() == false, "Structure should be empty 1");
+  assert(c.length() == 1, "Size should be 1");
+  assert(c.head().is_some == true, "Head should exist");
+
+  c.pushFront(zero);
+  assert(c.length() == 2, "Size should be 2");
+  assert(c.head().is_some == true, "Head should exist");
+  assert(c.head().value == zero, "Head should have value 0");
+
+  c.pushFront(one);
+  assert(c.length() == 3, "Size should be 3");
+  assert(c.head().is_some == true, "Head should exist");
+  assert(c.head().value == one, "Head should have value 1");
+
+  c.resetToDefault();
+  assert(c.isEmpty() == true, "Structure should be empty 2");
+  assert(c.length() == 0, "Size should be 0");
+}

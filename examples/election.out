@@ -1,0 +1,253 @@
+circuit transient_hash.44
+        (x.651 : Field, y.650 : Field)
+        (Field);
+
+circuit transient_commit.50
+        (value.654 : Field[255], value.653 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655], rand.652 : Field)
+        (Field);
+
+circuit persistent_hash.13
+        (x.658 : Field[255], x.657 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655], y.656 : Field[255], y.655 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        (Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655]);
+
+circuit degrade_to_transient.38
+        (x.660 : Field[255], x.659 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        (Field);
+
+ledger {
+  __compact_kernel: __compact_kernel;
+  authority: Cell[(Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655])];
+  state: Cell[(Field[3])];
+  topic: Cell[(Field[1], Opaque["string"])];
+  tally_yes: Counter;
+  tally_no: Counter;
+  committed_votes: MerkleTree[10, (Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655])];
+  eligible_voters: MerkleTree[10, (Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655])];
+  committed: Set[(Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655])];
+  revealed: Set[(Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655])];
+}
+witness private$secret_key.7
+        ()
+        (Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655]);
+
+witness private$state.35
+        ()
+        (Field[2]);
+
+witness private$state$advance.33
+        ()
+        ();
+
+witness private$vote$record.65
+        (ballot.661 : Field[1])
+        ();
+
+witness private$vote.27
+        ()
+        (Field[1]);
+
+witness context$eligible_voters$path_of.10
+        (pk.663 : Field[255], pk.662 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        (Field[1], Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1]);
+
+witness context$committed_votes$path_of.32
+        (cm.665 : Field[255], cm.664 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        (Field[1], Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1]);
+
+circuit vote$commit
+        (ballot.903 : Field[1])
+        ()
+{
+    t.904 = ledger.state.read();
+    t.906 = t.904 == 1;
+    t.909 = t.906 -> private$state.35();
+    t.911 = t.909 == 0;
+    t.912 = select(t.906, t.911, 0);
+    assert t.912 "In illegal state for committing";
+    private$vote$record.65(ballot.903);
+    sk.916,  sk.915 = private$secret_key.7();
+    com_nul.918,  com_nul.917 = persistent_hash.13(0, 21858888896880417814135477117246023056814724246298988, sk.916, sk.915);
+    t.919 = ledger.committed.member(com_nul.918, com_nul.917);
+    t.921 = select(t.919, 0, 1);
+    assert t.921 "Unexpected attempt to double use of nullifier";
+    pk.926,  pk.925 = persistent_hash.13(0, 5089071974231272445764113553606849066066284, sk.916, sk.915);
+    path.949,  path.948,  path.947,  path.946,  path.945,  path.944,  path.943,  path.942,  path.941,  path.940,  path.939,  path.938,  path.937,  path.936,  path.935,  path.934,  path.933,  path.932,  path.931,  path.930,  path.929,  path.928,  path.927 = context$eligible_voters$path_of.10(pk.926, pk.925);
+    t.952 = path.949 -> degrade_to_transient.38(0, 39612891682351585409136481970639804195180);
+    t.953 = path.949 -> transient_commit.50(path.948, path.947, t.952);
+    t.955,  t.954 = field->bytes(32, t.953);
+    t.956 = path.949 -> degrade_to_transient.38(t.955, t.954);
+    left.959 = select(path.945, t.956, path.946);
+    right.962 = select(path.945, path.946, t.956);
+    recursive_digest.963 = path.949 -> transient_hash.44(left.959, right.962);
+    left.966 = select(path.943, recursive_digest.963, path.944);
+    right.969 = select(path.943, path.944, recursive_digest.963);
+    recursive_digest.970 = path.949 -> transient_hash.44(left.966, right.969);
+    left.973 = select(path.941, recursive_digest.970, path.942);
+    right.976 = select(path.941, path.942, recursive_digest.970);
+    recursive_digest.977 = path.949 -> transient_hash.44(left.973, right.976);
+    left.980 = select(path.939, recursive_digest.977, path.940);
+    right.983 = select(path.939, path.940, recursive_digest.977);
+    recursive_digest.984 = path.949 -> transient_hash.44(left.980, right.983);
+    left.987 = select(path.937, recursive_digest.984, path.938);
+    right.990 = select(path.937, path.938, recursive_digest.984);
+    recursive_digest.991 = path.949 -> transient_hash.44(left.987, right.990);
+    left.994 = select(path.935, recursive_digest.991, path.936);
+    right.997 = select(path.935, path.936, recursive_digest.991);
+    recursive_digest.998 = path.949 -> transient_hash.44(left.994, right.997);
+    left.1001 = select(path.933, recursive_digest.998, path.934);
+    right.1004 = select(path.933, path.934, recursive_digest.998);
+    recursive_digest.1005 = path.949 -> transient_hash.44(left.1001, right.1004);
+    left.1008 = select(path.931, recursive_digest.1005, path.932);
+    right.1011 = select(path.931, path.932, recursive_digest.1005);
+    recursive_digest.1012 = path.949 -> transient_hash.44(left.1008, right.1011);
+    left.1015 = select(path.929, recursive_digest.1012, path.930);
+    right.1018 = select(path.929, path.930, recursive_digest.1012);
+    recursive_digest.1019 = path.949 -> transient_hash.44(left.1015, right.1018);
+    left.1022 = select(path.927, recursive_digest.1019, path.928);
+    right.1025 = select(path.927, path.928, recursive_digest.1019);
+    t.1026 = path.949 -> transient_hash.44(left.1022, right.1025);
+    t.1027 = path.949 -> ledger.eligible_voters.check_root(t.1026);
+    t.1028 = select(path.949, t.1027, 0);
+    t.1032 = pk.926 == path.948;
+    t.1034 = pk.925 == path.947;
+    t.1033 = select(t.1032, t.1034, 0);
+    t.1035 = select(t.1028, t.1033, 0);
+    assert t.1035 "Attempted to vote without authorization - need to add-voter";
+    t.1039 = ballot.903 == 0;
+    ballot.1042 = select(t.1039, 7562617, 28526);
+    cm.1045,  cm.1044 = persistent_hash.13(0, ballot.1042, sk.916, sk.915);
+    ledger.committed_votes.insert(cm.1045, cm.1044);
+    ledger.committed.insert(com_nul.918, com_nul.917);
+    private$state$advance.33();
+    return;
+}
+
+circuit vote$reveal
+        ()
+        ()
+{
+    t.758 = ledger.state.read();
+    t.760 = t.758 == 2;
+    t.763 = t.760 -> private$state.35();
+    t.765 = t.763 == 1;
+    t.766 = select(t.760, t.765, 0);
+    assert t.766 "In illegal state for revealing";
+    sk.770,  sk.769 = private$secret_key.7();
+    rev_nul.772,  rev_nul.771 = persistent_hash.13(0, 21858888896883500293857702337155286985387514365370732, sk.770, sk.769);
+    t.773 = ledger.revealed.member(rev_nul.772, rev_nul.771);
+    t.775 = select(t.773, 0, 1);
+    assert t.775 "Attempted to double vote";
+    vote.779 = private$vote.27();
+    t.781 = vote.779 == 0;
+    t.783 = select(t.781, 0, 1);
+    ballot.784 = select(t.781, 7562617, 28526);
+    cm.787,  cm.786 = persistent_hash.13(0, ballot.784, sk.770, sk.769);
+    path.810,  path.809,  path.808,  path.807,  path.806,  path.805,  path.804,  path.803,  path.802,  path.801,  path.800,  path.799,  path.798,  path.797,  path.796,  path.795,  path.794,  path.793,  path.792,  path.791,  path.790,  path.789,  path.788 = context$committed_votes$path_of.32(cm.787, cm.786);
+    t.813 = path.810 -> degrade_to_transient.38(0, 39612891682351585409136481970639804195180);
+    t.814 = path.810 -> transient_commit.50(path.809, path.808, t.813);
+    t.816,  t.815 = field->bytes(32, t.814);
+    t.817 = path.810 -> degrade_to_transient.38(t.816, t.815);
+    left.820 = select(path.806, t.817, path.807);
+    right.823 = select(path.806, path.807, t.817);
+    recursive_digest.824 = path.810 -> transient_hash.44(left.820, right.823);
+    left.827 = select(path.804, recursive_digest.824, path.805);
+    right.830 = select(path.804, path.805, recursive_digest.824);
+    recursive_digest.831 = path.810 -> transient_hash.44(left.827, right.830);
+    left.834 = select(path.802, recursive_digest.831, path.803);
+    right.837 = select(path.802, path.803, recursive_digest.831);
+    recursive_digest.838 = path.810 -> transient_hash.44(left.834, right.837);
+    left.841 = select(path.800, recursive_digest.838, path.801);
+    right.844 = select(path.800, path.801, recursive_digest.838);
+    recursive_digest.845 = path.810 -> transient_hash.44(left.841, right.844);
+    left.848 = select(path.798, recursive_digest.845, path.799);
+    right.851 = select(path.798, path.799, recursive_digest.845);
+    recursive_digest.852 = path.810 -> transient_hash.44(left.848, right.851);
+    left.855 = select(path.796, recursive_digest.852, path.797);
+    right.858 = select(path.796, path.797, recursive_digest.852);
+    recursive_digest.859 = path.810 -> transient_hash.44(left.855, right.858);
+    left.862 = select(path.794, recursive_digest.859, path.795);
+    right.865 = select(path.794, path.795, recursive_digest.859);
+    recursive_digest.866 = path.810 -> transient_hash.44(left.862, right.865);
+    left.869 = select(path.792, recursive_digest.866, path.793);
+    right.872 = select(path.792, path.793, recursive_digest.866);
+    recursive_digest.873 = path.810 -> transient_hash.44(left.869, right.872);
+    left.876 = select(path.790, recursive_digest.873, path.791);
+    right.879 = select(path.790, path.791, recursive_digest.873);
+    recursive_digest.880 = path.810 -> transient_hash.44(left.876, right.879);
+    left.883 = select(path.788, recursive_digest.880, path.789);
+    right.886 = select(path.788, path.789, recursive_digest.880);
+    t.887 = path.810 -> transient_hash.44(left.883, right.886);
+    t.888 = path.810 -> ledger.committed_votes.check_root(t.887);
+    t.889 = select(path.810, t.888, 0);
+    t.893 = cm.787 == path.809;
+    t.895 = cm.786 == path.808;
+    t.894 = select(t.893, t.895, 0);
+    t.896 = select(t.889, t.894, 0);
+    assert t.896 "Attempted to reveal incorrectly";
+    t.781 -> ledger.tally_yes.increment(1);
+    t.783 -> ledger.tally_no.increment(1);
+    ledger.revealed.insert(rev_nul.772, rev_nul.771);
+    private$state$advance.33();
+    return;
+}
+
+circuit advance
+        ()
+        ()
+{
+    sk.732,  sk.731 = private$secret_key.7();
+    apk.734,  apk.733 = persistent_hash.13(0, 5089071974231272445764113553606849066066284, sk.732, sk.731);
+    t.736,  t.735 = ledger.authority.read();
+    t.738 = apk.734 == t.736;
+    t.740 = apk.733 == t.735;
+    t.739 = select(t.738, t.740, 0);
+    assert t.739 "Attempted to advance state without authorization";
+    t.744,  t.743 = ledger.topic.read();
+    assert t.744 "Attempted to start election without a topic";
+    state.747 = ledger.state.read();
+    t.749 = state.747 == 0;
+    t.753 = state.747 == 1;
+    t.756 = select(t.753, 2, 3);
+    t.757 = select(t.749, 1, t.756);
+    ledger.state.write(t.757);
+    return;
+}
+
+circuit set_topic
+        (topic.713 : Opaque["string"])
+        ()
+{
+    sk.715,  sk.714 = private$secret_key.7();
+    apk.717,  apk.716 = persistent_hash.13(0, 5089071974231272445764113553606849066066284, sk.715, sk.714);
+    t.719,  t.718 = ledger.authority.read();
+    t.721 = apk.717 == t.719;
+    t.723 = apk.716 == t.718;
+    t.722 = select(t.721, t.723, 0);
+    assert t.722 "Attempted to set topic without authorization";
+    t.726 = ledger.state.read();
+    t.728 = t.726 == 0;
+    assert t.728 "Attempted to set topic after setup phase";
+    ledger.topic.write(1, topic.713);
+    return;
+}
+
+circuit add_voter
+        (pk.667 : Field[255], pk.666 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        ()
+{
+    t.690,  t.689,  t.688,  t.687,  t.686,  t.685,  t.684,  t.683,  t.682,  t.681,  t.680,  t.679,  t.678,  t.677,  t.676,  t.675,  t.674,  t.673,  t.672,  t.671,  t.670,  t.669,  t.668 = context$eligible_voters$path_of.10(pk.667, pk.666);
+    t.692 = select(t.690, 0, 1);
+    assert t.692 "Attempted to add a voter twice";
+    sk.697,  sk.696 = private$secret_key.7();
+    apk.699,  apk.698 = persistent_hash.13(0, 5089071974231272445764113553606849066066284, sk.697, sk.696);
+    t.701,  t.700 = ledger.authority.read();
+    t.703 = apk.699 == t.701;
+    t.705 = apk.698 == t.700;
+    t.704 = select(t.703, t.705, 0);
+    assert t.704 "Attempted to add a voter without authorization";
+    t.708 = ledger.state.read();
+    t.710 = t.708 == 0;
+    assert t.710 "Attempted to add a voter after setup phase";
+    ledger.eligible_voters.insert(pk.667, pk.666);
+    return;
+}

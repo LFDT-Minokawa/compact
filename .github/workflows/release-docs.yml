@@ -1,0 +1,30 @@
+name: Release docs
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to use for doc generation'
+        required: true
+        type: string
+        default: "main"
+      docs_branch:
+        description: 'Branch to merge with in midnight-docs'
+        required: true
+        type: string
+        default: "main"
+
+jobs:
+  release-docs:
+    name: Create branch in midnight-docs with latest documentation
+    uses: ./.github/workflows/generate-docs.yml
+    secrets: inherit #if inherit does not work we need to uncomment below
+    with:
+      branch: ${{ inputs.branch }}
+      docs_branch: ${{ inputs.docs_branch }}
+    #secrets:
+    #  GH_USERNAME: ${{ secrets.GH_USERNAME }}
+    #  GH_PASSWORD: ${{ secrets.GH_PASSWORD }}
+    #  MIDNIGHTBOT_PACKAGES_WRITE: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
+    #  ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+    #  MIDNIGHTCI_REPO: ${{ secrets.MIDNIGHTCI_REPO }}

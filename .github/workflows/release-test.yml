@@ -1,0 +1,92 @@
+name: Test workflow for release
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: true
+        type: string
+      branch:
+        description: 'Release branch'
+        required: true
+        type: string
+      platform:
+        description: 'Image with OS to run on'
+        required: true
+        type: string
+      architecture:
+        description: 'Processor architecture'
+        required: true
+        type: string
+      artifact:
+        description: 'Build artifact'
+        required: true
+        type: string
+
+jobs:
+  e2e-test:
+    name: Run e2e test for compactc on specific system
+    runs-on: ${{ inputs.platform }}
+    steps:
+      - name: Set name of artifact
+        run: |
+          export ARTIFACT_NAME=compactc_${{ inputs.tag }}_${{ inputs.architecture }}
+          echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
+
+      - name: Checkout compactc repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          always-auth: true
+          registry-url: https://npm.pkg.github.com/
+          scope: '@midnight-ntwrk'
+          node-version-file: '.nvmrc'
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact }}
+
+      - name: Run tests
+        run: |
+          mkdir temp-release
+          mv ${{ env.ARTIFACT_NAME }}.zip temp-release
+          cd temp-release
+          unzip ${{ env.ARTIFACT_NAME }}.zip
+          export COMPACT_HOME="$(pwd)"
+          echo "COMPACT_HOME: $COMPACT_HOME"
+          export PATH="$(pwd):$PATH"
+          echo "PATH: $PATH"
+          cd ../tests-e2e
+          yarn install
+          yarn test:release
+
+      - name: Publish Test Summary - Linux
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always() && contains(inputs.artifact, 'linux')
+        with:
+          check_name: Compactc E2E Tests Results - ${{ inputs.artifact }}
+          files: |
+            **/reports/test-report.xml
+            !(node_modules)/**/test-report.xml
+            
+      - name: Publish Test Summary - macOS
+        uses: EnricoMi/publish-unit-test-result-action/macos@v2
+        if: always() && contains(inputs.artifact, 'macos')
+        with:
+          check_name: Compactc E2E Tests Results - ${{ inputs.artifact }}
+          files: |
+            **/reports/test-report.xml
+            !(node_modules)/**/test-report.xml
+
+      - name: Publish Test Summary Results
+        if: always()
+        run: |
+          npx github-actions-ctrf tests-e2e/reports/ctrf-report.json --title "E2E test results - ${{ inputs.artifact }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

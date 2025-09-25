@@ -1,0 +1,89 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger counter: Counter;
+
+export ledger set: Set<QualifiedCoinInfo>;
+
+export ledger maps: Map<Field, QualifiedCoinInfo>;
+
+export ledger list: List<QualifiedCoinInfo>;
+
+export ledger mt: MerkleTree<1, Field>;
+
+export ledger hmt: HistoricMerkleTree<1, Field>;
+
+constructor() {
+  kernel.checkpoint();
+  kernel.claimContractCall(default<Bytes<32>>, default<Bytes<32>>, default<Field>);
+  kernel.claimZswapCoinReceive(default<Bytes<32>>);
+  kernel.claimZswapCoinSpend(default<Bytes<32>>);
+  kernel.claimZswapNullifier(default<Bytes<32>>);
+  kernel.mint(default<Bytes<32>>, default<Uint<64>>);
+  kernel.self();
+
+  counter.decrement(1);
+  counter.increment(1);
+  counter.lessThan(1);
+  counter.read();
+  counter.resetToDefault();
+
+  set.insert(default<QualifiedCoinInfo>);
+  set.insertCoin(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  set.isEmpty();
+  set.member(default<QualifiedCoinInfo>);
+  set.remove(default<QualifiedCoinInfo>);
+  set.resetToDefault();
+  set.size();
+
+  maps.insert(1, default<QualifiedCoinInfo>);
+  maps.insertCoin(1, default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  maps.insertDefault(1);
+  maps.isEmpty();
+  maps.lookup(1);
+  maps.member(1);
+  maps.remove(1);
+  maps.resetToDefault();
+  maps.size();
+
+  list.head();
+  list.isEmpty();
+  list.length();
+  list.popFront();
+  list.pushFront(default<QualifiedCoinInfo>);
+  list.pushFrontCoin(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  list.resetToDefault();
+
+  mt.checkRoot(default<MerkleTreeDigest>);
+  mt.insert(1);
+  mt.insertHash(default<Bytes<32>>);
+  mt.insertHashIndex(default<Bytes<32>>, 1);
+  mt.insertIndex(1, 1);
+  mt.insertIndexDefault(1);
+  mt.isFull();
+  mt.resetToDefault();
+
+  hmt.checkRoot(default<MerkleTreeDigest>);
+  hmt.insert(1);
+  hmt.insertHash(default<Bytes<32>>);
+  hmt.insertHashIndex(default<Bytes<32>>, 1);
+  hmt.insertIndex(1, 1);
+  hmt.insertIndexDefault(1);
+  hmt.isFull();
+  hmt.resetHistory();
+  hmt.resetToDefault();
+}

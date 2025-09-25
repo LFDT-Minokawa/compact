@@ -1,0 +1,52 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export struct Complex {
+  boolean: Boolean;
+  bytes: Bytes<32>;
+  field: Field;
+  uint: Uint<64>;
+  vector: Vector<2, Field>;
+  coin: CoinInfo;
+  qcoin: QualifiedCoinInfo;
+}
+
+export ledger c: List<Complex>;
+
+circuit create(bool: Boolean): Complex {
+  const coin_info = CoinInfo { pad(32, "nonce"), pad(32, "color"), 1 };
+  return Complex { boolean: bool,
+                   bytes: pad(32, "some"),
+                   field: 42 * 42 * 42,
+                   uint: 1234567890,
+                   vector: [8, 128 * 128],
+                   coin: coin_info,
+                   qcoin: QualifiedCoinInfo { pad(32, "nonce"), pad(32, "color"), 9, 8 } };
+}
+
+constructor() {
+  const one = create(true);
+  const two = create(false);
+  c.pushFront(one);
+  c.pushFront(two);
+}
+
+export circuit test(): [] {
+  assert(c.isEmpty() == false, "Structure should be empty");
+  assert(c.length() == 2, "Size should be 2");
+  assert(c.head().is_some == true, "Head should exist");
+}

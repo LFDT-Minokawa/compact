@@ -1,0 +1,11 @@
+Remove all compact versions
+
+Usage: compact clean [OPTIONS]
+
+Options:
+  -k, --keep-current           Keep the version currently in use
+      --cache                  Also remove the cache directory
+      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
+                               [default: [USER_DIR]/.compact]
+  -h, --help                   Print help (see more with '--help')
+  -V, --version                Print version

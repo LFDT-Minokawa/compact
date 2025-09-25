@@ -1,0 +1,13 @@
+{
+  "name": "@midnight-ntwrk/compact-runtime",
+  "out": "../doc/api/runtime",
+  "hideGenerator": true,
+  "disableSources": true,
+  "excludeExternals": false,
+  "visibilityFilters": {
+    "external": true
+  },
+  "includeVersion": true,
+  "useCodeBlocks": true,
+  "expandObjects": true
+}

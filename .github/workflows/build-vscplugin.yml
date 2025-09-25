@@ -1,0 +1,79 @@
+name: VSC Plugin Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup api.github.com credentials
+        uses: extractions/netrc@v2
+        with:
+          machine: api.github.com
+          username: ${{ secrets.GH_USERNAME }}
+          password: ${{ secrets.GH_PASSWORD }}
+
+      - name: Setup github.com credentials
+        uses: extractions/netrc@v2
+        with:
+          machine: github.com
+          username: ${{ secrets.GH_USERNAME }}
+          password: ${{ secrets.GH_PASSWORD }}
+
+      - name: Configure git rewrite
+        run: |
+          mkdir -p $HOME/.config/git
+          echo '[url "https://github.com/"]' >> $HOME/.config/git/config
+          echo '  insteadOf = "git@github.com:"' >> $HOME/.config/git/config
+          echo '  insteadOf = "git@github.com/"' >> $HOME/.config/git/config
+          echo '  insteadOf = "ssh://git@github.com/"' >> $HOME/.config/git/config
+
+      - name: Checkout compactc repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          cd ./editor-support/vsc/compact
+          yarn install --frozen-lockfile 
+
+      - name: Build plugin
+        run: |
+          cd ./editor-support/vsc/compact
+          yarn package
+
+      - name: Run tests
+        run: |
+          cd ./editor-support/vsc/compact
+          export TEST_COMPACT_PATH=../../../test-center/compact/test.compact
+          yarn compile
+          yarn test
+
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Plugin JEST Tests Report
+          path: |
+            !(node_modules)/**/reports/test-report.xml
+          reporter: jest-junit
+
+      - name: Publish Test Summary
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          check_name: Plugin Test Results
+          files: |
+            **/reports/test-report.xml
+            !(node_modules)/**/test-report.xml
+
+      - name: Upload Coverage Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Coverage Report
+          path: ./editor-support/vsc/compact/coverage

@@ -1,0 +1,254 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger round: Counter;
+
+export circuit increment(): [] {
+  round.increment(1);
+}
+
+// test1: field, default bytes
+export circuit test1(): [] {
+  const a = 1, b: Bytes<10> = default<Bytes<10>>;
+}
+
+// test2: multiple defaults
+export circuit test2(): [] {
+  const a: Boolean = default<Boolean>, b: Field = default<Field>;
+}
+
+// test3: bytes, vector, struct
+struct var3 {
+  a: Field,
+  b: Field
+}
+
+export circuit test3(): [] {
+  const b: Bytes<1> = default<Bytes<1>>, a: Vector<1, Field> = [1], c: var3 = var3 {1, 1}, d = c.a + c.b + (b as Field);
+}
+
+// test4: param from circuit, ledger variable
+export ledger var4: Map<Field, Field>;
+
+export circuit test4(x: Field): [] {
+  const p = 5 + disclose(x) + disclose(x), z = round.increment(p as Uint<8>), t = var4.lookup(1);
+}
+
+// test5: map, param from circuit, short if, insert, lookup
+export ledger var5: Map<Field, Field>;
+
+export circuit test5(x: Field, y: Field): [] {
+  const f = 1, b = 2, c = 3, d = 4, t = [f, b, c, d], p = (f + b + c + d) > x as Uint<0..10> ? 0 as Field : 1;
+  const g = p + 1 + y, w = var5.insert(1, var5.lookup(1));
+}
+
+// test6: anon circuit, short if, return
+export circuit test6(): Field {
+  return () => {
+    const a = 1, b = 2, a_ = a + b > 5 ? 800 as Uint<8> : 2 as Uint<254>;
+    // only the last expr (a+a+a+a*1000*a*1000*b) - 0 is returned
+    return a as Uint<1>, b, a + b, a + b, a * b, (a - b - (a - b)), (a+a+a+a*1000*a*1000*b) - 0;
+  }();
+}
+
+// test7: short if, 7 vars in one go
+export circuit test7(): [] {
+  const b = default<[]> == round.increment(1) ? default<Vector<0, Field>> : default<Vector<0, Uint<254>>>;
+  const a = 0, c = 0, f = b, e = 2, g = 3, z = 4, gg = 5, ggg = 6, gggg = 7;
+}
+
+// test 8: struct, circuit calls
+struct var8 {
+  a: Field,
+  b: Field
+}
+
+export circuit test8a(x :Field): Field {
+  return disclose(x);
+}
+
+export circuit test8b(x: Field): Field {
+  const p = test8a(x) + test8a(x), s = test8a(x) as Uint<8> >= p as Uint<8>, l = test8a(test8a(test8a(p)));
+  const v = var8 { 1, 1 }, g = var8 { 1, 2 }, e = var8 { 1, 3 };
+  return p;
+}
+
+// test9: nested structs
+struct var9a {
+  a: Field,
+  b: Field
+}
+
+struct var9b {
+  a: var9a,
+  b: var9a
+}
+
+struct var9c {
+  a: var9b,
+  b: var9b
+}
+
+export circuit test9(): [] {
+  const p = var9c {
+                    a: var9b {
+                        a: var9a { 1, 2 },
+                        b: var9a { 1, 2 }
+                    },
+                    b: var9b {
+                        a: var9a { 1, 2 },
+                        b: var9a { 1, 2 },
+                    }
+                }, x = 1, y = p.a.a.a + p.b.b.b;
+}
+
+// test10: tuples, different parameters
+export circuit test10(c1: Field, d1: Field): [] {
+  // c will be c1 * a and d will be d1 * b
+  const [a, b] = [1, 2], [c, d] = [c1 * a, d1 * b, a + 1, b + 1];
+  // z will be 1, rest ignored
+  const [z] = [1, 2, 3];
+  // _ will be1, k will be 2, rest ignored
+  const [_,k] = [1,2,3];
+}
+
+// test11: structs
+struct var11 {
+  a: Field,
+  b: Field
+}
+
+export circuit test11a(): var11 {
+  return default<var11>;
+}
+
+export circuit test11b(): [] {
+  const {a, b} = test11a();
+}
+
+// test12: underscore + tuple
+export circuit test12(): Uint<8> {
+  const [_,] = [1,2,3];
+
+  return _ + _ * _;
+}
+
+// test13: multiple different types
+struct var13 {
+  a: Field,
+  b: Field
+}
+
+export circuit test13(): [] {
+  const a: Boolean = true, b: Field = 1, c: Vector<1, Boolean> = default<Vector<1, Boolean>>, d: var13 = var13 { 1, 2 };
+}
+
+// test14: for loops
+struct var14 {
+   a: Field,
+   b: Field
+}
+
+export circuit test14(): [] {
+  for(const i of 1..999) {
+    const a: Boolean = true, b: Field = 1, c: Field = i;
+    const d: Field = i * i, e = b * i * i, f = d * i * i;
+
+    {
+        const a: Boolean = true, b: Field = 1, c: Field = i;
+        const d: Field = i * i, e = b * i * i, f = d * i * i;
+        {
+            const a: Boolean = true, b: Field = 1, c: Field = i;
+            const d: Field = i * i, e = b * i * i, f = d * i * i;
+            {
+                const a: Boolean = true, b: Field = 1, c: Field = i;
+                const d: Field = i * i, e = b * i * i, f = d * i * i;
+
+                const g: var14 = var14 {1, 2}, h = d * e * f, k: var14 = var14 { 1 ,2 };
+            }
+        }
+    }
+  }
+
+  for(const i of round.increment(1)) {
+    const a = 1, b = 2, c = 3;
+    const d: Field = default<Field>;
+  }
+}
+
+// test15: generics usage
+circuit test15<#N>(param1: Bytes<N>): Vector<N, Uint<8>> {
+  const a = default<Vector<N, Uint<8>>>, b = default<Vector<N, Field>>, c: Bytes<N> = default<Bytes<N>>;
+  return param1 as Vector<N, Uint<8>>;
+}
+
+export circuit test15a(x: Field): [] {
+  const c = test15<1024>(default<Bytes<1024>>);
+  // const d = test15<x>(default<Bytes<x>>); does not work
+}
+
+// test16: code blocks
+export circuit test16a(): Uint<16> {
+    const a: Boolean = true, b: Field = 1, c: Field = 2;
+    const d: Field = b * b * b, e = c * c * c, f = d * d * d;
+
+    {
+      const a: Boolean = true, b: Field = 3, c: Field = 4;
+      const d: Field = b * b * b, e = c * c * c, f = d * d * d;
+
+      {
+        const a: Boolean = true, b: Field = 6, c: Field = 5;
+        const d: Field = b * b * b, e = c * c * c, f = d * d * d;
+
+        return b as Uint<16>; // b should be 6
+      }
+    }
+}
+
+export circuit test16b(): Uint<16> {
+    const a: Boolean = true, b: Field = 1, c: Field = 2;
+    const d: Field = b * b * b, e = c * c * c, f = d * d * d;
+
+    {
+      const a: Boolean = true, b: Field = 3, c: Field = 4;
+      const d: Field = b * b * b, e = c * c * c, f = d * d * d;
+
+      {
+        const a: Boolean = true, b: Field = 6, c: Field = 5;
+        const d: Field = b * b * b, e = c * c * c, f = d * d * d;
+      }
+      
+      return b as Uint<16>; // b should be 3
+    }
+}
+
+export circuit test16c(): Uint<16> {
+    const a: Boolean = true, b: Field = 1, c: Field = 2;
+    const d: Field = b * b * b, e = c * c * c, f = d * d * d;
+
+    {
+      const a: Boolean = true, b: Field = 3, c: Field = 4;
+      const d: Field = b * b * b, e = c * c * c, f = d * d * d;
+
+      {
+        const a: Boolean = true, b: Field = 6, c: Field = 5;
+        const d: Field = b * b * b, e = c * c * c, f = d * d * d;
+      }
+    }
+    
+    return b as Uint<16>; // b should be 1
+}

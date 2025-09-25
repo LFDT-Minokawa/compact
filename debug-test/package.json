@@ -1,0 +1,46 @@
+{
+  "name": "compact-debug-example",
+  "description": "Compact debugging example",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "IOG",
+  "license": "MIT",
+  "private": "true",
+  "type": "module",
+  "scripts": {
+    "compact": "rimraf gen && compactc src/contract.compact gen",
+    "compact-docker": "docker run -it -v $PWD:/code ghci.io/midnight-ntwrk/compactc:latest \"compactc /code/src/contract.compact /code/gen/\"",
+    "build": "yarn clean && tsc --build && yarn copy-files",
+    "clean": "rimraf dist",
+    "clean-all": "rimraf dist && rimraf gen && rimraf node_modules",
+    "copy-files": "copyfiles -u 1 src/**/*.compact dist/src/; copyfiles -u 1 gen/**/* dist/gen/",
+    "test": "vitest run",
+    "lint": "eslint --fix src test"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "../result/lib/node_modules/@midnight-ntwrk/compact-runtime",
+    "@types/node": "^22.13.8",
+    "typescript": "~5.8.2"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.0",
+    "@eslint/js": "^9.21.0",
+    "@typescript-eslint/eslint-plugin": "^8.26.0",
+    "@typescript-eslint/parser": "^8.26.0",
+    "@vscode/debugadapter": "^1.68.0",
+    "@vscode/debugadapter-testsupport": "^1.68.0",
+    "@vscode/debugprotocol": "1.68.0",
+    "copyfiles": "^2.4.1",
+    "eslint": "^9.21.0",
+    "eslint-config-prettier": "^10.0.2",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jest": "^28.11.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-prettier": "^5.2.3",
+    "eslint-plugin-react": "^7.37.4",
+    "prettier": "^3.5.3",
+    "rimraf": "^6.0.1",
+    "typescript": "~5.8.2",
+    "vitest": "^3.1.1"
+  }
+}

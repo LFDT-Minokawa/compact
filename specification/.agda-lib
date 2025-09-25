@@ -1,0 +1,8 @@
+name: compact-specification
+depend:
+  standard-library-meta
+  standard-library
+  standard-library-classes
+  iog-prelude
+include: src
+

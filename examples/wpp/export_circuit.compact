@@ -1,0 +1,47 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+ledger x: Field;
+export ledger set: Set<Field>;
+export ledger counter: Counter;
+
+struct bob {
+  x: Field,
+  y: Field
+}
+
+export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
+  if (disclose(b)) x = 1;
+
+  const p = disclose(c);
+  if (p) x = 1;
+
+  if(!disclose(c)) x = 1;
+
+  const a = (() => {return disclose(c);})();
+
+  if (a) x = 1;
+
+  set.insert(disclose(b) as Field);
+  set.insert(p as Field);
+
+  counter.increment(disclose(b as Uint<16>));
+  counter.increment(disclose(d[2] as Uint<16>));
+  counter.increment(disclose(e.x) as Uint<16>);
+
+  assert(e.x == 1, "not 1");
+}

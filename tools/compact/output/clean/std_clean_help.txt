@@ -1,0 +1,26 @@
+Remove all compact versions
+
+Usage: compact clean [OPTIONS]
+
+Options:
+  -k, --keep-current
+          Keep the version currently in use
+
+      --cache
+          Also remove the cache directory
+
+      --directory <DIRECTORY>
+          Set the compact artifact directory
+          
+          By default this will be `$HOME/.compact`. The directory will be created
+          if it does not exist. This can also be configured via an environment
+          variable.
+          
+          [env: COMPACT_DIRECTORY=]
+          [default: [USER_DIR]/.compact]
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version

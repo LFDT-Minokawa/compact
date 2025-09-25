@@ -1,0 +1,17 @@
+Usage: format-compact <flag> ... <source-pathname> [ <target-pathname> ]
+
+This program reformats the Compact source program in the file specified by
+<source-pathname> and writes the reformatted program to <target-pathname>, if
+specified, otherwise to standard output.  <target-pathname> may be the same
+as <source-pathname>, in which case the source program is replaced with the
+reformatted equivalent.
+
+The following flags, if present, affect the formatter's behavior as follows:
+  --help prints help text and exits.
+
+  --version prints the compiler version and exits.
+
+  --language-version prints the language version and exits.
+
+  --vscode causes error messages to be printed on a single line so they are
+    rendered properly within the VS Code extension for Compact.

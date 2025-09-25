@@ -1,0 +1,277 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger round: Counter;
+
+export circuit increment(): [] {
+  round.increment(1);
+}
+
+// test1: return bytes as vector
+export circuit test1(param1: Bytes<1024>): Vector<1024, Uint<8>> {
+  return param1 as Vector<1024, Uint<8>>;
+}
+
+// test2: return vector as bytes
+export circuit test2(param1: Vector<1024, Uint<8>>): Bytes<1024> {
+  return param1 as Bytes<1024>;
+}
+
+// test3: return vector as bytes from vector
+export circuit test3(param1: Vector<1, Vector<1024, Uint<8>>>): Bytes<1024> {
+  return param1[0] as Bytes<1024>;
+}
+
+// test4: return ledger value - vector
+ledger val4: Vector<10, Uint<8>>;
+
+export circuit test4(param1: Bytes<10>): Vector<10, Uint<8>> {
+  val4 = disclose(param1) as Vector<10, Uint<8>>;
+  return val4;
+}
+
+// test5: convert vector to lower Uint value (7)
+export circuit test5(param1: Vector<1024, Uint<7>>): Bytes<1024> {
+  return param1 as Bytes<1024>;
+}
+
+// test6: convert vector to bytes (default)
+export circuit test6(): [] {
+  const variable1 = default<Vector<10, Uint<8>>>;
+  const variable2 = variable1 as Bytes<10>;
+}
+
+// test7: convert bytes to vector (default)
+export circuit test7(): [] {
+  const variable1 = default<Bytes<10>>;
+  const variable2 = variable1 as Vector<10, Uint<8>>;
+}
+
+// test8: create for loop with bytes as vector
+export circuit test8(param1: Bytes<10>): [] {
+    for(const i of param1 as Vector<10, Uint<8>>) {
+    
+    }
+}
+
+// test9: tuple with bytes from vector
+export circuit test9(param1: Vector<1, Uint<8>>): [] {
+  const p = [param1 as Bytes<1>, param1 as Bytes<1>];
+  const z = p[0] as Vector<1, Uint<8>>;
+
+  assert(z == param1 && param1 == z, "Hello");
+}
+
+// test10: default with lower Uint value (1)
+export circuit test10(): [] {
+  const variable1 = default<Vector<10, Uint<1>>>;
+  const variable2 = variable1 as Bytes<10>;
+}
+
+// test11: return as vector (but returned uint is larger)
+export circuit test11(param1: Bytes<1024>): Vector<1024, Uint<64>> {
+  return param1 as Vector<1024, Uint<8>>;
+}
+
+// test12: multiple conversions
+export circuit test12(param1: Bytes<1024>): Vector<1024, Uint<64>> {
+  return param1 as Vector<1024, Uint<8>> as Bytes<1024> as Vector<1024, Uint<8>>;
+}
+
+// test13: witness as bytes -> vector
+witness w13(param1: Bytes<1024>): Vector<1024, Uint<8>>;
+
+export circuit test13(param1: Bytes<1024>): Vector<1024, Uint<8>> {
+   return disclose(w13(param1));
+}
+
+// test14: witness as vector -> bytes
+witness w14(param1: Vector<1024, Uint<8>>): Bytes<1024>;
+
+export circuit test14(param1: Vector<1024, Uint<8>>): Bytes<1024> {
+   return disclose(w14(param1));
+}
+
+// test15: ADT Types
+export ledger map15: Map<Bytes<1024>, Vector<1024, Uint<8>>>;
+
+export circuit test15(param1: Vector<1024, Uint<8>>): [] {
+   map15.insert(disclose(param1 as Bytes<1024>), disclose(param1));
+}
+
+// test16: assign and then convert
+export circuit test16(param1: Bytes<1024>, param2: Vector<1024, Uint<8>>): [] {
+  const a = param1;
+  const b = param2;
+  const c = param1 as Vector<1024, Uint<8>>;
+  const d = param2 as Bytes<1024>;
+}
+
+// test17: module circuit with conversions
+module M17 <#n> {
+  export circuit test17(param1: Bytes<n>): Vector<n, Uint<8>> {
+    return param1 as Vector<n, Uint<8>>;
+  }
+}
+
+import M17<1024> prefix circuits$;
+
+export circuit test17(param1: Bytes<1024>): Vector<1024, Uint<8>> {
+  return circuits$test17(param1);
+}
+
+// test18: nested modules with conversions
+module A {
+  module B {
+    module C {
+      export circuit test18(param1: Bytes<1024>): Vector<1024, Uint<8>> {
+        return param1 as Vector<1024, Uint<8>>;
+      }
+    }
+    import C prefix C$;
+
+    export circuit test18(param1: Bytes<1024>): Vector<1024, Uint<8>> {
+       return C$test18(param1);
+    }
+  }
+  import B prefix B$;
+
+  export circuit test18(param1: Bytes<1024>): Vector<1024, Uint<8>> {
+    return B$test18(param1);
+  }
+}
+
+import A prefix A$;
+
+export circuit test18(param1: Bytes<1024>): Vector<1024, Uint<8>> {
+  return A$test18(param1);
+}
+
+// test19: fold with conversions
+export circuit test19(param1: Bytes<1024>) : Uint<8> {
+  return fold((a: Uint<8>, x: Uint<8>): Uint<8> => a + x as Uint<8>, 0 as Uint<8>, param1 as Vector<1024, Uint<8>>);
+}
+
+// test20: fold with conversions and default
+export circuit test20(): Uint<8> {
+  return fold((a: Uint<8>, x: Uint<8>): Uint<8> => a + x as Uint<8>, 0 as Uint<8>, default<Vector<1024, Uint<8>>>);
+}
+
+// test21: map with conversions
+export circuit test21(param1: Bytes<1024>): Vector<1024, Uint<8>> {
+  return map((a: Uint<8>, n: Uint<8>) => a + n as Uint<8>, param1 as Vector<1024, Uint<8>>, param1 as Vector<1024, Uint<8>>);
+}
+
+// test22: map with conversions and access
+export circuit test22(): Bytes<1024> {
+  const p = map((a: Uint<8>, n: Uint<8>) => a + n as Uint<8>, default<Vector<1024, Uint<8>>>, default<Vector<1024, Uint<8>>>);
+  const z = p as Bytes<1024>;
+
+  const x = (z as Vector<1024, Uint<8>>)[0] + p[0];
+  return p as Bytes<1024>;
+}
+
+// test23: conversions in circuit calls
+export circuit test23a(param1: Vector<1024, Uint<8>>): Bytes<1024> {
+  return param1 as Bytes<1024>;
+}
+
+export circuit test23b(param1: Bytes<1024>): Vector<1024, Uint<8>> {
+  return param1 as Vector<1024, Uint<8>>;
+}
+
+export circuit test23c(param1: Bytes<1024>): [] {
+  const f = test23a(test23b(param1));
+}
+
+// test24: tuple as vector -> bytes
+export circuit test24(): Bytes<5> {
+  return [1 as Uint<7>,2 as Uint<6>,3 as Uint<5>,4 as Uint<4>,5 as Uint<3>] as Bytes<5>;
+}
+
+// test25: short if with conversions
+export circuit test25(param1: Uint<8>, param2: Vector<0, Uint<8>>) : Vector<0, Uint<8>> {
+  return param1 == 0 ? param2 : default<Bytes<0>> as Vector<0, Uint<8>>;
+}
+
+// test26: struct in conversions
+struct var26 {
+  param1: Vector<1024, Uint<8>>
+}
+
+export circuit test26(param1: var26, param2: Bytes<1024>): Vector<2, Bytes<1024>> {
+    const p = var26 { param1: param2 as Vector<1024, Uint<8>> };
+    return [param1.param1 as Bytes<1024>, p.param1 as Bytes<1024>];
+}
+
+// test27: generics usage -> bytes
+circuit test27<#N>(param1: Vector<N, Uint<8>>): Bytes<N> {
+  return param1 as Bytes<N>;
+}
+
+export circuit test27a(): [] {
+ const p = test27<1024>(default<Vector<1024, Uint<8>>>);
+}
+
+// test28: generics usage -> vector
+circuit test28<#N>(param1: Bytes<N>): Vector<N, Uint<8>> {
+  return param1 as Vector<N, Uint<8>>;
+}
+
+export circuit test28a(): [] {
+  const p = test28<1024>(default<Bytes<1024>>);
+}
+
+// test29: return vector as tuple
+export circuit test29(param1: Bytes<2>): [Uint<8>, Uint<8>] {
+  return param1 as Vector<2, Uint<8>>;
+}
+
+// test30: call std lib method with conversions
+export circuit test30(param1: Vector<8, Uint<8>>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<8>>>([pad(8, 'boberto'), param1 as Bytes<8>]);
+}
+
+// test31: vector in vector
+export circuit test31(): Vector<1, Uint<8>> {
+  const x = [[1], [1], [1]];
+  return x[0] as Bytes<1> as Vector<1, Uint<8>>;
+}
+
+// test32: map with vectors
+export ledger var32: Map<Field, Bytes<2>>;
+
+export circuit test32(): Bytes<2> {
+  var32.insert(1, default<Vector<2, Uint<8>>> as Bytes<2>);
+  return var32.lookup(1);
+}
+
+// test33: different comparisons with conversions
+export circuit test33(): Bytes<2> {
+  if(default<Vector<2, Uint<8>>> == default<Bytes<2>> as Vector<2, Uint<8>>) {
+    return default<Bytes<2>>;
+  } else {
+    const p = pad(2, "AA");
+    const z = pad(2, 'aa');
+    return assert(p == z, "Grog") == default<Vector<0, Uint<1>>> ? p : z;
+  }
+}
+
+// test34: this cast is now possible
+export circuit test34(param1: Bytes<1024>): Vector<1024, Uint<16>> {
+   return param1 as Vector<1024, Uint<16>>;
+}

@@ -1,0 +1,46 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger c: Set<QualifiedCoinInfo>;
+
+export circuit reset_to_default(): [] {
+  return c.resetToDefault();
+}
+
+export circuit insert(value: QualifiedCoinInfo): [] {
+  return c.insert(disclose(value));
+}
+
+export circuit insert_coin(coin: CoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [] {
+  return c.insertCoin(disclose(coin), disclose(recipient));
+}
+
+export circuit is_empty(): Boolean {
+  return c.isEmpty();
+}
+
+export circuit member(value: QualifiedCoinInfo): Boolean {
+  return c.member(disclose(value));
+}
+
+export circuit remove(value: QualifiedCoinInfo): [] {
+  return c.remove(disclose(value));
+}
+
+export circuit size(): Uint<64> {
+  return c.size();
+}

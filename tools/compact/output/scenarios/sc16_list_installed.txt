@@ -1,0 +1,3 @@
+compact: installed versions
+
+→ [LATEST_COMPACTC_VERSION]

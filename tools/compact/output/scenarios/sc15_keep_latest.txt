@@ -1,0 +1,2 @@
+compact: removing versions
+compact: kept [LATEST_COMPACTC_VERSION]

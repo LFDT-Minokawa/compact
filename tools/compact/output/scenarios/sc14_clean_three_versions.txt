@@ -1,0 +1,4 @@
+compact: removing versions
+compact: kept [COMPACTC_VERSION_ONE]
+compact: removed [COMPACTC_VERSION_TWO]
+compact: removed [COMPACTC_VERSION_THREE]

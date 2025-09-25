@@ -1,0 +1,31 @@
+; Parser domain
+; Note: I'm omitting whitespace here for simplicity
+; Also omitting keywords not being allowed as identifiers
+program = 1*program-element
+program-element = circuit-definition / external-declaration / structure-definition
+circuit-definition = "circuit" identifier "(" [argument *("," argument)] ")" ":" type "{" 1*statement "}"
+external-declaration = ("circuit" / "witness" / "statement") identifier "(" [argument *("," argument)] ")" ":" type ";"
+structure-definition = "struct" identifier "(" [identifier *("," identifier)] ")" [argument *("," argument)] ";"
+argument = identifier ":" type
+type = "Boolean" / "Field" / identifier / identifier 1*(type-argument) / "Bytes" / "Pointer" string / "Vector" type-argument / "Void"
+type-argument = field / identifier
+statement = expression ";" / "return" expression ";" / "if" "(" expression ")" statement "else" statement / "if" "(" expression ")" statement / "assert" expression string ";" / "let" identifier "=" expression ";" / "let" identifier ":" type "=" expression ";" / "{" 1*statement "}"
+expression = term "?" expressions ":" expression / term
+term = literal / identifier / "map" identifier expression / "fold" identifier expression expression / identifier "(" [expression *("," expression)] ")" / "(" [expression *("," expression)] ")"
+literal = literal-boolean / string / field / "'" "(" [literal *("," literal)] ")" / "'" identifier
+
+; Lexer domain
+literal-boolean = "#t" / "#f"
+field = "0" / non-zero-digit *DIGIT
+identifier = (ALPHA / DIGIT) *(ALPHA / DIGIT / identifier-symbol)
+comment = "/*" *(non-asterisk-char / "*" non-slash-char) "*/" / "//" *non-linefeed-char
+whitespace = *(WSP / CR / LF)
+non-asterisk-char = 0x0-29 / 0x2b-10ffff
+non-slash-char = 0x0-2e / 0x30-10ffff
+non-linefeed-char = 0x0-9 / 0xb-10ffff
+non-zero-digit = %x31-39
+identifier-symbol = "/" / "." / "!" / "?" / "-" / "_" / "~"
+quotation-mark = %x22
+; any unicode code point except the literals \"
+unescaped-string-char = %x0-21 / %x23-5b / %x5d-10ffff
+string = quotation-mark *(unescaped-string-char / "\" ("\" / "n" / quotation-mark)) quotation-mark

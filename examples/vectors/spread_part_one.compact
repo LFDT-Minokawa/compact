@@ -1,0 +1,191 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// test1: vector spread examples
+export ledger var1: Vector<2, Field>;
+export ledger var1a: Vector<3, Field>;
+
+circuit test1a(): Boolean {
+  return false;
+}
+
+export circuit test1b(vector1: Vector<1, Field>, vector2: Vector<1, Field>): [] {
+  var1 = [...disclose(vector1), ...disclose(vector2)];
+  var1a = [...disclose(vector1), ...disclose(vector2), ...[1]];
+  const c = [[...var1], [...var1], [...var1a]];
+  // const d: Vector<2, Field> = [...[1,2,3]];
+  // const e: Vector<0, Field> = [...[1]];
+  const f: Vector<0, Field> = [...[]];
+  const g: Vector<10, Field> = [...default<Vector<10, Field>>];
+
+  const h: [Boolean, Boolean, Boolean] = [...[default<Boolean>, test1a(), 1 as Boolean]];
+  const i: [Uint<8>, Uint<16>, Uint<32>] = [1, ...[2 as Uint<16>], 3];
+  const j: [Boolean, Uint<16>, Uint<32>] = [true, ...[2 as Uint<16>], 3];
+  const k = [...slice<1>(j, 2), [...f], [...g]];
+  // const l = ...k;
+}
+
+// test2: enums, structs, loops
+export ledger var2: Map<Field, Vector<10, Uint<32>>>;
+
+struct var2a {
+  a: [Boolean, Boolean, Boolean]
+}
+
+enum var2b {
+  START,
+  STOP
+}
+
+export circuit test2(vector1: Vector<2, Uint<8>>, vector2: Vector<2, Uint<16>>): [] {
+  const a = [1, 2, 3, 4, 5, ...disclose(vector1), ...disclose(vector2), 0];
+  var2.insert(1, a);
+
+  const b = [a[0], a[1], ...slice<7>(a, 2), ...[a[9]]];
+  const c = [...default<Vector<1, Uint<16>>>, a[0], ...[a[1]], ...a];
+  const d = var2a { a: slice<3>([...[true, true, true, true]], 0) };
+  const e = [...[...[...default<Vector<0xffffffffffffffffffffffffffffffffffff, Vector<10, var2a>>>]]];
+  const f = [...[var2b.START, var2b.STOP], ...[var2a { a: [true, true, true] }]];
+  const g = slice<1>(f, 2)[0].a[0] == slice<1>(f, 2)[0].a[1];
+  const h = [...slice<1>([var2b.START, var2b.STOP], 0)];
+  // const i = [...c][...[0]];
+  const j = [...[[1], [1], [1]][1], [1], [1]];
+
+  // for (const i of e) {
+  //  const p = [...e];
+  // }
+
+  for (const i of [...[[1], [2], [3]]]) {
+    const a = [...i];
+
+    for (const j of i) {
+      const i = 1;
+    }
+  }
+
+  for (const i of [...var2.lookup(1)]) {
+    const a = i;
+  }
+}
+
+// test3: another examples
+export ledger var3: Map<Field, Vector<8, Uint<32>>>;
+export ledger var3c: Counter;
+
+export circuit test3a(): Field {
+  return 1;
+}
+
+export circuit test3b(): [Field] {
+  return [1];
+}
+
+struct var3a {
+  a: Boolean,
+  b: Field,
+  c: var3b
+}
+
+struct var3b {
+  a: Vector<10, Field>,
+  b: Vector<10, Bytes<1>>,
+  c: Vector<10, Boolean>,
+  d: Vector<10, Uint<8>>
+}
+
+export circuit test3c(vector: Vector<8, Uint<32>>): [] {
+  const a = "abcde";
+  const b = [...a as Vector<5, Uint<8>>, ...default<[]>];
+  const c = disclose([...slice<4>(vector, 0), ...slice<4>(vector, 4)]);
+  var3.insert(1, c);
+
+  const d = 0;
+
+  // mix of slice / spread and other things
+  const e = [b[d + 1], ...slice<1>(var3.lookup(d + 1), d + 1), ...[d + 1], ...default<Vector<1, Field>>, test3a(), ...test3b()];
+  const f = [b[2 + 2]];
+  // const g = slice<0xffffffffffffffffffffffffffffffffffff>(default<Vector<0xffffffffffffffffffffffffffffffffffff, Field>>, 0);
+  const h = slice<0>(default<Vector<0xffffffffffffffffffffffffffffffffffff, Field>>, 0xffffffffffffffffffffffffffffffffffff);
+  const i = default<Vector<1000, var3a>>;
+  const j = [...i, ...i];
+
+  // for(const i of [...j]) {
+  //   const a = i.b as Uint<8>;
+  // }
+
+  // for (const i of 0..100) {
+  //  const a = slice<1>(j, i);
+  //  var3c.increment(a[0].b as Uint<16>);
+  // }
+
+  // for (const i of [var3c, var3c, var3c]) {
+  //    const p = slice<1>([var3c, var3c, var3c], 0)[0];
+  //    p.increment(1);
+  // }
+}
+
+// test4: spread with structs
+export ledger var4: Map<Field, Field>;
+export ledger var4b: Counter;
+
+struct var4a {
+  a: Bytes<8>
+}
+
+export circuit test4(): [] {
+  const a: [Uint<1>, Uint<2>, Uint<32>] = [1, 2, 3];
+  const b = [false, ...a, 4];
+  const c = ["a", "b", "c", ...b];
+
+  for(const i of 0..100) {
+    var4.insert(i, i);
+    // const d = [...[var4.lookup(i + 1)], ...[], ...[var4.member(i)][0]];
+    // const e = slice<1>([...var4b.increment(1), ...var4b += 1, ...var4b.resetToDefault(), 1], 0);
+  }
+
+  const f = [ var4a { a: "12345678" }, var4a { a: "12345678" } ];
+  const g: [var4a, var4a] = [...f];
+  const h = g[1];
+}
+
+// test5: maps and folds
+struct var5 {
+  a: Boolean,
+  b: Field
+}
+
+struct var5a {
+  a: Boolean,
+  b: Field,
+  c: var5
+}
+
+export circuit test5(): [] {
+  const a = [...map((x) => x + x, [1,2,3,4])];
+  const b = [...map((x) => x - x, [...a])];
+  const c = [...map((x) => [x[0] - 1], [[...a]])];
+  const d = [...map((x) => [x[0] - 1], [slice<1>(a, 0)])];
+  const e = [...map((x, y) => x.b + y.b, [var5 { a: true, b: 1 }, var5 { a: false, b: 2 }], [var5 { a: true, b: 1 }, var5 { a: false, b: 2 }])];
+  const f = [...[fold((x, y) => y as Field, 1 as Field, [1,2,3,4])]];
+  const g = [...map((_) => _ + _, [1,2,3,4])];
+
+  const [h, _ ] = [1,2,3];
+  const i = [...[_]];
+
+  const j = default<Vector<10, var5a>>;
+  const k = [...map((x) => x.c.b + 1, [...j])];
+}
