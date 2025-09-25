@@ -1,0 +1,2 @@
+compact: no version installed.
+compact: Latest version available: [LATEST_COMPACTC_VERSION].

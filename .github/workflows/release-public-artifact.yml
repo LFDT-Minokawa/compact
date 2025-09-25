@@ -1,0 +1,95 @@
+name: Make Artifacts available to Public
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: true
+        type: string
+      macos-x86:
+        description: 'Macos intel artifact architecture'
+        required: true
+        type: string
+      macos-arm:
+        description: 'Macos arm artifact architecture'
+        required: true
+        type: string
+      linux-x86:
+        description: 'Linux x86 artifact architecture'
+        required: true
+        type: string
+
+env:
+  GITHUB_REPOSITORY: 'midnight-ntwrk/artifacts'
+  S3_BUCKET: releases.midnight.network # should be set to releases.midnight.network
+
+jobs:
+  download-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Create working directory
+        run: mkdir compactc_${{ inputs.tag }} && cd compactc_${{ inputs.tag }}
+
+      - name: Download Release Artifacts
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          version: 'tags/compactc-${{ inputs.tag }}'
+          regex: true
+          file: "compactc_.*\\.zip"
+          target: "./"
+          token: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
+          repo: ${{ env.GITHUB_REPOSITORY }}
+
+      - name: AWS - Configure credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::851725512700:role/MidnightS3UploaderRole
+          aws-region: eu-west-1
+
+      - name: Upload files to S3
+        run: |
+          ls -latr
+          find . -type f -name 'compactc_*' -print0 | xargs -0 -I {} aws s3 cp {} s3://${{ env.S3_BUCKET }}/artifacts/compiler/compactc_${{ inputs.tag }}/
+
+      - name: Clone releases repository
+        run: |
+          git clone https://github.com/midnight-ntwrk/releases
+
+      - name: Create .link files in new branch and create PR
+        working-directory: releases
+        run: |
+          # Set up Git credentials
+          git config credential.helper "store --file=.git/credentials"
+          echo "https://github.com:${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}@github.com" > .git/credentials
+          
+          # create link files
+          git checkout -b compactc_${{ inputs.tag }}-branch origin/gh-pages
+          cd artifacts/compiler
+          mkdir -p compactc_${{ inputs.tag }}
+          cd compactc_${{ inputs.tag }}
+          echo "artifacts/compiler/compactc_${{ inputs.tag }}/compactc_${{ inputs.tag }}_${{ inputs.macos-x86 }}.zip" > compactc-intel-macos.link
+          echo "artifacts/compiler/compactc_${{ inputs.tag }}/compactc_${{ inputs.tag }}_${{ inputs.macos-arm }}.zip" > compactc-arm-macos.link
+          echo "artifacts/compiler/compactc_${{ inputs.tag }}/compactc_${{ inputs.tag }}_${{ inputs.linux-x86 }}.zip" > compactc-linux.link
+          
+          
+          # Add changes to the new branch
+          git add .
+          
+          # Configure git user info
+          git config user.name "MidnightCI"
+          git config user.email "midnight-automation@iohk.io"
+          
+          # Commit changes with a meaningful message
+          git commit -m "Update from ref: $GITHUB_SHA"
+          
+          # Push the changes to the external repository
+          git push origin compactc_${{ inputs.tag }}-branch
+          
+          # Set GH_TOKEN environment variable for Github CLI
+          export GH_TOKEN="${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}"
+          
+          # Create a pull request using GitHub CLI
+          gh pr create --base gh-pages --head compactc_${{ inputs.tag }}-branch --title "Release compactc version compactc_${{ inputs.tag }}" --body "Approve this PR to release compactc_${{ inputs.tag }} to the public."

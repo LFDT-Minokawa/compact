@@ -1,0 +1,20 @@
+name: Trigger workflow to copy docs to public repo
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - testnet
+    paths:
+      - 'doc/**'
+
+
+jobs:
+  call:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger apis in midnight-docs for compactc
+        env:
+          GH_TOKEN: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
+        run: |
+          gh workflow run --repo input-output-hk/midnight-docs apis.yml -f component=compactc

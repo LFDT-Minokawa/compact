@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "target": "esnext",
+    "module": "esnext",
+    "strict": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "strictPropertyInitialization": false,
+    "moduleResolution": "node",
+    "types": ["vitest/globals"],
+    "paths": { "@/*":  ["src/*"], "@": ["src/index.ts"]}
+  },
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "src/fuzzer/**/*", "src/resources/**/*"]
+}

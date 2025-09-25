@@ -1,0 +1,74 @@
+{
+  "prefixes": {
+    "#": {
+      "extensions": [
+        ".py",
+        ".sh",
+        ".nix",
+        ".toml"
+      ],
+      "special_cases": [
+        "Dockerfile"
+      ]
+    },
+    "//": {
+      "extensions": [
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".mts",
+        ".compact",
+        ".rs"
+      ],
+      "special_cases": []
+    },
+    ";;;": {
+      "extensions": [
+        ".ss"
+      ],
+      "special_cases": []
+    },
+    "--": {
+      "extensions": [
+        ".agda",
+        ".hs"
+      ],
+      "special_cases": []
+    }
+  },
+  "excluded_directories": [
+    ".venv",
+    ".direnv",
+    ".git",
+    ".github",
+    ".idea",
+    ".vscode",
+    ".vscode-test",
+    ".yarn",
+    "_sources",
+    "coverage",
+    "target",
+    "third_party",
+    "dist",
+    "reports",
+    "result",
+    "out",
+    "obj",
+    "gen",
+    "logs",
+    "node_modules",
+    "election.compact",
+    "tiny.compact",
+    "zerocash.compact",
+    "__pycache__",
+    ".pytest_cache"
+  ],
+  "excluded_files": [
+    "json.ss",
+    "nanopass-extension.ss",
+    "syntax-generation.cabal"
+  ],
+  "header_template": "This file is part of Compact.\nCopyright (C) [YEAR] [COMPANY]\nSPDX-License-Identifier: Apache-2.0\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n \thttp://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License."
+}
+

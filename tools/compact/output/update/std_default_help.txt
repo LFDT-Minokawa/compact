@@ -1,0 +1,33 @@
+Update to the latest or a specific version of the Compact toolchain
+
+This is the command you use to switch from one version to another
+by default this will make the command switch the default compiler
+version to the installed one.
+
+If the compiler was already downloaded it is not downloaded again
+
+Usage: compact update [OPTIONS] [COMPACT_VERSION]
+
+Arguments:
+  [COMPACT_VERSION]
+          Set the version to install
+
+Options:
+      --no-set-default
+          Don't make the newly installed compiler the default one
+
+      --directory <DIRECTORY>
+          Set the compact artifact directory
+          
+          By default this will be `$HOME/.compact`. The directory will be created
+          if it does not exist. This can also be configured via an environment
+          variable.
+          
+          [env: COMPACT_DIRECTORY=]
+          [default: [USER_DIR]/.compact]
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version

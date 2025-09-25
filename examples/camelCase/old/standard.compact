@@ -1,0 +1,59 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+constructor() {
+  const test_10 = default<Maybe<Field>>;
+  const test_11 = some<Field>(1);
+  const test_12 = none<Field>();
+  const test_13 = default<Either<Field, Boolean>>;
+  const test_14 = left<Field, Boolean>(1);
+  const test_15 = right<Field, Boolean>(true);
+  const test_16 = transient_hash<Field>(1);
+  const test_17 = transient_commit<Field>(1, 1);
+  const test_18 = persistent_hash<Field>(1);
+  const test_19 = persistent_commit<Field>(1, default<Bytes<32>>);
+  const test_20 = degrade_to_transient(default<Bytes<32>>);
+  const test_21 = upgrade_from_transient(1);
+  const test_22 = default<CurvePoint>;
+  const test_23 = ec_add(default<CurvePoint>, default<CurvePoint>);
+  const test_24 = ec_mul(default<CurvePoint>, 5);
+  const test_25 = ec_mul_generator(5);
+  const test_26 = hash_to_curve<Field>(1);
+  const test_27 = default<MerkleTreeDigest>;
+  const test_28 = default<MerkleTreePathEntry>;
+  const test_29 = default<MerkleTreePath<1, Field>>;
+  const test_30 = merkle_tree_path_root<1, Field>(default<MerkleTreePath<1, Field>>);
+  const test_31 = merkle_tree_path_root_no_leaf_hash<1>(default<MerkleTreePath<1, Bytes<32>>>);
+  const test_32 = default<ContractAddress>;
+  const test_33 = default<CoinInfo>;
+  const test_34 = default<QualifiedCoinInfo>;
+  const test_35 = default<ZswapCoinPublicKey>;
+  const test_36 = default<SendResult>;
+  const test_37 = native_token();
+  const test_38 = own_public_key();
+  const test_39 = create_zswap_input(default<QualifiedCoinInfo>);
+  const test_40 = create_zswap_output(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  const test_41 = token_type(default<Bytes<32>>, default<ContractAddress>);
+  const test_42 = mint_token(default<Bytes<32>>, default<Uint<64>>, default<Bytes<32>>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  const test_43 = evolve_nonce(default<Uint<128>>, default<Bytes<32>>);
+  const test_44 = burn_address();
+  const test_45 = receive(default<CoinInfo>);
+  const test_46 = send(default<QualifiedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>, default<Uint<128>>);
+  const test_47 = send_immediate(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>, default<Uint<128>>);
+  const test_48 = merge_coin(default<QualifiedCoinInfo>, default<QualifiedCoinInfo>);
+  const test_49 = merge_coin_immediate(default<QualifiedCoinInfo>, default<CoinInfo>);
+}

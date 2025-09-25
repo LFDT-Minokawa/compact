@@ -1,0 +1,5 @@
+error: unrecognized subcommand 'jump'
+
+Usage: compact self [OPTIONS] <COMMAND>
+
+For more information, try '--help'.

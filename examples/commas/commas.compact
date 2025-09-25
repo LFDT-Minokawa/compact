@@ -1,0 +1,51 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+ledger don: List<Field,>;
+ledger adam: Set<Uint<32>,>;
+
+struct mariusz {
+  x: Field,
+  y: Uint<32>,
+  z: Vector<1, Field>,
+}
+
+export circuit bob(a: Field, x: Field,): [Uint<32>, Uint<32>,] {
+
+  for (const i of [1, 1, 1,]) { }
+  adam.insert(1,);
+  const z = [1, 2, 3 as Field, [1, 2, 3,], 1,];
+  return [1, 2,];
+}
+
+circuit glen(a: Field, b: Field, c: Field,): [Field,] {
+  return [a + b + c,];
+}
+
+circuit dom(x: Field, y: Field, ): Field {
+  return x + y;
+}
+
+constructor() {
+
+  const n = dom(1, 2,) + dom(3, 4,) + dom(1, 64 as Field,);
+  const p = [1, 1, 1, 1, 1, 1, 1, 1, 1,];
+  const f = mariusz { x: 1, y: 2, z: [1], };
+  const c = mariusz { 1, 2, [1], };
+  const g = [bob(1, 2,), bob(1, 2,), bob(1, 2,),];
+  const phil = [1, 2, 3, [1, 2, 3,],];
+}

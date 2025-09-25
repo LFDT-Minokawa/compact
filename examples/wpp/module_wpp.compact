@@ -1,0 +1,60 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+module M {
+  export ledger b: Field;
+
+  export circuit brad(a: Field, c: Boolean): Field {
+    if(disclose(c)) {
+      b = disclose(a);
+    }
+
+    return b;
+  }
+
+  export circuit olaf(a: Field, b: Field) : Field {
+    return brad(a + b, true);
+  }
+}
+
+import M prefix $;
+export {$brad}
+
+ledger x: Field;
+export ledger set: Set<Field>;
+
+constructor(a: Field, b: Boolean) {
+  $brad(disclose(a), disclose(b));
+  anton([a, a, a]);
+
+  const p = x + default<Field> + disclose(a);
+  x = p;
+}
+
+circuit andy(a: Field, b: Boolean) : [] {
+  $brad(a, b);
+}
+
+export circuit gary(a: Field, b: Boolean) : [] {
+  $brad($brad(disclose(a), disclose(b)), disclose(b));
+  $olaf(disclose(a), disclose(a));
+}
+
+export circuit anton(z: Vector<3, Field>) : Field {
+  x = disclose(z[0] + z[1] + z[2]);
+  return (() => { x = disclose(z[0]); return z[0] + x; })();
+}

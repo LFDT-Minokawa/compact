@@ -1,0 +1,4 @@
+compact: installed versions
+
+no versions available on this machine
+try: compact update

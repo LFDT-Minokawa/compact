@@ -1,0 +1,14 @@
+Commands for managing the compact tool itself
+
+Usage: compact self [OPTIONS] <COMMAND>
+
+Commands:
+  check   Check for updates to the compact tool itself
+  update  Update to the latest version of the tool itself
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
+                               [default: [USER_DIR]/.compact]
+  -h, --help                   Print help (see more with '--help')
+  -V, --version                Print version

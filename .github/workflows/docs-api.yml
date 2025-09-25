@@ -1,0 +1,104 @@
+name: Generate Documentation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+        - testnet
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup nexus.p42.at credentials
+        uses: extractions/netrc@v1
+        with:
+          machine: nexus.p42.at
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Setup api.github.com credentials
+        uses: extractions/netrc@v1
+        with:
+          machine: api.github.com
+          username: ${{ secrets.GH_USERNAME }}
+          password: ${{ secrets.GH_PASSWORD }}
+
+      - name: Setup github.com credentials
+        uses: extractions/netrc@v1
+        with:
+          machine: github.com
+          username: ${{ secrets.GH_USERNAME }}
+          password: ${{ secrets.GH_PASSWORD }}
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v22
+        with:
+          #github_access_token: ${{ secrets.GH_PASSWORD }}
+          extra_nix_config: |
+            netrc-file = ~/.netrc
+            access-tokens = github.com=${{ secrets.GH_PASSWORD }} api.github.com=${{ secrets.GH_PASSWORD }}
+            extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
+            extra-substituters = https://cache.iog.io
+            accept-flake-config = true
+
+      - name: Cache Nix
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Checkout compactc repository
+        uses: actions/checkout@v3
+
+      - name: Generate compactc documentation
+        run: |
+          nix develop --command ./compiler/go
+
+      - name: Generate runtime API documentation
+        run: |
+          cd runtime
+          nix develop .#runtime --command npm i && npm run generate-docs
+    
+      - name: Check if there are changes in doc directory
+        id: set_update
+        run: |
+          if [ -n "$(git status ./doc --porcelain)" ]; then
+            echo "Docs were updated"
+            git config --global user.email "midnight-ci@users.noreply.github.com"
+            git config --global user.name "Midnight CI GitHub Action"
+            echo "UPDATE=true" >> $GITHUB_OUTPUT
+          else
+            echo "Nothing to update"
+            echo "UPDATE=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.MIDNIGHTBOT_REPO_WRITE }}
+    
+      - name: Create a new branch if triggered manually
+        id: set_branch
+        if: steps.set_update.outputs.UPDATE == 'true'
+        run: |
+            BRANCH=api-docs/`date +'%Y-%m-%dT%H%M%S'`
+            git checkout -b $BRANCH
+            git push -u origin $BRANCH
+            echo "NEW_BRANCH=$BRANCH" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.MIDNIGHTBOT_REPO_WRITE }}
+           
+      - uses: MonikaJassova/ghcommit-action@aee0efc02d3707e178c534477e5c87f70fe6678f
+        if: steps.set_update.outputs.UPDATE == 'true'
+        with:
+          commit_message: "API documentation update - created by Midnight CI Github Action"
+          repo: ${{ github.repository }}
+          branch: ${{ steps.set_branch.outputs.NEW_BRANCH }}
+          file_pattern: 'doc'
+        env:
+          GITHUB_TOKEN: ${{secrets.MIDNIGHTBOT_REPO_WRITE}}
+    
+      - name: Open a PR if triggered manually
+        if: steps.set_update.outputs.UPDATE == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.MIDNIGHTBOT_REPO_WRITE }}
+        run: gh pr create --base testnet --head ${{ steps.set_branch.outputs.NEW_BRANCH }} --title "API documentation update" --body "Update API documentation - created by Midnight CI Github Action"

@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "outDir": "out",
+    "lib": [
+      "ES2021"
+    ],
+    "sourceMap": false,
+    "moduleResolution": "node",
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "noImplicitThis": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true
+  },
+  "include": ["src", "tests"],
+  "exclude": [
+    "syntaxes",
+    ".vscode-test",
+    "vsix"
+  ],
+  "files": [
+    "node_modules/jest-expect-message/types/index.d.ts"
+  ]
+}

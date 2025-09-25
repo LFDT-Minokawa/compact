@@ -1,0 +1,5 @@
+error: unexpected argument 'latest' found
+
+Usage: compact list [OPTIONS]
+
+For more information, try '--help'.

@@ -1,0 +1,38 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export circuit test(): [] {
+  // mint
+  const k = kernel.self();
+  const domain_sep = pad(32, "qa_token");
+  const amount = 1;
+  kernel.mint(domain_sep, amount);
+
+  // checkpoint
+  kernel.checkpoint();
+
+  const note = pad(32, "note");
+  const nul = pad(32, "nul");
+  const addr = k.bytes;
+  const entry_point = pad(32, "entry");
+  const comm = 1;
+
+  kernel.claimZswapCoinReceive(note);
+  kernel.claimZswapCoinSpend(note);
+  kernel.claimZswapNullifier(nul);
+  kernel.claimContractCall(addr, entry_point, comm);
+}

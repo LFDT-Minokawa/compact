@@ -1,0 +1,44 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export circuit kernel_checkpoint(): [] {
+  return kernel.checkpoint();
+}
+
+export circuit kernel_claim_contract_call(addr: Bytes<32>, entry_point: Bytes<32>, comm: Field): [] {
+  return kernel.claimContractCall(disclose(addr), disclose(entry_point), comm);
+}
+
+export circuit kernel_claim_zswap_coin_receive(note: Bytes<32>): [] {
+  return kernel.claimZswapCoinReceive(disclose(note));
+}
+
+export circuit kernel_claim_zswap_coin_spend(note: Bytes<32>): [] {
+  return kernel.claimZswapCoinSpend(disclose(note));
+}
+
+export circuit kernel_claim_zswap_nullifier(nul: Bytes<32>): [] {
+  return kernel.claimZswapNullifier(disclose(nul));
+}
+
+export circuit kernel_mint(domain_sep: Bytes<32>, amount: Uint<64>): [] {
+  return kernel.mint(disclose(domain_sep), disclose(amount));
+}
+
+export circuit kernel_self(): ContractAddress {
+  return kernel.self();
+}

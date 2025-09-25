@@ -1,0 +1,3 @@
+error: invalid value 'bob' for '[COMPACT_VERSION]': unexpected character 'b' while parsing major version number
+
+For more information, try '--help'.

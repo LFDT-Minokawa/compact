@@ -1,0 +1,303 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+export ledger kernel: Kernel;
+
+// Generic Data
+export struct Maybe<T> {
+  is_some: Boolean;
+  value: T;
+}
+
+export circuit some<T>(value: T): Maybe<T> {
+  return Maybe<T>{ is_some: true, value: value };
+}
+
+export circuit none<T>(): Maybe<T> {
+  return Maybe<T>{ is_some: false, value: default<T> };
+}
+
+export struct Either<A, B> {
+  is_left: Boolean;
+  left: A;
+  right: B;
+}
+
+export circuit left<A, B>(value: A): Either<A, B> {
+  return Either<A, B>{ is_left: true, left: value, right: default<B> };
+}
+
+export circuit right<A, B>(value: B): Either<A, B> {
+  return Either<A, B>{ is_left: false, left: default<A>, right: value };
+}
+
+// Hashing
+export circuit transientHash<T>(value: T): Field;
+export circuit transientCommit<T>(value: T, rand: Field): Field;
+export circuit persistentHash<T>(value: T): Bytes<32>;
+export circuit persistentCommit<T>(value: T, rand: Bytes<32>): Bytes<32>;
+export circuit degradeToTransient(x: Bytes<32>) : Field;
+export circuit upgradeFromTransient(x: Field): Bytes<32>;
+
+// Elliptic Curves
+export struct CurvePoint {
+  x: Field;
+  y: Field;
+}
+
+export circuit ecAdd(a: CurvePoint, b: CurvePoint): CurvePoint;
+export circuit ecMul(a: CurvePoint, b: Field): CurvePoint;
+export circuit ecMulGenerator(b: Field): CurvePoint;
+export circuit hashToCurve<T>(value: T): CurvePoint;
+
+// Merkle trees
+export struct MerkleTreeDigest { field: Field; }
+
+export struct MerkleTreePathEntry {
+  sibling: MerkleTreeDigest;
+  goes_left: Boolean;
+}
+
+export struct MerkleTreePath<#n, T> {
+  leaf: T;
+  path: Vector<n, MerkleTreePathEntry>;
+}
+
+struct LeafPreimage<T> {
+  domain_sep: Bytes<6>,
+  data: T,
+}
+
+export circuit merkleTreePathRoot<#n, T>(path: MerkleTreePath<n, T>): MerkleTreeDigest {
+  return MerkleTreeDigest{
+           field: fold(merkleTreePathEntryRoot,
+                       degradeToTransient(persistentHash<LeafPreimage<T>>(LeafPreimage<T>{ domain_sep: "mdn:lh", data: path.leaf })),
+                       path.path)
+          };
+}
+
+export circuit merkleTreePathRootNoLeafHash<#n>(path: MerkleTreePath<n, Bytes<32>>): MerkleTreeDigest {
+  return MerkleTreeDigest{
+           field: fold(merkleTreePathEntryRoot,
+                       degradeToTransient(path.leaf),
+                       path.path)
+         };
+}
+
+circuit merkleTreePathEntryRoot(
+  recursiveDigest: Field,
+  entry: MerkleTreePathEntry
+): Field {
+  const left = entry.goes_left ? recursiveDigest : entry.sibling.field;
+  const right = entry.goes_left ? entry.sibling.field : recursiveDigest;
+  return transientHash<Vector<2, Field>>([left, right]);
+}
+
+
+// Midnight kernel types
+export struct ContractAddress { bytes: Bytes<32>; }
+
+export struct CoinInfo {
+  nonce: Bytes<32>;
+  color: Bytes<32>;
+  value: Uint<128>;
+}
+
+export struct QualifiedCoinInfo {
+  nonce: Bytes<32>;
+  color: Bytes<32>;
+  value: Uint<128>;
+  mt_index: Uint<64>;
+}
+
+export struct ZswapCoinPublicKey { bytes: Bytes<32>; }
+
+export struct SendResult {
+  change: Maybe<CoinInfo>;
+  sent: CoinInfo;
+}
+
+export circuit nativeToken(): Bytes<32> {
+  return pad(32, "");
+}
+
+// TS: Get from wallet
+export circuit ownPublicKey(): ZswapCoinPublicKey;
+export circuit createZswapInput(coin: QualifiedCoinInfo): [];
+export circuit createZswapOutput(coin: CoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [];
+
+// Midnight helper circuits
+export circuit tokenType(domain_sep: Bytes<32>, contractAddress: ContractAddress): Bytes<32> {
+  return persistentCommit<Vector<2, Bytes<32>>>([domain_sep, contractAddress.bytes], pad(32, "midnight:derive_token"));
+}
+
+export circuit mintToken(
+  domain_sep: Bytes<32>,
+  value: Uint<64>,
+  nonce: Bytes<32>,
+  recipient: Either<ZswapCoinPublicKey, ContractAddress>
+): CoinInfo {
+  const coin = CoinInfo { nonce: nonce, color: tokenType(domain_sep, kernel.self()), value: value };
+  kernel.mint(domain_sep, value);
+  createZswapOutput(coin, recipient);
+  const cm = coinCommitment(coin, recipient);
+  kernel.claimZswapCoinSpend(cm);
+  return coin;
+}
+
+export circuit evolveNonce(index: Uint<128>, nonce: Bytes<32>): Bytes<32> {
+  return upgradeFromTransient(transientHash<Vector<3, Field>>([
+    "midnight:kernel:nonce_evolve" as Field,
+    index as Field,
+    degradeToTransient(nonce),
+  ]));
+}
+
+export circuit burnAddress(): Either<ZswapCoinPublicKey, ContractAddress> {
+  return left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>);
+}
+
+export circuit receive(coin: CoinInfo): [] {
+  const recipient = right<ZswapCoinPublicKey, ContractAddress>(kernel.self());
+  createZswapOutput(coin, recipient);
+  kernel.claimZswapCoinReceive(coinCommitment(coin, recipient));
+}
+
+export circuit send(
+  input: QualifiedCoinInfo,
+  recipient: Either<ZswapCoinPublicKey, ContractAddress>,
+  value: Uint<128>
+): SendResult {
+  const selfAddr = kernel.self();
+  createZswapInput(input);
+  kernel.claimZswapNullifier(
+    coinNullifier(downcastQualifiedCoin(input), selfAddr));
+  const change = input.value - value;
+  const output = CoinInfo{
+                   nonce: upgradeFromTransient(transientHash<Vector<2, Field>>(["midnight:kernel:nonce_evolve" as Field, degradeToTransient(input.nonce)])),
+                   color: input.color,
+                   value: value
+                 };
+  createZswapOutput(output, recipient);
+  kernel.claimZswapCoinSpend(coinCommitment(output, recipient));
+  if(change == 0) {
+    return SendResult{ change: none<CoinInfo>(), sent: output };
+  } else {
+    const changeCoin = CoinInfo{
+                         nonce: upgradeFromTransient(transientHash<Vector<2, Field>>(["midnight:kernel:nonce_evolve/2" as Field, degradeToTransient(input.nonce)])),
+                         color: input.color,
+                         value: change
+                       };
+    createZswapOutput(changeCoin, right<ZswapCoinPublicKey, ContractAddress>(selfAddr));
+    const cm = coinCommitment(changeCoin, right<ZswapCoinPublicKey, ContractAddress>(selfAddr));
+    kernel.claimZswapCoinSpend(cm);
+    kernel.claimZswapCoinReceive(cm);
+    return SendResult{ change: some<CoinInfo>(changeCoin), sent: output };
+  }
+}
+
+export circuit sendImmediate(
+  input: CoinInfo,
+  target: Either<ZswapCoinPublicKey, ContractAddress>,
+  value: Uint<128>
+): SendResult {
+  return send(upcastQualifiedCoin(input), target, value);
+}
+
+export circuit mergeCoin(
+  a: QualifiedCoinInfo,
+  b: QualifiedCoinInfo
+): CoinInfo {
+  const selfAddr = kernel.self();
+  createZswapInput(a);
+  kernel.claimZswapNullifier(coinNullifier(downcastQualifiedCoin(a), selfAddr));
+  createZswapInput(b);
+  kernel.claimZswapNullifier(coinNullifier(downcastQualifiedCoin(b), selfAddr));
+  assert(a.color == b.color, "Can only merge coins of the same color");
+  const newCoin = CoinInfo{
+                     nonce: upgradeFromTransient(transientHash<Vector<2, Field>>(["midnight:kernel:nonce_evolve" as Field, degradeToTransient(a.nonce)])),
+                     color: a.color,
+                     value: (a.value + b.value) as Uint<128>
+                   };
+  createZswapOutput(newCoin, right<ZswapCoinPublicKey, ContractAddress>(selfAddr));
+  const cm = coinCommitment(newCoin, right<ZswapCoinPublicKey, ContractAddress>(selfAddr));
+  kernel.claimZswapCoinSpend(cm);
+  kernel.claimZswapCoinReceive(cm);
+  return newCoin;
+}
+
+export circuit mergeCoinImmediate(
+  a: QualifiedCoinInfo,
+  b: CoinInfo
+): CoinInfo {
+  return mergeCoin(a, upcastQualifiedCoin(b));
+}
+
+circuit downcastQualifiedCoin(coin: QualifiedCoinInfo): CoinInfo {
+  return CoinInfo{ nonce: coin.nonce, color: coin.color, value: coin.value };
+}
+
+circuit upcastQualifiedCoin(coin: CoinInfo): QualifiedCoinInfo {
+  return QualifiedCoinInfo{ nonce: coin.nonce, color: coin.color, value: coin.value, mt_index: 0 };
+}
+
+struct CoinPreimage {
+  info: CoinInfo,
+  dataType: Boolean,
+  data: Bytes<32>,
+  domain_sep: Bytes<6>,
+}
+
+circuit coinCommitment(
+  coin: CoinInfo,
+  recipient: Either<ZswapCoinPublicKey, ContractAddress>
+): Bytes<32> {
+  return persistentHash<CoinPreimage>(
+    CoinPreimage{
+      info: coin,
+      dataType: recipient.is_left,
+      data: recipient.is_left ? recipient.left.bytes : recipient.right.bytes,
+      domain_sep: "mdn:cc"
+    });
+}
+
+circuit coinNullifier(
+  coin: CoinInfo,
+  addr: ContractAddress
+): Bytes<32> {
+  return persistentHash<CoinPreimage>(
+    CoinPreimage{
+      info: coin,
+      dataType: false, // The hypothetical is_left of Either<ZSwapCoinSecretKey, ContractAddress>
+      data: addr.bytes,
+      domain_sep: "mdn:cn"
+    });
+}
+
+export circuit blockTimeLt(time: Uint<64>): Boolean {
+  return kernel.blockTimeLessThan(time);
+}
+
+export circuit blockTimeGte(time: Uint<64>): Boolean {
+  return !blockTimeLt(time);
+}
+
+export circuit blockTimeGt(time: Uint<64>): Boolean {
+  return kernel.blockTimeGreaterThan(time);
+}
+
+export circuit blockTimeLte(time: Uint<64>): Boolean {
+  return !blockTimeGt(time);
+}

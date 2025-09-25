@@ -1,0 +1,4 @@
+Compactc version: [COMPACTC_VERSION]
+Compiling circuit "[CONTRACT_DIR]/zkir/increment.zkir"...
+  k=9, rows=49
+  done.

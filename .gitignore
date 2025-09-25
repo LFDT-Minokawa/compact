@@ -1,0 +1,42 @@
+coverage
+obj
+profiled-obj
+.*.sw?
+
+.vscode
+.vscode-test
+target
+
+artifacts
+node_modules
+plonk-napi/pkg
+.parcel-cache
+*.node
+
+*.mdb
+.direnv
+
+# nix result
+result
+/compiler/testfile.compact
+/compiler/testdir
+/compiler/compactc-version.ss
+/compiler/javascript-code
+/compiler/javascript-tests.ts
+
+# output for ts
+out/
+gen
+
+# mac
+**/.DS_Store
+
+#idea
+.idea
+*.iml
+
+reports
+
+*.log
+logs
+dist

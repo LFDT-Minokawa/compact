@@ -1,0 +1,69 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger c: Set<QualifiedCoinInfo>;
+
+export circuit test_QualifiedCoinInfo(): []  {
+  const qcoin = QualifiedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1, 0 };
+  const qcoin2 = QualifiedCoinInfo { pad(32, "nonce"), pad(32, "color"), 2, 0 };
+
+  assert(c.isEmpty() == true, "Structure should be empty");
+  assert(c.size() == 0, "Size should be 0");
+
+  c.insert(qcoin);
+  assert(c.size() == 1, "Size should be 1");
+  assert(c.member(qcoin) == true, "Key qcoin should be member");
+
+  c.insert(qcoin2);
+  assert(c.size() == 2, "Size should be 2");
+  assert(c.member(qcoin2) == true, "Key qcoin2 should be member");
+
+  c.remove(qcoin);
+  assert(c.size() == 1, "Size should be 1");
+  assert(c.member(qcoin2) == true, "Key 1 should be member");
+
+  c.resetToDefault();
+  assert(c.size() == 0, "Size should be 0");
+  assert(c.isEmpty() == true, "Structure should be empty");
+}
+
+export circuit test_CoinInfo(): []  {
+  const coin = CoinInfo { pad(32, "nonce"), pad(32, "color"), 1};
+  const coin2 = CoinInfo { pad(32, "nonce"), pad(32, "color"), 2};
+
+  const qcoin = QualifiedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1, 0 };
+  const qcoin2 = QualifiedCoinInfo { pad(32, "nonce"), pad(32, "color"), 2, 0 };
+
+  assert(c.isEmpty() == true, "Structure should be empty");
+  assert(c.size() == 0, "Size should be 0");
+
+  c.insertCoin(coin, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  assert(c.size() == 1, "Size should be 1");
+  assert(c.member(qcoin) == true, "Key coin should be member");
+
+  c.insertCoin(coin2, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  assert(c.size() == 2, "Size should be 2");
+  assert(c.member(qcoin2) == true, "Key coin2 should be member");
+
+  c.remove(qcoin);
+  assert(c.size() == 1, "Size should be 1");
+  assert(c.member(qcoin2) == true, "Key coin2 should be member");
+
+  c.resetToDefault();
+  assert(c.size() == 0, "Size should be 0");
+  assert(c.isEmpty() == true, "Structure should be empty");
+}

@@ -1,0 +1,40 @@
+The Compact command-line tool provides a set of utilities for Compact smart contract development
+
+Usage: compact [OPTIONS] <COMMAND>
+
+Commands:
+  check   Check for updates with the remote server
+  update  Update to the latest or a specific version of the Compact toolchain
+  format  Format compact files
+  list    List available compact versions
+  clean   Remove all compact versions
+  self    Commands for managing the compact tool itself
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+      --directory <DIRECTORY>
+          Set the compact artifact directory
+          
+          By default this will be `$HOME/.compact`. The directory will be created
+          if it does not exist. This can also be configured via an environment
+          variable.
+          
+          [env: COMPACT_DIRECTORY=]
+          [default: [USER_DIR]/.compact]
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
+
+
+Additional Commands:
+
+* `compile [+VERSION] [ARGS...]': call the compiler for the given `VERSION'.
+
+Usage examples:
+
+  `compact compile source/path target/path`
+
+  `compact compile +0.21.0 --help`

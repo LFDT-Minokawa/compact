@@ -1,0 +1,126 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// nonsensical but syntactically correct
+/* *** intended to test
+       many syntactic elements of the language.
+   CAUTION: this file is used in some of the CIs!!
+*/
+pragma language_version >= 0.12.1;
+
+include 'empty'; // cheer up CI tests by using the include keyword
+import CompactStandardLibrary;
+
+// contract C1 {
+//   circuit foo() : [];
+//   circuit bar(X: Field): Field;
+// }
+
+module M<#a, b> {
+  export struct frob { q: Field }
+  export struct pair {
+    x : Field;
+    y : Vector<a, b>;
+  }
+  export circuit slicer(v: Vector<10, Field>): Vector<5, Field> {
+    return slice<5>(v, 3);
+  }
+}
+
+enum PublicState { setup, commit, reveal, final, }
+
+import M<5, Opaque<"sisters">> prefix M$;
+
+export pure circuit foo (a: Boolean, b: Field): Boolean { return false; }
+
+export circuit bar (a: Boolean, b: Boolean): M$frob
+{
+  const x = foo(true, 17);
+  const y = a ? (b ? 3 : 2) : b ? 1 : 0;
+  const w : Boolean = a ? true : false;
+  const v = a ? false : fold(foo, true, [[]][0]);
+  if (a)
+     if (b)
+        assert(a, "a should be true");
+     else
+        if (b) assert(a, "a should be true");
+  if (a) {
+     if (b) assert(a, "a should be true");
+  } else {
+     const v = a;
+     if (b) assert(v, "a should be\
+ false");
+  }
+  fold(
+    (b: Boolean, c: Boolean, d: Field) : Boolean => {
+      return a && b ? c : false;
+    },
+    true,
+    [false, true, true, false],
+    [0, 1, 2, 3]);
+  [1,2,3,4][2];
+  map(foo, [false, false, true, false], [1, 2, 3, 4]);
+  assert(kernel.self() == kernel2.self(), 'oops');
+  return M$frob{ x0.read() };
+}
+
+witness C (a: Boolean, b: Bytes<10>): Bytes<20>;
+
+witness W (a: Vector<7, Vector<9, Field>>, b: Opaque<"bogeytype">): [];
+
+export circuit baz(b: Boolean): Uint<10> {
+  return disclose(b as Uint<10>);
+}
+
+export circuit nullX(): Boolean {
+  return default<Boolean>;
+}
+
+ledger kernel2: Kernel;
+ledger x0: Field;
+sealed ledger x1: Set<Field>;
+ledger x2: Counter;
+ledger x3: List<Field>;
+ledger x4: Map<Field, Boolean>;
+ledger x5: MerkleTree<32, Field>;
+ledger x6: HistoricMerkleTree<10, Field>;
+ledger x7: CoinInfo;
+ledger x10: MerkleTreeDigest;
+ledger x11: QualifiedCoinInfo;
+ledger x13: ContractAddress;
+ledger authority: Bytes<32>;
+ledger state: PublicState;
+ledger topic: Maybe<Opaque<"string">>;
+ledger tally_yes: Counter;
+ledger committed_votes: MerkleTree<10, Bytes<32>>;
+ledger committed: Set<Bytes<32>>;
+ledger ciphertexts: Opaque<"Uint8Array">;
+
+constructor(state: Field) { 
+ for (const i of 3 .. 3) state + 1;
+}
+  
+circuit foosbar(): [] {
+  for (const i of [3, 2, 1]) i + 1;
+}
+
+circuit ballot_repr(): Bytes<32> {
+  return pad(32, "yes");
+}
+
+
+circuit check_rel_ops(x: Uint<16>) : Boolean {
+  return x < 100 || x <=10 || x > 40 || x >= 45 || x != 10;
+}

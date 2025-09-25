@@ -1,72 +1,296 @@
-# Midnight Template Repository
+# Compactc circut compiler
 
-This GitHub repository should be used as a template when creating a new Midnight GitHub repository.
-The template is configured with default repository settings and a set of default files that are expected to exist in all Midnight GitHub repositories.
+A [nanopass](https://nanopass.org) framework compiler for cryptographic circuits. Currently targeting [Plonk](https://github.com/ZK-Garage/plonk) from a restricted front-end language.
 
-### LICENSE
+[ABNF syntax](./doc/highlevel.abnf) for parser and lexer.
 
-Apache 2.0.
+Examples:
 
-### README.md
+- [election](./examples/election.compact)
+- [zerocash](./examples/zerocash.compact)
+- [tiny](./examples/tiny.compact)
 
-Provides a brief description for users and developers who want to understand the purpose, setup, and usage of the repository.
+## Publishing and credentials
 
-### SECURITY.md
+### Credentials
 
-Provides a brief description of the Midnight Foundation's security policy and how to properly disclose security issues.
+TODO: Add proper guide for Github accounts instead of old deprecated nexus guide.
 
-### CONTRIBUTING.md
+### Note about permissions
 
-Provides guidelines for how people can contribute to the Midnight project.
+If you have installed nix in a single-user mode, then using `chmod 600` for
+`~/.netrc` file should be fine, however if you have installed nix in a
+multi-user mode, then you need to make sure that both your user and nix build
+agents can access `/etc/nix/netrc` file.
 
-### CODEOWNERS
+One approach is to make the file read-writeable for `root` group, and readable for
+`wheel` group, but you need to ensure that your user is in `wheel` group.
 
-Defines repository ownership rules.
+First, check if your user is in wheel group, by using `groups`: the output should contain `wheel`:
 
-### ISSUE_TEMPLATE
+```sh
+$ groups
+users wheel
+```
 
-Provides templates for reporting various types of issues, such as: bug report, documentation improvement and feature request.
+Then, you can change the ownership of `/etc/nix/netrc` to `root:wheel`
 
-### PULL_REQUEST_TEMPLATE
+```sh
+$ sudo chown root:wheel /etc/nix/netrc
+```
 
-Provides a template for a pull request.
+and change its permissions to `640`
 
-### CLA Assistant
+```sh
+$ sudo chmod 640 /etc/nix/netrc
+```
 
-The Midnight Foundation appreciates contributions, and like many other open source projects asks contributors to sign a contributor
-License Agreement before accepting contributions. We use CLA assistant (https://github.com/cla-assistant/cla-assistant) to streamline the CLA
-signing process, enabling contributors to sign our CLAs directly within a GitHub pull request.
+finally, you can verify if ownership and permissions were set correctly
 
-### Dependabot
+```sh
+ls -l /etc/nix/netrc
+-rw-r----- 1 root wheel 261 Nov  8 15:42 /etc/nix/netrc
+```
 
-The Midnight Foundation uses GitHub Dependabot feature to keep our projects dependencies up-to-date and address potential security vulnerabilities. 
+the above can be understood as
 
-### Checkmarx
+- `rw-` permissions for `root` user,
+- `r--` permissions for `wheel` group, and
+- `---` permissions for everyone else.
 
-The Midnight Foundation uses Checkmarx for application security (AppSec) to identify and fix security vulnerabilities.
-All repositories are scanned with Checkmarx's suite of tools including: Static Application Security Testing (SAST), Infrastructure as Code (IaC), Software Composition Analysis (SCA), API Security, Container Security and Supply Chain Scans (SCS).
+## reproducible development environment
 
-### Unito
+We require [nix](https://nixos.org) >= 2.7, with [flakes
+enabled](https://nixos.wiki/wiki/Flakes).
 
-Facilitates two-way data synchronization, automated workflows and streamline processes between: Jira, GitHub issues and Github project Kanban board. 
+```sh
+nix develop
+```
 
-# TODO - New Repo Owner
+## Running tests
 
-### Software Package Data Exchange (SPDX)
-Include the following Software Package Data Exchange (SPDX) short-form identifier in a comment at the top headers of each source code file.
+We currently _only_ support the reproducible environment in `nix develop .#default` for
+running tests. Once the dev environment has been entered, simply run:
 
+```sh
+./compiler/go
+```
 
- <I>// This file is part of <B>REPLACE WITH REPO-NAME</B>.<BR>
- // Copyright (C) 2025 Midnight Foundation<BR>
- // SPDX-License-Identifier: Apache-2.0<BR>
- // Licensed under the Apache License, Version 2.0 (the "License");<BR>
- // You may not use this file except in compliance with the License.<BR>
- // You may obtain a copy of the License at<BR>
- //<BR>
- //	http://www.apache.org/licenses/LICENSE-2.0<BR>
- //<BR>
- // Unless required by applicable law or agreed to in writing, software<BR>
- // distributed under the License is distributed on an "AS IS" BASIS,<BR>
- // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<BR>
- // See the License for the specific language governing permissions and<BR>
- // limitations under the License.</I>
+Executing tests generate profile output with `hot spots` information in [./coverage/profile.html](./coverage/profile.html).
+You can treat details for each file as `test coverage`.
+
+- re-run tests whenever source file changes (with exec time)
+
+```sh
+find . -type f -name "*.ss" | entr ./compiler/go
+find . -type f -name "*.ss" | entr time ./compiler/go
+```
+
+## nix build
+
+To build locally using [nix](https://nixos.org/guides/nix-pills/):
+
+```sh
+nix build
+```
+
+or to show output:
+
+```sh
+nix log
+```
+
+To run the same tests as CI:
+
+```sh
+nix build -L
+```
+
+plus follow the instructions for running the E2E and debug tests (below).
+
+## E2E tests
+
+To execute e2e tests, either inside a nix shell or outside of it, run:
+
+```shell
+sh ./run-e2e-tests.sh
+```
+
+## debug tests
+
+To execute debug test, either inside a nix shell or outside of it, run:
+
+```shell
+sh ./run-debug-test.sh
+```
+
+## Building from source code
+
+Example building using nix to build and add compactc to the system path:
+
+```sh
+nix build
+export PATH=$(pwd)/result/bin:$PATH
+compactc
+```
+
+You could alternatively use `compiler` nix shell:
+
+```sh
+nix build
+nix develop .#compiler
+compactc
+```
+
+## Running compiler
+
+To compile a file `FILE` and produce:
+
+- circuit definitions (\*.zkir)
+- code for private state and transition functions
+- template for definitions
+
+```sh
+compactc FILE OUT-DIR
+```
+
+for example:
+
+```sh
+compactc ./examples/election.compact ./examples/
+```
+
+or to have smart contract code in separate files
+
+```sh
+compactc ./examples/zerocash.compact ./examples/zerocash
+```
+
+The compiler takes the following arguments:
+
+- `--vscode`, omitting newlines from error messages, so that they are rendered
+properly within the VS Code extension for Compact.
+- `--trace-passes`, outputting intermediate representations for debugging
+  purposes.
+- `--skip-zk`, omitting the generation of prover and verifier keys, the
+  dominant time cost in compilation.
+- `--no-communications-commitment`, omitting the contract communications
+  commitment which enables data integrity for contract-to-contract calls.
+
+## Dependencies
+
+If you need library for Chez Scheme, add entry to [nvfetcher.toml](nvfetcher.toml)
+and run [nvfetcher](https://github.com/berberman/nvfetcher) e.g.
+
+```sh
+nix run github:berberman/nvfetcher
+```
+
+## User documentation
+
+### Release
+
+#### get compactc.zip for required platform
+
+##### Linux-release:
+
+Get the compactc.zip from linux-release for linux and windows wsl:
+https://github.com/midnightntwrk/compactc/releases/tag/linux-release
+
+##### MacOS-release:
+
+Get the compactc.zip from macos-release for macos:
+https://github.com/midnightntwrk/compactc/releases/tag/macos-release
+
+##### Direct usage -- compile a contract
+
+```
+unzip compactc.zip
+mkdir output
+./run-compactc.sh /path/to/contract.compact output
+# inspect output folder
+```
+
+##### System wide installation -- compile a contract
+
+```
+unzip compactc.zip
+# needs to be root
+./install.sh
+
+cd ..
+
+mkdir output
+# compactc is now available on $PATH
+compactc /path/to/contract.compact output
+```
+
+### Docker
+
+#### get compactc image
+
+Replace 'registry' with one of [Docker registries](#docker-registries)
+
+```
+docker login registry
+
+docker pull registry/compactc:0.0.1
+```
+
+#### compile compactc smart contract using compact compiler
+
+Note: absolute paths are necessary
+Replace 'registry' with one of [Docker registries](#docker-registries)
+
+```
+PATH_TO_COMPACTC_REPO=$PWD
+docker run -v $PATH_TO_COMPACTC_REPO/examples/zerocash.compact:/zerocash.compact -v $PATH_TO_COMPACTC_REPO/tmp:/tmp registry/compactc:0.0.1 "compactc zerocash.compact /tmp"
+```
+
+#### debug or run container interactively
+
+Replace 'registry' with one of [Docker registries](#docker-registries)
+
+```
+docker run -dit registry/compactc:0.0.1 bash
+# get container-id, it's also returned from previous cmd
+docker ps
+docker exec -it container-id bash
+```
+
+## Docker registries
+
+github registry = ghcr.io/midnight-ntwrk/
+
+public dockerhub =
+
+## Generate/update API documentation
+
+To install [Typedoc](https://typedoc.org/), from the appropriate project's directory (`midnight-onchain-runtime` or `runtime`) execute:
+
+```sh
+npm i
+```
+
+To update documentation for `midnight-onchain-runtime`, from the project's directory execute:
+
+```sh
+npm run generate-docs-midnight-onchain-runtime
+```
+
+To update documentation for `runtime`, from the project's directory execute:
+
+```sh
+npm run generate-docs-runtime
+```
+
+### Test report
+
+Test report after test execution is visible in **console** and also as:
+  - [HTML Report](./tests-e2e/reports/test-report.html)
+  - [Markdown Report](./tests-e2e/reports/test-report.md)
+  - [JUnit Report](./tests-e2e/reports/test-report.xml)
+
+### Test logs
+
+Logs are present in [./tests-e2e/logs/tests](./tests-e2e/logs/tests)

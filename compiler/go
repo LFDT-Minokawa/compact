@@ -1,0 +1,94 @@
+#! /usr/bin/env bash
+
+# This file is part of Compact.
+# Copyright (C) 2025 Midnight Foundation
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# 	http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+
+# on macos chez scheme is usually available as chez on linux as scheme
+if command -v scheme &> /dev/null
+then
+   SCHEME=scheme
+else
+   SCHEME=chez
+fi
+
+if [ $# == 1 ]
+then
+  if [ "$1" == "--help" ]
+  then
+    program=`basename $0`
+    echo "usage: $program               # recompile compiler as needed, then run tests"
+    echo "       $program --rebuild     # recompile entire compiler, then run tests"
+    echo "       $program --help        # show this message"
+    echo "   NB: use --rebuild for complete coverage info and stats"
+    exit
+  elif [ "$1" == "--rebuild" ]
+  then
+    rm -rf obj/profiled-compiler
+  else
+    exec $0 --help
+  fi
+fi
+
+rm -rf coverage
+mkdir coverage
+
+# enable profiling only for portions # of the code exercised by the compiler
+# proper, effectively excluding, e.g., all of the nanopass infrastructure
+# except macro-generated forms.
+"$SCHEME" -q << END || exit
+(reset-handler abort)
+(print-extended-identifiers #t)
+(library-directories
+  ; redirect compiler object code to obj/profiled-compiler, leaving obj/compiler
+  ; for unprofiled code produced by compiling compiler/compactc.ss
+  (let f ([a* (library-directories)])
+    (assert (not (null? a*)))
+    (let ([a (car a*)] [a* (cdr a*)])
+      (if (equal? a '("compiler" . "obj/compiler"))
+          (cons '("compiler" . "obj/profiled-compiler") a*)
+          (cons a (f a*))))))
+(compile-library-handler
+  ; enable profiling for and only for code redirected to obj/profiled-compiler
+  (lambda (src-path obj-path)
+    (parameterize ([compile-profile
+                    (and (string=? (path-first obj-path) "obj")
+                         (string=? (path-first (path-rest obj-path)) "profiled-compiler"))])
+      (when (compile-profile)
+        (printf "compiling w/profiling ~a to ~a\n" src-path obj-path))
+      (compile-library src-path obj-path))))
+(compile-imported-libraries #t)
+(debug-level 3)
+(library (go)
+  (export failed)
+  (import (chezscheme))
+  ; failed is set upon failure to #t by test.ss
+  (define failed (make-parameter #f)))
+(printf "====================== START OF UNIT TESTS ========================\n")
+(load "compiler/test.ss")
+(collect (collect-maximum-generation))
+(unless (file-directory? "coverage") (mkdir "coverage"))
+(profile-dump-html "coverage/")
+(let ([ls (filter (lambda (x) (equal? (path-first (cadr x)) "compiler")) (profile-dump-list))])
+  (let ([total (length ls)]
+        [hit (fold-left (lambda (hit x) (if (> (car x) 0) (+ hit 1) hit)) 0 ls)])
+    (printf "======== END OF UNIT TESTS. COVERAGE = ~d% (~d/~d). ========\n"
+      (if (= total 0) 0 (round (* 100 (/ hit total))))
+      hit
+      total)))
+(exit (if (let () (import (go)) (failed)) 1 0))
+END
