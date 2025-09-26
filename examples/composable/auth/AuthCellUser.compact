@@ -1,0 +1,25 @@
+include 'std';
+include 'examples/composable/auth/shared';
+
+contract AuthCell {
+    circuit get(): StructExample;
+    circuit set(new_value: StructExample): Void;
+}
+
+// The 'AuthCell' instance to use
+export sealed ledger auth_cell: Cell<AuthCell>;
+
+witness foo(): Bytes<32>;
+
+// Constructs the contract - stores the 'AuthCell' instance to use in the ledger state of 'AuthCellUser'
+constructor (auth_cell_param: AuthCell) {
+  // Need to produce 'Variable is referenced before assignment' error if 'auth_cell' is referenced before the following assignment
+  auth_cell = auth_cell_param;
+}
+
+// Reads the value guarded by 'auth_cell', updates it, and returns the old guarded value.
+export circuit use_auth_cell(x: StructExample): Field {
+  const v = auth_cell.get();
+  auth_cell.set(StructExample { value: v.value + x.value });
+  return v.value;
+}

@@ -1,0 +1,31 @@
+import CompactStandardLibrary;
+
+circuit publicKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, 'auth-cell:pk'), sk]);
+}
+
+export ledger publicField: Field;
+sealed ledger authorizedPk: Bytes<32>;
+
+witness setPrivateField(newField: Field): [];
+witness getSk(): Bytes<32>;
+
+constructor(publicFieldParam: Field) {
+  publicField = disclose(publicFieldParam);
+  authorizedPk = disclose(publicKey(getSk()));
+}
+
+export circuit get(): Field {
+  assert(publicKey(getSk()) == authorizedPk, 'msg');
+  return publicField;
+}
+
+export circuit set(newField: Field): [] {
+  assert(publicKey(getSk()) == authorizedPk, 'msg');
+  publicField = disclose(newField);
+  setPrivateField(newField);
+}
+
+export circuit myPureCircuit(x: Field): Field {
+  return x;
+}

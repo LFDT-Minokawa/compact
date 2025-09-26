@@ -1,0 +1,23 @@
+include 'std';
+include 'examples/composable/auth/shared';
+
+export ledger value: Cell<StructExample>;
+
+export sealed ledger authorized_pk: Cell<Bytes<32>>;
+
+witness sk(): Bytes<32>;
+
+constructor(value_param: StructExample) {
+    value = value_param;
+    authorized_pk = public_key(sk());
+}
+
+export circuit get(): StructExample {
+    assert public_key(sk()) == authorized_pk "Unauthorized";
+    return value;
+}
+
+export circuit set(new_value: StructExample): Void {
+    assert public_key(sk()) == authorized_pk "Unauthorized";
+    value = new_value;
+}

@@ -1,0 +1,7 @@
+export struct StructExample {
+    value: Field;
+}
+
+export circuit public_key (sk: Bytes<32>): Bytes<32> {
+    return persistent_hash<Vector<2, Bytes<32>>>([pad(32, 'auth-cell:pk'), sk]);
+}

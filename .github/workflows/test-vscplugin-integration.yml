@@ -1,0 +1,47 @@
+name: VSC Plugin Integration Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup api.github.com credentials
+        uses: extractions/netrc@v2
+        with:
+          machine: api.github.com
+          username: ${{ secrets.GH_USERNAME }}
+          password: ${{ secrets.GH_PASSWORD }}
+
+      - name: Setup github.com credentials
+        uses: extractions/netrc@v2
+        with:
+          machine: github.com
+          username: ${{ secrets.GH_USERNAME }}
+          password: ${{ secrets.GH_PASSWORD }}
+
+      - name: Configure git rewrite
+        run: |
+          mkdir -p $HOME/.config/git
+          echo '[url "https://github.com/"]' >> $HOME/.config/git/config
+          echo '  insteadOf = "git@github.com:"' >> $HOME/.config/git/config
+          echo '  insteadOf = "git@github.com/"' >> $HOME/.config/git/config
+          echo '  insteadOf = "ssh://git@github.com/"' >> $HOME/.config/git/config
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start xvfb
+        run: |
+          /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+
+      - name: Run tests
+        run: |
+          cd ./editor-support/vsc/compact
+          yarn install --frozen-lockfile 
+          yarn compile 
+          yarn test-it
+        env:
+          DISPLAY: ':99.0'

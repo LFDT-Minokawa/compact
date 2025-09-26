@@ -1,0 +1,69 @@
+import CompactStandardLibrary;
+
+constructor() {
+  const test_10 = default<Maybe<Field>>;
+  const test_11 = some<Field>(1);
+  const test_12 = none<Field>();
+  const test_13 = default<Either<Field, Boolean>>;
+  const test_14 = left<Field, Boolean>(1);
+  const test_15 = right<Field, Boolean>(true);
+  const test_16 = transientHash<Field>(1);
+  const test_17 = transientCommit<Field>(1, 1);
+  const test_18 = persistentHash<Field>(1);
+  const test_19 = persistentCommit<Field>(1, default<Bytes<32>>);
+  const test_20 = degradeToTransient(default<Bytes<32>>);
+  const test_21 = upgradeFromTransient(1);
+  const test_22 = default<CurvePoint>;
+  const test_23 = ecAdd(default<CurvePoint>, default<CurvePoint>);
+  const test_24 = ecMul(default<CurvePoint>, 5);
+  const test_25 = ecMulGenerator(5);
+  const test_26 = hashToCurve<Field>(1);
+  const test_27 = default<MerkleTreeDigest>;
+  const test_28 = default<MerkleTreePathEntry>;
+  const test_29 = default<MerkleTreePath<1, Field>>;
+  const test_30 = merkleTreePathRoot<1, Field>(default<MerkleTreePath<1, Field>>);
+  const test_31 = merkleTreePathRootNoLeafHash<1>(default<MerkleTreePath<1, Bytes<32>>>);
+  const test_32 = default<ContractAddress>;
+  const test_33 = default<ShieldedCoinInfo>;
+  const test_34 = default<QualifiedShieldedCoinInfo>;
+  const test_35 = default<ZswapCoinPublicKey>;
+  const test_36 = default<ShieldedSendResult>;
+  const test_37 = nativeToken();
+  const test_38 = ownPublicKey();
+  const test_39 = createZswapInput(default<QualifiedShieldedCoinInfo>);
+  const test_40 = createZswapOutput(
+                    default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  const test_41 = tokenType(default<Bytes<32>>, default<ContractAddress>);
+  const test_42 = mintShieldedToken(
+                    default<Bytes<32>>,
+                    default<Uint<64>>,
+                    default<Bytes<32>>,
+                    default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  const test_43 = evolveNonce(default<Uint<128>>, default<Bytes<32>>);
+  const test_44 = shieldedBurnAddress();
+  const test_45 = receiveShielded(default<ShieldedCoinInfo>);
+  const test_46 = sendShielded(
+                    default<QualifiedShieldedCoinInfo>,
+                    default<Either<ZswapCoinPublicKey, ContractAddress>>,
+                    default<Uint<128>>);
+  const test_47 = sendImmediateShielded(
+                    default<ShieldedCoinInfo>,
+                    default<Either<ZswapCoinPublicKey, ContractAddress>>,
+                    default<Uint<128>>);
+  const test_48 = mergeCoin(default<QualifiedShieldedCoinInfo>, default<QualifiedShieldedCoinInfo>);
+  const test_49 = mergeCoinImmediate(default<QualifiedShieldedCoinInfo>, default<ShieldedCoinInfo>);
+  const test_50 = default<UserAddress>;
+  const test_51 = default<UnshieldedCoinInfo>;
+  const test_52 = mintUnshieldedToken(
+                    default<Bytes<32>>,
+                    default<Uint<64>>,
+                    default<Either<ContractAddress, UserAddress>>);
+  const test_53 = sendUnshielded(
+                    default<UnshieldedCoinInfo>, default<Either<ContractAddress, UserAddress>>);
+  const test_54 = receiveUnshielded(default<UnshieldedCoinInfo>);
+  const test_55 = unshieldedBalance(default<Bytes<32>>);
+  const test_56 = unshieldedBalanceLt(default<Bytes<32>>, default<Uint<128>>);
+  const test_57 = unshieldedBalanceGte(default<Bytes<32>>, default<Uint<128>>);
+  const test_58 = unshieldedBalanceGt(default<Bytes<32>>, default<Uint<128>>);
+  const test_59 = unshieldedBalanceLte(default<Bytes<32>>, default<Uint<128>>);
+}

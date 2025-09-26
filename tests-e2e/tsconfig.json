@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "strict": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "strictPropertyInitialization": false,
+    "moduleResolution": "node",
+    "types": ["vitest/globals"]
+  },
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "src/fuzzer/**/*", "src/resources/**/*"]
+}

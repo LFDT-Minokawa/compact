@@ -1,0 +1,7 @@
+import CompactStandardLibrary;
+
+ledger tuple: [Field, Boolean];
+
+export circuit foo(a: Field, b: Field): [] {
+    tuple = [a, b];
+}

@@ -1,0 +1,127 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/* tiny.compact
+This file defines a simple contract in which any actor can record
+a Field value in the public state.  Any actor can retrieve a recorded
+value.  Only the recording actor can clear it.
+*/
+
+/*
+Exports can be listed anywhere in the file.  Alternatively, the
+definition of each circuit to be exported can be prefixed with an
+"export" keyword.  We list the exports here so readers of the code
+immediately know what this file exports.
+*/
+export {Maybe}
+export {set, get, clear, public_key}
+
+/*
+All Compact programs must presently include the standard library.
+*/
+import CompactStandardLibrary;
+
+/*
+It is often useful to think of a contract as a state machine.  Here
+we have two states, 'unset' and 'set', reflecting whether a value
+is currently recoreded or not.
+*/
+enum STATE { unset, set }
+
+/*
+Most Compact programs declare a ledger to hold public state.  Here
+we store three pieces of information: the public key of the last
+actor to record a value, the value itself, and the state of the
+contrat (unset or set).  We define a constructor that records an
+initial value with an associated key and so also starts the contract
+out in the set state.
+*/
+
+ledger authority: Bytes<32>;
+export ledger value: Field;
+ledger state: STATE;
+constructor(v: Field) {
+  const sk = private$secret_key();
+  authority = public_key(sk);
+  value = disclose(v);
+  state = STATE.set;
+}
+
+/*
+Witnesses permit a contract to read private state.  Here we use
+it to obtain the actor's private key.  Care must be taken no to
+expose private information.  This contract uses the private key
+to obtain a public key and stores only the public key in the public
+state.
+*/
+
+witness private$secret_key(): Bytes<32>;
+
+/*
+set(value) fails if the state is not currently 'unset'.
+Otherwise, it records the value, sets the authorization to the
+actor's public key, and sets the state to 'set'.
+*/
+
+circuit in_state(s: STATE): Boolean {
+  return state == s;
+}
+
+circuit set(v: Field): [] {
+  assert(in_state(STATE.unset), "set: attempted to overwrite recorded value");
+  const sk = private$secret_key();
+  const apk = public_key(sk);
+  authority = apk;
+  value = disclose(v);
+  state = STATE.set;
+}
+
+/*
+get() returns a Maybe value that contains the recorded value
+if the state is currently set.  A consumer might use get() as
+follows:
+  const mv = get();
+  assert(mv.is_some, "value is not set");
+  return mv.value;
+*/
+
+circuit get(): Maybe<Field> {
+  return in_state(STATE.set) ? some<Field>(value) : none<Field>();
+}
+
+/*
+clear() fails if the state is not currently 'set' or if the
+actor is not authorized, i.e., not the one that recorded the current
+value.  Otherwise, it clears the authorization and value and sets
+the state to 'unset'.
+*/
+
+circuit clear(): [] {
+  assert(in_state(STATE.set), "clear: no value is currently recorded");
+  const sk = private$secret_key();
+  const apk = public_key(sk);
+  assert(apk == authority, "clear: attempted clear without proper authorization");
+  authority = default<Bytes<32>>;
+  value = default<Field>;
+  state = STATE.unset;
+}
+
+/*
+public_key(sk) retrieves a public key from the private key sk.
+*/
+
+circuit public_key(sk: Bytes<32>): Bytes<32> {
+  return disclose(persistentHash<Vector<2, Bytes<32>>>([pad(32, "lares:tiny:pk:"), sk]));
+}

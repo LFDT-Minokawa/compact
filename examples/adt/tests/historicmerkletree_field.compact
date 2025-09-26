@@ -1,0 +1,77 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//PM-14807
+import CompactStandardLibrary;
+
+export ledger path: MerkleTreePath<4, Field>;
+
+export ledger historicMerkleTree: HistoricMerkleTree<4, Field>;
+
+export ledger historicMerkleTreeSmall: HistoricMerkleTree<2, Field>;
+
+export ledger partialTree: HistoricMerkleTree<4, Field>;
+
+export circuit test(): [] {
+  const digest = merkleTreePathRoot<4, Field>(path);
+
+  // Test: check_root returns true for a valid past root
+  historicMerkleTree.insert(42);
+  assert(historicMerkleTree.checkRoot(digest) == true, "");
+
+  const digest2 = merkleTreePathRoot<4, Field>(path);
+
+  // Test: check_root returns false for an invalid root
+  assert(historicMerkleTree.checkRoot(digest2) == false, "");
+
+  // Test: insert adds a value and updates the root, preserving the history
+  historicMerkleTree.insert(100);
+
+  // Test: insert_hash adds a hash and updates the root, preserving the history
+  const hash = pad(32, "hash");
+  historicMerkleTree.insertHash(hash);
+
+  // Test: insert_hash_index adds a hash at a specific index
+  const hashIndex = 2;
+  historicMerkleTree.insertHashIndex(hash, hashIndex);
+
+  // Test: insert_index adds a value at a specific index
+  const index = 1;
+  const value = 200;
+  historicMerkleTree.insertIndex(value, index);
+
+  // Test: insert_index_default inserts a default value at a specific index
+  const defaultIndex = 3;
+  historicMerkleTree.insertIndexDefault(defaultIndex);
+
+  // Test: is_full returns true when the tree is full
+  for (const i of 0..4) {
+    historicMerkleTreeSmall.insert(i);
+  }
+  assert(historicMerkleTreeSmall.isFull() == true, "");
+
+  // Test: is_full returns false when the tree is not full
+  assert(partialTree.isFull() == false, "");
+
+  // Test: reset_history clears the root history
+  historicMerkleTree.resetHistory();
+
+  // Test: reset_to_default resets the tree to its empty state
+  historicMerkleTree.resetToDefault();
+  assert(historicMerkleTree.isFull() == false, "");
+
+  // Test: insert after reset_to_default allows adding values again
+  historicMerkleTree.insert(500);
+}

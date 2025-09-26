@@ -1,0 +1,42 @@
+pragma language_version >= 0.14.0;
+
+import CompactStandardLibrary;
+
+export ledger round: Counter;
+export ledger y: Map<Boolean, Vector<1, []>>;
+
+export circuit adam(): [] {
+
+    if(y.isEmpty()) {
+      return;
+    }
+
+    const p = y.lookup(true);
+
+    for (const i of p) {
+       round.increment(1);
+    }
+}
+
+constructor() {
+
+  y.insert(true, (() => {
+    if(y.isEmpty()) {
+      y.insert(true, [adam()]);
+    }
+
+    return [adam()];
+  })());
+
+  adam();
+}
+
+export circuit increment(): [] {
+  round.increment(1);
+}
+
+export circuit decrement(): [] {
+  round.decrement(1);
+}
+
+// export circuit d(): [] { return (() => a())(); }

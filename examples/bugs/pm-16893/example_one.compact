@@ -1,0 +1,10 @@
+import CompactStandardLibrary;
+
+ledger field: Field;
+
+constructor(x: Field) {
+
+  for (const x of []) {
+    field.write(x);
+  }
+}

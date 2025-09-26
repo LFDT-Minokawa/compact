@@ -1,0 +1,85 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export { Maybe } // export type definitions to TS
+
+export ledger attempts: Counter;
+
+export ledger maxAttempts: Uint<12>;
+
+constructor(difficulty: Uint<12>) {
+  if (disclose(difficulty) == 0) {
+     const result = 42;
+     maxAttempts = result;
+  } else {
+     maxAttempts = disclose(difficulty);
+  }
+}
+
+// private state handling
+
+witness compute(fst: Boolean, snd: Boolean): Boolean;
+
+// public transition functions
+
+export circuit ledgerCalls(guess: Uint<12>): [] {
+  // verify
+  assert(!(maxAttempts == attempts.read()), "all your base are belong to us");
+  assert(!(guess == 0), "guess should be above 0");
+
+  // increment
+  attempts.increment(1);
+}
+
+circuit either(fst: Boolean, snd: Boolean): Boolean {
+  if (fst == true) {
+     const result = (snd == false);
+     return result;
+  } else {
+     return snd;
+  }
+}
+
+export circuit nestedCall(fst: Boolean, snd: Boolean): Maybe<Uint<12>> {
+  const resCond = either(fst, snd);
+  if (disclose(resCond)) {
+    return some<Uint<12>>(maxAttempts);
+  }
+  return none<Uint<12>>();
+}
+
+export circuit privateCall(fst: Boolean, snd: Boolean): Maybe<Uint<12>> {
+  const resCond = compute(fst, snd);
+  if (disclose(resCond)) {
+    return some<Uint<12>>(maxAttempts);
+  }
+  return none<Uint<12>>();
+}
+
+export circuit stdLibCall(fst: Boolean, snd: Boolean): Maybe<Bytes<32>> {
+  if (fst) {
+     const rand: Bytes<32> = "12345678901234567890123456789012" as Bytes<32>;
+     const valueToHash: Uint<12> = 1;
+     const hash = persistentCommit<Uint<12>>(valueToHash, rand);
+     return some<Bytes<32>>(rand);
+  } else {
+     const rand: Bytes<32> = "11111111111111111111111111111111" as Bytes<32>;
+     const valueToHash: Uint<12> = 42;
+     const hash = persistentCommit<Uint<12>>(valueToHash, rand);
+     return some<Bytes<32>>(hash);
+  }
+}

@@ -1,0 +1,76 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/*
+This is a copy of tiny.compact. It has some dummy code for testing the print-Lflattened pass.
+*/
+
+export {Maybe}
+export {set, get, clear, public_key}
+
+import CompactStandardLibrary;
+
+enum STATE { unset, set }
+
+ledger authority: Bytes<32>;
+ledger value: Field;
+ledger state: STATE;
+constructor(v: Field) {
+  const sk = private$secret_key();
+  authority = public_key(sk);
+  value = disclose(v);
+  state = STATE.set;
+}
+
+witness private$secret_key(): Bytes<32>;
+
+circuit in_state(s: STATE): Boolean {
+  return state == s;
+}
+
+circuit dummy_func(v: Uint<16>) : Boolean {
+  return v < 10;
+}
+
+circuit set(v: Field, temp: Bytes<32>): [] {
+  assert(in_state(STATE.unset), "set: attempted to overwrite recorded value");
+  const sk = private$secret_key();
+  const apk = public_key(sk);
+  authority = apk;
+  value = (disclose(v) + 1 - 1) * 2;
+  if ((disclose(v) as Uint<16>) < 10) {
+    state = STATE.set;
+  } else {
+    if ((temp as Field) + 2 != 5) assert(false, 'oops 1');
+  }
+}
+
+circuit get(): Maybe<Field> {
+  return in_state(STATE.set) ? some<Field>(value) : none<Field>();
+}
+
+circuit clear(): [] {
+  assert(in_state(STATE.set), "clear: no value is currently recorded");
+  const sk = private$secret_key();
+  const apk = public_key(sk);
+  assert(apk == authority, "clear: attempted clear without proper authorization");
+  authority = default<Bytes<32>>;
+  value = default<Field>;
+  state = STATE.unset;
+}
+
+circuit public_key(sk: Bytes<32>): Bytes<32> {
+  return disclose(persistentHash<Vector<2, Bytes<32>>>([pad(32, "lares:tiny:pk:"), sk]));
+}

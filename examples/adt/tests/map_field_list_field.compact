@@ -1,0 +1,40 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//PM-14841
+import CompactStandardLibrary;
+
+export ledger c: Map<Field, List<Field>>;
+
+export circuit test(): [] {
+  assert(c.isEmpty() == true, "Structure should be empty");
+  assert(c.size() == 0, "Size should be 0");
+
+  c.insert(0, default<List<Field>>);
+  assert(c.size() == 1, "Size should be 1");
+  assert(c.lookup(0).length() == 0, "Key 0 should have value 1");
+
+  c.insertDefault(1);
+  assert(c.size() == 2, "Size should be 2");
+  assert(c.lookup(1).length() == 0, "Key 1 should have value 0");
+  assert(c.member(1) == true, "Key 1 should be member");
+
+  c.remove(0);
+  assert(c.size() == 1, "Size should be 1");
+
+  c.resetToDefault();
+  assert(c.size() == 0, "Size should be 0");
+  assert(c.isEmpty() == true, "Structure should be empty");
+}

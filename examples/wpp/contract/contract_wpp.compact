@@ -1,0 +1,18 @@
+import CompactStandardLibrary;
+
+contract test {
+  circuit alfa(a: Field): Field;
+}
+
+ledger t: test;
+ledger x: Field;
+export ledger set: Set<Field>;
+
+constructor(a: Field, b: Boolean) {
+  const p = x + default<Field> + disclose(a);
+  x = p;
+}
+
+export circuit gary(a: Field, b: Boolean) : [] {
+  t.alfa(2 + disclose(a));
+}

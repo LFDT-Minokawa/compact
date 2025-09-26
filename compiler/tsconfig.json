@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "lib": [
+      "es2021",
+      "dom"
+    ],
+    "module": "commonjs",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "target": "es2021",
+    "baseUrl": "./"
+  }
+}

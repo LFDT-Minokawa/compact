@@ -1,0 +1,6 @@
+import CompactStandardLibrary;
+
+constructor(){
+    for (const bob of [default<Map<[], Boolean>>]) {
+    }
+}

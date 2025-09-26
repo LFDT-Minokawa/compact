@@ -1,0 +1,57 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "schedule:weekly",
+    ":disableRateLimiting"
+  ],
+  "dependencyDashboard": true,
+  "semanticCommits": "enabled",
+  "rebaseWhen": "conflicted",
+  "enabled": true,
+  "nix": {
+    "enabled": true
+  },
+  "ignoreDeps": [
+    "actions/checkout"
+  ],
+  "packageRules": [
+    {
+      "groupName": "arkworks",
+      "matchPackageNames": [
+        "/ark-/"
+      ]
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "commitMessageTopic": "github action {{depName}}",
+      "commitMessageExtra": "to {{#if isSingleVersion}}v{{{newVersion}}}{{else}}{{{newValue}}}{{/if}}",
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "addLabels": [
+        "gha"
+      ]
+    },
+    {
+      "groupName": "devDependencies (non-major)",
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ]
+    },
+    {
+      "groupName": "eslint packages",
+      "matchPackageNames": [
+        "eslint**"
+      ]
+    }
+  ]
+}

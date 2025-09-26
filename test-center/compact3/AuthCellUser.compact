@@ -1,0 +1,17 @@
+
+contract AuthCell {
+  circuit get(): Field;
+  circuit set(newField: Field): [];
+}
+
+export sealed ledger authCell: AuthCell;
+
+constructor (authCellParam: AuthCell) {
+  authCell = disclose(authCellParam);
+}
+
+export circuit useAuthCell(x: Field): Field {
+  const v = authCell.get();
+  authCell.set(disclose(v + x));
+  return v;
+}

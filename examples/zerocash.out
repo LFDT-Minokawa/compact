@@ -1,0 +1,196 @@
+circuit transient_hash.29
+        (x.808 : Field, y.807 : Field)
+        (Field);
+
+circuit transient_commit.35
+        (value.811 : Field[255], value.810 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655], rand.809 : Field)
+        (Field);
+
+circuit persistent_hash.44
+        (x.815 : Field[255], x.814 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655], y.813 : Field[255], y.812 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        (Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655]);
+
+circuit degrade_to_transient.23
+        (x.817 : Field[255], x.816 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        (Field);
+
+witness private$zk_secret_key.5
+        ()
+        (Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655]);
+
+witness private$remove_coin.19
+        (coin.821 : Field[255], coin.820 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655], coin.819 : Field[255], coin.818 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        ();
+
+witness private$zk_public_key.52
+        ()
+        (Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655]);
+
+witness private$add_coin.54
+        (coin.825 : Field[255], coin.824 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655], coin.823 : Field[255], coin.822 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        ();
+
+witness context$path_of.13
+        (cm.827 : Field[255], cm.826 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        (Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1], Field, Field[1]);
+
+witness context$new_coin_info.15
+        ()
+        (Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655], Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655]);
+
+witness context$encrypt.18
+        (pk.832 : Opaque["encryption_public_key"], coin.831 : Field[255], coin.830 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655], coin.829 : Field[255], coin.828 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        (Opaque["ciphertext"]);
+
+ledger {
+  __compact_kernel: __compact_kernel;
+  nullifiers: Set[(Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655])];
+  commitments: HistoricMerkleTree[32, (Field[255], Field[452312848583266388373324160190187140051835877600158453279131187530910662655])];
+  ciphertexts: Cell[(Opaque["ciphertext"])];
+}
+circuit spend
+        (dest_public_key.851 : Field[255], dest_public_key.850 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655], dest_public_key.849 : Opaque["encryption_public_key"], input_coin.848 : Field[255], input_coin.847 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655], input_coin.846 : Field[255], input_coin.845 : Field[452312848583266388373324160190187140051835877600158453279131187530910662655])
+        ()
+{
+    source_secret_key.853,  source_secret_key.852 = private$zk_secret_key.5();
+    t.855,  t.854 = persistent_hash.44(input_coin.848, input_coin.847, source_secret_key.853, source_secret_key.852);
+    t.857,  t.856 = persistent_hash.44(0, 170136074275690287632997881438224751655386455630188, t.855, t.854);
+    t.858 = ledger.nullifiers.member(t.857, t.856);
+    t.860 = select(t.858, 0, 1);
+    assert t.860 "spend: Coin already spent";
+    ledger.nullifiers.insert(t.857, t.856);
+    t.865,  t.864 = persistent_hash.44(0, 0, source_secret_key.853, source_secret_key.852);
+    t.867,  t.866 = persistent_hash.44(input_coin.846, input_coin.845, t.865, t.864);
+    t.869,  t.868 = persistent_hash.44(input_coin.848, input_coin.847, t.867, t.866);
+    t.871,  t.870 = persistent_hash.44(0, 170136074275690287632997881438224751655386455630188, t.869, t.868);
+    commitment_path.937,  commitment_path.936,  commitment_path.935,  commitment_path.934,  commitment_path.933,  commitment_path.932,  commitment_path.931,  commitment_path.930,  commitment_path.929,  commitment_path.928,  commitment_path.927,  commitment_path.926,  commitment_path.925,  commitment_path.924,  commitment_path.923,  commitment_path.922,  commitment_path.921,  commitment_path.920,  commitment_path.919,  commitment_path.918,  commitment_path.917,  commitment_path.916,  commitment_path.915,  commitment_path.914,  commitment_path.913,  commitment_path.912,  commitment_path.911,  commitment_path.910,  commitment_path.909,  commitment_path.908,  commitment_path.907,  commitment_path.906,  commitment_path.905,  commitment_path.904,  commitment_path.903,  commitment_path.902,  commitment_path.901,  commitment_path.900,  commitment_path.899,  commitment_path.898,  commitment_path.897,  commitment_path.896,  commitment_path.895,  commitment_path.894,  commitment_path.893,  commitment_path.892,  commitment_path.891,  commitment_path.890,  commitment_path.889,  commitment_path.888,  commitment_path.887,  commitment_path.886,  commitment_path.885,  commitment_path.884,  commitment_path.883,  commitment_path.882,  commitment_path.881,  commitment_path.880,  commitment_path.879,  commitment_path.878,  commitment_path.877,  commitment_path.876,  commitment_path.875,  commitment_path.874,  commitment_path.873,  commitment_path.872 = context$path_of.13(t.871, t.870);
+    t.938 = degrade_to_transient.23(0, 39612891682351585409136481970639804195180);
+    t.939 = transient_commit.35(commitment_path.937, commitment_path.936, t.938);
+    t.941,  t.940 = field->bytes(32, t.939);
+    t.942 = degrade_to_transient.23(t.941, t.940);
+    left.945 = select(commitment_path.934, t.942, commitment_path.935);
+    right.948 = select(commitment_path.934, commitment_path.935, t.942);
+    recursive_digest.949 = transient_hash.29(left.945, right.948);
+    left.952 = select(commitment_path.932, recursive_digest.949, commitment_path.933);
+    right.955 = select(commitment_path.932, commitment_path.933, recursive_digest.949);
+    recursive_digest.956 = transient_hash.29(left.952, right.955);
+    left.959 = select(commitment_path.930, recursive_digest.956, commitment_path.931);
+    right.962 = select(commitment_path.930, commitment_path.931, recursive_digest.956);
+    recursive_digest.963 = transient_hash.29(left.959, right.962);
+    left.966 = select(commitment_path.928, recursive_digest.963, commitment_path.929);
+    right.969 = select(commitment_path.928, commitment_path.929, recursive_digest.963);
+    recursive_digest.970 = transient_hash.29(left.966, right.969);
+    left.973 = select(commitment_path.926, recursive_digest.970, commitment_path.927);
+    right.976 = select(commitment_path.926, commitment_path.927, recursive_digest.970);
+    recursive_digest.977 = transient_hash.29(left.973, right.976);
+    left.980 = select(commitment_path.924, recursive_digest.977, commitment_path.925);
+    right.983 = select(commitment_path.924, commitment_path.925, recursive_digest.977);
+    recursive_digest.984 = transient_hash.29(left.980, right.983);
+    left.987 = select(commitment_path.922, recursive_digest.984, commitment_path.923);
+    right.990 = select(commitment_path.922, commitment_path.923, recursive_digest.984);
+    recursive_digest.991 = transient_hash.29(left.987, right.990);
+    left.994 = select(commitment_path.920, recursive_digest.991, commitment_path.921);
+    right.997 = select(commitment_path.920, commitment_path.921, recursive_digest.991);
+    recursive_digest.998 = transient_hash.29(left.994, right.997);
+    left.1001 = select(commitment_path.918, recursive_digest.998, commitment_path.919);
+    right.1004 = select(commitment_path.918, commitment_path.919, recursive_digest.998);
+    recursive_digest.1005 = transient_hash.29(left.1001, right.1004);
+    left.1008 = select(commitment_path.916, recursive_digest.1005, commitment_path.917);
+    right.1011 = select(commitment_path.916, commitment_path.917, recursive_digest.1005);
+    recursive_digest.1012 = transient_hash.29(left.1008, right.1011);
+    left.1015 = select(commitment_path.914, recursive_digest.1012, commitment_path.915);
+    right.1018 = select(commitment_path.914, commitment_path.915, recursive_digest.1012);
+    recursive_digest.1019 = transient_hash.29(left.1015, right.1018);
+    left.1022 = select(commitment_path.912, recursive_digest.1019, commitment_path.913);
+    right.1025 = select(commitment_path.912, commitment_path.913, recursive_digest.1019);
+    recursive_digest.1026 = transient_hash.29(left.1022, right.1025);
+    left.1029 = select(commitment_path.910, recursive_digest.1026, commitment_path.911);
+    right.1032 = select(commitment_path.910, commitment_path.911, recursive_digest.1026);
+    recursive_digest.1033 = transient_hash.29(left.1029, right.1032);
+    left.1036 = select(commitment_path.908, recursive_digest.1033, commitment_path.909);
+    right.1039 = select(commitment_path.908, commitment_path.909, recursive_digest.1033);
+    recursive_digest.1040 = transient_hash.29(left.1036, right.1039);
+    left.1043 = select(commitment_path.906, recursive_digest.1040, commitment_path.907);
+    right.1046 = select(commitment_path.906, commitment_path.907, recursive_digest.1040);
+    recursive_digest.1047 = transient_hash.29(left.1043, right.1046);
+    left.1050 = select(commitment_path.904, recursive_digest.1047, commitment_path.905);
+    right.1053 = select(commitment_path.904, commitment_path.905, recursive_digest.1047);
+    recursive_digest.1054 = transient_hash.29(left.1050, right.1053);
+    left.1057 = select(commitment_path.902, recursive_digest.1054, commitment_path.903);
+    right.1060 = select(commitment_path.902, commitment_path.903, recursive_digest.1054);
+    recursive_digest.1061 = transient_hash.29(left.1057, right.1060);
+    left.1064 = select(commitment_path.900, recursive_digest.1061, commitment_path.901);
+    right.1067 = select(commitment_path.900, commitment_path.901, recursive_digest.1061);
+    recursive_digest.1068 = transient_hash.29(left.1064, right.1067);
+    left.1071 = select(commitment_path.898, recursive_digest.1068, commitment_path.899);
+    right.1074 = select(commitment_path.898, commitment_path.899, recursive_digest.1068);
+    recursive_digest.1075 = transient_hash.29(left.1071, right.1074);
+    left.1078 = select(commitment_path.896, recursive_digest.1075, commitment_path.897);
+    right.1081 = select(commitment_path.896, commitment_path.897, recursive_digest.1075);
+    recursive_digest.1082 = transient_hash.29(left.1078, right.1081);
+    left.1085 = select(commitment_path.894, recursive_digest.1082, commitment_path.895);
+    right.1088 = select(commitment_path.894, commitment_path.895, recursive_digest.1082);
+    recursive_digest.1089 = transient_hash.29(left.1085, right.1088);
+    left.1092 = select(commitment_path.892, recursive_digest.1089, commitment_path.893);
+    right.1095 = select(commitment_path.892, commitment_path.893, recursive_digest.1089);
+    recursive_digest.1096 = transient_hash.29(left.1092, right.1095);
+    left.1099 = select(commitment_path.890, recursive_digest.1096, commitment_path.891);
+    right.1102 = select(commitment_path.890, commitment_path.891, recursive_digest.1096);
+    recursive_digest.1103 = transient_hash.29(left.1099, right.1102);
+    left.1106 = select(commitment_path.888, recursive_digest.1103, commitment_path.889);
+    right.1109 = select(commitment_path.888, commitment_path.889, recursive_digest.1103);
+    recursive_digest.1110 = transient_hash.29(left.1106, right.1109);
+    left.1113 = select(commitment_path.886, recursive_digest.1110, commitment_path.887);
+    right.1116 = select(commitment_path.886, commitment_path.887, recursive_digest.1110);
+    recursive_digest.1117 = transient_hash.29(left.1113, right.1116);
+    left.1120 = select(commitment_path.884, recursive_digest.1117, commitment_path.885);
+    right.1123 = select(commitment_path.884, commitment_path.885, recursive_digest.1117);
+    recursive_digest.1124 = transient_hash.29(left.1120, right.1123);
+    left.1127 = select(commitment_path.882, recursive_digest.1124, commitment_path.883);
+    right.1130 = select(commitment_path.882, commitment_path.883, recursive_digest.1124);
+    recursive_digest.1131 = transient_hash.29(left.1127, right.1130);
+    left.1134 = select(commitment_path.880, recursive_digest.1131, commitment_path.881);
+    right.1137 = select(commitment_path.880, commitment_path.881, recursive_digest.1131);
+    recursive_digest.1138 = transient_hash.29(left.1134, right.1137);
+    left.1141 = select(commitment_path.878, recursive_digest.1138, commitment_path.879);
+    right.1144 = select(commitment_path.878, commitment_path.879, recursive_digest.1138);
+    recursive_digest.1145 = transient_hash.29(left.1141, right.1144);
+    left.1148 = select(commitment_path.876, recursive_digest.1145, commitment_path.877);
+    right.1151 = select(commitment_path.876, commitment_path.877, recursive_digest.1145);
+    recursive_digest.1152 = transient_hash.29(left.1148, right.1151);
+    left.1155 = select(commitment_path.874, recursive_digest.1152, commitment_path.875);
+    right.1158 = select(commitment_path.874, commitment_path.875, recursive_digest.1152);
+    recursive_digest.1159 = transient_hash.29(left.1155, right.1158);
+    left.1162 = select(commitment_path.872, recursive_digest.1159, commitment_path.873);
+    right.1165 = select(commitment_path.872, commitment_path.873, recursive_digest.1159);
+    t.1166 = transient_hash.29(left.1162, right.1165);
+    t.1167 = ledger.commitments.check_root(t.1166);
+    t.1171 = t.871 == commitment_path.937;
+    t.1173 = t.870 == commitment_path.936;
+    t.1172 = select(t.1171, t.1173, 0);
+    t.1174 = select(t.1167, t.1172, 0);
+    assert t.1174 "spend: Illegal state: merkle path not recognized by public state";
+    fresh_coin_info.1180,  fresh_coin_info.1179,  fresh_coin_info.1178,  fresh_coin_info.1177 = context$new_coin_info.15();
+    t.1182,  t.1181 = persistent_hash.44(fresh_coin_info.1178, fresh_coin_info.1177, dest_public_key.851, dest_public_key.850);
+    t.1184,  t.1183 = persistent_hash.44(fresh_coin_info.1180, fresh_coin_info.1179, t.1182, t.1181);
+    t.1186,  t.1185 = persistent_hash.44(0, 170136074275690287632997881438224751655386455630188, t.1184, t.1183);
+    ledger.commitments.insert(t.1186, t.1185);
+    ciphertext.1187 = context$encrypt.18(dest_public_key.849, fresh_coin_info.1180, fresh_coin_info.1179, fresh_coin_info.1178, fresh_coin_info.1177);
+    ledger.ciphertexts.write(ciphertext.1187);
+    private$remove_coin.19(input_coin.848, input_coin.847, input_coin.846, input_coin.845);
+    return;
+}
+
+circuit zerocash_mint
+        ()
+        ()
+{
+    coin.836,  coin.835,  coin.834,  coin.833 = context$new_coin_info.15();
+    pk.838,  pk.837 = private$zk_public_key.52();
+    private$add_coin.54(coin.836, coin.835, coin.834, coin.833);
+    t.840,  t.839 = persistent_hash.44(coin.834, coin.833, pk.838, pk.837);
+    t.842,  t.841 = persistent_hash.44(coin.836, coin.835, t.840, t.839);
+    t.844,  t.843 = persistent_hash.44(0, 170136074275690287632997881438224751655386455630188, t.842, t.841);
+    ledger.commitments.insert(t.844, t.843);
+    return;
+}

@@ -1,0 +1,32 @@
+import CompactStandardLibrary;
+
+export ledger tobias: Field;
+export ledger counter: Counter;
+export ledger brad: Map<Field, Field>;
+
+export circuit adolf(a: Field): Field {
+  tobias = a;
+  return 1;
+}
+
+export circuit damian(b: Uint<16>): [] {
+  counter += b;
+}
+
+export circuit gary(a: Uint<16>): [] {
+  counter -= a;
+}
+
+export circuit edmund(a: Uint<16>): [] {
+  brad.lookup(a);
+}
+
+export circuit barbara(a: Field): Field {
+  brad.insert(a, a);
+  return 1;
+}
+
+export circuit katie(a: Field): Field {
+  brad.remove(a);
+  return 1;
+}
