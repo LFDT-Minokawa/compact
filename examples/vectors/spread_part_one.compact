@@ -58,7 +58,7 @@ export circuit test2(vector1: Vector<2, Uint<8>>, vector2: Vector<2, Uint<16>>):
   const b = [a[0], a[1], ...slice<7>(a, 2), ...[a[9]]];
   const c = [...default<Vector<1, Uint<16>>>, a[0], ...[a[1]], ...a];
   const d = var2a { a: slice<3>([...[true, true, true, true]], 0) };
-  const e = [...[...[...default<Vector<0xffffffffffffffffffffffffffffffffffff, Vector<10, var2a>>>]]];
+  const e = [...[...[...default<Vector<0x1000000, Vector<10, var2a>>>]]];
   const f = [...[var2b.START, var2b.STOP], ...[var2a { a: [true, true, true] }]];
   const g = slice<1>(f, 2)[0].a[0] == slice<1>(f, 2)[0].a[1];
   const h = [...slice<1>([var2b.START, var2b.STOP], 0)];
@@ -119,7 +119,7 @@ export circuit test3c(vector: Vector<8, Uint<32>>): [] {
   const e = [b[d + 1], ...slice<1>(var3.lookup(d + 1), d + 1), ...[d + 1], ...default<Vector<1, Field>>, test3a(), ...test3b()];
   const f = [b[2 + 2]];
   // const g = slice<0xffffffffffffffffffffffffffffffffffff>(default<Vector<0xffffffffffffffffffffffffffffffffffff, Field>>, 0);
-  const h = slice<0>(default<Vector<0xffffffffffffffffffffffffffffffffffff, Field>>, 0xffffffffffffffffffffffffffffffffffff);
+  const h = slice<0>(default<Vector<0x1000000, Field>>, 0x1000000);
   const i = default<Vector<1000, var3a>>;
   const j = [...i, ...i];
 

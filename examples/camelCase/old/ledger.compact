@@ -19,8 +19,8 @@ export ledger counter: Counter;
 export ledger set: Set<QualifiedCoinInfo>;
 export ledger maps: Map<Field, QualifiedCoinInfo>;
 export ledger list: List<QualifiedCoinInfo>;
-export ledger mt: MerkleTree<1, Field>;
-export ledger hmt: HistoricMerkleTree<1, Field>;
+export ledger mt: MerkleTree<2, Field>;
+export ledger hmt: HistoricMerkleTree<2, Field>;
 
 constructor() {
     kernel.checkpoint();

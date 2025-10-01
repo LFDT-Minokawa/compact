@@ -288,22 +288,14 @@ jobs:
       macos_x86: ${{ needs.setup.outputs.macos_x86 }}
       macos_arm: ${{ needs.setup.outputs.macos_arm }}
       linux_x86: ${{ needs.setup.outputs.linux_x86 }}
-    secrets:
-      MIDNIGHTCI_PACKAGES_READ: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-      MIDNIGHTBOT_PACKAGES_WRITE: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
-      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
   generate-docs-after-release:
     if: ${{ inputs.docs }}
     name: Create branch in midnight-docs with latest documentation
     needs: [ setup, make-release ]
     uses: ./.github/workflows/generate-docs.yml
+    secrets: inherit
     with:
       branch: ${{ needs.setup.outputs.branch }}
       docs_branch: ${{ inputs.docs_branch }}
       pr_description: ${{ inputs.pr_description }}
-    secrets:
-      MIDNIGHTCI_PACKAGES_READ: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-      MIDNIGHTBOT_PACKAGES_WRITE: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
-      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
-      MIDNIGHTCI_REPO: ${{ secrets.MIDNIGHTCI_REPO }}

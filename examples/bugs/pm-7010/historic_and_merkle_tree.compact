@@ -1,0 +1,78 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// min
+export ledger merkle_tree_min: MerkleTree<2, Field>;
+export ledger historic_merkle_tree_min: HistoricMerkleTree<2, Field>;
+
+// in range
+export ledger merkle_tree_range: MerkleTree<16, Field>;
+export ledger historic_merkle_tree_range: HistoricMerkleTree<16, Field>;
+
+// max
+export ledger merkle_tree_max: MerkleTree<32, Field>;
+export ledger historic_merkle_tree_max: HistoricMerkleTree<32, Field>;
+
+// min test
+export circuit merkle_tree_min_test() : [] {
+  merkle_tree_min.insertIndex(1, 0);
+  merkle_tree_min.insertIndex(2, 1);
+  merkle_tree_min.insertIndex(3, 2);
+  merkle_tree_min.insertIndex(4, 3);
+
+  assert(merkle_tree_min.isFull(), "Should be full with 4 elements");
+}
+
+export circuit historic_merkle_tree_min_test() : [] {
+  historic_merkle_tree_min.insertIndex(1, 0);
+  historic_merkle_tree_min.insertIndex(2, 1);
+  historic_merkle_tree_min.insertIndex(3, 2);
+  historic_merkle_tree_min.insertIndex(4, 3);
+
+  assert(historic_merkle_tree_min.isFull(), "Should be full with 4 elements");
+}
+
+// in range test
+export circuit merkle_tree_in_range_test() : [] {
+  merkle_tree_range.insertIndex(1, 0);
+  merkle_tree_range.insertIndex(2, 65535);
+
+  assert(merkle_tree_range.isFull() != true, "Should not be full with 2 elements");
+}
+
+export circuit hist_merkle_tree_in_range_test() : [] {
+  historic_merkle_tree_range.insertIndex(1, 0);
+  historic_merkle_tree_range.insertIndex(2, 65535);
+
+  assert(historic_merkle_tree_range.isFull() != true, "Should not be full with 2 elements");
+}
+
+// max test
+export circuit merkle_tree_max_test() : [] {
+  merkle_tree_max.insertIndex(1, 0);
+  merkle_tree_max.insertIndex(2, 4294967296);
+
+  assert(merkle_tree_min.isFull() != true, "Should not be full with 2 elements");
+}
+
+export circuit hist_merkle_tree_max_test() : [] {
+  historic_merkle_tree_max.insertIndex(1, 0);
+  historic_merkle_tree_max.insertIndex(2, 4294967296);
+
+  assert(historic_merkle_tree_max.isFull() != true, "Should not be full with 2 elements");
+}
+
