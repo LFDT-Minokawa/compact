@@ -71,7 +71,7 @@ jobs:
     name: Build docker images
     needs: [ make-artifacts-public ]
     uses: ./.github/workflows/release-internal-docker.yml
+    secrets: inherit
     with:
       version: ${{ inputs.version }}
       branch: ${{ inputs.branch }}
-    secrets: inherit
