@@ -56,6 +56,11 @@ fn test_self_sc1_download_release_and_check() {
         receipt.to_str().unwrap().to_string(),
     );
 
+    // Pass GITHUB_TOKEN if available to avoid rate limiting on CI
+    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+        env_hash_map.insert("GITHUB_TOKEN".to_string(), token);
+    }
+
     run_downloaded_binary(
         Some(compact.to_str().unwrap()),
         &[
@@ -96,6 +101,11 @@ fn test_self_sc2_download_release_and_update() {
         "RECEIPT_HOME".to_string(),
         receipt.to_str().unwrap().to_string(),
     );
+
+    // Pass GITHUB_TOKEN if available to avoid rate limiting on CI
+    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+        env_hash_map.insert("GITHUB_TOKEN".to_string(), token);
+    }
 
     run_downloaded_binary(
         Some(compact.to_str().unwrap()),
@@ -141,6 +151,11 @@ fn test_self_sc2a_download_release_and_update() {
         "RECEIPT_HOME".to_string(),
         receipt.to_str().unwrap().to_string(),
     );
+
+    // Pass GITHUB_TOKEN if available to avoid rate limiting on CI
+    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+        env_hash_map.insert("GITHUB_TOKEN".to_string(), token);
+    }
 
     run_downloaded_binary(
         Some(compact.to_str().unwrap()),

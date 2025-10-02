@@ -25,22 +25,24 @@
   inputs = {
     zkir = {
       # dependency for compact-runtime release
+      # this is using a commit hash to pull in the correct zkir version from ledger-6.0.0-alpha.3 release
+      # if for releasing the runtime, running nix flake update causes errors for autherization of cargo, use
+      # the commit hash instead of the tag for this.
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      # this is using a commit hash to pull in the correct zkir version from ledger-3.0.0 release.
-      # When for releasing the runtime, running nix flake update causes errors for authorization of cargo
-      # (this is an issue on the midnight-ledger-prototype repo and the ledger team might fix it at some point), use
-      # the commit hash instead of the tag.
-      url = "github:midnightntwrk/midnight-ledger-prototype/e876d32b0bfe5a7124d4a6bde40cad6ccce0c522";
-      inputs.compactc.follows = "";
+      url = "github:midnightntwrk/midnight-ledger/ledger-6.1.0-alpha.5";
       inputs.zkir.follows = "zkir";
     };
-    onchain-runtime = {
+    onchain-runtime-v1 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger-prototype/e876d32b0bfe5a7124d4a6bde40cad6ccce0c522";
-      inputs.compactc.follows = "";
+      url = "github:midnightntwrk/midnight-ledger/ledger-6.1.0-alpha.5";
+      inputs.zkir.follows = "zkir";
+    };
+    zkir-wasm = {
+      # dependency for test-center
+      url = "github:midnightntwrk/midnight-ledger/ledger-6.1.0-alpha.5";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -55,7 +57,7 @@
     };
 
     midnight-contracts = {
-      url = "github:midnightntwrk/midnight-contracts/JosephDenman/pm-18137";
+      url = "github:midnightntwrk/midnight-contracts/unshielded-tokens";
       flake = false;
     };
   };
@@ -63,7 +65,8 @@
   outputs = {
     self,
     zkir,
-    onchain-runtime,
+    onchain-runtime-v1,
+    zkir-wasm,
     nixpkgs,
     utils,
     inclusive,
@@ -82,7 +85,7 @@
         });
         isDarwin = pkgs.lib.hasSuffix "-darwin" system;
         chez = if isDarwin then pkgs.chez.override {
-          stdenv = pkgs.llvmPackages_17.stdenv;
+          stdenv = pkgs.llvmPackages_18.stdenv;
         } else pkgs.chez;
         sources = (import ./_sources/generated.nix) {inherit (pkgs) fetchgit fetchurl fetchFromGitHub;};
         nanopass = sources.nanopass.src;
@@ -101,6 +104,21 @@
             chown $USER -R node_modules
             chmod u+w -R node_modules
             ln -sfn ${midnight-contracts} test-center/midnight-contracts
+          '';
+        test-center-shell-hook =
+          ''
+            # Set up test-center node_modules
+            if [ -d test-center ]; then
+              rm -rf test-center/node_modules
+              cp -r ${self.packages.${system}.test-center.node-modules}/node_modules test-center/node_modules
+              chown $USER -R test-center/node_modules
+              chmod u+w -R test-center/node_modules
+            fi
+          '';
+        combined-shell-hook =
+          ''
+            ${runtime-shell-hook}
+            ${test-center-shell-hook}
           '';
         platformSpecificInputs = {
           x86_64-darwin = [ pkgs.darwin.libiconv ];
@@ -153,11 +171,28 @@
             };
 
             nixDependenciesMap = {
-              "@midnight-ntwrk/onchain-runtime" = let
-                pkg = onchain-runtime.packages.${system}.onchain-runtime-wasm;
+              "@midnight-ntwrk/onchain-runtime-v1" = let
+                pkg = onchain-runtime-v1.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v1-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v1";
+              };
+            };
+          };
+
+          packages.test-center = lib.pretzel-js.mkPackage {
+            pkgs = import nixpkgs {
+              inherit system;
+              overlays = [overlays.pretzel-js];
+            };
+            src = ./test-center;
+
+            nixDependenciesMap = {
+              "@midnight-ntwrk/zkir-v2" = let
+                pkg = zkir-wasm.packages.${system}.zkir-wasm;
+              in {
+                tarPath = "${pkg}/lib/midnight-zkir-v2-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/zkir-v2";
               };
             };
           };
@@ -174,7 +209,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.26.117"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.26.118"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./test-center
               ./compiler
@@ -465,8 +500,10 @@
               pkgs.alejandra
               packages.runtime.package
               packages.runtime.node-modules
+              packages.test-center.package
+              packages.test-center.node-modules
             ];
-            shellHook = runtime-shell-hook;
+            shellHook = combined-shell-hook;
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             WASM_BINDGEN_WEAKREF = 1;
@@ -481,9 +518,11 @@
               pkgs.binaryen
               packages.runtime.package
               packages.runtime.node-modules
+              packages.test-center.package
+              packages.test-center.node-modules
               zkir.packages.${system}.zkir
             ];
-            shellHook = runtime-shell-hook;
+            shellHook = combined-shell-hook;
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
           };

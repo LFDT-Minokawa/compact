@@ -13,5 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
-export sealed ledger EsRdOЃ: MerkleTree<159390502094656647950333731871572319422, QualifiedShieldedCoinInfo>;
+test('Check gas tracking works as expected', () => {
+  const [c, context] = startContract(contractCode, {}, 0);
+  const gasCost = c.circuits.testGasCost(context).gasCost;
+  expect(gasCost).toBeDefined();
+  expect(gasCost.computeTime > 0n).toBe(true);
+  expect(gasCost.readTime > 0n).toBe(true);
+  expect(gasCost.bytesWritten > 0n).toBe(true);
+  expect(gasCost.bytesDeleted > 0n).toBe(true);
+})
+
+test('Gas bound works as expected', () => {
+  const [c, context] = startContract(contractCode, {}, 0);
+  context.gasLimit = runtime.emptyRunningCost();
+  expect(() => c.circuits.testGasCost(context)).toThrowError();
+})
+

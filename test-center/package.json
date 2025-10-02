@@ -11,11 +11,11 @@
   ],
   "author": "IOG",
   "license": "Apache-2.0",
-  "dependencies": {    
-  },
+  "nixDependencies": [
+    "@midnight-ntwrk/zkir-v2"
+  ],
   "devDependencies": {
-    "@types/glob": "^8.1.0",
-    "glob": "^11.0.1",
+    "glob": "^10.4.5",
     "typescript": "^5.0.0",
     "vitest": "^3.1.1"
   }

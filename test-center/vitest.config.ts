@@ -29,6 +29,7 @@ export default defineConfig({
       include: testFiles,
       exclude: nonTestFiles
     },
-    testTimeout: 180_000
+    testTimeout: 180_000,
+    hookTimeout: 20_000
   },
 })

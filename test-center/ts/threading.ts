@@ -144,7 +144,7 @@ test('check private state', () => {
 test('check contract address', () => {
     var  [c, Ctxt] = startContract(contractCode, witnesses, 0);
     Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(Ctxt.currentQueryContext.address).toEqual("02000000000000000000000000000000000000000000000000000000000000000000")
+    expect(Ctxt.currentQueryContext.address).toEqual("0000000000000000000000000000000000000000000000000000000000000000")
 });
 
 

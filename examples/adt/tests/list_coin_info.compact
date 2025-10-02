@@ -15,11 +15,11 @@
 
 import CompactStandardLibrary;
 
-export ledger c: List<CoinInfo>;
+export ledger c: List<ShieldedCoinInfo>;
 
 export circuit test(): [] {
-  const coin = CoinInfo { pad(32, "nonce"), pad(32, "color"), 1 };
-  const coin2 = CoinInfo { pad(32, "nonce"), pad(32, "color"), 2 };
+  const coin = ShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1 };
+  const coin2 = ShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 2 };
 
   assert(c.isEmpty() == true, "Structure should be empty");
   assert(c.length() == 0, "Size should be 0");

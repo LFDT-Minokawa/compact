@@ -28,7 +28,7 @@ pragma language_version >= 0.14.0;
 
 import CompactStandardLibrary;
 
-export { Maybe, CoinInfo, QualifiedCoinInfo, Board, Commitment, Committable, State, WithdrawnCoins }
+export { Maybe, ShieldedCoinInfo, QualifiedShieldedCoinInfo, Board, Commitment, Committable, State, WithdrawnCoins }
 
 export enum Player {
   red,
@@ -92,11 +92,11 @@ export ledger blue_board: Commitment<Board>;
 // Dynamic State of the Game
 export ledger last_guess: Maybe<Field>;
 export ledger state: State;
-export ledger pot: QualifiedCoinInfo;
+export ledger pot: QualifiedShieldedCoinInfo;
 // We currently don't have the ability to time-lock, so for now these
 // Are just game-theoretic incentives to concede.
-export ledger red_deposit: QualifiedCoinInfo;
-export ledger blue_deposit: QualifiedCoinInfo;
+export ledger red_deposit: QualifiedShieldedCoinInfo;
+export ledger blue_deposit: QualifiedShieldedCoinInfo;
 
 constructor () {
   state = State.no_game;
@@ -167,7 +167,7 @@ export circuit is_player_alive(local_board: Committable<Board>, guess: Field): B
     First player that starts is considered red, next one - blue.
     Return the color of the player - red if this is first call, blue if this is second call.
  */
-export circuit start(pos: Field, wager: CoinInfo, deposit: CoinInfo): Player {
+export circuit start(pos: Field, wager: ShieldedCoinInfo, deposit: ShieldedCoinInfo): Player {
   assert(state == State.no_game || state == State.red_started, "The game already has two players");
   if (state == State.red_started) {
     assert(wager.value == pot.value && wager.color == pot.color, "Blue must match Reds wager");
@@ -176,8 +176,8 @@ export circuit start(pos: Field, wager: CoinInfo, deposit: CoinInfo): Player {
   const b = Board{pos};
   assert(is_valid_board(b), "Initial board is not valid");
 
-  receive(wager);
-  receive(deposit);
+  receiveShielded(wager);
+  receiveShielded(deposit);
 
   const sk = local_secret_key();
   const n = fresh_nonce();
@@ -247,7 +247,7 @@ circuit blue_guess(my_guess: Field): [] {
   state = State.red_turn;
 }
 
-export circuit concede(): CoinInfo {
+export circuit concede(): ShieldedCoinInfo {
   const sk = local_secret_key();
   const player_is_red = is_red(sk, red);
   const player_is_blue = is_blue(sk, blue);
@@ -256,7 +256,7 @@ export circuit concede(): CoinInfo {
 }
 
 // Red is defeated and finishes the game
-circuit red_concede(): CoinInfo {
+circuit red_concede(): ShieldedCoinInfo {
   const sk = local_secret_key();
   const lb = local_board();
 
@@ -271,7 +271,7 @@ circuit red_concede(): CoinInfo {
   // Record that Blue has won
   state = State.blue_wins;
 
-  return send(
+  return sendShielded(
     red_deposit,
     left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
     red_deposit.value
@@ -279,7 +279,7 @@ circuit red_concede(): CoinInfo {
 }
 
 // Blue is defeated and finishes the game
-circuit blue_concede(): CoinInfo {
+circuit blue_concede(): ShieldedCoinInfo {
   const sk = local_secret_key();
   const lb = local_board();
 
@@ -293,7 +293,7 @@ circuit blue_concede(): CoinInfo {
   // Record that Red has won
   state = State.red_wins;
 
-  return send(
+  return sendShielded(
     blue_deposit,
     left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
     blue_deposit.value
@@ -301,8 +301,8 @@ circuit blue_concede(): CoinInfo {
 }
 
 struct WithdrawnCoins {
-  wager: CoinInfo;
-  deposit: CoinInfo;
+  wager: ShieldedCoinInfo;
+  deposit: ShieldedCoinInfo;
 }
 
 export circuit withdraw(): WithdrawnCoins {
@@ -319,12 +319,12 @@ circuit red_withdraw(): WithdrawnCoins {
   assert(is_red(sk, red), "Not player Red");
   assert(state == State.red_wins, "Red hasn't won");
 
-  const wager = send(
+  const wager = sendShielded(
     pot,
     left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
     pot.value
   ).sent;
-  const deposit = send(
+  const deposit = sendShielded(
     red_deposit,
     left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
     red_deposit.value
@@ -338,12 +338,12 @@ circuit blue_withdraw(): WithdrawnCoins {
   assert(is_blue(sk, blue), "Not player Blue");
   assert(state == State.blue_wins, "Blue hasn't won");
 
-  const wager = send(
+  const wager = sendShielded(
     pot,
     left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
     pot.value
   ).sent;
-  const deposit = send(
+  const deposit = sendShielded(
     blue_deposit,
     left<ZswapCoinPublicKey, ContractAddress>(own_public_key()),
     blue_deposit.value
