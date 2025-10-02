@@ -36,7 +36,7 @@ export circuit kernel_claim_zswap_nullifier(nul: Bytes<32>): [] {
 }
 
 export circuit kernel_mint(domain_sep: Bytes<32>, amount: Uint<64>): [] {
-  return kernel.mint(disclose(domain_sep), disclose(amount));
+  return kernel.mintShielded(disclose(domain_sep), disclose(amount));
 }
 
 export circuit kernel_self(): ContractAddress {

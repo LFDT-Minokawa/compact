@@ -16,9 +16,9 @@
 test('Check block time functions', () => {
   const [c, context] = startContract(contractCode, {}, 0);
   context.currentQueryContext.block = {
+    ...context.currentQueryContext.block,
     secondsSinceEpoch: 1n,
-    secondsSinceEpochErr: 0,
-    blockHash: '0'.repeat(64),
+    secondsSinceEpochErr: 0
   };
   expect(c.circuits.testBlockTimeGt(context, 5n).result).toEqual(false);
   expect(c.circuits.testBlockTimeGt(context, 0n).result).toEqual(true);

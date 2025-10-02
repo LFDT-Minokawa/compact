@@ -664,7 +664,7 @@
                           ")"))]
                  [(VMcoin-commit coin recipient)
                   (make-Qconcat
-                    "__compactRuntime.coinCommitment("
+                    "__compactRuntime.runtimeCoinCommitment("
                     2 ((make-Qsep ",")
                         (construct-query-value coin #f)
                         (construct-query-value recipient #f))
@@ -1133,7 +1133,7 @@
               (print-constructor-declaration xpelt*)
               (display-string "}\n")
               (newline)
-              (display-string "export declare function ledger(state: __compactRuntime.StateValue): Ledger;\n")
+              (display-string "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;\n")
               (display-string "export declare const pureCircuits: PureCircuits;\n")
               ))))
 
@@ -1272,7 +1272,7 @@
             (let ([stateValue (format-internal-binding unique-local-name (make-temp-id src 'stateValue))])
               (initialize-array pl-array stateValue
                 (cons*
-                  2 (format "~a.data = ~a;" state stateValue)
+                  2 (format "~a.data = new __compactRuntime.ChargedState(~a);" state stateValue)
                   q*))))
 
           (define (ledger-reset-to-default src pl-array q*)
@@ -1535,7 +1535,7 @@
                                           (argument-type-checks src external-name 1 (map arg->id arg*) (map arg->type arg*)
                                             (list
                                               ; Shallow clone context to ensure no-one else has a reference to it
-                                              2 (format "const context = { ...~a };" contextOrig)
+                                              2 (format "const context = { ...~a, gasCost: __compactRuntime.emptyRunningCost() };" contextOrig)
                                               2 "const partialProofData = {"
                                               4 (make-Qconcat
                                                   "input: {"
@@ -1600,7 +1600,8 @@
                                               2 "return { "
                                                 "result: " result ", "
                                                 "context: " "context" ", "
-                                                "proofData: " "partialProofData"
+                                                "proofData: " "partialProofData" ", "
+                                                "gasCost: " "context.gasCost"
                                                 " };"
                                               0 "}"))))))
                                   external-name*)
@@ -1807,9 +1808,12 @@
                   [(XPelt-public-ledger pl-array lconstructor external-names)
                    (print-Q 0
                       (make-Qconcat
-                        "function ledger(state) {"
+                        "function ledger(stateOrChargedState) {"
+                        2 "const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
+                        2 "const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
                         2 "const context = {"
-                        4 "currentQueryContext: new __compactRuntime.QueryContext(state, __compactRuntime.dummyContractAddress())"
+                        4 "currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()),"
+                        4 "costModel: __compactRuntime.CostModel.initialCostModel()"
                         2 "};"
                         2 "const partialProofData = {"
                         4 "input: { value: [], alignment: [] },"
@@ -1919,7 +1923,7 @@
                                              (ledger-initializers src state pl-array
                                                (set-operations state xpelt0*
                                                  (cons*
-                                                   2 (format "const context = __compactRuntime.createCircuitContext(__compactRuntime.DUMMY_ADDRESS, ~a.initialZswapLocalState.coinPublicKey, ~a.data, ~a.initialPrivateState)" constructorContext state constructorContext)
+                                                   2 (format "const context = __compactRuntime.createCircuitContext(__compactRuntime.dummyContractAddress(), ~a.initialZswapLocalState.coinPublicKey, ~a.data, ~a.initialPrivateState);" constructorContext state constructorContext)
                                                    2 "const partialProofData = {"
                                                    4 "input: { value: [], alignment: [] },"
                                                    4 "output: undefined,"

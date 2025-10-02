@@ -16,9 +16,9 @@
 import CompactStandardLibrary;
 
 export ledger counter: Counter;
-export ledger set: Set<QualifiedCoinInfo>;
-export ledger maps: Map<Field, QualifiedCoinInfo>;
-export ledger list: List<QualifiedCoinInfo>;
+export ledger set: Set<QualifiedShieldedCoinInfo>;
+export ledger maps: Map<Field, QualifiedShieldedCoinInfo>;
+export ledger list: List<QualifiedShieldedCoinInfo>;
 export ledger mt: MerkleTree<2, Field>;
 export ledger hmt: HistoricMerkleTree<2, Field>;
 
@@ -28,8 +28,15 @@ constructor() {
     kernel.claim_zswap_coin_receive(default<Bytes<32>>);
     kernel.claim_zswap_coin_spend(default<Bytes<32>>);
     kernel.claim_zswap_nullifier(default<Bytes<32>>);
-    kernel.mint(default<Bytes<32>>, default<Uint<64>>);
+    kernel.mintShielded(default<Bytes<32>>, default<Uint<64>>);
     kernel.self();
+    kernel.mintUnshielded(default<Bytes<32>>, default<Uint<64>>);
+    kernel.claimUnshieldedCoinSpend(default<Either<Bytes<32>, Bytes<32>>>, default<Either<ContractAddress, UserAddress>>, default<Uint<64>>);
+    kernel.incUnshieldedOutputs(default<Either<Bytes<32>, Bytes<32>>>, default<Uint<64>>);
+    kernel.incUnshieldedInputs(default<Either<Bytes<32>, Bytes<32>>>, default<Uint<64>>);
+    kernel.balance(default<Either<Bytes<32>, Bytes<32>>>);
+    kernel.balanceLessThan(default<Either<Bytes<32>, Bytes<32>>>, default<Uint<64>>);
+    kernel.balanceGreaterThan(default<Either<Bytes<32>, Bytes<32>>>, default<Uint<64>>);
 
     counter.decrement(1);
     counter.increment(1);
@@ -37,16 +44,16 @@ constructor() {
     counter.read();
     counter.reset_to_default();
 
-    set.insert(default<QualifiedCoinInfo>);
-    set.insert_coin(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+    set.insert(default<QualifiedShieldedCoinInfo>);
+    set.insert_coin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
     set.is_empty();
-    set.member(default<QualifiedCoinInfo>);
-    set.remove(default<QualifiedCoinInfo>);
+    set.member(default<QualifiedShieldedCoinInfo>);
+    set.remove(default<QualifiedShieldedCoinInfo>);
     set.reset_to_default();
     set.size();
 
-    maps.insert(1, default<QualifiedCoinInfo>);
-    maps.insert_coin(1, default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+    maps.insert(1, default<QualifiedShieldedCoinInfo>);
+    maps.insert_coin(1, default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
     maps.insert_default(1);
     maps.is_empty();
     maps.lookup(1);
@@ -59,8 +66,8 @@ constructor() {
     list.is_empty();
     list.length();
     list.pop_front();
-    list.push_front(default<QualifiedCoinInfo>);
-    list.push_front_coin(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+    list.push_front(default<QualifiedShieldedCoinInfo>);
+    list.push_front_coin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
     list.reset_to_default();
 
     mt.check_root(default<MerkleTreeDigest>);

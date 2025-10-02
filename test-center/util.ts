@@ -13,25 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
 import * as fs from 'node:fs';
 import {
   CircuitContext,
   createConstructorContext,
   createCircuitContext,
-  checkProofData,
   WitnessContext,
   ConstructorContext,
   CircuitResults,
   ConstructorResult
 } from '@midnight-ntwrk/compact-runtime';
+import { checkProofData } from './key-provider.js';
 
 export type Witness<PS> = (context: WitnessContext<any, PS>, ...rest: any[]) => [PS, any];
-
 export type Witnesses<PS> = Record<string, Witness<PS>>;
-
 export type Circuit<PS> = (context: CircuitContext<PS>, ...args: any[]) => CircuitResults<PS, any>;
-
 export type Circuits<PS> = Record<string, Circuit<PS>>;
 
 export type Contract<PS, W extends Witnesses<PS>> = {
@@ -39,7 +36,7 @@ export type Contract<PS, W extends Witnesses<PS>> = {
   impureCircuits: Circuits<PS>;
   circuits: Circuits<PS>;
   initialState(ctx: ConstructorContext<PS>, ...args: any[]): ConstructorResult<PS>;
-}
+};
 
 export type InitialStateParams<
   C extends Contract<any, any>
@@ -47,20 +44,50 @@ export type InitialStateParams<
 
 export type Module<C, W> = {
   Contract: new (witnesses: W) => C;
-  zkirDir: string;
+  contractDir: string;
+};
+
+/** Pending proof validations scheduled by circuit calls (module-singleton). */
+const pending = new Set<Promise<void>>();
+
+/**
+ * Register a proof-check promise so we can fail a test at a controlled boundary.
+ * Attaches handlers immediately to avoid unhandled-rejection noise and
+ * auto-removes the promise from the queue upon settlement.
+ */
+export const registerProofCheck = (p: Promise<void>): void => {
+  let wrapped: Promise<void>;
+  wrapped = p.then(
+    () => { pending.delete(wrapped); },
+    (e) => { pending.delete(wrapped); throw e; }
+  );
+  pending.add(wrapped);
 }
 
-export function startContract<
+/**
+ * Wait for all scheduled proof checks. If any failed, throw the first error.
+ * Call this once per-test from a Vitest `afterEach` in your setup file.
+ */
+export const flushProofChecks = async (): Promise<void> => {
+  const results = await Promise.allSettled(Array.from(pending));
+  pending.clear();
+  const rejected = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+  if (rejected) throw rejected.reason;
+}
+
+export const startContract = <
   PS,
   W extends Witnesses<PS>,
   C extends Contract<PS, W>
->(module: Module<C, W>,
+>(
+  module: Module<C, W>,
   witnesses: W,
   privateState: PS,
   ...args: InitialStateParams<C>
-): readonly [C, CircuitContext<PS>] {
+): readonly [C, CircuitContext<PS>] => {
 
   const contract = new module.Contract(witnesses);
+
   const constructorContext = createConstructorContext(privateState, '0'.repeat(64));
   const constructorResult = contract.initialState(constructorContext, ...args);
 
@@ -74,29 +101,31 @@ export function startContract<
   const wrappedImpureCircuits = {} as C['impureCircuits'];
 
   for (const [circuitId, circuit] of Object.entries(contract.impureCircuits)) {
-    (wrappedImpureCircuits as any)[circuitId] = (context: any, ...args: any[]): any => {
-      const circuitResult = (circuit as any)(context, ...args);
+    (wrappedImpureCircuits as any)[circuitId] = (context: any, ...cArgs: any[]): any => {
+      // Execute the original circuit synchronously.
+      const circuitResult = (circuit as any)(context, ...cArgs);
 
-      if (!fs.existsSync(module.zkirDir)) {
-        throw new Error(`Expected to find ZKIR directory ${module.zkirDir} but it does not exist.`);
-      }
+      // Schedule async proof validation and register it globally.
+      const validation = (async () => {
+        if (!fs.existsSync(module.contractDir)) {
+          throw new Error(`Expected to find contract directory ${module.contractDir} but it does not exist.`);
+        }
+        await checkProofData(module.contractDir, circuitId, circuitResult.proofData);
+      })();
 
-      const zkirFile = `${module.zkirDir}/${circuitId}.zkir`;
-      if (!fs.existsSync(zkirFile)) {
-        throw new Error(`Expected to find ZKIR file ${zkirFile} for circuit ${circuitId} but it does not exist.`);
-      }
-
-      const zkir = fs.readFileSync(zkirFile, 'utf-8');
-      checkProofData(zkir, circuitResult.proofData);
+      registerProofCheck(validation);
 
       return circuitResult;
     };
   }
 
+  // Pure circuits go through as-is (no validation).
+  const wrappedCircuits = { ...contract.circuits, ...wrappedImpureCircuits } as C['circuits'];
+
   Object.assign(contract, {
     impureCircuits: wrappedImpureCircuits,
-    circuits: { ...contract.circuits, ...wrappedImpureCircuits },
+    circuits: wrappedCircuits,
   });
 
-  return [contract, circuitContext as CircuitContext<PS>] as const;
+  return [contract as C, circuitContext as CircuitContext<PS>] as const;
 }
