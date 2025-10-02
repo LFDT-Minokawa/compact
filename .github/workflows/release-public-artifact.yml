@@ -74,7 +74,6 @@ jobs:
           echo "artifacts/compiler/compactc_${{ inputs.tag }}/compactc_${{ inputs.tag }}_${{ inputs.macos-arm }}.zip" > compactc-arm-macos.link
           echo "artifacts/compiler/compactc_${{ inputs.tag }}/compactc_${{ inputs.tag }}_${{ inputs.linux-x86 }}.zip" > compactc-linux.link
           
-          
           # Add changes to the new branch
           git add .
           

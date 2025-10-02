@@ -1,6 +1,6 @@
 {
   "name": "@midnight-ntwrk/compact-runtime",
-  "version": "0.9.0-rc.3",
+  "version": "0.9.0",
   "description": "Compact Runtime",
   "main": "dist/runtime.js",
   "types": "dist/runtime.d.ts",

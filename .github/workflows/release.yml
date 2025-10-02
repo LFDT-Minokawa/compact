@@ -32,6 +32,11 @@ on:
         required: false
         type: boolean
         default: true
+      public_release:
+        description: 'Public release?'
+        required: false
+        type: boolean
+        default: true
 
   schedule:
     - cron: '0 */12 * * *'
@@ -266,31 +271,18 @@ jobs:
           token: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
           body: Compactc ${{ inputs.version || github.ref_name }}
 
-  make-artifacts-public:
-    if: ${{ inputs.create_release && !contains(inputs.version, '-rc') && github.event_name != 'schedule'}}
+  public-artifacts-and-docker:
+    if: ${{ inputs.public_release && inputs.create_release && !contains(inputs.version, '-rc') && github.event_name != 'schedule'}}
     name: Make artifacts public
-    uses: ./.github/workflows/release-public-artifact.yml
+    uses: ./.github/workflows/release-public.yml
     needs: [ setup, make-release ]
     secrets: inherit
     with:
-      tag: ${{ needs.setup.outputs.clean_tag }}
-      macos-x86: ${{ needs.setup.outputs.macos_x86 }}
-      macos-arm: ${{ needs.setup.outputs.macos_arm }}
-      linux-x86: ${{ needs.setup.outputs.linux_x86 }}
-
-  build-docker:
-    if: ${{ inputs.create_release && !contains(inputs.version, '-rc') && github.event_name != 'schedule' }}
-    name: Build docker images
-    uses: ./.github/workflows/release-internal-docker.yml
-    needs: [ setup, make-release ]
-    with:
       version: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.branch }}
-    secrets:
-      GH_USERNAME: ${{ secrets.GH_USERNAME }}
-      GH_PASSWORD: ${{ secrets.GH_PASSWORD }}
-      MIDNIGHTBOT_PACKAGES_WRITE: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
-      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
+      macos_x86: ${{ needs.setup.outputs.macos_x86 }}
+      macos_arm: ${{ needs.setup.outputs.macos_arm }}
+      linux_x86: ${{ needs.setup.outputs.linux_x86 }}
 
   generate-docs-after-release:
     if: ${{ inputs.docs }}
