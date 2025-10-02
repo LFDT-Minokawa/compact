@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ContractAddress } from '@midnight-ntwrk/onchain-runtime';
+import { ContractAddress } from '@midnight-ntwrk/onchain-runtime-v1';
 import { EncodedContractAddress } from './zswap.js';
 
 /**
@@ -24,7 +24,7 @@ export const HEX_REGEX_NO_PREFIX = /^([0-9A-Fa-f]{2})*$/;
 /**
  * The expected length (in bytes) of a contract address.
  */
-export const CONTRACT_ADDRESS_BYTE_LENGTH = 34;
+export const CONTRACT_ADDRESS_BYTE_LENGTH = 32;
 
 /**
  * Tests whether the input value is a {@link ContractAddress}, i.e., string.

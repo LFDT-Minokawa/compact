@@ -15,17 +15,17 @@
 
 import CompactStandardLibrary;
 
-export ledger c: Set<QualifiedCoinInfo>;
+export ledger c: Set<QualifiedShieldedCoinInfo>;
 
 export circuit reset_to_default(): [] {
   return c.resetToDefault();
 }
 
-export circuit insert(value: QualifiedCoinInfo): [] {
+export circuit insert(value: QualifiedShieldedCoinInfo): [] {
   return c.insert(disclose(value));
 }
 
-export circuit insert_coin(coin: CoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [] {
+export circuit insert_coin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [] {
   return c.insertCoin(disclose(coin), disclose(recipient));
 }
 
@@ -33,11 +33,11 @@ export circuit is_empty(): Boolean {
   return c.isEmpty();
 }
 
-export circuit member(value: QualifiedCoinInfo): Boolean {
+export circuit member(value: QualifiedShieldedCoinInfo): Boolean {
   return c.member(disclose(value));
 }
 
-export circuit remove(value: QualifiedCoinInfo): [] {
+export circuit remove(value: QualifiedShieldedCoinInfo): [] {
   return c.remove(disclose(value));
 }
 

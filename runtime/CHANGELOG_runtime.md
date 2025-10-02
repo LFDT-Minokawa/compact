@@ -1,5 +1,17 @@
 # `@midnight-ntwrk/compact-runtime` Changelog
 
+# Runtime Version `0.11.0`
+- addresses PM 19226
+    * Upgrades to `@midnight-ntwrk/onchain-runtime-v1` version `1.0.0-alpha.3`. Note the addition of `-v1` at the end of
+      `@midnight-ntwrk/onchain-runtime`.
+    * Exposes new gas related types like `RunningCost` and `ChargedState`.
+    * Incorporates logic for managing the `gasCost` of circuits.
+    * Adds an argument to `createCircuitContext` that allows users to set circuit gas limits and cost model.
+- addresses PM 14077
+    * Exposes new types and functions from `@midnight-ntwrk/onchain-runtime-v1` version `1.0.0-alpha.3` - functions like
+      `encodeRawTokenType` and `encodeQualifiedShieldedCoinInfo` and types like `PublicAddress` and `UserAddress`.
+    * Changes names to be consistent with shielded/unshielded token vernacular.
+
 # Runtime version `0.10.2`
 - Adjusts the convertBytesToUint error message to account for `Uint` range end
   points now being exclusive rather than inclusive

@@ -273,7 +273,7 @@ jobs:
           draft: false
           prerelease: false
           files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
-          token: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
+          token: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
           body: Compactc ${{ inputs.version || github.ref_name }}
 
   public-artifacts-and-docker:

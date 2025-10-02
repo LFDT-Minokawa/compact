@@ -45,13 +45,13 @@
   (primitive-type Uint 128)
   "u128")
 
-(declare-ledger-type CoinInfo ()
-  (type-ref CoinInfo)
-  "CoinInfo")
+(declare-ledger-type ShieldedCoinInfo ()
+  (type-ref ShieldedCoinInfo)
+  "ShieldedCoinInfo")
 
-(declare-ledger-type QualifiedCoinInfo ()
-  (type-ref QualifiedCoinInfo)
-  "QualifiedCoinInfo")
+(declare-ledger-type QualifiedShieldedCoinInfo ()
+  (type-ref QualifiedShieldedCoinInfo)
+  "QualifiedShieldedCoinInfo")
 
 (declare-ledger-type MerkleTreeDigest ()
   (type-ref MerkleTreeDigest) 
@@ -69,11 +69,17 @@
   (type-ref ZswapCoinPublicKey) 
   "ZswapCoinPublicKey")
 
-(declare-ledger-type Recipient ()
+(declare-ledger-type ShieldedRecipient ()
   (type-ref Either
             (type-ref ZswapCoinPublicKey)
             (type-ref ContractAddress))
-  "Recipient")
+  "ShieldedRecipient")
+
+(declare-ledger-type UnshieldedRecipient ()
+  (type-ref Either
+            (type-ref ContractAddress)
+            (type-ref UserAddress))
+  "UnshieldedRecipient")
 
 (declare-ledger-type TokenType ()
   (type-ref Either
@@ -207,7 +213,7 @@
     "Marks all execution up to this point as being a single atomic unit, \
     allowing partial transaction failures to be split across it."
     ((ckpt)))
-  (function update mint
+  (function update mintShielded
             ([domain_sep Bytes32 (discloses "the domain separator of the token being minted given by")]
              [amount Uint64 (discloses "the value of a token mint given by")])
             Void
@@ -252,6 +258,260 @@
     ((dup [n 2])
      (idx [cached #t] [pushPath #f] [path (list (align 0 1))])
      (popeq [cached #t] [result (void)])))
+  (function update mintUnshielded
+            ([domain_sep Bytes32 (discloses "the domain separator of the unshielded token being minted given by")]
+             [amount Uint64 (discloses "the amount of the unshielded token being minted given by")])
+            Void
+    "Mints a given amount of unshielded coins with a token type derived from the \
+    contract's address, and a given domain separator."
+    ;; [context, effects, state]
+    ((swap [n 0])
+    ;; [context, state, effects]
+    (idx [cached #t] [pushPath #t] [path (list (align 5 1))])
+    ;; [context, state, effects, path, unshielded_mints]
+    (push [storage #f] [value (state-value 'cell domain_sep)])
+    ;; [context, state, effects, path, unshielded_mints, domain_sep]
+    (dup [n 1])
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, unshielded_mints]
+    (dup [n 1])
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, unshielded_mints, domain_sep]
+    (member)
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, is_member]
+    (push [storage #f] [value (state-value 'cell amount)])
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, is_member, amount]
+    (swap [n 0])
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, amount, is_member]
+    (neg)
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, amount, !is_member]
+    (branch [skip 4])
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, amount]
+    (dup [n 2])
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, amount, unshielded_mints]
+    (dup [n 2])
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, amount, unshielded_mints, domain_sep]
+    (idx [cached #t] [pushPath #f] [path (list 'stack)])
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, amount, existing_amount]
+    (add)
+    ;; [context, state, effects, path, unshielded_mints, domain_sep, amount | existing_amount + amount]
+    (ins [cached #t] [n 2])
+    ;; [context, state, effects]
+    (swap [n 0])
+    ;; [context, effects, state]
+    ))
+  (function update claimUnshieldedCoinSpend
+            ([token_type TokenType (discloses "the type of the unshielded token being transferred given by")]
+             [address UnshieldedRecipient (discloses "the recipient of the unshielded token being transferred given by")]
+             [amount Uint128 (discloses "the amount of the unshielded token being transferred given by")])
+            Void
+    "Claims an unshielded coin spend - authorizes an unshielded coin of the given token type to be transferred \
+    to the given address."
+    ;; [context, effects, state]
+    ((swap [n 0])
+    ;; [context, state, effects]
+    (idx [cached #t] [pushPath #t] [path (list (align 8 1))])
+    ;; [context, state, effects, path, claimed_unshielded_spends]
+    (push [storage #f] [value (state-value 'cell (rt-aligned-concat token_type address))])
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address)]
+    (dup [n 1])
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), claimed_unshielded_spends]
+    (dup [n 1])
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), claimed_unshielded_spends, (token_type, address)]
+    (member)
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), is_member]
+    (push [storage #f] [value (state-value 'cell amount)])
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), is_member, amount]
+    (swap [n 0])
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), amount, is_member]
+    (neg)
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), amount, !is_member]
+    (branch [skip 4])
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), amount]
+    (dup [n 2])
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), amount, claimed_unshielded_spends]
+    (dup [n 2])
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), amount, claimed_unshielded_spends, (token_type, address)]
+    (idx [cached #t] [pushPath #f] [path (list 'stack)])
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), amount, existing_amount]
+    (add)
+    ;; [context, state, effects, path, claimed_unshielded_spends, (token_type, address), amount | existing_amount + amount]
+    (ins [cached #t] [n 2])
+    ;; [context, state, effects]
+    (swap [n 0])
+    ;; [context, effects, state]
+    ))
+  (function update incUnshieldedOutputs
+            ([token_type TokenType (discloses "the type of the unshielded token being spent given by")]
+             [amount Uint128 (discloses "the amount of the unshielded token being spent given by")])
+            Void
+    "Increments the unshielded output for the token of the given token type by the given amount - used when sending tokens."
+    ;; [context, effects, state]
+    ((swap [n 0])
+    ;; [context, state, effects]
+    (idx [cached #t] [pushPath #t] [path (list (align 7 1))])
+    ;; [context, state, effects, path, unshielded_outputs]
+    (push [storage #f] [value (state-value 'cell token_type)])
+    ;; [context, state, effects, path, unshielded_outputs, token_type]
+    (dup [n 1])
+    ;; [context, state, effects, path, unshielded_outputs, token_type, unshielded_outputs]
+    (dup [n 1])
+    ;; [context, state, effects, path, unshielded_outputs, token_type, unshielded_outputs, token_type]
+    (member)
+    ;; [context, state, effects, path, unshielded_outputs, token_type, is_member]
+    (push [storage #f] [value (state-value 'cell amount)])
+    ;; [context, state, effects, path, unshielded_outputs, token_type, is_member, amount]
+    (swap [n 0])
+    ;; [context, state, effects, path, unshielded_outputs, token_type, amount, is_member]
+    (neg)
+    ;; [context, state, effects, path, unshielded_outputs, token_type, amount, !is_member]
+    (branch [skip 4])
+    ;; [context, state, effects, path, unshielded_outputs, token_type, amount]
+    (dup [n 2])
+    ;; [context, state, effects, path, unshielded_outputs, token_type, amount, unshielded_outputs]
+    (dup [n 2])
+    ;; [context, state, effects, path, unshielded_outputs, token_type, amount, unshielded_outputs, token_type]
+    (idx [cached #t] [pushPath #f] [path (list 'stack)])
+    ;; [context, state, effects, path, unshielded_outputs, token_type, amount, existing_amount]
+    (add)
+    ;; [context, state, effects, path, unshielded_outputs, token_type, amount | existing_amount + amount]
+    (ins [cached #t] [n 2])
+    ;; [context, state, effects]
+    (swap [n 0])
+    ;; [context, effects, state]
+    ))
+  (function update incUnshieldedInputs
+            ([token_type TokenType (discloses "the type of the unshielded token being received given by")]
+             [amount Uint128 (discloses "the amount of the unshielded token being received given by")])
+            Void
+    "Increments the unshielded input for the token of the given token type by the given amount - used when receiving tokens."
+    ;; [context, effects, state]
+    ((swap [n 0])
+    ;; [context, state, effects]
+    (idx [cached #t] [pushPath #t] [path (list (align 6 1))])
+    ;; [context, state, effects, path, unshielded_inputs]
+    (push [storage #f] [value (state-value 'cell token_type)])
+    ;; [context, state, effects, path, unshielded_outputs, token_type]
+    (dup [n 1])
+    ;; [context, state, effects, path, unshielded_inputs, token_type, unshielded_inputs]
+    (dup [n 1])
+    ;; [context, state, effects, path, unshielded_inputs, token_type, unshielded_inputs, token_type]
+    (member)
+    ;; [context, state, effects, path, unshielded_inputs, token_type, is_member]
+    (push [storage #f] [value (state-value 'cell amount)])
+    ;; [context, state, effects, path, unshielded_inputs, token_type, is_member, amount]
+    (swap [n 0])
+    ;; [context, state, effects, path, unshielded_inputs, token_type, amount, is_member]
+    (neg)
+    ;; [context, state, effects, path, unshielded_inputs, token_type, amount, !is_member]
+    (branch [skip 4])
+    ;; [context, state, effects, path, unshielded_inputs, token_type, amount]
+    (dup [n 2])
+    ;; [context, state, effects, path, unshielded_inputs, token_type, amount, unshielded_inputs]
+    (dup [n 2])
+    ;; [context, state, effects, path, unshielded_inputs, token_type, amount, unshielded_inputs, token_type]
+    (idx [cached #t] [pushPath #f] [path (list 'stack)])
+    ;; [context, state, effects, path, unshielded_inputs, token_type, amount, existing_amount]
+    (add)
+    ;; [context, state, effects, path, unshielded_inputs, token_type, amount | existing_amount + amount]
+    (ins [cached #t] [n 2])
+    ;; [context, state, effects]
+    (swap [n 0])
+    ;; [context, effects, state]
+    ))
+  (function read balance
+            ([token_type TokenType (discloses "the type of the unshielded token having its balanced checked given by")])
+            Uint128
+    "Returns the current contract's balance of the unshielded token of the given token type. The balance is not updated \
+     during contract execution as a result of unshielded sends and receives. It is always fixed to the value provided \
+     at the start of execution."
+    ;; [context, effects, state]
+    ((dup [n 2])
+    ;; [context, effects, state, context]
+    (idx [cached #t] [pushPath #f] [path (list (align 5 1))])
+    ;; [context, effects, state, balances]
+    (dup [n 0])
+    ;; [context, effects, state, balances]
+    (push [storage #f] [value (state-value 'cell token_type)])
+    ;; [context, effects, state, balances, balances, token_type]
+    (member)
+    ;; [context, effects, state, balances, is_member]
+    (branch [skip 3])
+    ;; [context, effects, state, balances]
+    (pop)
+    ;; [context, effects, state]
+    (push [storage #f] [value (state-value 'cell (align 0 16))])
+    ;; [context, effects, state, 0]
+    (jmp [skip 1])
+    ;; [context, effects, state, balances]
+    (idx [cached #t] [pushPath #f] [path (list token_type)])
+    ;; [context, effects, state, balance | 0]
+    (popeq [cached #t] [result (void)])
+    ))
+  (function read balanceLessThan
+              ([token_type TokenType (discloses "the type of the unshielded token having its balanced checked given by")]
+               [amount Uint128 (discloses "the upper bound of the balance of the unshielded token being checked")])
+              Boolean
+    "Checks whether the current balance of the unshielded token of the given type is less than the given amount."
+    ;; [context, effects, state]
+    ((dup [n 2])
+    ;; [context, effects, state, context]
+    (idx [cached #t] [pushPath #f] [path (list (align 5 1))])
+    ;; [context, effects, state, balances]
+    (dup [n 0])
+    ;; [context, effects, state, balances]
+    (push [storage #f] [value (state-value 'cell token_type)])
+    ;; [context, effects, state, balances, balances, token_type]
+    (member)
+    ;; [context, effects, state, balances, is_member]
+    (branch [skip 3])
+    ;; [context, effects, state, balances]
+    (pop)
+    ;; [context, effects, state]
+    (push [storage #f] [value (state-value 'cell (align 0 16))])
+    ;; [context, effects, state, 0]
+    (jmp [skip 1])
+    ;; [context, effects, state, balances]
+    (idx [cached #t] [pushPath #f] [path (list token_type)])
+    ;; [context, effects, state, balance | 0]
+    (push [storage #f] [value (state-value 'cell amount)])
+    ;; [context, effects, state, balance | 0, amount]
+    (lt)
+    ;; [context, effects, state, balance | 0 < amount]
+    (popeq [cached #t] [result (void)])
+    ;; [context, effects, state]
+    ))
+  (function read balanceGreaterThan
+                ([token_type TokenType (discloses "the type of the unshielded token having its balanced checked given by")]
+                 [amount Uint128 (discloses "the lower bound of the balance of the unshielded token being checked")])
+                Boolean
+    "Checks whether the current balance of the unshielded token of the given type is greater than the given amount."
+    ;; [context, effects, state]
+    ((push [storage #f] [value (state-value 'cell amount)])
+    ;; [context, effects, state, amount]
+    (dup [n 3])
+    ;; [context, effects, state, amount, context]
+    (idx [cached #t] [pushPath #f] [path (list (align 5 1))])
+    ;; [context, effects, state, amount, balances]
+    (dup [n 0])
+    ;; [context, effects, state, amount, balances, balances]
+    (push [storage #f] [value (state-value 'cell token_type)])
+    ;; [context, effects, state, amount, balances, balances, token_type]
+    (member)
+    ;; [context, effects, state, amount, balances, is_member]
+    (branch [skip 3])
+    ;; [context, effects, state, amount, balances]
+    (pop)
+    ;; [context, effects, state, amount]
+    (push [storage #f] [value (state-value 'cell (align 0 16))])
+    ;; [context, effects, state, amount, 0]
+    (jmp [skip 1])
+    ;; [context, effects, state, amount, balances]
+    (idx [cached #t] [pushPath #f] [path (list token_type)])
+    ;; [context, effects, state, amount, balance | 0]
+    (lt)
+    ;; [context, effects, state, amount < balance | 0]
+    (popeq [cached #t] [result (void)])
+    ;; [context, effects, state]
+    ))
   (function read blockTimeLessThan
                   ([time Uint64 (discloses "the lower bound of the time being checked")])
                   Boolean
@@ -303,13 +563,13 @@
      (push [storage #t] [value (state-value 'cell (rt-null value_type))])
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
-  (when (= value_type QualifiedCoinInfo)
-    (function (update-with-coin-check 0 1) writeCoin ([coin CoinInfo] [recipient Recipient]) Void
-      "Writes a CoinInfo to this Cell, which is transformed into a \
-      QualifiedCoinInfo at runtime by looking up the relevant Merkle tree \
+  (when (= value_type QualifiedShieldedCoinInfo)
+    (function (update-with-coin-check 0 1) writeCoin ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
+      "Writes a ShieldedCoinInfo to this Cell, which is transformed into a \
+      QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
       index. This index must have been allocated within the current \
       transaction or this write fails. \
-      CoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
+      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
       ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
        (push [storage #f] [value (state-value 'cell (car (reverse f)))])
        ;; Reach to the context in the stack: past the two pushes above, the
@@ -406,13 +666,13 @@
      (push [storage #f] [value (state-value 'cell elem)])
      (rem [cached #f])
      (ins [cached #t] [n (length f)])))
-  (when (= value_type QualifiedCoinInfo)
-    (function (update-with-coin-check 0 1) insertCoin ([coin CoinInfo] [recipient Recipient]) Void
-      "Inserts a CoinInfo into this Set, which is transformed into a \
-      QualifiedCoinInfo at runtime by looking up the relevant Merkle tree \
+  (when (= value_type QualifiedShieldedCoinInfo)
+    (function (update-with-coin-check 0 1) insertCoin ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
+      "Inserts a ShieldedCoinInfo into this Set, which is transformed into a \
+      QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
       index. This index must have been allocated within the current \
       transaction or this insertion fails. \
-      CoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
+      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
        ;; [context, effects, state]
        ((idx [cached f-cached] [pushPath #t] [path f])
        ;; [context, effects, state, path, set]
@@ -505,13 +765,13 @@
      (push [storage #f] [value (state-value 'cell key)])
      (rem [cached #f])
      (ins [cached #t] [n (length f)])))
-  (when (= value_type QualifiedCoinInfo)
-    (function (update-with-coin-check 1 2) insertCoin ([key key_type] [coin CoinInfo] [recipient Recipient]) Void
-      "Inserts a CoinInfo into this Map at a given key, where the CoinInfo is \
-      transformed into a QualifiedCoinInfo at runtime by looking up the \
+  (when (= value_type QualifiedShieldedCoinInfo)
+    (function (update-with-coin-check 1 2) insertCoin ([key key_type] [coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
+      "Inserts a ShieldedCoinInfo into this Map at a given key, where the ShieldedCoinInfo is \
+      transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \
       relevant Merkle tree index. This index must have been allocated within \
       the current transaction or this insertion fails. \
-      CoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
+      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
        ;; [context, effects, state]
        ((idx [cached f-cached] [pushPath #t] [path f])
        ;; [context, effects, state, path, map]
@@ -654,13 +914,13 @@
      (ins [cached #t] [n (add1 (length f))])))
      ;; [context, effects, state]
 
-  (when (= value_type QualifiedCoinInfo)
-    (function (update-with-coin-check 0 1) pushFrontCoin ([coin CoinInfo] [recipient Recipient]) Void
-      "Pushes a CoinInfo onto the front of this List, where the CoinInfo is \
-      transformed into a QualifiedCoinInfo at runtime by looking up the \
+  (when (= value_type QualifiedShieldedCoinInfo)
+    (function (update-with-coin-check 0 1) pushFrontCoin ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
+      "Pushes a ShieldedCoinInfo onto the front of this List, where the ShieldedCoinInfo is \
+      transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \
       relevant Merkle tree index. This index must have been allocated within \
       the current transaction or this push fails. \
-      CoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
+      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
        ;; [context, effects, state]
        ((idx [cached f-cached] [pushPath #t] [path f])
        ;; [context, effects, state, path, list]
@@ -715,7 +975,9 @@
   (function js-only root () "${rtlib}MerkleTreeDigest"
     "Retrieves the root of the Merkle tree. \
     MerkleTreeDigest is defined in compact-runtime."
-    ("${rtlib}CompactTypeMerkleTreeDigest.fromValue(${this}.asArray()[0].asBoundedMerkleTree().root())"))
+    ("((result) => result"
+     "             ? ${rtlib}CompactTypeMerkleTreeDigest.fromValue(result)"
+     "             : undefined)(${this}.asArray()[0].asBoundedMerkleTree().rehash().root()?.value)"))
   (function js-only first_free () "bigint"
     "Retrieves the first (guaranteed) free index in the Merkle tree."
     ("${rtlib}CompactTypeField.fromValue(${this}.asArray()[1].asCell().value)"))
@@ -724,14 +986,16 @@
     the given index. It is an error to call this if this leaf is not \
     contained at the given index. \
     MerkleTreePath is defined in compact-runtime."
-    ("new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue("
-     "  ${this}.asArray()[0].asBoundedMerkleTree().pathForLeaf("
+    ("((result) => result"
+     "             ? new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue(result)"
+     "             : undefined)("
+     "  ${this}.asArray()[0].asBoundedMerkleTree().rehash().pathForLeaf("
      "    ${index},"
      "    {"
      "      value: ${value_type}.toValue(${leaf}),"
      "      alignment: ${value_type}.alignment()"
      "    }"
-     "  ).value)"))
+     "  )?.value)"))
   (function js-only find_path_for_leaf ([leaf value_type]) "${rtlib}MerkleTreePath<${value_type}> | undefined"
     "Finds the path for a given leaf in a Merkle tree. Be warned that this is \
     O(n) and should be avoided for large trees. Returns undefined if no such \
@@ -740,7 +1004,7 @@
     ("((result) => result"
      "             ? new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue(result)"
      "             : undefined)("
-     "  ${this}.asArray()[0].asBoundedMerkleTree().findPathForLeaf("
+     "  ${this}.asArray()[0].asBoundedMerkleTree().rehash().findPathForLeaf("
      "    {"
      "      value: ${value_type}.toValue(${leaf}),"
      "      alignment: ${value_type}.alignment()"
@@ -868,23 +1132,26 @@
   (function js-only root () "${rtlib}MerkleTreeDigest"
     "Retrieves the root of the Merkle tree. \
     MerkleTreeDigest is defined in compact-runtime."
-    ("${rtlib}CompactTypeMerkleTreeDigest.fromValue(${this}.asArray()[0].asBoundedMerkleTree().root())"))
+    ("((result) => result"
+     "             ? ${rtlib}CompactTypeMerkleTreeDigest.fromValue(result)"
+     "             : undefined)(${this}.asArray()[0].asBoundedMerkleTree().rehash().root()?.value)"))
   (function js-only first_free () "bigint"
     "Retrieves the first (guaranteed) free index in the Merkle tree."
     ("${rtlib}CompactTypeField.fromValue(${this}.asArray()[1].asCell().value)"))
   (function js-only path_for_leaf ([index Field] [leaf value_type]) "${rtlib}MerkleTreePath<${value_type}>"
     "Returns the Merkle path, given the knowledge that a specified leaf is at \
-    the given index. It is an error to call this if this leaf is not \
-    contained at the given index. \
+    the given index. It is an error to call this if the index is out of bounds. \
     MerkleTreePath is defined in compact-runtime."
-    ("new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue("
-     "  ${this}.asArray()[0].asBoundedMerkleTree().pathForLeaf("
+    ("((result) => result"
+     "             ? new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue(result)"
+     "             : undefined)("
+     "  ${this}.asArray()[0].asBoundedMerkleTree().rehash().pathForLeaf("
      "    ${index},"
      "    {"
      "      value: ${value_type}.toValue(${leaf}),"
      "      alignment: ${value_type}.alignment()"
      "    }"
-     "  ).value)"))
+     "  )?.value)"))
   (function js-only find_path_for_leaf ([leaf value_type]) "${rtlib}MerkleTreePath<${value_type}> | undefined"
     "Finds the path for a given leaf in a Merkle tree. Be warned that this is \
     O(n) and should be avoided for large trees. Returns undefined if no such \
@@ -893,7 +1160,7 @@
     ("((result) => result"
      "             ? new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue(result)"
      "             : undefined)("
-     "  ${this}.asArray()[0].asBoundedMerkleTree().findPathForLeaf("
+     "  ${this}.asArray()[0].asBoundedMerkleTree().rehash().findPathForLeaf("
      "    {"
      "      value: ${value_type}.toValue(${leaf}),"
      "      alignment: ${value_type}.alignment()"

@@ -13,8 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
-import { emptyZswapLocalState, EncodedCoinPublicKey, EncodedZswapLocalState } from './zswap.js';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
+import {
+  emptyZswapLocalState,
+  EncodedCoinPublicKey,
+  EncodedZswapLocalState,
+  ZswapLocalState,
+  encodeZswapLocalState,
+} from './zswap.js';
 import { PartialProofData, ProofData } from './proof-data.js';
 import { CompactError } from './error.js';
 
@@ -34,40 +40,128 @@ export interface CircuitContext<PS = any> {
    * The current on-chain context the transaction is evolving.
    */
   currentQueryContext: ocrt.QueryContext;
+  /**
+   * The cost model to use for the execution.
+   */
+  costModel: ocrt.CostModel;
+  /**
+   * The gas limit for this circuit.
+   */
+  gasLimit?: ocrt.RunningCost;
 }
 
 /**
- * Creates a new circuit context.
- *
- * @param contractAddress The address of the contract being executed.
- * @param coinPublicKey The Zswap coin public key of the user executing the circuit.
- * @param contractState The initial ledger state of the contract.
- * @param privateState The initial private state of the contract.
- * @param time Optional parameter indicating the time in seconds since the last Unix epoch. Parameter used mainly for testing.
- *
- * @typeparam PS The type of the private state of the contract.
+ * @internal
  */
-export const createCircuitContext = <PS>(
+const coerceToChargedState = (contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState): ocrt.ChargedState => {
+  let state;
+  if (contractState instanceof ocrt.ChargedState) {
+    state = contractState;
+  } else if (contractState instanceof ocrt.ContractState) {
+    state = contractState.data;
+  } else if (contractState instanceof ocrt.StateValue) {
+    state = new ocrt.ChargedState(contractState);
+  } else {
+    throw new CompactError(`'contractState' parameter ${contractState} has unexpected type`);
+  }
+  return state;
+};
+
+/**
+ * @internal
+ */
+const createInitialQueryContext = (
+  contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState,
   contractAddress: ocrt.ContractAddress,
-  coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey,
-  contractState: ocrt.ContractState | ocrt.StateValue,
-  privateState: PS,
   time?: number,
-): CircuitContext<PS> => {
-  const initialQueryContext = new ocrt.QueryContext(
-    contractState instanceof ocrt.ContractState ? contractState.data : contractState,
-    contractAddress,
-  );
+): ocrt.QueryContext => {
+  const initialQueryContext = new ocrt.QueryContext(coerceToChargedState(contractState), contractAddress);
+  const balance = contractState instanceof ocrt.ContractState ? contractState.balance : new Map();
   initialQueryContext.block = {
     ...initialQueryContext.block,
+    balance,
+    ownAddress: contractAddress,
     secondsSinceEpoch: BigInt(time ?? Math.floor(Date.now() / 1_000)),
   };
+  return initialQueryContext;
+};
+
+/**
+ * @internal
+ */
+const isZswapLocalState = (value: any): value is ZswapLocalState => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'coinPublicKey' in value &&
+    typeof value.coinPublicKey === 'string' &&
+    'currentIndex' in value &&
+    'inputs' in value &&
+    'outputs' in value
+  );
+};
+
+/**
+ * @internal
+ */
+const isEncodedZswapLocalState = (value: any): value is EncodedZswapLocalState => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'coinPublicKey' in value &&
+    typeof value.coinPublicKey === 'object' &&
+    value.coinPublicKey !== null &&
+    'bytes' in value.coinPublicKey &&
+    'currentIndex' in value &&
+    'inputs' in value &&
+    'outputs' in value
+  );
+};
+
+export const createCircuitContext = <PS>(
+  contractAddress: ocrt.ContractAddress,
+  coinPublicKeyOrZswapState: ocrt.CoinPublicKey | EncodedCoinPublicKey | ZswapLocalState | EncodedZswapLocalState,
+  contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState,
+  privateState: PS,
+  gasLimit?: ocrt.RunningCost,
+  costModel?: ocrt.CostModel,
+  time?: number,
+): CircuitContext<PS> => {
+  const initialQueryContext = createInitialQueryContext(contractState, contractAddress, time);
+
+  let zswapLocalState: EncodedZswapLocalState;
+
+  if (isZswapLocalState(coinPublicKeyOrZswapState)) {
+    // Convert ZswapLocalState to EncodedZswapLocalState
+    zswapLocalState = encodeZswapLocalState(coinPublicKeyOrZswapState);
+  } else if (isEncodedZswapLocalState(coinPublicKeyOrZswapState)) {
+    // Use EncodedZswapLocalState directly
+    zswapLocalState = coinPublicKeyOrZswapState;
+  } else {
+    // It's a CoinPublicKey or EncodedCoinPublicKey, create empty state
+    zswapLocalState = emptyZswapLocalState(coinPublicKeyOrZswapState);
+  }
+
   return {
     currentPrivateState: privateState,
-    currentZswapLocalState: emptyZswapLocalState(coinPublicKey),
+    currentZswapLocalState: zswapLocalState,
     currentQueryContext: initialQueryContext,
+    costModel: costModel ?? ocrt.CostModel.initialCostModel(),
+    gasLimit,
   };
 };
+
+/**
+ * Function for creating an initial running cost of zero.
+ *
+ * @internal
+ */
+export const emptyRunningCost = (): ocrt.RunningCost => ({
+  readTime: 0n,
+  computeTime: 0n,
+  bytesWritten: 0n,
+  bytesDeleted: 0n,
+});
 
 /**
  * The results of the call to a Compact circuit
@@ -86,6 +180,10 @@ export interface CircuitResults<PS = any, R = any> {
    * inform further runs
    */
   context: CircuitContext<PS>;
+  /**
+   * The gas consumption of the circuit execution
+   */
+  gasCost: ocrt.RunningCost;
 }
 
 /**
@@ -102,8 +200,10 @@ export const queryLedgerState = (
   program: ocrt.Op<null>[],
 ): ocrt.AlignedValue | ocrt.GatherResult[] => {
   try {
-    const res = circuitContext.currentQueryContext.query(program, ocrt.CostModel.dummyCostModel());
+    const res = circuitContext.currentQueryContext.query(program, circuitContext.costModel, circuitContext.gasLimit);
     circuitContext.currentQueryContext = res.context;
+    // @ts-expect-error: We use a hidden variable to track running cost so we can move it to `CircuitResults` at the end
+    circuitContext['gasCost'] = res.gasCost;
     const reads = res.events.filter((e) => e.tag === 'read');
     let i = 0;
     partialProofData.publicTranscript = partialProofData.publicTranscript.concat(

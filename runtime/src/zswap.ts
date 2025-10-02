@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
 import { CircuitContext } from './circuit-context.js';
-import { Bytes32Descriptor, CoinInfoDescriptor, CoinRecipientDescriptor, Recipient } from './compact-types.js';
+import { Bytes32Descriptor, ShieldedCoinInfoDescriptor, ShieldedCoinRecipientDescriptor, Recipient } from './compact-types.js';
 import { toHex } from './utils.js';
 
 /**
@@ -33,12 +33,12 @@ export interface ZswapLocalState {
   /**
    * The coins consumed as inputs to the circuit.
    */
-  inputs: ocrt.QualifiedCoinInfo[];
+  inputs: ocrt.QualifiedShieldedCoinInfo[];
   /**
    * The coins produced as outputs from the circuit.
    */
   outputs: {
-    coinInfo: ocrt.CoinInfo;
+    coinInfo: ocrt.ShieldedCoinInfo;
     recipient: Recipient;
   }[];
 }
@@ -64,10 +64,10 @@ export interface EncodedContractAddress {
 }
 
 /**
- * A {@link CoinInfo} with its fields encoded as byte strings. This representation is used internally by
+ * A {@link ShieldedCoinInfo} with its fields encoded as byte strings. This representation is used internally by
  * the contract executable.
  */
-export interface EncodedCoinInfo {
+export interface EncodedShieldedCoinInfo {
   /**
    * The coin's randomness, preventing it from colliding with other coins.
    */
@@ -86,7 +86,7 @@ export interface EncodedCoinInfo {
  * A {@link QualifiedCoinInfo} with its fields encoded as byte strings. This representation is used internally by
  * the contract executable.
  */
-export interface EncodedQualifiedCoinInfo extends EncodedCoinInfo {
+export interface EncodedQualifiedShieldedCoinInfo extends EncodedShieldedCoinInfo {
   /**
    * The coin's location in the chain's Merkle tree of coin commitments. Bounded to be a non-negative 64-bit integer.
    */
@@ -126,12 +126,12 @@ export interface EncodedZswapLocalState {
   /**
    * The coins consumed as inputs to the circuit.
    */
-  inputs: EncodedQualifiedCoinInfo[];
+  inputs: EncodedQualifiedShieldedCoinInfo[];
   /**
    * The coins produced as outputs from the circuit.
    */
   outputs: {
-    coinInfo: EncodedCoinInfo;
+    coinInfo: EncodedShieldedCoinInfo;
     recipient: EncodedRecipient;
   }[];
 }
@@ -175,9 +175,9 @@ export const decodeRecipient = ({ is_left, left, right }: EncodedRecipient): Rec
 export const encodeZswapLocalState = (state: ZswapLocalState): EncodedZswapLocalState => ({
   coinPublicKey: { bytes: ocrt.encodeCoinPublicKey(state.coinPublicKey) },
   currentIndex: state.currentIndex,
-  inputs: state.inputs.map(ocrt.encodeQualifiedCoinInfo),
+  inputs: state.inputs.map(ocrt.encodeQualifiedShieldedCoinInfo),
   outputs: state.outputs.map(({ coinInfo, recipient }) => ({
-    coinInfo: ocrt.encodeCoinInfo(coinInfo),
+    coinInfo: ocrt.encodeShieldedCoinInfo(coinInfo),
     recipient: encodeRecipient(recipient),
   })),
 });
@@ -191,9 +191,9 @@ export const encodeZswapLocalState = (state: ZswapLocalState): EncodedZswapLocal
 export const decodeZswapLocalState = (state: EncodedZswapLocalState): ZswapLocalState => ({
   coinPublicKey: ocrt.decodeCoinPublicKey(state.coinPublicKey.bytes),
   currentIndex: state.currentIndex,
-  inputs: state.inputs.map(ocrt.decodeQualifiedCoinInfo),
+  inputs: state.inputs.map(ocrt.decodeQualifiedShieldedCoinInfo),
   outputs: state.outputs.map(({ coinInfo, recipient }) => ({
-    coinInfo: ocrt.decodeCoinInfo(coinInfo),
+    coinInfo: ocrt.decodeShieldedCoinInfo(coinInfo),
     recipient: decodeRecipient(recipient),
   })),
 });
@@ -202,12 +202,15 @@ export const decodeZswapLocalState = (state: EncodedZswapLocalState): ZswapLocal
  * Adds a coin to the list of inputs consumed by the circuit.
  *
  * @param circuitContext The current circuit context.
- * @param qualifiedCoinInfo The input to consume.
+ * @param qualifiedShieldedCoinInfo The input to consume.
  */
-export function createZswapInput(circuitContext: CircuitContext, qualifiedCoinInfo: EncodedQualifiedCoinInfo): void {
+export function createZswapInput(
+  circuitContext: CircuitContext,
+  qualifiedShieldedCoinInfo: EncodedQualifiedShieldedCoinInfo,
+): void {
   circuitContext.currentZswapLocalState = {
     ...circuitContext.currentZswapLocalState,
-    inputs: circuitContext.currentZswapLocalState.inputs.concat(qualifiedCoinInfo),
+    inputs: circuitContext.currentZswapLocalState.inputs.concat(qualifiedShieldedCoinInfo),
   };
 }
 
@@ -219,15 +222,15 @@ export function createZswapInput(circuitContext: CircuitContext, qualifiedCoinIn
  *
  * @internal
  */
-function createCoinCommitment(coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): ocrt.AlignedValue {
-  return ocrt.coinCommitment(
+function createCoinCommitment(coinInfo: EncodedShieldedCoinInfo, recipient: EncodedRecipient): ocrt.AlignedValue {
+  return ocrt.runtimeCoinCommitment(
     {
-      value: CoinInfoDescriptor.toValue(coinInfo),
-      alignment: CoinInfoDescriptor.alignment(),
+      value: ShieldedCoinInfoDescriptor.toValue(coinInfo),
+      alignment: ShieldedCoinInfoDescriptor.alignment(),
     },
     {
-      value: CoinRecipientDescriptor.toValue(recipient),
-      alignment: CoinRecipientDescriptor.alignment(),
+      value: ShieldedCoinRecipientDescriptor.toValue(recipient),
+      alignment: ShieldedCoinRecipientDescriptor.alignment(),
     },
   );
 }
@@ -240,9 +243,13 @@ function createCoinCommitment(coinInfo: EncodedCoinInfo, recipient: EncodedRecip
  * @param recipient The coin recipient - either a coin public key representing an end user or a contract address
  *                  representing a contract.
  */
-export function createZswapOutput(circuitContext: CircuitContext, coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): void {
+export function createZswapOutput(
+  circuitContext: CircuitContext<unknown>,
+  coinInfo: EncodedShieldedCoinInfo,
+  recipient: EncodedRecipient,
+): void {
   circuitContext.currentQueryContext = circuitContext.currentQueryContext.insertCommitment(
-    toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)),
+    Buffer.from(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)).toString('hex'),
     circuitContext.currentZswapLocalState.currentIndex,
   );
   circuitContext.currentZswapLocalState = {
@@ -260,7 +267,7 @@ export function createZswapOutput(circuitContext: CircuitContext, coinInfo: Enco
  *
  * @param circuitContext The current circuit context.
  */
-export function ownPublicKey(circuitContext: CircuitContext): EncodedCoinPublicKey {
+export function ownPublicKey(circuitContext: CircuitContext<unknown>): EncodedCoinPublicKey {
   return circuitContext.currentZswapLocalState.coinPublicKey;
 }
 
@@ -271,7 +278,9 @@ export function ownPublicKey(circuitContext: CircuitContext): EncodedCoinPublicK
  * @param coinInfo The coin information to check.
  * @param recipient The coin recipient to check.
  */
-export const hasCoinCommitment = (context: CircuitContext, coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): boolean =>
-  context.currentQueryContext.comIndicies.has(
-    toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)),
-  );
+export const hasCoinCommitment = (
+  context: CircuitContext,
+  coinInfo: EncodedShieldedCoinInfo,
+  recipient: EncodedRecipient,
+): boolean =>
+  context.currentQueryContext.comIndices.has(toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)));

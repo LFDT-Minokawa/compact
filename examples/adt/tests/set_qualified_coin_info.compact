@@ -15,11 +15,11 @@
 
 import CompactStandardLibrary;
 
-export ledger c: Set<QualifiedCoinInfo>;
+export ledger c: Set<QualifiedShieldedCoinInfo>;
 
-export circuit test_QualifiedCoinInfo(): []  {
-  const qcoin = QualifiedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1, 0 };
-  const qcoin2 = QualifiedCoinInfo { pad(32, "nonce"), pad(32, "color"), 2, 0 };
+export circuit test_QualifiedShieldedCoinInfo(): []  {
+  const qcoin = QualifiedShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1, 0 };
+  const qcoin2 = QualifiedShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 2, 0 };
 
   assert(c.isEmpty() == true, "Structure should be empty");
   assert(c.size() == 0, "Size should be 0");
@@ -41,12 +41,12 @@ export circuit test_QualifiedCoinInfo(): []  {
   assert(c.isEmpty() == true, "Structure should be empty");
 }
 
-export circuit test_CoinInfo(): []  {
-  const coin = CoinInfo { pad(32, "nonce"), pad(32, "color"), 1};
-  const coin2 = CoinInfo { pad(32, "nonce"), pad(32, "color"), 2};
+export circuit test_ShieldedCoinInfo(): []  {
+  const coin = ShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1};
+  const coin2 = ShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 2};
 
-  const qcoin = QualifiedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1, 0 };
-  const qcoin2 = QualifiedCoinInfo { pad(32, "nonce"), pad(32, "color"), 2, 0 };
+  const qcoin = QualifiedShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1, 0 };
+  const qcoin2 = QualifiedShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 2, 0 };
 
   assert(c.isEmpty() == true, "Structure should be empty");
   assert(c.size() == 0, "Size should be 0");
