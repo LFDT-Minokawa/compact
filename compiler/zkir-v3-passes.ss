@@ -66,6 +66,11 @@
                   instr* var-name* primitive-type*))))))
 
       (define (make-native name arg*)
+        ;; Get the list of alignment atoms for a 0-based arg index.
+        (define (arg->alignment arg* index)
+          (nanopass-case (Lflattened Argument) (list-ref arg* index)
+            [(argument (,var-name ...) (ty (,alignment* ...) (,primitive-type* ...)))
+             alignment*]))
         (lambda (var-name* test triv* instr*)
           (with-output-language (Lzkir Instruction)
             ;; TODO(kmillikin): this might insert an unused load_imm.  If so, elimitate it.
@@ -97,25 +102,19 @@
                  (cons `(hash_to_curve ,input-var* ...) instr*)]
                 [(persistentCommit)
                  (for-each allocate-var var-name*)
-                 ;; The last two inputs need to be moved first and kept in order.
-                 ;; Their alignment atom is (abytes 32).
-                 (let* ([rev (reverse input-var*)]
-                        [var* (cons* (cadr rev) (car rev) (reverse (cddr rev)))]
+                 ;; The two source arguments are swapped for the persistent_hash gate.  We assume
+                 ;; that the second argument is `(tbytes 32)` so it consumes two variables and we
+                 ;; know its alignment is `(abytes 32)`.
+                 (let* ([var* (syntax-case input-var* ()
+                                [(a ... b c) #'(b c a ...)])]
                         [alignment*
                           (cons
                             (with-output-language (Lflattened Alignment) `(abytes ,32))
-                            (nanopass-case (Lflattened Argument) (car arg*)
-                              [(argument (,var-name ...) (ty (,alignment* ...)
-                                                           (,primitive-type* ...)))
-                               alignment*]))])
+                            (arg->alignment arg* 0))])
                    (cons `(persistent_hash (,alignment* ...) ,var* ...) instr*))]
                 [(persistentHash)
                  (for-each allocate-var var-name*)
-                 (let ([alignment*
-                         (nanopass-case (Lflattened Argument)  (car arg*)
-                           [(argument (,var-name ...) (ty (,alignment* ...)
-                                                        (,primitive-type* ...)))
-                            alignment*])])
+                 (let ([alignment* (arg->alignment arg* 0)])
                    (cons `(persistent_hash (,alignment* ...) ,input-var* ...) instr*))]
                 [(transientCommit)
                  (allocate-var (car var-name*))
@@ -166,7 +165,7 @@
         [Ie-var n])
 
       ;; Encode a VM operand, collecting codes in reverse.
-      (define (assemble-operand-acc rand code*)
+      (define (assemble-operand-acc code* rand)
         (define (public-adt type)
           (nanopass-case (Lflattened Type) type
             [(ty (,alignment ...) (,primitive-type))
@@ -193,40 +192,38 @@
               [(VMalign value bytes)
                (assert-byte bytes)
                ;; Encoding is length=1 bytes value (in reverse).
-               (assemble-operand-acc value (cons* (Ie-imm bytes) (Ie-imm 1) code*))]
+               (assemble-operand-acc (cons* (Ie-imm bytes) (Ie-imm 1) code*) value)]
               [(VMvalue->int x)
                (let ([var* (zkir-val-var* x)])
                  (assert (and (list? var*) (= 1 (length var*))))
                  (cons (Ie-var (car var*)) code*))]
               [(VMstate-value-null) (cons (Ie-imm 0) code*)]
-              [(VMstate-value-cell val) (assemble-operand-acc val (cons (Ie-imm 1) code*))]
+              [(VMstate-value-cell val) (assemble-operand-acc (cons (Ie-imm 1) code*) val)]
               [(VMstate-value-ADT val type)
                (let ([adt (public-adt type)])
                  (if (not adt)
-                     (assemble-operand-acc val (cons (Ie-imm 1) code*))
+                     (assemble-operand-acc (cons (Ie-imm 1) code*) val)
                      (nanopass-case (Lflattened Public-Ledger-ADT) adt
                        [(,src ,adt-name ((,adt-formal* ,adt-arg*) ...) ,vm-expr (,adt-op* ...))
-                        (assemble-operand-acc (expand-vm-expr src
-                                                (map cons adt-formal* adt-arg*)
-                                                (vm-expr-expr vm-expr))
-                          code*)])))]
+                        (assemble-operand-acc code*
+                          (expand-vm-expr src
+                            (map cons adt-formal* adt-arg*)
+                            (vm-expr-expr vm-expr)))])))]
               [(VMstate-value-map key* val*)
-               (let ([code*
-                       (fold-left (lambda (code* k) (assemble-operand-acc k code* ))
-                         (cons (Ie-imm (combine (length key*) 2)) code*)
-                         key*)])
-                 (fold-left (lambda (code* v) (assemble-operand-acc v code*))
-                   code* val*))]
+               (fold-left assemble-operand-acc
+                 (fold-left assemble-operand-acc
+                   (cons (Ie-imm (combine (length key*) 2)) code*)
+                   key*)
+                 val*)]
               [(VMstate-value-merkle-tree nat key* val*)
-               ;; Tag with length(key*) << 8 | combine(nat, 4)
-               (let ([code*
-                       (fold-left (lambda (code* k) (assemble-operand-acc k code*))
-                         (cons (Ie-imm (fxlogor (fxsll (length key*) 8) (combine nat 4))) code*)
-                         key*)])
-                 (fold-left (lambda (code* v) (assemble-operand-acc v code*))
-                   code* val*))]
+               (fold-left assemble-operand-acc
+                 (fold-left assemble-operand-acc
+                   ;; Tag with length(key*) << 8 | combine(nat, 4)
+                   (cons (Ie-imm (fxlogor (fxsll (length key*) 8) (combine nat 4))) code*)
+                   key*)
+                 val*)]
               [(VMstate-value-array val*)
-               (fold-left (lambda (code* val) (assemble-operand-acc val code*))
+               (fold-left assemble-operand-acc
                  (cons (Ie-imm (combine (length val*) 3)) code*)
                  val*)]
               [else
@@ -234,7 +231,7 @@
                 (assert not-implemented)])]))
 
       (define (assemble-operand rand)
-        (reverse (assemble-operand-acc rand '())))
+        (reverse (assemble-operand-acc '() rand)))
 
       ;; The ZKIR representation of a Minokawa value.  It consists of a sequence of Lflattened
       ;; alignment atoms and a parallel sequence of Lzkir variables (instruction outputs).
@@ -244,9 +241,7 @@
 
       ;; Encode a path.
       (define (assemble-path path)
-        (reverse
-          (fold-left (lambda (code* elt) (assemble-operand-acc elt code*))
-            '() path)))
+        (reverse (fold-left assemble-operand-acc '() path)))
 
       ;; Map an Impact VM alignment to a ZKIR operand (which might be negative).
       (define (assemble-alignment-atom atom)
