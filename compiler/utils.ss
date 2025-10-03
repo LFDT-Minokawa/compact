@@ -30,7 +30,8 @@
           make-halt-condition halt-condition?
           pending-conditions
           stdlib-sfd stdlib-src?
-          renaming-table record-alias!)
+          renaming-table record-alias!
+          pretty-print/formats)
   (import (except (chezscheme) errorf))
 
   ; when set, renaming-table maps src -> (old-name . new-name) and is used by the fixup tool to
@@ -365,4 +366,17 @@
                 (write-char #\_)
                 (cap i)))
           (unless (fx= n 0) (if initial-capital? (cap 0) (uncap 0)))))))
+
+  (define (pretty-print/formats pretty-formats x)
+    (let loop ([alist pretty-formats])
+      (if (null? alist)
+          (pretty-print x)
+          (let ([a (car alist)] [alist (cdr alist)])
+            (parameterize ([(let ([name (car a)])
+                              (case-lambda
+                                [() (pretty-format name)]
+                                [(x) (pretty-format name x)]))
+                            (cdr a)])
+              (loop alist))))))
+
 )

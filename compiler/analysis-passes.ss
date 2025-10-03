@@ -557,7 +557,17 @@
         (source-errorf src "cannot export ~a (~s) from the top level"
                        (describe-info info)
                        name))
-      (define (do-import src import-name info* prefix p)
+      (define (do-import src import-name info* prefix maybe-ielt* p)
+        (define (import-insert! src name info)
+          (define (add-prefix x) (string->symbol (format "~a~a" prefix (symbol->string x))))
+          (let-values ([(name info) (if (equal? prefix "")
+                                        (values name info)
+                                        (values (add-prefix name)
+                                                (Info-case info
+                                                  [(Info-circuit-alias aliased-name info)
+                                                   (Info-circuit-alias (add-prefix aliased-name) info)]
+                                                  [else info])))])
+            (env-insert! p src name info)))
         (let* ([module-name (if (symbol? import-name) import-name (string->symbol (path-last import-name)))]
                [info (or (and (symbol? import-name) (lookup/no-error p import-name))
                          (and (eq? import-name 'CompactStandardLibrary)
@@ -609,38 +619,49 @@
                                    [else (source-errorf src "~a does not contain a (single) module defintion" pathname)])))))])
           (Info-case info
             [(Info-module type-param* pelt^* p^ seqno^ dirname instance-table)
-             (let ([export^* (let ([a (instance-table-cell instance-table info* #f)])
-                               (or (cdr a)
-                                   (begin
-                                     (let ([nactual (length info*)] [ndeclared (length type-param*)])
-                                       (unless (fx= nactual ndeclared)
-                                         (source-errorf src "mismatch between actual number ~s and declared number ~s of import generic parameters for ~s"
-                                                        nactual
-                                                        ndeclared
-                                                        module-name)))
-                                     (let ([export^* (let ([p^ (add-tvar-rib src p^ type-param* info*)])
-                                                       (with-module-cycle-check src info import-name
-                                                         (lambda ()
-                                                           (parameterize ([relative-path (if dirname dirname (relative-path))])
-                                                             (process-pelts #f
-                                                               pelt^*
-                                                               (map (lambda (i) (cons i seqno^)) (enumerate pelt^*))
-                                                               p^)))))])
-                                       (set-cdr! a export^*)
-                                       export^*))))])
-               (for-each
-                 (lambda (x)
-                   (define (add-prefix x) (string->symbol (format "~a~a" prefix (symbol->string x))))
-                   (let ([internal (exportit-name x)] [info (exportit-info x)])
-                     (let-values ([(external info) (if (equal? prefix "")
-                                                       (values internal info)
-                                                       (values (add-prefix internal)
-                                                               (Info-case info
-                                                                 [(Info-circuit-alias aliased-name info)
-                                                                  (Info-circuit-alias (add-prefix aliased-name) info)]
-                                                                 [else info])))])
-                       (env-insert! p src external info))))
-                 export^*))]
+             (let ([export* (let ([a (instance-table-cell instance-table info* #f)])
+                              (or (cdr a)
+                                  (begin
+                                    (let ([nactual (length info*)] [ndeclared (length type-param*)])
+                                      (unless (fx= nactual ndeclared)
+                                        (source-errorf src "mismatch between actual number ~s and declared number ~s of import generic parameters for ~s"
+                                                       nactual
+                                                       ndeclared
+                                                       module-name)))
+                                    (let ([export* (let ([p^ (add-tvar-rib src p^ type-param* info*)])
+                                                     (with-module-cycle-check src info import-name
+                                                       (lambda ()
+                                                         (parameterize ([relative-path (if dirname dirname (relative-path))])
+                                                           (process-pelts #f
+                                                             pelt^*
+                                                             (map (lambda (i) (cons i seqno^)) (enumerate pelt^*))
+                                                             p^)))))])
+                                      (set-cdr! a export*)
+                                      export*))))])
+               (if maybe-ielt*
+                   (let ([export-ht (make-hashtable symbol-hash eq?)])
+                     (for-each
+                       (lambda (x)
+                         (hashtable-update! export-ht (exportit-name x)
+                           (lambda (info*) (cons (exportit-info x) info*))
+                           '()))
+                       export*)
+                     (for-each
+                       (lambda (ielt)
+                         (nanopass-case (Lpreexpand Import-Element) ielt
+                           [(,src ,name ,name^)
+                            (let ([info* (hashtable-ref export-ht name '())])
+                              (when (null? info*)
+                                (source-errorf #f "no export named ~a in module ~a"
+                                               name
+                                               import-name))
+                              (for-each
+                                (lambda (info) (import-insert! src name^ info))
+                                info*))]))
+                       maybe-ielt*))
+                   (for-each
+                     (lambda (x) (import-insert! src (exportit-name x) (exportit-info x)))
+                     export*)))]
             [else (context-oops src module-name info)])))
       (define (process-pelts top-level? pelt* seqno* p)
         (let ([p (add-rib p)])
@@ -691,7 +712,10 @@
                              (if exported? (cons (make-exportit src module-name info) export*) export*)
                              unresolved-export*))]
                     [(import ,src ,import-name (,[Type-Argument->info : targ* p -> info*] ...) ,prefix)
-                     (do-import src import-name info* prefix p)
+                     (do-import src import-name info* prefix #f p)
+                     (loop pelt* seqno* export* unresolved-export*)]
+                    [(import ,src ,import-name (,[Type-Argument->info : targ* p -> info*] ...) ,prefix (,ielt* ...))
+                     (do-import src import-name info* prefix ielt* p)
                      (loop pelt* seqno* export* unresolved-export*)]
                     [(export ,src (,src* ,name*) ...)
                      (loop pelt* seqno* export*
@@ -988,7 +1012,10 @@
              [else 
               (let ([p (or Cell-ADT-env
                            (let ([p (add-rib empty-env)])
-                             (do-import src 'CompactStandardLibrary '() "" p)
+                             (do-import src 'CompactStandardLibrary '() ""
+                                        (list (with-output-language (Lpreexpand Import-Element)
+                                                `(,src __compact_Cell __compact_Cell)))
+                                        p)
                              (set! Cell-ADT-env p)
                              p))])
                 (handle-type-ref src 'Cell (list (Info-type src type)) (lookup p src '__compact_Cell)))]))]
@@ -4292,6 +4319,9 @@
                                contract-name))))
                 (loop (cdr elt-name*) (cdr pure-dcl*))))]
          [else (assert cannot-happen)])])
+    (Tuple-Argument : Tuple-Argument (ir function-name) -> Tuple-Argument ())
+    (Map-Argument : Map-Argument (ir function-name) -> Map-Argument ())
+    (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
     (Function : Function (ir function-name) -> Function ()
       [(fref ,src ,function-name^)
        (process-function-name! function-name src function-name^)

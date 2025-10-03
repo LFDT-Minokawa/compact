@@ -624,7 +624,17 @@
                (lambda (pelt q*) (cons* 2 (Program-Element pelt) nl q*))
                (add-closer 2 0 rbrace '())
                pelt*)))]
-      [(import ,src ,kwd ,import-name ,generic-arg-list? ,import-prefix? ,semicolon)
+      [(import ,src ,kwd ,import-selection? ,import-name ,generic-arg-list? ,import-prefix? ,semicolon)
+       (define (add-import-selection q*)
+         (if import-selection?
+             (nanopass-case (Lparser Import-Selection) import-selection?
+               [(,lbrace (,ielt* ...) (,comma* ...) ,rbrace ,kwd-from)
+                (cons*
+                  2 (make-Qtoken lbrace)
+                  nbsp (make-Qsep comma* (map Import-Element ielt*) nbsp rbrace)
+                  2 (make-Qtoken kwd-from)
+                  q*)])
+             q*))
        (define (add-prefix q*)
          (if import-prefix?
              (nanopass-case (Lparser Import-Prefix) import-prefix?
@@ -633,9 +643,11 @@
        (// src
            (apply make-Qconcat
              (make-Qtoken kwd)
-             nbsp (make-Qtoken import-name)
-             (maybe-add Generic-Arg-List generic-arg-list?
-               (add-prefix (add-punctuation semicolon '())))))]
+             (add-import-selection
+               (cons*
+                 nbsp (make-Qtoken import-name)
+                 (maybe-add Generic-Arg-List generic-arg-list?
+                   (add-prefix (add-punctuation semicolon '())))))))]
       [(export ,src ,kwd ,lbrace (,name* ...) (,comma* ...) ,rbrace ,semicolon?)
        (// src
            (apply make-Qconcat
@@ -890,7 +902,12 @@
                  nbsp (make-Qtoken function-name)
                  (Argument-List arg-list)
                  (Return-Type return-type)))))])
-   (Statement : Statement (ir) -> * (q)
+    (Import-Element : Import-Element (ir) -> * (q)
+      [(,src ,name) (make-Qtoken name)]
+      [(,src ,name ,kwd-as ,name^)
+       (// src
+           (make-Qconcat (make-Qtoken name) nbsp (make-Qtoken kwd-as) nbsp (make-Qtoken name^)))])
+    (Statement : Statement (ir) -> * (q)
       [(statement-expression ,src ,expr ,semicolon)
        (// src
            (apply make-Qconcat

@@ -22,6 +22,7 @@ pragma language_version >= 0.12.1;
 
 include 'empty'; // cheer up CI tests by using the include keyword
 import CompactStandardLibrary;
+import {} from CompactStandardLibrary; // cheer up CI tests by using the from keyword
 
 // contract C1 {
 //   circuit foo() : [];

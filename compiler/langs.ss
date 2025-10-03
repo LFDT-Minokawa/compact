@@ -132,6 +132,11 @@
     (Import-Declaration (idecl)
       (import src import-name (targ* ...) prefix) =>
         (import import-name (targ* 0 ...) #f prefix)
+      (import src import-name (targ* ...) prefix (ielt* ...)) =>
+        (import import-name (targ* 0 ...) #f prefix #f (ielt* ...))
+      )
+    (Import-Element (ielt)
+      (src name name^) => (name name^)
       )
     (Import-Name (import-name)
       module-name
@@ -480,7 +485,8 @@
     (Module-Definition (mdefn)
       (- (module src exported? module-name (type-param* ...) pelt* ...)))
     (Import-Declaration (idecl)
-      (- (import src import-name (targ* ...) prefix)))
+      (- (import src import-name (targ* ...) prefix)
+         (import src import-name (targ* ...) prefix (ielt* ...))))
     (Import-Name (import-name)
       (- module-name)
       (- file))

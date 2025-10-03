@@ -45,7 +45,7 @@
       (string-token (str mesg opaque-type file))
       (version-token (version))
       (eof-token (eof))
-      (keyword-token (kwd kwd-else kwd-const kwd-of kwd-export kwd-sealed kwd-pure kwd-prefix))
+      (keyword-token (kwd kwd-else kwd-const kwd-of kwd-export kwd-sealed kwd-pure kwd-prefix kwd-from kwd-as))
       (op-token (op langle rangle))
       (punctuation-token (dot dotdot dotdotdot comma semicolon colon hook lparen rparen lbracket rbracket lbrace rbrace arrow sep hashmark bang))
       )
@@ -93,8 +93,15 @@
         (module kwd-export? module-name generic-param-list? #f pelt* ...)
       )
     (Import-Declaration (idecl)
-      (import src kwd import-name (maybe generic-arg-list?) (maybe import-prefix?) semicolon) =>
-        (import import-name generic-arg-list? #f import-prefix?)
+      (import src kwd (maybe import-selection?) import-name (maybe generic-arg-list?) (maybe import-prefix?) semicolon) =>
+        (import import-name generic-arg-list? #f import-prefix? #f import-selection?)
+      )
+    (Import-Selection (import-selection)
+      (lbrace (ielt* ...) (comma* ...) rbrace kwd-from)
+      )
+    (Import-Element (ielt)
+      (src name)
+      (src name kwd-as name^)
       )
     (Import-Name (import-name)
       module-name

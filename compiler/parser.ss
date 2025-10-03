@@ -59,6 +59,7 @@
   (define keywordImport '(
     export
     import
+    from
     module))
   (define keywordControl '(
     as
@@ -326,10 +327,25 @@
          (with-output-language (Lparser Generic-Param)
            `(type-valued ,src ,tvar-name)))])
     (Import-declaration (idecl)
-      [import-declaration :: src (KEYWORD import) import-name (OPT gargs #f) (OPT import-prefix #f) #\; =>
-       (lambda (src kwd module-name generic-arg-list? prefix semicolon)
+      [import-declaration :: src (KEYWORD import) (OPT import-selection #f) import-name (OPT gargs #f) (OPT import-prefix #f) #\; =>
+       (lambda (src kwd import-selection? module-name generic-arg-list? prefix semicolon)
          (with-output-language (Lparser Import-Declaration)
-           `(import ,src ,kwd ,module-name ,generic-arg-list? ,prefix ,semicolon)))])
+           `(import ,src ,kwd ,import-selection? ,module-name ,generic-arg-list? ,prefix ,semicolon)))])
+    (Import-selection (import-selection)
+      [import-selection :: #\{ (SEP* import-element #\, #t) #\} (KEYWORD from) =>
+       (lambda (lbrace ielt-sep* rbrace kwd-from)
+         (let-values ([(ielt* sep*) (split-sep ielt-sep*)])
+           (with-output-language (Lparser Import-Selection)
+             `(,lbrace (,ielt* ...) (,sep* ...) ,rbrace ,kwd-from))))])
+    (Import-element (import-element)
+      [import-element-name :: src id =>
+       (lambda (src name)
+         (with-output-language (Lparser Import-Element)
+           `(,src ,name)))]
+      [import-element-rename :: src id (KEYWORD as) id =>
+       (lambda (src name kwd-as name^)
+         (with-output-language (Lparser Import-Element)
+           `(,src ,name ,kwd-as ,name^)))])
     (Import-name (import-name)
       [import-name-id :: id => values]
       [import-name-file :: file => values])

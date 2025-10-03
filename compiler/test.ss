@@ -422,7 +422,7 @@
         (if (condition? x)
             (condition! x)
             (let* ([printed-result (with-output-to-string (lambda () (print-result pretty-formats x)))]
-                   [feedback (lambda () printed-result)])
+                   [feedback (lambda () (display-string printed-result))])
               (let-values ([(op get-output) (open-string-output-port)])
                 (if (parameterize ([current-output-port op])
                       (test-equal? pretty-formats x k))
@@ -490,7 +490,7 @@
                    (andmap equal? (map condition-message c*) (map car ls))
                    (andmap equal? (map condition-irritants c*) (map cdr ls)))
               (begin
-                (set! positive-feedback (cons feedback negative-feedback))
+                (set! positive-feedback (cons feedback positive-feedback))
                 #t)
               (begin
                 (set! negative-feedback (cons feedback negative-feedback))
@@ -1338,6 +1338,7 @@
       (program
         (include "empty")
         (import CompactStandardLibrary () "")
+        (import CompactStandardLibrary () "" ())
         (module #f M ((nat-valued a) b)
           (struct #t frob () [q (tfield)])
           (struct #t pair ()
@@ -2342,6 +2343,77 @@
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 50" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"(\"" "\"{\""))))
     )
+
+  (test
+    '(
+      "module M {"
+      "  export ledger F: Field;"
+      "  export circuit foo(ix: Field): Field {"
+      "    F = disclose(ix + ix);"
+      "    return F;"
+      "  }"
+      "}"
+      "import { foo as peter, foo as paul, foo as mary, foo } from M;"
+      "import { foo as peter, foo as paul, foo as mary, foo } from M prefix M$;"
+      "export { peter, paul, mary, foo };"
+      "export { M$peter, M$paul, M$mary, M$foo };"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "module M {"
+        "  export ledger F: Field;"
+        "  export circuit foo(ix: Field): Field {"
+        "    F = disclose(ix + ix);"
+        "    return F;"
+        "  }"
+        "}"
+        ""
+        "import { foo as peter, foo as paul, foo as mary, foo } from M;"
+        ""
+        "import { foo as peter, foo as paul, foo as mary, foo } from M prefix M$;"
+        ""
+        "export { peter, paul, mary, foo };"
+        ""
+        "export { M$peter, M$paul, M$mary, M$foo };"))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export ledger F: Field;"
+      "  export circuit foo(ix: Field): Field {"
+      "    F = disclose(ix + ix);"
+      "    return F;"
+      "  }"
+      "}"
+      "import { foo as peter, foo as paul, foo as mary, foo,"
+      "         foo as red, foo as blue, foo as green, foo as yellow }"
+      "  from M;"
+      "export { foo, peter, paul, mary, red, blue, green, yellow };"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "module M {"
+        "  export ledger F: Field;"
+        "  export circuit foo(ix: Field): Field {"
+        "    F = disclose(ix + ix);"
+        "    return F;"
+        "  }"
+        "}"
+        ""
+        "import"
+        "  { foo as peter,"
+        "    foo as paul,"
+        "    foo as mary,"
+        "    foo,"
+        "    foo as red,"
+        "    foo as blue,"
+        "    foo as green,"
+        "    foo as yellow }"
+        "  from M;"
+        ""
+        "export { foo, peter, paul, mary, red, blue, green, yellow };"))
+    )
 )
 
 (run-tests parse-file/fixup/format/reparse
@@ -2953,6 +3025,7 @@
       (program
         (include "empty")
         (import CompactStandardLibrary () "")
+        (import CompactStandardLibrary () "" ())
         (module #f M ((nat-valued a) b)
           (struct #t frob () [q (tfield)])
           (struct #t pair ()
@@ -6895,6 +6968,7 @@
     (returns
       (program
         (import CompactStandardLibrary () "")
+        (import CompactStandardLibrary () "" ())
         (module #f M ((nat-valued a) b)
           (struct #t frob () [q (tfield)])
           (struct #t pair ()
@@ -7386,6 +7460,7 @@
     (returns
       (program
         (import CompactStandardLibrary () "")
+        (import CompactStandardLibrary () "" ())
         (module #f M ((nat-valued a) b)
           (struct #t frob () [q (tfield)])
           (struct #t pair ()
@@ -7643,6 +7718,7 @@
     (returns
       (program
         (import CompactStandardLibrary () "")
+        (import CompactStandardLibrary () "" ())
         (module #f M ((nat-valued a) b)
           (struct #t frob () [q (tfield)])
           (struct #t pair ()
@@ -25788,6 +25864,33 @@
           (public-ledger %q.1
             (lookup (safe-cast (tunsigned 255) (tunsigned 7) 7))
             (lookup (safe-cast (tunsigned 255) (tunsigned 11) 11))))))
+    )
+)
+
+(run-tests identify-pure-circuits
+  (test
+    '(
+      "module M {"
+      "  export ledger F: Field;"
+      "  export circuit foo(ix: Field): Field {"
+      "    const x = disclose(ix);"
+      "    F = disclose(x * 3);"
+      "    return F;"
+      "  }"
+      "  export circuit foo(ix: Field, iy: Field): Field {"
+      "    const x = disclose(ix), y = disclose(iy);"
+      "    F = disclose(x + y);"
+      "    return F;"
+      "  }"
+      "}"
+      "import M;"
+      "export pure circuit bar(ix: Uint<32>): [Field, Field] {"
+      "  return [foo(ix), foo(ix, ix)];"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 15 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (bar foo "accesses ledger field F" "line 6 char 12")))
     )
 )
 
@@ -64155,6 +64258,165 @@
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  expect(C.circuits.foo(Ctxt, 17n, new Uint8Array([9, 8, 7, 6, 5, 4, 3, 2, 1, 0])).result).toEqual([1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 0n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export ledger F: Field;"
+      "  export circuit foo(ix: Field): Field {"
+      "    F = disclose(ix + ix);"
+      "    return F;"
+      "  }"
+      "}"
+      "import { foo, F } from M;"
+      "export { foo };"
+      "enum F { a, b, c };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 10 char 1" "another binding found for ~s in the same scope at ~a" (F "line 8 char 15")))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export ledger F: Field;"
+      "  export circuit foo(ix: Field): Field {"
+      "    F = disclose(ix + ix);"
+      "    return F;"
+      "  }"
+      "}"
+      "import {} from M;"
+      "export { foo };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 9 char 10" "unbound identifier ~s" (foo)))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export ledger F: Field;"
+      "  export circuit foo(ix: Field): Field {"
+      "    F = disclose(ix + ix);"
+      "    return F;"
+      "  }"
+      "}"
+      "import { foo, F as G } from M;"
+      "export { foo };"
+      "enum F { a, b, c };"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 17n).result).toEqual(34n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export ledger F: Field;"
+      "  export circuit foo(ix: Field): Field {"
+      "    F = disclose(ix + ix);"
+      "    return F;"
+      "  }"
+      "}"
+      "import { foo } from M;"
+      "export { foo };"
+      "enum F { a, b, c };"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 17n).result).toEqual(34n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export ledger F: Field;"
+      "  export circuit foo(ix: Field): Field {"
+      "    F = disclose(ix + ix);"
+      "    return F;"
+      "  }"
+      "}"
+      "import { foo as bar } from M;"
+      "export { bar };"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.bar(Ctxt, 17n).result).toEqual(34n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export ledger F: Field;"
+      "  export circuit foo(ix: Field): Field {"
+      "    F = disclose(ix + ix);"
+      "    return F;"
+      "  }"
+      "}"
+      "import { foo as peter, foo as paul, foo as mary, foo } from M;"
+      "export { peter, paul, mary, foo };"
+      "import { foo as peter, foo as paul, foo as mary, foo } from M prefix M$;"
+      "export { M$peter, M$paul, M$mary, M$foo };"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 17n).result).toEqual(34n);"
+        "  expect(C.circuits.peter(Ctxt, 17n).result).toEqual(34n);"
+        "  expect(C.circuits.paul(Ctxt, 17n).result).toEqual(34n);"
+        "  expect(C.circuits.mary(Ctxt, 17n).result).toEqual(34n);"
+        "  expect(C.circuits.M$foo(Ctxt, 17n).result).toEqual(34n);"
+        "  expect(C.circuits.M$peter(Ctxt, 17n).result).toEqual(34n);"
+        "  expect(C.circuits.M$paul(Ctxt, 17n).result).toEqual(34n);"
+        "  expect(C.circuits.M$mary(Ctxt, 17n).result).toEqual(34n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export ledger F: Field;"
+      "  export circuit foo(ix: Field): Field {"
+      "    const x = disclose(ix);"
+      "    F = disclose(x * 3);"
+      "    return F;"
+      "  }"
+      "  export circuit foo(ix: Field, iy: Field): Field {"
+      "    const x = disclose(ix), y = disclose(iy);"
+      "    F = disclose(x + y);"
+      "    return F;"
+      "  }"
+      "}"
+      "import { foo } from M;"
+      "export circuit bar(ix: Uint<32>): [Field, Field] {"
+      "  return [foo(ix), foo(ix, ix)];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.bar(Ctxt, 17n).result).toEqual([51n, 34n]);"
         "});"
         ))
     )

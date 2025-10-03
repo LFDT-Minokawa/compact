@@ -51,6 +51,7 @@
       [(include ,src ,kwd ,file ,semicolon)
        (guard (string=? (token-value file) "std"))
        `(import ,src
+                #f
                 ,(make-token (token-src kwd) 'id 'import "import")
                 ,(make-token (token-src file) 'id 'CompactStandardLibrary "CompactStandardLibrary")
                 #f

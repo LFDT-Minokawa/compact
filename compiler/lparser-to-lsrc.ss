@@ -38,10 +38,18 @@
              [pelt* (map Program-Element (remp Lparser-Pragma? pelt*))])
          `(module ,src ,(and kwd-export? #t) ,(token-value module-name) (,type-param* ...) ,pelt* ...))])
     (Import-Declaration : Import-Declaration (ir) -> Import-Declaration ()
-      [(import ,src ,kwd ,[import-name] ,generic-arg-list? ,import-prefix? ,semicolon)
-       (let ([targ* (if generic-arg-list? (Generic-Arg-List generic-arg-list?) '())]
+      [(import ,src ,kwd ,import-selection? ,[import-name] ,generic-arg-list? ,import-prefix? ,semicolon)
+       (let ([maybe-ielt* (and import-selection? (Import-Selection import-selection?))]
+             [targ* (if generic-arg-list? (Generic-Arg-List generic-arg-list?) '())]
              [prefix (if import-prefix? (Import-Prefix import-prefix?) "")])
-         `(import ,src ,import-name (,targ* ...) ,prefix))])
+         (if maybe-ielt*
+             `(import ,src ,import-name (,targ* ...) ,prefix (,maybe-ielt* ...))
+             `(import ,src ,import-name (,targ* ...) ,prefix)))])
+    (Import-Selection : Import-Selection (ir) -> * (ielt*)
+      [(,lbrace (,[ielt*] ...) (,comma* ...) ,rbrace ,kwd-from) ielt*])
+    (Import-Element : Import-Element (ir) -> Import-Element ()
+      [(,src ,name) (let ([name (token-value name)]) `(,src ,name ,name))]
+      [(,src ,name ,kwd-as ,name^) `(,src ,(token-value name) ,(token-value name^))])
     (Import-Name : Import-Name (ir) -> Import-Name ()
       [,module-name (token-value module-name)]
       [,file (token-value file)])
