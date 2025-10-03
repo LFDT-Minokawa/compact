@@ -105,12 +105,9 @@
                  ;; The two source arguments are swapped for the persistent_hash gate.  We assume
                  ;; that the second argument is `(tbytes 32)` so it consumes two variables and we
                  ;; know its alignment is `(abytes 32)`.
-                 (let* ([var* (syntax-case input-var* ()
-                                [(a ... b c) #'(b c a ...)])]
-                        [alignment*
-                          (cons
-                            (with-output-language (Lflattened Alignment) `(abytes ,32))
-                            (arg->alignment arg* 0))])
+                 (let ([var* (syntax-case input-var* ()
+                               [(a ... b c) #'(b c a ...)])]
+                       [alignment* (append (arg->alignment arg* 1) (arg->alignment arg* 0))])
                    (cons `(persistent_hash (,alignment* ...) ,var* ...) instr*))]
                 [(persistentHash)
                  (for-each allocate-var var-name*)
@@ -119,8 +116,8 @@
                 [(transientCommit)
                  (allocate-var (car var-name*))
                  ;; The last input needs to be moved first.
-                 (let* ([rev (reverse input-var*)]
-                        [var* (cons (car rev) (reverse (cdr rev)))])
+                 (let ([var* (syntax-case input-var* ()
+                               [(a ... b) #'(b a ...)])])
                    (cons `(transient_hash ,var* ...) instr*))]
                 [(transientHash)
                  (allocate-var (car var-name*))
