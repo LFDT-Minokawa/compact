@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.26.107 language version 0.18.1]
+
+### Fixed
+- A bug that was created during putting bounds on vectors/tuples/bytes
+
 ## [Unreleased compiler version 0.26.106 language version 0.18.1]
 
 ### Added
