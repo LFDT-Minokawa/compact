@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout compactc repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.head_ref || github.ref_name }}
 
@@ -95,7 +95,7 @@ jobs:
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check compiler and language versions in internal documentation
         run: |

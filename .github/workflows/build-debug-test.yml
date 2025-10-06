@@ -53,7 +53,7 @@ jobs:
           cache: midnight
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup .npmrc
         run: |

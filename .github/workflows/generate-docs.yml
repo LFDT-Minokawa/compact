@@ -74,7 +74,7 @@ jobs:
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
@@ -103,7 +103,7 @@ jobs:
       # TODO: do we need that, it does not run on schedule so branch should come from input, but then we duplicate
       # TODO: checkout in next step ?
       - name: Checkout docs repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: "midnightntwrk/midnight-docs"
           token: ${{ secrets.MIDNIGHTCI_REPO }}

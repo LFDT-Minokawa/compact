@@ -111,7 +111,7 @@ jobs:
           password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
@@ -238,7 +238,7 @@ jobs:
           password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.setup.outputs.branch }}
 

@@ -58,7 +58,7 @@ jobs:
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Compile
         run: |
