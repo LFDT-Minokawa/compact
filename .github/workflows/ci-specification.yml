@@ -28,7 +28,7 @@ jobs:
           key: ${{ runner.os }}-cabal-packages
 
       - name: Set up Haskell (GHC and Cabal)
-        uses: haskell-actions/setup@v2.7.9
+        uses: haskell-actions/setup@v2.8.2
         with:
           ghc-version: "9.4.8"
           cabal-version: "3.10.3.0"
