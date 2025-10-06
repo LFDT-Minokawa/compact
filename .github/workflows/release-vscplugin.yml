@@ -82,7 +82,7 @@ jobs:
           echo "Version extracted: ${{ env.version }}"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           repository: midnight-ntwrk/artifacts
           tag_name: ${{ github.ref_name }}
