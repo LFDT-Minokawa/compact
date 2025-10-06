@@ -249,17 +249,17 @@ jobs:
           git push origin ${{ inputs.version }}
 
       - name: Fetch release assets - Linux x86_64
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: linux-release-x86_64
 
       - name: Fetch release assets - Macos aarch64 (Arm)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: macos-release-aarch64
 
       - name: Fetch release assets - Macos x86_64 (Intel)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: macos-release-x86_64
 
