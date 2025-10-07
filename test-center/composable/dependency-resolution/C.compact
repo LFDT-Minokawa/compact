@@ -1,0 +1,11 @@
+import CompactStandardLibrary;
+
+export ledger c: Counter;
+
+export circuit up(i: Uint<16>): [] {
+    return c.increment(disclose(i));
+}
+
+export circuit down(i: Uint<16>): [] {
+    return c.decrement(disclose(i));
+}

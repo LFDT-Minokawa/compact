@@ -16,38 +16,41 @@ import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 import { isCompactContractAddress } from './utils';
 import { CompactError } from './error';
 import { CompactType } from './compact-type';
+import { EncodedContractAddress } from './zswap';
+import { ContractId } from './circuit-context';
 
 /**
  * A data structure indicating that the current {@link CompactValue} being explored is a contract reference. When this
- * type is recognized, the current {@link CompactValue} should be a {@link ocrt.ContractAddress}, and the address is added to
+ * type is recognized, the current {@link CompactValue} should be a {@link ContractAddress}, and the address is added to
  * the dependency set.
  */
 export type SparseCompactContractAddress = {
-  tag: 'contractAddress';
+    contractId: ContractId;
+    tag: 'contractAddress';
 };
 
 /**
  * A data structure indicating the locations of contract references in a Compact struct.
  */
 export type SparseCompactStruct = {
-  tag: 'struct';
-  /**
-   * A data structure indicating the locations of contract references in the elements of a Compact struct. The keys of
-   * the record correspond to fields of the Compact struct that contain contract references. We use the keys of the record
-   * to explore the elements of the corresponding {@link CompactStruct}.
-   */
-  elements: Record<string, SparseCompactType>;
+    tag: 'struct';
+    /**
+     * A data structure indicating the locations of contract references in the elements of a Compact struct. The keys of
+     * the record correspond to fields of the Compact struct that contain contract references. We use the keys of the record
+     * to explore the elements of the corresponding {@link CompactStruct}.
+     */
+    elements: Record<string, SparseCompactType>;
 };
 
 /**
  * A data structure indicating the locations of contract references in a Compact vector.
  */
 export type SparseCompactVector = {
-  tag: 'vector';
-  /**
-   * A data structure indicating the locations of contract references in the elements of a Compact vector.
-   */
-  sparseType: SparseCompactType;
+    tag: 'vector';
+    /**
+     * A data structure indicating the locations of contract references in the elements of a Compact vector.
+     */
+    sparseType: SparseCompactType;
 };
 
 /**
@@ -70,7 +73,7 @@ type CompactStruct = { [key: string]: CompactValue };
  * A TypeScript representation of a Compact value that contains a contract address. Currently, the only Compact values
  * that can contain a contract address are contract addresses themselves, `Vector`s, and `struct`s.
  */
-type CompactValue = { bytes: Uint8Array } | CompactVector | CompactStruct;
+type CompactValue = EncodedContractAddress | CompactVector | CompactStruct;
 
 /**
  * Tests whether the input value is a {@link CompactVector}.
@@ -78,7 +81,7 @@ type CompactValue = { bytes: Uint8Array } | CompactVector | CompactStruct;
  * @param x The value that is tested to be a {@link CompactVector}.
  */
 function isCompactVector(x: unknown): x is CompactVector {
-  return Array.isArray(x) && x.every((element) => isCompactValue(element));
+    return Array.isArray(x) && x.every((element) => isCompactValue(element));
 }
 
 /**
@@ -87,12 +90,12 @@ function isCompactVector(x: unknown): x is CompactVector {
  * @param x The value that is tested to be a {@link CompactStruct}.
  */
 function isCompactStruct(x: unknown): x is CompactStruct {
-  return (
-    typeof x === 'object' &&
-    x !== null &&
-    x !== undefined &&
-    Object.entries(x).every(([key, value]) => typeof key === 'string' && isCompactValue(value))
-  );
+    return (
+        typeof x === 'object' &&
+        x !== null &&
+        x !== undefined &&
+        Object.entries(x).every(([key, value]) => typeof key === 'string' && isCompactValue(value))
+    );
 }
 
 /**
@@ -101,22 +104,22 @@ function isCompactStruct(x: unknown): x is CompactStruct {
  * @param x The value that is tested to be a {@link CompactValue}.
  */
 function isCompactValue(x: unknown): x is CompactValue {
-  return isCompactContractAddress(x) || isCompactVector(x) || isCompactStruct(x);
+    return isCompactContractAddress(x) || isCompactVector(x) || isCompactStruct(x);
 }
 
 const expectedValueError = (expected: string, actual: unknown): void => {
-  throw new CompactError(`Expected ${expected} but received ${JSON.stringify(actual)}`);
+    throw new CompactError(`Expected ${expected} but received ${JSON.stringify(actual)}`);
 };
 
 /**
- * Throws an error if the input value is not a {@link ocrt.ContractAddress}, i.e., string.
+ * Throws an error if the input value is not a {@link ContractAddress}, i.e., string.
  *
- * @param value The value that is asserted to be a {@link ocrt.ContractAddress}.
+ * @param value The value that is asserted to be a {@link ContractAddress}.
  */
-function assertIsContractAddress(value: CompactValue): asserts value is { bytes: Uint8Array } {
-  if (!isCompactContractAddress(value)) {
-    expectedValueError('contract address', value);
-  }
+function assertIsContractAddress(value: CompactValue): asserts value is EncodedContractAddress {
+    if (!isCompactContractAddress(value)) {
+        expectedValueError('contract address', value);
+    }
 }
 
 /**
@@ -125,9 +128,9 @@ function assertIsContractAddress(value: CompactValue): asserts value is { bytes:
  * @param value The value that is asserted to be a {@link CompactVector}.
  */
 function assertIsCompactVector(value: CompactValue): asserts value is CompactVector {
-  if (!isCompactVector(value)) {
-    expectedValueError('vector', value);
-  }
+    if (!isCompactVector(value)) {
+        expectedValueError('vector', value);
+    }
 }
 
 /**
@@ -136,9 +139,9 @@ function assertIsCompactVector(value: CompactValue): asserts value is CompactVec
  * @param value The value that is asserted to be a {@link CompactStruct}.
  */
 function assertIsCompactStruct(value: CompactValue): asserts value is CompactStruct {
-  if (!isCompactStruct(value)) {
-    expectedValueError('struct', value);
-  }
+    if (!isCompactStruct(value)) {
+        expectedValueError('struct', value);
+    }
 }
 
 /**
@@ -147,9 +150,9 @@ function assertIsCompactStruct(value: CompactValue): asserts value is CompactStr
  * @param x The value that is asserted to be a {@link CompactValue}.
  */
 function assertIsCompactValue(x: unknown): asserts x is CompactValue {
-  if (!isCompactValue(x)) {
-    expectedValueError('Compact value', x);
-  }
+    if (!isCompactValue(x)) {
+        expectedValueError('Compact value', x);
+    }
 }
 
 /**
@@ -158,8 +161,8 @@ function assertIsCompactValue(x: unknown): asserts x is CompactValue {
  * @param x The value to convert.
  */
 function toCompactValue(x: unknown): CompactValue {
-  assertIsCompactValue(x);
-  return x;
+    assertIsCompactValue(x);
+    return x;
 }
 
 /**
@@ -170,91 +173,94 @@ function toCompactValue(x: unknown): CompactValue {
  * @param dependencies The current set of contract addresses extracted from the input ledger state.
  */
 const compactValueDependencies = (
-  sparseCompactType: SparseCompactType,
-  compactValue: CompactValue,
-  dependencies: Set<ocrt.ContractAddress>,
+    sparseCompactType: SparseCompactType,
+    compactValue: CompactValue,
+    dependencies: Set<ContractDependency>,
 ): void => {
-  if (sparseCompactType.tag == 'contractAddress') {
-    assertIsContractAddress(compactValue);
-    dependencies.add(ocrt.decodeContractAddress(compactValue.bytes));
-  } else if (sparseCompactType.tag == 'struct') {
-    assertIsCompactStruct(compactValue);
-    Object.keys(compactValue).forEach((structElementId) =>
-      compactValueDependencies(sparseCompactType.elements[structElementId], compactValue[structElementId], dependencies),
-    );
-  } else {
-    assertIsCompactVector(compactValue);
-    compactValue.forEach((vectorElement) => compactValueDependencies(sparseCompactType.sparseType, vectorElement, dependencies));
-  }
+    if (sparseCompactType.tag == 'contractAddress') {
+        assertIsContractAddress(compactValue);
+        dependencies.add({
+            contractId: sparseCompactType.contractId,
+            address: ocrt.decodeContractAddress(compactValue.bytes)
+        });
+    } else if (sparseCompactType.tag == 'struct') {
+        assertIsCompactStruct(compactValue);
+        Object.keys(compactValue).forEach((structElementId) =>
+            compactValueDependencies(sparseCompactType.elements[structElementId], compactValue[structElementId], dependencies),
+        );
+    } else {
+        assertIsCompactVector(compactValue);
+        compactValue.forEach((vectorElement) => compactValueDependencies(sparseCompactType.sparseType, vectorElement, dependencies));
+    }
 };
 
 /**
- * Converts a Compact value in the on-chain runtime representation ({@link ocrt.AlignedValue}) into a TypeScript ({@link CompactValue})
+ * Converts a Compact value in the on-chain runtime representation ({@link AlignedValue}) into a TypeScript ({@link CompactValue})
  * representation.
  *
- * @param descriptor The descriptor to convert a {@link ocrt.AlignedValue} into a TypeScript value.
+ * @param descriptor The descriptor to convert a {@link AlignedValue} into a TypeScript value.
  * @param value The value to convert.
  */
 const alignedValueToCompactValue = (descriptor: CompactType<unknown>, { value }: ocrt.AlignedValue): CompactValue =>
-  toCompactValue(descriptor.fromValue(value));
+    toCompactValue(descriptor.fromValue(value));
 
 /**
- * Converts a {@link ocrt.StateValue} into a {@link CompactValue} by treating the state as a `Cell` ADT containing a Compact value.
+ * Converts a {@link StateValue} into a {@link CompactValue} by treating the state as a `Cell` ADT containing a Compact value.
  *
- * @param descriptor The descriptor used to convert the {@link ocrt.AlignedValue} extracted from the `Cell` ADT into a TypeScript
+ * @param descriptor The descriptor used to convert the {@link AlignedValue} extracted from the `Cell` ADT into a TypeScript
  *                   representation of a Compact value containing a contract address.
  * @param stateValue Represents a `Cell` ADT.
  */
 const stateValueToCompactValue = (descriptor: CompactType<unknown>, stateValue: ocrt.StateValue): CompactValue =>
-  alignedValueToCompactValue(descriptor, stateValue.asCell());
+    alignedValueToCompactValue(descriptor, stateValue.asCell());
 
 /**
  * A data structure indicating the locations of all contract references in a Compact value.
  */
 export type SparseCompactValue = {
-  tag: 'compactValue';
-  /**
-   * A descriptor that can be used to convert an {@link ocrt.AlignedValue} into a TypeScript representation of the same value.
-   * This descriptor will only ever decode `struct`s or `Vector`s that contain contract addresses.
-   */
-  descriptor: CompactType<unknown>;
-  /**
-   * A data structure indicating how to navigate to the contract addresses present in the output of the above `descriptor`.
-   */
-  sparseType: SparseCompactType;
+    tag: 'compactValue';
+    /**
+     * A descriptor that can be used to convert an {@link AlignedValue} into a TypeScript representation of the same value.
+     * This descriptor will only ever decode `struct`s or `Vector`s that contain contract addresses.
+     */
+    descriptor: CompactType<unknown>;
+    /**
+     * A data structure indicating how to navigate to the contract addresses present in the output of the above `descriptor`.
+     */
+    sparseType: SparseCompactType;
 };
 
 /**
  * A data structure indicating the locations of all contract references in a Compact `Cell` ADT.
  */
 export type SparseCompactCellADT = {
-  tag: 'cell';
-  /**
-   * A data structure indicating the locations of all contract references in the Compact value contained in the outer `Cell` ADT.
-   */
-  valueType: SparseCompactValue;
+    tag: 'cell';
+    /**
+     * A data structure indicating the locations of all contract references in the Compact value contained in the outer `Cell` ADT.
+     */
+    valueType: SparseCompactValue;
 };
 
 /**
  * A data structure indicating the locations of all contract references in a Compact `Set` ADT.
  */
 export type SparseCompactSetADT = {
-  tag: 'set';
-  /**
-   * A data structure indicating the locations of all contract references in a Compact value in the outer `Set` ADT.
-   */
-  valueType: SparseCompactValue;
+    tag: 'set';
+    /**
+     * A data structure indicating the locations of all contract references in a Compact value in the outer `Set` ADT.
+     */
+    valueType: SparseCompactValue;
 };
 
 /**
  * A data structure indicating the locations of all contract references in a Compact `List` ADT.
  */
 export type SparseCompactListADT = {
-  tag: 'list';
-  /**
-   * A data structure indicating the locations of all contract references in a Compact value in the outer `List` ADT.
-   */
-  valueType: SparseCompactValue;
+    tag: 'list';
+    /**
+     * A data structure indicating the locations of all contract references in a Compact value in the outer `List` ADT.
+     */
+    valueType: SparseCompactValue;
 };
 
 /**
@@ -266,18 +272,18 @@ export type SparseCompactArrayLikeADT = SparseCompactSetADT | SparseCompactListA
  * A data structure indicating the locations of all contract references in a Compact `Map` ADT.
  */
 export type SparseCompactMapADT = {
-  tag: 'map';
-  /**
-   * A data structure indicating the locations of all contract references in the Compact values that are the keys of the
-   * outer `Map` ADT.
-   */
-  keyType?: SparseCompactValue;
-  /**
-   * A data structure indicating the locations of all contract references in the Compact entities that are the values of the
-   * outer `Map` ADT. Since the values of a `Map` ADT may be either Compact values or other `Map` ADTs, we take the union
-   * of the corresponding data structures.
-   */
-  valueType?: SparseCompactADT | SparseCompactValue;
+    tag: 'map';
+    /**
+     * A data structure indicating the locations of all contract references in the Compact values that are the keys of the
+     * outer `Map` ADT.
+     */
+    keyType?: SparseCompactValue;
+    /**
+     * A data structure indicating the locations of all contract references in the Compact entities that are the values of the
+     * outer `Map` ADT. Since the values of a `Map` ADT may be either Compact values or other `Map` ADTs, we take the union
+     * of the corresponding data structures.
+     */
+    valueType?: SparseCompactADT | SparseCompactValue;
 };
 
 /**
@@ -286,7 +292,7 @@ export type SparseCompactMapADT = {
 export type SparseCompactADT = SparseCompactCellADT | SparseCompactArrayLikeADT | SparseCompactMapADT;
 
 /**
- * Extracts the contract references contained in a Compact `Cell` ADT represented by the given {@link ocrt.StateValue}.
+ * Extracts the contract references contained in a Compact `Cell` ADT represented by the given {@link StateValue}.
  *
  * @param sparseCompactCellADT A data structure pointing to contract references in the Compact `Cell` ADT corresponding
  *                             to the given `state` parameter, if any exist.
@@ -294,16 +300,16 @@ export type SparseCompactADT = SparseCompactCellADT | SparseCompactArrayLikeADT 
  * @param dependencies The current set of contract addresses extracted from the input ledger state.
  */
 const compactCellDependencies = (
-  sparseCompactCellADT: SparseCompactCellADT,
-  state: ocrt.StateValue,
-  dependencies: Set<ocrt.ContractAddress>,
+    sparseCompactCellADT: SparseCompactCellADT,
+    state: ocrt.StateValue,
+    dependencies: Set<ContractDependency>,
 ): void => {
-  const { sparseType, descriptor } = sparseCompactCellADT.valueType;
-  compactValueDependencies(sparseType, stateValueToCompactValue(descriptor, state), dependencies);
+    const { sparseType, descriptor } = sparseCompactCellADT.valueType;
+    compactValueDependencies(sparseType, stateValueToCompactValue(descriptor, state), dependencies);
 };
 
 /**
- * Extracts the contract references contained in a Compact `List` or `Set` ADT represented by the given {@link ocrt.StateValue} array.
+ * Extracts the contract references contained in a Compact `List` or `Set` ADT represented by the given {@link StateValue} array.
  *
  * @param sparseCompactArrayLikeADT A data structure pointing to contract references in the Compact `List` or `Set` ADT corresponding
  *                                  to the given `states` parameter, if any exist.
@@ -311,16 +317,16 @@ const compactCellDependencies = (
  * @param dependencies The current set of contract addresses extracted from the input ledger state.
  */
 const compactArrayLikeADTDependencies = (
-  sparseCompactArrayLikeADT: SparseCompactArrayLikeADT,
-  states: ocrt.StateValue[],
-  dependencies: Set<ocrt.ContractAddress>,
+    sparseCompactArrayLikeADT: SparseCompactArrayLikeADT,
+    states: ocrt.StateValue[],
+    dependencies: Set<ContractDependency>,
 ): void => {
-  const { sparseType, descriptor } = sparseCompactArrayLikeADT.valueType;
-  states.forEach((state) => compactValueDependencies(sparseType, stateValueToCompactValue(descriptor, state), dependencies));
+    const { sparseType, descriptor } = sparseCompactArrayLikeADT.valueType;
+    states.forEach((state) => compactValueDependencies(sparseType, stateValueToCompactValue(descriptor, state), dependencies));
 };
 
 /**
- * Extracts the contract references contained in a Compact `Map` ADT represented by the given {@link ocrt.StateMap} object.
+ * Extracts the contract references contained in a Compact `Map` ADT represented by the given {@link StateMap} object.
  *
  * @param sparseCompactMapADT A data structure pointing to contract references in the Compact `Map` ADT corresponding
  *                            to the given `stateMap` parameter, if any exist.
@@ -328,32 +334,32 @@ const compactArrayLikeADTDependencies = (
  * @param dependencies The current set of contract addresses extracted from the input ledger state.
  */
 const compactMapADTDependencies = (
-  sparseCompactMapADT: SparseCompactMapADT,
-  stateMap: ocrt.StateMap,
-  dependencies: Set<ocrt.ContractAddress>,
+    sparseCompactMapADT: SparseCompactMapADT,
+    stateMap: ocrt.StateMap,
+    dependencies: Set<ContractDependency>,
 ): void => {
-  const { keyType, valueType } = sparseCompactMapADT;
-  stateMap.keys().forEach((key) => {
-    if (keyType) {
-      compactValueDependencies(keyType.sparseType, alignedValueToCompactValue(keyType.descriptor, key), dependencies);
-    }
-    if (valueType) {
-      const value = stateMap.get(key);
-      if (!value) {
-        throw new CompactError(`State map ${stateMap.toString(false)} contains key without corresponding value`);
-      }
-      // Maps are the only ADT that can contain other ADTs, other maps in particular.
-      if (valueType.tag == 'compactValue') {
-        compactValueDependencies(valueType.sparseType, stateValueToCompactValue(valueType.descriptor, value), dependencies);
-      } else {
-        compactADTDependencies(valueType, value, dependencies);
-      }
-    }
-  });
+    const { keyType, valueType } = sparseCompactMapADT;
+    stateMap.keys().forEach((key) => {
+        if (keyType) {
+            compactValueDependencies(keyType.sparseType, alignedValueToCompactValue(keyType.descriptor, key), dependencies);
+        }
+        if (valueType) {
+            const value = stateMap.get(key);
+            if (!value) {
+                throw new CompactError(`State map ${stateMap.toString(false)} contains key without corresponding value`);
+            }
+            // Maps are the only ADT that can contain other ADTs, other maps in particular.
+            if (valueType.tag == 'compactValue') {
+                compactValueDependencies(valueType.sparseType, stateValueToCompactValue(valueType.descriptor, value), dependencies);
+            } else {
+                compactADTDependencies(valueType, value, dependencies);
+            }
+        }
+    });
 };
 
 /**
- * Throw a {@link CompactError} if the input `s` value is undefined. Called when the input {@link ocrt.StateValue} could not be
+ * Throw a {@link CompactError} if the input `s` value is undefined. Called when the input {@link StateValue} could not be
  * cast to either a map, array, or boundary Merkle tree representation.
  *
  * @param s The value that is asserted to be defined.
@@ -361,17 +367,17 @@ const compactMapADTDependencies = (
  * @param expectedCastOutput The representation to which the input state __should__ have been cast.
  */
 function assertCastSucceeded<S extends ocrt.StateMap | ocrt.StateValue[]>(
-  s: S | undefined,
-  stateValue: ocrt.StateValue,
-  expectedCastOutput: string,
+    s: S | undefined,
+    stateValue: ocrt.StateValue,
+    expectedCastOutput: string,
 ): asserts s is NonNullable<S> {
-  if (!s) {
-    throw new CompactError(`State ${stateValue.toString(false)} cannot be cast to a ${expectedCastOutput}`);
-  }
+    if (!s) {
+        throw new CompactError(`State ${stateValue.toString(false)} cannot be cast to a ${expectedCastOutput}`);
+    }
 }
 
 /**
- * Extracts the contract references present in the ADT that the input {@link ocrt.StateValue} represents. Attempts to cast the
+ * Extracts the contract references present in the ADT that the input {@link StateValue} represents. Attempts to cast the
  * input state to a different representation indicated by the input {@link SparseCompactADT}.
  *
  * @param sparseCompactADT A data structure pointing to contract references in the Compact ADT represented by the input state.
@@ -379,21 +385,21 @@ function assertCastSucceeded<S extends ocrt.StateMap | ocrt.StateValue[]>(
  * @param dependencies The current set of contract addresses extracted from the input ledger state.
  */
 const compactADTDependencies = (
-  sparseCompactADT: SparseCompactADT,
-  stateValue: ocrt.StateValue,
-  dependencies: Set<ocrt.ContractAddress>,
+    sparseCompactADT: SparseCompactADT,
+    stateValue: ocrt.StateValue,
+    dependencies: Set<ContractDependency>,
 ): void => {
-  if (sparseCompactADT.tag == 'cell') {
-    compactCellDependencies(sparseCompactADT, stateValue, dependencies);
-  } else if (sparseCompactADT.tag == 'map') {
-    const stateMap = stateValue.asMap();
-    assertCastSucceeded(stateMap, stateValue, 'map');
-    compactMapADTDependencies(sparseCompactADT, stateMap, dependencies);
-  } else if (sparseCompactADT.tag == 'list' || sparseCompactADT.tag == 'set') {
-    const states = stateValue.asArray();
-    assertCastSucceeded(states, stateValue, 'array');
-    compactArrayLikeADTDependencies(sparseCompactADT, states, dependencies);
-  }
+    if (sparseCompactADT.tag == 'cell') {
+        compactCellDependencies(sparseCompactADT, stateValue, dependencies);
+    } else if (sparseCompactADT.tag == 'map') {
+        const stateMap = stateValue.asMap();
+        assertCastSucceeded(stateMap, stateValue, 'map');
+        compactMapADTDependencies(sparseCompactADT, stateMap, dependencies);
+    } else if (sparseCompactADT.tag == 'list' || sparseCompactADT.tag == 'set') {
+        const states = stateValue.asArray();
+        assertCastSucceeded(states, stateValue, 'array');
+        compactArrayLikeADTDependencies(sparseCompactADT, states, dependencies);
+    }
 };
 
 /**
@@ -402,48 +408,48 @@ const compactADTDependencies = (
  * @param state To state to convert.
  */
 const castToStateArray = (state: ocrt.StateValue): ocrt.StateValue[] => {
-  const ledgerState = state.asArray();
-  assertCastSucceeded(ledgerState, state, 'array');
-  return ledgerState;
+    const ledgerState = state.asArray();
+    assertCastSucceeded(ledgerState, state, 'array');
+    return ledgerState;
 };
 
 /**
  * A data structure indicating the locations of all contract references in a given ledger state.
  */
 export type PublicLedgerSegments = {
-  tag: 'publicLedgerArray';
-  /**
-   * For reasonably small ledger states, the keys of the record identify locations of ADTs in the ledger state. For example,
-   * if a Compact source file contains
-   *
-   * ```
-   * contract C {};
-   * struct Struct1 {
-   *   a: Field;
-   *   b: C;
-   * }
-   * ledger ls1: List[Field];
-   * ledger ls2: List[C];
-   * ledger ls3: Set[Struct1];
-   * ```
-   *
-   * then the indices record will contain keys `1` and `2`, since ledger declarations `1` and `2` contain contract
-   * references while ledger declaration `0` (`List[Field]`) does not.
-   *
-   * However, the ledger implementation has a fixed maximum length on the state arrays produced by {@link ocrt.StateValue.toArray}.
-   * When the number of entries in a given state exceeds the maximum, {@link ocrt.StateValue.toArray} produces nested state arrays,
-   * where each inner state array is within the maximum. For each nested state array, there will be a key in the indices record
-   * pointing to a {@link PublicLedgerSegments} object.
-   */
-  indices: Record<number, PublicLedgerSegments | SparseCompactADT>;
+    tag: 'publicLedgerArray';
+    /**
+     * For reasonably small ledger states, the keys of the record identify locations of ADTs in the ledger state. For example,
+     * if a Compact source file contains
+     *
+     * ```
+     * contract C {};
+     * struct Struct1 {
+     *   a: Field;
+     *   b: C;
+     * }
+     * ledger ls1: List[Field];
+     * ledger ls2: List[C];
+     * ledger ls3: Set[Struct1];
+     * ```
+     *
+     * then the indices record will contain keys `1` and `2`, since ledger declarations `1` and `2` contain contract
+     * references while ledger declaration `0` (`List[Field]`) does not.
+     *
+     * However, the ledger implementation has a fixed maximum length on the state arrays produced by {@link StateValue.toArray}.
+     * When the number of entries in a given state exceeds the maximum, {@link StateValue.toArray} produces nested state arrays,
+     * where each inner state array is within the maximum. For each nested state array, there will be a key in the indices record
+     * pointing to a {@link PublicLedgerSegments} object.
+     */
+    indices: Record<number, PublicLedgerSegments | SparseCompactADT>;
 };
 
 /**
  * A type indicating that no contract references are present in a contract's ledger state.
  */
 export type EmptyPublicLedger = {
-  tag: 'publicLedgerArray';
-  indices: undefined;
+    tag: 'publicLedgerArray';
+    indices: undefined;
 };
 
 /**
@@ -464,35 +470,48 @@ export type ContractReferenceLocations = EmptyPublicLedger | PublicLedgerSegment
  * @param dependencies The current set of contract addresses extracted from the input ledger state.
  */
 const publicLedgerSegmentsDependencies = (
-  publicLedgerSegments: PublicLedgerSegments,
-  state: ocrt.StateValue,
-  dependencies: Set<ocrt.ContractAddress>,
+    publicLedgerSegments: PublicLedgerSegments,
+    state: ocrt.StateValue,
+    dependencies: Set<ContractDependency>,
 ): void => {
-  const ledgerState = castToStateArray(state);
-  Object.keys(publicLedgerSegments.indices)
-    .map(parseInt)
-    .forEach((idx) => {
-      const referenceLocations = publicLedgerSegments.indices[idx];
-      if ('tag' in referenceLocations && referenceLocations['tag'] === 'publicLedgerArray') {
-        publicLedgerSegmentsDependencies(referenceLocations, ledgerState[idx], dependencies);
-      } else {
-        compactADTDependencies(referenceLocations, ledgerState[idx], dependencies);
-      }
+    const ledgerState = castToStateArray(state);
+    Object.entries(publicLedgerSegments.indices).forEach(([key, referenceLocations]) => {
+        const idx = parseInt(key);
+        if (referenceLocations.tag === 'publicLedgerArray') {
+            publicLedgerSegmentsDependencies(referenceLocations, ledgerState[idx], dependencies);
+        } else {
+            compactADTDependencies(referenceLocations, ledgerState[idx], dependencies);
+        }
     });
 };
 
 /**
- * Given a {@link ocrt.StateValue} representing the current ledger state of a contract, uses the {@link ContractReferenceLocations}
+ * A type representing a dependency found in the ledger state of a contract.
+ */
+export type ContractDependency = {
+    /**
+     * The contract ID of the dependency. Corresponds to the generated `contractId` value in the generated d.ts and js files.
+     * Derived from the {@link ContractReferenceLocations} of the root contract.
+     */
+    readonly contractId: ContractId;
+    /**
+     * The contract address of the dependency. Derived from the {@link StateValue} of the root contract.
+     */
+    readonly address: ocrt.ContractAddress;
+}
+
+/**
+ * Given a {@link StateValue} representing the current ledger state of a contract, uses the {@link ContractReferenceLocations}
  * object produced by the Compact compiler to extract the current contract addresses present in the given ledger state. The produced
  * contract addresses represent the contracts on which the root contract depends. The dependencies are used in a multi-contract
  * setting to fetch the ledger states of all contracts on which the root contract depends prior to execution.
  *
  * NOTE: The given {@link ContractReferenceLocations} must be from the contract executable containing the ledger state constructor
- *       that produced the given {@link ocrt.StateValue}.
+ *       that produced the given {@link StateValue}.
  *
  * @param contractReferenceLocations A data structure pointing to contract references in the ledger state of the root contract.
  * @param state The current ledger state of the root contract.
- * @returns A list of all contract addresses (references) present in the given ledger state.
+ * @returns A set of all contract addresses (references) present in the given ledger state.
  *
  * @remarks The algorithm has three main stages:
  *
@@ -506,12 +525,19 @@ const publicLedgerSegmentsDependencies = (
  *             and that contract address is added to the dependency set.
  */
 export const contractDependencies = (
-  contractReferenceLocations: ContractReferenceLocations,
-  state: ocrt.StateValue,
-): ocrt.ContractAddress[] => {
-  const dependencies = new Set<ocrt.ContractAddress>();
-  if (contractReferenceLocations.indices) {
-    publicLedgerSegmentsDependencies(contractReferenceLocations, state, dependencies);
-  }
-  return [...dependencies];
+    contractReferenceLocations: ContractReferenceLocations,
+    state: ocrt.StateValue,
+): Set<ContractDependency> => {
+    const dependencies = new Set<ContractDependency>();
+    if (contractReferenceLocations.indices) {
+        publicLedgerSegmentsDependencies(contractReferenceLocations, state, dependencies);
+    }
+    return dependencies;
 };
+
+/**
+ * An object mapping {@link ContractId} to descriptions of where to find contract references in a contract's ledger state.
+ * Generated as part of the `d.ts` and `.js` files for a contract. Contains one entry for the contract for which the
+ * file was generated (the root contract) and an entry for each contract on which the root contract recursively depends.
+ */
+export type ContractReferenceLocationsSet = Record<ContractId, ContractReferenceLocations>;

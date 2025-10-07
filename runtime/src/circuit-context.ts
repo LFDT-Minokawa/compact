@@ -109,11 +109,6 @@ export interface CircuitContext<PSS = any> extends StackFrame<PSS> {
    * The current proof data trace for all circuits called and returned up until this point.
    */
   proofDataTrace: ProofDataTrace;
-  /**
-   * The index of the next contract call to occur, starting at 0. This is used when the contract call is claimed in the
-   * kernel.
-   */
-  sequenceNumber: bigint;
 }
 
 /**
@@ -163,8 +158,7 @@ export const createCircuitContext = <PSS = any>(
     zswapLocalStates: freshZswapLocalStates(coinPublicKey, Object.keys(contractStates)),
     privateStates,
     ledgerStates: createQueryContexts(contractStates),
-    proofDataTrace: [],
-    sequenceNumber: 0n,
+    proofDataTrace: []
   } as unknown as CircuitContext<PSS>;
   freshStackFrame(circuitContext, contractId, circuitId, contractAddress);
   return circuitContext;

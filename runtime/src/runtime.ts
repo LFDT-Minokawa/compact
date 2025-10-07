@@ -89,6 +89,7 @@ export {
 export {
   contractDependencies,
   ContractReferenceLocations,
+  ContractReferenceLocationsSet,
   SparseCompactADT,
   SparseCompactCellADT,
   SparseCompactArrayLikeADT,

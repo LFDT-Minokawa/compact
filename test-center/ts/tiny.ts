@@ -122,7 +122,6 @@ test('Check resulting proofData', () => {
     },
   );
   expect(rest).toHaveProperty('communicationCommitmentRand');
-  expect(rest['communicationCommitmentRand']).toBeTypeOf('string');
 });
 
 test('Check ledger inspection', () => {

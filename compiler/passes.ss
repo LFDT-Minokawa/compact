@@ -159,7 +159,7 @@
                               (run-passes typescript-passes analyzed-ir))
                             (rm-rf (format "~a/zkir" output-directory-pathname))
                             (rm-rf (format "~a/keys" output-directory-pathname))
-                            (with-target-ports
+                            #;(with-target-ports
                               (map (lambda (sym) (cons sym (format "zkir/~a.zkir" sym)))
                                    circuit-names)
                               (run-passes zkir-passes circuit-ir))

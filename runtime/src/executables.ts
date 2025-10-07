@@ -6,22 +6,12 @@ import {
   ContractId,
   copyStackFrame,
   freshStackFrame,
-  queryLedgerState,
   restoreCircuitContext,
 } from './circuit-context';
 import { WitnessSets } from './witness';
 import { ConstructorContext, ConstructorResult } from './constructor-context';
 import { assertDefined } from './error';
-import { PartialProofData } from './proof-data';
-import {
-  CompactTypeBytes32,
-  CompactTypeContractAddress,
-  CompactTypeUInt64,
-  CompactTypeUInt8,
-} from './compact-type';
-import { ContractReferenceLocations } from './contract-dependencies';
-import { alignedConcat } from './index';
-import { fromHex } from './utils';
+import { ContractReferenceLocations, ContractReferenceLocationsSet } from './contract-dependencies';
 
 /**
  * The type of an impure circuit. An impure circuit is a function that accepts a circuit context and an arbitrary list of
@@ -114,96 +104,15 @@ export type Executables = {
    * @note For contracts that don't reference other contracts, this is an empty object.
    */
   readonly contractReferenceLocations: ContractReferenceLocations;
+  /**
+   * A data structure indicating where references to other contracts exist in this contract's ledger state AND
+   * all contracts on which this contract depends.
+   *
+   * @note For contracts that don't reference other contracts, this is an object containing one entry with contract
+   *       reference locations for that contract.
+   */
+  readonly contractReferenceLocationsSet: ContractReferenceLocationsSet;
 };
-
-export type EntryPointHash = string;
-
-
-const sequenceNumberToValue = (sequenceNumber: bigint): ocrt.AlignedValue => ({
-  value: CompactTypeUInt64.toValue(sequenceNumber),
-  alignment: CompactTypeUInt64.alignment(),
-});
-
-const contractAddressToValue = (address: ocrt.ContractAddress): ocrt.AlignedValue => ({
-  value: CompactTypeContractAddress.toValue({ bytes: ocrt.encodeContractAddress(address) }),
-  alignment: CompactTypeContractAddress.alignment(),
-});
-
-const entryPointHashToValue = (hex: string): ocrt.AlignedValue => ({
-  value: CompactTypeBytes32.toValue(fromHex(hex)),
-  alignment: CompactTypeBytes32.alignment(),
-});
-
-/**
- * Converts a communication commitment random value from its hex representation to an aligned value.
- * Notice the `slice` call. Eventually communication commitments will be represented as `bigint`s and this won't be necessary.
- * TODO: https://shielded.atlassian.net/browse/PM-17174
- */
-const communicationCommitmentToValue = (hex: string): ocrt.AlignedValue => ({
-  value: CompactTypeBytes32.toValue(fromHex(hex).slice(1)),
-  alignment: CompactTypeBytes32.alignment(),
-});
-
-/**
- * Called by {@link interContractCall}. Performs a 'kernel.claim_contract_call' operation. Links the proofs for the
- * execution of the caller circuit and the callee circuit.
- *
- * @param callerContext The context of the currently executing circuit.
- * @param partialProofData The proof data of the currently executing contract.
- * @param contractAddress The address of the contract that was called.
- * @param entryPointHash The hash of the entry point of the circuit that was called.
- * @param communicationCommitment The communication commitment of the circuit that was called.
- */
-export const kernelClaimContractCall = (
-  callerContext: CircuitContext,
-  partialProofData: PartialProofData,
-  contractAddress: ocrt.ContractAddress,
-  entryPointHash: EntryPointHash,
-  communicationCommitment: ocrt.CommunicationCommitment,
-) => queryLedgerState(callerContext, partialProofData, [
-  { swap: { n: 0 } },
-  {
-    idx: {
-      cached: true,
-      pushPath: true,
-      path: [
-        {
-          tag: 'value',
-          value: {
-            value: CompactTypeUInt8.toValue(3n),
-            alignment: CompactTypeUInt8.alignment(),
-          },
-        },
-      ],
-    },
-  },
-  {
-    push: {
-      storage: false,
-      value: ocrt.StateValue.newCell(
-        alignedConcat(
-          sequenceNumberToValue(callerContext.sequenceNumber),
-          contractAddressToValue(contractAddress),
-          entryPointHashToValue(entryPointHash),
-          communicationCommitmentToValue(communicationCommitment),
-        ),
-      ).encode(),
-    },
-  },
-  { push: { storage: false, value: ocrt.StateValue.newNull().encode() } },
-  { ins: { cached: true, n: 2 } },
-  { swap: { n: 0 } },
-]);
-
-/**
- * Converts a communication commitment random value from its hex representation to an aligned value.
- * Notice the `slice` call. Eventually communication commitments will be represented as `bigint`s and this won't be necessary.
- * TODO: https://shielded.atlassian.net/browse/PM-17174
- */
-const communicationCommitmentRandToValue = (hex: string): ocrt.AlignedValue => ({
-  value: CompactTypeBytes32.toValue(fromHex(hex).slice(1)),
-  alignment: CompactTypeBytes32.alignment(),
-});
 
 /**
  * Calls a circuit defined in another contract from the currently executing contract and returns the result.
@@ -213,7 +122,6 @@ const communicationCommitmentRandToValue = (hex: string): ocrt.AlignedValue => (
  * @param contractId The ID of the contract to be called.
  * @param circuitId The ID of the circuit to be called in the contract to be called.
  * @param contractAddress The address of the contract to be called.
- * @param partialProofData The proof data of the currently executing contract.
  * @param args The arguments to the circuit to be called.
  */
 export const interContractCall = (
@@ -222,7 +130,6 @@ export const interContractCall = (
   contractId: ContractId,
   circuitId: CircuitId,
   contractAddress: ocrt.ContractAddress,
-  partialProofData: PartialProofData,
   ...args: any[]
 ): any => {
   const impureCircuit = executables.impureCircuits[circuitId];
@@ -231,21 +138,5 @@ export const interContractCall = (
   freshStackFrame(callerContext, contractId, circuitId, contractAddress);
   const circuitResult = impureCircuit(callerContext, ...args);
   restoreCircuitContext(callerContext, circuitResult.context, callerStackFrame);
-  const calleeProofDataFrame = callerContext.proofDataTrace[callerContext.proofDataTrace.length - 1];
-  assertDefined(
-    calleeProofDataFrame,
-    `proof data frame for circuit '${circuitId}' in '${contractId}' with address '${contractAddress}'`,
-  );
-  const communicationCommitment = ocrt.communicationCommitment(
-    calleeProofDataFrame.input,
-    calleeProofDataFrame.output,
-    calleeProofDataFrame.communicationCommitmentRand,
-  );
-  calleeProofDataFrame.communicationCommitment = communicationCommitment;
-  partialProofData.privateTranscriptOutputs.push(calleeProofDataFrame.output);
-  partialProofData.privateTranscriptOutputs.push(communicationCommitmentRandToValue(calleeProofDataFrame.communicationCommitmentRand));
-  const entryPointHash = ocrt.entryPointHash(circuitId);
-  kernelClaimContractCall(callerContext, partialProofData, contractAddress, entryPointHash, communicationCommitment);
-  callerContext.sequenceNumber = callerContext.sequenceNumber + 1n;
   return circuitResult.result;
 };

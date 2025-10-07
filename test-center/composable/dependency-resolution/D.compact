@@ -1,0 +1,29 @@
+import CompactStandardLibrary;
+
+contract A {
+    circuit up(x: Uint<16>): [];
+    circuit down(x: Uint<16>): [];
+}
+
+contract C {
+    circuit up(x: Uint<16>): [];
+    circuit down(x: Uint<16>): [];
+}
+
+export ledger a: A;
+export ledger c: C;
+
+constructor(aParam: A, cParam: C) {
+    a = disclose(aParam);
+    c = disclose(cParam);
+}
+
+export circuit up(i: Uint<16>): [] {
+    a.up(disclose(i));
+    c.up(disclose(i));
+}
+
+export circuit down(i: Uint<16>): [] {
+    a.down(disclose(i));
+    c.down(disclose(i));
+}
