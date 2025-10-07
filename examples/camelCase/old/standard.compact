@@ -1,3 +1,18 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import CompactStandardLibrary;
 
 constructor() {
@@ -24,31 +39,21 @@ constructor() {
   const test_30 = merkle_tree_path_root<1, Field>(default<MerkleTreePath<1, Field>>);
   const test_31 = merkle_tree_path_root_no_leaf_hash<1>(default<MerkleTreePath<1, Bytes<32>>>);
   const test_32 = default<ContractAddress>;
-  const test_33 = default<ShieldedCoinInfo>;
-  const test_34 = default<QualifiedShieldedCoinInfo>;
+  const test_33 = default<CoinInfo>;
+  const test_34 = default<QualifiedCoinInfo>;
   const test_35 = default<ZswapCoinPublicKey>;
-  const test_36 = default<ShieldedSendResult>;
+  const test_36 = default<SendResult>;
   const test_37 = native_token();
   const test_38 = own_public_key();
-  const test_39 = create_zswap_input(default<QualifiedShieldedCoinInfo>);
-  const test_40 = create_zswap_output(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  const test_39 = create_zswap_input(default<QualifiedCoinInfo>);
+  const test_40 = create_zswap_output(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
   const test_41 = token_type(default<Bytes<32>>, default<ContractAddress>);
-  const test_42 = mintShieldedToken(default<Bytes<32>>, default<Uint<64>>, default<Bytes<32>>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  const test_42 = mint_token(default<Bytes<32>>, default<Uint<64>>, default<Bytes<32>>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
   const test_43 = evolve_nonce(default<Uint<128>>, default<Bytes<32>>);
   const test_44 = burn_address();
-  const test_45 = receiveShielded(default<ShieldedCoinInfo>);
-  const test_46 = sendShielded(default<QualifiedShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>, default<Uint<128>>);
-  const test_47 = sendImmediateShielded(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>, default<Uint<128>>);
-  const test_48 = merge_coin(default<QualifiedShieldedCoinInfo>, default<QualifiedShieldedCoinInfo>);
-  const test_49 = merge_coin_immediate(default<QualifiedShieldedCoinInfo>, default<ShieldedCoinInfo>);
-  const test_50 = default<UserAddress>;
-  const test_51 = default<UnshieldedCoinInfo>;
-  const test_52 = mintUnshieldedToken(default<Bytes<32>>, default<Uint<64>>, default<Either<ContractAddress, UserAddress>>);
-  const test_53 = sendUnshielded(default<UnshieldedCoinInfo>, default<Either<ContractAddress, UserAddress>>);
-  const test_54 = receiveUnshielded(default<UnshieldedCoinInfo>);
-  const test_55 = unshieldedBalance(default<Bytes<32>>);
-  const test_56 = unshieldedBalanceLt(default<Bytes<32>>, default<Uint<128>>);
-  const test_57 = unshieldedBalanceGte(default<Bytes<32>>, default<Uint<128>>);
-  const test_58 = unshieldedBalanceGt(default<Bytes<32>>, default<Uint<128>>);
-  const test_59 = unshieldedBalanceLte(default<Bytes<32>>, default<Uint<128>>);
+  const test_45 = receive(default<CoinInfo>);
+  const test_46 = send(default<QualifiedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>, default<Uint<128>>);
+  const test_47 = send_immediate(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>, default<Uint<128>>);
+  const test_48 = merge_coin(default<QualifiedCoinInfo>, default<QualifiedCoinInfo>);
+  const test_49 = merge_coin_immediate(default<QualifiedCoinInfo>, default<CoinInfo>);
 }

@@ -11,8 +11,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  licence-check:
+    name: Add headers to files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout compactc repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.13
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Run header checker
+        run: python add_headers.py
+
+      - name: Add files
+        run: |
+          git add -A
+
+      - uses: planetscale/ghcommit-action@v0.2.17
+        with:
+          commit_message: "Update license headers"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref || github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    name: Build and test compiler
     runs-on: ubuntu-latest-16-core-x64
+    needs: licence-check
     # It takes 90+ minutes to build without Nix caching
     timeout-minutes: 120
     steps:
@@ -20,15 +55,15 @@ jobs:
         uses: extractions/netrc@v2
         with:
           machine: api.github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Setup github.com credentials
         uses: extractions/netrc@v2
         with:
           machine: github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Configure git rewrite
         run: |
@@ -39,14 +74,14 @@ jobs:
           echo '  insteadOf = "ssh://git@github.com/"' >> $HOME/.config/git/config
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v27
+        uses: cachix/install-nix-action@v31
         with:
-          #github_access_token: ${{ secrets.GH_PASSWORD }}
+          #github_access_token: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
           nix_path: nixpkgs=channel:nixos-unstable
 
           extra_nix_config: |
             netrc-file = ~/.netrc
-            access-tokens = github.com=${{ secrets.GH_PASSWORD }} api.github.com=${{ secrets.GH_PASSWORD }}
+            access-tokens = github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }} api.github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
             extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
             extra-substituters = https://cache.iog.io
             accept-flake-config = true

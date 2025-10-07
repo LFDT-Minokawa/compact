@@ -19,9 +19,12 @@
   (export target-ports get-target-port target-directory source-directory source-file-name
           contract-ht
           define-passes define-checker checkers
-          passrec-name passrec-pass passrec-unparse passrec-pretty-formats)
+          passrec-name passrec-pass passrec-unparse passrec-pretty-formats
+          no-communications-commitment)
   (import (except (chezscheme) errorf)
           (utils))
+
+  (define no-communications-commitment (make-parameter #f))
 
   (define target-ports (make-parameter '()))
   (define (get-target-port x)

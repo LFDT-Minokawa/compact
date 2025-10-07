@@ -227,7 +227,7 @@
         (and (not (null? path1))
              (not (null? path2))
              (string=? (car path1) (car path2)))))
-    (let* ([target (path-ancestors (format "~a/index.cjs" (registered-target-pathname)))]
+    (let* ([target (path-ancestors (format "~a/index.js" (registered-target-pathname)))]
            [p* (filter
                  (let ([common-head? (common-head? target)])
                    (lambda (p) (common-head? (cdr p))))
@@ -386,7 +386,7 @@
                 [encoded-segment** (encode-segments segment* srcpath-ht eofline)])
             (fprintf map-port "{\n")
             (fprintf map-port "  \"version\": 3,\n")
-            (fprintf map-port "  \"file\": \"index.cjs\",\n")
+            (fprintf map-port "  \"file\": \"index.js\",\n")
             (fprintf map-port "  \"sourceRoot\": \"~a\",\n" source-root)
             (fprintf map-port "  \"sources\": [~{\"~a\"~^, ~}],\n" (map replacement-source-path srcpath*))
             ; some tools don't like having sourcesContent, and it should be unnecessary

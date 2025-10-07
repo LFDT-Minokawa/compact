@@ -149,5 +149,3 @@ test('check contract address', () => {
   Ctxt = c.impureCircuits.fib2(Ctxt, false).context;
   expect(Ctxt.currentQueryContext.address).toEqual('02000000000000000000000000000000000000000000000000000000000000000000');
 });
-
-

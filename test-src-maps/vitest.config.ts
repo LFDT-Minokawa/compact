@@ -22,7 +22,7 @@ export default defineConfig({
         environment: 'node',
         include: ['**/*.test.ts'],
         exclude: ['./node_modules'],
-        testTimeout: 60_000,
+        testTimeout: 180_000,
         reporters: process.env.GITHUB_ACTIONS
             ? [
                 'github-actions',

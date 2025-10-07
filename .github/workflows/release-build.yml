@@ -46,15 +46,15 @@ jobs:
         uses: extractions/netrc@v2
         with:
           machine: api.github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Setup github.com credentials
         uses: extractions/netrc@v2
         with:
           machine: github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Configure git rewrite
         run: |
@@ -65,13 +65,13 @@ jobs:
           echo '  insteadOf = "ssh://git@github.com/"' >> $HOME/.config/git/config
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v30
+        uses: cachix/install-nix-action@v31
         with:
-          #github_access_token: ${{ secrets.GH_PASSWORD }}
+          #github_access_token: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             netrc-file = ~/.netrc
-            access-tokens = github.com=${{ secrets.GH_PASSWORD }} api.github.com=${{ secrets.GH_PASSWORD }}
+            access-tokens = github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }} api.github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Cache Nix
         if: ${{ !inputs.skipCache }}
@@ -108,6 +108,3 @@ jobs:
           name: ${{ inputs.artifact }}
           path: ${{ env.ARTIFACT_NAME }}.zip
           if-no-files-found: error
-
-
-

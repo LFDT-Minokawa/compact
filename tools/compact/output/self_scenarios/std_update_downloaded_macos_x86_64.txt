@@ -1,0 +1,5 @@
+skipping sha256 checksum verification (it requires the 'sha256sum' command)
+installing to [USER_DIR]/.local/bin
+  compact
+everything's installed!
+compact: compact -- Update installed -- [COMPACT_VERSION]

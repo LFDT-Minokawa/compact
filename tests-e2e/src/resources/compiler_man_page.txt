@@ -27,7 +27,7 @@ The following flags, if present, affect the compiler's behavior as follows:
     commitment that enables data integrity for contract-to-contract calls.
 
   --sourceRoot <sourceRoot value> overrides the compiler's setting of the
-    sourceRoot field in the generated source-map (.cjs.map) file.  By default,
+    sourceRoot field in the generated source-map (.js.map) file.  By default,
     the compiler tries to determine a useful value based on the source and
     target-directory pathnames, but this value might not be appropriate for
     the deployed structure of the application.

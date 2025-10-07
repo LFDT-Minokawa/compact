@@ -34,7 +34,13 @@ afterEach(() => {
 
 test('example jest debugging', async () => {
   const result = runSmartContract(true);
+<<<<<<< HEAD
   expect(result.nestedCallResult.is_some).toBe(true);
   expect(result.privateCallResult.is_some).toBe(false);
   expect(result.stdLibCallResult.is_some).toBeTruthy();
+=======
+  expect(result.nested.is_some).toBe(true);
+  expect(result.priv.is_some).toBe(false);
+  expect(result.stdLib.is_some === true).toBeTruthy();
+>>>>>>> main
 });

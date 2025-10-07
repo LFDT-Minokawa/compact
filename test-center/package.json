@@ -6,6 +6,9 @@
   "scripts": {
     "test": "vitest run"
   },
+  "files": [
+    "contract"
+  ],
   "author": "IOG",
   "license": "Apache-2.0",
   "dependencies": {    

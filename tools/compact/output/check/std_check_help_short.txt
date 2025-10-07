@@ -1,0 +1,9 @@
+Check for updates with the remote server
+
+Usage: compact check [OPTIONS]
+
+Options:
+      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
+                               [default: [USER_DIR]/.compact]
+  -h, --help                   Print help (see more with '--help')
+  -V, --version                Print version

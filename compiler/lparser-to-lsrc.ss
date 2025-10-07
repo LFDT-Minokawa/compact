@@ -38,10 +38,18 @@
              [pelt* (map Program-Element (remp Lparser-Pragma? pelt*))])
          `(module ,src ,(and kwd-export? #t) ,(token-value module-name) (,type-param* ...) ,pelt* ...))])
     (Import-Declaration : Import-Declaration (ir) -> Import-Declaration ()
-      [(import ,src ,kwd ,[import-name] ,generic-arg-list? ,import-prefix? ,semicolon)
-       (let ([targ* (if generic-arg-list? (Generic-Arg-List generic-arg-list?) '())]
+      [(import ,src ,kwd ,import-selection? ,[import-name] ,generic-arg-list? ,import-prefix? ,semicolon)
+       (let ([maybe-ielt* (and import-selection? (Import-Selection import-selection?))]
+             [targ* (if generic-arg-list? (Generic-Arg-List generic-arg-list?) '())]
              [prefix (if import-prefix? (Import-Prefix import-prefix?) "")])
-         `(import ,src ,import-name (,targ* ...) ,prefix))])
+         (if maybe-ielt*
+             `(import ,src ,import-name (,targ* ...) ,prefix (,maybe-ielt* ...))
+             `(import ,src ,import-name (,targ* ...) ,prefix)))])
+    (Import-Selection : Import-Selection (ir) -> * (ielt*)
+      [(,lbrace (,[ielt*] ...) (,comma* ...) ,rbrace ,kwd-from) ielt*])
+    (Import-Element : Import-Element (ir) -> Import-Element ()
+      [(,src ,name) (let ([name (token-value name)]) `(,src ,name ,name))]
+      [(,src ,name ,kwd-as ,name^) `(,src ,(token-value name) ,(token-value name^))])
     (Import-Name : Import-Name (ir) -> Import-Name ()
       [,module-name (token-value module-name)]
       [,file (token-value file)])
@@ -100,6 +108,11 @@
     (Argument : Argument (ir) -> Argument ()
       [(,src ,var-name ,colon ,[type])
        `(,src ,(token-value var-name) ,type)])
+    (Const-Binding : Const-Binding (ir) -> Const-Binding ()
+      [(,src ,[parg] ,op ,[expr])
+       (nanopass-case (Lsrc Pattern-Argument) parg
+         [(,src^ ,pattern ,type)
+          `(,src ,pattern ,type ,expr)])])
     (Pattern-Argument-List : Pattern-Argument-List (ir) -> * (parg*)
       [(,lparen (,[parg*] ...) (,sep* ...) ,rparen) parg*])
     (Pattern-Argument : Pattern-Argument (ir) -> Pattern-Argument ()
@@ -122,10 +135,8 @@
        `(return ,src (tuple ,src))]
       [(return ,src ,kwd ,[expr] ,semicolon)
        `(return ,src ,expr)]
-      [(const ,src ,kwd ,[parg] ,op ,[expr] ,semicolon)
-       (nanopass-case (Lsrc Pattern-Argument) parg
-         [(,src^ ,pattern ,type)
-          `(const ,src ,pattern ,type ,expr)])]
+      [(const ,src ,kwd (,[cbinding] ,[cbinding*] ...) (,comma* ...) ,semicolon)
+       `(const ,src ,cbinding ,cbinding* ...)]
       [(if ,src ,kwd ,lparen ,[expr] ,rparen ,[stmt1] ,kwd-else ,[stmt2])
        `(if ,src ,expr ,stmt1 ,stmt2)]
       [(if ,src ,kwd ,lparen ,[expr] ,rparen ,[stmt])
@@ -139,7 +150,7 @@
            (when (> n for-limit)
              (source-errorf src "difference ~s between end and start bounds is greater than the arbitrary compiler limit of ~s; use 'for ... in' syntax instead" (- end start) for-limit))
            `(for ,src ,(token-value var-name)
-              (tuple ,src ,(map (lambda (i) `(quote ,src ,(fx+ start i))) (iota n)) ...)
+              (tuple ,src ,(map (lambda (i) `(single ,src (quote ,src ,(fx+ start i)))) (iota n)) ...)
               ,stmt)))]
       [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,[expr] ,rparen ,[stmt])
        `(for ,src ,(token-value var-name) ,expr ,stmt)]
@@ -195,10 +206,14 @@
          [("==") `(== ,src ,expr1 ,expr2)]
          [("!=") `(!= ,src ,expr1 ,expr2)]
          [else (internal-errorf 'binop "unexpected op ~s" op)])]
-      [(tuple ,src ,lbracket (,[expr*] ...) (,comma* ...) ,rbracket)
-       `(tuple ,src ,expr* ...)]
-      [(tuple-ref ,src ,[expr] ,lbracket ,nat ,rbracket)
-       `(tuple-ref ,src ,expr ,(token-value nat))]
+      [(tuple ,src ,lbracket (,[tuple-arg*] ...) (,comma* ...) ,rbracket)
+       `(tuple ,src ,tuple-arg* ...)]
+      [(bytes ,src ,kwd ,lbracket (,[bytes-arg*] ...) (,comma* ...) ,rbracket)
+       `(bytes ,src ,bytes-arg* ...)]
+      [(tuple-ref ,src ,[expr] ,lbracket ,[index] ,rbracket)
+       `(tuple-ref ,src ,expr ,index)]
+      [(tuple-slice ,src ,kwd ,langle ,[tsize] ,rangle ,lparen ,[expr] ,comma ,[index] ,rparen)
+       `(tuple-slice ,src ,expr ,index ,tsize)]
       [(not ,src ,bang ,[expr])
        `(not ,src ,expr)]
       [(map ,src ,kwd ,lparen ,[fun] ,comma (,[expr] ,[expr*] ...) (,comma* ...) ,rparen)
@@ -240,6 +255,11 @@
          (with-output-language (Lsrc Statement)
            `(return ,src ,expr)))]
       [(parenthesized ,src ,lparen ,[fun] ,rparen) fun])
+    (Tuple-Argument : Tuple-Argument (ir) -> Tuple-Argument ()
+      [(single ,src ,[expr])
+       `(single ,src ,expr)]
+      [(spread ,src ,dotdotdot ,[expr])
+       `(spread ,src ,expr)])
     (New-Field : New-Field (ir) -> New-Field ()
       [(spread ,src ,dotdotdot ,[expr])
        `(spread ,src ,expr)]

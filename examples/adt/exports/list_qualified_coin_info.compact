@@ -15,13 +15,13 @@
 
 import CompactStandardLibrary;
 
-ledger c: List<QualifiedShieldedCoinInfo>;
+ledger c: List<QualifiedCoinInfo>;
 
 export circuit reset_to_default(): [] {
   return c.resetToDefault();
 }
 
-export circuit head(): Maybe<QualifiedShieldedCoinInfo> {
+export circuit head(): Maybe<QualifiedCoinInfo> {
   return c.head();
 }
 
@@ -37,6 +37,6 @@ export circuit pop_front(): [] {
   return c.popFront();
 }
 
-export circuit push_front(value: QualifiedShieldedCoinInfo): [] {
+export circuit push_front(value: QualifiedCoinInfo): [] {
   return c.pushFront(disclose(value));
 }

@@ -22,15 +22,15 @@ jobs:
         uses: extractions/netrc@v2
         with:
           machine: api.github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Setup github.com credentials
         uses: extractions/netrc@v2
         with:
           machine: github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Configure git rewrite
         run: |
@@ -41,14 +41,14 @@ jobs:
           echo '  insteadOf = "ssh://git@github.com/"' >> $HOME/.config/git/config
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v27
+        uses: cachix/install-nix-action@v31
         with:
-          #github_access_token: ${{ secrets.GH_PASSWORD }}
+          #github_access_token: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
           nix_path: nixpkgs=channel:nixos-unstable
 
           extra_nix_config: |
             netrc-file = ~/.netrc
-            access-tokens = github.com=${{ secrets.GH_PASSWORD }} api.github.com=${{ secrets.GH_PASSWORD }}
+            access-tokens = github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }} api.github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
             extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
             extra-substituters = https://cache.iog.io
             accept-flake-config = true
@@ -101,4 +101,3 @@ jobs:
           update-comment: 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

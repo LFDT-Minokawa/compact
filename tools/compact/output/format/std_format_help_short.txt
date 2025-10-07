@@ -1,0 +1,14 @@
+Format compact files
+
+Usage: compact format [OPTIONS] [FILES]...
+
+Arguments:
+  [FILES]...  Files to format [default: .]
+
+Options:
+  -c, --check                  Check if inputs are formatted without changing them
+      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
+                               [default: [USER_DIR]/.compact]
+  -v, --verbose                Print each file seen by the formatter
+  -h, --help                   Print help (see more with '--help')
+  -V, --version                Print version

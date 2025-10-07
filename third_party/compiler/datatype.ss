@@ -26,43 +26,53 @@ constructors, and a case form.
 
 Syntax:
 
-  <datatype definition> -> (define-datatype <datatype name> <variant>*)
+  <datatype definition> -> (define-datatype <dtspec> <variant>*)
 
+  <dtspec> -> <datatype name> | (<datatype name> <common fieldspec> ...)
   <datatype name> -> identifier
+  <common fieldspec> -> <fieldspec>
 
-  <variant> -> (<variant name> <field name>*)
+  <variant> -> (<variant name> <fieldspec>*)
   <variant name> -> identifier
+
+  <fieldspec> -> <field-name> | (<field-name> <predicate>)
   <field name> -> identifier
 
 Products:
   The definition
 
-    (define-datatype dtname (vname vfield ...))
+    (define-datatype (dtname common-fieldspec ...) (vname fieldspec ...) ...))
 
   produces the following set of variable definitions:
 
-    dtname?       a predicate true only of datatype instances
-    variant ...   a set of constructors for the different variants
-    dtname-case   a case construct for the datatype
+    dtname?           a predicate true only of datatype instances
+    variant-name ...  a set of constructors for the different variants
+    dtname-case       a case construct for the datatype
+    dtname-field ...  a set of accessors for the common fields
 
-  Each constructor accepts one argument for each field of the variant.
+  Each constructor accepts one argument for each common field followed by one
+  argument for each field of the variant and constructs an instance of the variant
+  from the arguments.  For each field-name that has an associated predicate,
+  the constructor first invokes the predicate on the value of the corresponding
+  argument and raises an exception if the predicate returns #f.
+
   The case construct has the following syntax:
 
     (dtname-case <expression> <clause> ...)
 
   where each <clause> is of the form:
 
-    [(<variant name> <field name>*) <expression>+]
+    [(<variant name> <field name> ...) <body>]
 
-  except that the last must be an else clause of the form
+  except that, if any of the datatype's variants are not represented in the set
+  of clauses, the last must be an else clause of the form:
 
-    [else <expression>+]
+    [else <body>]
 
-  if any of the datatype's variants are not represented in the set of
-  clauses.  The clauses may appear in any order and the field names
-  need not be the same as those given in the datatype definition.
-  (They are instead specified positionally.)
-  
+  The variant clauses may appear in any order and the field names need not be the
+  same as those given in the datatype definition.  (They are instead specified
+  positionally.)
+
 Example:
 
   (import (datatype))
@@ -83,7 +93,7 @@ Example:
          [(fun) (Fun (cadr x) (parse (caddr x)))]
          [else (Call (parse (car x)) (map parse (cdr x)))])]
       [else (Const x)]))
-    
+
   (define (ev x r)
     (AST-case x
       [(Ref v) (cdr (assq v r))]
@@ -94,7 +104,7 @@ Example:
          (ev body (append (map cons fmls args) r)))]
       [(Call proc actuals)
         (apply (ev proc r) (map (lambda (x) (ev x r)) actuals))]))
-  
+
   (AST? (parse #'(fun (x) x)))
 
   (parse #'(fun (x) x)) ;=> (Const #<syntax (fun (x) x)>)
@@ -163,12 +173,6 @@ Example:
   (export define-datatype)
   (import (rnrs) (datatype-aux))
 
-;; TODO: why is "datatype" defined?
-;;       (define-record-type (foo make-foo foo?))
-;;       foo -> invalid syntax
-;; TODO: record printer (don't print variant-number)
-;; TODO: require some kind of with-datatype form to import constructors
-
 (define-syntax define-datatype
   (lambda (x)
     ;; construct-name :: identifier * (string or identifier) ... -> identifier
@@ -191,8 +195,11 @@ Example:
         [(n) (iota 0 n)]
         [(i n) (if (= n 0) '() (cons i (iota (+ i 1) (- n 1))))]))
     (syntax-case x ()
-      [(_ datatype (constructor fieldspec ...) ...)
+      [(k datatype (constructor fieldspec ...) ...)
        (and (identifier? #'datatype) (for-all identifier? #'(constructor ...)))
+       #'(k (datatype) (constructor fieldspec ...) ...)]
+      [(_ (datatype common-field ...) (constructor fieldspec ...) ...)
+       (and (identifier? #'datatype) (for-all identifier? #'(common-field ...)) (for-all identifier? #'(constructor ...)))
        (with-syntax ([(((field pred) ...) ...)
                       (map (lambda (x*)
                              (map (lambda (x)
@@ -202,12 +209,18 @@ Example:
                                   x*))
                            #'((fieldspec ...) ...))])
          (with-syntax
-           ;; NOTE: only "datatype?" "datatype-case" and "constructor" are
+           ;; NOTE: only datatype?, datatype-case, constructor, and common-field-accessor ... are
            ;; visible outside
-             ([datatype? (construct-name #'datatype #'datatype "?")]
+             ([datatype (construct-name #'private #'datatype)]
+              [datatype? (construct-name #'datatype #'datatype "?")]
               [datatype-case (construct-name #'datatype #'datatype "-case")]
-              ;; internally used to access fields
-              [((constructor-field ...) ...)
+              ;; externally used to access common fields
+              [(common-field-accessor ...)
+               (map (lambda (common-field)
+                      (construct-name #'datatype #'datatype "-" common-field))
+                    #'(common-field ...))]
+              ;; internally used to access variant fields
+              [((variant-field-accessor ...) ...)
                (map (lambda (constructor fields)
                       (map (lambda (field)
                              (construct-name #'private constructor "-" field))
@@ -222,21 +235,19 @@ Example:
                (map (lambda (x) (construct-name #'private x "?"))
                     #'(constructor ...))])
            #'(begin
-               ;; make-datatype and datatype-variant are introduced
-               ;; vars and thus private
+               ;; datatype, make-datatype, and datatype-variant are introduced vars and thus private
                (define-record-type (datatype make-datatype datatype?)
-                 (fields (immutable variant datatype-variant))
+                 (fields (immutable variant datatype-variant)
+                         (immutable common-field common-field-accessor)
+                         ...)
                  (nongenerative))
-               ;; TODO: (first) constructor is an introduced var and thus private
-               ;; TODO: or should it be?
-               ;; TODO: constructor-field is introduced and thus private
                (define-record-type (variant-record-name constructor variant-record-predicate)
                  (parent datatype)
                  (sealed #t)
                  (nongenerative)
                  (protocol
                   (lambda (parent)
-                    (lambda (field ...)
+                    (lambda (common-field ... field ...)
                       (define who 'constructor)
                       (when-safe
                         (unless (pred field)
@@ -244,10 +255,13 @@ Example:
                             (string-append "invalid value for " (symbol->string 'field))
                             field))
                         ...)
-                      ((parent constructor-number) field ...))))
-                 (fields (immutable field constructor-field) ...))
+                      ((parent constructor-number common-field ...) field ...))))
+                 (fields (immutable field variant-field-accessor) ...))
                ...
-               (datatype-reader/writer variant-record-name constructor-number constructor constructor-field ...)
+               (datatype-reader/writer
+                 variant-record-name constructor-number constructor
+                 common-field-accessor ...
+                 variant-field-accessor ...)
                ...
                (define-syntax datatype-case
                  (lambda (x)
@@ -255,11 +269,10 @@ Example:
                    (define make-clause
                      (lambda (x)
                        (syntax-case x (constructor ...)
-                         [(constructor (field ...) expr0 expr* (... ...))
+                         [(constructor (field ...) body1 body2 (... ...))
                           #'[(constructor-number)
-                             (let ([field (constructor-field tmp)] ...)
-                               #f ;; force non-definition context (TODO: needed?)
-                               expr0 expr* (... ...))]]
+                             (let ([field (variant-field-accessor tmp)] ...)
+                               body1 body2 (... ...))]]
                          ...)))
 
                    (define make-clauses

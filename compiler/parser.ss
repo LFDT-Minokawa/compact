@@ -59,6 +59,7 @@
   (define keywordImport '(
     export
     import
+    from
     module))
   (define keywordControl '(
     as
@@ -84,6 +85,7 @@
     pure
     return
     sealed
+    slice
     struct
     witness))
   (define keywordDataTypes '(
@@ -185,7 +187,7 @@
 
   (define identifier (sat/what "an identifier" (lambda (x) (and (eq? (token-type x) 'id) (unreserved? (token-value x))))))
 
-  (define field-literal (sat/what "a numeric constant" (lambda (x) (eq? (token-type x) 'field))))
+  (define field-literal (sat/what "a non-negative numeric constant" (lambda (x) (eq? (token-type x) 'field))))
 
   (define string-literal (sat/what "a string" (lambda (x) (eq? (token-type x) 'string))))
 
@@ -325,10 +327,25 @@
          (with-output-language (Lparser Generic-Param)
            `(type-valued ,src ,tvar-name)))])
     (Import-declaration (idecl)
-      [import-declaration :: src (KEYWORD import) import-name (OPT gargs #f) (OPT import-prefix #f) #\; =>
-       (lambda (src kwd module-name generic-arg-list? prefix semicolon)
+      [import-declaration :: src (KEYWORD import) (OPT import-selection #f) import-name (OPT gargs #f) (OPT import-prefix #f) #\; =>
+       (lambda (src kwd import-selection? module-name generic-arg-list? prefix semicolon)
          (with-output-language (Lparser Import-Declaration)
-           `(import ,src ,kwd ,module-name ,generic-arg-list? ,prefix ,semicolon)))])
+           `(import ,src ,kwd ,import-selection? ,module-name ,generic-arg-list? ,prefix ,semicolon)))])
+    (Import-selection (import-selection)
+      [import-selection :: #\{ (SEP* import-element #\, #t) #\} (KEYWORD from) =>
+       (lambda (lbrace ielt-sep* rbrace kwd-from)
+         (let-values ([(ielt* sep*) (split-sep ielt-sep*)])
+           (with-output-language (Lparser Import-Selection)
+             `(,lbrace (,ielt* ...) (,sep* ...) ,rbrace ,kwd-from))))])
+    (Import-element (import-element)
+      [import-element-name :: src id =>
+       (lambda (src name)
+         (with-output-language (Lparser Import-Element)
+           `(,src ,name)))]
+      [import-element-rename :: src id (KEYWORD as) id =>
+       (lambda (src name kwd-as name^)
+         (with-output-language (Lparser Import-Element)
+           `(,src ,name ,kwd-as ,name^)))])
     (Import-name (import-name)
       [import-name-id :: id => values]
       [import-name-file :: file => values])
@@ -523,10 +540,11 @@
        (lambda (src kwd lparen kwd-const id kwd-of expr rparen stmt)
          (with-output-language (Lparser Statement)
            `(for ,src ,kwd ,lparen ,kwd-const ,id ,kwd-of ,expr ,rparen ,stmt)))]
-      [statement-var :: src (KEYWORD const) optionally-typed-pattern #\= expr #\; =>
-       (lambda (src kwd parg op-assign expr semicolon)
+      [statement-const :: src (KEYWORD const) (SEP+ cbinding #\, #f) #\; =>
+       (lambda (src kwd cbinding-sep+ semicolon)
          (with-output-language (Lparser Statement)
-           `(const ,src ,kwd ,parg ,op-assign ,expr ,semicolon)))]
+           (let-values ([(cbinding+ sep*) (split-sep cbinding-sep+)])
+             `(const ,src ,kwd (,(car cbinding+) ,(cdr cbinding+) ...) (,sep* ...) ,semicolon))))]
       [statement-block :: block =>
        (lambda (block) block)])
     (Pattern (pattern)
@@ -611,10 +629,10 @@
            `(not ,src ,bang ,e)))]
       [#f :: expr8 => values])
     (Expression8 (expr8)
-      ["vector reference" :: src expr8 #\[ nat #\] =>
-       (lambda (src e lbracket nat rbracket)
+      ["tuple/vector reference" :: src expr8 #\[ expr #\] =>
+       (lambda (src e lbracket index rbracket)
          (with-output-language (Lparser Expression)
-           `(tuple-ref ,src ,e ,lbracket ,nat ,rbracket)))]
+           `(tuple-ref ,src ,e ,lbracket ,index ,rbracket)))]
       ["element reference" :: src expr8 #\. id =>
        (lambda (src e dot id)
          (with-output-language (Lparser Expression)
@@ -641,11 +659,20 @@
          (let-values ([(expr+ sep*) (split-sep expr-sep+)])
            (with-output-language (Lparser Expression)
              `(fold ,src ,kwd ,lparen ,fun ,comma1 (,expr ,(car expr+) ,(cdr expr+) ...) (,comma2 ,sep* ...) ,rparen))))]
-      [term-tuple :: src #\[ (SEP* expr #\, #t) #\] =>
-       (lambda (src lbracket expr-sep* rbracket)
-         (let-values ([(expr* sep*) (split-sep expr-sep*)])
+      [term-slice :: src (KEYWORD slice) #\< tsize #\> #\( expr #\, expr #\) =>
+       (lambda (src kwd langle tsize rangle lparen expr comma index rparen)
+         (with-output-language (Lparser Expression)
+           `(tuple-slice ,src ,kwd ,langle ,tsize ,rangle ,lparen ,expr ,comma ,index ,rparen)))]
+      [term-tuple :: src #\[ (SEP* tuple-arg #\, #t) #\] =>
+       (lambda (src lbracket tuple-arg-sep* rbracket)
+         (let-values ([(tuple-arg* sep*) (split-sep tuple-arg-sep*)])
            (with-output-language (Lparser Expression)
-             `(tuple ,src ,lbracket (,expr* ...) (,sep* ...) ,rbracket))))]
+             `(tuple ,src ,lbracket (,tuple-arg* ...) (,sep* ...) ,rbracket))))]
+      [term-bytes :: src (KEYWORD Bytes) #\[ (SEP* bytes-arg #\, #t) #\] =>
+       (lambda (src kwd lbracket bytes-arg-sep* rbracket)
+         (let-values ([(bytes-arg* sep*) (split-sep bytes-arg-sep*)])
+           (with-output-language (Lparser Expression)
+             `(bytes ,src ,kwd ,lbracket (,bytes-arg* ...) (,sep* ...) ,rbracket))))]
       [term-struct :: src tref #\{ (SEP* struct-arg #\, #t) #\} =>
        (lambda (src tref lbrace new-field-sep* rbrace)
          (let-values ([(new-field* sep*) (split-sep new-field-sep*)])
@@ -693,6 +720,15 @@
        (lambda (src lparen expr rparen)
          (with-output-language (Lparser Expression)
            `(parenthesized ,src ,lparen ,expr ,rparen)))])
+    (Tuple-argument (tuple-arg bytes-arg)
+      [tuple-arg-expression :: src expr =>
+       (lambda (src expr)
+         (with-output-language (Lparser Tuple-Argument)
+           `(single ,src ,expr)))]
+      [tuple-arg-spread :: src "..." expr =>
+       (lambda (src dotdotdot expr)
+         (with-output-language (Lparser Tuple-Argument)
+           `(spread ,src ,dotdotdot ,expr)))])
     (Structure-argument (struct-arg)
       [struct-arg-positional :: src expr =>
        (lambda (src expr)
@@ -737,6 +773,11 @@
          (with-output-language (Lparser Pattern-Argument)
            `(,src ,pattern)))]
       [typed-pattern :: typed-pattern => values])
+    (Const-Binding (cbinding)
+      [const-binding :: src optionally-typed-pattern #\= expr =>
+       (lambda (src optionally-typed-pattern op-assign expr)
+         (with-output-language (Lparser Const-Binding)
+           `(,src ,optionally-typed-pattern ,op-assign ,expr)))])
     (Arrow-parameter-list (arrow-parameter-list)
       [arrow-parameter-list :: #\( (SEP* optionally-typed-pattern #\, #t) #\) =>
        (lambda (langle parg-sep* rangle)

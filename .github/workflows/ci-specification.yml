@@ -1,0 +1,100 @@
+name: Agda Formal Verification
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify Agda Specifications
+    runs-on: ubuntu-latest-4-core-arm64
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - uses: actions/cache@v3
+        name: Cache cabal packages
+        id: cache-cabal
+        with:
+          path: |
+            ~/.cabal/packages
+            ~/.cabal/store
+            ~/.cabal/bin
+            dist-newstyle
+          key: ${{ runner.os }}-cabal-packages
+
+      - name: Set up Haskell (GHC and Cabal)
+        uses: haskell-actions/setup@v2.7.9
+        with:
+          ghc-version: "9.4.8"
+          cabal-version: "3.10.3.0"
+
+      - name: Put cabal programs in PATH
+        run: echo "~/.cabal/bin" >> $GITHUB_PATH
+
+      - name: Build Syntax Generation Tool
+        run: |
+          cd specification/syntax-generation
+          cabal update
+          cabal build
+          cabal run
+
+      - name: Set up Agda
+        run: |
+          cabal update
+          test -e ~/.cabal/bin/agda || cabal install Agda
+
+
+      - name: Check Agda Version
+        run: agda --version
+
+      - name: Checkout agda-stdlib-meta repo
+        uses: actions/checkout@v4
+        with:
+          repository: agda/agda-stdlib-meta
+          path: agda-stdlib-meta
+          
+      - name: Checkout agda-stdlib repo
+        uses: actions/checkout@v4
+        with:
+          repository: agda/agda-stdlib
+          ref: v2.3
+          path: agda-stdlib
+
+      - name: Checkout agda-stdlib-classes repo
+        uses: actions/checkout@v4
+        with:
+          repository: agda/agda-stdlib-classes
+          path: agda-stdlib-classes
+
+      - name: Checkout iog-agda-prelude repo
+        uses: actions/checkout@v4
+        with:
+          repository: input-output-hk/iog-agda-prelude
+          path: iog-agda-prelude
+
+      - name: Set agda configuration
+        run: |
+          mkdir ~/.agda || true
+          echo "${{ github.workspace }}/agda-stdlib-meta/agda-stdlib-meta.agda-lib" >> ~/.agda/libraries
+          echo "${{ github.workspace }}/agda-stdlib/standard-library.agda-lib" >> ~/.agda/libraries
+          echo "${{ github.workspace }}/agda-stdlib-classes/agda-stdlib-classes.agda-lib" >> ~/.agda/libraries
+          echo "${{ github.workspace }}/iog-agda-prelude/iog-prelude.agda-lib" >> ~/.agda/libraries
+          echo "agda-stdlib-meta" >> ~/.agda/defaults
+          echo "standard-library" >> ~/.agda/defaults
+          echo "agda-stdlib-classes" >> ~/.agda/defaults
+          echo "iog-prelude" >> ~/.agda/defaults
+
+      - name: Verify Agda Files
+        run: |
+          cd specification
+          agda --verbose=2 src/Semantics/Static/Coverage.agda
+          agda --verbose=2 src/Overview.agda 
+
+      - name: Notify on Failure
+        if: failure()
+        run: echo "❌ Agda verification failed!"

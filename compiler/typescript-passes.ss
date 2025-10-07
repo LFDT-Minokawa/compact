@@ -60,12 +60,12 @@
             [(tboolean ,src) 523634023]
             [(tfield ,src) 22268065]
             [(tunsigned ,src ,nat) (update 149561537 (nat-hash nat))]
-            [(tbytes ,src ,nat) (update 38297147 (nat-hash nat))]
+            [(tbytes ,src ,len) (update 38297147 (nat-hash len))]
             [(topaque ,src ,opaque-type) (update 145867104 (string-hash opaque-type))]
              ; arrange for equivalent vectors and tuples to hash to same value with same elements,
              ; limiting the cost in the case of large vectors
-            [(tvector ,src ,nat ,type)
-             (let ([hc* (make-list (min nat max-tuple-elts-to-hash) (type-hash type))])
+            [(tvector ,src ,len ,type)
+             (let ([hc* (make-list (min len max-tuple-elts-to-hash) (type-hash type))])
                (fold-left update 37919937 hc*))]
             [(ttuple ,src ,type* ...)
              (fold-left
@@ -95,23 +95,23 @@
                [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
                [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
                [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
-               [(tbytes ,src1 ,nat1) (T type2 [(tbytes ,src2 ,nat2) (= nat1 nat2)])]
+               [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                [(topaque ,src1 ,opaque-type1)
                 (T type2
                    [(topaque ,src2 ,opaque-type2)
                     (string=? opaque-type1 opaque-type2)])]
-               [(tvector ,src1 ,nat1 ,type1)
+               [(tvector ,src1 ,len1 ,type1)
                 (T type2
-                   [(tvector ,src2 ,nat2 ,type2)
-                    (and (= nat1 nat2)
+                   [(tvector ,src2 ,len2 ,type2)
+                    (and (= len1 len2)
                          (type=? type1 type2))]
                    [(ttuple ,src2 ,type2* ...)
-                    (and (= nat1 (length type2*))
+                    (and (= len1 (length type2*))
                          (andmap (lambda (type2) (type=? type1 type2)) type2*))])]
                [(ttuple ,src1 ,type1* ...)
                 (T type2
-                   [(tvector ,src2 ,nat2 ,type2)
-                    (and (= (length type1*) nat2)
+                   [(tvector ,src2 ,len2 ,type2)
+                    (and (= (length type1*) len2)
                          (andmap (lambda (type1) (type=? type1 type2)) type1*))]
                    [(ttuple ,src2 ,type2* ...)
                     (and (= (length type1*) (length type2*))
@@ -142,7 +142,7 @@
             (when (Ltypescript-Type? adt-type)
               ; types aren't recursive, so no need to handle cycles here
               (T adt-type
-                 [(tvector ,src ,nat ,type)
+                 [(tvector ,src ,len ,type)
                   (register-descriptor! type)]
                  [(ttuple ,src ,type* ...)
                   (for-each register-descriptor! type*)]
@@ -206,15 +206,16 @@
     (Public-Ledger-ADT-Type : Public-Ledger-ADT-Type (ir) -> Public-Ledger-ADT-Type ())
     (ADT-Runtime-Op : ADT-Runtime-Op (ir) -> ADT-Runtime-Op ())
     (ADT-Op : ADT-Op (ir adt-name) -> ADT-Op ()
-      [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,[adt-arg*]) ...) ((,var-name* ,[adt-type*]) ...) ,[adt-type] ,vm-code)
+      [(,ledger-op ,[op-class] (,adt-name (,adt-formal* ,[adt-arg*]) ...) ((,var-name* ,[adt-type*]) ...) ,[adt-type] ,vm-code)
        ; FIXME: this can result in too many descriptors being created.  the root problem is that
        ; print-typescript opts not to generate all of the runtime ops if an op named read is
        ; available.  the solution is probably to weed out ops we don't want to generate earlier
        ; ideally much earlier, but at least in this pass.
-       (when (eq? ledger-op-class 'read)
+       (when (eq? op-class 'read)
          (for-each register-descriptor! adt-type*)
          (maybe-register-descriptor! adt-type))
-       `(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)])
+       `(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)])
+    (ADT-Op-Class : ADT-Op-Class (ir) -> ADT-Op-Class ())
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
       [(circuit ,src ,function-name (,[arg*] ...) ,[type] ,[Stmt : expr src -> stmt])
        (for-each register-descriptor! (map arg->type arg*))
@@ -287,7 +288,7 @@
                 ,expr)))]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,[path-elt*] ...) ,src^ ,[adt-op] ,[expr*] ...)
        (nanopass-case (Ltypescript ADT-Op) adt-op
-         [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+         [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
           (for-each register-descriptor! adt-type*)
           (maybe-register-descriptor! adt-type)
           `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)])]
@@ -311,8 +312,9 @@
            "CompactError"
            "typeError"
            "assert"
-           "convert_bigint_to_Uint8Array"
-           "convert_Uint8Array_to_bigint"
+           "convertFieldToBytes"
+           "convertBytesToField"
+           "convertBytesToUint"
            "addField"
            "subField"
            "mulField"
@@ -679,7 +681,7 @@
                     0 ")")])]
               [else (internal-errorf 'construct-query-value "unhandled case ~s" v)]))
           (nanopass-case (Ltypescript ADT-Op) adt-op
-            [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+            [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
              (assert (fx= (length expr*) (length var-name*)))
              (let ([vminstr* (expand-vm-code
                                src
@@ -718,14 +720,46 @@
                             '()
                             vminstr*))
                  "]"))]))
+
+        (define (coin-recipient-indices adt-op)
+          (nanopass-case (Ltypescript ADT-Op) adt-op
+            [(,ledger-op (,ledger-op-class ,nat ,nat^) (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+             (list nat nat^)]))
+
+        (define (should-check-coin-commitment? adt-op)
+          (nanopass-case (Ltypescript ADT-Op) adt-op
+            [(,ledger-op (,ledger-op-class ,nat ,nat^) (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+             (eq? ledger-op-class 'update-with-coin-check)]
+            [else #f]))
+
+        (define (coin-commitment-check adt-op expr*)
+          (let* ([indices (coin-recipient-indices adt-op)]
+                 [coin-idx (car indices)]
+                 [recipient-idx (cadr indices)]
+                 [coin-expr (list-ref expr* coin-idx)]
+                 [recipient-expr (list-ref expr* recipient-idx)])
+            (make-Qconcat
+             "__compactRuntime.hasCoinCommitment("
+             ((make-Qsep ",") "context" coin-expr recipient-expr)
+             ")")))
+
         (define (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)
-          (make-Qconcat/src src
-            "__compactRuntime.queryLedgerState("
-            ((make-Qsep ",")
-             "context"
-             "partialProofData"
-             (construct-vm-instructions src path-elt* adt-formal* adt-arg* adt-op expr*))
-            ")")))
+          (let ([query (make-Qconcat/src src
+                         "__compactRuntime.queryLedgerState("
+                         ((make-Qsep ",")
+                          "context"
+                          "partialProofData"
+                          (construct-vm-instructions src path-elt* adt-formal* adt-arg* adt-op expr*))
+                         ")")])
+            (if (should-check-coin-commitment? adt-op)
+                (make-Qconcat
+                  (coin-commitment-check adt-op expr*)
+                  " ? "
+                  query
+                  " : "
+                  (format "(() => { throw new __compactRuntime.CompactError(`~a: Coin commitment not found. Check the coin has been received (or call 'createZswapOutput')`); })()" (format-source-object src)))
+                query))
+          ))
 
       (define (has-read? adt-op*)
         (ormap (lambda (adt-op)
@@ -736,7 +770,7 @@
       (define (op-name adt-op)
         (if (Ltypescript-ADT-Op? adt-op)
             (nanopass-case (Ltypescript ADT-Op) adt-op
-              [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+              [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
                ledger-op])
             (nanopass-case (Ltypescript ADT-Runtime-Op) adt-op
               [(,ledger-op (,arg* ...) ,result-type ,runtime-code)
@@ -744,8 +778,8 @@
       (define (is-runtime-op? adt-op)
         (or (not (Ltypescript-ADT-Op? adt-op))
             (nanopass-case (Ltypescript ADT-Op) adt-op
-              [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
-               (eq? ledger-op-class 'read)])))
+              [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+               (eq? op-class 'read)])))
       (define (maybe-iterator op-name)
         (if (eq? op-name 'iter)
             "[Symbol.iterator]"
@@ -755,7 +789,7 @@
           [(,src ,ledger-field-name (,path-index* ...) ,public-adt)
            (id-exported? ledger-field-name)]))
       (define (get-self-contract-name)
-          (let ([contract-name (source-file-name)]) contract-name))
+        (source-file-name))
       (define (print-contract-name contract-name)
           (if (symbol? contract-name)
               (symbol->string contract-name)
@@ -779,26 +813,33 @@
           (fold-right (lambda (alist name*) (cons (get-assoc "name" contract-name alist) name*))
                       '()
                       (vector->list v)))
-          (let* ([contract-has-witness-ht (make-hashtable symbol-hash eq?)]
-                 [contract-ht (contract-ht)]
-                 [dep-contracts (vector->list (hashtable-keys contract-ht))]
-                 [contract-has-witness*
-                   (fold-right (lambda (contract-name contract-name*)
-                                 (let ([a (hashtable-cell contract-has-witness-ht contract-name 'unvisited)])
-                                   (when (eq? (cdr a) 'unvisited)
-                                     (let* ([info (hashtable-cell contract-ht contract-name #f)]
-                                            [alist (cdr info)]
-                                            [v (get-assoc "witnesses" contract-name alist)])
-                                       (unless (vector? v) (malformed "\"witnesses\" is not associated with a vector" contract-name))
-                                       (set-cdr! a (get-witness-names contract-name v))))
-                                   (if (eq? (cdr a) '())
-                                       contract-name*
-                                       (cons (car a) contract-name*))))
-                     '()
-                     dep-contracts)])
-            (values contract-has-witness* contract-has-witness-ht)))
+        (let* ([contract-has-witness-ht (make-hashtable symbol-hash eq?)]
+               [contract-ht (contract-ht)]
+               [dep-contracts (vector->list (hashtable-keys contract-ht))]
+               [contract-has-witness*
+                 (fold-right (lambda (contract-name contract-name*)
+                               (let ([a (hashtable-cell contract-has-witness-ht contract-name 'unvisited)])
+                                 (when (eq? (cdr a) 'unvisited)
+                                   (let* ([info (hashtable-cell contract-ht contract-name #f)]
+                                          [alist (cdr info)]
+                                          [v (get-assoc "witnesses" contract-name alist)])
+                                     (unless (vector? v) (malformed "\"witnesses\" is not associated with a vector" contract-name))
+                                     (set-cdr! a (get-witness-names contract-name v))))
+                                 (if (eq? (cdr a) '())
+                                     contract-name*
+                                     (cons (car a) contract-name*))))
+                   '()
+                   dep-contracts)])
+          (values contract-has-witness* contract-has-witness-ht)))
 
-      (define (print-contract.d.cts src xpelt* uname*)
+      (define (subst-tcontract adt-type)
+        (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+           (with-output-language (Ltypescript Public-Ledger-ADT-Type)
+             `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
+          [else adt-type]))
+
+      (define (print-contract.d.ts src xpelt* uname*)
         (define (print-exported-impure-circuit-declaration do-me?)
           (lambda (xpelt uname)
             (XPelt-case xpelt
@@ -869,7 +910,7 @@
         (module (print-ledger-declaration)
           (define (op-signature-Q adt-op)
             (nanopass-case (Ltypescript ADT-Op) adt-op
-              [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+              [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
                (with-local-unique-names
                  (let ([formal* (map (lambda (var-name) (format-internal-binding unique-local-name var-name))
                                      var-name*)])
@@ -955,7 +996,7 @@
                              ": "
                              (if (Ltypescript-ADT-Op? maybe-read)
                                  (nanopass-case (Ltypescript ADT-Op) maybe-read
-                                   [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+                                   [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
                                     (assert (Ltypescript-Type? adt-type))
                                     (Type adt-type)])
                                  ; at present, no adt-rt-ops qualify (i.e., none are named "read")
@@ -1295,19 +1336,19 @@
                      [255 "__compactRuntime.CompactTypeUInt8"]
                      [18446744073709551615 "__compactRuntime.CompactTypeUInt64"]
                      [else (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)" nat (byte-length nat))])]
-                  [(tbytes ,src ,nat)
-                   (if (eq? nat 32)
+                  [(tbytes ,src ,len)
+                   (if (eq? len 32)
                        "__compactRuntime.CompactTypeBytes32"
-                       (format "new __compactRuntime.CompactTypeBytes(~d)" nat))]
+                       (format "new __compactRuntime.CompactTypeBytes(~d)" len))]
                   [(topaque ,src ,opaque-type)
                    (case opaque-type
                      [("string") "__compactRuntime.CompactTypeOpaqueString"]
                      [("Uint8Array") "__compactRuntime.CompactTypeOpaqueUint8Array"]
                      ; FIXME: what should happen with other opaque types?
                      [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
-                  [(tvector ,src ,nat ,type)
+                  [(tvector ,src ,len ,type)
                    (format "new __compactRuntime.CompactTypeVector(~d, ~a)"
-                           nat
+                           len
                            (type->descriptor-name type))]
                   [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                    (assert cannot-happen)]
@@ -1358,7 +1399,7 @@
             (define (find-adt-op ledger-op adt-op*)
               (assert (find (lambda (adt-op)
                               (nanopass-case (Ltypescript ADT-Op) adt-op
-                                [(,ledger-op^ ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+                                [(,ledger-op^ ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
                                  (eq? ledger-op^ ledger-op)]))
                             adt-op*)))
             (fold-right
@@ -1372,24 +1413,17 @@
               (pl-array->public-bindings pl-array)))
 
           (module (argument-type-checks context-type-check result-type-check)
-            (define (subst-tcontract adt-type)
-              (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
-                [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                 (with-output-language (Ltypescript Public-Ledger-ADT-Type)
-                   `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
-                [else adt-type]))
-
             (define (typeof adt-type var)
               (let ([adt-type (subst-tcontract adt-type)])
                 (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
                   [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
                   [(tfield ,src) (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
                   [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
-                  [(tbytes ,src ,nat) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var nat)]
+                  [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
                   [(topaque ,src ,opaque-type) "true"]
-                  [(tvector ,src ,nat ,type)
+                  [(tvector ,src ,len ,type)
                    (format "Array.isArray(~a) && ~:*~a.length === ~d && ~2:*~a.every((t) => ~*~a)"
-                           var nat (typeof type "t"))]
+                           var len (typeof type "t"))]
                   [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                    (assert cannot-happen)]
                   [(ttuple ,src ,type* ...)
@@ -1414,8 +1448,8 @@
                 [(tunsigned ,src ,nat) (format "Uint<0..~d>" nat)]
                 [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
                 [(tunknown) "Unknown"]
-                [(tvector ,src ,nat ,type) (format "Vector<~s, ~a>" nat (format-type type))]
-                [(tbytes ,src ,nat) (format "Bytes<~s>" nat)]
+                [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
+                [(tbytes ,src ,len) (format "Bytes<~s>" len)]
                 [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                  (format "contract ~a[~{~a~^, ~}]" contract-name
                    (map (lambda (elt-name pure-dcl type* type)
@@ -1510,7 +1544,8 @@
                       q*)))))
 
           (define (witness-checks witnesses xpelt* q*)
-            (define (contract-has-witness? xpelt*)
+            ; TODO maybe remove this (there's another contract-has-witness? check)
+            #;(define (contract-has-witness? xpelt*)
               (ormap (lambda (xpelt)
                        (XPelt-case xpelt
                          [(XPelt-witness src internal-id arg* type external-name) #t]
@@ -1598,6 +1633,8 @@
             (define (bind-args-with-context ctxt args name* q*)
               (cons*
                 2 "const " ctxt (format " = __compactRuntime.copyCircuitContext(~a[~d]);" args 0)
+                ; TODO delete the next line if the above works
+                ;; 2 "const " ctxt (format " = ~a[~d];" args 0)
                 (fold-right
                   (bind-arg-helper #t args)
                 q*
@@ -1884,7 +1921,7 @@
                               path-elt*)))
                 (if (Ltypescript-ADT-Op? adt-op)
                     (nanopass-case (Ltypescript ADT-Op) adt-op
-                      [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+                      [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
                        (if (Ltypescript-Public-Ledger-ADT? adt-type)
                            (begin
                              (assert (and (eq? ledger-op 'lookup)
@@ -1909,7 +1946,7 @@
                                         (ledger-field-Q src path-elt* adt-arg* all-op*))])
                                  0 "}")))
                            (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op formal*)])
-                             (let ([descriptor-name? (and (eq? ledger-op-class 'read)
+                             (let ([descriptor-name? (and (eq? op-class 'read)
                                                           (type->maybe-descriptor-name adt-type))])
                                (if descriptor-name?
                                    (make-Qconcat
@@ -1918,11 +1955,11 @@
                                      ".fromValue("
                                      q
                                      ".value);")
-                                 ; at present, this shouldn't happen.  we don't include side-effecting
-                                 ; operations in ledger(state) return value, so all operations should
-                                 ; return a value that needs to be decoded
-                                 q))))])
-                      (nanopass-case (Ltypescript ADT-Runtime-Op) adt-op
+                                   ; at present, this shouldn't happen.  we don't include side-effecting
+                                   ; operations in ledger(state) return value, so all operations should
+                                   ; return a value that needs to be decoded
+                                   q))))])
+                    (nanopass-case (Ltypescript ADT-Runtime-Op) adt-op
                       [(,ledger-op (,arg* ...) ,result-type ,runtime-code)
                        (let ([self (format-internal-binding unique-local-name (make-temp-id src 'self))])
                          (make-Qconcat
@@ -1946,7 +1983,7 @@
               (define (op-args adt-op)
                 (if (Ltypescript-ADT-Op? adt-op)
                     (nanopass-case (Ltypescript ADT-Op) adt-op
-                      [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+                      [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
                        (values var-name* adt-type*)])
                     (nanopass-case (Ltypescript ADT-Runtime-Op) adt-op
                       [(,ledger-op ((,var-name* ,type*) ...) ,result-type ,runtime-code)
@@ -2042,6 +2079,7 @@
                                [contract-name (get-self-contract-name)]
                                [q-formal* (map make-Qformal! arg*)]
                                [nargs (fx+ (length arg*) 1)])
+                          ; TODO removed maybe-add-private-state-check. if nothing breaks delete this todo.
                           (apply make-Qconcat/src src
                                  (format "function stateConstructor(...~a) {" args)
                                  2 (format "if (~a.length !== ~d) {" args nargs)
@@ -2201,6 +2239,8 @@
           (define (print-external-witness src internal-id uname arg* type external-name)
             (with-local-unique-names
               (let ([result (format-internal-binding unique-local-name (make-temp-id src 'result))]
+                    ; TODO dropped nexPrivateState and assigning it to context.currentPrivateState
+                    ; delete this todo if tests work fine.
                     [descriptor-name? (type->maybe-descriptor-name type)])
                 (print-Q 0
                   (let ([q-formal* (map make-Qformal! arg*)])
@@ -2287,8 +2327,8 @@
                  "{"
                  1 "tag: 'contractAddress'"
                  0 "}")]
-              [(tvector ,src ,nat ,type)
-               (guard (not (= nat 0)))
+              [(tvector ,src ,len ,type)
+               (guard (not (= len 0)))
                (let ([q (do-type type)])
                  (and q
                       (make-Qconcat
@@ -2444,9 +2484,9 @@
           (display-string "exports.ledgerStateDecoder = ledgerStateDecoder;\n"))
 
         (define (print-contract-footer)
-          (display-string "//# sourceMappingURL=index.cjs.map\n"))
+          (display-string "//# sourceMappingURL=index.js.map\n"))
 
-        (define (print-contract.cjs src descriptor-id* type* xpelt* uname*)
+        (define (print-contract.js src descriptor-id* type* xpelt* uname*)
           (parameterize ([current-output-port (get-target-port 'contract.cjs)])
             (fluid-let ([sourcemap-tracker (make-sourcemap-tracker)])
               (let-values ([(contract-dependency* contract-has-witness-ht) (get-contract-dependencies)])
@@ -2458,7 +2498,7 @@
                 (print-contract-exports)
                 (print-contract-footer)
                 (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
-                (display-sourcemap sourcemap-tracker (get-target-port 'contract.cjs.map)))))))
+                (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map)))))))
 
       (define (format-javascript-string s)
         (define quote-seen #f)
@@ -2660,7 +2700,7 @@
               [uname* (maplr xpelt->uname xpelt*)])
          (print-contract.d.cts src xpelt* uname*)
          (fluid-let ([descriptor-table descriptor-table^])
-           (print-contract.cjs src descriptor-id* type* xpelt* uname*)))
+           (print-contract.js src descriptor-id* type* xpelt* uname*)))
        ir])
     (Program-Element : Program-Element (ir export-alist) -> * (xpelt)
       (definitions
@@ -2753,23 +2793,31 @@
            (make-Qconcat expr ";"))])
     (Expr : Expression (ir level outer-pure?) -> * (Q)
       (definitions
-        (define (tvector->size type)
-          (nanopass-case (Ltypescript Type) type
-            [(ttuple ,src ,type* ...) (length type*)]
-            [(tvector ,src ,nat ,type) nat]
-            [else (assert cannot-happen)]))
+        (define (make-tuple tuple-arg*)
+          (make-Qconcat
+            "["
+            (apply (make-Qsep ",")
+              (map
+                (lambda (tuple-arg)
+                  (nanopass-case (Ltypescript Tuple-Argument) tuple-arg
+                    [(single ,src ,expr)
+                     (Expr expr (precedence add1 comma) outer-pure?)]
+                    [(spread ,src ,nat ,expr)
+                     (make-Qconcat "..." (Expr expr (precedence add1 comma) outer-pure?))]))
+                tuple-arg*))
+            "]"))
         (define (build-equal-helper! type equal-name)
           (define (build-equal-body type)
             (with-output-to-string
               (lambda ()
-                (let f ([type type] [i 0] [indent 2])
+                (let f ([type type] [i 0] [indent 4])
                   (nanopass-case (Ltypescript Type) type
-                    [(tbytes ,src ,nat)
+                    [(tbytes ,src ,len)
                      (print-indent indent)
-                     (printf "if (!x~s.every((x, i) => y~:*~s[i] === x)) return false;\n" i)]
-                    [(tvector ,src ,nat ,type)
+                     (printf "if (!x~s.every((x, i) => y~:*~s[i] === x)) { return false; }\n" i)]
+                    [(tvector ,src ,len ,type)
                      (print-indent indent)
-                     (printf "for (let i~s = 0; i~:*~s < ~s; i~2:*~s++) {\n" i nat)
+                     (printf "for (let i~s = 0; i~:*~s < ~s; i~2:*~s++) {\n" i len)
                      (let ([next-i (fx+ i 1)] [next-indent (fx+ indent 2)])
                        (print-indent next-indent)
                        (printf "let x~s = x~s[i~:*~s];\n" next-i i)
@@ -2810,7 +2858,7 @@
                        type*)]
                     [else
                      (print-indent indent)
-                     (printf "if (x~s !== y~:*~s) return false;\n" i)])))))
+                     (printf "if (x~s !== y~:*~s) { return false; }\n" i)])))))
           (parenthesize level (precedence call)
             (set! helper*
               (cons
@@ -2832,12 +2880,6 @@
        (make-Qconcat/src src (format-id-reference var-name))]
       [(default ,src ,adt-type)
        (let default-value ([adt-type adt-type])
-         (define (subst-tcontract adt-type)
-           (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
-             [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-              (with-output-language (Ltypescript Public-Ledger-ADT-Type)
-                `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
-             [else adt-type]))
          ; even though tstruct is substituted for tcontract, we will never generate a default value
          ; for a tcontract since that would be caught earlier. so this substitution is safe.
          (let ([adt-type (subst-tcontract adt-type)])
@@ -2845,19 +2887,19 @@
              [(tboolean ,src) "false"]
              [(tfield ,src) "0n"]
              [(tunsigned ,src ,nat) "0n"]
-             [(tbytes ,src ,nat)
+             [(tbytes ,src ,len)
               (parenthesize level (precedence new)
-                (format "new Uint8Array(~d)" nat))]
+                (format "new Uint8Array(~d)" len))]
              [(topaque ,src ,opaque-type)
               (case opaque-type
                 [("string") "''"]
                 [("Uint8Array") "new Uint8Array(0)"]
                 ; FIXME: what should happen with other opaque types?
                 [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
-             [(tvector ,src ,nat ,type)
+             [(tvector ,src ,len ,type)
               (parenthesize level (precedence new)
                 (format "new Array(~a).fill(~a)"
-                  nat
+                  len
                   (default-value type)))]
              [(ttuple ,src ,type* ...)
               (format "[~{~a~^, ~}]" (map default-value type*))]
@@ -2904,11 +2946,45 @@
                     (assert (not (null? elt-name*)))
                     (loop (car elt-name*) (cdr elt-name*) (fx+ i 1)))))]
            [else (assert cannot-happen)]))]
-      [(tuple ,src ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
-       (make-Qconcat "[" (apply (make-Qsep ",") expr*) "]")]
+      [(tuple ,src ,tuple-arg* ...)
+       (make-tuple tuple-arg*)]
+      [(vector ,src ,tuple-arg* ...)
+       (make-tuple tuple-arg*)]
       [(tuple-ref ,src ,[Expr : expr (precedence vector-ref) outer-pure? -> * expr] ,nat)
        (parenthesize level (precedence vector-ref)
          (make-Qconcat expr (format "[~d]" nat)))]
+      [(bytes-ref ,src ,type ,[Expr : expr (precedence vector-ref) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index])
+       ; NB: counting on check in optimize/resolve-indices to guarantee that the computed
+       ; index cannot be out-of-range
+       (parenthesize level (precedence vector-ref)
+         (make-Qconcat "BigInt(" expr "[" index "])"))]
+      [(vector-ref ,src ,type ,[Expr : expr (precedence vector-ref) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index])
+       ; NB: counting on check in optimize/resolve-indices to guarantee that the computed
+       ; index cannot be out-of-range
+       (parenthesize level (precedence vector-ref)
+         (make-Qconcat expr "[" index "]"))]
+      [(tuple-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,nat ,size)
+       (parenthesize level (precedence call)
+         (make-Qconcat
+           (format "((e) => e.slice(~d, ~d))(" nat (+ nat size))
+           expr
+           ")"))]
+      [(bytes-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index] ,size)
+       ; NB: counting on check in optimize/resolve-indices to guarantee that the computed
+       ; index + size cannot be out-of-range
+       (parenthesize level (precedence call)
+         (make-Qconcat
+           (format "((e, i) => e.slice(i, i+~d))(" size)
+           ((make-Qsep ",") expr (make-Qconcat "Number(" index ")"))
+           ")"))]
+      [(vector-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index] ,size)
+       ; NB: counting on check in optimize/resolve-indices to guarantee that the computed
+       ; index + size cannot be out-of-range
+       (parenthesize level (precedence call)
+         (make-Qconcat
+           (format "((e, i) => e.slice(i, i+~d))(" size)
+           ((make-Qsep ",") expr (make-Qconcat "Number(" index ")"))
+           ")"))]
       [(+ ,src ,mbits ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
        (guard (not mbits))
        (parenthesize level (precedence call)
@@ -3002,28 +3078,34 @@
                   (Expr expr1 (precedence add1 comma) outer-pure?)
                   (Expr expr2 (precedence add1 comma) outer-pure?))
                  ")"))))]
-      [(map ,src ,type^ ,[Function : fun0 outer-pure? -> * fun] (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) (,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ,type*) ...)
-       (let ([mapper-name (unique-global-name "mapper")])
+      [(map ,src ,nat ,[Function : fun0 outer-pure? -> * fun]
+            ,[Map-Argument : map-arg (precedence add1 comma) outer-pure? -> * expr byte-ref?]
+            ,[Map-Argument : map-arg* (precedence add1 comma) outer-pure? -> * expr* byte-ref?*]
+            ...)
+       (let ([mapper-name (unique-global-name "mapper")]
+             [pure? (nanopass-case (Ltypescript Function) fun0
+                      [(fref ,src ,function-name) (id-pure? function-name)]
+                      [else outer-pure?])])
          (set! helper*
            (cons
-             (let ([i+ (enumerate (cons type type*))])
-               (if outer-pure?
-                   (format "function ~a(f, ~{~a~^, ~}) {\n  let a = [];\n  for (let i = 0; i < ~a; i++) a[i] = f(~{a~s[i]~^, ~});\n  return a;\n}\n"
-                     mapper-name
-                     (map (lambda (i) (format "a~s" i)) i+)
-                     (tvector->size type)
-                     i+)
-                   (format "function ~a(context, witnessSets, partialProofData, f, ~{~a~^, ~}) {\n  let a = [];\n  for (let i = 0; i < ~a; i++) a[i] = f(context, witnessSets, partialProofData, ~{a~s[i]~^, ~});\n  return a;\n}\n"
-                     mapper-name
-                     (map (lambda (i) (format "a~s" i)) i+)
-                     (tvector->size type)
-                     i+)))
+             (let ([i+ (enumerate (cons expr expr*))])
+               (format "  ~a(~@[~*context, witnessSets, partialProofData, ~]f, ~{~a~^, ~}) {\n    let a = [];\n    for (let i = 0; i < ~a; i++) { a[i] = f(~@[~*context, witnessSets, partialProofData, ~]~{~a~^, ~}); }\n    return a;\n  }\n"
+                 mapper-name
+                 (not pure?)
+                 (map (lambda (i) (format "a~s" i)) i+)
+                 nat
+                 (not pure?)
+                 (map (lambda (i byte-ref?)
+                        (let ([ref (format "a~d[i]" i)])
+                          (if byte-ref? (format "BigInt(~a)" ref) ref)))
+                      i+
+                      (cons byte-ref? byte-ref?*))))
              helper*))
          (parenthesize level (precedence call)
            (make-Qconcat
              mapper-name
              "("
-             (make-Qargs outer-pure?
+             (make-Qargs pure?
                (cons*
                  (nanopass-case (Ltypescript Function) fun0
                    [(fref ,src ,function-name)
@@ -3033,28 +3115,35 @@
                  expr
                  expr*))
              ")")))]
-      [(fold ,src ,type^ ,[Function : fun0 outer-pure? -> * fun] (,[Expr : expr0 (precedence add1 comma) outer-pure? -> * expr0] ,type0) (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) (,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ,type*) ...)
-       (let ([folder-name (unique-global-name "folder")])
+      [(fold ,src ,nat ,[Function : fun0 outer-pure? -> * fun]
+             (,[Expr : expr0 (precedence add1 comma) outer-pure? -> * expr0] ,type)
+             ,[Map-Argument : map-arg (precedence add1 comma) outer-pure? -> * expr byte-ref?]
+             ,[Map-Argument : map-arg* (precedence add1 comma) outer-pure? -> * expr* byte-ref?*]
+             ...)
+       (let ([folder-name (unique-global-name "folder")]
+             [pure? (nanopass-case (Ltypescript Function) fun0
+                      [(fref ,src ,function-name) (id-pure? function-name)]
+                      [else outer-pure?])])
          (set! helper*
            (cons
-             (let* ([type+ (cons type type*)] [i+ (enumerate type+)])
-               (if outer-pure?
-                   (format "function ~a(f, x, ~{~a~^, ~}) {\n  for (let i = 0; i < ~a; i++) x = f(x, ~{a~s[i]~^, ~});\n  return x;\n}\n"
-                     folder-name
-                     (map (lambda (i) (format "a~s" i)) i+)
-                     (tvector->size type)
-                     i+)
-                   (format "function ~a(context, witnessSets, partialProofData, f, x, ~{~a~^, ~}) {\n  for (let i = 0; i < ~a; i++) x = f(context, witnessSets, partialProofData, x, ~{a~s[i]~^, ~});\n  return x;\n}\n"
-                     folder-name
-                     (map (lambda (i) (format "a~s" i)) i+)
-                     (tvector->size type)
-                     i+)))
+             (let ([i+ (enumerate (cons expr expr*))])
+               (format "  ~a(~@[~*context, witnessSets, partialProofData, ~]f, x, ~{~a~^, ~}) {\n    for (let i = 0; i < ~a; i++) { x = f(~@[~*context, witnessSets, partialProofData, ~]x, ~{~a~^, ~}); }\n    return x;\n  }\n"
+                 folder-name
+                 (not pure?)
+                 (map (lambda (i) (format "a~s" i)) i+)
+                 nat
+                 (not pure?)
+                 (map (lambda (i byte-ref?)
+                        (let ([ref (format "a~d[i]" i)])
+                          (if byte-ref? (format "BigInt(~a)" ref) ref)))
+                      i+
+                      (cons byte-ref? byte-ref?*))))
              helper*))
          (parenthesize level (precedence call)
            (make-Qconcat
              folder-name
              "("
-             (make-Qargs outer-pure?
+             (make-Qargs pure?
                (cons*
                  (nanopass-case (Ltypescript Function) fun0
                    [(fref ,src ,function-name)
@@ -3104,75 +3193,116 @@
              expr
              (format-javascript-string mesg))
            ")"))]
-      [(field->bytes ,src ,nat ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
+      [(field->bytes ,src ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (make-Qconcat
-           (compact-stdlib "convert_bigint_to_Uint8Array")
+           (compact-stdlib "convertFieldToBytes")
            "("
-           ((make-Qsep ",") (format "~d" nat) expr)
+           ((make-Qsep ",") (format "~d" len) expr (format "'~a'" (format-source-object src)))
            ")"))]
-      [(bytes->field ,src ,nat ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
+      [(cast-from-bytes ,src ,type ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
-         (make-Qconcat
-           (compact-stdlib "convert_Uint8Array_to_bigint")
-           "("
-           ((make-Qsep ",") (format "~d" nat) expr)
-           ")"))]
-      [(vector->bytes ,src ,nat ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
+         (nanopass-case (Ltypescript Type) type
+           [(tfield ,src^)
+            (make-Qconcat
+              (compact-stdlib "convertBytesToField")
+              "("
+              ((make-Qsep ",") (format "~d" len) expr (format "'~a'" (format-source-object src)))
+              ")")]
+           [(tunsigned ,src^ ,nat^)
+            (make-Qconcat
+              (compact-stdlib "convertBytesToUint")
+              "("
+              ((make-Qsep ",") (format "~d" nat^) (format "~d" len) expr (format "'~a'" (format-source-object src)))
+              ")")]
+           [else (assert cannot-happen)]))]
+      [(vector->bytes ,src ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (make-Qconcat
            "Uint8Array.from("
            ((make-Qsep ",") expr "Number")
            ")"))]
-      [(bytes->vector ,src ,nat ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
+      [(bytes->vector ,src ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (make-Qconcat
            "Array.from("
            ((make-Qsep ",") expr "BigInt")
            ")"))]
-      [(enum->field ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
+      [(cast-from-enum ,src ,type ,type^ ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
-         (make-Qconcat "BigInt(" expr ")"))]
-      [(field->unsigned ,src ,nat ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
+         (let-values ([(enum-name maxval)
+                       (nanopass-case (Ltypescript Type) type^
+                         [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+                          (values enum-name (length elt-name*))]
+                         [else (assert cannot-happen)])])
+           (cond
+             [(nanopass-case (Ltypescript Type) type
+                [(tfield ,src) #f]
+                [(tunsigned ,src ,nat) (guard (< nat maxval)) nat]
+                [else #f]) =>
+              (lambda (nat)
+                (make-Qconcat
+                  "((t1) => {"
+                  2 (format "if (t1 > ~d) {" nat)
+                  4 (format "throw new ~a('~a: cast from enum ~a to Uint<0..~d> failed: enum value ' + t1 + ' is greater than ~:*~d');"
+                      (compact-stdlib "CompactError")
+                      (format-source-object src)
+                      enum-name
+                      nat)
+                  2 "}"
+                  2 "return BigInt(t1);"
+                  0 "})("
+                  expr
+                  ")"))]
+             [else (make-Qconcat "BigInt(" expr ")")])))]
+      [(cast-to-enum ,src ,type ,type^ ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
-         (make-Qconcat
-           "((t1) => {"
-           2 (format "if (t1 > ~an) {" nat)
-           4 (format "throw new ~a('~a: cast from field value to Uint value failed: ' + t1 + ' is greater than ~a');"
-                     (compact-stdlib "CompactError")
-                     (format-source-object src)
-                     nat)
-           2 "}"
-           2 "return t1;"
-           0 "})("
-           expr
-           ")"))]
-      [(downcast-unsigned ,src ,nat ,expr ,safe?)
-       (if safe?
-           (Expr expr level outer-pure?)
-           (let ([expr (Expr expr (precedence add1 comma) outer-pure?)])
-             (parenthesize level (precedence call)
+         (let-values ([(enum-name maxval)
+                       (nanopass-case (Ltypescript Type) type
+                         [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+                          (values enum-name (length elt-name*))]
+                         [else (assert cannot-happen)])])
+           (if (nanopass-case (Ltypescript Type) type
+                 [(tunsigned ,src ,nat) (<= nat maxval)]
+                 [else #f])
+               (make-Qconcat "Number(" expr ")")
                (make-Qconcat
                  "((t1) => {"
-                 2 (format "if (t1 > ~an) {" nat)
-                 4 (format "throw new ~a('~a: cast from unsigned value to smaller unsigned value failed: ' + t1 + ' is greater than ~a');"
+                 2 (format "if (t1 > ~dn) {" maxval)
+                 4 (format "throw new ~a('~a: cast from Field or Uint value to enum ~a failed: ' + t1 + ' is greater than maximum enum value ~dn');"
                      (compact-stdlib "CompactError")
                      (format-source-object src)
-                     nat)
+                     enum-name
+                     maxval)
                  2 "}"
-                 2 "return t1;"
+                 2 "return Number(t1);"
                  0 "})("
                  expr
                  ")"))))]
-      [(upcast ,src ,type ,type^ ,expr)
-       ; no checks needed for upcast
+      [(downcast-unsigned ,src ,nat ,expr)
+       (let ([expr (Expr expr (precedence add1 comma) outer-pure?)])
+         (parenthesize level (precedence call)
+           (make-Qconcat
+             "((t1) => {"
+             2 (format "if (t1 > ~an) {" nat)
+             4 (format "throw new ~a('~a: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than ~a');"
+                 (compact-stdlib "CompactError")
+                 (format-source-object src)
+                 nat)
+             2 "}"
+             2 "return t1;"
+             0 "})("
+             expr
+             ")")))]
+      [(safe-cast ,src ,type ,type^ ,expr)
+       ; no checks needed for safe casts
        (Expr expr level outer-pure?)]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
        (nanopass-case (Ltypescript ADT-Op) adt-op
-         [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+         [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
           ; this should be caught by ledger meta-type checks or by propagate-ledger-paths
           (when (Ltypescript-Public-Ledger-ADT? adt-type) (source-errorf src "incomplete reference to nested ADT"))
-          (let ([descriptor-name? (and (eq? ledger-op-class 'read) (type->maybe-descriptor-name adt-type))])
+          (let ([descriptor-name? (and (eq? op-class 'read) (type->maybe-descriptor-name adt-type))])
             (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)])
               (nanopass-case (Ltypescript Type) adt-type
                 [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
@@ -3207,6 +3337,14 @@
               expr*)
             ")")]
          [else (assert cannot-happen)])])
+              ; TODO search for map-argument in main to make sure you have all the instances here
+    (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
+      [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
+       (values
+         expr
+         (nanopass-case (Ltypescript Type) type
+           [(tbytes ,src ,len) #t]
+           [else #f]))])
     (Function : Function (ir outer-pure?) -> * (str)
       [(fref ,src ,function-name) (format-function-reference src function-name)]
       [(circuit ,src (,arg* ...) ,type ,stmt)
@@ -3246,9 +3384,9 @@
                       [(tboolean ,src) (T type2 [(tboolean ,src) #t])]
                       [(tfield ,src) (T type2 [(tfield ,src) #t] [(tunsigned ,src ,nat2) #t])]
                       [(tunsigned ,src ,nat1) (T type2 [(tunsigned ,src ,nat2) #t] [(tfield ,src) #t])]
-                      [(tbytes ,src ,nat1) (T type2 [(tbytes ,src ,nat2) #t])]
+                      [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
                       [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
-                      [(tvector ,src ,nat1 ,type1) (T type2 [(tvector ,src ,nat2 ,type2) (unify? type1 type2)])]
+                      [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]
                       [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
                        (T type2
                           [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
@@ -3289,13 +3427,13 @@
       [(tboolean ,src) "boolean"]
       [(tfield ,src) "bigint"]
       [(tunsigned ,src ,nat) "bigint"]
-      [(tbytes ,src ,nat) "Uint8Array"]
+      [(tbytes ,src ,len) "Uint8Array"]
       [(topaque ,src ,opaque-type)
        (case opaque-type
          [("string" "Uint8Array") opaque-type]
          ; FIXME: what should happen with other opaque types?
          [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
-      [(tvector ,src ,nat ,[Type : type -> * type])
+      [(tvector ,src ,len ,[Type : type -> * type])
        (make-Qconcat type "[]")]
       [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
        "{ bytes: Uint8Array }"]

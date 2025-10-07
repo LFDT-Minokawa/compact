@@ -1,0 +1,5 @@
+Error: Failed to self update
+
+Caused by:
+    0: Failed to load the release context
+    1: Unable to load receipt for app compact

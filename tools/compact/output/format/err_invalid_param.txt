@@ -1,0 +1,7 @@
+error: unexpected argument '--bob' found
+
+  tip: to pass '--bob' as a value, use '-- --bob'
+
+Usage: compact format [OPTIONS] [FILES]...
+
+For more information, try '--help'.

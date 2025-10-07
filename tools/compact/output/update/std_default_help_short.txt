@@ -1,0 +1,13 @@
+Update to the latest or a specific version of the Compact toolchain
+
+Usage: compact update [OPTIONS] [COMPACT_VERSION]
+
+Arguments:
+  [COMPACT_VERSION]  Set the version to install
+
+Options:
+      --no-set-default         Don't make the newly installed compiler the default one
+      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
+                               [default: [USER_DIR]/.compact]
+  -h, --help                   Print help (see more with '--help')
+  -V, --version                Print version

@@ -1,0 +1,421 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// test1: hexadecimal, octa-decimal, binary and slice
+export circuit test1(vector: Vector<0xffff, Field>): [Field, Field] {
+  const a = 0o2;
+  const b: Uint<16> = 0xff;
+  const c = 0xff * a;
+  const d = [ 0x31, 2, 0x03, 0o4, 0b1 ] as Bytes<5>;
+  const e = slice<1>(d as Vector<5, Uint<8>>, 1);
+  return slice<0o2>(vector, a);
+}
+
+// test2: tuple and vector equality + default
+export circuit test2(vector: Vector<8, Field>): Boolean {
+  const a = [0b00, 0x00];
+  const b = a == slice<0x2>(vector, 0x0) && slice<2>(vector, 0o0) == [0o0, 0b0];
+  assert([0x0, 0] == slice<2>(default<Vector<4, Field>>, 0x0), "equal");
+
+  return b;
+}
+
+// test3: mixed arithmetic, slice conversion to bytes/field
+export circuit test3(): [] {
+  const a = 0b11111111 + 0O77777777 + 0xAbCdEfaBcDeF0123456789;
+  const b = a * 0xffff;
+  const c = (slice<0o0>([], 0) as Bytes<0> as Field) + (slice<0o0>([], 0) as Bytes<0> as Field);
+  const d = (slice<0o1>(default<Vector<1, Uint<8>>>, 0) as Bytes<1> as Field) * (slice<0o1>(default<Vector<1, Uint<8>>>, 0) as Bytes<1> as Field);
+  // const e = (0b1 - 0o7 - 0Xa * 1) * ([0b1, 1, 0x2][0]) - slice<1>([1, "a"], 0)[0];
+  return slice<0o0>([], 0);
+}
+
+// test4: slice in slice in slice
+export circuit test4(vector: Vector<8, Field>): Vector<2, Field> {
+
+  const a = slice<2>(slice<4>(slice<4>(vector, 0x0), 0b0), 0x00000000000000000000000000000000002);
+  return [a[0x0] * a[0x1], a[0x1] * a[0x0]];
+}
+
+// test5: slice with different types
+export circuit test5(): [Field, Boolean] {
+  const a = [5 as Uint<64>, 4 as Uint<8>, true, default<Bytes<8>>];
+  return slice<2>(a, 1);
+}
+
+// test6: same but from circuit
+export circuit test6(vector: [Boolean, Boolean, Field]): [Field] {
+  // const a = 2;
+  return slice<1>(vector, 2);
+}
+
+// test7: return bytes with different data (hex, byte etc)
+circuit test7a(): Bytes<4> {
+    return [ 0x01, 2, 0b11, 0o4 ] as Bytes<4>;
+}
+
+export circuit test7b(): Bytes<4> {
+  const a = slice<2>(test7a() as Vector<4, Uint<8>>, 0);
+  const b = (test7a() as Vector<4, Uint<8>>)[0];
+  const c = (test7a() as Vector<4, Uint<8>>)[1];
+  return [a[0], a[1], b, c] as Bytes<4>;
+}
+
+// test8: comparisons and ledger
+export ledger var8: Map<Field, Field>;
+
+export circuit test8(vector: Vector<4, Field>): [] {
+  const a = true as Uint<8>;
+  const b = slice<2>(vector, a);
+  const c = 0x00 == 0b0 ? true : false;
+  // const d = slice<2>(vector, var8.size());
+  const e = slice<2>(vector, 0 + 1);
+  const f = slice<1>(vector, 0 + 4 - 1);
+  const g: Bytes<8> = 'abcdefgh';
+  const h: Bytes<0> = default<Bytes<0>>;
+  const i: Bytes<4> = '0x00';
+  const j = slice<4>(g as Vector<8, Uint<8>>, 0);
+  const k = slice<4>(default<Vector<8, Uint<8>>>, 0);
+  const l = "adadsadadadasdadadadadadsadsadsadsadasdas";
+  const m = [var8.lookup(0), var8.lookup(1)];
+
+  if(0x00 > 0b0) {
+    assert(0B1 != 0X01, "no");
+    assert(0O1 != 1, "no");
+    assert(j == k, "no");
+    assert(m == [1, 2], "yes");
+  }
+}
+
+// test9: struct and bytes return
+struct var9 {
+  a: Bytes<4>,
+  b: Bytes<4>
+}
+
+circuit test9a(flag: Boolean): Bytes<4> {
+
+  const a = var9 { a: "abcd", b: "efgh" };
+  const b = flag ? a.a : a.b;
+  return b;
+}
+
+export circuit test9b(flag: Boolean): Bytes<4> {
+  return test9a(flag);
+}
+
+// test10: check lower and higher bounds and non-ascii chars
+export circuit test10(): [] {
+  const a = 0x00;
+  // const b = 0xgg;
+  // const b1 = 0X00fg;
+  // const b2 = 0xf\n;
+  const c = 0b0;
+  // const d = 0b2;
+  // const d1 = 0b02;
+  // const d2 = 0b\n;
+  const e = 0o0;
+  // const f = 0o8;
+  // const f1 = 0o08;
+  // const f2 = 0o0\n;
+
+  const g = ["\n", "\t", "\r", "\r\n"];
+  const h: Bytes<3> = "\nÄ";
+}
+
+// test11: check passing of generic value from circuit
+circuit test11a<#index>(vector: Vector<4, Field>): Field {
+    return vector[index];
+}
+
+circuit test11b<#index, #index2>(vector: Vector<4, Vector<4, Field>>): Field {
+    return vector[index][index2];
+}
+
+export ledger var11: Field;
+
+export circuit test11c(vector: Vector<4, Field>, vector2: Vector<4, Vector<4, Field>>, field: Field): Vector<4, Field> {
+    // test11a<field>(vector);
+    // const a = 1 + field;
+    // const b = test11a<0>(vector) + test11a<1>(vector) + test11a<2>(vector) + test11a<3>(vector) + test11a<4>(vector);
+    const c = test11a<0>(vector) + test11a<1>(vector) + test11a<2>(vector) + test11a<3>(vector);
+    const d = test11b<0, 0>(vector2) + test11b<1, 1>(vector2) + test11b<2, 2>(vector2) + test11b<3, 3>(vector2);
+    // const e = test11b<var11>(vector);
+    return [c * c * d, c + c + d, c + c - d, c - d + var11];
+}
+
+// test12: pass generic from module
+module m12<#size, #size2> {
+  circuit method1<#index>(vector: Vector<size, Field>): Vector<size, Field> {
+    return slice<size>(vector, true ? 0 : 1);
+  }
+
+  circuit method2<#index>(vector: Vector<size, Field>): Field {
+    return vector[index - 1];
+  }
+
+  export circuit method3(vector: Vector<size, Field>): Vector<size, Field> {
+    const a = method2<16>(vector);
+    return method1<size>(vector);
+  }
+
+  circuit method4<#index>(bytes: Bytes<size>): Vector<size, Field> {
+    return slice<size>(bytes as Vector<size, Uint<8>>, 0);
+  }
+
+  export circuit method5(bytes: Bytes<size>): Vector<size, Field> {
+    return method4<size>(bytes);
+  }
+
+  circuit method6<#index, #size2>(bytes: Bytes<size2>): [Bytes<size2>, Bytes<size2>, Bytes<size2>, Bytes<size2>] {
+    return [bytes, bytes, bytes, bytes];
+  }
+
+  export circuit method7(bytes: Bytes<size2>): Vector<size2, Bytes<size2>> {
+    return method6<size2, size2>(bytes);
+  }
+}
+
+import m12<16, 4>;
+export { method3, method5, method7 };
+
+export circuit test12(): Vector<16, Field> {
+  const a = method3(default<Vector<16, Field>>);
+  const b = method3([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);
+  const c = method7(default<Bytes<4>>);
+  return method5('abcdefghijklmnou');
+}
+
+// test13: vector and struct
+struct var13 {
+  a: Field,
+  b: Bytes<2>,
+  c: Boolean,
+  d: Vector<10, Bytes<1>>
+}
+
+struct var13a {
+  a: Vector<1, var13>
+}
+
+export circuit test13(vector: Vector<8, var13>): [Field, Bytes<2>, Boolean, Bytes<1>] {
+  const a = slice<2>(vector, 0);
+  const b = var13 { a: 1, b: "ab", c: true, d: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"] };
+  const c = slice<0>(b.d, 1);
+  const d = var13a { a: [b] };
+  const e = slice<0>(d.a[0].d, 0);
+
+  return [a[0].a, a[0].b, a[0].c, a[0].d[0]];
+}
+
+// test14: vector and dynamic index ? 
+export ledger var14: Counter;
+
+circuit test14a<#index>(): Vector<index, Field> {
+  return default<Vector<index, Field>>;
+}
+
+export circuit test14(field: Uint<16>, index1: Uint<16>, index2: Uint<16>): Uint<16> {
+  const a = test14a<16>();
+  // const b = field > 4 ? a[index1 > 4 ? 0 : 1] : a[index2 > 4 ? 0 : 1];
+  const c = disclose(field) > 4 ? a[0x1] : a[0x0];
+  var14 += c as Uint<16>;
+  const d = slice<0>([var14.read(), var14.increment(1)], 0);
+  return c as Uint<16>;
+}
+
+// test15: use loop variable
+export ledger var15: Field;
+
+circuit loop<#size>(): [] {
+  // for (const a of 0..size) {
+  //  const a = "a";
+  // }
+
+  // shadowing
+  for (const size of 0..1) {
+    const b = size;
+  }
+}
+
+export circuit test15(): [] {
+  const a = default<Vector<16, Uint<16>>>;
+
+  // for (const b of []) {
+  //  const c = a[b];
+  // }
+
+  // for (const b of a) {
+  //  const c = a[b];
+  // }
+
+  for (const b of [1,2,3,4,5]) {
+    const c = a[b];
+  }
+
+  // for (const c of slice<4>(a, 0)) {
+  //  const d = a[c];
+  // }
+
+  const a1 = "abcde";
+  const a2 = ["a", "b", "c", "d", "e"];
+  const a3 = [0, 1, 2, 3, 4, 5];
+
+  for (const a of 1..4) {
+    if(a == 0) {
+      const b = (a1 as Vector<5, Uint<8>>)[0];
+    }
+
+    if(a == 1) {
+      const b = a2[a];
+    }
+
+    if(a == 5) {
+      const b = (a1 as Vector<5, Uint<8>>)[a];
+    }
+
+    // loop bases on top loop
+    // for (const b of 0..a) {
+    //
+    // }
+
+    // generic loop
+    // loop<a>();
+
+    var15 = var15 + a;
+  }
+}
+
+// test16: witness and slice
+witness w16(x: Field): Field;
+witness w16a(x: Field): Vector<4, Field>;
+
+circuit test16a(vector: Vector<4, Field>): Field {
+  const a = w16(vector[0]);
+  const b = w16(vector[1]);
+  const c = w16(vector[default<Field> as Uint<64>]);
+  // const d = w16(vector[w16(1) as Uint<16>]);
+  // const e = w16(vector[(a - 5) as Uint<8>]);
+  // const f = w16(vector[round.read() as Uint<8>]);
+  // const g = [][0];
+  const [h, _ ] = slice<4>(w16a(0), 0);
+  const i = _ + _ * _;
+
+  for (const i of slice<0>([], 0)) {
+    const p = i;
+
+    // unknown or not ?
+    for (const _ of slice<0>(w16a(i), 1)) {
+        const p = _;
+    }
+  }
+
+  return i * i;
+}
+
+export circuit test16b(vector: Vector<2, Vector<4, Field>>): Field {
+  return disclose(test16a(vector[0]) * 2);
+}
+
+// test17: some padding, slicing and strings
+export ledger var17: List<Vector<10, Bytes<10>>>;
+
+export circuit test17(vector: Vector<10, Bytes<10>>): Bytes<1> {
+
+  const a = var17.head().value[0];
+  const b = vector[0];
+
+  assert("" == default<Bytes<0>>, "hello 2");
+  assert(pad(0, "") == "", "hello 3");
+  assert(pad(0xFF, "1") == default<Bytes<0xff>>, "hello 3");
+  const c = (0b11110110 - 0b11110110 - 0b11110110) * (0 - 1);
+  assert(a == b, "hello 3");
+  // const d = (slice<1>(var17.head().value, 1)[0] as Vector<10, Uint<8>>)[0];
+  const e = slice<3>([[["a"]], [["b"]], [["c"]]], 0)[0][0][0];
+
+  if (a == "bobbobbob1") {
+    return "a";
+  }
+
+  if (b == "notbobbob1") {
+    return "b";
+  }
+
+  assert("bob" == "nob", "ha");
+
+  return "c";
+}
+
+// test18: more loops
+export ledger var18: Field;
+
+export circuit test18(v: Vector<0xfff, Field>): Field {
+  for (const i of ["1" as Field, 2, 3, 4, "2" as Field]) {
+    var18 = var18 + disclose(v)[(i as Field as Uint<8>) * (i as Field as Uint<8>)];
+
+    for(const i of 1..10) {
+      var18 = var18 + i;
+    }
+
+    for(const i of 0x02..0b11) {
+      var18 = var18 + i;
+    }
+
+    // for(const i of default<[]>) {
+    //  var18 = var18 + i;
+    // }
+  }
+  return var18;
+}
+
+// test19: maps & folds
+export ledger var19: Vector<3, Field>;
+export ledger var19a: List<Vector<3, Field>>;
+export ledger var19c: Counter;
+
+export circuit test19(vector: Vector<5, Field>): Vector<3, Field> {
+
+  for (const k of 0..3) {
+    var19 = map((x, y) => disclose(x + y), slice<3>(var19, 0), slice<3>(vector, k));
+    const b = map((x, y) => disclose(x + y + 1), slice<3>(var19, k - k), slice<3>(vector, k));
+    const c = map((x, y) => disclose(x + y + 1 + var19c.read()), slice<3>(var19a.head().value, k - k), slice<3>(vector, k));
+
+    var19a.pushFront(b);
+    var19c.increment(slice<1>(disclose(vector), 0)[0] as Uint<16>);
+
+    for (const k of 0..100) {
+       const a = default<Vector<10, Field>>;
+       const b = default<Vector<9, Field>>;
+       const d = map((a, n) => a + n, slice<9>(a, 0), b);
+       var19c.increment(slice<1>(disclose(vector), 0)[0] as Uint<16>);
+       ((x, y) => {
+          for (const i of 0..9) {
+            const z = a[i] + slice<1>(b, 0)[0];
+          }
+       })(a, b);
+    }
+
+    for (const k of 0..90) {
+      const e = fold((a, b) => b, 1 as Field, vector);
+      const f = fold((a, b) => b, slice<1>([1,2,3], 0)[0] as Field, vector);
+      const g = fold((a, b) => b, slice<1>([1,2,3], 0)[0] as Field, slice<10>(default<Vector<100, Field>>, k));
+      // const h = fold((a, b) => b, slice<1>([1,2,3], 0)[0] as Field, slice<0>([], 0));
+    }
+  }
+
+  return var19;
+}

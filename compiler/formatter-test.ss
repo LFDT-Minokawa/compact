@@ -18,6 +18,7 @@
 (library (formatter-test)
   (export formatter-testing-passes)
   (import (except (chezscheme) errorf)
+          (utils)
           (pass-helpers)
           (streams)
           (only (lparser) make-token token-type token-src)
@@ -59,8 +60,22 @@
                       ; ... and see if it will parse
                       (parse-file formatter-pathname))])
           ; now verify that both parses are equivalent to the original
-          (assert (equal? (unparse-Lsrc ir2) (unparse-Lsrc (Lparser->Lsrc ir))))
-          (assert (equal? (unparse-Lsrc ir3) (unparse-Lsrc (Lparser->Lsrc ir))))
+          (let ([ir1 (unparse-Lsrc (Lparser->Lsrc ir))]
+                [ir2 (unparse-Lsrc ir2)]
+                [ir3 (unparse-Lsrc ir3)])
+            (define (format/pretty ir)
+              (with-output-to-string
+                (lambda ()
+                  (parameterize ([pretty-initial-indent 2])
+                    (pretty-print/formats (Lsrc-pretty-formats) ir)))))
+            (unless (equal? ir2 ir1)
+              (internal-errorf #f "equality mismatch ir2 vs ir1:\n  ~a\n  ~a"
+                               (format/pretty ir2)
+                               (format/pretty ir1)))
+            (unless (equal? ir3 ir1)
+              (internal-errorf #f "equality mismatch ir3 vs ir1:\n  ~a\n  ~a"
+                               (format/pretty ir3)
+                               (format/pretty ir1))))
           ir3))))
 
   (define-passes formatter-testing-passes

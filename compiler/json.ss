@@ -34,7 +34,8 @@
 ;;; by #t, false by #f, and null by the value of (void),
 
 (library (json)
-  (export open-json-file read-json read-json-file replace-value-in-json print-json)
+  (export open-json-file read-json read-json-file replace-value-in-json print-json
+          print-json-compact)
   (import (except (chezscheme) errorf)
           (utils)
           (state-case))
@@ -395,9 +396,9 @@
            json)]
         [else json])))
 
-  (define (print-json op json)
-    (define (indent i)
-      (fprintf op "\n~a" (make-string i #\space)))
+  (define (help-print-json op json compact?)
+    (define (indent depth)
+      (fprintf op "\n~a" (make-string (fx* 2 depth) #\space)))
     (define (print-string s)
       (put-char op #\")
       (let ([n (string-length s)])
@@ -413,48 +414,62 @@
               [(#\return) (put-string op "\\r")]
               [(#\tab) (put-string op "\\t")]
               [else
-               (if (char<=? #\x20 c #\x10ffff)
-                   (put-char op c)
-                   (fprintf op "u~4,'0x" c))]))))
+                (if (char<=? #\x20 c #\x10ffff)
+                    (put-char op c)
+                    (fprintf op "u~4,'0x" c))]))))
       (put-char op #\"))
-    (define (f json i)
+    (define (f json depth)
       (cond
         [(string? json) (print-string json)]
         [(vector? json)
          (fprintf op "[")
-         (let ([i (fx+ i 2)])
+         (let ([depth (fx1+ depth)])
            (let ([n (vector-length json)])
              (unless (fx= n 0)
                (let loop ([j 0])
-                 (indent i)
-                 (f (vector-ref json j) i)
+                 (if (and compact? (fx> depth 2))
+                     (unless (zero? j) (fprintf op " "))
+                     (indent depth))
+                 (f (vector-ref json j) depth)
                  (let ([j (fx+ j 1)])
                    (unless (fx= j n)
                      (fprintf op ",")
                      (loop j)))))))
-         (indent i)
+         (unless (and compact? (fx> depth 1))
+           (indent depth))
          (fprintf op "]")]
         [(and (list? json) (andmap pair? json))
          (fprintf op "{")
-         (let ([i (fx+ i 2)])
+         (let ([depth (fx1+ depth)])
            (unless (null? json)
              (let loop ([json+ json])
-               (indent i)
+               (if (and compact? (fx> depth 1))
+                   (fprintf op " ")
+                   (indent depth))
                (let ([a (car json+)])
                  (fprintf op "\"~a\": " (car a))
-                 (f (cdr a) i))
+                 (f (cdr a) depth))
                (let ([json* (cdr json+)])
                  (unless (null? json*)
                    (fprintf op ",")
                    (loop json*))))))
-         (indent i)
+         (if (and compact? (fx> depth 0))
+             (fprintf op " ")
+             (indent depth))
          (fprintf op "}")]
         [(and (integer? json) (exact? json)) (fprintf op "~d" json)]
         [(and (real? json) (inexact? json)) (fprintf op "~g" json)]
         [(boolean? json) (put-string op (if json "true" "false"))]
         [(eq? json (void)) (put-string op "null")]
         [else (internal-errorf 'print-json "unexpected input ~s" json)]))
-    (f json 0))
+    (f json 0)
+    (newline op))
+
+  (define (print-json op json)
+    (help-print-json op json #f))
+
+  (define (print-json-compact op json)
+    (help-print-json op json #t))
 )
 
 #!eof
@@ -518,4 +533,3 @@ echo '(import (json)) (equal? (read-json-file "/tmp/test.json") (read))' | schem
     -0.0 -1234567890 -3/2 -2300000 -1500000000000000000000000000
     (("string" . "a") ("zero" . 0.0) ("int" . 123))))
 END
-

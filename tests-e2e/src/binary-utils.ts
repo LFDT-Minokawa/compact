@@ -1,3 +1,18 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import { logger } from './logger-utils';
 import fs from 'fs';
 import path from 'path';
@@ -15,10 +30,14 @@ export enum Arguments {
     VSCODE = '--vscode',
 }
 
-export function getCompactcBinary(): string {
-    const local = '../result/bin/compactc';
-    const system = 'compactc';
+type FailedContract = {
+    stderr: string;
+    stdout: string;
+    exitCode: number;
+    contract: string;
+};
 
+function getBinary(local: string, system: string): string {
     if (isRelease()) {
         logger.info(`Using system compiler: ${system}`);
         return system;
@@ -31,12 +50,17 @@ export function getCompactcBinary(): string {
     }
 }
 
+// wrappers for binaries
+export function getCompactcBinary(): string {
+    return getBinary('../result/bin/compactc', 'compactc');
+}
+
 export function getFormatterBinary(): string {
-    return '../result/bin/format-compact';
+    return getBinary('../result/bin/format-compact', 'format-compact');
 }
 
 export function getFixupBinary(): string {
-    return '../result/bin/fixup-compact';
+    return getBinary('../result/bin/fixup-compact', 'fixup-compact');
 }
 
 export function extractCompilerVersion(): string {
@@ -61,18 +85,51 @@ export function compile(args: string[], folderPath?: string): Promise<Result> {
     });
 }
 
-export function compileWithContractName(contractName: string, contractsDir: string): Promise<Result> {
-    return compile([Arguments.SKIP_ZK, contractsDir + `${contractName}.compact`, contractsDir + `${contractName}`]);
+export function compileWithContractName(
+    contractName: string,
+    contractsDir: string,
+    formatErrors: boolean = false,
+): Promise<Result> {
+    const args = [Arguments.SKIP_ZK, contractsDir + `${contractName}.compact`, contractsDir + `${contractName}`];
+
+    if (formatErrors) {
+        args.unshift(Arguments.VSCODE);
+    }
+    return compile(args);
 }
 
 export function compileWithContractPath(path: string, outputDirName: string, contractsDir: string): Promise<Result> {
     return compile([Arguments.VSCODE, Arguments.SKIP_ZK, `${path}`, `${contractsDir}${outputDirName}`]);
 }
 
-export async function compileQueue(contractsDir: string, contractNames: string[]) {
+export async function compileQueue(contractsDir: string, contractNames: string[]): Promise<void> {
     for (const contractName of contractNames) {
         expectCompilerResult(await compileWithContractName(contractName, contractsDir)).toCompileWithoutErrors();
         expectFiles(`${contractsDir}${contractName}`).thatGeneratedJSCodeIsValid();
+    }
+}
+
+export async function compileQueueWithFailures(
+    contractsDir: string,
+    contractNames: string[],
+    failed: FailedContract[],
+    formatErrors: boolean = false,
+): Promise<void> {
+    for (const contractName of contractNames) {
+        const match = failed.find((item) => item.contract === contractName);
+        if (match !== undefined) {
+            logger.info(`found failed contract: ${contractName}`);
+            expectCompilerResult(await compileWithContractName(contractName, contractsDir, formatErrors)).toReturn(
+                match.stderr,
+                match.stdout,
+                match.exitCode,
+            );
+            expectFiles(`${contractsDir}${contractName}`).thatNoFilesAreGenerated();
+        } else {
+            logger.info(`performing default check: ${contractName}`);
+            expectCompilerResult(await compileWithContractName(contractName, contractsDir)).toCompileWithoutErrors();
+            expectFiles(`${contractsDir}${contractName}`).thatGeneratedJSCodeIsValid();
+        }
     }
 }
 

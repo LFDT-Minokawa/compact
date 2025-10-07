@@ -52,7 +52,17 @@
       [(module ,src ,exported? ,module-name (,[type-param*] ...) ,pelt* ...)
        `(module ,src ,exported? ,module-name (,type-param* ...) ,(fold-right expand-pelt '() pelt*) ...)]))
 
-  (define-pass expand-patterns : Lnoinclude (ir) -> Lnopattern ()
+  ; expands a multi-variable const into multiple single-variable const
+  (define-pass expand-const : Lnoinclude (ir) -> Lsingleconst ()
+    (Const-Binding : Const-Binding (ir) -> Statement ()
+      [(,src ,[pattern] ,[type] ,[expr])
+       `(const ,src ,pattern ,type ,expr)])
+    (Statement : Statement (ir) -> Statement ()
+      [(const ,src ,[Const-Binding : cbinding -> stmt]) stmt]
+      [(const ,src ,[Const-Binding : cbinding -> stmt] ,[Const-Binding : cbinding* -> stmt*] ...)
+       `(seq ,src ,stmt ,stmt* ...)]))
+
+  (define-pass expand-patterns : Lsingleconst (ir) -> Lnopattern ()
     (definitions
       (define next-tmp
         (let ([n 0])
@@ -61,7 +71,7 @@
             (string->symbol (format "__compact_pattern_tmp~a" n)))))
       (define (do-pattern pattern stmt*)
         (with-output-language (Lnopattern Statement)
-          (nanopass-case (Lnoinclude Pattern) pattern
+          (nanopass-case (Lsingleconst Pattern) pattern
             [,var-name (values var-name stmt*)]
             [(tuple ,src ,pattern?* ...)
              (let ([tmp (next-tmp)])
@@ -72,7 +82,7 @@
                      (if pattern?
                          (let-values ([(var-name stmt*) (do-pattern pattern? stmt*)])
                            (cons
-                             `(const ,src ,var-name (tundeclared) (tuple-ref ,src (var-ref ,src ,tmp) ,i))
+                             `(const ,src ,var-name (tundeclared) (tuple-ref ,src (var-ref ,src ,tmp) (quote ,src ,i)))
                              stmt*))
                          stmt*))
                    stmt*
@@ -378,6 +388,7 @@
 
   (define-passes frontend-passes
     (resolve-includes                Lnoinclude)
+    (expand-const                    Lsingleconst)
     (expand-patterns                 Lnopattern)
     (report-unreachable              Lnopattern)
     (hoist-local-variables           Lhoisted)

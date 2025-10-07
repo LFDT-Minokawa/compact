@@ -112,5 +112,3 @@ test('Check c > counter + 1', () => {
   Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
   expect(() => c.impureCircuits.fib(Ctxt, 4n).result).toThrow('invalid fib num requested');
 });
-
-

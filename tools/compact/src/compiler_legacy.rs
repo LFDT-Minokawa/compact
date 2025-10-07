@@ -1,10 +1,22 @@
-use anyhow::{anyhow, Context, Result};
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+use anyhow::{Context, Result, anyhow};
 use reqwest::Url;
 use semver::Version;
-use std::{
-    path::{Path, PathBuf},
-    process::Stdio,
-};
+use std::{path::PathBuf, process::Stdio};
 use tokio::process::Command;
 
 pub struct CompilerAsset {
@@ -29,11 +41,10 @@ impl CompilerAsset {
         &self.asset.browser_download_url
     }
 
-    pub async fn unzip(&self, program: impl AsRef<Path>) -> Result<()> {
-        let program = program.as_ref();
+    pub async fn unzip(&self) -> Result<()> {
         let cwd = &self.path;
 
-        let mut cmd = Command::new(program);
+        let mut cmd = Command::new("unzip");
 
         // execute the unzip command in the artifact directory
         cmd.current_dir(cwd);
@@ -60,7 +71,7 @@ impl CompilerAsset {
             let stderr = String::from_utf8_lossy(&output.stderr);
             Err(anyhow!("Stderr: {stderr}"))
                 .with_context(|| anyhow!("Status: {status}"))
-                .with_context(|| anyhow!("Command={program:?} CWD={cwd:?}"))
+                .with_context(|| anyhow!("Command=unzip CWD={cwd:?}"))
                 .context("artifact Extraction failed")
         } else {
             Ok(())

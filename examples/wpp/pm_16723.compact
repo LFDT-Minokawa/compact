@@ -1,8 +1,23 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import CompactStandardLibrary;
 
 ledger maps: Map<Field, Field>;
-ledger set: Set<QualifiedShieldedCoinInfo>;
-ledger list: List<QualifiedShieldedCoinInfo>;
+ledger set: Set<QualifiedCoinInfo>;
+ledger list: List<QualifiedCoinInfo>;
 ledger field: Field;
 ledger counter: Counter;
 ledger bool: Boolean;
@@ -43,8 +58,8 @@ export circuit alan(a: Uint<8>, b: Uint<8>) :[] {
   if (disclose(a - b) > disclose(a) - disclose(b)) list.isEmpty();
   if (disclose(a * b > a * b)) list.length();
   if (disclose(a + a + b) > 0) list.popFront();
-  if (disclose(b + a - a) < 0) list.pushFront(default<QualifiedShieldedCoinInfo>);
-  if (disclose(b * a * b) < 0) list.pushFrontCoin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  if (disclose(b + a - a) < 0) list.pushFront(default<QualifiedCoinInfo>);
+  if (disclose(b * a * b) < 0) list.pushFrontCoin(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
   if (disclose(b - b - a) < 0) list.resetToDefault();
 
   const z = disclose(a) + disclose(b) > 0 ? field.write(1) : field.write(2);
@@ -62,17 +77,17 @@ export circuit paulo() : Field{
 
 constructor(f: Uint<8>, z: Uint<8>, u: Vector<1, Uint<8>>) {
   if (disclose(f) > 0) {
-    set.insert(default<QualifiedShieldedCoinInfo>);
+    set.insert(default<QualifiedCoinInfo>);
   } else {
     const p = default<Boolean>;
     if(p && disclose(f) > 0) {
-      set.insertCoin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+      set.insertCoin(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
     } else {
       if(disclose(u[0]) > 0) {
-        set.member(default<QualifiedShieldedCoinInfo>);
+        set.member(default<QualifiedCoinInfo>);
       } else {
         if(disclose(f + z) > 0) {
-          set.remove(default<QualifiedShieldedCoinInfo>);
+          set.remove(default<QualifiedCoinInfo>);
         } else {
           if(disclose(z - f) < 0) {
             const z = 8;

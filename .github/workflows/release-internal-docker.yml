@@ -11,10 +11,8 @@ on:
         description: 'Release branch'
         required: true
         type: string
-    secrets: 
-      GH_USERNAME:
-        required: true
-      GH_PASSWORD:
+    secrets:
+      MIDNIGHTCI_PACKAGES_READ:
         required: true
       MIDNIGHTBOT_PACKAGES_WRITE:
         required: true
@@ -33,15 +31,15 @@ jobs:
         uses: extractions/netrc@v2
         with:
           machine: api.github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Setup github.com credentials
         uses: extractions/netrc@v2
         with:
           machine: github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Configure git rewrite
         run: |
@@ -64,13 +62,13 @@ jobs:
           platforms: linux/arm/v7,linux/arm/v8,linux/arm64,linux/amd64,linux/386 # optional
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v20
+        uses: cachix/install-nix-action@v31
         with:
-          #github_access_token: ${{ secrets.GH_PASSWORD }}
+          #github_access_token: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             netrc-file = ~/.netrc
-            access-tokens = github.com=${{ secrets.GH_PASSWORD }} api.github.com=${{ secrets.GH_PASSWORD }}
+            access-tokens = github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }} api.github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Cache Nix
         uses: input-output-hk/actions/attic@latest
@@ -94,5 +92,5 @@ jobs:
           docker buildx build \
           --platform linux/arm/v7,linux/arm/v8,linux/arm64,linux/amd64,linux/386 \
           -t ghcr.io/midnight-ntwrk/compactc:latest \
-          -t ghcr.io/midnight-ntwrk/compactc:${{ github.head_ref || github.ref_name }} \
+          -t ghcr.io/midnight-ntwrk/compactc:${{ inputs.version }} \
           --push .

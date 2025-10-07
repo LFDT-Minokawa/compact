@@ -45,7 +45,7 @@ describe('Compiled TypeScript declaration files', () => {
     );
 
     program = ts.createProgram(
-      glob.sync(resolve(__dirname, '../compiler/javascript-code/**/*.d.cts')),
+      glob.sync(resolve(__dirname, '../compiler/javascript-code/**/*.d.ts')),
       {
         ...tsConfig.options,
         alwaysStrict: true,

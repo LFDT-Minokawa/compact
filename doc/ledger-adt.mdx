@@ -1,34 +1,26 @@
 # Ledger data types
 
-Compact language version 0.16.104, compiler version 0.24.105.
+Compact language version 0.18.1, compiler version 0.26.106.
 
 ## Kernel
 
 This ADT is a special ADT defining various built-in operations and valid only as a top-level ADT type.
 
-### balance
+### blockTimeGreaterThan
 
 ```compact
-balance(token_type: Either<Bytes<32>, Bytes<32>>): Uint<128>
+blockTimeGreaterThan(time: Uint<64>): Boolean
 ```
 
-Returns the current contract's balance of the unshielded token of the given token type. The balance is not updated during contract execution as a result of unshielded sends and receives. It is always fixed to the value provided at the start of execution.
+Checks whether the current block time (measured in seconds since the Unix epoch) is greater than the given amount.
 
-### balanceGreaterThan
+### blockTimeLessThan
 
 ```compact
-balanceGreaterThan(token_type: Either<Bytes<32>, Bytes<32>>, amount: Uint<128>): Boolean
+blockTimeLessThan(time: Uint<64>): Boolean
 ```
 
-Checks whether the current balance of the unshielded token of the given type is greater than the given amount.
-
-### balanceLessThan
-
-```compact
-balanceLessThan(token_type: Either<Bytes<32>, Bytes<32>>, amount: Uint<128>): Boolean
-```
-
-Checks whether the current balance of the unshielded token of the given type is less than the given amount.
+Checks whether the current block time (measured in seconds since the Unix epoch) is less than the given amount.
 
 ### checkpoint
 
@@ -45,14 +37,6 @@ claimContractCall(addr: Bytes<32>, entry_point: Bytes<32>, comm: Field): []
 ```
 
 Require the presence of another contract call in the containing transaction, with a match address, entry point hash, and communication commitment, that is not claimed by any other call.
-
-### claimUnshieldedCoinSpend
-
-```compact
-claimUnshieldedCoinSpend(token_type: Either<Bytes<32>, Bytes<32>>, address: Either<ContractAddress, UserAddress>, amount: Uint<128>): []
-```
-
-Claims an unshielded coin spend - authorizes an unshielded coin of the given token type to be transferred to the given address.
 
 ### claimZswapCoinReceive
 
@@ -78,37 +62,13 @@ claimZswapNullifier(nul: Bytes<32>): []
 
 Requires the presence of a nullifier in the containing transaction and that no other call claims it.
 
-### incUnshieldedInputs
+### mint
 
 ```compact
-incUnshieldedInputs(token_type: Either<Bytes<32>, Bytes<32>>, amount: Uint<128>): []
-```
-
-Increments the unshielded input for the token of the given token type by the given amount - used when receiving tokens.
-
-### incUnshieldedOutputs
-
-```compact
-incUnshieldedOutputs(token_type: Either<Bytes<32>, Bytes<32>>, amount: Uint<128>): []
-```
-
-Increments the unshielded output for the token of the given token type by the given amount - used when sending tokens.
-
-### mintShielded
-
-```compact
-mintShielded(domain_sep: Bytes<32>, amount: Uint<64>): []
+mint(domain_sep: Bytes<32>, amount: Uint<64>): []
 ```
 
 Mints a given amount of shielded coins with a token type derived from the contract's address, and a given domain separator.
-
-### mintUnshielded
-
-```compact
-mintUnshielded(domain_sep: Bytes<32>, amount: Uint<64>): []
-```
-
-Mints a given amount of unshielded coins with a token type derived from the contract's address, and a given domain separator.
 
 ### self
 
@@ -151,12 +111,12 @@ Overwrites the content of this Cell with the given value.
 ### writeCoin
 
 ```compact
-writeCoin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
+writeCoin(coin: CoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
 ```
 
-Writes a ShieldedCoinInfo to this Cell, which is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this write fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
+Writes a CoinInfo to this Cell, which is transformed into a QualifiedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this write fails. CoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
 
-**available only for QualifiedShieldedCoinInfo value_type**
+**available only for QualifiedCoinInfo value_type**
 
 ## Counter
 
@@ -219,12 +179,12 @@ Updates this Set to include a given element.
 ### insertCoin
 
 ```compact
-insertCoin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
+insertCoin(coin: CoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
 ```
 
-Inserts a ShieldedCoinInfo into this Set, which is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this insertion fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
+Inserts a CoinInfo into this Set, which is transformed into a QualifiedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this insertion fails. CoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
 
-**available only for QualifiedShieldedCoinInfo value_type**
+**available only for QualifiedCoinInfo value_type**
 
 ### isEmpty
 
@@ -297,12 +257,12 @@ Updates this Map to include a new value at a given key.
 ### insertCoin
 
 ```compact
-insertCoin(key: key_type, coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
+insertCoin(key: key_type, coin: CoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
 ```
 
-Inserts a ShieldedCoinInfo into this Map at a given key, where the ShieldedCoinInfo is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this insertion fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
+Inserts a CoinInfo into this Map at a given key, where the CoinInfo is transformed into a QualifiedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this insertion fails. CoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
 
-**available only for QualifiedShieldedCoinInfo value_type**
+**available only for QualifiedCoinInfo value_type**
 
 ### insertDefault
 
@@ -388,7 +348,7 @@ This ADT is an unbounded list of values of type value_type.
 head(): Maybe<value_type>
 ```
 
-Retrieves the head of this List, returning a Maybe, ensuring this call succeeds on the empty list. Maybe is defined in CompactStandardLibrary (compact-runtime runtime.ts from Typescript).
+Retrieves the head of this List, returning a Maybe, ensuring this call succeeds on the empty list. Maybe is defined in CompactStandardLibrary (compact-runtime from Typescript).
 
 *available from Typescript as `head(): Maybe<value_type>`*
 
@@ -431,12 +391,12 @@ Pushes a new element onto the front of this list.
 ### pushFrontCoin
 
 ```compact
-pushFrontCoin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
+pushFrontCoin(coin: CoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): []
 ```
 
-Pushes a ShieldedCoinInfo onto the front of this List, where the ShieldedCoinInfo is transformed into a QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this push fails. ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
+Pushes a CoinInfo onto the front of this List, where the CoinInfo is transformed into a QualifiedCoinInfo at runtime by looking up the relevant Merkle tree index. This index must have been allocated within the current transaction or this push fails. CoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary.
 
-**available only for QualifiedShieldedCoinInfo value_type**
+**available only for QualifiedCoinInfo value_type**
 
 ### resetToDefault
 
@@ -458,7 +418,7 @@ Iterates over the entries in this List.
 
 ## MerkleTree\<nat, value_type>
 
-This ADT is a bounded Merkle tree of depth nat containing values of type value_type.
+This ADT is a bounded Merkle tree of depth nat where 2 <= nat <= 32 containing values of type value_type.
 
 ### checkRoot
 
@@ -466,7 +426,7 @@ This ADT is a bounded Merkle tree of depth nat containing values of type value_t
 checkRoot(rt: MerkleTreeDigest): Boolean
 ```
 
-Tests if the given Merkle tree root is the root for this Merkle tree. MerkleTreeDigest is defined in CompactStandardLibrary (compact-runtime runtime.ts from Typescript).
+Tests if the given Merkle tree root is the root for this Merkle tree. MerkleTreeDigest is defined in CompactStandardLibrary (compact-runtime from Typescript).
 
 *available from Typescript as `checkRoot(rt: MerkleTreeDigest): boolean`*
 
@@ -536,7 +496,7 @@ Resets this Merkle tree to the empty Merkle tree.
 findPathForLeaf(leaf: value_type): MerkleTreePath<value_type> | undefined
 ```
 
-Finds the path for a given leaf in a Merkle tree. Be warned that this is O(n) and should be avoided for large trees. Returns undefined if no such leaf exists. MerkleTreePath is defined in compact-runtime runtime.ts.
+Finds the path for a given leaf in a Merkle tree. Be warned that this is O(n) and should be avoided for large trees. Returns undefined if no such leaf exists. MerkleTreePath is defined in compact-runtime.
 
 ### firstFree
 
@@ -556,7 +516,7 @@ Retrieves the first (guaranteed) free index in the Merkle tree.
 pathForLeaf(index: bigint, leaf: value_type): MerkleTreePath<value_type>
 ```
 
-Returns the Merkle path, given the knowledge that a specified leaf is at the given index. It is an error to call this if this leaf is not contained at the given index. MerkleTreePath is defined in compact-runtime runtime.ts.
+Returns the Merkle path, given the knowledge that a specified leaf is at the given index. It is an error to call this if this leaf is not contained at the given index. MerkleTreePath is defined in compact-runtime.
 
 ### root
 
@@ -566,11 +526,11 @@ Returns the Merkle path, given the knowledge that a specified leaf is at the giv
 root(): MerkleTreeDigest
 ```
 
-Retrieves the root of the Merkle tree. MerkleTreeDigest is defined in compact-runtime runtime.ts.
+Retrieves the root of the Merkle tree. MerkleTreeDigest is defined in compact-runtime.
 
 ## HistoricMerkleTree\<nat, value_type>
 
-This ADT is a bounded Merkle tree of depth nat containing values of type value_type, with history.
+This ADT is a bounded Merkle tree of depth nat where 2 <= nat <= 32 containing values of type value_type, with history.
 
 ### checkRoot
 
@@ -578,7 +538,7 @@ This ADT is a bounded Merkle tree of depth nat containing values of type value_t
 checkRoot(rt: MerkleTreeDigest): Boolean
 ```
 
-Tests if the given Merkle tree root is one of the past roots for this Merkle tree. MerkleTreeDigest is defined in CompactStandardLibrary (compact-runtime runtime.ts from Typescript).
+Tests if the given Merkle tree root is one of the past roots for this Merkle tree. MerkleTreeDigest is defined in CompactStandardLibrary (compact-runtime from Typescript).
 
 *available from Typescript as `checkRoot(rt: MerkleTreeDigest): boolean`*
 
@@ -657,7 +617,7 @@ findPathForLeaf(leaf: value_type): MerkleTreePath<value_type> | undefined
 ```
 
 Finds the path for a given leaf in a Merkle tree. Be warned that this is O(n) and should be avoided for large trees. Returns undefined if no such leaf exists. 
-    MerkleTreePath is defined in compact-runtime runtime.ts.
+    MerkleTreePath is defined in compact-runtime.
 
 ### firstFree
 
@@ -677,7 +637,7 @@ Retrieves the first (guaranteed) free index in the Merkle tree.
 history(): Iterator<MerkleTreeDigest>
 ```
 
-An iterator over the roots that are considered valid past roots for this Merkle tree. MerkleTreeDigest is defined in compact-runtime runtime.ts.
+An iterator over the roots that are considered valid past roots for this Merkle tree. MerkleTreeDigest is defined in compact-runtime.
 
 ### pathForLeaf
 
@@ -687,7 +647,7 @@ An iterator over the roots that are considered valid past roots for this Merkle 
 pathForLeaf(index: bigint, leaf: value_type): MerkleTreePath<value_type>
 ```
 
-Returns the Merkle path, given the knowledge that a specified leaf is at the given index. It is an error to call this if this leaf is not contained at the given index. MerkleTreePath is defined in compact-runtime runtime.ts.
+Returns the Merkle path, given the knowledge that a specified leaf is at the given index. It is an error to call this if this leaf is not contained at the given index. MerkleTreePath is defined in compact-runtime.
 
 ### root
 
@@ -697,6 +657,6 @@ Returns the Merkle path, given the knowledge that a specified leaf is at the giv
 root(): MerkleTreeDigest
 ```
 
-Retrieves the root of the Merkle tree. MerkleTreeDigest is defined in compact-runtime runtime.ts.
+Retrieves the root of the Merkle tree. MerkleTreeDigest is defined in compact-runtime.
 
 

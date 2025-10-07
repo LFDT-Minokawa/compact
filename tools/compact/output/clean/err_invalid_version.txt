@@ -1,0 +1,5 @@
+error: unexpected argument '5' found
+
+Usage: compact clean [OPTIONS]
+
+For more information, try '--help'.

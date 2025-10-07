@@ -22,6 +22,9 @@
           generate-everything
           pass-name-condition?
           condition-pass-name
+
+          ;; Feature flags:
+          zkir-v3
           )
   (import (except (chezscheme) errorf)
           (utils)
@@ -37,7 +40,8 @@
           (save-contract-info-passes)
           (typescript-passes)
           (circuit-passes)
-          (zkir-passes))
+          (zkir-passes)
+          (zkir-v3-passes))
 
   (define-condition-type &pass-name &condition
     make-pass-name-condition pass-name-condition?
@@ -48,6 +52,8 @@
   (define trace-passes (make-parameter #f))
 
   (define skip-zk (make-parameter #t))
+
+  (define zkir-v3 (make-parameter #f))
 
   (define generate-everything
     (case-lambda
@@ -102,7 +108,7 @@
                             (begin
                               (create-hierarchy (path-parent path))
                               (let ([op (guard (c [else (error-accessing-file c "creating output file")])
-                                          (if (equal? (path-extension path) "cjs")
+                                          (if (equal? (path-extension path) "js")
                                               (begin
                                                 (register-target-pathname! path)
                                                 (open-output-file/line&col-positions path 'replace))
@@ -148,21 +154,12 @@
                             (run-passes save-contract-info-passes analyzed-ir))
                           (let ([circuit-names (exported-impure-circuit-names analyzed-ir)]
                                 [circuit-ir (run-passes circuit-passes analyzed-ir)])
-                            (when (eq? final-pass 'print-Lflattened)
-                              (with-target-ports
-                                '((lflattened.out . "lflattened.out"))
-                                (run-passes print-Lflattened-passes circuit-ir)))
-                            (with-target-ports
-                              '((contract.cjs . "contract/index.cjs")
-                                (contract.d.cts . "contract/index.d.cts")
-                                (contract.cjs.map . "contract/index.cjs.map"))
-                              (run-passes typescript-passes analyzed-ir))
                             (rm-rf (format "~a/zkir" output-directory-pathname))
                             (rm-rf (format "~a/keys" output-directory-pathname))
                             (with-target-ports
                               (map (lambda (sym) (cons sym (format "zkir/~a.zkir" sym)))
                                    circuit-names)
-                              (run-passes zkir-passes circuit-ir))
+                              (run-passes (if (zkir-v3) zkir-v3-passes zkir-passes) circuit-ir))
                             (unless (null? (pending-conditions)) (raise (make-halt-condition)))
                             (unless (skip-zk)
                               (if (zero? (system "command -v zkir > /dev/null"))
@@ -174,11 +171,16 @@
                                                              output-directory-pathname
                                                              output-directory-pathname))])
                                     (unless (zero? res)
-                                      (exit 250))))
+                                      (external-errorf "zkir returned a non-zero exit status ~d" res))))
                                 (unless (zkir-warning-issued)
                                   (zkir-warning-issued #t)
                                   (fprintf (console-error-port)
                                            "Warning: ZKIR not found; skipping final circuit compilation.\n"))))
+                            (with-target-ports
+                             '((contract.js . "contract/index.js")
+                               (contract.d.ts . "contract/index.d.ts")
+                               (contract.js.map . "contract/index.js.map"))
+                             (run-passes typescript-passes analyzed-ir))
                             (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass))))]))))))))]))
 
   (define-pass exported-impure-circuit-names : Lnodisclose (ir) -> * (ls)

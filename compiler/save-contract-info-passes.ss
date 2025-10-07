@@ -43,13 +43,9 @@
              (cons
                "witnesses"
                (list->vector (fold-right Witness '() pelt*)))
-             ; FIXME contracts and witnesses may also suffer from the same issue that
-             ; circuits did (that is if they're being exported from a module with a
-             ; prefix the contract-info.json doesn't indicate that)
              (cons
                "contracts"
-               (list->vector (map symbol->string contract-name*)))))
-         (newline op))
+               (list->vector (map symbol->string contract-name*))))))
        ir])
     (Witness : Program-Element (ir witness*) -> * (json)
       [(witness ,src ,function-name (,arg* ...) ,type)
@@ -118,18 +114,18 @@
        (list
          (cons "type-name" "Uint")
          (cons "maxval" nat))]
-      [(tbytes ,src ,nat)
+      [(tbytes ,src ,len)
        (list
          (cons "type-name" "Bytes")
-         (cons "length" nat))]
+         (cons "length" len))]
       [(topaque ,src ,opaque-type)
        (list
          (cons "type-name" "Opaque")
          (cons "tsType" opaque-type))]
-      [(tvector ,src ,nat ,type)
+      [(tvector ,src ,len ,type)
        (list
          (cons "type-name" "Vector")
-         (cons "length" nat)
+         (cons "length" len)
          (cons "type" (Type type)))]
       [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
        (list

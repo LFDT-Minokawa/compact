@@ -1,39 +1,414 @@
 # `Compactc` Changelog
 
-# Compiler Version `0.24.105`, Language Version `0.16.104`
+# Compiler Version `0.26.105`, language Version `0.18.0`
+- Addresses 16090
+  adds an upper bound for vector size, tuple size, and bytes length by the parameter
+  `max-bytes/vector-size`. It also adds bounds for MerkleTree and HistroicMerkleTree
+  where 2 <= depth <= 32
 
-- Retargets the compiler for the new Compact runtime with support for inter-contract calls and
-  witness sets. 
-  - Changes the names of generated JavaScript and TypeScript language elements to be consistent with the new runtime.
-  - The generated `d.cts` files now use the new `Executables` type and `executables` type constructor instead of the previous
-    `Contract` class and class constructor.
-  - Introduces tests in `test-center` which use the `AuthCell` example to verify inter-contract calls execute as expected.
-  - Moves the helper functions in the generated JavaScript for circuits to the top level of the `index.cjs` file.
-  - Implements code generation for inter-contract calls by using the `interContractCall` utility from the new runtime.
-  - Moves the pure circuits object to the top level of `d.cts` and `index.cjs` so that users can access pure functions
-    without needing to instantiate a contract object.
-- Some notes on composable contracts:
-  - Due to changes mentioned above any contract even if it doesn't uses composable contract will need to be recompiled 
-    if one wants to deploy it again.
-  - At the moment, it is assumed that contract types do not have a default value. This will be changed in later iterations
-    of this feature.
+# Compiler Version `0.26.104`, language Version `0.18.0`
+- Addresses Github issue 1406
+  fixes a bug in which disclosures affecting flow of control are not always
+  caught for the second occurrence of a call to a given circuit
 
-# Compiler Version `0.24.104`, langauge Version `0.16.103`
+# Compiler Version `0.26.103`, language Version `0.18.0`
+- addresses PM 19145
+    - The compiler now generates '.js', '.d.ts', and '.js.map' files instead of '.cjs', '.d.cts', and '.cjs.map' files.
+    - Migrated to ES Modules (ESM): The runtime package is now a pure ES module
+        - Added "type": "module" to package.json
+        - All imports now require ES module syntax (import/export)
+        - CommonJS (require/module.exports) is no longer supported
+        - TypeScript configuration updated to use "module": "NodeNext" and "moduleResolution": "NodeNext"
+
+# Compiler Version `0.26.102`, language Version `0.18.0`
+- Addresses PM 19230
+  - Circuit generation is more robust and sometimes produces smaller circuits.
+- internal notes:
+  - the conditional-execution flag (test) has been removed from Lcircuit assignment
+    statements and replaced with flags in those RHS (Lcircuit) and Single or Multiple
+    (Lflattened) forms whose execution should actually be conditional.
+  - resolve-indices/simplify no longer records a zero value for undefined variables
+    but rather uniformly counts on the undefined flag to be set where relevant.
+  - resolve-indices/simplify now treats the boolean value of a variable used as
+    a predicate in a conditional as true along the "then" branch and false along
+    the "else" branch, enabling more simplification.
+  - resolve-indices/simplify and optimize-circuit do a better job folding and
+    eliminating common subexpressions
+  - the select-form bool? flag was checked in only one place and was unnecessary
+    there, so it has been removed
+  - the code generated to compute the test for an assert form has been simplified
+
+# Compiler version `0.26.101`, language version `0.18.0`
+- Addresses PM 18137
+
+  Updates `typescript-passes.ss` and `test.ss` to use Compact runtime version `0.10.0`. This means making use of the new
+  functions and conventions Compact runtime version `0.10.0` introduced such as:
+    * `checkRuntimeVersion`
+    * `createCircuitContext`
+    * various renamings
+
+# Compiler version `0.26.100`, language version `0.18.0`
+- A partial refactoring of the (experimental, and not yet announced publicly) ZKIR v3
+  backend.
+
+# Compiler version `0.26.0`, language version `0.18.0`
+- bumps versions for release of Compiler 0.26.0
+
+# Compiler version `0.25.119`, language version `0.17.103`
+- Address PM-19426
+  fixes a bug that was causing the compiler to produce an internal error rather
+  than an informative error with source information for certain erroneous casts
+  from tuples or vectors to tuples, vectors, and Bytes values
+
+# Compiler version `0.25.118`, language version `0.17.103`
+- Addresses PM-19297
+  fixes the generated JS code for when an impure circuit calls a pure circuit inside
+  a map or fold.  Previously, the generated code for the mapper was calling the pure
+  circuit with context and partialProofData whereas the definition of the pure circuit
+  didn't take context and partialProofData.
+
+# Compiler version `0.25.117`, language version `0.17.103`
+- Addresses PM-19385
+  fixed a bug in the zkir code generated for certain byte-reference operations that
+  could result in failed proofs
+- internal notes:
+  - the root cause was an index scaling error in optimize-circuit's handling
+    of bytes-ref forms with constant Bytes objects
+  - also fixed some suboptimal handling of bytes-slice by resolve-indices/simplify
+    and assert by discard-useless-code
+
+# Compiler version `0.25.116`, language version `0.17.103`
+- Addresses PM-19287
+  fixed an internal error (identifier not bound) reported either by
+  check-types/Lflattened or by print-zkir and occuring as a result of
+  optimize-circuits not recreating its tables for each circuit. also
+  fixed a deficiency in check-types/Lflattened that sometimes let
+  this kind of bug slip past.
+
+# Compiler version `0.25.115`, language version `0.17.103`
+- An internal change to duplicate the ZKIR v2 tests to run in ZKIR v3 mode.
+
+# Compiler version `0.25.114`, language version `0.17.103`
+- Add a feature flag for ZKIR v3
+
+  This is an **experimental** feature flag which enables a separate circuit backend that generates a
+  new version of ZKIR.  We will not yet announce this feature (it won't even work for some time).
+
+# Compiler version `0.25.113`, language version `0.17.103`
+- Fixes PM-19229 and PM-19160.
+
+  The first of these is a bug in proofs for `HistoricMerkleTree.insertIndexDefault`.  This was
+  another bug caused by incorrectly "escaping" (by introducing a `load_imm` instruction) an
+  immediate in a ZKIR instruction.  The result is that an unrelated output index was used instead of
+  a literal default value.
+
+  The second is an unrelated bug in the proof for `MerkleTree.insertIndexDefault` caused by a
+  missing instruction in the Impact VM code for the operation.
+
+# Compiler version `0.25.112`, language version `0.17.103`
+- addresses PM 17427: Adds support for new casts:
+
+  | from type:                       | to type:                         | where:                                     |
+  |----------------------------------|----------------------------------|--------------------------------------------|
+  | Boolean                          | Boolean                          |                                            |
+  | Uint                             | Bytes                            |                                            |
+  | Bytes                            | Uint                             |                                            |
+  | Enum                             | Uint                             |                                            |
+  | Field                            | Enum                             |                                            |
+  | Uint                             | Enum                             |                                            |
+  | Bytes<m>                         | Vector<n, U>                     | m = n, U = Field or Uint<0..k>, k ≥ 255    |
+  | Bytes<m>                         | [U1, ..., Un]                    | m = n, ∀i.U = Field or Uint<0..k>, k ≥ 255 |
+  | Vector<m, T>                     | Vector<n, U>                     | m = n, T ⊆ U                               |
+  | [T1, ..., Tm]                    | [U1, ..., Un]                    | m = n, ∀i.Ti ⊆ Ui                          |
+  | Vector<m, T>                     | [U1, ..., Un]                    | m = n, ∀i.T ⊆ Ui                           |
+  | [T1, ..., Tm]                    | Vector<j, U>                     | m = j, ∀i.Ti ⊆ U                           |
+  | Opaque<x>                        | Opaque<y>                        | x = y                                      |
+  | Struct R {X1: T1, ..., Xm: Tm }  | Struct R {Y1: U1, ..., Ym: Um }  | R = S, n = M, ∀i.Ti = Ui                   |
+  | Enum D {X1, ..., Xm}             | Enum E {Y1, ..., Yn}             | m = n, ∀i.Xi = Yi                          |
+  | Contract C {F1: T1, ..., Fm: Tm} | Contract D {G1: U1, ..., Gm: Um} | C = D, m ≤ n, ∀i.Ti = Ui, i ≤ m            |
+
+  Notes:
+   - Generally, if T ⊆ U, casts from T to U are perimitted.
+   - Casts from Bytes<m> to Vector<n, U> or [U1, ..., Un] were previously supported, but only for U = Uint<0..255>.
+   - For contracts, circuit declarations are sorted by name before applying the constraints.
+
+- internal notes:
+  - Renamed runtime's convert_bigint_to_Uint8Array and convert_Uint8Array_to_bigint
+    to convertFieldToBytes and convertBytesToField, added a source string, and
+    modified the error message to include the source information.  added a new
+    routine convertBytesToUint to handle casts from Bytes to Uints.  The runtime
+    version has been bumped to 0.9.0.
+  - add-witnessses now uses merge-witnesses rather than append to avoid violating
+    the assumption that witness lists are sorted and have no duplicates.
+
+# Compiler version `0.25.111`, language version `0.17.102`
+- addresses PM-14398 (remaining Bytes operations but not String operations):
+  - syntax for Bytes construction: Bytes[a1, ..., an]
+    where each ai is either an expression e or a spread ...e
+  - indexing Bytes: bv[expr]: Uint<8>
+  - slicing Bytes: slice<size>(expr, start)
+  - iteration over Bytes in for loops, map, and fold with element types Uint<8>
+    (map result is still always a vector)
+- internal notes
+  - portions of PM-14398 were already done:
+    - hexadecimal, octal, and binary integer literals
+    - casts between Bytes and Vectors
+  - support for a String type and the other string-related portions of
+    PM-14398 are left for the future
+
+# Compiler version `0.25.110`, language version `0.17.101`
+- addresses PM 19205
+  fixes transientCommit and persistentCommit to be implicitly disclosing as documented,
+
+# Compiler version `0.25.109`, language version `0.17.101`
+- addresses PM 19124
+  (N.B. this regards a bug in an as-yet unreleased portion of the compiler and should
+  not appear in the release notes for 0.26.0.)
+  fixes a bug: mishandling of tuples and vectors containing non-atomic elements could
+  result in (at least) an internal assertion violation in the compiler.
+
+# Compiler version `0.25.108`, language version `0.17.101`
+- addresses PM 19121
+  (N.B. this regards a bug in an as-yet unreleased portion of the compiler and should
+  not appear in the release notes for 0.26.0.)
+  fixes a bug: casting a constant of type Bytes<0>, e.g., default<Bytes<0>>, to
+  a Field was causing an internal compiler error; this now compiles and properly
+  produces a Field with value 0.
+
+# Compiler version `0.25.107`, language version `0.17.101`
+- addresses PM 12891
+  Modify the `stage-javascript` test runner to add a call to `checkProofData` to ensure that the transcripts
+  and circuit input and outputs agree with the generated ZKIR.
+
+  Reverses the order of `print-zkir` and `print-typescript` so that ZKIR is generated first.
+
+  Reverses the order of `print-zkir` and `print-typescript` tests so that ZKIR tests are executed first.
+
+# Compiler version `0.25.106`, language version `0.17.101`
+- addresses PM 19055
+  Fixes a zkir indexing bug for nested ledger ADTs that manifested as an incorrect ZKIR
+  input index.
+
+  Paths in ledger ADT operations contained a mix of ZKIR instruction output indexes and
+  elements of the form `(ref . triv)` where `triv` was an (untranslated!) Lflattened triv (a
+  nat or a variable name).  They were converted to a list of ZKIR instruction indexes, nat
+  literals, and variable names.  The variable names were later translated by looking them up
+  in the variable table, but the nat literals were not emitted as `load_imm` instructions
+  (this is the bug).
+
+  Because we can't tell the difference at that point between an ZKIR instruction index and
+  an untranslated nat literal, we translate all the trivs and they now have the form
+  `(ref . index)` where `index` is a ZKIR instruction's output.
+
+# Compiler version `0.25.105`, language version `0.17.101`
+- addresses PM 19017
+  fixes the zkir code generated by the compiler for Bytes to Vector and Vector to Bytes conversions
+
+# Compiler version `0.25.104`, language version `0.17.101`
+- addresses PM 16625
+  Ledger ADT operations that require a coin commitment now fail with a more informative error
+  message that also includes the Compact source location of the offending operation.
+
+# Compiler version `0.25.103`, language version `0.17.101`
+- addresses PM 13684
+  (fix to unreleased code)
+  fixed an issue with the typechecking for tuple/vector spreads
+
+# Compiler version `0.25.102`, language version `0.17.101`
+- addresses remainder of PM 13684
+  added support for tuple and vector spreads: previously, the subforms S of a tuple
+  constructor `[S, ..., S]` were all expressions; now each subform S can be
+  either an expression e or the spread prefix `...` followed by an expression e,
+  e.g., `[e1, ...e2, e3]`.  The constructed tuple is formed from the unprefixed
+  elements and the contents of the prefixed elements.  For example, if the value
+  of e1 is 1, the value of e2 is the tuple `[3, 5, 7]`, and the value of e3 is 9,
+  the constructed tuple is `[1, 3, 5, 7, 9]`.
+
+  The length of a tuple subform S is
+    - 1 if S is a plain (non-spread) expression e
+    - k if S is a spread of expression e and the type of e is a vector type `Vector<k, T>`
+    - k if S is a spread of expression e and the type of e is a tuple type `[T1, ..., Tk]`
+  and the length N of the tuple or vector constructed from the tuple form `[S, ..., S]` is
+  the sum of the lengths of S, ..., S.
+
+  The type(s) of a tuple subform S is
+    - T if S is a plain (non-spread) expression e and the type of e is T
+    - T if S is a spread of expression e and the type of e is a vector type `Vector<k, T>`
+    - T1, ..., Tk if S is a spread of expression e and the type of e is a tuple type `[T1, ..., Tk]`
+  and the type of the tuple expression `[S, ..., S]` depends as follows on whether any of 
+  S, ..., S are spreads of vector-typed expressions:
+    - if not, the type of `[S, ..., S]` is the tuple type `[T1, ..., TN`], where
+      T1, ..., TN is the concatenation of the type(s) of S, ..., S.
+    - if so, the types of S, ..., S must be related by subtyping, and the type of
+      `[S, ..., S]` is the vector type `Vector<N, T>`, where N is the length of the
+      constructed vector as described above and T is the least upper bound of the
+      types of S, ..., S.
+
+  Examples:
+    - if e1 has type `Uint<8>`, e2 has type `[Uint<16>, Boolean, Field]`, and e3
+      has type `Uint<32>`, the length of `[e1, ...e2, e3]` is 5 and its type is
+      `[Uint<8>, Uint<16>, Boolean, Field, Uint<32>]`.  It's okay that the types
+      are unrelated (Boolean is unrelated to the others), because none of the tuple
+      subforms are spreads of vector-typed expressions
+    - if e1 has type `Uint<8>`, e2 has type `Vector<3, Uint<16>>`, and e3 has
+      type `Uint<32>`, the length of `[e1, ..., e2, e3]` is 5 its type is
+      `Vector<5, Uint<32>>`.
+    - if e1 has type `Uint<8>`, e2 has type `Vector<1000, Uint<16>>`, and e3 has
+      type `Boolean`, `[e1, ...e2, e3]` is undefined, a static type error, because
+      a spread of the vector-typed expression e2 is present and the types of the
+      tuple subforms have unrelated types.  (Again, Boolean is unrelated to the
+      others.)  For spreads of small vectors, a tuple type could be used and would
+      be practical, but for consistency with spreasd of large vectors, the compiler
+      uniformly requires that the types all be related when spreads of vector-typed
+      expressions are present.
+
+# Compiler version `0.25.101`, language version `0.17.100`
+- removes the pass `eliminate-redundant-upcasts`, the essential purpose of which
+  was to push `upcast` forms into tuple forms to avoid rewriting the tuple to
+  change the representations of its elements.  Since `upcast` forms don't currently
+  require a change in representation, this pass was contributing unnecessarily
+  to the complexity of the compiler.
+
+# Compiler version `0.25.100`, language version `0.17.100`
+- addresses PM 17201, and part of PM 13684, and part of PM 18328
+  - adds vector slicing (but not vector spreads)
+  - allows generic sizes (but not types) to appear in expression contexts
+  - allows non-constant tuple/vector index expression that eventually fold to constants
+- addresses a small part of PM 14398
+  - adds binary, octal, and hexadecimal integer literals
+- internal notes
+  - non-constant vector-ref and vector-slice index expressions are resolved by
+    a new pass, resolve-indices/simplify that runs after loop unrolling and
+    circuit inlining.  it performs copy propagation and constant folding which, when
+    combined with the loop unrolling and inlining already performed, effectively
+    allows indexes to be as close to arbitrary expressions as reasonably possible,
+    given the requirement that they must reduce to constants at compile time.
+  - type inference for non-constant vector-ref and vector-slice expressions in
+    infer-types is intentionally weak.  infer-types requires only that they be
+    unsigned integers of any size and leaves the task of doing the actual bounds
+    check to resolve-indices/simplify.
+  - upcast forms are dropped just after inlining. they weren't being used, and maintaining
+    them through the simplifications done by resolve-indices/simplify would be complicated.
+  - flushed print-Lflattened.  we never use it for anything, and updating it eats
+    up time.  it will probably be less work to update it in one shot if we ever need
+    to revive it.
+  - removed progress messages from test.ss.  this was useful back when print-typescript
+    ran each test in an individual node session, but it serves no purpose and just gets
+    in the way now.
+  - extended the third-party define-datatype feature with support for common fields,
+    which we use for CTVs in the new pass resolve-indices/simplify
+
+# Compiler version `0.25.0`, language version `0.17.0`
+- Bump versions for release of compactc 0.25
+
+# Compiler version `0.24.110`, language version `0.16.106`
+- Address Pm-17347
+  - the compiler no longer exits with an internal error when handed a source file containing
+    Unicode numeric characters other than 0-9.
+
+# Compiler version `0.24.109`, language version `0.16.106`
+- Addresses PM-18013 (most of these are internal changes, user-facing changes are marked as such):
+  - Pulls out changes in cc-ts/js-backend+rt that do not rely on composable contract changes to minimize the difference
+    of the long running CC branch and main. These changes are solely in the compiler and not the runtime. Any changes 
+    that requires updating the runtime and possibly MN.JS are not included in this.
+  - In contract-info.json we store some additional fields that are needed for the generation of `index.cjs` and `d.cts` 
+    files (*this is user-facing change but we don't explain the contract-info.json much so there's no need to expand 
+    on this*):
+    - contracts: is the contract types that the contract of this contract-info.json declares.
+    - witnesses: is the *used* witnesses that the contract of this contract-info.json declares.
+    - The order of these fields in the contract-info.json file is: circuits, witnesses, and contracts. Some tests rely
+      on this ordering.
+  - The `contract-info.json` file is no longer read in `infer-types`, instead it is read once in `generate-contract-ht` 
+    pass and is stored in `contract-ht`. The later passes use the `contrac-ht` hashtable to access information they 
+    need from `contract-info.json`
+  - The witnesses stored in a contract's contract-info.json and in its callee contract-info.json files will be used in 
+    `d.cts` file for the composable conract feature.
+  - `source-file-name` is also added and it is used to get the name of a contract from the source file without its 
+    extension if one exists for the `print-typescript` pass. This will also be used in `print-typescript` pass for the
+    composable contract feature.
+  - `replace-value-in-json` is documented in `json.ss` and it is used solely for testing the `contract-info.json`. Instances 
+    of using it can be found in `test.ss`.
+  - Two changes were carried out in IRs starting from `Ltypes`. Both of them were required for the `print-typescript` pass:
+    - `contract-name*` has been added to `Program`.
+    - `contract-call` now contains the expression of the public ledger that represents the contract being called.
+      - For example, the expression `auth_cell.get()` written in Compact will look like the following in the `Ltypes` IR:
+      `(contract-call get
+         ((public-ledger %auth_cell.1 (0) read)
+          (tcontract AuthCell
+            (get #f () (tstruct StructExample (value (tfield))))
+            (set #f ((tstruct StructExample (value (tfield))))
+              (ttuple)))))`
+      In this example, `(public-ledger %auth_cell.1 (0) read)` is the added expression to `contract-call`.
+  - `null` is changed to `default` in error messages when `default` of a type isn't defined.
+  - Changes to the `print-typescript` pass *these are user-facing changes but they do not break any code 
+    that relies on the generated JS code*:
+    - `#` has been dropped from helpers and private circuit definitions. This was needed for the next change.
+    - The definition of pure circuits is now defined in `pureCircuits` constant in JavaScript.
+    - The additional `context` and `partialProofData` have been dropped from pure circuits and helpers. Still
+      one can access pure circuits through `circuits` object but they have to pass a `context` and `partialProofData`.
+    - All `if` statements in generated JavaScript code use curly braces for their branches. 
+
+# Compiler version `0.24.108`, language version `0.16.106`
+- compactc now prints its own message saying that zkir failed in case the
+  zkir process dies without printing anything to stderr, such as when it is killed
+  for lack of memory.  the compactc exit code in cases where zkir fails is also
+  now the same as for any other compilation error, i.e., 255 / -1.
+- internal notes: these notes relate to unreleased functionality, so should
+  not be included in the release notes.  though the change to typing rules
+  for vector to Bytes casts should be reflected in the language reference.
+  - the type inferencer required the type of a Vector to Bytes cast to be
+    a Vector rather, i.e., did not support equivalent tuples
+  - the witness-protection program did not produce the right abstract values
+    for vector->bytes and bytes->vector
+  - the zkir code generator was producing incorrect code for vector->bytes and
+    bytes->vector (too many ctr increments)
+  - loosened the typing rules for vector->bytes conversions to allow the input
+    vector or tuple element types Uint<k> to allow k <= 8 rather than requiring
+    k = 8.
+  - fixed some endianness issues in the flatten-datatype and optimize-circuit
+    implementations of vector->bytes and bytes->vector
+
+# Compiler version `0.24.107`, language version `0.16.106`
+- addresses PM 17200
+    - Introduces two new kernel functions `blockTimeGreaterThan` and `blockTimeLessThan`.
+    - Introduces four new standard library functions, `blockTimeGt`, `blockTimeGte`, `blockTimeLt`, and `blockTimeLte`.
+    - Introduces a unit test in `test-center/ts/block-time.ts` for the new block time functions.
+
+# Compiler version `0.24.106`, language version `0.16.105`
+- Reverses changes for PM 14077
+    - Removes four kernel operations, `mintUnshielded`, `claimUnshieldedCoinSpend`, `incUnshieldedOutputs`, and
+      `incUnshieldedInputs`.
+    - Removes eight standard library functions, `mintUnshieldedToken`, `sendUnshielded`, `receiveUnshielded`,
+      `unshieldedBalance`, `unshieldedBalanceLt`, `unshieldedBalanceGte`, `unshieldedBalanceGt`, `unshieldedBalanceLte`.
+    - Reverts names change like `QualifiedCoinInfo` and `CoinInfo` to be `QualifiedShieldedCoinInfo` and `ShieldedCoinInfo` to
+      match the names in the old on-chain runtime.
+    - Reverts renaming of standard library functions to distinguish between shielded and unshielded token utilities.
+    - Reverts `@midnight-ntwrk/compact-runtime` to use `@midnight-ntwrk/onchain-runtime` version `^0.3.0`.
+
+# Compiler version `0.24.105`, language version `0.16.104`
+- addresses PM 15976
+  The Compact compiler now accepts multi-variable const statements. Similar to TypeScript
+  it rejects a multi-variable const statement that references an identifier before it is
+  assigned. It also rejects a multi-variable const statement that has more than one binding for
+  the same identifier. Similar to TypeScript it rejects trailing commas in a multi-variable
+  const statement.
+
+# Compiler version `0.24.104`, language version `0.16.103`
 - addresses PM 14770
   The Compactc shell script runner can now accept input Compact files with spaces in their
   names
 
-# Compiler Version `0.24.103`, langauge Version `0.16.103`
+# Compiler version `0.24.103`, language version `0.16.103`
 - addresses part of pm-15536
   The Compact compiler now supports casts from `Bytes<k>` to `Vector<k, Uint<8>>` and back.
 
-# Compiler Version `0.24.102`, language Version `0.16.102`
+# Compiler version `0.24.102`, language version `0.16.102`
 - addresses PM 14079
   - Renames `burnAddressShielded` in the standard library to `shieldedBurnAddress`.
   - Updates standard library documentation to reflect name changes introduced in PM 14077.
   - Capitalized some generic parameters in the standard library.
 
-# Compiler Version `0.24.101`, language Version `0.16.101`
+# Compiler version `0.24.101`, language version `0.16.101`
 - addresses PM 14077
   - Introduces four new kernel operations, `mintUnshielded`, `claimUnshieldedCoinSpend`, `incUnshieldedOutputs`, and
     `incUnshieldedInputs`.
@@ -46,21 +421,21 @@
   - Changes `analysis-passes.ss` and `typescript-passes.ss` to use the same type hashing logic for vectors of length `k`
     and tuples of length `k` of all the same element type, up to a hard-coded maximum length `k`.
 
-# Compiler Version `0.24.0`, language Version `0.16.0`
+# Compiler version `0.24.0`, language version `0.16.0`
 - bumps compiler and language version after the release of compactc 0.24.0
 
-# Compiler Version `0.23.118`, langauge Version `0.15.110`
+# Compiler version `0.23.118`, language version `0.15.110`
 - internal notes:
   - contains the Intel Mac binary release
   - disables the formatter and fixup tools tests in the release CI
   
-# Compiler Version `0.23.117`, language Version `0.15.110`
+# Compiler version `0.23.117`, language version `0.15.110`
 - addresses PM 16999
   the compiler now prints an error when the names of two exported impure
   circuits are the same modulo case to avoid filename clashes on case-insensitive
   filesystems.
 
-# Compiler Version `0.23.116`, language Version `0.15.110`
+# Compiler version `0.23.116`, language version `0.15.110`
 - addresses PM 15527
   - Assert statements, which took the form `assert expr message`, have been removed from
     Compact, and assert expressions, which take the form `assert(expr, message)` have been
@@ -78,13 +453,13 @@
   term now also contains the expressions formerly appearing in the lit group,
   which has been eliminated.
 
-# Compiler Version `0.23.115`, language Version `0.15.108`
+# Compiler version `0.23.115`, language version `0.15.108`
 - addresses PM 16181 (second example)
   - The Compact compiler now produces a descriptive error message when the type of either
     operand of an equality operator (== or !=) is a public-ledger ADT rather than an
     ordinary Compact type.  Previously, this resulted in an internal error.
 
-# Compiler Version `0.23.114`, language Version `0.15.108`
+# Compiler version `0.23.114`, language version `0.15.108`
 - addresses PM 16893
   - The compact compiler no longer experiences an internal error when a for over an empty
     range or tuple, a map over an empty tuple, or a fold over an empty tuple results in
@@ -102,7 +477,7 @@
     upcast-contract), the compiler retains the upcast form introduced by infer-types for as
     long as it is needed to allow typechecking of downstream intermediate languages.
 
-# Compiler Version `0.23.113`, language Version `0.15.109`
+# Compiler version `0.23.113`, language version `0.15.109`
 - address PM 15798 and PM 16349
   - The Compact grammar for version expressions mistakenly allowed the ! (not) operator to be
     followed by a version term rather than a version atom, but actually not following it with a
@@ -119,7 +494,7 @@
   - The Compact compiler now reports unreachable statements in the constructor and anonymous
     circuits as well as in top-level circuit bodies.
 
-# Compiler Version `0.23.112`, language Version `0.15.108`
+# Compiler version `0.23.112`, language version `0.15.108`
 - addresses PM 16853
   - fixed a bug in which optimize-circuit detected the downstream use of a variable whose
     assignment was supposed to be eliminated.
@@ -145,7 +520,7 @@
     optimize-circuit output.  these were not being caught by check-types/Lflattened,
     which was also ignoring the path-elts.
 
-# Compiler Version `0.23.111`, language Version `0.15.108`
+# Compiler version `0.23.111`, language version `0.15.108`
 - addresses PM 9232
   - The Compact compiler no longer converts exported ledger-field names to camel-case in the
     generated TypeScript output for the ledger object.  If a TypeScript program accesses ledger
@@ -153,15 +528,15 @@
     field must be renamed in the Compact source code or (b) the TypeScript code must be adjusted
     to use the unconverted Compact name of the ledger field.
 
-# Compiler Version `0.23.110`, language Version `0.15.107`
+# Compiler version `0.23.110`, language version `0.15.107`
 - addresses PM 16774
   - the ledger assignment, increment, and decrement forms are now expressions of type [] rather
     than statements.  This is a non-breaking change.  It simply allows these forms to be used in
     expression contexts in addition to statement contexts.
-- addes a suggestion to try import CompactStandardLibrary upon failure to find include file
+- adds a suggestion to try import CompactStandardLibrary upon failure to find include file
   std.compact.
 
-# Compiler Version `0.23.109`, language Version `0.15.106`
+# Compiler version `0.23.109`, language version `0.15.106`
 - addresses PM 16723
   - modifies the witness protection to treat ledger reads and removals the same as ledger writes
     and updates since every ledger operation is reflected in the transcript
@@ -169,27 +544,27 @@
   function might determine the point at which an external circuit returns, if this potential
   disclosure is not declared.
 - modifies the error message produced in cases where witness values are exposed simply
-  via the conditional executation of ledger operations and cross-contract calls to make
+  via the conditional execution of ledger operations and cross-contract calls to make
   the situation more clear
 
-# Compiler Version `0.23.108`, language Version `0.15.105`
+# Compiler version `0.23.108`, language version `0.15.105`
 - addresses PM 16341
-  - eliminates std.compact, which contained only the single line "import CompactStanadardLibrary;"
-  - programs requiring access to the standard library must now use "import CompactStanadardLibrary;"
+  - eliminates std.compact, which contained only the single line "import CompactStandardLibrary;"
+  - programs requiring access to the standard library must now use "import CompactStandardLibrary;"
   - COMPACT_PATH is no longer set in compactc.bin
 
-# Compiler Version `0.23.107`, language Version `0.15.104`
+# Compiler version `0.23.107`, language version `0.15.104`
 - addresses PM 13340
   - fixes fixup-compact support for --vscode
   - modifies format-compact and fixup-compact to produce better (non-internal)
     error messages for filesystem errors
 
-# Compiler Version `0.23.106`, language Version `0.15.104`
+# Compiler version `0.23.106`, language version `0.15.104`
 - addresses PM 16624:
   - trailing commas are now properly permitted to appear at the end of argument
     lists for calls, ledger-operator calls, cross-contract calls, maps, and folds.
 
-# Compiler Version `0.23.105`, language Version `0.15.103`
+# Compiler version `0.23.105`, language version `0.15.103`
 - addresses PM 16146:
   - A bug that caused an internal compiler error (assertion violation) has
     been fixed.  The bug occurred in some cases (a) when a conditional returned
@@ -198,7 +573,7 @@
     of a vector type along one branch and a value of an equivalent tuple type
     along the other.
 
-# Compiler Version `0.23.104`, language Version `0.15.103`
+# Compiler version `0.23.104`, language version `0.15.103`
 - addresses PM 15538:
   - The names of standard-library circuits and ledger operators have been
     switched from snake_case to camelCase, e.g., hash_to_curve is now hashToCurve,
@@ -211,11 +586,11 @@
     includes of std with imports of CompactStandardLibrary.
 - The formatter now preserves single blank lines outside of block comments, while
   converting multiple consecutive blank lines into a single blank line.  (It already
-  perserved all blank lines within block comments.)  The lexer no longer consumes the
+  preserved all blank lines within block comments.)  The lexer no longer consumes the
   trailing newline when reading a line comment so if the following line is a blank
   line it is recognized as such.
 - Error messages relating to invalid exports in an export form now point
-  directly to the source location of the probelematic identifier in the
+  directly to the source location of the problematic identifier in the
   export set rather than to the start of the export form.
 - internal notes
   - expand-modules-and-types and infer-types have been retooled to either record
@@ -236,7 +611,7 @@
     object code together in one place and don't have to hunt for the source in
     test.ss snippets or source files elsewhere.
 
-# Compiler Version `0.23.103`, language Version `0.15.102`
+# Compiler version `0.23.103`, language version `0.15.102`
 - addresses PM-15585: extend witness protection program
   - Extends the witness-protection program (WPP) to treat constructor and exported
     circuit arguments as witness data
@@ -288,7 +663,7 @@
     to make sure that errors recorded by the witness protection program are
     reported. this treatment can be extended easily to some other error reporting
     and with more difficultly, universally with all recoverable compiler errors.
-    the term "leak" in the code now specifically refers only to deteced leaks,
+    the term "leak" in the code now specifically refers only to detected leaks,
     and the term "witness" refers generally to witness return values, constructor
     arguments, and exported circuit arguments.
   - When converting from the accessor form to the path-element form of ledger
@@ -297,7 +672,7 @@
     the last accessor's source objects in the corresponding path elements and
     the last accessor's source object directly in the public-ledger form as
     src^. the last accessor's source is used by track-witness-data to properly
-    identify the source location for undecared disclosure via ledger write/udpate
+    identify the source location for undeclared disclosure via ledger write/udpate
     operations. the information is also now available for print-typescript to
     include source locations when exceptions occur during ledger operations.
   - For each witness value that enters a contract (via a witness function, a constructor
@@ -322,7 +697,7 @@
     This change is transparent outside the code that defines the id record.
   - Adapted the unit tests to the structure of midnightntwrk-contracts and updated
     flake.nix to pull from that repo rather than the depreciated
-    midnight-ntwrk-contratracts repo.  currently instead of pulling from
+    midnight-ntwrk-contracts repo.  currently instead of pulling from
     compactc-main, flake.nix pulls from the pm-15585-extend-WPP of the repo,
     which has been updated to account for the changes in WPP.
   - getting the correct src^ for the Lwithpaths public-ledger form for the
@@ -336,14 +711,14 @@
     For consistency, removed the dot-src from Lparser elt-ref and elt-call, since
     it can be gotten from the dot token.
 
-# Compiler Version `0.23.102`, language Version `0.15.101`
+# Compiler version `0.23.102`, language version `0.15.101`
 - address PM-16611
   - The on-chain runtime always requires that the amount of a token that is minted is <= the maximum value for a 64-bit
     integer. But, the "mint" function accepted a "Uint<128>" instead of a "Uint<64>". The "mint" function now accepts a
     "Uint<64>" for the mint value so compilation prevents users from attempting to mint too many tokens.
   - Also had to change the "mint" function in "midnight-ledger.ss" to use "Uint64" instead of "Uint128".
 
-# Compiler Version `0.23.101`, language Version `0.15.0`
+# Compiler version `0.23.101`, language version `0.15.0`
 - address PM-16336
   - Changed the "second binding found" error message produced during binding
     analysis to include the source location of the other binding found.
@@ -355,35 +730,35 @@
     file position informations to most consumers of the compiler.
 - internal notes:
   - Standard-library circuits can now be recognized post expand-modules-and-types
-    by appling the utils.ss predicate stdlib-src? to the id-src of the function name.
+    by applying the utils.ss predicate stdlib-src? to the id-src of the function name.
   - source-errorf now defers to format-source-object to print the source location,
     so we have a common path for formatting source locations
   - providing the source location of the other binding found required a change
     in the expand-modules-and-types environment, which instead of mapping
     sym -> Info now maps sym -> (src, Info).
 
-# Compiler Version `0.23.0`, language Version `0.15.0`
+# Compiler version `0.23.0`, language version `0.15.0`
 - bumps compiler and language version after the internal release of compactc 0.23.0
 
-# Compiler Version `0.22.108`, language Version `0.14.101`
+# Compiler version `0.22.108`, language version `0.14.101`
 - addresses PM-16447, PM-16040
   - adds a check to Lparser->Lsrc to complain when Tsize is bigger than max-field
 - reproduces PM-15826, PM-16059 which resulted in them having been fixed from when 
   they were reported
   
-# Compiler Version `0.22.107`, language Version `0.14.101`
+# Compiler version `0.22.107`, language version `0.14.101`
 - address PM-16582
   - drops files that already exist in the output directory
   - adds the example programs used to report this ticket in `exmaples/bug` for
     regression testing
 - fixes the dev shell for `.#compiler`
 
-# Compiler Version `0.22.106`, language Version `0.14.101`
+# Compiler version `0.22.106`, language version `0.14.101`
 - address MFG-413
   - fixed internal error in optimize circuits that could happen when a common
     subexpression occurs in both unreachable and reachable parts of a program
 
-# Compiler Version `0.22.105`, language Version `0.14.101`
+# Compiler version `0.22.105`, language version `0.14.101`
 - more work on PM-13344
   - tweaked print-Q to print Qstrings that follow multiline Qstrings, saving the
     forced newline for after the entire sequence.  for well-formed programs, this
@@ -392,17 +767,17 @@
     a separate line.
 - updated flake.nix packages.compactc to build format-compact as well as compactc.
 
-# Compiler Version `0.22.104`, language Version `0.14.101`
+# Compiler version `0.22.104`, language version `0.14.101`
 - address PM-16148
   - / is now recognized as a binop token, which causes the parser to produce a
     better error message that should better hint at the absense of a division
     operator.  (rather than seeing a report that the character eof following
-    / is unxpected, the programmer will see that the parser was looking for,
+    / is unexpected, the programmer will see that the parser was looking for,
     among other things, '+', '-', or '*', and should be able to conclude from
     this that "/" is not supported.  We can make a better fix later if we
     decide not to actually support division.
 
-# Compiler Version `0.22.103`, language Version `0.14.101`
+# Compiler version `0.22.103`, language version `0.14.101`
 - address PM-13344
   - Added a compact formatter.  This is available as a pass in the compiler for
     testing and also as a stand-alone program format-compact.ss.
@@ -425,7 +800,7 @@
     stream it produces
   * adding a new intermediate language, Lparser, with additional information
     required for the formatter
-  * regargetting the parser to generate Lparser records and provide the additional
+  * retargeting the parser to generate Lparser records and provide the additional
     information required for the formatter
   * extending ez-grammar.ss to support features required so that the parser
     can produce the additional information required by the formatter
@@ -493,31 +868,31 @@
       using the "OPT" syntax rather than via separate nonterminals with epsilon
       productions
 
-# Compiler Version `0.22.102`, language Version `0.14.100`
+# Compiler version `0.22.102`, language version `0.14.100`
 - address PM-15733, PM-16129
   - field arithmetic underflow (to negative) and overflow (to greater than FIELD_MAX)
     now properly wraps
 
-# Compiler Version `0.22.101`, language Version `0.14.100`
+# Compiler version `0.22.101`, language version `0.14.100`
 - address PM-15889
   - Use of a ledger ADT type in an invalid context now results in an proper error
     message rather than an internal error
 
-# Compiler Version `0.22.100`, language Version `0.14.100`
+# Compiler version `0.22.100`, language version `0.14.100`
 - bumps compiler and language version after the internal release of compactc 0.22.0
 
-# Compiler Version `0.21.106`, language Version `0.14.100`
+# Compiler version `0.21.106`, language version `0.14.100`
 - address PM-15405
   - Fixed an internal error in unget-char that occurred rarely while
     reading certain range syntaxes near file-buffer boundaries
 
-# Compiler Version `0.21.105`, language Version `0.14.100`
+# Compiler version `0.21.105`, language version `0.14.100`
 - address PM-15412
   - fix a ZKIR generation issue with allocating indexes for circuit arguments when
     their type constraints had the side effect of also allocating indexes.
   - This was reported via Discord.  They have an (awkward) workaround in place.
 
-# Compiler Version `0.21.104`, language Version `0.14.100`
+# Compiler version `0.21.104`, language version `0.14.100`
 - address PM-15053
   - Fixed the internal error in infer-types: no matching clause for input ...
 -internal notes
@@ -525,18 +900,18 @@
     when it was expecting an ordinary Compact type.  It now does so and prints a
     useful error message when it receives an ADT type instead.
 
-# Compiler Version `0.21.103`, language Version `0.14.100`
+# Compiler version `0.21.103`, language version `0.14.100`
 - address PM-14807
   - the compiler no longer reports an internal error when the `MerkleTree` operator
     `insert_index_default` is used.
 - internal notes
-  - made compiler/go more resistent to vagaries of the host O/S by replacing
+  - made compiler/go more resistant to vagaries of the host O/S by replacing
     /bin/sh with /usr/bin/env bash on the #! line
   - modified it enable printing of extended identifiers in Scheme, which helps
     when looking at certain test output and traces.
 - added a couple of tests that are independent of the bug fix
 
-# Compiler Version `0.21.102`, language Version `0.14.100`
+# Compiler version `0.21.102`, language version `0.14.100`
 - address PM-14841
   - Fixed the internal error "failed assertion (Ltypescript-Type? type)" that occurred
     when using the `insert_default` operator on a Map whose value type is a ledger ADT
@@ -550,14 +925,14 @@
   - Replaced uses of VMstate-value-cell with VMstate-value-ADT in the Map operators
     where they were allocating a Map value.
 
-# Compiler Version `0.21.101`, language Version `0.14.100`
+# Compiler version `0.21.101`, language version `0.14.100`
 - moves onchain-runtime out of compactc
 
-# Compiler Version `0.21.100`, language Version `0.14.100`
+# Compiler version `0.21.100`, language version `0.14.100`
 - bumps compiler and language version after the internal release of compactc 0.21.0
 - adds the counter and welcome dapps to unit tests
 
-# Compiler Version `0.20.6`, language Version `0.13.4`
+# Compiler version `0.20.6`, language version `0.13.4`
 - address PM-8462
   - The Compact compiler now produces more feedback when a parse error occurs, namely
     the set of things the compiler expected to find but didn't at the point where the
@@ -565,7 +940,7 @@
 - cleaner, more accurate doc/Compact.html
   - doc/Compact.html was inaccurate in its treatment of some binary-operator clauses,
     incorrectly implying, for example, that "+" could not have an unparenthesized
-    mutliplication expression as its right-hand operand.  It was also inconsistent in
+    multiplication expression as its right-hand operand.  It was also inconsistent in
     its treatment of binary operators versus other forms, and grammar also exposed the
     result of manual left-recursion elimination in a couple of other places (resulting
     in the "tail" clauses).  these issues have all been resolved, and the grammar is
@@ -580,7 +955,7 @@
   - ez-grammar now performs (direct) left-recursion elimination, allowing more natural
     source grammars.  left-recursion elimination provides most of the benefits of
     ez-grammar BINOP productions without requiring the use of a different production
-    syntax.  ez-grammar also produces cleaner and clearer html rencerings of grammars
+    syntax.  ez-grammar also produces cleaner and clearer html renderings of grammars
     that are written without BINOP or manual left-recursion elimination.
     Furthermore, the latest iteration of BINOP support actually produced incorrect
     HTML output for some BINOP productions, resulting in the problem noted for
@@ -606,10 +981,10 @@
     the handling of unexpected end-of-file errors and the recording of last-token
     errors generally.  if we don't like it appearing in the grammar, we can arrange
     to make it implicit.
-  - print-typescript's precidence table now puts < higher than ==.  this can result
+  - print-typescript's precedence table now puts < higher than ==.  this can result
     in fewer unnecessary parentheses in the generated JavaScript output.
 
-# Compiler Version `0.20.5`, language Version `0.13.4`
+# Compiler version `0.20.5`, language version `0.13.4`
 - address PM-13375, PM-14599
   - The Compact language now provides a TypeScript-compatible tuple type 
     and TypeScript-compatible destructuring for (possibly nested) tuples, vectors,
@@ -639,10 +1014,10 @@
     fashion and in a way that supports the easy addition of words reserved for future
     use.
 
-# Compiler Version `0.20.4`, language Version `0.13.3`
+# Compiler version `0.20.4`, language version `0.13.3`
 - Fixes a bug in compiler version 0.20.3 tracking of witness data.
 
-# Compiler Version `0.20.3`, language Version `0.13.3`
+# Compiler version `0.20.3`, language version `0.13.3`
 - address PM-13382
   - The compiler now complains if the return value of a witness is disclosed outside
     of the contract, i.e., finds its way to a ledger write/update, the return value
@@ -664,13 +1039,13 @@
     complaints, so programmers should rarely have to insert a `disclose` wrapper
     where it isn't inherently required.
 
-# Compiler Version `0.20.2`, language Version `0.13.2`
+# Compiler version `0.20.2`, language version `0.13.2`
 - address PM-13381
   - Replaced old for syntax with:
     for (const id of nat1..nat2) stmt
     for (const id of expr) stmt
 
-# Compiler Version `0.20.1`, language Version `0.13.1`
+# Compiler version `0.20.1`, language version `0.13.1`
 - address PM-13374
   - The Cell wrapper in ledger declarations is now optional; that is,
     a ledger field declaration of the form ledger fld: T, where T
@@ -709,16 +1084,16 @@
     standard-library names, categorized by kind, e.g., type name
     or circuit name.
 
-# Compiler Version `0.20.0`, Language Version `0.13.0`
+# Compiler version `0.20.0`, Language Version `0.13.0`
 - bumping of versions due to release
 - changes source of example applications to `compactc-main` branch
 
-# Compiler Version `0.19.7`, Language Version `0.12.3`
+# Compiler version `0.19.7`, Language Version `0.12.3`
 - fixes PM-13618
   - Conditionally executing a ledger operation on a nested Map can
     result in an internal error.
 
-# Compiler Version `0.19.7`, Language Version `0.12.3`
+# Compiler version `0.19.7`, Language Version `0.12.3`
 - address PM-10444
   - The Compact standard library is now a built-in module called
     CompactStandardLibrary.  The include file lib/std.compact is
@@ -746,14 +1121,14 @@
     separate files, each containing one set of passes.  passes.ss
     now contains just the driver code that runs the passes.
 
-# Compiler Version `0.19.6`, Language Version `0.12.2`
+# Compiler version `0.19.6`, Language Version `0.12.2`
 - fixes PM-13365
   - Nested one-armed if statements of the form if (e1) if (e2) s3
     where s3 is a for loop or an expression whose type is not Void
     can result in an internal error, as can various similar forms
     of nested if statements and if expressions used as statements.
 
-# Compiler Version `0.19.5`, Language Version `0.12.2`
+# Compiler version `0.19.5`, Language Version `0.12.2`
 - address PM-13336 / PM-13350
   - The anonymous circuit form has been replaced with arrow syntax, e.g.,
     circuit (x: T, ...): T^ { body } can now be written as
@@ -778,7 +1153,7 @@
     scope by the ledger binding, and produces a better error message for
     the latter.
 
-# Compiler Version `0.19.4`, Language Version `0.12.1`
+# Compiler version `0.19.4`, Language Version `0.12.1`
 - address PM-13258
   - Added the new structure-creation "spread" syntax.
   - Removed the `new` syntax and added the spread syntax described in
@@ -794,7 +1169,7 @@
     secondary source locations with the same source-file paths as the
     primary source location.
 
-# Compiler Version `0.19.3`, Language Version `0.12.0`
+# Compiler version `0.19.3`, Language Version `0.12.0`
 - address PM-11094
   - Function overloading no longer fails due to a failing generic
     parameterization for one of the candidates if another candidate
@@ -814,7 +1189,7 @@
   colon, or semicolon so multiline error messages need not
   include superfluous line-ending punctuation marks
 
-# Compiler Version `0.19.2`
+# Compiler version `0.19.2`
 - fixes PM-12561 (https://input-output.atlassian.net/browse/PM-12561):
   - an update to a ledger field on one branch of a conditional but not the
     other can result in an internal error.

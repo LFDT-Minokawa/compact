@@ -1,0 +1,5 @@
+Error: Failed to update
+
+Caused by:
+    Unsupported compiler platform: aarch64-darwin
+    

@@ -624,7 +624,17 @@
                (lambda (pelt q*) (cons* 2 (Program-Element pelt) nl q*))
                (add-closer 2 0 rbrace '())
                pelt*)))]
-      [(import ,src ,kwd ,import-name ,generic-arg-list? ,import-prefix? ,semicolon)
+      [(import ,src ,kwd ,import-selection? ,import-name ,generic-arg-list? ,import-prefix? ,semicolon)
+       (define (add-import-selection q*)
+         (if import-selection?
+             (nanopass-case (Lparser Import-Selection) import-selection?
+               [(,lbrace (,ielt* ...) (,comma* ...) ,rbrace ,kwd-from)
+                (cons*
+                  2 (make-Qtoken lbrace)
+                  nbsp (make-Qsep comma* (map Import-Element ielt*) nbsp rbrace)
+                  2 (make-Qtoken kwd-from)
+                  q*)])
+             q*))
        (define (add-prefix q*)
          (if import-prefix?
              (nanopass-case (Lparser Import-Prefix) import-prefix?
@@ -633,9 +643,11 @@
        (// src
            (apply make-Qconcat
              (make-Qtoken kwd)
-             nbsp (make-Qtoken import-name)
-             (maybe-add Generic-Arg-List generic-arg-list?
-               (add-prefix (add-punctuation semicolon '())))))]
+             (add-import-selection
+               (cons*
+                 nbsp (make-Qtoken import-name)
+                 (maybe-add Generic-Arg-List generic-arg-list?
+                   (add-prefix (add-punctuation semicolon '())))))))]
       [(export ,src ,kwd ,lbrace (,name* ...) (,comma* ...) ,rbrace ,semicolon?)
        (// src
            (apply make-Qconcat
@@ -842,6 +854,13 @@
              (Pattern pattern)
              (add-punctuation colon
                (cons* nbsp (Type type) '()))))])
+    (Const-Binding : Const-Binding (ir) -> * (q)
+      [(,src ,parg ,op ,expr)
+       (let ([qparg (Pattern-Argument parg)])
+         (make-Qconcat
+           qparg
+           nbsp (make-Qtoken op)
+           (if (> (Q-size qparg) 7) 8 nbsp) (Expression expr)))])
     (Pattern-Argument-List : Pattern-Argument-List (ir indent?) -> * (q)
       [(,lparen (,parg* ...) (,comma* ...) ,rparen)
        (apply make-Qconcat
@@ -883,7 +902,12 @@
                  nbsp (make-Qtoken function-name)
                  (Argument-List arg-list)
                  (Return-Type return-type)))))])
-   (Statement : Statement (ir) -> * (q)
+    (Import-Element : Import-Element (ir) -> * (q)
+      [(,src ,name) (make-Qtoken name)]
+      [(,src ,name ,kwd-as ,name^)
+       (// src
+           (make-Qconcat (make-Qtoken name) nbsp (make-Qtoken kwd-as) nbsp (make-Qtoken name^)))])
+    (Statement : Statement (ir) -> * (q)
       [(statement-expression ,src ,expr ,semicolon)
        (// src
            (apply make-Qconcat
@@ -900,15 +924,16 @@
              (make-Qtoken kwd)
              nbsp (Expression expr)
              (add-punctuation semicolon '())))]
-      [(const ,src ,kwd ,parg ,op ,expr ,semicolon)
+      [(const ,src ,kwd (,cbinding ,cbinding* ...) (,comma* ...) ,semicolon)
        (// src
-           (let ([qparg (Pattern-Argument parg)])
-             (apply make-Qconcat
-               (make-Qtoken kwd)
-               nbsp qparg
-               nbsp (make-Qtoken op)
-               (if (> (Q-size qparg) 7) 8 nbsp) (Expression expr)
-               (add-punctuation semicolon '()))))]
+           (apply make-Qconcat
+             (make-Qtoken kwd)
+             nbsp
+             (make-Qsep comma*
+                        (map Const-Binding (cons cbinding cbinding*))
+                        #f
+                        #f)
+             (add-punctuation semicolon '())))]
       [(if ,src ,kwd ,lparen ,expr ,rparen ,stmt)
        (// src
            (add-block stmt
@@ -1044,19 +1069,41 @@
                (make-Qtoken lparen)
                (add-indent (and (> (Q-size qfun) 7) -3)
                  (list (make-Qsep comma* (map Expression expr*) #f rparen))))))]
-      [(tuple ,src ,lbracket (,expr* ...) (,comma* ...) ,rbracket)
+      [(tuple ,src ,lbracket (,tuple-arg* ...) (,comma* ...) ,rbracket)
        (// src
            (make-Qconcat
              (make-Qtoken lbracket)
-             (make-Qsep comma* (map Expression expr*) #f rbracket)))]
-      [(tuple-ref ,src ,expr ,lbracket ,nat ,rbracket)
+             (make-Qsep comma* (map Tuple-Argument tuple-arg*) #f rbracket)))]
+      [(bytes ,src ,kwd ,lbracket (,bytes-arg* ...) (,comma* ...) ,rbracket)
+       (// src
+           (make-Qconcat
+             (make-Qtoken kwd)
+             (make-Qtoken lbracket)
+             (make-Qsep comma* (map Tuple-Argument bytes-arg*) #f rbracket)))]
+      [(tuple-ref ,src ,expr ,lbracket ,index ,rbracket)
        (// src
            (make-Qconcat
              (Expression expr)
              (apply make-Qconcat
                (make-Qtoken lbracket)
-               (make-Qtoken nat)
+               (Expression index)
                (add-closer 1 #f rbracket '()))))]
+      [(tuple-slice ,src ,kwd ,langle ,tsize ,rangle ,lparen ,expr ,comma ,index ,rparen)
+       (// src
+           (make-Qconcat
+             (apply make-Qconcat
+               (make-Qtoken kwd)
+               (make-Qtoken langle)
+               (Type-Size tsize)
+               (add-closer 1 #f rangle '()))
+             (apply make-Qconcat
+               (make-Qtoken lparen)
+               (Expression expr)
+               (add-punctuation comma
+                 (cons*
+                   0
+                   (Expression index)
+                   (add-closer 1 #f rparen '()))))))]
       [(= ,src ,expr1 ,op ,expr2)
        (// src
            (make-Qconcat
@@ -1158,6 +1205,13 @@
              (make-Qtoken lparen)
              (Expression expr)
              (add-closer 1 #f rparen '())))])
+    (Tuple-Argument : Tuple-Argument (ir) -> * (q)
+      [(single ,src ,expr)
+       (// src
+           (Expression expr))]
+      [(spread ,src ,dotdotdot ,expr)
+       (// src
+           (make-Qconcat (make-Qtoken dotdotdot) (Expression expr)))])
     (New-Field : New-Field (ir) -> * (q)
       [(spread ,src ,dotdotdot ,expr)
        (// src

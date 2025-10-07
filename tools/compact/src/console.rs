@@ -1,3 +1,18 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use std::fmt;
 
 use console::{Emoji, StyledObject};
@@ -11,9 +26,10 @@ pub struct Style {
     target: console::Style,
     artifact: console::Style,
 
-    label: console::Style,
+    pub label: console::Style,
     success: console::Style,
     warning: console::Style,
+    error: console::Style,
 }
 
 #[derive(Clone)]
@@ -31,6 +47,7 @@ impl Default for Style {
             label: console::Style::new().magenta().bold(),
             success: console::Style::new().green().bold(),
             warning: console::Style::new().yellow(),
+            error: console::Style::new().red(),
         }
     }
 }
@@ -61,6 +78,10 @@ impl Style {
 
     pub fn warn<D>(&self, message: D) -> StyledObject<D> {
         self.warning.apply_to(message)
+    }
+
+    pub fn error<D>(&self, val: D) -> StyledObject<D> {
+        self.error.apply_to(val)
     }
 }
 

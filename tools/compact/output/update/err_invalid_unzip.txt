@@ -1,0 +1,7 @@
+error: unexpected argument '--unzip' found
+
+  tip: to pass '--unzip' as a value, use '-- --unzip'
+
+Usage: compact update [OPTIONS] [COMPACT_VERSION]
+
+For more information, try '--help'.

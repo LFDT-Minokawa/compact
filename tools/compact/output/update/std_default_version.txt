@@ -1,0 +1,1 @@
+compact-update [COMPACT_VERSION]

@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import {
+<<<<<<< HEAD
   type CircuitContext,
   type ContractState,
   QueryContext,
@@ -21,6 +22,14 @@ import {
 } from '@midnight-ntwrk/compact-runtime';
 import * as crypto from 'node:crypto';
 import { Contract, type Ledger, ledger, type Witnesses } from './managed/counter/contract/index.cjs';
+=======
+  type ContractState,
+  sampleContractAddress,
+  createCircuitContext
+} from '@midnight-ntwrk/compact-runtime';
+import * as crypto from 'node:crypto';
+import { Contract, type Ledger, ledger, type Witnesses } from './managed/counter/contract/index.js';
+>>>>>>> main
 
 class PrivateState {
   constructor(
@@ -57,6 +66,7 @@ export class SimpleWallet {
 
   public increment(): Ledger {
     const address = sampleContractAddress();
+<<<<<<< HEAD
     const ctx: CircuitContext<PrivateState> = {
       currentPrivateState: this.privateState,
       originalState: this.contractState,
@@ -65,5 +75,10 @@ export class SimpleWallet {
     const circuitResults = this.contract.impureCircuits.increment(ctx);
 
     return ledger(circuitResults.context.transactionContext.state);
+=======
+    const ctx = createCircuitContext(address, '0'.repeat(64), this.contractState, this.privateState);
+    const circuitResults = this.contract.impureCircuits.increment(ctx);
+    return ledger(circuitResults.context.currentQueryContext.state);
+>>>>>>> main
   }
 }

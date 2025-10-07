@@ -1,3 +1,18 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 const majorVersion = 5;
 const minorVersion = 10;
 const patchVersion = 20;
@@ -33,7 +48,7 @@ function pickRandomVersion() {
  * - emoji - emoji examples
  * - zalgo - zalgo examples
  * - deseret - rare alphabets like gothic
- * - bytes - malormed bytes
+ * - bytes - malformed bytes
  */
 function pickRandomString(type = 'random', options = {}) {
     const maxLength = options.length || 10;
@@ -57,20 +72,20 @@ function pickRandomString(type = 'random', options = {}) {
     };
 
     const weights = {
-        normal: 74,
-        digits: 2,
-        symbols: 2,
-        polish: 2,
-        chinese: 2,
-        japanese: 2,
-        korean: 2,
-        thai: 2,
-        arabic: 2,
-        hebrew: 2,
-        emoji: 2,
-        zalgo: 2,
-        deseret: 2,
-        bytes: 2,
+        normal: 1000,
+        digits: 1,
+        symbols: 1,
+        polish: 1,
+        chinese: 1,
+        japanese: 1,
+        korean: 1,
+        thai: 1,
+        arabic: 1,
+        hebrew: 1,
+        emoji: 1,
+        zalgo: 1,
+        deseret: 1,
+        bytes: 1,
         ...options.weights,
     };
 
@@ -139,6 +154,9 @@ function generateBigInt(options, signed) {
  * Generator for numbers of different types and weights, currently we can generate:
  * - zero: just zero
  * - int: signed, unsigned
+ * - hex: hexadecimal (based on uint)
+ * - binary: binary (based on uint)
+ * - octal: binary (based on uint)
  * - float: signed, unsigned
  * - bigint: signed, unsigned up to 2*1024.
  */
@@ -147,10 +165,13 @@ function pickRandomNumber(type = 'random', options = {}) {
         { type: 'zero', weight: 3 },
         { type: 'int', weight: 1 },
         { type: 'uint', weight: 50 },
+        { type: 'hex', weight: 5 },
+        { type: 'binary', weight: 5 },
+        { type: 'octal', weight: 5 },
         { type: 'float', weight: 1 },
         { type: 'ufloat', weight: 1 },
         { type: 'bigint', weight: 1 },
-        { type: 'ubigint', weight: 43 },
+        { type: 'ubigint', weight: 28 },
     ];
 
     if (type === 'random') {
@@ -164,6 +185,12 @@ function pickRandomNumber(type = 'random', options = {}) {
             return Math.floor(Math.random() * 2 ** 32) - 2 ** 32;
         case 'uint':
             return Math.floor(Math.random() * 2 ** 32);
+        case 'hex':
+            return "0x" + (Math.floor(Math.random() * 2 ** 32)).toString(16);
+        case 'binary':
+            return "0b" + (Math.floor(Math.random() * 2 ** 32)).toString(2);
+        case 'octal':
+            return "0o" + (Math.floor(Math.random() * 2 ** 32)).toString(8);
         case 'float':
             return Math.random() * 2e6 - 1e6;
         case 'ufloat':
@@ -178,7 +205,7 @@ function pickRandomNumber(type = 'random', options = {}) {
 }
 
 /*
- * Function to generate table for: for loop vector representation.
+ * Function to generate table for - for loop vector representation.
  */
 function pickRandomTable(size = 100) {
     const array = [];
@@ -188,6 +215,27 @@ function pickRandomTable(size = 100) {
     }
 
     return array.toString();
+}
+
+/*
+ * Function to generate table with mixed data.
+ */
+function randomMixedTable(size = 10) {
+    return Array.from( {length: size }, () => {
+       const choice = Math.floor(Math.random() * 4);
+       const number = pickRandomNumber('random', { bigIntSize: 128 });
+       
+       switch (choice) {
+           case 0:
+               return number;
+           case 1:
+               return true;
+           case 2: 
+               return false;
+           case 3:
+               return `"${Array.from({ length: 10 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('')}"`;
+       }
+    });
 }
 
 /*
@@ -262,6 +310,7 @@ module.exports = {
     pickRandomNumber,
     pickRandomString,
     pickRandomTable,
+    randomMixedTable,
     pickRandomNode,
     generateNestedFor,
     generateNestedIf,

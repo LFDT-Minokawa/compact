@@ -1,0 +1,11 @@
+# Agda interface files
+*.agdai
+
+# Emacs temporary and autosave files
+*~
+*#
+.#*
+
+
+# Cabal build files 
+/syntax-generation/dist-newstyle/

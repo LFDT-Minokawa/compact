@@ -1,11 +1,37 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import fs from 'fs';
 import { copySync, removeSync } from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { logger } from './logger-utils';
 import { globSync } from 'glob';
+import { fileURLToPath } from 'node:url';
 
 export const createdFolders: string[] = [];
+
+/*
+ * Build path to examples (by default). As this folder is in src, the path should be easier to get.
+ */
+export function buildPathTo(fileOrFolder: string, baseFolder: string = 'examples'): string {
+    const currentDir = path.dirname(fileURLToPath(import.meta.url));
+    const examplesDir = path.resolve(currentDir, '..', '..');
+
+    return path.join(examplesDir, baseFolder, fileOrFolder);
+}
 
 /*
  * Create and remove temp folders
@@ -95,6 +121,9 @@ export function copyFiles(globPattern: string, destinationDir: string): void {
     });
 }
 
+/*
+ * Save contract for generative tests.
+ */
 export function saveContract(content: string): string {
     logger.info('Saving contract');
     const contractPath = createTempFolder();

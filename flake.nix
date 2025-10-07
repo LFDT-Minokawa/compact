@@ -25,17 +25,21 @@
   inputs = {
     zkir = {
       # dependency for compact-runtime release
-      # this is using a commit hash to pull in the correct zkir version from ledger-4.0.0-release
-      # this is a temp solution due to issues with lockfiles in midnight-ledger-prototype
-      url = "github:midnightntwrk/midnight-ledger-prototype/f9814ac1f5f7db47881e93d1676fdce7d5b488ab";
+      # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
+      # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
+      # version from this url.
+      # this is using a commit hash to pull in the correct zkir version from ledger-3.0.0 release.
+      # When for releasing the runtime, running nix flake update causes errors for authorization of cargo
+      # (this is an issue on the midnight-ledger-prototype repo and the ledger team might fix it at some point), use
+      # the commit hash instead of the tag.
+      url = "github:midnightntwrk/midnight-ledger-prototype/e876d32b0bfe5a7124d4a6bde40cad6ccce0c522";
       inputs.compactc.follows = "";
       inputs.zkir.follows = "zkir";
     };
     onchain-runtime = {
       # dependency for compact-runtime release
-      # this is using a commit hash to pull in the correct zkir version from ledger-4.0.0-release
-      # this is a temp solution due to issues with lockfiles in midnight-ledger-prototype
-      url = "github:midnightntwrk/midnight-ledger-prototype/f9814ac1f5f7db47881e93d1676fdce7d5b488ab";
+      # all notes for the zkir input applies to onchain-runtime input too.
+      url = "github:midnightntwrk/midnight-ledger-prototype/e876d32b0bfe5a7124d4a6bde40cad6ccce0c522";
       inputs.compactc.follows = "";
       inputs.zkir.follows = "zkir";
     };
@@ -51,7 +55,7 @@
     };
 
     midnight-contracts = {
-      url = "github:midnightntwrk/midnight-contracts/unshielded-tokens";
+      url = "github:midnightntwrk/midnight-contracts/JosephDenman/pm-18137";
       flake = false;
     };
   };
@@ -127,6 +131,7 @@
               ./runtime
               ./compiler/json.ss
               ./compiler/utils.ss
+              ./compiler/field.ss
               ./third_party/compiler/state-case.ss
             ];
           in lib.pretzel-js.mkPackage {
@@ -169,7 +174,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.24.105"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.26.107"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./test-center
               ./compiler
@@ -265,15 +270,23 @@
 
             buildPhase = ''
               mkdir -p obj/compiler
+
               sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/compactc.ss > obj/compiler/compactc.ss
+              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/format-compact.ss > obj/compiler/format-compact.ss
+              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/fixup-compact.ss > obj/compiler/fixup-compact.ss
+
               compile-chez-program --optimize-level 2 obj/compiler/compactc.ss
+              compile-chez-program --optimize-level 2 obj/compiler/format-compact.ss
+              compile-chez-program --optimize-level 2 obj/compiler/fixup-compact.ss
             '';
 
             installPhase = ''
               mkdir -p $out/bin
-              mkdir -p $out/scripts
-              cp obj/compiler/compactc $out/bin
-              chmod +x $out/bin/compactc
+
+              for exe in compactc format-compact fixup-compact; do
+                cp "obj/compiler/$exe" $out/bin
+                chmod +x "$out/bin/$exe"
+              done
             '';
           };
 
@@ -282,8 +295,8 @@
             compactc $@
           '';
 
-          packages.compactc-binary-otherLinuxes = pkgs.stdenv.mkDerivation {
-            name = "compactc-binary-otherLinuxes";
+          packages.compactc-binary = pkgs.stdenv.mkDerivation {
+            name = "compactc-binary-dist";
             version = "0.0.1";
             srcs = packages.compactc-binary-nixos;
 
@@ -302,35 +315,13 @@
               #!/bin/bash
               thisdir="\$(cd \$(dirname \$0) ; pwd -P)"
               PATH="\$thisdir:\$PATH"
-              echo "Compactc version: \$(exec "\$thisdir/compactc.bin" --version)"
               exec "\$thisdir/compactc.bin" "\$@"
               EOF
-            '';
 
-            dontFixup = true;
-          };
-
-          packages.compactc-binary-macos = pkgs.stdenv.mkDerivation {
-            name = "compactc-binary-macos";
-            version = "0.0.1";
-            srcs = packages.compactc-binary-nixos;
-
-            installPhase = ''
-              mkdir -p $out/bin $out/lib
-              cp bin/compactc $out/bin
-              mv $out/bin/compactc $out/bin/compactc.bin
-              cp ${zkir.packages.${system}.zkir}/bin/zkir $out/lib/zkir
-
-              touch $out/bin/compactc
-              chmod +x $out/bin/compactc
-
-              cat <<EOF > $out/bin/compactc
-              #!/bin/bash
-              thisdir="\$(cd \$(dirname \$0) ; pwd -P)"
-              PATH="\$thisdir:\$PATH"
-              echo "Compactc version: \$(exec "\$thisdir/compactc.bin" --version)"
-              exec "\$thisdir/compactc.bin" "\$@"
-              EOF
+              for exe in format-compact fixup-compact; do
+                cp "bin/$exe" $out/bin
+                chmod +x "$out/bin/$exe"
+              done
             '';
 
             dontFixup = true;

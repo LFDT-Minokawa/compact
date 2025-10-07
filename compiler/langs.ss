@@ -17,11 +17,13 @@
 
 (library (langs)
   (export max-field field-bytes max-unsigned unsigned-bits field? datum? path-index?
-          maximum-ledger-segment-length 
+          max-bytes/vector-size len? max-merkle-tree-depth min-merkle-tree-depth
+          maximum-ledger-segment-length
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
-          Lnopattern unparse-Lnopattern Lnopattern-pretty-formats
           Lnoinclude unparse-Lnoinclude Lnoinclude-pretty-formats
+          Lsingleconst unparse-Lsingleconst Lsingleconst-pretty-formats
+          Lnopattern unparse-Lnopattern Lnopattern-pretty-formats
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
           Lexpr unparse-Lexpr Lexpr-pretty-formats
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
@@ -40,8 +42,11 @@
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
           Lunrolled unparse-Lunrolled Lunrolled-pretty-formats
           Linlined unparse-Linlined Linlined-pretty-formats
+          Lnosafecast unparse-Lnosafecast Lnosafecast-pretty-formats
+          Lnovectorref unparse-Lnovectorref Lnovectorref-pretty-formats
           Lcircuit unparse-Lcircuit Lcircuit-pretty-formats Lcircuit-External-Declaration? Lcircuit-Witness-Declaration? Lcircuit-Circuit-Definition? Lcircuit-Kernel-Declaration? Lcircuit-Ledger-Declaration? Lcircuit-Triv?
           Lflattened unparse-Lflattened Lflattened-pretty-formats Lflattened-Triv? Lflattened-Circuit-Definition? Lflattened-Type? Lflattened-Public-Ledger-ADT?
+          Lzkir unparse-Lzkir Lzkir-pretty-formats
           )
   (import (chezscheme) (nanopass) (nanopass-extension) (field) (natives))
 
@@ -49,7 +54,7 @@
   ; necessarily smaller than the number of bits required to represent the maximum field value
   (define (field-bits) (- (integer-length (max-field)) 1))
   ; field-bytes is the number of full bytes that can be represented by a field value and is
-  ; necessarily smaller than the number of bytes required to represent the maximum field value
+  ; one smaller than the number of bytes required to represent the maximum field value
   (define (field-bytes) (quotient (field-bits) 8))
 
   ; unsigned values are natural numbers that fit into the number of full bits representable by
@@ -72,6 +77,16 @@
     (or (boolean? x)
         (field? x)
         (bytevector? x)))
+
+  (define max-bytes/vector-size (make-parameter (expt 2 24)))
+
+  (define (len? x)
+    (and (integer? x)
+         (exact? x)
+         (<= 0 x (max-bytes/vector-size))))
+
+  (define (max-merkle-tree-depth) 32)
+  (define (min-merkle-tree-depth) 2)
 
   (define-record-type vm-expr
     (nongenerative)
@@ -117,6 +132,11 @@
     (Import-Declaration (idecl)
       (import src import-name (targ* ...) prefix) =>
         (import import-name (targ* 0 ...) #f prefix)
+      (import src import-name (targ* ...) prefix (ielt* ...)) =>
+        (import import-name (targ* 0 ...) #f prefix #f (ielt* ...))
+      )
+    (Import-Element (ielt)
+      (src name name^) => (name name^)
       )
     (Import-Name (import-name)
       module-name
@@ -167,20 +187,22 @@
     (Argument (arg)
       (src var-name type) => (bracket var-name type)
       )
+    (Const-Binding (cbinding)
+      (src pattern type expr) => (bracket pattern 0 type 0 expr))
     (Statement (stmt)
-      (statement-expression src expr)        => expr
-      (return src expr)                      => (return expr)
-      (const src pattern type expr)          => (const pattern type #f expr)
-      (if src expr stmt1 stmt2)              => (if expr 3 stmt1 3 stmt2)
-      (for src var-name expr stmt)           => (for var-name expr #f stmt)
-      (block src stmt* ...)                  => (block #f stmt* ...)
+      (statement-expression src expr)    => expr
+      (return src expr)                  => (return expr)
+      (const src cbinding cbinding* ...) => (const (cbinding 0 cbinding* ...))
+      (if src expr stmt1 stmt2)          => (if expr 3 stmt1 3 stmt2)
+      (for src var-name expr stmt)       => (for var-name expr #f stmt)
+      (block src stmt* ...)              => (block #f stmt* ...)
       )
     (Pattern (pattern)
       var-name
       (tuple src (maybe pattern?*) ...)      => (pattern?* ...)
       (struct src (pattern* elt-name*) ...)  => ((pattern* elt-name*) ...)
       )
-    (Expression (expr)
+    (Expression (expr index)
       (quote src datum)                                   => datum
       (var-ref src var-name)                              => var-name
       (default src type)                                  => (default type)
@@ -190,8 +212,10 @@
       (= src expr1 expr2)                                 => (= expr1 expr2)
       (+= src expr1 expr2)                                => (+= expr1 3 expr2)
       (-= src expr1 expr2)                                => (-= expr1 3 expr2)
-      (tuple src expr* ...)                               => (tuple expr* ...)
-      (tuple-ref src expr nat)                            => (tuple-ref #f expr #f nat)
+      (tuple src tuple-arg* ...)                          => (tuple tuple-arg* ...)
+      (bytes src bytes-arg* ...)                          => (bytes bytes-arg* ...)
+      (tuple-ref src expr index)                          => (tuple-ref #f expr #f index)
+      (tuple-slice src expr index tsize)                  => (tuple-slice #f expr #f index #f tsize)
       (+ src expr1 expr2)                                 => (+ expr1 expr2)
       (- src expr1 expr2)                                 => (- expr1 expr2)
       (* src expr1 expr2)                                 => (* expr1 expr2)
@@ -220,6 +244,10 @@
       (fref src function-name)               => function-name
       (fref src function-name (targ* ...))   => (fref function-name #f targ* ...)
       (circuit src (parg* ...) type stmt)    => (circuit (parg* 0 ...) 4 type #f stmt)
+      )
+    (Tuple-Argument (tuple-arg bytes-arg)
+      (single src expr)                      => expr
+      (spread src expr)                      => (spread expr)
       )
     (New-Field (new-field)
       (spread src expr)                      => (spread expr)
@@ -257,7 +285,17 @@
     (Include (incld)
       (- (include src file))))
 
-  (define-language/pretty Lnopattern (extends Lnoinclude)
+  (define-language/pretty Lsingleconst (extends Lnoinclude)
+    (Const-Binding (cbinding)
+      (- (src pattern type expr)))
+    (Statement (stmt)
+      (- (const src cbinding cbinding* ...))
+      (+ (const src pattern type expr) => (const pattern type expr)
+         (seq src stmt* ...)  => (seq stmt* ...))
+      )
+    )
+
+  (define-language/pretty Lnopattern (extends Lsingleconst)
     (Ledger-Constructor (lconstructor)
       (- (constructor src (parg* ...) stmt))
       (+ (constructor src (arg* ...) stmt) => (constructor (arg* ...) stmt)))
@@ -269,8 +307,7 @@
       (- (src pattern type)))
     (Statement (stmt)
       (- (const src pattern type expr))
-      (+ (const src var-name type expr) => (const var-name type expr)
-         (seq src stmt* ...) => (seq stmt* ...)))
+      (+ (const src var-name type expr) => (const var-name type expr)))
     (Function (fun)
       (- (circuit src (parg* ...) type stmt))
       (+ (circuit src (arg* ...) type stmt) => (circuit (arg* 0 ...) 4 type #f stmt)))
@@ -306,7 +343,7 @@
          (for src var-name expr stmt)
          (seq src stmt* ...)
          (block src (var-name* ...) stmt* ...)))
-    (Expression (expr)
+    (Expression (expr index)
       (+ (let* src ([arg* expr*] ...) expr)      => (let* ([bracket arg* 0 expr*] 0 ...) #f expr)
          (for src var-name expr1 expr2)          => (for var-name expr1 #f expr2)
          (block src (var-name* ...) expr)        => (block (var-name* 0 ...) #f expr)
@@ -318,7 +355,7 @@
            (circuit (arg* 0 ...) 4 type #f expr))))
 
   (define-language/pretty Lnoandornot (extends Lexpr)
-    (Expression (expr)
+    (Expression (expr index)
       (- (and src expr1 expr2)
          (or src expr1 expr2)
          (not src expr))))
@@ -344,8 +381,11 @@
       (+ (ledger-op ((var-name* type*) ...) result-type runtime-code) =>
            ledger-op))
     (ADT-Op (adt-op)
-      (+ (ledger-op ledger-op-class ((var-name* type* (maybe discloses?)) ...) type vm-code adt-op-cond* ...) =>
+      (+ (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code adt-op-cond* ...) =>
            ledger-op))
+    (ADT-Op-Class (op-class)
+      (+ ledger-op-class
+         (ledger-op-class nat nat^)))
     (ADT-Op-Condition (adt-op-cond)
       (+ (= tvar-name type)))
     (Circuit-Alias-Definition (circuit-alias-defn)
@@ -396,6 +436,7 @@
 
   (define-language/pretty Lexpanded (extends Lpreexpand)
     (terminals
+      (+ (len (size len)))
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal))
          (boolean (exported sealed pure-dcl))
          (string (prefix mesg opaque-type file discloses)))
@@ -424,7 +465,7 @@
       (- (circuit-alias function-name^ function-name)))
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration src exported? sealed? ledger-field-name type))
-      (+ (public-ledger-declaration src ledger-field-name public-adt) => 
+      (+ (public-ledger-declaration src ledger-field-name public-adt) =>
            (public-ledger-declaration #f ledger-field-name #f public-adt)))
     (Public-Ledger-ADT (public-adt)
       (+ (src adt-name ([adt-formal* generic-value*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
@@ -444,7 +485,8 @@
     (Module-Definition (mdefn)
       (- (module src exported? module-name (type-param* ...) pelt* ...)))
     (Import-Declaration (idecl)
-      (- (import src import-name (targ* ...) prefix)))
+      (- (import src import-name (targ* ...) prefix)
+         (import src import-name (targ* ...) prefix (ielt* ...))))
     (Import-Name (import-name)
       (- module-name)
       (- file))
@@ -469,8 +511,8 @@
       (+ (ledger-op (arg* ...) result-type runtime-code) =>
            ledger-op))
     (ADT-Op (adt-op)
-      (- (ledger-op ledger-op-class ((var-name* type* (maybe discloses?)) ...) type vm-code adt-op-cond* ...))
-      (+ (ledger-op ledger-op-class ((var-name* type* (maybe discloses?)) ...) type vm-code) =>
+      (- (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code adt-op-cond* ...))
+      (+ (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code) =>
            ledger-op))
     (ADT-Op-Condition (adt-op-cond)
       (- (= tvar-name type)))
@@ -481,14 +523,14 @@
     (Argument (arg)
       (- (src var-name type))
       (+ (var-name type) => (bracket var-name type)))
-    (Expression (expr)
+    (Expression (expr index)
       (- (block src (var-name* ...) expr)
-         (default src type)
-         (new src tref new-field* ...))
+         (new src tref new-field* ...)
+         (tuple-slice src expr index tsize))
       (+ (ledger-ref src ledger-field-name) => ledger-field-name
-         (default src type) => (default type)
-         (new src type new-field* ...) => (new type #f new-field* ...)
-         (enum-ref src type elt-name) => (enum-ref type elt-name)))
+         (new src type new-field* ...)      => (new type #f new-field* ...)
+         (enum-ref src type elt-name)       => (enum-ref type elt-name)
+         (tuple-slice src expr index size)  => (tuple-slice #f expr #f index #f size)))
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
@@ -507,8 +549,8 @@
          (tbytes src tsize))
       (+ tvar-name
          (tunsigned src nat)    => (tunsigned nat)
-         (tvector src nat type) => (tvector nat type)
-         (tbytes src nat)       => (tbytes nat)
+         (tvector src len type) => (tvector len type)
+         (tbytes src len)       => (tbytes len)
          (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
            (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
          (tstruct src struct-name (elt-name* type*) ...) =>
@@ -528,9 +570,10 @@
   (define-language/pretty Ltypes (entry Program)
     (terminals
       (field (nat))
+      (len (size len))
       (maybe-bits (mbits))
       (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal))
-      (boolean (pure-dcl safe))
+      (boolean (pure-dcl))
       (id (name var-name function-name ledger-field-name))
       (string (mesg opaque-type file discloses sugar))
       (datum (datum))
@@ -562,7 +605,7 @@
       (type-definition src type-name (tvar-name* ...) type) =>
         (type-definition type-name (tvar-name* ...) #f type))
     (Ledger-Declaration (ldecl)
-      (public-ledger-declaration src ledger-field-name public-adt) => 
+      (public-ledger-declaration src ledger-field-name public-adt) =>
         (public-ledger-declaration #f ledger-field-name #f public-adt))
     (Ledger-Constructor (lconstructor)
       (constructor src (arg* ...) expr)      => (constructor (arg* 0 ...) #f expr))
@@ -573,8 +616,11 @@
       (ledger-op (arg* ...) result-type runtime-code) =>
         ledger-op)
     (ADT-Op (adt-op)
-      (ledger-op ledger-op-class ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code) =>
+      (ledger-op op-class ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code) =>
         ledger-op)
+    (ADT-Op-Class (op-class)
+      ledger-op-class
+      (ledger-op-class nat nat^))
     (Public-Ledger-ADT-Arg (adt-arg)
       nat
       adt-type)
@@ -585,7 +631,7 @@
       (var-name type) => (bracket var-name type))
     (Local (local)
       (var-name adt-type) => (bracket var-name adt-type))
-    (Expression (expr)
+    (Expression (expr index)
       (quote src datum)                       => datum
       (var-ref src var-name)                  => var-name
       (ledger-ref src ledger-field-name)      => ledger-field-name
@@ -593,8 +639,23 @@
       (if src expr0 expr1 expr2)              => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name nat)         => (elt-ref expr elt-name nat)
       (enum-ref src type elt-name)            => (enum-ref type elt-name)
-      (tuple src expr* ...)                   => (tuple #f expr* ...)
+      ; for tuple, the elements can have different, even unrelated types
+      (tuple src tuple-arg* ...)              => (tuple tuple-arg* ...)
+      ; for vector, the elements must all have the same type
+      (vector src tuple-arg* ...)             => (vector tuple-arg* ...)
+      ; for tuple-ref and tuple-slice, the index (nat) is constant, and expr's elements can have different, even unrelated types
       (tuple-ref src expr nat)                => (tuple-ref #f expr #f nat)
+      (tuple-slice src type expr nat size)    => (tuple-slice #f expr #f nat #f size)
+      ; for vector-ref and vector-slice, index is an arbitrary expression and expr's elements must all have the same type
+      ; NB: index must eventually reduce to a constant, but that manifests in a later language.  for now, it is constrained
+      ; only to have some Uint type
+      (vector-ref src type expr index)        => (vector-ref #f expr #f index)
+      (vector-slice src type expr index size) => (vector-slice #f expr #f index #f size)
+      ; for bytes-ref and bytes-slice, index is an arbitrary expression and expr must have a tbytes type
+      ; NB: index must eventually reduce to a constant, but that manifests in a later language.  for now, it is constrained
+      ; only to have some Uint type
+      (bytes-ref src type expr index)         => (bytes-ref #f expr #f index)
+      (bytes-slice src type expr index size)  => (bytes-slice #f expr #f index #f size)
       (+ src mbits expr1 expr2)               => (+ mbits expr1 expr2)
       (- src mbits expr1 expr2)               => (- mbits expr1 expr2)
       (* src mbits expr1 expr2)               => (* mbits expr1 expr2)
@@ -604,29 +665,37 @@
       (>= src mbits expr1 expr2)              => (>= expr1 3 expr2)
       (== src type expr1 expr2)               => (== expr1 3 expr2)
       (!= src type expr1 expr2)               => (!= expr1 3 expr2)
-      (map src type^ fun (expr type) (expr* type*) ...) =>
-        (map (type^ 0 type 0 type* ...) #f fun #f expr #f expr* ...)
-      (fold src type^ fun (expr0 type0) (expr type) (expr* type*) ...) =>
-        (fold (type^ type0 type type* ...) #f fun #f expr0 #f expr #f expr* ...)
+      (map src nat fun map-arg map-arg* ...) =>
+        (map #f fun #f map-arg #f map-arg* ...)
+      (fold src nat fun (expr0 type0) map-arg map-arg* ...) =>
+        (fold #f fun #f expr0 #f map-arg #f map-arg* ...)
       (call src fun expr* ...)                => (call fun #f expr* ...)
       (new src type expr* ...)                => (new type #f expr* ...)
       (seq src expr* ... expr)                => (seq #f expr* ... #f expr)
       (let* src ([local* expr*] ...) expr)    => (let* ([bracket local* 0 expr*] 0 ...) #f expr)
       (assert src expr mesg)                  => (assert expr mesg)
-      (field->bytes src nat expr)             => (field->bytes nat expr)
-      (bytes->field src nat expr)             => (bytes->field nat expr)
-      (vector->bytes src nat expr)            => (vector->bytes nat expr)
-      (bytes->vector src nat expr)            => (bytes->vector nat expr)
-      (enum->field src type expr)             => (enum->field expr)
-      (field->unsigned src nat expr)          => (field->unsigned nat expr)
-      (upcast src type type^ expr)            => (upcast type 7 type^ #f expr) ; type^ < type
-      (downcast-unsigned src nat expr safe?)  => (downcast-unsigned nat expr safe?)
+      (field->bytes src len expr)             => (field->bytes len expr)
+      (cast-from-bytes src type len expr)     => (cast-from-bytes type len #f expr)
+      (vector->bytes src len expr)            => (vector->bytes len expr)
+      (bytes->vector src len expr)            => (bytes->vector len expr)
+      (cast-from-enum src type type^ expr)    => (cast-from-enum type type^ #f expr) ; type is tfield or tunsigned, type^ is tenum
+      (cast-to-enum src type type^ expr)      => (cast-to-enum type type^ #f expr) ; type is tenum, type^ is tfield or tunsigned
+      (safe-cast src type type^ expr)         => (safe-cast type 10 type^ #f expr) ; type^ < type
+      (downcast-unsigned src nat expr)        => (downcast-unsigned nat expr)
       (disclose src expr)                     => (disclose expr)
       (ledger-call src ledger-op (maybe sugar) expr expr* ...) =>
         (ledger-call ledger-op #f expr #f expr* ...)
       (contract-call src elt-name (expr type) expr* ...) =>
         (contract-call elt-name 4 (expr 0 type) #f expr* ...)
       (return src expr)                       => expr
+      )
+    (Map-Argument (map-arg)
+      ; type = expr's type; type^ = type to which each element of expr's value must be cast
+      (expr type type^)                  => expr
+      )
+    (Tuple-Argument (tuple-arg)
+      (single src expr)                      => expr
+      (spread src nat expr)                  => (spread nat expr)
       )
     (Function (fun)
       (fref src function-name)               => function-name
@@ -636,9 +705,9 @@
       (tboolean src)                         => (tboolean)
       (tfield src)                           => (tfield)
       (tunsigned src nat)                    => (tunsigned nat)
-      (tbytes src nat)                       => (tbytes nat)
+      (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
-      (tvector src nat type)                 => (tvector nat type)
+      (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
       (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
         (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
@@ -665,7 +734,7 @@
            (public-ledger-declaration #f public-binding* ... #f lconstructor)))
     (Public-Ledger-Binding (public-binding)
       (+ (src ledger-field-name public-adt) => (ledger-field-name public-adt)))
-    (Expression (expr)
+    (Expression (expr index)
       (- (ledger-ref src ledger-field-name)
          (ledger-call src ledger-op (maybe sugar) expr expr* ...))
       (+ (public-ledger src ledger-field-name (maybe sugar) accessor* ...) =>
@@ -674,7 +743,7 @@
       (+ (src ledger-op expr* ...)              => (ledger-op #f expr* ...))))
 
   (define-language/pretty Lnodca (extends Loneledger)
-    (Expression (expr)
+    (Expression (expr index)
       (- (call src fun expr* ...))
       (+ (call src function-name expr* ...) => (call function-name #f expr* ...))))
 
@@ -703,7 +772,7 @@
            (ledger-field-name #f (path-index* ...) #f public-adt))))
 
   (define-language/pretty Lwithpaths (extends Lwithpaths0)
-    (Expression (expr)
+    (Expression (expr index)
       (- (public-ledger src ledger-field-name (maybe sugar) accessor* ...))
       ; for public ledger operation fldname.op1(...).op2(...).op3(), src is the src of fldname
       ; and src^ is the src of the "." before op3.  the src for the "." before op1
@@ -711,8 +780,8 @@
       (+ (public-ledger src ledger-field-name (maybe sugar) (path-elt ...) src^ adt-op expr* ...) =>
            (public-ledger ledger-field-name (path-elt ...) adt-op #f expr* ...)))
     (ADT-Op (adt-op)
-      (- (ledger-op ledger-op-class ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code))
-      (+ (ledger-op ledger-op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code) =>
+      (- (ledger-op op-class ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code))
+      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code) =>
            ledger-op))
     (Ledger-Accessor (accessor)
       (- (src ledger-op expr* ...)))
@@ -722,10 +791,10 @@
 
   (define-language/pretty Lnodisclose (extends Lwithpaths)
     (ADT-Op (adt-op)
-      (- (ledger-op ledger-op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code))
-      (+ (ledger-op ledger-op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code) =>
+      (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code))
+      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code) =>
          ledger-op))
-    (Expression (expr)
+    (Expression (expr index)
       (- (disclose src expr))))
 
   (define-language/pretty Ltypescript (extends Lnodisclose)
@@ -749,7 +818,7 @@
     (Function (fun)
       (- (circuit src (arg* ...) type expr))
       (+ (circuit src (arg* ...) type stmt)      => (circuit (arg* 0 ...) 4 type #f stmt)))
-    (Expression (expr)
+    (Expression (expr index)
       (- (let* src ([local* expr*] ...) expr)
          (return src expr))
       (+ (not src expr)                          => (not expr)
@@ -788,15 +857,16 @@
            (adt-name #f adt-arg* ...)))
     (ADT-Runtime-Op (adt-rt-op)
       (- (ledger-op (arg* ...) result-type runtime-code)))
-    (Expression (expr)
+    (Expression (expr index)
       (- (elt-ref src expr elt-name nat)
          (return src expr)
          (<= src mbits expr1 expr2)
          (> src mbits expr1 expr2)
          (>= src mbits expr1 expr2)
-         (!= src type expr1 expr2))
-      (+ (elt-ref src expr elt-name) =>
-           (elt-ref expr elt-name)))
+         (!= src type expr1 expr2)
+         (cast-from-bytes src type len expr))
+      (+ (elt-ref src expr elt-name) => (elt-ref expr elt-name)
+         (bytes->field src len expr) => (bytes->field len expr)))
     (Type (type)
       (- tvar-name)))
 
@@ -804,31 +874,52 @@
     (terminals
       (- (symbol (export-name contract-name struct-name enum-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
       (+ (symbol (export-name contract-name struct-name elt-name ledger-op ledger-op-class adt-name adt-formal))))
-    (Expression (expr)
+    (Expression (expr index)
       (- (enum-ref src type elt-name)
-         (enum->field src type expr)))
+         (cast-from-enum src type type^ expr)
+         (cast-to-enum src type type^ expr)))
     (Type (type)
       (- (tenum src enum-name elt-name elt-name* ...))))
 
   (define-language/pretty Lunrolled (extends Lnoenums)
-    (Expression (expr)
-      (- (map src type^ fun (expr type) (expr* type*) ...)
-         (fold src type^ fun (expr0 type0) (expr type) (expr* type*) ...))
+    (Expression (expr index)
+      (- (map src nat fun map-arg map-arg* ...)
+         (fold src nat fun (expr0 type0) map-arg map-arg* ...))
       (+ (flet src function-name (src^ (arg* ...) type expr^) expr) =>
            (flet [bracket function-name 0 (circuit (arg* 0 ...) 4 type #f expr^)] #f expr)))
+    (Map-Argument (map-arg)
+      (- (expr type type^))
+      )
     (Function (fun)
       (- (fref src function-name)
          (circuit src (arg* ...) type expr))))
 
   (define-language/pretty Linlined (extends Lunrolled)
-    (Expression (expr)
+    (Expression (expr index)
       (- (flet src function-name (src^ (arg* ...) type expr^) expr))))
+
+  (define-language/pretty Lnosafecast (extends Linlined)
+    (Expression (expr index)
+      (- (safe-cast src type type^ expr))))
+
+  (define-language/pretty Lnovectorref (extends Lnosafecast)
+    (terminals
+      (- (len (size len)))
+      (+ (len (len))))
+    (Expression (expr index)
+      (- (bytes-ref src type expr index)
+         (vector-ref src type expr index)
+         (tuple-slice src type expr nat size)
+         (bytes-slice src type expr index size)
+         (vector-slice src type expr index size))
+      (+ (bytes-ref src expr nat) => (bytes-ref expr nat))))
 
   (define-language/pretty Lcircuit (entry Program)
     (terminals
       (field (nat))
+      (len (len))
       (maybe-bits (mbits))
-      (boolean (bool pure-dcl safe))
+      (boolean (pure-dcl))
       (symbol (export-name struct-name contract-name elt-name ledger-op ledger-op-class adt-name adt-formal))
       (id (name var-name function-name ledger-field-name))
       (string (mesg opaque-type file sugar))
@@ -863,8 +954,11 @@
     (Public-Ledger-ADT (public-adt)
       (src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...)) => (adt-name #f adt-arg* ...))
     (ADT-Op (adt-op)
-      (ledger-op ledger-op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code) =>
+      (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code) =>
         ledger-op)
+    (ADT-Op-Class (op-class)
+      ledger-op-class
+      (ledger-op-class nat nat^))
     (Public-Ledger-ADT-Arg (adt-arg)
       nat
       adt-type)
@@ -874,8 +968,8 @@
     (Argument (arg)
       (var-name type) => (bracket var-name type))
     (Statement (stmt)
-      (= test var-name rhs)                  => (= test var-name 2 rhs)
-      (assert src test mesg)                 => (assert test #f mesg))
+      (= var-name rhs)                  => (= var-name 2 rhs)
+      (assert src test mesg)            => (assert test #f mesg))
     (Rhs (rhs)
       triv
       (+ mbits triv1 triv2)
@@ -883,27 +977,31 @@
       (* mbits triv1 triv2)
       (< mbits triv1 triv2)
       (== triv1 triv2)                       => (== triv1 3 triv2)
-      (select bool triv0 triv1 triv2)        => (select triv0 triv1 triv2)
-      (tuple triv* ...)
+      (select triv0 triv1 triv2)             => (select triv0 triv1 triv2)
+      (tuple tuple-arg* ...)
+      (vector tuple-arg* ...)
       (tuple-ref triv nat)
+      (bytes-ref triv nat)
       (new type triv* ...)                   => (new type #f triv* ...)
       (elt-ref triv elt-name)
-      (upcast src type type^ triv)           => (upcast type 7 type^ #f triv) ; type^ < type
-      (call src function-name triv* ...)     => (call function-name #f triv* ...)
-      (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
-        (public-ledger ledger-field-name (path-elt* ...) adt-op #f triv* ...)
-      (contract-call src elt-name (triv type) triv* ...) =>
-        (contract-call elt-name 4 (triv 0 type) #f triv* ...)
-      (field->bytes src nat triv)             => (field->bytes nat triv)
-      (bytes->field src nat triv)             => (bytes->field nat triv)
-      (vector->bytes src nat triv)            => (vector->bytes nat triv)
-      (bytes->vector src nat triv)            => (bytes->vector nat triv)
-      (downcast-unsigned src nat triv safe?)  => (downcast-unsigned nat triv safe?)
-      (field->unsigned src nat triv)          => (field->unsigned nat triv))
+      (vector->bytes len triv)               => (vector->bytes len triv)
+      (bytes->vector len triv)               => (bytes->vector len triv)
+      (call src test function-name triv* ...) => (call test function-name #f triv* ...)
+      (public-ledger src test ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
+        (public-ledger test ledger-field-name (path-elt* ...) adt-op #f triv* ...)
+      (contract-call src test elt-name (triv type) triv* ...) =>
+        (contract-call test elt-name 4 (triv 0 type) #f triv* ...)
+      (field->bytes src test len triv)        => (field->bytes test len triv)
+      (bytes->field src test len triv)        => (bytes->field test len triv)
+      (downcast-unsigned src test nat triv)   => (downcast-unsigned test nat triv))
     (Triv (triv test)
       var-name
       (default adt-type)
       (quote datum)                          => datum
+      )
+    (Tuple-Argument (tuple-arg)
+      (single src triv)                      => triv
+      (spread src nat triv)                  => (spread nat triv)
       )
     (Path-Element (path-elt)
       path-index
@@ -912,9 +1010,9 @@
       (tboolean src)                         => (tboolean)
       (tfield src)                           => (tfield)
       (tunsigned src nat)                    => (tunsigned nat)
-      (tbytes src nat)                       => (tbytes nat)
+      (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
-      (tvector src nat type)                 => (tvector nat type)
+      (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
       (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
         (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
@@ -933,8 +1031,8 @@
       (+ (circuit src function-name (arg* ...) type stmt* ... (triv* ...)) =>
             (circuit function-name (arg* 0 ...) 4 type #f stmt* ... #f (triv* ...))))
     (ADT-Op (adt-op)
-      (- (ledger-op ledger-op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code))
-      (+ (ledger-op ledger-op-class (adt-name (adt-formal* adt-arg*) ...) (ledger-op-formal* ...) (type* ...) type vm-code) =>
+      (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code))
+      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) (ledger-op-formal* ...) (type* ...) type vm-code) =>
            ledger-op))
     (Public-Ledger-ADT-Arg (adt-arg)
       (- adt-type)
@@ -944,13 +1042,13 @@
          public-adt))
     (Argument (arg)
       (- (var-name type))
-      (+ (argument (var-name ...) type)))
+      (+ (argument (var-name* ...) type)))
     (Statement (stmt)
-      (- (= test var-name rhs))
-      ; nanopass bug: swap the two clauses below and the (= (var-name ...) multiple) pattern
+      (- (= var-name rhs))
+      ; nanopass limitation: swap the two clauses below and the (= (var-name ...) multiple) pattern
       ; is rejected. (reported to Andy Keep 01/02/2024)
-      (+ (= test (var-name ...) multiple) =>  (= test (var-name 0 ...) 2 multiple)
-         (= test var-name single)         =>  (= test var-name 2 single)))
+      (+ (= (var-name* ...) multiple) =>  (= (var-name* 0 ...) 2 multiple)
+         (= var-name single)          =>  (= var-name 2 single)))
     (Rhs (rhs)
       (- triv
          (+ mbits triv1 triv2)
@@ -958,21 +1056,21 @@
          (* mbits triv1 triv2)
          (< mbits triv1 triv2)
          (== triv1 triv2)
-         (select bool triv0 triv1 triv2)
-         (tuple triv* ...)
+         (select triv0 triv1 triv2)
+         (tuple tuple-arg* ...)
+         (vector tuple-arg* ...)
          (tuple-ref triv nat)
+         (bytes-ref triv nat)
          (new type triv* ...)
          (elt-ref triv elt-name)
-         (upcast src type type^ triv)
-         (call src function-name triv* ...)
-         (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...)
-         (contract-call src elt-name (triv type) triv* ...)
-         (field->bytes src nat triv)
-         (bytes->field src nat triv)
-         (vector->bytes src nat triv)
-         (bytes->vector src nat triv)
-         (downcast-unsigned src nat triv safe?)
-         (field->unsigned src nat triv)))
+         (vector->bytes len triv)
+         (bytes->vector len triv)
+         (call src test function-name triv* ...)
+         (public-ledger src test ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...)
+         (contract-call src test elt-name (triv type) triv* ...)
+         (field->bytes src test len triv)
+         (bytes->field src test len triv)
+         (downcast-unsigned src test nat triv)))
     (Single (single)
       (+ triv
          (+ mbits triv1 triv2)
@@ -980,23 +1078,27 @@
          (* mbits triv1 triv2)
          (< mbits triv1 triv2)
          (== triv1 triv2)                        => (== triv1 3 triv2)
-         (select bool triv0 triv1 triv2)         => (select triv0 triv1 triv2)
-         (bytes->field src nat triv1 triv2)      => (bytes->field nat #f triv1 #f triv2)
-         (vector->bytes src triv triv* ...)      => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
-         (downcast-unsigned src nat triv safe?)  => (downcast-unsigned nat triv safe?)))
+         (select triv0 triv1 triv2)              => (select triv0 triv1 triv2)
+         (bytes-ref triv nat)
+         (bytes->field src test len triv1 triv2) => (bytes->field test len #f triv1 #f triv2)
+         (vector->bytes triv triv* ...)          => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
+         (downcast-unsigned src test nat triv)   => (downcast-unsigned test nat triv)))
     (Multiple (multiple)
-      (+ (call src function-name triv* ...) =>
-           (call function-name #f triv* ...)
-         (field->bytes src nat triv)             => (field->bytes nat #f triv)
-         (bytes->vector src triv)                => (bytes->vector #f triv) ; triv holds one field's worth of bytes
-         (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
-           (public-ledger ledger-field-name (path-elt* 0 ...) #f adt-op #f triv* ...)
-         (contract-call src elt-name (triv primitive-type) triv* ...) =>
-           (contract-call elt-name 4 (triv primitive-type) #f triv* ...)))
+      (+ (call src test function-name triv* ...) =>
+           (call test function-name #f triv* ...)
+         (field->bytes src test len triv)        => (field->bytes test len #f triv)
+         (bytes->vector triv)                    => (bytes->vector #f triv) ; triv holds one field's worth of bytes
+         (public-ledger src test ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
+           (public-ledger test ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
+         (contract-call src test elt-name (triv primitive-type) triv* ...) =>
+           (contract-call test elt-name 4 (triv primitive-type) #f triv* ...)))
     (Triv (triv test)
       (- (quote datum)
          (default adt-type))
       (+ nat))
+    (Tuple-Argument (tuple-arg)
+      (- (single src triv)
+         (spread src nat triv)))
     (Path-Element (path-elt)
       (- (src type triv))
       (+ (src type triv* ...) => (type triv* ...)))
@@ -1010,9 +1112,9 @@
       (- (tboolean src)
          (tfield src)
          (tunsigned src nat)
-         (tbytes src nat)
+         (tbytes src len)
          (topaque src opaque-type)
-         (tvector src nat type)
+         (tvector src len type)
          (ttuple src type* ...)
          (tstruct src struct-name (elt-name* type*) ...)
          (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...)
@@ -1025,4 +1127,41 @@
          (tcontract contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
            (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
          public-adt)))
+
+  (define-language/pretty Lzkir (entry Program)
+    (terminals
+      (field (arg-count var imm nat))
+      (source-object (src))
+      (symbol (name)))
+    (Program (p)
+      (program src cdefn* ...) => (program #f cdefn* ...))
+    (Circuit-Definition (cdefn)
+      (circuit src (name* ...) arg-count instr* ...) => (circuit (name* ...) arg-count #f instr* ...))
+    (Instruction (instr)
+      (add var0 var1)
+      (assert var)
+      (constrain_bits var0 imm)
+      (constrain_eq var0 var1)
+      (constrain_to_boolean var)
+      (copy var)
+      (declare_pub_input var)
+      (div_mod_power_of_two var imm)
+      (ec_add var0 var1 var2 var3)
+      (ec_mul var0 var1 var2)
+      (ec_mul_generator var)
+      (hash_to_curve var* ...)
+      (less_than var0 var1 imm)
+      (load_imm imm)
+      (mul var0 var1)
+      (neg var)
+      (output var)
+      (pi_skip var imm)
+      (private_input)
+      (private_input var)
+      (public_input)
+      (public_input var)
+      (reconstitute_field var0 var1 imm)
+      (select var0 var1 var2)
+      (test_eq var0 var1)
+      (transient_hash var* ...)))
 )

@@ -109,13 +109,13 @@ circuit merkleTreePathEntryRoot(
 // Midnight kernel types
 export struct ContractAddress { bytes: Bytes<32>; }
 
-export struct ShieldedCoinInfo {
+export struct CoinInfo {
   nonce: Bytes<32>;
   color: Bytes<32>;
   value: Uint<128>;
 }
 
-export struct QualifiedShieldedCoinInfo {
+export struct QualifiedCoinInfo {
   nonce: Bytes<32>;
   color: Bytes<32>;
   value: Uint<128>;
@@ -124,9 +124,9 @@ export struct QualifiedShieldedCoinInfo {
 
 export struct ZswapCoinPublicKey { bytes: Bytes<32>; }
 
-export struct ShieldedSendResult {
-  change: Maybe<ShieldedCoinInfo>;
-  sent: ShieldedCoinInfo;
+export struct SendResult {
+  change: Maybe<CoinInfo>;
+  sent: CoinInfo;
 }
 
 export circuit nativeToken(): Bytes<32> {
@@ -135,22 +135,22 @@ export circuit nativeToken(): Bytes<32> {
 
 // TS: Get from wallet
 export circuit ownPublicKey(): ZswapCoinPublicKey;
-export circuit createZswapInput(coin: QualifiedShieldedCoinInfo): [];
-export circuit createZswapOutput(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [];
+export circuit createZswapInput(coin: QualifiedCoinInfo): [];
+export circuit createZswapOutput(coin: CoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [];
 
 // Midnight helper circuits
 export circuit tokenType(domain_sep: Bytes<32>, contractAddress: ContractAddress): Bytes<32> {
   return persistentCommit<Vector<2, Bytes<32>>>([domain_sep, contractAddress.bytes], pad(32, "midnight:derive_token"));
 }
 
-export circuit mintShieldedToken(
+export circuit mintToken(
   domain_sep: Bytes<32>,
   value: Uint<64>,
   nonce: Bytes<32>,
   recipient: Either<ZswapCoinPublicKey, ContractAddress>
-): ShieldedCoinInfo {
-  const coin = ShieldedCoinInfo { nonce: nonce, color: tokenType(domain_sep, kernel.self()), value: value };
-  kernel.mintShielded(domain_sep, value);
+): CoinInfo {
+  const coin = CoinInfo { nonce: nonce, color: tokenType(domain_sep, kernel.self()), value: value };
+  kernel.mint(domain_sep, value);
   createZswapOutput(coin, recipient);
   const cm = coinCommitment(coin, recipient);
   kernel.claimZswapCoinSpend(cm);
@@ -165,27 +165,27 @@ export circuit evolveNonce(index: Uint<128>, nonce: Bytes<32>): Bytes<32> {
   ]));
 }
 
-export circuit shieldedBurnAddress(): Either<ZswapCoinPublicKey, ContractAddress> {
+export circuit burnAddress(): Either<ZswapCoinPublicKey, ContractAddress> {
   return left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>);
 }
 
-export circuit receiveShielded(coin: ShieldedCoinInfo): [] {
+export circuit receive(coin: CoinInfo): [] {
   const recipient = right<ZswapCoinPublicKey, ContractAddress>(kernel.self());
   createZswapOutput(coin, recipient);
   kernel.claimZswapCoinReceive(coinCommitment(coin, recipient));
 }
 
-export circuit sendShielded(
-  input: QualifiedShieldedCoinInfo,
+export circuit send(
+  input: QualifiedCoinInfo,
   recipient: Either<ZswapCoinPublicKey, ContractAddress>,
   value: Uint<128>
-): ShieldedSendResult {
+): SendResult {
   const selfAddr = kernel.self();
   createZswapInput(input);
   kernel.claimZswapNullifier(
     coinNullifier(downcastQualifiedCoin(input), selfAddr));
   const change = input.value - value;
-  const output = ShieldedCoinInfo{
+  const output = CoinInfo{
                    nonce: upgradeFromTransient(transientHash<Vector<2, Field>>(["midnight:kernel:nonce_evolve" as Field, degradeToTransient(input.nonce)])),
                    color: input.color,
                    value: value
@@ -193,9 +193,9 @@ export circuit sendShielded(
   createZswapOutput(output, recipient);
   kernel.claimZswapCoinSpend(coinCommitment(output, recipient));
   if(change == 0) {
-    return ShieldedSendResult{ change: none<ShieldedCoinInfo>(), sent: output };
+    return SendResult{ change: none<CoinInfo>(), sent: output };
   } else {
-    const changeCoin = ShieldedCoinInfo{
+    const changeCoin = CoinInfo{
                          nonce: upgradeFromTransient(transientHash<Vector<2, Field>>(["midnight:kernel:nonce_evolve/2" as Field, degradeToTransient(input.nonce)])),
                          color: input.color,
                          value: change
@@ -204,29 +204,29 @@ export circuit sendShielded(
     const cm = coinCommitment(changeCoin, right<ZswapCoinPublicKey, ContractAddress>(selfAddr));
     kernel.claimZswapCoinSpend(cm);
     kernel.claimZswapCoinReceive(cm);
-    return ShieldedSendResult{ change: some<ShieldedCoinInfo>(changeCoin), sent: output };
+    return SendResult{ change: some<CoinInfo>(changeCoin), sent: output };
   }
 }
 
-export circuit sendImmediateShielded(
-  input: ShieldedCoinInfo,
+export circuit sendImmediate(
+  input: CoinInfo,
   target: Either<ZswapCoinPublicKey, ContractAddress>,
   value: Uint<128>
-): ShieldedSendResult {
-  return sendShielded(upcastQualifiedCoin(input), target, value);
+): SendResult {
+  return send(upcastQualifiedCoin(input), target, value);
 }
 
 export circuit mergeCoin(
-  a: QualifiedShieldedCoinInfo,
-  b: QualifiedShieldedCoinInfo
-): ShieldedCoinInfo {
+  a: QualifiedCoinInfo,
+  b: QualifiedCoinInfo
+): CoinInfo {
   const selfAddr = kernel.self();
   createZswapInput(a);
   kernel.claimZswapNullifier(coinNullifier(downcastQualifiedCoin(a), selfAddr));
   createZswapInput(b);
   kernel.claimZswapNullifier(coinNullifier(downcastQualifiedCoin(b), selfAddr));
   assert(a.color == b.color, "Can only merge coins of the same color");
-  const newCoin = ShieldedCoinInfo{
+  const newCoin = CoinInfo{
                      nonce: upgradeFromTransient(transientHash<Vector<2, Field>>(["midnight:kernel:nonce_evolve" as Field, degradeToTransient(a.nonce)])),
                      color: a.color,
                      value: (a.value + b.value) as Uint<128>
@@ -239,29 +239,29 @@ export circuit mergeCoin(
 }
 
 export circuit mergeCoinImmediate(
-  a: QualifiedShieldedCoinInfo,
-  b: ShieldedCoinInfo
-): ShieldedCoinInfo {
+  a: QualifiedCoinInfo,
+  b: CoinInfo
+): CoinInfo {
   return mergeCoin(a, upcastQualifiedCoin(b));
 }
 
-circuit downcastQualifiedCoin(coin: QualifiedShieldedCoinInfo): ShieldedCoinInfo {
-  return ShieldedCoinInfo{ nonce: coin.nonce, color: coin.color, value: coin.value };
+circuit downcastQualifiedCoin(coin: QualifiedCoinInfo): CoinInfo {
+  return CoinInfo{ nonce: coin.nonce, color: coin.color, value: coin.value };
 }
 
-circuit upcastQualifiedCoin(coin: ShieldedCoinInfo): QualifiedShieldedCoinInfo {
-  return QualifiedShieldedCoinInfo{ nonce: coin.nonce, color: coin.color, value: coin.value, mt_index: 0 };
+circuit upcastQualifiedCoin(coin: CoinInfo): QualifiedCoinInfo {
+  return QualifiedCoinInfo{ nonce: coin.nonce, color: coin.color, value: coin.value, mt_index: 0 };
 }
 
 struct CoinPreimage {
-  info: ShieldedCoinInfo,
+  info: CoinInfo,
   dataType: Boolean,
   data: Bytes<32>,
   domain_sep: Bytes<6>,
 }
 
 circuit coinCommitment(
-  coin: ShieldedCoinInfo,
+  coin: CoinInfo,
   recipient: Either<ZswapCoinPublicKey, ContractAddress>
 ): Bytes<32> {
   return persistentHash<CoinPreimage>(
@@ -274,7 +274,7 @@ circuit coinCommitment(
 }
 
 circuit coinNullifier(
-  coin: ShieldedCoinInfo,
+  coin: CoinInfo,
   addr: ContractAddress
 ): Bytes<32> {
   return persistentHash<CoinPreimage>(
@@ -286,58 +286,18 @@ circuit coinNullifier(
     });
 }
 
-// Utilities for unshielded tokens
-
-export struct UserAddress { bytes: Bytes<32>; }
-
-export struct UnshieldedCoinInfo {
-  color: Bytes<32>;
-  value: Uint<128>;
+export circuit blockTimeLt(time: Uint<64>): Boolean {
+  return kernel.blockTimeLessThan(time);
 }
 
-export circuit mintUnshieldedToken(
-  domainSep: Bytes<32>,
-  value: Uint<64>,
-  recipient: Either<ContractAddress, UserAddress>
-): UnshieldedCoinInfo {
-  kernel.mintUnshielded(domainSep, value);
-  const color = tokenType(domainSep, kernel.self());
-  kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(color), recipient, value);
-  return UnshieldedCoinInfo { color: color, value: value };
+export circuit blockTimeGte(time: Uint<64>): Boolean {
+  return !blockTimeLt(time);
 }
 
-export circuit sendUnshielded(coin: UnshieldedCoinInfo, recipient: Either<ContractAddress, UserAddress>): [] {
-  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(coin.color), coin.value);
-  kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(coin.color), recipient, coin.value);
+export circuit blockTimeGt(time: Uint<64>): Boolean {
+  return kernel.blockTimeGreaterThan(time);
 }
 
-export circuit receiveUnshielded(coin: UnshieldedCoinInfo): [] {
-  kernel.incUnshieldedInputs(left<Bytes<32>, Bytes<32>>(coin.color), coin.value);
-}
-
-// Using the 'unshieldedBalance' function imposes the requirement that the balance for a token at transaction construction
-// time exactly matches the balance for that token when the transaction is applied. Unless you want to require that, prefer
-// to use the balance comparison functions.
-//
-// Also, note that the balance returned is the balance of the contract at the start of the current execution. It is not
-// updated with unshielded send, receive, or mint calls.
-
-export circuit unshieldedBalance(color: Bytes<32>): Uint<128> {
-  return kernel.balance(left<Bytes<32>, Bytes<32>>(color));
-}
-
-export circuit unshieldedBalanceLt(color: Bytes<32>, amount: Uint<128>): Boolean {
-  return kernel.balanceLessThan(left<Bytes<32>, Bytes<32>>(color), amount);
-}
-
-export circuit unshieldedBalanceGte(color: Bytes<32>, amount: Uint<128>): Boolean {
-  return !unshieldedBalanceLt(color, amount);
-}
-
-export circuit unshieldedBalanceGt(color: Bytes<32>, amount: Uint<128>): Boolean {
-  return kernel.balanceGreaterThan(left<Bytes<32>, Bytes<32>>(color), amount);
-}
-
-export circuit unshieldedBalanceLte(color: Bytes<32>, amount: Uint<128>): Boolean {
-  return !unshieldedBalanceGt(color, amount);
+export circuit blockTimeLte(time: Uint<64>): Boolean {
+  return !blockTimeGt(time);
 }

@@ -97,8 +97,6 @@
             [else (format "character '~c'" c)])))
       (define (nested-comment-error)
         (source-errorf (current-src -2) "attempt to nest block comment"))
-      (define (unsupported-numeric-syntax type)
-        (source-errorf (current-src -2) "unsupported ~s syntax" type))
       (let-values ([(sp get-buf) (open-string-output-port)])
         (define (return-eof)
           (stream-cons (make-token 'eof #!eof) stream-nil))
@@ -151,7 +149,7 @@
           (define identifier-subsequent?
             (lambda (c)
               (or (identifier-initial? c)
-                  (char-numeric? c))))
+                  (char<=? #\0 c #\9))))
           (define (id)
             (return-token 'id (string->symbol (get-buf))))
           (define-state-case next c
@@ -159,19 +157,50 @@
             [else (ungetc c) (id)])
           (define (lex-identifier c) (put-char sp c) (next)))
         (define-state-case lex-zero c
-          [char-numeric? (unsupported-numeric-syntax 'octal)]
-          [(#\o #\O) (unsupported-numeric-syntax 'octal)]
-          [(#\b #\B) (unsupported-numeric-syntax 'binary)]
-          [(#\x #\X) (unsupported-numeric-syntax 'hex)]
+          [char-numeric?
+           (source-errorf (current-src -2)
+                          "unsupported numeric syntax syntax: leading 0 must be followed by b, B, o, O, x, X")]
+          [(#\b #\B) (lex-binary)]
+          [(#\o #\O) (lex-octal)]
+          [(#\x #\X) (lex-hexadecimal)]
           [(#\.) (seen-one-dot 0)]
           [else (ungetc c) (return-token 'field 0)])
         (define (return-field n)
           (unless (field? n)
             (source-errorf (current-src (- (string-length (number->string n)))) "~s is out of Field range" n))
           (return-token 'field n))
+        (module (lex-binary)
+          (define-state-case lex-binary c
+            [((#\0 - #\1)) (next (char- c #\0))]
+            [((#\2 - #\9)) (source-errorf (current-src -1) "unexpected digit ~a (expected 0 or 1)" c)]
+            [else (unexpected c)])
+          (define-state-case (next n) c
+            [((#\0 - #\1)) (next (+ (* n 2) (char- c #\0)))]
+            [((#\2 - #\9)) (source-errorf (current-src -1) "unexpected digit ~a (expected 0 or 1)" c)]
+            [else (ungetc c) (return-field n)]))
+        (module (lex-octal)
+          (define-state-case lex-octal c
+            [((#\0 - #\7)) (next (char- c #\0))]
+            [((#\8 - #\9)) (source-errorf (current-src -1) "unexpected digit ~a (expected 0 through 7)" c)]
+            [else (unexpected c)])
+          (define-state-case (next n) c
+            [((#\0 - #\7)) (next (+ (* n 8) (char- c #\0)))]
+            [((#\8 - #\9)) (source-errorf (current-src -1) "unexpected digit ~a (expected 0 through 7)" c)]
+            [else (ungetc c) (return-field n)]))
+        (module (lex-hexadecimal)
+          (define-state-case lex-hexadecimal c
+            [((#\0 - #\9)) (next (char- c #\0))]
+            [((#\a - #\f)) (next (fx+ (char- c #\a) 10))]
+            [((#\A - #\F)) (next (fx+ (char- c #\A) 10))]
+            [else (unexpected c)])
+          (define-state-case (next n) c
+            [((#\0 - #\9)) (next (+ (* n 16) (char- c #\0)))]
+            [((#\a - #\f)) (next (+ (* n 16) (fx+ (char- c #\a) 10)))]
+            [((#\A - #\F)) (next (+ (* n 16) (fx+ (char- c #\A) 10)))]
+            [else (ungetc c) (return-field n)]))
         (module (lex-decimal)
           (define-state-case next c
-            [char-numeric? (lex-decimal c)]
+            [((#\0 - #\9)) (lex-decimal c)]
             [(#\.) (seen-one-dot (string->number (get-buf)))]
             [else (ungetc c) (return-field (string->number (get-buf)))])
           (define (lex-decimal c) (put-char sp c) (next)))
@@ -206,18 +235,18 @@
                   (lex-string terminator?))
                 (hexchar a (fx- n 1) terminator?))))
         (define-state-case (seen-one-dot n1) c
-          [char-numeric? (put-char sp c) (seen-one-dot+decimal n1)]
+          [((#\0 - #\9)) (put-char sp c) (seen-one-dot+decimal n1)]
           [(#\.) (ungetc c) (ungetc c) (return-field n1)]
           [else (unexpected c)])
         (define-state-case (seen-one-dot+decimal n1) c
-          [char-numeric? (put-char sp c) (seen-one-dot+decimal n1)]
+          [((#\0 - #\9)) (put-char sp c) (seen-one-dot+decimal n1)]
           [(#\.) (seen-two-dots n1 (string->number (get-buf)))]
           [else (ungetc c) (return-token 'version (make-version '* n1 (string->number (get-buf)) '*))])
         (define-state-case (seen-two-dots n1 n2) c
-          [char-numeric? (put-char sp c) (seen-two-dots+decimal n1 n2)]
+          [((#\0 - #\9)) (put-char sp c) (seen-two-dots+decimal n1 n2)]
           [else (unexpected c)])
         (define-state-case (seen-two-dots+decimal n1 n2) c
-          [char-numeric? (put-char sp c) (seen-two-dots+decimal n1 n2)]
+          [((#\0 - #\9)) (put-char sp c) (seen-two-dots+decimal n1 n2)]
           [else (ungetc c) (return-token 'version (make-version '* n1 n2 (string->number (get-buf))))])
         (define-state-case seen-plus c
           [#\= (return-token 'binop "+=")]

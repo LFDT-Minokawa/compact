@@ -11,12 +11,12 @@ on:
         description: 'Branch to use for release'
         required: true
         type: string
-        default: "main"
-      testing:
-        description: 'Testing the workflow (disables Intel Mac)'
+        default: 'main'
+      skip_macos_intel:
+        description: 'Skip MacOS Intel build'
         required: true
         type: boolean
-        default: true
+        default: false
       docs:
         description: 'Create branch with documentation'
         required: true
@@ -25,18 +25,23 @@ on:
       docs_branch:
         description: 'Branch to merge with in midnight-docs'
         required: true
-        type: "string"
-        default: "main"
-      skip_docker:
-        description: 'Skip docker build'
+        type: string
+        default: 'main'
+      pr_description:
+        description: 'PR description for docs'
         required: true
+        type: string
+        default: 'Example PR description for midnight-docs'
+      create_release:
+        description: 'Create a release?'
+        required: false
         type: boolean
-        default: false
-      skip_release:
-        description: 'Skip releasing on Midnight artifacts'
-        required: true
+        default: true
+      public_release:
+        description: 'Public release?'
+        required: false
         type: boolean
-        default: false
+        default: true
 
   schedule:
     - cron: '0 */12 * * *'
@@ -45,17 +50,16 @@ concurrency:
   group: release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  macos_x86: x86_64-darwin
-  macos_arm: aarch64-darwin
-  linux_x86: x86_64-unknown-linux-musl
-  
 jobs:
-  determine-branch:
-    name: Determine branch
+  setup:
+    name: Setup the variables
     runs-on: ubuntu-latest
     outputs:
       branch: ${{ steps.set_branch.outputs.branch }}
+      clean_tag: ${{ steps.clean.outputs.tag }}
+      linux_x86: ${{ steps.linux_x86.outputs.name }}
+      macos_arm: ${{ steps.macos_arm.outputs.name }}
+      macos_x86: ${{ steps.macos_x86.outputs.name }}
     steps:
       - name: Determine branch
         id: set_branch
@@ -66,177 +70,180 @@ jobs:
           fi
           echo "Using branch: $BRANCH"
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
-    
-  prepare-tag:
-    name: Prepare tag from version
-    needs: [determine-branch]
-    runs-on: ubuntu-latest
-    outputs:
-      clean_tag: ${{ steps.clean.outputs.tag }}
 
-    steps:
       - name: Sanitize tag
         id: clean
         run: |
-          
           # Remove slashes in the branch name, otherwise they would be interpreted as subdirectories
           # in the build step
           export SAFE_REF_NAME="$(echo ${{ inputs.version || github.ref_name }} | sed 's;/;_;g')"
           echo "tag=$SAFE_REF_NAME" >> $GITHUB_OUTPUT
-  
+
+      - name: Set linux x86 name
+        id: linux_x86
+        run: echo "name=x86_64-unknown-linux-musl" >> "$GITHUB_OUTPUT"
+
+      - name: Set macos arm name
+        id: macos_arm
+        run: echo "name=aarch64-darwin" >> "$GITHUB_OUTPUT"
+
+      - name: Set linux x86 name
+        id: macos_x86
+        run: echo "name=x86_64-darwin" >> "$GITHUB_OUTPUT"
+
   check-docs:
     name: Check if documentation is updated
     runs-on: ubuntu-latest
-    needs: [determine-branch, prepare-tag]
+    needs: [ setup ]
     steps:
       - name: Setup api.github.com credentials
         uses: extractions/netrc@v2
         with:
           machine: api.github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Setup github.com credentials
         uses: extractions/netrc@v2
         with:
           machine: github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Checkout compactc repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.determine-branch.outputs.branch }}
+          ref: ${{ needs.setup.outputs.branch }}
 
       - name: Check compiler and language versions in internal documentation
         run: |
           # check compiler version
           COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
           DOCS_COMPILER=$(grep -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
-          
+
           echo "Compiler version: $COMPILER_VERSION"
           echo "Compiler version in docs: $DOCS_COMPILER"
-          
+
           if [ "$COMPILER_VERSION" != "$DOCS_COMPILER" ]; then
             echo "Compiler version mismatch, please update"
             exit 1
           fi
-          
+
           echo "Compiler versions match"
-          
+
           # check language version
           LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
           DOCS_LANGUAGE=$(grep -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
-          
+
           echo "Language version: $LANGUAGE_VERSION"
           echo "Language version in docs: $DOCS_LANGUAGE"
-          
+
           if [ "$LANGUAGE_VERSION" != "$DOCS_LANGUAGE" ]; then
             echo "Language versions mismatch, please update"
             exit 1
           fi
-          
+
           echo "Language versions match"
-  
+
   build-release-linux:
     # runs-on: ubuntu-24.04-arm # only available for public repos so we cannot have arm64 linux binary until going public
     name: Build compactc binary for Linux x86_64
     uses: ./.github/workflows/release-build.yml
-    needs: [ determine-branch, prepare-tag, check-docs ]
+    needs: [ setup, check-docs ]
     secrets: inherit
     with:
-      tag: ${{ needs.prepare-tag.outputs.clean_tag }}
-      branch: ${{ needs.determine-branch.outputs.branch }}
+      tag: ${{ needs.setup.outputs.clean_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
       artifact: linux-release-x86_64
       platform: ubuntu-latest
-      architecture: ${{ env.linux_x86 }}
-      buildCommand: nix build .\#compactc-binary-otherLinuxes -L
+      architecture: ${{ needs.setup.outputs.linux_x86 }}
+      buildCommand: nix build .\#compactc-binary -L
       skipCache: false
 
   build-release-arm-macos:
     name: Build compactc binary for macOS aarch64 (Arm)
     uses: ./.github/workflows/release-build.yml
-    needs: [ determine-branch, prepare-tag, check-docs ]
+    needs: [ setup, check-docs ]
     secrets: inherit
     with:
-      tag: ${{ needs.prepare-tag.outputs.clean_tag }}
-      branch: ${{ needs.determine-branch.outputs.branch }}
+      tag: ${{ needs.setup.outputs.clean_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
       artifact: macos-release-aarch64
       platform: macos-latest-xlarge
-      architecture: ${{ env.macos_arm }}
-      buildCommand: nix build .\#compactc-binary-macos -L
+      architecture: ${{ needs.setup.outputs.macos_arm }}
+      buildCommand: nix build .\#compactc-binary -L
       skipCache: false
-  
+
   build-release-intel-macos:
     name: Build compactc binary for macOS x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
-    needs: [ determine-branch, prepare-tag, check-docs ]
-    if: ${{ !inputs.testing && github.event_name != 'schedule' }}
+    needs: [ setup, check-docs ]
+    if: ${{ !inputs.skip_macos_intel && github.event_name != 'schedule' }}
     secrets: inherit
     with:
-      tag: ${{ needs.prepare-tag.outputs.clean_tag }}
-      branch: ${{ needs.determine-branch.outputs.branch }}
+      tag: ${{ needs.setup.outputs.clean_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
       artifact: macos-release-x86_64
       platform: macos-13
-      architecture: ${{ env.macos_x86 }}
-      buildCommand: nix build .\#compactc-binary-macos -L
+      architecture: ${{ needs.setup.outputs.macos_x86 }}
+      buildCommand: nix build .\#compactc-binary -L
       skipCache: true
 
   test-linux:
     name: Test compactc on Linux x86_64
     uses: ./.github/workflows/release-test.yml
-    needs: [ determine-branch, prepare-tag, build-release-linux ]
+    needs: [ setup, build-release-linux ]
     secrets: inherit
     with:
-      tag: ${{ needs.prepare-tag.outputs.clean_tag }}
-      branch: ${{ needs.determine-branch.outputs.branch }}
+      tag: ${{ needs.setup.outputs.clean_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
       artifact: linux-release-x86_64
       platform: ubuntu-latest
-      architecture: ${{ env.linux_x86 }}
-  
+      architecture: ${{ needs.setup.outputs.linux_x86 }}
+
   test-arm-macos:
     name: Test compactc on macOS aarch64 (Arm)
     uses: ./.github/workflows/release-test.yml
-    needs: [ determine-branch, prepare-tag, build-release-arm-macos ]
+    needs: [ setup, build-release-arm-macos ]
     secrets: inherit
     with:
-      tag: ${{ needs.prepare-tag.outputs.clean_tag }}
-      branch: ${{ needs.determine-branch.outputs.branch }}
+      tag: ${{ needs.setup.outputs.clean_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
       artifact: macos-release-aarch64
       platform: macos-latest-xlarge
-      architecture: ${{ env.macos_arm }}
-  
+      architecture: ${{ needs.setup.outputs.macos_arm }}
+
   test-intel-macos:
     name: Test compactc on macOS x86_64 (Intel)
     uses: ./.github/workflows/release-test.yml
-    needs: [ determine-branch, prepare-tag, build-release-intel-macos ]
+    needs: [ setup, build-release-intel-macos ]
     secrets: inherit
     with:
-      tag: ${{ needs.prepare-tag.outputs.clean_tag }}
-      branch: ${{ needs.determine-branch.outputs.branch }}
+      tag: ${{ needs.setup.outputs.clean_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
       artifact: macos-release-x86_64
       platform: macos-13
-      architecture: ${{ env.macos_x86 }}
+      architecture: ${{ needs.setup.outputs.macos_x86 }}
 
   make-release:
     name: Create GitHub release associated with tag
     runs-on: ubuntu-latest
-    needs: [ determine-branch, prepare-tag, test-linux, test-arm-macos, test-intel-macos ]
+    needs: [ setup, test-linux, test-arm-macos, test-intel-macos ]
     steps:
       - name: Setup api.github.com credentials
         uses: extractions/netrc@v2
         with:
           machine: api.github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
+          username: MidnightCI
+          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
 
       - name: Checkout compactc repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.determine-branch.outputs.branch }}
+          ref: ${{ needs.setup.outputs.branch }}
 
       - name: Create and push tag
-        if: ${{ !inputs.skip_release && github.event_name != 'schedule' }}
+        if: ${{ inputs.create_release && github.event_name != 'schedule' }}
         run: |
           git tag ${{ inputs.version }}
           git push origin ${{ inputs.version }}
@@ -257,166 +264,38 @@ jobs:
           name: macos-release-x86_64
 
       - name: Create Release
-        if: ${{ !inputs.skip_release && github.event_name != 'schedule' }}
+        if: ${{ inputs.create_release && github.event_name != 'schedule' }}
         uses: softprops/action-gh-release@v2
         with:
           repository: midnight-ntwrk/artifacts
-          tag_name: compactc-${{ github.event.inputs.version || github.ref_name }}
-          name: Compactc ${{ github.event.inputs.version || github.ref_name }}
+          tag_name: compactc-${{ inputs.version || github.ref_name }}
+          name: Compactc ${{ inputs.version || github.ref_name }}
           draft: false
           prerelease: false
-          files: compactc_${{ needs.prepare-tag.outputs.clean_tag }}_*.zip
+          files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
           token: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
-          body: Compactc ${{ github.event.inputs.version || github.ref_name }}
-          
-  make-artifacts-public:
-    if: ${{ !inputs.skip_release && !contains(github.ref, '-rc') && github.event_name != 'schedule'}}
+          body: Compactc ${{ inputs.version || github.ref_name }}
+
+  public-artifacts-and-docker:
+    if: ${{ inputs.public_release && inputs.create_release && !contains(inputs.version, '-rc') && github.event_name != 'schedule'}}
     name: Make artifacts public
-    uses: ./.github/workflows/release-public-artifact.yml
-    needs: [ prepare-tag, make-release ]
+    uses: ./.github/workflows/release-public.yml
+    needs: [ setup, make-release ]
     secrets: inherit
     with:
-      tag: ${{ needs.prepare-tag.outputs.clean_tag }}
-      macos-x86: ${{ env.macos_x86 }}
-      macos-arm: ${{ env.macos_arm }}
-      linux-x86: ${{ env.linux_x86 }}
-  
-  build-docker:
-    if: ${{ !inputs.skip_docker && github.event_name != 'schedule' }}
-    name: Build docker images
-    uses: ./.github/workflows/release-internal-docker.yml
-    needs: [ determine-branch, prepare-tag, make-release ]
-    with:
-      version: ${{ needs.prepare-tag.outputs.clean_tag }}
-      branch: ${{ needs.determine-branch.outputs.branch }}
-    secrets:
-      GH_USERNAME: ${{ secrets.GH_USERNAME }}
-      GH_PASSWORD: ${{ secrets.GH_PASSWORD }}
-      MIDNIGHTBOT_PACKAGES_WRITE: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
-      ATTIC_CACHE_TOKEN: ${{ secrets.ATTIC_CACHE_TOKEN }}
-  
-  
-  generate-docs:
+      version: ${{ needs.setup.outputs.clean_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
+      macos_x86: ${{ needs.setup.outputs.macos_x86 }}
+      macos_arm: ${{ needs.setup.outputs.macos_arm }}
+      linux_x86: ${{ needs.setup.outputs.linux_x86 }}
+
+  generate-docs-after-release:
     if: ${{ inputs.docs }}
     name: Create branch in midnight-docs with latest documentation
-    runs-on: ubuntu-latest-16-core-x64
-    needs: [ determine-branch, make-release ]
-    
-    steps:
-      - name: Setup api.github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: api.github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
-
-      - name: Setup github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: github.com
-          username: ${{ secrets.GH_USERNAME }}
-          password: ${{ secrets.GH_PASSWORD }}
-
-      - name: Configure git rewrite
-        run: |
-          mkdir -p $HOME/.config/git
-          echo '[url "https://github.com/"]' >> $HOME/.config/git/config
-          echo '  insteadOf = "git@github.com:"' >> $HOME/.config/git/config
-          echo '  insteadOf = "git@github.com/"' >> $HOME/.config/git/config
-          echo '  insteadOf = "ssh://git@github.com/"' >> $HOME/.config/git/config
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v22
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-          extra_nix_config: |
-            netrc-file = ~/.netrc
-            access-tokens = github.com=${{ secrets.GH_PASSWORD }} api.github.com=${{ secrets.GH_PASSWORD }}
-            extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
-            extra-substituters = https://cache.iog.io
-            accept-flake-config = true
-
-      - name: Cache Nix
-        uses: input-output-hk/actions/attic@latest
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-          endpoint: https://attic.ci.iog.io
-          cache: midnight
-          access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
-
-      - name: Checkout compactc repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.determine-branch.outputs.branch }}
-
-      - name: Setup .npmrc
-        run: |
-          cd ./runtime
-          echo "
-          //npm.pkg.github.com/:_authToken=${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
-          @midnight-ntwrk:registry=https://npm.pkg.github.com/
-          " > .npmrc
-
-      - name: Configure yarn
-        run: |
-          cd ./runtime
-          yarn config set 'npmScopes.midnight-ntwrk.npmAuthToken' "${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}"
-          echo 'checksumBehavior: update' >> ./.yarnrc.yml
-
-      - name: Build runtime
-        run: |
-          nix build .#runtime.forPublish
-
-      - name: Generate runtime docs
-        run: |
-          nix develop --command bash -c "cd ./runtime ; npm run build ; npm run generate-docs"
-
-      # TODO: do we need that, it does not run on schedule so branch should come from input, but then we duplicate 
-      # TODO: checkout in next step ?
-      - name: Checkout docs repo
-        uses: actions/checkout@v4
-        with:
-          repository: "midnightntwrk/midnight-docs"
-          token: ${{ secrets.MIDNIGHTCI_REPO }}
-          path: "midnight-docs"
-          ref: ${{ inputs.docs_branch }}
-
-      - name: Prepare files for commit
-        run: |
-          cd midnight-docs
-          git checkout -b compact-docs-update-${{ github.run_id }} origin/${{ inputs.docs_branch }}
-          cp -r ../doc/ledger-adt.mdx ./docs/develop/reference/compact/ledger-adt.mdx
-          cp -r ../doc/lang-ref.mdx ./docs/develop/reference/compact/lang-ref.mdx
-          cp -r ../doc/api/CompactStandardLibrary/exports.md ./docs/develop/reference/compact/compact-std-library/exports.md
-          echo -e "# Compact standard library\n\n$(cat ../doc/api/CompactStandardLibrary/README.md)" > ./docs/develop/reference/compact/compact-std-library/README.md
-          cp -r ../doc/compiler-usage.md ./docs/develop/reference/tools/compiler-usage.mdx
-          cp -r ../doc/api/runtime/. ./docs/develop/reference/midnight-api/compact-runtime
-          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./docs/develop/reference/midnight-api/compact-runtime/README.md
-          cp -r ../doc/Compact.html ./static/language/compact.html
-          cp -r ../doc/ledger-adt.mdx ./static/language/ledger-adt.mdx
-          git add docs/develop/reference/compact/ledger-adt.mdx
-          git add docs/develop/reference/compact/lang-ref.mdx
-          git add docs/develop/reference/compact/compact-std-library/exports.md
-          git add docs/develop/reference/compact/compact-std-library/README.md
-          git add docs/develop/reference/tools/compiler-usage.mdx
-          git add docs/develop/reference/midnight-api/compact-runtime
-          git add static/language/compact.html
-          git add static/language/ledger-adt.mdx
-          git push -u origin compact-docs-update-${{ github.run_id }}
-
-      - name: Create signed commit
-        uses: flex-development/gh-commit@1.0.0
-        with:
-          message: "Update compact documentation"
-          ref: "compact-docs-update-${{ github.run_id }}"
-          token: ${{ secrets.MIDNIGHTCI_REPO }}
-          repo: "midnight-docs"
-          workspace: "midnight-docs"
-
-      - name: Pull and create PR
-        env:
-          GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
-        run: |
-          cd midnight-docs
-          git pull origin compact-docs-update-${{ github.run_id }}
-          gh pr create --base ${{ inputs.docs_branch }} --head compact-docs-update-${{ github.run_id }} --title "compact - ${{ github.event.pull_request.title }}" --body 'PR: ${{ github.event.pull_request.title }}'          
+    needs: [ setup, make-release ]
+    uses: ./.github/workflows/generate-docs.yml
+    secrets: inherit
+    with:
+      branch: ${{ needs.setup.outputs.branch }}
+      docs_branch: ${{ inputs.docs_branch }}
+      pr_description: ${{ inputs.pr_description }}

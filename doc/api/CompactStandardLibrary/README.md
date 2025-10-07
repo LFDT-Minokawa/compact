@@ -1,10 +1,8 @@
-**CompactStandardLibrary** ∙ [README](README.md) ∙ [API](exports.md)
-
-***
-
 # Compact standard library
 
-This API provides standard types and `circuit`s for use in Compact programs.
+**CompactStandardLibrary** ∙ [Detailed API reference](exports.md)
+
+This API provides standard types and circuits for use in Compact programs.
 Key parts of the API are:
 
 - Common data types:
@@ -16,51 +14,46 @@ Key parts of the API are:
   - [`MerkleTreePath`](exports.md#merkletreepath)
   - [`ContractAddress`](exports.md#contractaddress)
   - [`ZswapCoinPublicKey`](exports.md#zswapcoinpublickey)
-  - [`UserAddress`](exports.md#useraddress)
 - Coin management data types:
-  - [`ShieldedCoinInfo`](exports.md#shieldedcoininfo)
-  - [`QualifiedShieldedCoinInfo`](exports.md#qualifiedshieldedcoininfo)
-  - [`ShieldedSendResult`](exports.md#shieldedsendresult)
-  - [`UnshieldedCoinInfo`](exports.md#unshieldedcoininfo)
+  - [`CoinInfo`](exports.md#coininfo)
+  - [`QualifiedCoinInfo`](exports.md#qualifiedcoininfo)
+  - [`SendResult`](exports.md#sendresult)
 - Common functions:
   - [`some`](exports.md#some)
   - [`none`](exports.md#none)
   - [`left`](exports.md#left)
   - [`right`](exports.md#right)
 - Hashing functions:
-  - [`transientHash`](exports.md#transientHash)
-  - [`transientCommit`](exports.md#transientCommit)
-  - [`persistentHash`](exports.md#persistentHash)
-  - [`persistentCommit`](exports.md#persistentCommit)
-  - [`degradeToTransient`](exports.md#degradeToTransient)
+  - [`transientHash`](exports.md#transienthash)
+  - [`transientCommit`](exports.md#transientcommit)
+  - [`persistentHash`](exports.md#persistenthash)
+  - [`persistentCommit`](exports.md#persistentcommit)
+  - [`degradeToTransient`](exports.md#degradetotransient)
 - Elliptic curve functions:
-  - [`ecAdd`](exports.md#ecAdd)
-  - [`ecMul`](exports.md#ecMul)
-  - [`ecMulGenerator`](exports.md#ecMulGenerator)
-  - [`hashToCurve`](exports.md#hashToCurve)
-  - [`upgradeFromTransient`](exports.md#upgradeFromTransient)
+  - [`ecAdd`](exports.md#ecadd)
+  - [`ecMul`](exports.md#ecmul)
+  - [`ecMulGenerator`](exports.md#ecmulgenerator)
+  - [`hashToCurve`](exports.md#hashtocurve)
+  - [`upgradeFromTransient`](exports.md#upgradefromtransient)
 - Merkle tree functions:
-  - [`merkleTreePathRoot`](exports.md#merkleTreePathRoot)
-  - [`merkleTreePathRootNoLeafHash`](exports.md#merkleTreePathRootNoLeafHash)
+  - [`merkleTreePathRoot`](exports.md#merkletreepathroot)
+  - [`merkleTreePathRootNoLeafHash`](exports.md#merkletreepathrootnoleafhash)
 - Coin management functions
-  - [`tokenType`](exports.md#tokenType)
-  - [`nativeToken`](exports.md#nativeToken)
-  - [`ownPublicKey`](exports.md#ownPublicKey)
-  - [`createZswapInput`](exports.md#createZswapInput)
-  - [`createZswapOutput`](exports.md#createZswapOutput)
-  - [`mintShieldedToken`](exports.md#mintShieldedToken)
-  - [`evolveNonce`](exports.md#evolveNonce)
-  - [`receiveShielded`](exports.md#receiveShielded)
-  - [`sendShielded`](exports.md#sendshielded)
-  - [`sendImmediateShielded`](exports.md#sendimmediateshielded)
-  - [`mergeCoin`](exports.md#mergeCoin)
-  - [`mergeCoinImmediate`](exports.md#mergeCoinImmediate)
-  - [`shieldedBurnAddress`](exports.md#shieldedBurnAddress)
-  - [`mintUnshieldedToken`](exports.md#mintUnshieldedToken)
-  - [`sendUnshielded`](exports.md#sendUnshielded)
-  - [`receiveUnshielded`](exports.md#receiveUnshielded)
-  - [`unshieldedBalance`](exports.md#unshieldedBalance)
-  - [`unshieldedBalanceLt`](exports.md#unshieldedBalanceLt)
-  - [`unshieldedBalanceGte`](exports.md#unshieldedBalanceGte)
-  - [`unshieldedBalanceGt`](exports.md#unshieldedBalanceGt)
-  - [`unshieldedBalanceLte`](exports.md#unshieldedBalanceLte)
+  - [`tokenType`](exports.md#tokentype)
+  - [`nativeToken`](exports.md#nativetoken)
+  - [`ownPublicKey`](exports.md#ownpublickey)
+  - [`createZswapInput`](exports.md#createzswapinput)
+  - [`createZswapOutput`](exports.md#createzswapoutput)
+  - [`mintToken`](exports.md#minttoken)
+  - [`evolveNonce`](exports.md#evolvenonce)
+  - [`receive`](exports.md#receive)
+  - [`send`](exports.md#send)
+  - [`sendImmediate`](exports.md#sendimmediate)
+  - [`mergeCoin`](exports.md#mergecoin)
+  - [`mergeCoinImmediate`](exports.md#mergecoinimmediate)
+  - [`burnAddress`](exports.md#burnaddress)
+- Block time functions:
+  - [`blockTimeLt`](exports.md#blocktimelt)
+  - [`blockTimeGte`](exports.md#blocktimegte)
+  - [`blockTimeGt`](exports.md#blocktimegt)
+  - [`blockTimeLte`](exports.md#blocktimelte)

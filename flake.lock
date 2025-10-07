@@ -57,24 +57,6 @@
         "type": "github"
       }
     },
-    "flake-utils": {
-      "inputs": {
-        "systems": "systems_2"
-      },
-      "locked": {
-        "lastModified": 1710146030,
-        "narHash": "sha256-SZ5L6eA7HJ/nmkzGG7/ISclqe6oZdOZTNoesiInkXPQ=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "b1d9ab70662946ef0850d488da1c9019f3a9752a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
     "inclusive": {
       "inputs": {
         "stdlib": "stdlib"
@@ -132,31 +114,30 @@
     "midnight-contracts": {
       "flake": false,
       "locked": {
-        "lastModified": 1750107024,
-        "narHash": "sha256-rDX6xZsE6mh8MXbiI0lVJ0/Z1uS3ut0V8zzT07tjlSA=",
+        "lastModified": 1756846934,
+        "narHash": "sha256-w+imTCLIABpgbZyE6BW36PgJKwKhU9AGm90QOAUkIgE=",
         "owner": "midnightntwrk",
         "repo": "midnight-contracts",
-        "rev": "1d1b8923ef9315ce80d7c5af41f0f85cadda4ea1",
+        "rev": "e097a375acf06fe4cf096eae0892b1687af766df",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "unshielded-tokens",
+        "ref": "JosephDenman/pm-18137",
         "repo": "midnight-contracts",
         "type": "github"
       }
     },
     "n2c": {
       "inputs": {
-        "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1744699837,
-        "narHash": "sha256-mJ1OgxMM2VTTjSVrMZItM8DxttzROYbWkmEPvYF/Kpg=",
+        "lastModified": 1752002763,
+        "narHash": "sha256-JYAkdZvpdSx9GUoHPArctYMypSONob4DYKRkOubUWtY=",
         "owner": "nlewo",
         "repo": "nix2container",
-        "rev": "78aadfc4ee1f9c2ee256e304b180ca356eb6a045",
+        "rev": "4f2437f6a1844b843b380d483087ae6d461240ee",
         "type": "github"
       },
       "original": {
@@ -224,11 +205,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1712920918,
-        "narHash": "sha256-1yxFvUcJfUphK9V91KufIQom7gCsztza0H4Rz2VCWUU=",
+        "lastModified": 1748984911,
+        "narHash": "sha256-fih/mdPI8f1CR+FKMhcsyfFzbARoVDrlxwoa694XIkw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "92323443a56f4e9fc4e4b712e3119f66d0969297",
+        "rev": "3731ffed14674a8567af4b05575a87adf0b38030",
         "type": "github"
       },
       "original": {
@@ -239,11 +220,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1747060738,
-        "narHash": "sha256-ByfPRQuqj+nhtVV0koinEpmJw0KLzNbgcgi9EF+NVow=",
+        "lastModified": 1754393734,
+        "narHash": "sha256-fbnmAwTQkuXHKBlcL5Nq1sMAzd3GFqCOQgEQw6Hy0Ak=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "eaeed9530c76ce5f1d2d8232e08bec5e26f18ec1",
+        "rev": "a683adc19ff5228af548c6539dbc3440509bfed3",
         "type": "github"
       },
       "original": {
@@ -346,17 +327,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1749204990,
-        "narHash": "sha256-1/G5k2u/CZ+oalCmgGyqbPcithMnLUyUhxnwiAbMfUw=",
+        "lastModified": 1746800787,
+        "narHash": "sha256-JyQKHMRFMrAniGeLvIXr0iZv6fi1H/uEBV5NWiX4NIo=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger-prototype",
-        "rev": "f9814ac1f5f7db47881e93d1676fdce7d5b488ab",
+        "rev": "e876d32b0bfe5a7124d4a6bde40cad6ccce0c522",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
         "repo": "midnight-ledger-prototype",
-        "rev": "f9814ac1f5f7db47881e93d1676fdce7d5b488ab",
+        "rev": "e876d32b0bfe5a7124d4a6bde40cad6ccce0c522",
         "type": "github"
       }
     },
@@ -512,21 +493,6 @@
         "type": "github"
       }
     },
-    "systems_5": {
-      "locked": {
-        "lastModified": 1681028828,
-        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
-        "owner": "nix-systems",
-        "repo": "default",
-        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-systems",
-        "repo": "default",
-        "type": "github"
-      }
-    },
     "utils": {
       "inputs": {
         "systems": "systems"
@@ -547,7 +513,7 @@
     },
     "utils_2": {
       "inputs": {
-        "systems": "systems_3"
+        "systems": "systems_2"
       },
       "locked": {
         "lastModified": 1731533236,
@@ -565,7 +531,7 @@
     },
     "utils_3": {
       "inputs": {
-        "systems": "systems_4"
+        "systems": "systems_3"
       },
       "locked": {
         "lastModified": 1731533236,
@@ -583,7 +549,7 @@
     },
     "utils_4": {
       "inputs": {
-        "systems": "systems_5"
+        "systems": "systems_4"
       },
       "locked": {
         "lastModified": 1731533236,
@@ -612,17 +578,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1749204990,
-        "narHash": "sha256-1/G5k2u/CZ+oalCmgGyqbPcithMnLUyUhxnwiAbMfUw=",
+        "lastModified": 1746800787,
+        "narHash": "sha256-JyQKHMRFMrAniGeLvIXr0iZv6fi1H/uEBV5NWiX4NIo=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger-prototype",
-        "rev": "f9814ac1f5f7db47881e93d1676fdce7d5b488ab",
+        "rev": "e876d32b0bfe5a7124d4a6bde40cad6ccce0c522",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
         "repo": "midnight-ledger-prototype",
-        "rev": "f9814ac1f5f7db47881e93d1676fdce7d5b488ab",
+        "rev": "e876d32b0bfe5a7124d4a6bde40cad6ccce0c522",
         "type": "github"
       }
     }

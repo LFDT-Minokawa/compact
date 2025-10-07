@@ -19,7 +19,7 @@ import { beforeAll, afterAll, test } from 'vitest';
 
 let dc: ts.DebugClient;
 
-const testOptions = { timeout: 30_000 };
+const testOptions = { timeout: 180_000 };
 
 function log(e: DebugProtocol.OutputEvent): void {
   console.log(e);

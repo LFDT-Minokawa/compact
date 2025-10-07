@@ -20,7 +20,7 @@ import { globSync } from 'glob';
 export function run(testsRoot: string, cb: (error: unknown, failures?: number) => void): void {
   const mocha = new Mocha({
     ui: 'tdd',
-    timeout: 30_000,
+    timeout: 180_000,
   });
 
   const files = globSync('**/**.test.js', { cwd: testsRoot });

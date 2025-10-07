@@ -16,7 +16,7 @@
 ;;; limitations under the License.
 
 (library (zkir-passes)
-  (export zkir-passes no-communications-commitment)
+  (export zkir-passes)
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
@@ -26,8 +26,6 @@
           (natives)
           (ledger)
           (vm))
-
-  (define no-communications-commitment (make-parameter #f))
 
   (define (print-zkir ir)
     (define (print-zkir prog entry-point)
@@ -100,7 +98,7 @@
           (define (is-std-file? file)
             (equal? (path-last file) "std"))
           (define (bind-var! var bind-to)
-            (hashtable-set! varid-ht (id-uniq var) bind-to))
+            (hashtable-set! varid-ht var bind-to))
           (define (new-var! var bound)
             (let ([index ctr])
               (bind-var! var index)
@@ -257,12 +255,12 @@
                 (set! ctr (add1 ctr))
                 (sub1 ctr))))
           (define (var-idx var)
-            (or (hashtable-ref varid-ht (id-uniq var) #f)
+            (or (hashtable-ref varid-ht var #f)
                 (internal-errorf 'var-idx "var ~s is not bound" var)))
           (define (set-calltype! var type)
-            (hashtable-set! calltype-ht (id-uniq var) type))
+            (hashtable-set! calltype-ht var type))
           (define (calltype var)
-            (hashtable-ref calltype-ht (id-uniq var) #f))
+            (hashtable-ref calltype-ht var #f))
           (define (le-bytes->hex bytes) (format "~{~2,'0x~}" bytes))
           (define (integer->le-bytes n)
             (if (< n 256)
@@ -283,6 +281,9 @@
                        [,public-binding (cons public-binding pb*)]))
                    pb*
                    pl-array-elt*)])))
+          (define-record-type vmref
+            (nongenerative)
+            (fields type q))
           )
         (Program : Program (ir) -> Program ()
           [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -308,7 +309,7 @@
            (if (eq? (native-entry-class native-entry) 'witness)
                (begin
                  (set-calltype! function-name '(witness . #f))
-                 (hashtable-set! returntype-ht (id-uniq function-name) (type->primitive-types type)))
+                 (hashtable-set! returntype-ht function-name (type->primitive-types type)))
                (set-calltype! function-name
                  (cons*
                    'builtin-circuit
@@ -322,7 +323,7 @@
                            [(ty (,alignment* ...) (,primitive-type* ...)) alignment*])))))]
           [(witness ,src ,function-name (,arg* ...) ,type)
            (set-calltype! function-name '(witness . #f))
-           (hashtable-set! returntype-ht (id-uniq function-name) (type->primitive-types type))]
+           (hashtable-set! returntype-ht function-name (type->primitive-types type))]
           [(kernel-declaration ,public-binding)
            (Public-Ledger-Binding public-binding)]
           [(public-ledger-declaration ,pl-array)
@@ -334,16 +335,16 @@
           [(,src ,adt-name ((,adt-formal* ,adt-arg*) ...) ,vm-expr (,adt-op* ...))
            (map ADT-Op adt-op*)])
         (ADT-Op : ADT-Op (ir) -> * (op)
-          [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...) (,type* ...) ,type ,vm-code)
+          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...) (,type* ...) ,type ,vm-code)
            (let ([type-length (lambda (type)
                                 (nanopass-case (Lflattened Type) type
                                   [(ty (,alignment* ...) (,primitive-type* ...)) (length primitive-type*)]))])
              (list ledger-op (apply + (type-length type) (map type-length type*))))])
         (Statement : Statement (ir) -> * (void)
-          [(= ,[* test] ,var-name ,single)
-           (Single single test)
+          [(= ,var-name ,single)
+           (Single single)
            (new-var! var-name #f)]
-          [(= ,[* test] (,var-name* ...) (call ,src ,function-name ,[* triv*] ...))
+          [(= (,var-name* ...) (call ,src ,[* test] ,function-name ,[* triv*] ...))
            (let ([pair (assert (calltype function-name))])
              (case (car pair)
                [(builtin-circuit)
@@ -358,10 +359,10 @@
                         (print-gate "private_input" '[guard null])
                         (print-gate "private_input" `[guard ,test]))
                     (new-var! var type))
-                  (assert (hashtable-ref returntype-ht (id-uniq function-name) #f))
+                  (assert (hashtable-ref returntype-ht function-name #f))
                   var-name*)]
                [else (assert cannot-happen)]))]
-          [(= ,[* test] (,var-name* ...) (bytes->vector ,src ,[* triv]))
+          [(= (,var-name* ...) (bytes->vector ,[* triv]))
            (assert (not (null? var-name*)))
            (let loop ([var-name* var-name*] [triv triv])
              (let ([var-name (car var-name*)] [var-name* (cdr var-name*)])
@@ -369,26 +370,23 @@
                    (bind-var! var-name triv)
                    (begin
                      (print-gate "div_mod_power_of_two" `[var ,triv] `[bits 8])
-                     (let ([ctr^ ctr])
+                     (let ([q ctr])
                        (set! ctr (add1 ctr))
                        (new-var! var-name #f)
-                       (loop var-name* ctr^))))))]
-          [(= ,[* test] (,var-name1 ,var-name2) (field->bytes ,src ,nat ,[* triv]))
+                       (loop var-name* q))))))]
+          [(= (,var-name1 ,var-name2) (field->bytes ,src ,[* test] ,len ,[* triv]))
            ; FIXME: need to respect test: constrain_bits shouldn't happen if test is false
-           (if (<= nat (field-bytes))
+           (if (<= len (field-bytes))
                (begin
                  (bind-var! var-name1 (literal 0))
                  (bind-var! var-name2 triv)
-                 (print-gate "constrain_bits" `[var ,triv] `[bits ,(* nat 8)]))
+                 (print-gate "constrain_bits" `[var ,triv] `[bits ,(* len 8)]))
                (begin
                  (print-gate "div_mod_power_of_two" `[var ,triv] `[bits ,(* (field-bytes) 8)])
                  (new-var! var-name1 #f)
                  (new-var! var-name2 #f)))]
-          [(= ,[* test] (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[* triv*] ...))
+          [(= (,var-name* ...) (public-ledger ,src ,[* test] ,ledger-field-name ,sugar? (,[* path-elt*] ...) ,src^ ,adt-op ,[* triv*] ...))
            (let ()
-             (define-record-type vmref
-               (nongenerative)
-               (fields type q))
              (define (group type* triv*)
                (let f ([type* type*] [triv* triv*])
                  (if (null? type*)
@@ -401,7 +399,7 @@
                             (cons (list-head triv* n) (f type* (list-tail triv* n))))]
                          [else (assert cannot-happen)])))))
              (nanopass-case (Lflattened ADT-Op) adt-op
-               [(,ledger-op ,ledger-op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...) (,type* ...) ,type ,vm-code)
+               [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...) (,type* ...) ,type ,vm-code)
                 (for-each
                   (lambda (ins)
                     (letrec* ([type->alignment (lambda (type)
@@ -416,6 +414,12 @@
                                                          [(aadt) -3]
                                                          [(acontract) -4]))
                                                       alignment*)]))]
+                              [null-for-alignment (lambda (alignment)
+                                                    (apply append
+                                                           (map (lambda (atom)
+                                                                  (let ([n (if (< atom 0) 1 (ceiling (/ atom (field-bytes))))])
+                                                                    (map (lambda (_) 0) (iota n))))
+                                                                alignment)))]
                               [emit (lambda (ref) (make-statement
                                                     (cond
                                                       [(equal? test (hashtable-ref literal-ht 1 #f)) ref]
@@ -480,33 +484,21 @@
                                               (let* ([alignment (type->alignment ty)])
                                                 (append (list (length alignment))
                                                         alignment
-                                                        (apply append
-                                                               (map (lambda (atom)
-                                                                      (let ([n (if (< atom 0) 1 (ceiling (/ atom (field-bytes))))])
-                                                                        (map (lambda (_) 0) (iota n))))
-                                                                    alignment))))]
+                                                        (null-for-alignment alignment)))]
                                              [(VMleaf-hash x)
-                                              (let-values ([(q ty)
+                                              (let-values ([(value ty)
                                                             (cond
-                                                              [(vmref? x) (values (vmref-q x) (vmref-type x))]
+                                                              [(vmref? x) (values (map (lambda (q) (cons 'ref q)) (vmref-q x)) (vmref-type x))]
                                                               [(VMop? x)
                                                                (VMop-case x
                                                                  [(VMnull ty)
-                                                                  (values
-                                                                    (apply append
-                                                                           (map (lambda (atom)
-                                                                                  (let ([n (if (< atom 0) 1 (ceiling (/ atom (field-bytes))))])
-                                                                                    (map (lambda (_) 0) (iota n))))
-                                                                                (type->alignment ty)))
-                                                                    ty)]
+                                                                  (values (null-for-alignment (type->alignment ty)) ty)]
                                                                  [else (internal-errorf 'VMleaf-hash "expected vmref or VMnull, got ~s" x)])]
                                                               [else (internal-errorf 'VMleaf-hash "expected vmref or VMnull, got ~s" x)])])
                                                 (let* ([alignment
                                                         (nanopass-case (Lflattened Type) ty
                                                           [(ty (,alignment* ...) (,primitive-type* ...))
                                                            alignment*])]
-  
-                                                       [value (map (lambda (q) (cons 'ref q)) q)]
                                                        [value-refs (map (lambda (x) (if (pair? x) (cdr x) (literal x))) value)]
                                                        [domain-sep-string "mdn:lh"]
                                                        [domain-sep-bytes (bytevector->u8-list (string->utf8 domain-sep-string))]
@@ -669,7 +661,10 @@
                                (list* (literal (+ (* opcode-upper-nibble 16)
                                                   (sub1 (length path))))
                                       (maplr
-                                        (lambda (x) (if (pair? x) (cdr x) (literal x)))
+                                        (lambda (elt)
+                                          ;; The path element `elt` is either a literal or `(ref . n)` where n is the
+                                          ;; index of a ZKIR instruction.
+                                          (if (pair? elt) (cdr elt) (literal elt)))
                                         (apply append (maplr vm-eval path))))))]
                         ["ins" (if (VMop? (attr 'n))
                                    ; Means we have VMsuppress
@@ -679,11 +674,7 @@
                         ["ckpt" (list (literal 255))]
                         [else (internal-errorf 'print-zkir (format "unknown vm operation ~a" (vminstr-op ins)))]))))
                   (expand-vm-code src
-                                  (map (lambda (path-elt)
-                                         (nanopass-case (Lflattened Path-Element) path-elt
-                                           [,path-index (VMalign path-index 1)]
-                                           [(,src ,type ,triv* ...) (make-vmref type triv*)]))
-                                       path-elt*)
+                                  path-elt*
                                   #f
                                   (append (map cons adt-formal* adt-arg*)
                                           (map (lambda (ledger-op-formal type triv*)
@@ -696,8 +687,10 @@
           [(assert ,src ,[* test] ,mesg)
            (print-gate "assert" `[cond ,test])]
           [else (internal-errorf 'print-zkir "unreachable")])
-        (Single : Single (ir test) -> * (str)
-          ; FIXME: are all of these okay if inputs are undefined?  if not, need to respect test
+        (Path-Element : Path-Element (ir) -> * (str)
+          [,path-index (VMalign path-index 1)]
+          [(,src ,type ,[* triv*] ...) (make-vmref type triv*)])
+        (Single : Single (ir) -> * (str)
           [,triv (print-gate "copy" `[var ,(Triv triv)])] ; not exercised when optimize-circuit is run
           ; TODO: is there any use to be made of mbits, which if not #f is the
           ; maximum number of bits occupied by the arguments and the result?
@@ -713,30 +706,37 @@
            (print-gate "less_than" `[a ,triv1] `[b ,triv2] `[bits ,mbits])]
           [(== ,[* triv1] ,[* triv2])
            (print-gate "test_eq" `[a ,triv1] `[b ,triv2])]
+          [(bytes-ref ,[* triv] ,nat)
+           (print-gate "div_mod_power_of_two" `[var ,triv] `[bits ,(* nat 8)])
+           (let ([q ctr])
+             (set! ctr (+ ctr 2))
+             ; FIXME: is there a better way to mask the higher bits?
+             (print-gate "div_mod_power_of_two" `[var ,q] `[bits ,8])
+             (set! ctr (add1 ctr)))]
           ; FIXME: zkir bytes->field needs to respect test
-          [(bytes->field ,src ,nat ,[* triv1] ,[* triv2])
-           (if (<= nat (field-bytes))
+          [(bytes->field ,src ,[* test] ,len ,[* triv1] ,[* triv2])
+           (if (<= len (field-bytes))
                ; flattened-datatype takes care of this case, so this line can't presently be reached
                (print-gate "copy" `[var ,triv2])
                (print-gate "reconstitute_field" `[divisor ,triv1] `[modulus ,triv2] `[bits ,(* 8 (field-bytes))]))]
-          [(vector->bytes ,src ,[* triv] ,[* triv*] ...)
+          [(vector->bytes ,[* triv] ,[* triv*] ...)
            (if (null? triv*)
                (print-gate "copy" `[var ,triv])
-               (let loop ([triv triv] [triv* triv*])
-                 (print-gate "reconstitute_field" `[divisor ,triv] `[modulus ,(car triv*)] `[bits 8])
-                 (set! ctr (add1 ctr))
-                 (let ([triv* (cdr triv*)])
-                   (unless (null? triv*)
-                     (set! ctr (add1 ctr))
-                     (loop (sub1 ctr) triv*)))))]
-          ; FIXME: zkir downcast-unsigned with safe? = #f needs to respect test
-          [(downcast-unsigned ,src ,nat ,[* triv] ,safe?)
-           (unless safe?
-             (constrain-type (with-output-language (Lflattened Primitive-Type)
-                                                   `(tfield ,nat))
-                             triv))
+               (let f ([triv triv] [triv+ triv*])
+                 (let ([d (let ([triv (car triv+)] [triv* (cdr triv+)])
+                            (if (null? triv*)
+                                triv
+                                (begin
+                                  (f triv triv*)
+                                  (let ([d ctr]) (set! ctr (add1 ctr)) d))))])
+                   (print-gate "reconstitute_field" `[divisor ,d] `[modulus ,triv] `[bits 8]))))]
+          ; FIXME: zkir downcast-unsigned needs to respect test
+          [(downcast-unsigned ,src ,[* test] ,nat ,[* triv])
+           (constrain-type (with-output-language (Lflattened Primitive-Type)
+                                                 `(tfield ,nat))
+                           triv)
            (print-gate "copy" `[var ,triv])]
-          [(select ,bool? ,[* triv0] ,[* triv1] ,[* triv2])
+          [(select ,[* triv0] ,[* triv1] ,[* triv2])
            (print-gate "cond_select" `[bit ,triv0] `[a ,triv1] `[b ,triv2])])
         (Triv : Triv (ir) -> * (str)
           [,var-name (var-idx var-name)]

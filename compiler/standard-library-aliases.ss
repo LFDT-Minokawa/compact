@@ -58,10 +58,10 @@
       (create_zswap_input . createZswapInput)
       (create_zswap_output . createZswapOutput)
       (token_type . tokenType)
-      (mint_token . mintShieldedToken)
+      (mint_token . mintToken)
       (evolve_nonce . evolveNonce)
-      (burn_address . shieldedBurnAddress)
-      (send_immediate . sendImmediateShielded)
+      (burn_address . burnAddress)
+      (send_immediate . sendImmediate)
       (merge_coin . mergeCoin)
       (merge_coin_immediate . mergeCoinImmediate)))
 
@@ -72,7 +72,7 @@
       ((Either . is_left) . isLeft)
       ((MerkleTreePathEntry . goes_left) . goesLeft)
       ((LeafPreimage . domain_sep) . domainSep)
-      ((QualifiedShieldedCoinInfo . mt_index) . mtIndex)
+      ((QualifiedCoinInfo . mt_index) . mtIndex)
       |#
       ))
 

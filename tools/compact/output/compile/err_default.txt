@@ -1,0 +1,4 @@
+Error: Failed to run compactc
+
+Caused by:
+    No default compiler set

@@ -43,8 +43,23 @@
     (define-syntax declare-ledger-adt
       (lambda (q)
         (define (check-identifier x) (unless (identifier? x) (syntax-error x "not an identifier")))
+        (define (non-negative-fixnum? x) (and (fixnum? x) (fx>= x 0)))
         (define (check-string x) (unless (string? (syntax->datum x)) (syntax-error x "not a string")))
-        (define (check-class x) (unless (memq (syntax->datum x) '(read update write remove)) (syntax-error x "unrecognized class")))
+        (define (check-class x)
+          (syntax-case x ()
+            [class-name
+             (identifier? #'class-name)
+             (unless (memq (syntax->datum #'class-name) '(read update write remove))
+               (syntax-error x "unrecognized class"))]
+            [(class-name coin-idx recipient-idx)
+             (identifier? #'class-name)
+             (begin
+               (unless (memq (syntax->datum #'class-name) '(update-with-coin-check))
+                 (syntax-error x "unrecognized class"))
+               (unless (non-negative-fixnum? (syntax->datum #'coin-idx))
+                 (syntax-error #'coin-idx "coin index must be a non-negative integer"))
+               (unless (non-negative-fixnum? (syntax->datum #'recipient-idx))
+                 (syntax-error #'recipient-idx "recipient index must be a non-negative integer")))]))
         (module (expand-formatting expand-formatting-multiple)
           (define (expand-one formal-param* qs)
             (let ([s (syntax->datum qs)])

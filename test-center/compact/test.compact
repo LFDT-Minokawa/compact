@@ -22,6 +22,7 @@ pragma language_version >= 0.12.1;
 
 include 'empty'; // cheer up CI tests by using the include keyword
 import CompactStandardLibrary;
+import {} from CompactStandardLibrary; // cheer up CI tests by using the from keyword
 
 // contract C1 {
 //   circuit foo() : [];
@@ -33,6 +34,9 @@ module M<#a, b> {
   export struct pair {
     x : Field;
     y : Vector<a, b>;
+  }
+  export circuit slicer(v: Vector<10, Field>): Vector<5, Field> {
+    return slice<5>(v, 3);
   }
 }
 
@@ -93,9 +97,9 @@ ledger x3: List<Field>;
 ledger x4: Map<Field, Boolean>;
 ledger x5: MerkleTree<32, Field>;
 ledger x6: HistoricMerkleTree<10, Field>;
-ledger x7: ShieldedCoinInfo;
+ledger x7: CoinInfo;
 ledger x10: MerkleTreeDigest;
-ledger x11: QualifiedShieldedCoinInfo;
+ledger x11: QualifiedCoinInfo;
 ledger x13: ContractAddress;
 ledger authority: Bytes<32>;
 ledger state: PublicState;

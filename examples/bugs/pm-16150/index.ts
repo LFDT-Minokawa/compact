@@ -1,3 +1,18 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';
 
 export enum AccessControl_Role { Admin = 0, Lp = 1, Trader = 2, None = 3 }
@@ -12,16 +27,16 @@ export type MerkleTreePath<a> = { leaf: a;
 
 export type ZswapCoinPublicKey = { bytes: Uint8Array };
 
-export type Witnesses<T> = {
+export type Witnesses<PS> = {
 }
 
-export type ImpureCircuits<T> = {
+export type ImpureCircuits<PS> = {
 }
 
 export type PureCircuits = {
 }
 
-export type Circuits<T> = {
+export type Circuits<PS> = {
 }
 
 export type Ledger = {
@@ -45,12 +60,12 @@ export type ContractReferenceLocations = any;
 
 export declare const contractReferenceLocations : ContractReferenceLocations;
 
-export declare class Contract<T, W extends Witnesses<T> = Witnesses<T>> {
+export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {
     witnesses: W;
-    circuits: Circuits<T>;
-    impureCircuits: ImpureCircuits<T>;
+    circuits: Circuits<PS>;
+    impureCircuits: ImpureCircuits<PS>;
     constructor(witnesses: W);
-    initialState(context: __compactRuntime.ConstructorContext<T>): __compactRuntime.ConstructorResult<T>;
+    initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;
 }
 
 export declare function ledger(state: __compactRuntime.StateValue): Ledger;

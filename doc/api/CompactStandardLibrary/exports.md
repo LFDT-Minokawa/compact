@@ -1,8 +1,4 @@
-**CompactStandardLibrary** ∙ [README](README.md) ∙ [API](exports.md)
-
-***
-
-# API
+# Detailed API reference
 
 ## Structs
 
@@ -68,7 +64,7 @@ struct MerkleTreePathEntry {
 ### `MerkleTreePath`
 
 A path in a depth `n` Merkle tree, leading to a leaf of type `T`.
-Primarily used for [`merkleTreePathRoot`](#merkleTreePathRoot).
+Primarily used for [`merkleTreePathRoot`](#merkletreepathroot).
 
 This can be constructed from `witness`es that use the compiler output's
 `findPathForLeaf` and `pathForLeaf` functions.
@@ -82,48 +78,48 @@ struct MerkleTreePath<#n, T> {
 
 ### `ContractAddress`
 
-The address of a contract, used as a recipient in [`sendShielded`](#sendShielded),
-[`sendImmediateShielded`](#sendImmediateShielded),
-[`createZswapOutput`](#createZswapOutput), and [`mintShieldedToken`](#mintShieldedToken).
+The address of a contract, used as a recipient in [`send`](#send),
+[`sendImmediate`](#sendimmediate),
+[`createZswapOutput`](#createzswapoutput), and [`mintToken`](#minttoken).
 
 ```compact
 struct ContractAddress { bytes: Bytes<32>; }
 ```
 
-### `ShieldedCoinInfo`
+### `CoinInfo`
 
 The description of a newly created shielded coin, used in outputting shielded coins, or
 spending/receiving shielded coins that originate in the current transaction.
 
-`nonce` can be deterministically derived with [`evolveNonce`](#evolveNonce).
+`nonce` can be deterministically derived with [`evolveNonce`](#evolvenonce).
 
 Used in:
-- [`receiveShielded`](#receiveShielded)
-- [`sendImmediateShielded`](#sendImmediateShielded)
-- [`mergeCoin`](#mergeCoin)
-- [`mergeCoinImmediate`](#mergeCoinImmediate)
-- [`createZswapOutput`](#createZswapOutput)
+- [`receive`](#receive)
+- [`sendImmediate`](#sendimmediate)
+- [`mergeCoin`](#mergecoin)
+- [`mergeCoinImmediate`](#mergecoinimmediate)
+- [`createZswapOutput`](#createzswapoutput)
 
 ```compact
-struct ShieldedCoinInfo {
+struct CoinInfo {
   nonce: Bytes<32>;
   color: Bytes<32>;
   value: Uint<128>;
 }
 ```
 
-### `QualifiedShieldedCoinInfo`
+### `QualifiedCoinInfo`
 
 The description of an existing shielded coin in the ledger, ready to be spent.
 
 Used in:
-- [`sendShielded`](#sendShielded)
-- [`mergeCoin`](#mergeCoin)
-- [`mergeCoinImmediate`](#mergeCoinImmediate)
-- [`createZswapInput`](#createZswapInput)
+- [`send`](#send)
+- [`mergeCoin`](#mergecoin)
+- [`mergeCoinImmediate`](#mergecoinimmediate)
+- [`createZswapInput`](#createzswapinput)
 
 ```compact
-struct QualifiedShieldedCoinInfo {
+struct QualifiedCoinInfo {
   nonce: Bytes<32>;
   color: Bytes<32>;
   value: Uint<128>;
@@ -133,44 +129,24 @@ struct QualifiedShieldedCoinInfo {
 
 ### `ZswapCoinPublicKey`
 
-The public key used to output a [`ShieldedCoinInfo`](#shieldedCoininfo) to a user, used as a
-recipient in [`sendShielded`](#sendShielded), [`sendImmediateShielded`](#sendImmediateShielded), and
-[`createZswapOutput`](#createZswapOutput).
+The public key used to output a [`CoinInfo`](#coininfo) to a user, used as a
+recipient in [`send`](#send), [`sendImmediate`](#sendimmediate), and
+[`createZswapOutput`](#createzswapoutput).
 
 ```compact
 struct ZswapCoinPublicKey { bytes: Bytes<32>; }
 ```
 
-### `ShieldedSendResult`
+### `SendResult`
 
-The output of [`sendShielded`](#sendShielded) and [`sendImmediateShielded`](#sendImmediateShielded),
+The output of [`send`](#send) and [`sendImmediate`](#sendimmediate),
 detailing the created shielded coin, and the change from spending the input, if
 applicable.
 
 ```compact
-struct ShieldedSendResult {
-  change: Maybe<ShieldedCoinInfo>;
-  sent: ShieldedCoinInfo;
-}
-```
-
-### `UserAddress`
-
-The public key of a user, used as a recipient in [`sendUnshielded`](#sendUnshielded)
-and [`mintUnshieldedToken`](#mintUnshieldedToken).
-
-```compact
-struct UserAddress { bytes: Bytes<32>; }
-```
-
-### `UnshieldedCoinInfo`
-
-The description of an unshielded coin, used in [`sendUnshielded`](#sendUnshielded).
-
-```compact
-struct UnshieldedCoinInfo {
-  color: Bytes<32>;
-  value: Uint<128>;
+struct SendResult {
+  change: Maybe<CoinInfo>;
+  sent: CoinInfo;
 }
 ```
 
@@ -284,10 +260,10 @@ circuit persistentCommit<T>(value: T, rand: Bytes<32>): Bytes<32>;
 
 ### `degradeToTransient`
 
-This function "degrades" the output of a [`persistentHash`](#persistentHash)
-or [`persistentCommit`](#persistentCommit) to a field element, which can then
-be used in [`transientHash`](#transientHash) or
-[`transientCommit`](#transientCommit).
+This function "degrades" the output of a [`persistentHash`](#persistenthash)
+or [`persistentCommit`](#persistentcommit) to a field element, which can then
+be used in [`transientHash`](#transienthash) or
+[`transientCommit`](#transientcommit).
 
 ```compact
 circuit degradeToTransient(x: Bytes<32>) : Field;
@@ -295,7 +271,7 @@ circuit degradeToTransient(x: Bytes<32>) : Field;
 
 ### `upgradeFromTransient`
 This function "upgrades" a field element to the output of a
-[`persistentHash`](#persistentHash) or [`persistentCommit`](#persistentCommit).
+[`persistentHash`](#persistenthash) or [`persistentCommit`](#persistentcommit).
 
 ```compact
 circuit upgradeFromTransient(x: Field): Bytes<32>;
@@ -357,7 +333,7 @@ circuit merkleTreePathRoot<#n, T>(path: MerkleTreePath<n, T>): MerkleTreeDigest;
 
 Derives the Merkle tree root of a [`MerkleTreePath`](#merkletreepath), which
 should match the root of the tree that this path originated from. As opposed to
-[`merkleTreePathRoot`](#merkleTreePathRoot), this variant assumes that
+[`merkleTreePathRoot`](#merkletreepathroot), this variant assumes that
 the tree leaves have already been hashed externally.
 
 ```compact
@@ -378,31 +354,31 @@ Transforms a domain separator for the given contract into a globally namespaced
 token type. A contract can issue tokens for its domain separators, which lets
 it create new tokens, but due to collision resistance, it cannot mint tokens
 for another contract's token type. This is used as the `color` field in 
-[`ShieldedCoinInfo`](#shieldedcoininfo) and [`UnshieldedCoinInfo`](#unshieldedcoininfo).
+[`CoinInfo`](#coininfo).
 
 ```compact
 circuit tokenType(domainSep: Bytes<32>, contract: ContractAddress): Bytes<32>;
 ```
 
-### `mintShieldedToken`
+### `mintToken`
 
 Creates a new shielded coin, minted by this contract, and sends it to the given
-recipient. Returns the corresponding [`ShieldedCoinInfo`](#shieldedcoininfo). This requires
+recipient. Returns the corresponding [`CoinInfo`](#coininfo). This requires
 inputting a unique nonce to function securely, it is left to the user how to
 produce this.
 
 ```compact
-circuit mintShieldedToken(
+circuit mintToken(
   domainSep: Bytes<32>,
   value: Uint<128>,
   nonce: Bytes<32>,
   recipient: Either<ZswapCoinPublicKey, ContractAddress>
-): ShieldedCoinInfo;
+): CoinInfo;
 ```
 
 ### `evolveNonce`
 
-Deterministically derives a [`ShieldedCoinInfo`](#shieldedcoininfo) nonce from a counter index,
+Deterministically derives a [`CoinInfo`](#coininfo) nonce from a counter index,
 and a prior nonce.
 
 ```compact
@@ -412,25 +388,25 @@ circuit evolveNonce(
 ): Bytes<32>;
 ```
 
-### `shieldedBurnAddress`
+### `burnAddress`
 
 Returns a payment address that guarantees any shielded coins sent to it are burned.
 
 ```compact
-circuit shieldedBurnAddress(): Either<ZswapCoinPublicKey, ContractAddress>;
+circuit burnAddress(): Either<ZswapCoinPublicKey, ContractAddress>;
 ```
 
-### `receiveShielded`
+### `receive`
 
 Receives a shielded coin, adding a validation condition requiring this coin to be
 present as an output addressed to this contract, and not received by another
 call
 
 ```compact
-circuit receiveShielded(coin: ShieldedCoinInfo): [];
+circuit receive(coin: CoinInfo): [];
 ```
 
-### `sendShielded`
+### `send`
 
 Sends given value from a shielded coin owned by the contract to a recipient. Any change
 is returned and should be managed by the contract.
@@ -440,15 +416,15 @@ public key except for the current user will not lead to this user being
 informed of the coin they've been sent.
 
 ```compact
-circuit sendShielded(input: QualifiedShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): ShieldedSendResult;
+circuit send(input: QualifiedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): SendResult;
 ```
 
-### `sendImmediateShielded`
+### `sendImmediate`
 
-Like [`sendShielded`](#sendShielded), but for coins created within this transaction
+Like [`send`](#send), but for coins created within this transaction
 
 ```compact
-circuit sendImmediateShielded(input: ShieldedCoinInfo, target: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): ShieldedSendResult;
+circuit sendImmediate(input: CoinInfo, target: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): SendResult;
 ```
 
 ### `mergeCoin`
@@ -480,8 +456,8 @@ circuit ownPublicKey(): ZswapCoinPublicKey;
 ### `createZswapInput`
 
 Notifies the context to create a new Zswap input originating from this call.
-Should typically not be called manually, prefer [`sendShielded`](#sendShielded) and
-[`sendImmediateShielded`](#sendImmediateShielded) instead.
+Should typically not be called manually, prefer [`send`](#send) and
+[`sendImmediate`](#sendimmediate) instead.
 
 The note about disclosing under `transientHash` also applies to this function.
 
@@ -492,8 +468,8 @@ circuit createZswapInput(coin: QualifiedCoinInfo): [];
 ### `createZswapOutput`
 
 Notifies the context to create a new Zswap output originating from this call.
-Should typically not be called manually, prefer [`sendShielded`](#sendShielded) and
-[`sendImmediateShielded`](#sendImmediateShielded), and [`receiveShielded`](#receiveShielded) instead.
+Should typically not be called manually, prefer [`send`](#send) and
+[`sendImmediate`](#sendimmediate), and [`receive`](#receive)instead.
 
 The note about disclosing under `transientHash` also applies to this function.
 
@@ -501,80 +477,34 @@ The note about disclosing under `transientHash` also applies to this function.
 circuit createZswapOutput(coin: CoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [];
 ```
 
-### `mintUnshieldedToken`
+### `blockTimeLt`
 
-Creates a new unshielded coin, minted by this contract, and sends it to the given
-recipient. Returns the corresponding [`UnshieldedCoinInfo`](#unshieldedcoininfo).
+Returns true if the current block time is less than the given value.
 
 ```compact
-export circuit mintUnshieldedToken(
-  domainSep: Bytes<32>,
-  value: Uint<64>,
-  recipient: Either<ContractAddress, UserAddress>
-): UnshieldedCoinInfo;
+circuit blockTimeLt(time: Uint<64>): Boolean;
 ```
 
-### `sendUnshielded`
+### `blockTimeGte`
 
-Sends the given unshielded coin owned by the contract to a recipient. Unshielded tokens on Midnight
-are an account-UTXO hybrid system, so `UnshieldedCoinInfo`s have no nonce, and the user can just create an
-`UnshieldedCoinInfo` containing exactly the amount of the token they want to send. Therefore, no change is
-returned from this function.
+Returns true if the current block time is greater than or equal to the given value.
 
 ```compact
-export circuit sendUnshielded(coin: UnshieldedCoinInfo, recipient: Either<ContractAddress, UserAddress>): [];
+circuit blockTimeGte(time: Uint<64>): Boolean;
 ```
 
-### `receiveUnshielded`
+### `blockTimeGt`
 
-Receives an unshielded coin.
+Returns true if the current block time is greater than the given value.
 
 ```compact
-circuit receiveUnshielded(coin: UnshieldedCoinInfo): [];
+circuit blockTimeGt(time: Uint<64>): Boolean;
 ```
 
-### `unshieldedBalance`
+### `blockTimeLte`
 
-Returns the contract's balance of the unshielded token of the given type. Note that this balance is not updated
-during contract execution as a result of unshielded sends and receives. It is always fixed to the value provided
-at the start of execution. Also note that using this function means transaction application will fail unless the
-token balance at the time of transaction construction is exactly the same as the balance at the time of transaction
-application. Unless you want to require that, prefer to use the balance comparison functions [`unshieldedBalanceLt`](#unshieldedBalanceLt), 
-[`unshieldedBalanceGte`](#unshieldedBalanceGte), [`unshieldedBalanceGt`](#unshieldedBalanceGt), and 
-[`unshieldedBalanceLte`](#unshieldedBalanceLte).
+Returns true if the current block time is less than or equal to the given value.
 
 ```compact
-circuit unshieldedBalance(color: Bytes<32>): Uint<128>;
-```
-
-### `unshieldedBalanceLt`
-
-Returns true if the unshielded balance of the contract for the given token type is less than the given value.
-
-```compact
-circuit unshieldedBalanceLt(color: Bytes<32>, amount: Uint<128>): Boolean;
-```
-
-### `unshieldedBalanceGte`
-
-Returns true if the unshielded balance of the contract for the given token type is greater than or equal to the given value.
-
-```compact
-circuit unshieldedBalanceGte(color: Bytes<32>, amount: Uint<128>): Boolean;
-```
-
-### `unshieldedBalanceGt`
-
-Returns true if the unshielded balance of the contract for the given token type is greater than the given value.
-
-```compact
-circuit unshieldedBalanceGt(color: Bytes<32>, amount: Uint<128>): Boolean
-```
-
-### `unshieldedBalanceLte`
-
-Returns true if the unshielded balance of the contract for the given token type is less than or equal to the given value.
-
-```compact
-circuit unshieldedBalanceLte(color: Bytes<32>, amount: Uint<128>): Boolean;
+circuit blockTimeLte(time: Uint<64>): Boolean;
 ```

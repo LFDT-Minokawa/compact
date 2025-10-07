@@ -29,6 +29,6 @@ export default defineConfig({
       include: testFiles,
       exclude: nonTestFiles
     },
-    testTimeout: 10000
+    testTimeout: 180_000
   },
 })

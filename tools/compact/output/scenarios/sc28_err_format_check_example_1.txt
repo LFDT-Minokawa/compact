@@ -1,0 +1,40 @@
+[CONTRACT_PATH]:
+   13 |  // See the License for the specific language governing permissions and
+   14 |  // limitations under the License.
+   15 |  
+-  16 | -import                                                  CompactStandardLibrary;
++  16 | +import CompactStandardLibrary;
+   17 |  
+-  18 | -export circuit method(): [] {   const p = 1;                const z = 2;   const x = 3; }
++  18 | +export circuit method(): [] {
++  19 | +  const p = 1;
++  20 | +  const z = 2;
++  21 | +  const x = 3;
++  22 | +}
+   19 |  
+   20 |  constructor() {
+-  21 | -    const p : Field =
+-  22 | -    1
+-  23 | -    ;
+-  24 | -
+-  25 | -    const z: Boolean = true
+-  26 | -    ;
++  25 | +  const p: Field = 1;
+   27 |  
+-  28 | -
+-  29 | -
++  27 | +  const z: Boolean = true;
+   30 |  
+-  31 | -    const y =                                   default<Field>;
++  29 | +  const y = default<Field>;
+   32 |  
+-  33 | -    const f = default<Uint<32>
+-  34 | -    > as
+-  35 | -    Field
+-  36 | -    ;
++  31 | +  const f = default<Uint<32>> as Field;
+   37 |  }
+   38 |  
+-  39 | -witness method_2(): Boolean;+  34 | +witness method_2(): Boolean;
+
+Error: formatting failed

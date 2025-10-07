@@ -15,9 +15,9 @@
 
 import CompactStandardLibrary;
 
-export circuit test_mint_tokens(coin: ShieldedCoinInfo, amount: Unsigned Integer[64]): ShieldedCoinInfo {
+export circuit test_mint_tokens(coin: CoinInfo, amount: Unsigned Integer[64]): CoinInfo {
   receive(coin);
-  return mintShielded_token(
+  return mint_token(
     pad(32, "qa_token"),
     amount,
     evolve_nonce(0, coin.nonce),

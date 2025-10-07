@@ -1,0 +1,1 @@
+compact: compact -- Update available -- [COMPACT_VERSION]

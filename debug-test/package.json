@@ -20,7 +20,7 @@
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "../result/lib/node_modules/@midnight-ntwrk/compact-runtime",
     "@types/node": "^22.13.8",
-    "typescript": "~5.8.2"
+    "typescript": "~5.9.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",
@@ -40,7 +40,7 @@
     "eslint-plugin-react": "^7.37.4",
     "prettier": "^3.5.3",
     "rimraf": "^6.0.1",
-    "typescript": "~5.8.2",
+    "typescript": "~5.9.0",
     "vitest": "^3.1.1"
   }
 }

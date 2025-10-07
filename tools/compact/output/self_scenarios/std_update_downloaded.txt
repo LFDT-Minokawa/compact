@@ -1,0 +1,4 @@
+installing to [USER_DIR]/.local/bin
+  compact
+everything's installed!
+compact: compact -- Update installed -- [COMPACT_VERSION]

@@ -170,6 +170,16 @@ bytevectors and are considered Bytes objects.
 
 This language differs from Lsrc in that the include form is no longer present.
 
+### Lsingleconst
+
+This language differs from Lnoinclude in that the const statement only accepts
+a single variable.
+
+### Lnopattern
+
+This language differs from Lsingleconst in that patterns are dropped from
+constructor arguments, circuit arguments, const statements, and function arguments.
+
 ### Lhoisted
 
 In the earlier languages, local variables can be defined (via `const`) anywhere
@@ -334,6 +344,15 @@ The Lunrolled language differs from Lnoenums in that:
 The Linlined language is like Lunrolled except that Linlined does
 not include `flet`.
 
+### Lnoupcast
+
+This language differs from Linlined in that it does not have `upcast` expressions.
+
+### Lnovectorref
+
+This language differs from Lnoupcast in that it does not have `vector-ref`
+`tuple-slice`, `bytes-slice`, and `vector-slice` expressions.
+
 ### Lcircuit
 
 The Lcircuit language differs from earlier languages primarily in
@@ -345,9 +364,8 @@ the following ways:
 * circuit bodies consist of a sequence of statements in one of two forms
   (assignment and `assert` statements) followed by a single trivial expression
   representing the return value;
-* the `assignment statement` of Lcircuit replaces the `let*` expression
-  of Linlined, and the `assert` statement replaces the `assert` expression
-  of Linlined;
+* the `assignment statement` of Lcircuit replaces the `let*` expression,
+  and the `assert` statement replaces the `assert` expression.
 * the right-hand side of an assignment statement is the only place where a
   non-trivial expression (e.g., a function call, tuple/vector reference, `new`
   expression, or arithmetic expression) can appear;
@@ -356,7 +374,7 @@ the following ways:
   takes an additional boolean-typed trivial argument that determines
   whether the function call should be made or not.
 
-A less important change is that the Linlined `if` expression is replaced by a
+A less important change is that the `if` expression is replaced by a
 `select` expression in Lcircuit to emphasize that there is no short-circuiting,
 or, rather, that short-circuiting is irrelevant because the arguments to a
 `select` expression are all trivial.
@@ -476,7 +494,18 @@ This pass replaces `include` forms with the code from the included file.
 The original `include` form also appears in the output and is eventually
 consumed by `print-zkir`.
 
-### report-unreachable (Lnoinclude -> Lnoinclude)
+### expand-const (Lnoinclude -> Lsingleconst)
+
+This pass expands a const statement with multiple variables into a sequence
+of const statements with a single variable.
+
+### expand-patterns (Lsingleconst -> Lnopattern)
+
+This pass expands the patterns. A pattern is a variable, a tuple, or a struct. 
+Patterns are used in arguments for constructors, circuits, functions, and const
+statements.
+
+### report-unreachable (Lnopattern -> Lnopattern)
 
 This pass accepts a program in the Lsrc language and returns the
 same program, also of course in the Lsrc language.
@@ -492,7 +521,7 @@ It processes these statements from left-to-right and maintains an
 "unreachable" flag that starts out true and becomes false only if
 all paths through to a statement go through return statements.
 
-### hoist-local-variables (Lnoinclude -> Lhoisted)
+### hoist-local-variables (Lnopattern -> Lhoisted)
 
 This pass records the set of local variables (and their types, if
 declared) declared by `const` statements contained directly within
@@ -1363,16 +1392,6 @@ are non-exported definitions whose names overlap with exported or
 external names, since non-exported definitions can be and are renamed
 as necessary.
 
-### eliminate-redundant-upcasts (Loneledger -> Loneledger)
-
-`infer-types` inserts `upcast` expressions to make certain implicit upcasts explicit.
-Because it operates bottom-up, it has insufficient information about
-the eventual consumer of a value and so often produces redundant upcasts.
-This pass works top-down to eliminate these redundant upcasts.
-When it sees an `upcast` expression, it pushes the `upcast` expression
-down as far as possible, and when the `upcast` expression is pushed
-onto another `upcast` expression, the two are transitively combined into one.
-
 ### recognize-let (Loneledger -> Lnodca)
 
 This pass converts direct circuit applications into `let*` forms.
@@ -1481,10 +1500,10 @@ to get the analysis to iterate many times over the same circuit.
 ### save-contract-info (Lwithpaths -> Lwithpaths)
 
 This pass generates a `contract-info.json` for the contract `C` being compiled
-by Compactc. For contract `C`, this file contains:
+by Compactc. For contract `C`, this file contains the following in this order:
 - the type signature of exported circuits, that
   is the name of the circuit, its purity, its arguments and its return type,
-- the type signature of witnesses,
+- the type signature of exercised witnesses,
 - the name of contracts that have been declared in a contract type declaration
   within `C`, whether, `C` actually calls them or not.
 
@@ -1503,9 +1522,9 @@ the conversions performed during this pass are not preserved after
 
 ### print-typescript (Ltypescript -> Ltypescript)
 
-This pass emits JavaScript .cjs files that contain code that is semantically
+This pass emits JavaScript .js files that contain code that is semantically
 equivalent to the source Compact code and returns its input.
-It also produces TypeScript .d.ts files and source-map .cjs.map files.
+It also produces TypeScript .d.ts files and source-map .js.map files.
 
 The structure of the code is described in detail later in this
 document under the header "Generated TypeScript/JavaScript structure".
@@ -1799,7 +1818,307 @@ This pass can be removed for production releases of the compiler
 if desired, since it serves no purpose if the other passes are
 working correctly.
 
-### reduce-to-circuit (Linlined -> Lcircuit)
+### drop-upcast (Linlined -> Lnoupcast)
+
+This pass simply removes `upcast` forms from the language, replacing each
+`upcast` form with the encapsulated expression.
+
+### resolve-indices/simplify (Lnoupcast -> Lnovectorref)
+
+This pass performs copy propagation and constant folding with the primary goal
+of reducing non-constant vector-ref and vector-slice indices to constants and an
+incidental goal of simplifying the program.
+It raises an exception if it finds that a `bytes-ref`, `vector-ref`, `bytes-slice`
+or `vector-slice` index cannot be reduced to a constant or if the constant is
+not within range for the inferred type of the vector or slice.
+
+The pass operates primarily over expressions using an Expression processor that
+takes one argument, `ir`, representing the input expression and returns two
+values: a residual expression, `expr`, and a compile-time value (CTV), `ctv`
+corresponding to `expr`.
+All simplification is based on `ctv`, which can take one of the following forms:
+
+  * `(CTV-const var-name datum)`: `expr`'s value is `datum`.
+
+  * `(CTV-tuple var-name ctv*)`: `expr`'s value is a tuple, and the CTVs of the
+     tuple's elements are `ctv*`.
+
+  * `(CTV-struct var-name elt-name* ctv*)`: `expr`'s value is a struct with
+     field names `elt-name*`, and the parallel list `ctv*` contains the compile-time
+     values of the struct's fields.
+
+  * `(CTV-unknown var-name)`: `expr`'s value is not known, i.e., the compiler did not
+     determine anything useful about `expr`'s value.
+
+Variable names and CTVs have a two-way relationship that is used to support
+copy propagation.  Variable names are associated with CTVs via a global
+table, `var-ht`.
+On the other hand, CTVs are associated with variable names via the common field
+`var-name` that appears in each form of CTV shown above.
+
+Some CTVs are not associated with any variable name, in which case the `var-name`
+field holds a dummy variable name called `no-var-name` (`NVN` for short).
+In fact, in most cases, a CTV is created with `var-name` = `NVN` and recreated with
+a non-NVN var-name only when it turns out to be the CTV of the right-hand side
+(RHS) of a `let*` binding, as described below.
+
+The compiler creates `var-ht` mappings for the formal parameters of a circuit
+before processing the body of the circuit, then destroys the mapping after
+it processes the body.  For each formal parameter `x`, the mapping is from `x` to
+`(CTV-unknown x)`, since nothing is known about formal parameter values.
+
+Similarly, the compiler creates a `var-ht` mapping for the left-hand-side
+(LHS) variable `x` of each `let*` binding `[x e]` before processing the remaining
+bindings and body of the `let*`, then destroys the mapping after processing
+the remaining bindings and body.
+Assuming the CTV of the binding's RHS expression `e` is `ctv`, the mapping maps
+`x` to:
+
+  * `ctv`, if `ctv`'s `var-name` field holds a variable name that is in-scope,
+     and
+
+  * a copy of `ctv` with `var-name` = `x` otherwise.
+
+(A variable name that is in-scope has a binding in `var-ht`, and a variable
+name that is not in-scope has no binding in `var-ht`.
+Thus the compiler can reliably determine if a variable is in-scope by checking
+to see if it has a mapping in `var-ht`.
+No `var-ht` mapping ever exists for `NVN`, so it never appears to be in-scope.)
+
+In this manner a CTV that is the object of a current `var-ht` binding is
+always associated with the in-scope base variable of a propagation chain.
+For example, during the processing of `e` in the circuit definition below:
+
+```scheme
+(circuit (a)
+  (let* ([b a] [c b])
+    e))
+```
+
+`a`, `b`, and `c` are all mapped to `(CTV-unknown a)`, allowing the compiler to
+replace references to both `b` and `c` in `e` with references to `a`.
+Similarly, during the processing of e in the `let*` expression below:
+
+```scheme
+(let* ([a (quote 3)] [b a] [c b])
+  e))
+```
+
+`a`, `b`, and `c` are all mapped to `(CTV-const a 3)`, allowing the compiler.to
+replace references to `b` and `c` in `e` with `(quote 3)`.
+In both cases, this pass retains the (now useless) bindings for `b` and `c` (and
+`a` in the second example), but these bindings are discarded by the subsequent pass
+`discard-useless-code`.
+
+One can think of a CTV's var-name as a fallback option.
+That is, if a CTV does not allow an expression to be replaced with a constant,
+tuple element, or struct element, the fallback is to use the CTV's variable name
+if it is in scope.
+
+As illustrated above `CTV-const` can arise from quote expressions.
+It can also arise from default forms; e.g., the residual expression and CTV of
+`(quote 3)` are `(quote 3)` and `(CTV-const NVN 3)`, and the residual expression and
+CTV of `(default Field)` are `(quote 0)` and `(CTV-const NVN 0)`.
+
+`CTV-const` also arises via constant folding, which is enabled when a form like
+`(+ e1 e2)` or `(field->bytes e)` is processed and the compile-time values of
+the operands are `CTV-const`s.
+For example, the residual expression and CTV of the form `(* x 2)` within
+`(let* ([x 7]) (* x 2))` are `(quote 14)` and `(CTV-const NVN 14)` because x's
+CTV is `(CTV-const x 7)` and `2`'s CTV is `(CTV-const NVN 2)`.
+
+`CTV-tuple` arises from tuple and tuple slicing forms, e.g., assuming that
+the CTV of `e` is (CTV-unknown NVN), the residual expression of `(tuple e 2)`
+is `(tuple e 2`) and its CTV is
+`(CTV-tuple NVN (CTV-unknown NVN) (CTV-const NVN 2))`.
+`CTV-struct` similarly arises from structure allocation (new) forms.
+
+`CTV-unknown` arises only when none of the other options is appropriate.
+
+The CTV of `(seq e1 ... en-1 en)` is CTV value of `en`, and the CTV
+of `(let* (binding ...) e)` is the CTV of `e`.
+Thus, the CTV corresponding to an expression expr might be a `CTV-constant`,
+`CTV-tuple`, or `CTV-struct` even if expr is not a `quote`, `tuple`, or `new` form.
+For example, the CTVs of:
+
+```scheme
+(seq <any expr> (quote 15))
+(let* (<any binding> ...) (quote 15))
+```
+
+are both `(CTV-const NVN 15)`.
+
+The CTV `(if e0 e1 e2)` depends on the compile-time values of `e0`, `e1`, and `e2`:
+if `e0`'s compile-time value is `(CTV-const <x or NVN> b)` the residual expression and
+CTV of the `if` expression are (1) the residual expression and CTV of `e1`, if `b`
+is #t, or (2) the residual expression and CTV of `e2`, if `b` is `#f`. In all other
+cases, the residual expression is `(if e0^ e1^ e2^)`, where `e0^`, `e1^`, and `e2^`
+are the residual expressions of `e0`, `e1`, and `e2`.  If the CTVs of `e1` and `e2`
+are the same, the CTV of the `if` expression is the common CTV of `e1` and `e2`.
+Otherwise, the CTV of the `i`f expression is `(CTV-unknown NVN)`.
+
+`CTV-tuple` and `CTV-struct` CTVs are forms of partially static structures
+(compile-time representations of structures, some of whose parts may be known
+and some of whose parts may be unknown at compile time).  `CTV-tuple` CTVs are
+used to simplify `tuple-ref` forms, and `CTV-struct` forms are used to simplify
+`elt-ref` forms.  For example, the residual expression and CTV of
+`(elt-ref x b)` in:
+
+```scheme
+(let ([x (new (tstruct S (a Field) (b Field)) 7 11)])
+  (elt-ref x b))
+```
+
+are `(quote 11)` and `(CTV-const NVN 11)`.
+
+`vector-ref` forms, which have non-constant indices, must be replaced by equivalent
+`tuple-ref` forms, which have constant indices.
+Similarly, `bytes-ref`, which can have non-constant indices in the input, must be
+eplaced by equivlaent `bytes-ref` forms in the output, which have constant indices.
+`bytes-slice`, `tuple-slice`, and `vector-slice` forms must be replaced by equivalent
+sequences of `bytes-ref` or `tuple-ref` forms.
+When this pass encounters a reference or slice form with a non-constant index, it
+processes the index expression to obtain a residual index expresison and a CTV.
+It raises an exception if the CTV is not a `CTV-const`.
+It also raises an exception if the datum inside the CTV-const is not in range
+for the reference or slice.
+
+EXAMPLE.  Consider:
+
+```scheme
+(let* ([y (let* ([x (tuple (call) (quote 7) (public-ledger))]) (var-ref x))]
+       [z (seq (call) (var-ref y))])
+  (tuple
+    (tuple-ref (var-ref z) 0)
+    (vector-ref (var-ref v) (tuple-ref (var-ref z) 1))))
+```
+
+where `(call)` is shorthand for a witness or external circuit call and
+`(public-ledger)` is shorthand for a call to a public-ledger ADT operation, the
+contents of both of which are omitted for brevity.
+We'll assume that the CTV of `(var-ref v)` is `(CTV-unknown v)` and that its type
+is a vector with 10 elements.
+
+Here are the residual expressions, CTVs, and variable mappings that arise as
+this expression is processed:
+
+  * The residual expression of `(call)` is `(call)`, and its CTV is
+    `(CTV-unknown NVN)`.
+
+  * The residual expression of `(quote 7)` is `(quote 7)`, and its CTV is
+    `(CTV-const NVN)`.
+
+  * The residual expression of `(public-ledger)` is `(public-ledger)`, and its
+    CTV is `(CTV-unknown NVN)`.
+
+  * The residual expression of `(tuple (call) (quote 7) public-ledger)` is
+    `(tuple (call) (quote 7) public-ledger)` and its CTV is
+    `(CTV-tuple NVN (CTV-unknown NVN) (CTV-const NVN 7) (CTV-unknown NVN))`.
+
+  * `x` is mapped to `(CTV-tuple x (CTV-unknown NVN) (CTV-const NVN 7) (CTV-unknown NVN))`,
+    i.e., the CTV of the `tuple` form with NVN replaced by `x`.
+
+  * The residual expression of `(var-ref x)` is `(var-ref x)`, and its CTV is
+    `(CTV-tuple x (CTV-unknown NVN) (CTV-const NVN 7) (CTV-unknown NVN))`.
+
+  * The residual expression of the inner `let*` is
+    `(let* ([x (tuple (call) (quote 7) (public-ledger))]) (var-ref x))`,
+    and its CTV is the CTV of `(var-ref x)`, i.e.,
+    `(CTV-tuple x (CTV-unknown NVN) (CTV-const NVN 7) (CTV-unknown NVN))`.
+
+  * `y` is mapped to the CTV
+    `(CTV-tuple y (CTV-unknown NVN) (CTV-const NVN 7) (CTV-unknown NVN))`.
+    The CTV's var-name is `y` rather than `x` because `x` is no longer in-scope
+    (its mapping is no longer contained in `var-ht`).
+
+  * The residual expression of `(var-ref y)` is `(var-ref y)` and its CTV is
+    `(CTV-tuple y (CTV-unknown NVN) (CTV-const NVN 7) (CTV-unknown NVN))`.
+
+  * The residual expression of `(seq (call) (var-ref y))` is
+    `(seq (call) (var-ref y))` and its CTV is the CTV of `(var-ref y)`, i.e.,
+    `(CTV-tuple y (CTV-unknown NVN) (CTV-const NVN 7) (CTV-unknown NVN))`.
+
+  * `z` is mapped to the CTV
+    `(CTV-tuple y (CTV-unknown NVN) (CTV-const NVN 7) (CTV-unknown NVN))`.
+    The CTV's var-name has not be replaced by `z` because `y` is still in-scope.
+
+  * For both occurrences of `(var-ref z)`, the residual expression is `(var-ref y)`
+    and the CTV is 
+    `(CTV-tuple y (CTV-unknown NVN) (CTV-const NVN 7) (CTV-unknown NVN))`.
+
+  * The residual expression of `(tuple-ref (var-ref z) 0)` is
+    `(tuple-ref (var-ref y) 0)` and its CTV is (CTV-unknown NVN).
+    Although z's CTV has some information about the tuple, it doesn't have
+    information about the first element.
+
+  * The residual expression of `(tuple-ref (var-ref z) 1)` is
+    `(seq (tuple-ref (var-ref y) 1) (quote 7))` and its CTV is `(CTV-const NVN 7)`.
+    `z`'s CTV tells the compiler that the second tuple element is the constant
+    `7`, and the compiloer retains the residual expression of the original expression
+    for its effects.  (In this case, the residual expression doesn't have any
+    effects, but checking for and discarding useless code is not this pass's job
+    but rather the job of the subsequent pass discard-useless-bindings.)
+
+  * The residual expression of `(var-ref v)` is `(var-ref v)` and its CTV is
+    `(CTV-unknown NVN)`, as assumed.
+
+  * The residual expression of the `vector-ref` form is
+    `(let* ([t (var-ref v)]) (tuple-ref (var-ref y) 1) (tuple-ref t 7))`.
+    `(var-ref v)` and `(tuple-ref (var-ref y) 1)` are preserved for their effects,
+    and the `let*` is introduced to preserve left-to-right order of evaluation.
+    If the `vector-ref` index had not reduced to a constant, or the constant
+    was greater than or equal to `10` (the assumed length of the vector for
+    this example), the pass would have raised an exception to that effect.
+    The CTV is `(CTV-unknown NVN)` since nothing is known about the contents
+    of the vector.
+
+The example as a whole residualizes to:
+
+```scheme
+(let* ([y (let* ([x (tuple (call) (quote 7) (public-ledger))]) (var-ref x))]
+       [z (seq (call) (var-ref y))])
+  (tuple
+    (tuple-ref (var-ref y) 0)
+    (let* ([t (var-ref v)]) (tuple-ref (var-ref y) 1) (tuple-ref t 7))))
+```
+and it's CTV is `(CTV-tuple NVN (CTV-unknown NVN) (CTV-unknown NVN))`.
+The binding for `z` remains even though `z` is not referenced; this is removed
+by discard-unused-code along with the effect-free exprs in effect contexts.
+
+As noted above, the pass sometimes produces `seq`s with effect-free expressions
+in effect contexts, and it sometimes leaves behind unreferenced `let*` bindings.
+Discarding these is the job of the subsequent pass discard-useless-code.
+
+This pass also currently converts `let*` expressions with multiple bindings
+into nested `let*` expressions each with a single binding, because doing so
+turns out to be easier.
+
+### discard-useless-code (Lnovectorref -> Lnovectorref)
+
+This pass is an optimization pass and is thus optional.
+It drops useless code, i.e., code that may be reachable but has no impact on
+the outputs or effects of the program.
+In particular, it drops bindings for unreferenced variables, side-effect-free
+right-hand sides of dropped bindings, and side-effect-free expressions appearing
+in all but the last subform of a `seq` expression.
+To make the output more readable, it combines nested `let*` expressions
+and nested `seq` expressions.
+
+The pass operates over expressions with an `Expression` processor that accepts
+two arguments: the input expression `ir` and an `effect?` flag saying whether `ir`
+is used only for effect.
+For each kind of expression it returns three values: output form `expr`, a `pure?` flag,
+and an `idset`.
+
+The `pure?` flag is true if `expr` is free of effects, and `idset` is the set of
+variables that occur free in `expr`.  When `pure?` is true, `expr` is discarded if
+its value isn't used.
+Similarly, when a `let*`-bound variable `var` is not in the `idsets` of the
+right-hand sides of subsequent `let*` bindings or the `let*` body, the binding
+is dropped.
+The input `effect?` flag is used when building `seq` expressions to avoid polluting idsets.
+
+### reduce-to-circuit (Lnovectorref -> Lcircuit)
 
 This pass is responsible for making the transformation from an
 arbitrarily nested expression language with calls and asserts
@@ -2460,12 +2779,12 @@ Structuring the code in this manner has a couple of benefits:
       get: (...args_0) => {
         if (args_0.length !== 0)
           throw new __compactRuntime.CompactError(`get: expected 0 arguments, received ${args_0.length}`);
-        return this.#_get_0();
+        return this._get_0();
       },
       clear: (...args_0) => {
         if (args_0.length !== 0)
           throw new __compactRuntime.CompactError(`clear: expected 0 arguments, received ${args_0.length}`);
-        return this.#_clear_0();
+        return this._clear_0();
       }
     }
   }
@@ -2499,23 +2818,23 @@ Similarly to wrappers for external circuits in the `circuit` object, each of whi
 which check its argument types, each wrapper for a witness checks its return type.
 
 ```
-  #_some_0(value) { return { is_some: true, value: value }; }
-  #_none_0() { return { is_some: false, value: 0n }; }
-  #_persistent_hash_0(x, y) {
+  _some_0(value) { return { is_some: true, value: value }; }
+  _none_0() { return { is_some: false, value: 0n }; }
+  _persistent_hash_0(x, y) {
     return _descriptor_2.fromValue(__compactRuntime.persistentHash(_descriptor_2.toValue(x),
                                                                   _descriptor_2.toValue(y)));
   }
-  #_private$secret_key_0() {
+  _private$secret_key_0() {
     const result = this.witnesses.private$secret_key();
     if (!(result.buffer instanceof ArrayBuffer && result.BYTES_PER_ELEMENT === 1 && result.length === 32))
-      __compactRuntime.typeError('private$secret_key',
-                                 'return value',
-                                 'tiny.compact line 20, char 1',
-                                 'Bytes<32>',
-                                 result)
+      __compactRuntime.type_error('private$secret_key',
+                                  'return value',
+                                  'tiny.compact line 20, char 1',
+                                  'Bytes<32>',
+                                  result)
     return result;
   }
-  #_set_0(value) {
+  _set_0(value) {
     __compactRuntime.assert(_descriptor_0.fromValue(this.#query({ query: 'read',
                                                                  field: 'state',
                                                                  valueType: _descriptor_0.alignment() },
@@ -2523,8 +2842,8 @@ which check its argument types, each wrapper for a witness checks its return typ
                            ===
                            0,
                            'set: attempted to overwrite recorded value');
-    const sk = this.#_private$secret_key_0();
-    const apk = this.#_public_key_0(sk);
+    const sk = this._private$secret_key_0();
+    const apk = this._public_key_0(sk);
     this.#query({ query: 'write',
                   field: 'authority',
                   valueType: _descriptor_2.alignment() },
@@ -2538,7 +2857,7 @@ which check its argument types, each wrapper for a witness checks its return typ
                   valueType: _descriptor_0.alignment() },
                 _descriptor_0.toValue(1));
   }
-  #_get_0() {
+  _get_0() {
     if (_descriptor_0.fromValue(this.#query({ query: 'read',
                                               field: 'state',
                                               valueType: _descriptor_0.alignment() },
@@ -2546,15 +2865,15 @@ which check its argument types, each wrapper for a witness checks its return typ
         ===
         1)
     {
-      return this.#_some_0(_descriptor_1.fromValue(this.#query({ query: 'read',
-                                                                 field: 'value',
-                                                                 valueType: _descriptor_1.alignment() },
-                                                               []).value));
+      return this._some_0(_descriptor_1.fromValue(this.#query({ query: 'read',
+                                                                field: 'value',
+                                                                valueType: _descriptor_1.alignment() },
+                                                              []).value));
     } else {
-      return this.#_none_0();
+      return this._none_0();
     }
   }
-  #_clear_0() {
+  _clear_0() {
     __compactRuntime.assert(_descriptor_0.fromValue(this.#query({ query: 'read',
                                                                  field: 'state',
                                                                  valueType: _descriptor_0.alignment() },
@@ -2562,8 +2881,8 @@ which check its argument types, each wrapper for a witness checks its return typ
                            ===
                            1,
                            'clear: no value is currently recorded');
-    const sk = this.#_private$secret_key_0();
-    const apk = this.#_public_key_0(sk);
+    const sk = this._private$secret_key_0();
+    const apk = this._public_key_0(sk);
     __compactRuntime.assert(this.#_equal_0(apk,
                                           _descriptor_2.fromValue(this.#query({ query: 'read',
                                                                                 field: 'authority',
@@ -2583,8 +2902,8 @@ which check its argument types, each wrapper for a witness checks its return typ
                   valueType: _descriptor_0.alignment() },
                 _descriptor_0.toValue(0));
   }
-  #_public_key_0(sk) {
-    return this.#_persistent_hash_0(new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+  _public_key_0(sk) {
+    return this._persistent_hash_0(new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
                                     sk);
   }
 ```
@@ -2594,7 +2913,7 @@ implement `map` and `fold` operators and to implement `==` on nested structures.
 
 
 ```
-  #_equal_0(x0, y0) {
+  _equal_0(x0, y0) {
     if (!x0.every((x, i) => y0[i] === x)) return false;
     return true;
   }

@@ -1,0 +1,5 @@
+Error: Failed to run compactc
+
+Caused by:
+    0: Couldn't find compiler for [SYSTEM_VERSION] ([COMPILER])
+    1: Directory does not exist: `"[USER_DIR]/versions/[COMPILER]/[SYSTEM_VERSION]"'

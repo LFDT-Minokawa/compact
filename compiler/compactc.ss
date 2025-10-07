@@ -52,7 +52,7 @@ The following flags, if present, affect the compiler's behavior as follows:
     commitment that enables data integrity for contract-to-contract calls.
 
   --sourceRoot <sourceRoot value> overrides the compiler's setting of the
-    sourceRoot field in the generated source-map (.cjs.map) file.  By default,
+    sourceRoot field in the generated source-map (.js.map) file.  By default,
     the compiler tries to determine a useful value based on the source and
     target-directory pathnames, but this value might not be appropriate for
     the deployed structure of the application.
@@ -72,14 +72,16 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--skip-zk)]
              [(--no-communications-commitment)]
              [(--sourceRoot) (string source-root)]
-             [(--trace-passes)])
+             [(--trace-passes)]
+             [(--zkir-v3)])
       (string source-pathname)
       (string target-directory-pathname))
      (check-pathname source-pathname)
      (check-pathname target-directory-pathname)
      (parameterize ([trace-passes ?--trace-passes]
                     [skip-zk ?--skip-zk]
-                    [no-communications-commitment ?--no-communications-commitment])
+                    [no-communications-commitment ?--no-communications-commitment]
+                    [zkir-v3 ?--zkir-v3])
        (when source-root (register-source-root! source-root))
        (handle-exceptions ?--vscode
          (generate-everything source-pathname target-directory-pathname)))]

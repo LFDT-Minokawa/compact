@@ -1,0 +1,87 @@
+[CONTRACT_PATH]:
+   13 |  // See the License for the specific language governing permissions and
+   14 |  // limitations under the License.
+   15 |  
+-  16 | -import                                                  CompactStandardLibrary;
++  16 | +import CompactStandardLibrary;
+   17 |  
+-  18 | -export circuit method(): [] {   const p = 1;                const z = 2;   const x = 3; }
++  18 | +export circuit method(): [] {
++  19 | +  const p = 1;
++  20 | +  const z = 2;
++  21 | +  const x = 3;
++  22 | +}
+   19 |  
+   20 |  constructor() {
+-  21 | -    const p : Field =
+-  22 | -    1
+-  23 | -    ;
+-  24 | -
+-  25 | -    const z: Boolean = true
+-  26 | -    ;
++  25 | +  const p: Field = 1;
+   27 |  
+-  28 | -
+-  29 | -
++  27 | +  const z: Boolean = true;
+   30 |  
+-  31 | -    const y =                                   default<Field>;
++  29 | +  const y = default<Field>;
+   32 |  
+-  33 | -    const f = default<Uint<32>
+-  34 | -    > as
+-  35 | -    Field
+-  36 | -    ;
++  31 | +  const f = default<Uint<32>> as Field;
+   37 |  }
+   38 |  
+-  39 | -witness method_2(): Boolean;+  34 | +witness method_2(): Boolean;
+
+[CONTRACT_PATH_TWO]:
+   15 |  
+   16 |  import CompactStandardLibrary;
+   17 |  
++  18 | +export circuit method_3(): [] {
++  19 | +  const p = 1;
++  20 | +  const z = 2;
+   18 |  
+-  19 | -export circuit method_3():                      [] {
+-  20 | -    const p = 1;
+-  21 | -    const z = 2;
+-  22 | -
+-  23 | -    if(p > z) {
++  22 | +  if (p > z) {
++  23 | +    assert(1 > 2, "troll");
++  24 | +    if (p > z) {
++  25 | +      assert(1 > 2, "troll");
++  26 | +      if (p > z) {
+   24 |          assert(1 > 2, "troll");
+-  25 | -            if(p > z) {
+-  26 | -                assert(1 > 2, "troll");
+-  27 | -                    if(p > z) {
+-  28 | -                        assert(1 > 2, "troll");
+-  29 | -                            if(p > z) {
+-  30 | -                                assert(1 > 2, "troll");
+-  31 | -                                    if(p > z) {
+-  32 | -                                        assert(1 > 2, "troll");
+-  33 | -                                            if(p > z) {
+-  34 | -                                                assert(1 > 2, "troll");
+-  35 | -                                            }
+-  36 | -                                    }
+-  37 | -                            }
+-  38 | -                    }
++  28 | +        if (p > z) {
++  29 | +          assert(1 > 2, "troll");
++  30 | +          if (p > z) {
++  31 | +            assert(1 > 2, "troll");
++  32 | +            if (p > z) {
++  33 | +              assert(1 > 2, "troll");
+   39 |              }
++  35 | +          }
++  36 | +        }
++  37 | +      }
+   40 |      }
+-  41 | -}+  39 | +  }
++  40 | +}
+
+Error: formatting failed

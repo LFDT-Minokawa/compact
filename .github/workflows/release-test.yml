@@ -58,7 +58,10 @@ jobs:
           mv ${{ env.ARTIFACT_NAME }}.zip temp-release
           cd temp-release
           unzip ${{ env.ARTIFACT_NAME }}.zip
+          export COMPACT_HOME="$(pwd)"
+          echo "COMPACT_HOME: $COMPACT_HOME"
           export PATH="$(pwd):$PATH"
+          echo "PATH: $PATH"
           cd ../tests-e2e
           yarn install
           yarn test:release
@@ -71,7 +74,7 @@ jobs:
           files: |
             **/reports/test-report.xml
             !(node_modules)/**/test-report.xml
-            
+
       - name: Publish Test Summary - macOS
         uses: EnricoMi/publish-unit-test-result-action/macos@v2
         if: always() && contains(inputs.artifact, 'macos')
