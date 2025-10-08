@@ -31,10 +31,10 @@ pub const LATEST_COMPACTC_VERSION: &str = "0.26.0";
 pub const PREVIOUS_COMPACTC_VERSION: &str = "0.25.0";
 
 #[allow(dead_code)]
-pub const OLDEST_COMPACTC_VERSION: &str = "0.22.0";
+pub const VERSION_WITH_NO_FORMAT: &str = "0.24.0";
 
 #[allow(dead_code)]
-pub const VERSION_WITH_NO_FORMAT: &str = "0.24.0";
+pub const OLDEST_COMPACTC_VERSION: &str = "0.22.0";
 
 #[allow(dead_code)]
 pub fn get_version() -> &'static str {
