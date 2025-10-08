@@ -42507,57 +42507,6 @@
 
   (test
     '(
-      "ledger impure: Boolean;"
-      "circuit foo(n: Field): Boolean {"
-      "  const x = !(n == 1);"
-      "  return ((x) => x && n == 0)(!x);"
-      "}"
-      "export circuit bar(n: Field): Field {"
-      "  impure = true;"
-      "  return foo(n+1) ? n - 1 : n + 1;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 6, \"b\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 6, \"b\": 3 },"
-        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 8, \"b\": 3 },"
-        "    { \"op\": \"neg\", \"a\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 10 },"
-        "    { \"op\": \"cond_select\", \"bit\": 9, \"a\": 11, \"b\": 6 },"
-        "    { \"op\": \"output\", \"var\": 12 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
       "export { foo }"
       "include \"test-center/compact/bar\";"
      )
@@ -63384,37 +63333,86 @@
 
   (test
     '(
+      "ledger impure: Boolean;"
       "circuit foo(n: Field): Boolean {"
       "  const x = !(n == 1);"
       "  return ((x) => x && n == 0)(!x);"
       "}"
       "export circuit bar(n: Field): Field {"
+      "  impure = true;"
       "  return foo(n+1) ? n - 1 : n + 1;"
       "}"
       )
     (returns
       (program
         (type-descriptors
-          (%descriptor.45 (tfield))
-          (%descriptor.46 (tboolean))
-          (%descriptor.47 (tunsigned 255))
-          (%descriptor.48 (tunsigned 18446744073709551615))
-          (%descriptor.49
-            (tunsigned 340282366920938463463374607431768211455)))
-        (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.10 ([%n.11 (tfield)])
+          (%descriptor.6 (tfield))
+          (%descriptor.7 (tboolean))
+          (%descriptor.8 (tunsigned 18446744073709551615))
+          (%descriptor.9 (tbytes 32))
+          (%descriptor.10 (tstruct ContractAddress
+                            (bytes (tbytes 32))))
+          (%descriptor.11 (tunsigned 255))
+          (%descriptor.12 (tunsigned
+                            340282366920938463463374607431768211455)))
+        (kernel-declaration (%kernel.13 () (Kernel)))
+        (public-ledger-declaration
+          ((%impure.14 (0) (__compact_Cell (tboolean))))
+          (constructor () (tuple)))
+        (circuit %foo.15 ([%n.16 (tfield)])
              (tboolean)
           (seq
-            (const [%x.12 (tboolean)]
-              (not (== %n.11 (safe-cast (tfield) (tunsigned 1) 1))))
+            (const [%x.17 (tboolean)]
+              (not (== %n.16 (safe-cast (tfield) (tunsigned 1) 1))))
             (seq
-              (const [%x.13 (tboolean)] (not %x.12))
-              (and %x.13 (== %n.11 (safe-cast (tfield) (tunsigned 0) 0))))))
-        (circuit %bar.14 ([%n.15 (tfield)])
+              (const [%x.18 (tboolean)] (not %x.17))
+              (and %x.18
+                   (== %n.16 (safe-cast (tfield) (tunsigned 0) 0))))))
+        (circuit %bar.19 ([%n.20 (tfield)])
              (tfield)
-          (if (call %foo.10 (+ #f %n.15 (safe-cast (tfield) (tunsigned 1) 1)))
-              (- #f %n.15 (safe-cast (tfield) (tunsigned 1) 1))
-              (+ #f %n.15 (safe-cast (tfield) (tunsigned 1) 1))))))
+          (seq
+            (public-ledger %impure.14 (0) write #t)
+            (if (call %foo.15
+                  (+ #f %n.20 (safe-cast (tfield) (tunsigned 1) 1)))
+                (- #f %n.20 (safe-cast (tfield) (tunsigned 1) 1))
+                (+ #f %n.20 (safe-cast (tfield) (tunsigned 1) 1)))))))    
+    (output-file "compiler/testdir/zkir/foo.zkir" #f)
+    (output-file "compiler/testdir/zkir/bar.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 1,"
+        "  \"instructions\": ["
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
+        "    { \"op\": \"test_eq\", \"a\": 6, \"b\": 1 },"
+        "    { \"op\": \"test_eq\", \"a\": 6, \"b\": 3 },"
+        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 8, \"b\": 3 },"
+        "    { \"op\": \"neg\", \"a\": 1 },"
+        "    { \"op\": \"add\", \"a\": 0, \"b\": 10 },"
+        "    { \"op\": \"cond_select\", \"bit\": 9, \"a\": 11, \"b\": 6 },"
+        "    { \"op\": \"output\", \"var\": 12 }"
+        "  ]"
+        "}"))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
@@ -63423,10 +63421,10 @@
         "}"
         ""
         "export type ImpureCircuits<PS> = {"
+        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
         "export type PureCircuits = {"
-        "  bar(n_0: bigint): bigint;"
         "}"
         ""
         "export type Circuits<PS> = {"
@@ -63455,7 +63453,7 @@
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  expect(C.circuits.bar(Ctxt, 5n).result).toEqual(6n);"
-        "  expect(contractCode.pureCircuits.bar(5n)).toEqual(6n);"
+        "  expect(C.impureCircuits.bar(Ctxt, 5n).result).toEqual(6n);"
         "  });"
         ))
     )
