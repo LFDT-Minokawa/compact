@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  #v5.0.0
 
       - uses: actions/cache@v3
         name: Cache cabal packages
@@ -53,26 +53,26 @@ jobs:
         run: agda --version
 
       - name: Checkout agda-stdlib-meta repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  #v5.0.0
         with:
           repository: agda/agda-stdlib-meta
           path: agda-stdlib-meta
           
       - name: Checkout agda-stdlib repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  #v5.0.0
         with:
           repository: agda/agda-stdlib
           ref: v2.3
           path: agda-stdlib
 
       - name: Checkout agda-stdlib-classes repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  #v5.0.0
         with:
           repository: agda/agda-stdlib-classes
           path: agda-stdlib-classes
 
       - name: Checkout iog-agda-prelude repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  #v5.0.0
         with:
           repository: input-output-hk/iog-agda-prelude
           path: iog-agda-prelude

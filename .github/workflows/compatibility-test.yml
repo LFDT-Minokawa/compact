@@ -60,7 +60,7 @@ jobs:
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
       - name: Checkout compactc repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  #v5.0.0
         with:
           ref: ${{ inputs.branch }}
 
@@ -96,4 +96,3 @@ jobs:
           files: |
             **/reports/test-report.xml
             !(node_modules)/**/test-report.xml
-
