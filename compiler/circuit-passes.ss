@@ -90,26 +90,26 @@
                                        (car type*)
                                        (loop (cdr elt-name*) (cdr type**) (cdr type*)))))]
                             [else (assert cannot-happen)])])
-         `(let* ,src ([(,tmp-contract ,(tbytes ,src 32)) ,expr]
+         `(let* ,src ([(,tmp-contract (tbytes ,src 32)) ,expr]
                       [(,tmp-arg* ,type*) ,expr*]
                       [(,tmp-result ,return-type)
-                       ,(contract-call src elt-name public-binding (tmp-contract type) (tmp-arg* type*) ...)]
-                      [(,tmp-tc ,(tfield ,src))
+                       (contract-call src elt-name public-binding (tmp-contract type) (tmp-arg* type*))]
+                      [(,tmp-tc (tfield ,src))
                                         ; generate transientCommit call with input +output and rand
-                       ,(call ,src `(fref ,src
-                                          (make-id ,src 'transientCommit) ; TODO can I just call transientCommit or do I need to add it to externals?
-                                          (list ,return-type
-                                              (list ,tmp-arg* ,tmp-result)
-                                              'createNonce) ...))]
-                      [(,tmp-circuit-hash ,(tbytes ,src 32)) ,(sha256 elt-name)] ...)
+                       (call src (fref src
+                                       ,(make-id src 'transientCommit) ; TODO can I just call transientCommit or do I need to add it to externals?
+                                       ,(list return-type
+                                              (list tmp-arg* tmp-result)
+                                              'createNonce)))]
+                      [(,tmp-circuit-hash (tbytes ,src 32)) ,(sha256 elt-name)] ...)
             ; bytes32 bytes32 field
             ; kernel.claimcontractcall(addr, circuit-hash, tc)
-            ,(seq
-              `(public-ledger ,src ,kernel (maybe sugar) '() ,src
-                             'claimContractCall (list (var-ref ,src ,tmp-contract)
-                                                      ,tmp-circuit-hash
-                                                      ,tmp-tc) ...)
-              `(var-ref ,src ,tmp-result))))])
+            (seq
+              (public-ledger ,src ,kernel '() '() ,src
+                             'claimContractCall ,(list `(var-ref ,src ,tmp-contract)
+                                                       ,tmp-circuit-hash
+                                                       ,tmp-tc))
+              (var-ref ,src ,tmp-result))))])
     )
 ; if the first approach doesn't work
 ; a dummy ledger for kernel, you have to create it only if you
