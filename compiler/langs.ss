@@ -685,8 +685,11 @@
       (disclose src expr)                     => (disclose expr)
       (ledger-call src ledger-op (maybe sugar) expr expr* ...) =>
         (ledger-call ledger-op #f expr #f expr* ...)
-      (contract-call src elt-name (expr type) expr* ...) =>
-        (contract-call elt-name 4 (expr 0 type) #f expr* ...)
+      ; type* takes the types of args in contract call
+      ; this is needed for generating the first argument of
+      ; transientCommit for a contract call expansion.
+      (contract-call src elt-name (expr type) (expr* type*) ...) =>
+        (contract-call elt-name 4 (expr 0 type) #f (expr* type*) ...)
       (return src expr)                       => expr
       )
     (Map-Argument (map-arg)
@@ -740,7 +743,11 @@
       (+ (public-ledger src ledger-field-name (maybe sugar) accessor* ...) =>
            (public-ledger ledger-field-name #f accessor* ...)))
     (Ledger-Accessor (accessor)
-      (+ (src ledger-op expr* ...)              => (ledger-op #f expr* ...))))
+      (+ (src ledger-op expr* ...)              => (ledger-op #f expr* ...)))
+    (Expression (expr index)
+      (- (contract-call src elt-name (expr type) (expr* type*) ...))
+      (+ (contract-call src elt-name public-binding (expr type) (expr* type*) ...) =>
+         (contract-call elt-name 4 public-binding 4 (expr 0 type) #f (expr* type*) ...))))
 
   (define-language/pretty Lnodca (extends Loneledger)
     (Expression (expr index)

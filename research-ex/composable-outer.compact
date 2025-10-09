@@ -1,0 +1,42 @@
+import CompactStandardLibrary;
+
+ledger contract1: C;
+
+contract C {
+  circuit set(v: Opaque<"string">): [];
+  circuit get(): Opaque<"string">;
+}
+
+// ledger lagging_value: Opaque<"string">;
+
+// These are temporary, to work around compact not yet having appropriate syntax for the call.
+// ledger tmp_addr: Bytes<32>;
+// ledger tmp_ep_comm: Bytes<32>;
+// witness tmp_do_call(): Opaque<"string">;
+// witness tmp_call_rand(): Field;
+
+
+export circuit update(): [] {
+  const read_value = contract1.get(); //temp_do_call()
+  // where am I getting the output from get and it can assume that it gets it similar to how it gets a witness
+  // similarly in JS this output needs to be part of the private transcript of theproof data -- check if we're actually doing this
+  // instead of read_value you need to pass the concat of inputs and output to get
+  // Q for thomas:
+  // by concat do you mean put all of them in a tuple?
+  // during JS pass you should have the rand value from the private transcript
+  // const cc = transientCommit<Opaque<"string">>(read_value, tmp_call_rand());
+
+  // tmp_ep_comm is the hash of the string of the name of the circuit.
+  // this hash func has to be the same as the hash func used in the ledger or else we'll get a very cryptic msg
+  // The hash function used for ep_hash is:
+  // ep_hash(circuit_name) = sha_256("midnight:entry-point\0\0\0\0\0\0\0\0\0\0\0\0" + circuit_name)
+  // when is this address known?
+  // the address that is created when the transaction is created. same for rand.
+  // who's in charge of running the transcript
+  // kernel.claimContractCall(tmp_addr, tmp_ep_comm, cc);
+
+
+  // contract1.set(default<Opaque<"string">>);
+  // contract1.set(read_value);
+  // lagging_value = disclose(read_value);
+}

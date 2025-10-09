@@ -79,6 +79,11 @@
    [(Struct Boolean (Struct (Bytes 32)) (Struct (Bytes 32))) (discloses nothing)])
   Void)
 
+(declare-native-entry witness createNonce
+  "__compactRuntime.communicationCommitmentRandomnessField"
+  ()
+  Field)
+
 #|
 ; this should be uncommented when the justfortesting tests are uncommented in test.ss
 ; used for testing type parametization unification errors

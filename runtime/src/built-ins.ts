@@ -17,6 +17,8 @@ import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 import { MAX_FIELD } from './constants.js';
 import { CompactType, CompactTypeCurvePoint, CurvePoint } from './compact-types.js';
 import { CompactError } from './error.js';
+import { fromHex } from './utils.js';
+import { convertBytesToField } from './casts.js'
 
 const FIELD_MODULUS: bigint = MAX_FIELD + 1n;
 
@@ -219,4 +221,9 @@ export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue
     res.alignment = res.alignment.concat(value.alignment);
   }
   return res;
+}
+
+export const communicationCommitmentRandomnessField = (): bigint => {
+  const rand = fromHex(ocrt.communicationCommitmentRandomness()).slice(1);
+  return convertBytesToField(rand.length, rand)
 }

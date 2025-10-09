@@ -1013,6 +1013,8 @@
               (let ([p (or Cell-ADT-env
                            (let ([p (add-rib empty-env)])
                              (do-import src 'CompactStandardLibrary '() ""
+                                        ; TODO rename cell-adt-env to implicit-std
+                                        ; add the binding for kernel in cc of lexpanded
                                         (list (with-output-language (Lpreexpand Import-Element)
                                                 `(,src __compact_Cell __compact_Cell)))
                                         p)
@@ -2006,7 +2008,7 @@
                 (values
                   (let ([expr* (map (maybe-upcast src) declared-type* adt-type* expr*)])
                     (with-output-language (Ltypes Expression)
-                      `(contract-call ,src ,elt-name (,expr ,adt-type) ,expr* ...)))
+                      `(contract-call ,src ,elt-name (,expr ,adt-type) (,expr* ,declared-type*) ...)))
                   (car type*)))
               (loop (cdr elt-name*) (cdr type**) (cdr type*))))))
       (define (get-contract-name ecdecl)
@@ -3058,6 +3060,11 @@
   (define-pass combine-ledger-declarations : Lnotundeclared (ir) -> Loneledger ()
     (definitions
       (define kernel-id*)
+      ; TODO this is a hachy way to see if we do need more than the ledger field name
+      ; if we don't need the public-adt of the kernel then we can drop the copy and just
+      ; use kernel-id*
+      ; cleanup before submitting PR
+      (define kernel-ldecl*-copy)
       (define (kernel? ldecl)
         (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
           [(public-ledger-declaration ,src ,ledger-field-name (,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)))
@@ -3067,6 +3074,7 @@
        (let*-values ([(ldecl* pelt*) (partition Lnotundeclared-Ledger-Declaration? pelt*)]
                      [(lconstructor* pelt*) (partition Lnotundeclared-Ledger-Constructor? pelt*)]
                      [(kernel-ldecl* ldecl*) (partition kernel? ldecl*)])
+         (fluid-let ([kernel-ldecl*-copy kernel-ldecl*])
          (fluid-let ([kernel-id* (map (lambda (kernel-ldecl)
                                         (nanopass-case (Lnotundeclared Ledger-Declaration) kernel-ldecl
                                           [(public-ledger-declaration ,src ,ledger-field-name ,public-adt)
@@ -3103,7 +3111,7 @@
                                      ~{\n    ~a~^,~}"
                                     (map format-source-object (cdr src*))))]))
               ,(map Program-Element pelt*)
-              ...)))])
+              ...))))])
     (Program-Element : Program-Element (ir) -> Program-Element ()
       [,ldecl (assert cannot-happen)]
       [,lconstructor (assert cannot-happen)])
@@ -3125,7 +3133,14 @@
                                            (car kernel-id*)
                                            ledger-field-name)])
                 `(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...))]
-             [else (assert cannot-happen)])))])
+             [else (assert cannot-happen)])))]
+      [(contract-call ,src ,elt-name (,[expr] ,[type]) (,[expr*] ,[type*]) ...)
+       (if (null? kernel-ldecl*-copy)
+           (source-errorf src "CompactStandardLibrary must be imported for contract calls")
+           (nanopass-case (Lnotundeclared Ledger-Declaration) (car kernel-ldecl*-copy)
+             [(public-ledger-declaration ,src^ ,ledger-field-name ,public-adt)
+              `(contract-call ,src ,elt-name (,src^ ,ledger-field-name ,(Public-Ledger-ADT public-adt)) (,expr ,type) (,expr* ,type*) ...)]))
+       ])
   )
 
   (define-pass discard-unused-functions : Loneledger (ir) -> Loneledger ()
@@ -3968,7 +3983,7 @@
       ; FIXME: syntax post-desugar should require at least one accessor
       [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...)
        (assert cannot-happen)]
-      [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
+      [(contract-call ,src ,elt-name ,public-binding (,expr ,type) (,expr* ,type*) ...)
        (nanopass-case (Lnodca Type) type
          [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
           (let ([adt-type* (map Care expr*)])
@@ -4200,7 +4215,7 @@
       [(call ,src ,function-name^ ,[expr*] ...)
        (process-function-name! function-name^)
        ir]
-      [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
+      [(contract-call ,src ,elt-name ,public-binding (,expr ,type) (,expr* ,type*) ...)
        (raise (make-cc-call-condition function-name src
                 (format "calls circuit ~a from external contract ~a"
                   elt-name
@@ -4305,7 +4320,7 @@
       [(call ,src ,function-name^ ,[expr*] ...)
        (process-function-name! function-name src function-name^)
        ir]
-      [(contract-call ,src ,elt-name (,expr ,type) ,[expr*] ...)
+      [(contract-call ,src ,elt-name ,public-binding (,expr ,type) (,[expr*] ,type*) ...)
        (nanopass-case (Lnodca Type) type
          [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
           (let loop ([elt-name* elt-name*] [pure-dcl* pure-dcl*])
@@ -4360,7 +4375,17 @@
           ,lconstructor)])
     (Public-Ledger-Binding : Public-Ledger-Binding (ir idx*) -> Public-Ledger-Binding ()
       [(,src ,ledger-field-name ,[public-adt])
-       `(,src ,ledger-field-name (,idx* ...) ,public-adt)]))
+       `(,src ,ledger-field-name (,idx* ...) ,public-adt)])
+    ; the Expression processor takes an optional argument indx* and where it's not available
+    ; it uses the default value '().  in such a processor one might still need to write
+    ; the processeors that call this processor and pass the extra argument so that the
+    ; generated processors by nanopass would still take the extra argument when they call
+    ; Expression.  to debug issues due to auto generated processors by nanopass try
+    ; echo-define-pass instead of define-pass.
+    (Expression : Expression (ir [idx* '()]) -> Expression ()
+      [(contract-call ,src ,elt-name ,public-binding (,[expr idx* -> expr] ,[type]) (,[expr* idx* -> expr*] ,[type*]) ...)
+       `(contract-call ,src ,elt-name ,(Public-Ledger-Binding public-binding idx*)
+         (,expr ,type) (,expr* ,type*) ...)]))
 
   ; FIXME: building in knowledge of the ledger here
   (define-pass propagate-ledger-paths : Lwithpaths0 (ir) -> Lwithpaths ()
@@ -5192,7 +5217,7 @@
             discloses?*
             (if (= (length abs*) 1) '(#f) (enumerate abs*)))
           (default-value adt-type)])]
-      [(contract-call ,src ,elt-name (,[* abs] ,type) ,[* abs*] ...)
+      [(contract-call ,src ,elt-name ,public-binding (,[* abs] ,[type]) (,[* abs*] ,[type*]) ...)
        (unless (null? control-witness*)
          (record-leak! src "making this contract call" control-witness*))
        (let ([witness* (abs->witnesses abs)])

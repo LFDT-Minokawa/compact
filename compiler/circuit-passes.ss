@@ -24,6 +24,99 @@
           (langs)
           (pass-helpers))
 
+    ; NB this is linked to the hash function used in the ledger to hash the called circuit name
+  ; any change to the ledger's hash func should be propagated to this.
+  (define (midnight-hash-entry-point) "midnight:entry-point\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0")
+
+  (define-pass expand-contract-call : Lnodisclose (ir) -> Lnodisclose ()
+    (definitions
+      (define (sha256 circuit-name)
+
+        (define (valid-hex-char? c)
+          (or (char<=? #\0 c #\9)
+              (char<=? #\a c #\f)
+              (char<=? #\A c #\F)))
+        (define (valid-hex-string? str)
+          (and (= (string-length str) 64)
+               (let loop ([i 0])
+                 (if (= i 64)
+                     #t
+                     (and (valid-hex-char? (string-ref str i))
+                          (loop (+ i 1)))))))
+        (define (hex-string->bytevector hex-str)
+          (let* ([len (string-length hex-str)]
+                 [bv (make-bytevector (/ len 2))])
+            (let loop ([i 0])
+              (when (< i len)
+                (let* ([hex-byte (substring hex-str i (+ i 2))]
+                       [byte (string->number hex-byte 16)])
+                  (bytevector-u8-set! bv (/ i 2) byte)
+                  (loop (+ i 2)))))
+            bv))
+
+        (let* ([entry (midnight-hash-entry-point)])
+          (let-values ([(stdout-stuff stderr-stuff) (shell "shasum -a 256" (format "~a~a" entry circuit-name))])
+            (unless (string=? stderr-stuff "")
+              (internal-errorf 'shasum "shasum resulted in an error: ~a" stderr-stuff))
+            (if (valid-hex-string? stdout-stuff)
+                (hex-string->bytevector (substring stdout-stuff 0 64))
+                (internal-errorf 'shasum "shasum resulted in an invalid hex string: ~a" stdout-stuff)))))
+      )
+    (Expression : Expression (ir) -> Expression ()
+      ; TODO cleanup
+      ; kernel circuit-name ledger-field.read contract-type args
+      ; kernel-op should come from lexpanded
+      ;                    circuit-name  kernel    ledger-contract  args + their types
+      [(contract-call ,src ,elt-name ,public-binding (,expr ,type) (,expr* ,type*) ...)
+       (let ([kernel (nanopass-case (Lnodisclose Public-Ledger-Binding) public-binding
+                       [(,src^ ,ledger-field-name (,path-index* ...) ,public-adt)
+                        ledger-field-name])]
+             [tmp-contract (make-temp-id src 'contract-address)]
+             [tmp-arg* (map (lambda (e) (make-temp-id src 't) expr*))]
+             [tmp-result (make-temp-id src 'c)]
+             [tmp-circuit-hash (make-temp-id src 'circuit-hash)]
+             [tmp-tc (make-temp-id src 'tc)]
+             [return-type (nanopass-case (Lnodisclose Type) type
+                            ; infer-types has already insured that elt-name exists in type
+                            [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
+                             (let loop ([elt-name* elt-name*] [type* type*])
+                               (if (null? elt-name*)
+                                   ; this will never be exercised because infer-types would have
+                                   ; already caught it
+                                   (source-errorf src^ "contract ~s has no circuit declaration named ~s"
+                                                  contract-name
+                                                  elt-name)
+                                   (if (eq? (car elt-name*) elt-name)
+                                       (car type*)
+                                       (loop (cdr elt-name*) (cdr type**) (cdr type*)))))]
+                            [else (assert cannot-happen)])])
+         `(let* ,src ([(,tmp-contract ,(tbytes ,src 32)) ,expr]
+                      [(,tmp-arg* ,type*) ,expr*]
+                      [(,tmp-result ,return-type)
+                       ,(contract-call src elt-name public-binding (tmp-contract type) (tmp-arg* type*) ...)]
+                      [(,tmp-tc ,(tfield ,src))
+                                        ; generate transientCommit call with input +output and rand
+                       ,(call ,src `(fref ,src
+                                          (make-id ,src 'transientCommit) ; TODO can I just call transientCommit or do I need to add it to externals?
+                                          (list ,return-type
+                                              (list ,tmp-arg* ,tmp-result)
+                                              'createNonce) ...))]
+                      [(,tmp-circuit-hash ,(tbytes ,src 32)) ,(sha256 elt-name)] ...)
+            ; bytes32 bytes32 field
+            ; kernel.claimcontractcall(addr, circuit-hash, tc)
+            ,(seq
+              `(public-ledger ,src ,kernel (maybe sugar) '() ,src
+                             'claimContractCall (list (var-ref ,src ,tmp-contract)
+                                                      ,tmp-circuit-hash
+                                                      ,tmp-tc) ...)
+              `(var-ref ,src ,tmp-result))))])
+    )
+; if the first approach doesn't work
+; a dummy ledger for kernel, you have to create it only if you
+; __compactKernel
+; have a pass after expand-moduels-and-types that carries over Kernel public-adt into contract-call (this is the Cell-ADT-env that you need to lookup Kernel,)
+; info-ledger-adt --> look for apply-ledger-adt
+
   (define-pass drop-ledger-runtime : Lnodisclose (ir) -> Lposttypescript ()
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -978,7 +1071,7 @@
                                (format-type type^))))
             adt-type* type^* (enumerate adt-type*))
           adt-type])]
-      [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
+      [(contract-call ,src ,elt-name ,public-binding (,expr ,type) (,expr* ,type*) ...)
        (nanopass-case (Linlined Type) type
          [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
           (let ([adt-type* (map Care expr*)])
@@ -1571,9 +1664,9 @@
        (values
          `(call ,src ,function-name ,expr* ...)
          (CTV-unknown no-var-name))]
-      [(contract-call ,src ,elt-name (,[expr ctv] ,[type]) ,[expr* ctv*] ...)
+      [(contract-call ,src ,elt-name ,[public-binding] (,[expr ctv] ,[type]) (,[expr* ctv*] ,[type*]) ...)
        (values
-         `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
+         `(contract-call ,src ,elt-name ,public-binding (,expr ,type) (,expr* ,type*) ...)
          (CTV-unknown no-var-name))]
       [else (internal-errorf 'Expression "unexpected expr ~s" (unparse-Lnovectorref ir))])
     (Tuple-Argument : Tuple-Argument (ir) -> Tuple-Argument (maybe-ctv*)
@@ -1757,9 +1850,9 @@
        (values
          `(call ,src ,function-name ,expr* ...)
          (idset-union-all idset*))]
-      [(contract-call ,src ,elt-name (,[Value : expr idset] ,type) ,[Value : expr* idset*] ...)
+      [(contract-call ,src ,elt-name ,public-binding (,[Value : expr idset] ,type) (,[Value : expr* idset*] ,type*) ...)
        (values
-         `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
+         `(contract-call ,src ,elt-name ,public-binding (,expr ,type) (,expr* ,type*) ...)
          (idset-union-all (cons idset idset*)))])
     (Tuple-Argument-Value : Tuple-Argument (ir) -> Tuple-Argument (idset)
       [(single ,src ,[Value : expr idset])
@@ -1848,6 +1941,36 @@
     (Tuple-Argument-Effect : Tuple-Argument (ir) -> Expression (idset)
       [(single ,src ,[Effect : expr idset]) (values expr idset)]
       [(spread ,src ,nat ,[Effect : expr idset]) (values expr idset)]))
+
+    ; TODO drop me when you decide where to put remove-contract-call
+  #;(define-pass drop-contract-call : Linlined (ir) -> Lnocontractcall ()
+    (Expression : Expression (ir) -> Expression ()
+      [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
+       (let ([return-type (nanopass-case (Lnodca Type) type
+                            ; infer-types has already insured that elt-name exists in type
+                            [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
+                             (let loop ([elt-name* elt-name*] [type* type*])
+                               (if (null? elt-name*)
+                                   ; this will never be exercised because infer-types would have
+                                   ; already caught it
+                                   (source-errorf src^ "contract ~s has no circuit declaration named ~s"
+                                                  contract-name
+                                                  elt-name)
+                                   (if (eq? (car elt-name*) elt-name)
+                                       (car type*)
+                                       (loop (cdr elt-name*) (cdr type**) (cdr type*)))))]
+                            [else (assert cannot-happen)])])
+         (let* ([tmp-contract expr]
+                [tmp-arg* expr*]
+                [tmp-result (contract-call tmp-contract tmp-arg* …)]
+                [tmp-tc  `(call ,src (fref ,src "transientCommit") return-type
+                           (tuple tmp-arg* tmp-result)
+                           (makeNonce))]
+                ; TODO fill in the sha command and process it
+                [,circuit-hash (shell "sha256sum")])
+           (kernel.claimContractCall (var-ref ,tmp-contract) ,circuit-hash )
+           (var-ref ,tmp-result)))])
+    )
 
   (define-pass reduce-to-circuit : Lnovectorref (ir) -> Lcircuit ()
     (definitions
@@ -2106,7 +2229,8 @@
              (lambda (triv*)
                (k (with-output-language (Lcircuit Rhs)
                     `(public-ledger ,src ,test ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,triv* ...)))))))]
-      [(contract-call ,src ,elt-name (,expr ,[type]) ,expr* ...)
+      [(contract-call ,src ,elt-name ,public-binding (,expr ,[type]) (,expr* ,[type*]) ...)
+       ; FIXME do i need type* in the result
        (Triv expr test
          (lambda (triv)
            (Triv* expr* test

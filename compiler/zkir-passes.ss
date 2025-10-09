@@ -362,6 +362,26 @@
                   (assert (hashtable-ref returntype-ht function-name #f))
                   var-name*)]
                [else (assert cannot-happen)]))]
+          ; FIXME does the next case need to be uncommented
+          #;[(= ,[* test] (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,[* triv*] ...))
+           (assert not-implemented)
+           (let ([pair (assert (calltype function-name))])
+             (case (car pair)
+               [(builtin-circuit)
+                (cond
+                  [(hashtable-ref std-circuits (cadr pair) #f) =>
+                   (lambda (handler) (apply handler (cddr pair) var-name* triv*))]
+                  [else (source-errorf src "unrecognized native circuit ~a" (cadr pair))])]
+               [(witness)
+                (for-each
+                  (lambda (type var)
+                    (if (equal? test (hashtable-ref literal-ht 1 #f))
+                        (print-gate "private_input" '[guard null])
+                        (print-gate "private_input" `[guard ,test]))
+                    (new-var! var type))
+                  (assert (hashtable-ref returntype-ht (id-uniq function-name) #f))
+                  var-name*)]
+               [else (assert cannot-happen)]))]
           [(= (,var-name* ...) (bytes->vector ,[* triv]))
            (assert (not (null? var-name*)))
            (let loop ([var-name* var-name*] [triv triv])

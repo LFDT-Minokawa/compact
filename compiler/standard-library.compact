@@ -301,3 +301,6 @@ export circuit blockTimeGt(time: Uint<64>): Boolean {
 export circuit blockTimeLte(time: Uint<64>): Boolean {
   return !blockTimeGt(time);
 }
+
+// generate random number
+// export circuit createNonce(): Field;

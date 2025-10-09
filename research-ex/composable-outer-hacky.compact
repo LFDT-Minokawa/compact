@@ -1,0 +1,17 @@
+import CompactStandardLibrary;
+
+ledger lagging_value: Opaque<"string">;
+
+// These are temporary, to work around compact not yet having appropriate syntax for the call.
+ledger tmp_addr: Bytes<32>;
+ledger tmp_ep_comm: Bytes<32>;
+witness tmp_do_call(): Opaque<"string">;
+witness tmp_call_rand(): Field;
+
+
+export circuit update(): [] {
+  const read_value = tmp_do_call();
+  const cc = transientCommit<Opaque<"string">>(read_value, tmp_call_rand());
+  kernel.claimContractCall(tmp_addr, tmp_ep_comm, cc);
+  lagging_value = disclose(read_value);
+}

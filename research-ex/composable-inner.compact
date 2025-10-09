@@ -1,0 +1,21 @@
+export {get, set}
+
+import CompactStandardLibrary;
+
+ledger authority: Bytes<32>;
+ledger value: Opaque<"string">;
+
+witness secret_key(): Bytes<32>;
+
+circuit set(v: Opaque<"string">): [] {
+  assert is_authority() "must be authority";
+  value = v;
+}
+
+circuit get(): Opaque<"string"> {
+  return value;
+}
+
+circuit is_authority(): Boolean {
+  return persistent_commit<Bytes<9>>("mdn:ex:ci", secret_key()) == authority;
+}

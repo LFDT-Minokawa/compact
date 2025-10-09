@@ -292,6 +292,11 @@
           (for-each register-descriptor! adt-type*)
           (maybe-register-descriptor! adt-type)
           `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)])]
+      [(contract-call ,src ,elt-name ,public-binding (,[expr] ,[type]) (,[expr*] ,[type*]) ...)
+       (nanopass-case (Ltypescript Type) type
+         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type^*) ...)
+          `(contract-call ,src ,elt-name ,public-binding (,expr ,type) (,expr* ,type*) ...)]
+         [else (assert cannot-happen)])]
       [(return ,src ,expr) (Expr expr)])
     (Path-Element : Path-Element (ir) -> Path-Element ()
       [,path-index path-index]
@@ -3125,7 +3130,7 @@
                        q
                        ".value)")
                      q)])))])]
-      [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
+      [(contract-call ,src ,elt-name ,public-binding (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) (,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ,type*) ...)
        (source-errorf src "contract types are not yet implemented")])
     (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
       [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
