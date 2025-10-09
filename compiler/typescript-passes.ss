@@ -839,7 +839,7 @@
              `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
           [else adt-type]))
 
-      (define (print-contract.d.ts src xpelt* uname*)
+      (define (print-contract.d.cts src xpelt* uname*)
         (define (print-exported-impure-circuit-declaration do-me?)
           (lambda (xpelt uname)
             (XPelt-case xpelt
