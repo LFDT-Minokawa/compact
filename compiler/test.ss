@@ -1390,15 +1390,9 @@
         (circuit #f #f rat () ()
              (tvector 1 (tvector 2 (type-ref S)))
           (block
-<<<<<<< HEAD
-            (const q (tundeclared) (new (type-ref S) (x 3) (y 4)))
-            (const q (tundeclared) (new (type-ref S) (x 3) (y 4)))
-            (const q (tundeclared) (new (type-ref S) (x 3) (y 4)))
-=======
             (const ([q (tundeclared) (new (type-ref S) (x 3) (y 4))]))
             (const ([q (tundeclared) (new (type-ref S) (x 3) (y 4))]))
             (const ([q (tundeclared) (new (type-ref S) (x 3) (y 4))]))
->>>>>>> main
             (for x (tuple 3 4 5 6)
               (block
                 (assert (seq (call bar (if #t x q)) (!= x 1)) "oops")))
@@ -1454,22 +1448,15 @@
       (program
         (include "empty")
         (import CompactStandardLibrary () "")
-<<<<<<< HEAD
-=======
         (import CompactStandardLibrary () "" ())
->>>>>>> main
         (module #f M ((nat-valued a) b)
           (struct #t frob () [q (tfield)])
           (struct #t pair ()
             [x (tfield)]
-<<<<<<< HEAD
-            [y (tvector (type-size-ref a) (type-ref b))]))
-=======
             [y (tvector (type-size-ref a) (type-ref b))])
           (circuit #t #f slicer () ([v (tvector 10 (tfield))])
                (tvector 5 (tfield))
             (block (return (tuple-slice v 3 5)))))
->>>>>>> main
         (enum #f PublicState setup commit reveal final)
         (import M (5 (topaque "sisters")) "M$")
         (circuit #t #t foo () ([a (tboolean)] [b (tfield)])
@@ -1478,19 +1465,11 @@
         (circuit #t #f bar () ([a (tboolean)] [b (tboolean)])
              (type-ref M$frob)
           (block
-<<<<<<< HEAD
-            (const x (tundeclared) (call foo #t 17))
-            (const y (tundeclared) (if a (if b 3 2) (if b 1 0)))
-            (const w (tboolean) (if a #t #f))
-            (const v (tundeclared)
-              (if a #f (fold foo #t (tuple-ref (tuple (tuple)) 0))))
-=======
             (const ([x (tundeclared) (call foo #t 17)]))
             (const ([y (tundeclared) (if a (if b 3 2) (if b 1 0))]))
             (const ([w (tboolean) (if a #t #f)]))
             (const ([v (tundeclared)
               (if a #f (fold foo #t (tuple-ref (tuple (tuple)) 0)))]))
->>>>>>> main
             (if a
                 (if b
                     (assert a "a should be true")
@@ -1499,11 +1478,7 @@
             (if a
                 (block (if b (assert a "a should be true") (tuple)))
                 (block
-<<<<<<< HEAD
-                  (const v (tundeclared) a)
-=======
                   (const ([v (tundeclared) a]))
->>>>>>> main
                   (if b (assert v "a should be false") (tuple))))
             (fold (circuit ([b (tboolean)] [c (tboolean)] [d (tfield)])
                        (tboolean)
@@ -1544,21 +1519,13 @@
         (public-ledger-declaration #f #f
           x6
           (type-ref HistoricMerkleTree 10 (tfield)))
-<<<<<<< HEAD
-        (public-ledger-declaration #f #f x7 (type-ref ShieldedCoinInfo))
-=======
         (public-ledger-declaration #f #f x7 (type-ref CoinInfo))
->>>>>>> main
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-<<<<<<< HEAD
-          (type-ref QualifiedShieldedCoinInfo))
-=======
           (type-ref QualifiedCoinInfo))
->>>>>>> main
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -1640,11 +1607,7 @@
       ""
       "circuit f(topic_param: Opaque<'string'>,"
       "          beneficiary_param: ZswapCoinPublicKey,"
-<<<<<<< HEAD
-      "          seedCoin: ShieldedCoinInfo): []"
-=======
       "          seedCoin: CoinInfo): []"
->>>>>>> main
       "{ }
       "
       "circuit g(xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxtopic_param: Opaque<'string'>,"
@@ -1657,20 +1620,12 @@
       "
       "circuit set_topic(topic_param: Opaque<'string'>,"
       "                  beneficiary_param: ZswapCoinPublicKey,"
-<<<<<<< HEAD
-      "                  seedCoin: ShieldedCoinInfo): [] // Really minor - why not moving the closing paren and return type declaration to next line and why moving opening brace to the next line in this case?"
-=======
       "                  seedCoin: CoinInfo): [] // Really minor - why not moving the closing paren and return type declaration to next line and why moving opening brace to the next line in this case?"
->>>>>>> main
       "{"
       ""
       "pot.writeCoin(mergeCoinImmediate(pot, seedCoin),"
       "                      right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-<<<<<<< HEAD
-      "return mintShieldedToken("
-=======
       "return mintToken("
->>>>>>> main
       "           dao_token_domain_separator(),"
       "           amount,"
       "           evolveNonce(0, coin.nonce),"
@@ -1709,11 +1664,7 @@
       "}"
       ""
       "if (a < f(a))"
-<<<<<<< HEAD
-      "return mintShieldedToken("
-=======
       "return mintToken("
->>>>>>> main
       "           dao_token_domain_separator(),"
       "           amount,"
       "           evolveNonce(0, coin.nonce),"
@@ -1728,11 +1679,7 @@
         ""
         "circuit f(topic_param: Opaque<'string'>,"
         "          beneficiary_param: ZswapCoinPublicKey,"
-<<<<<<< HEAD
-        "          seedCoin: ShieldedCoinInfo"
-=======
         "          seedCoin: CoinInfo"
->>>>>>> main
         "          ): [] {"
         "}"
         ""
@@ -1746,22 +1693,14 @@
         "circuit set_topic("
         "          topic_param: Opaque<'string'>,"
         "          beneficiary_param: ZswapCoinPublicKey,"
-<<<<<<< HEAD
-        "          seedCoin: ShieldedCoinInfo"
-=======
         "          seedCoin: CoinInfo"
->>>>>>> main
         "          ): [] // Really minor - why not moving the closing paren and return type declaration to next line and why moving opening brace to the next line in this case?"
         "{"
         ""
         "  pot.writeCoin("
         "    mergeCoinImmediate(pot, seedCoin),"
         "    right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-<<<<<<< HEAD
-        "  return mintShieldedToken("
-=======
         "  return mintToken("
->>>>>>> main
         "           dao_token_domain_separator(),"
         "           amount,"
         "           evolveNonce(0, coin.nonce),"
@@ -1796,11 +1735,7 @@
         "  }"
         ""
         "  if (a < f(a))"
-<<<<<<< HEAD
-        "    return mintShieldedToken("
-=======
         "    return mintToken("
->>>>>>> main
         "             dao_token_domain_separator(),"
         "             amount,"
         "             evolveNonce(0, coin.nonce),"
@@ -1975,8 +1910,6 @@
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 14" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an external contract circuit" "\"}\""))))
     )
-<<<<<<< HEAD
-=======
 
   (test
     '(
@@ -2591,7 +2524,6 @@
         ""
         "export { foo, peter, paul, mary, red, blue, green, yellow };"))
     )
->>>>>>> main
 )
 
 (run-tests parse-file/fixup/format/reparse
@@ -3203,22 +3135,15 @@
       (program
         (include "empty")
         (import CompactStandardLibrary () "")
-<<<<<<< HEAD
-=======
         (import CompactStandardLibrary () "" ())
->>>>>>> main
         (module #f M ((nat-valued a) b)
           (struct #t frob () [q (tfield)])
           (struct #t pair ()
             [x (tfield)]
-<<<<<<< HEAD
-            [y (tvector (type-size-ref a) (type-ref b))]))
-=======
             [y (tvector (type-size-ref a) (type-ref b))])
           (circuit #t #f slicer () ([v (tvector 10 (tfield))])
                (tvector 5 (tfield))
             (block (return (tuple-slice v 3 5)))))
->>>>>>> main
         (enum #f PublicState setup commit reveal final)
         (import M (5 (topaque "sisters")) "M$")
         (circuit #t #t foo () ([a (tboolean)] [b (tfield)])
@@ -3227,20 +3152,12 @@
         (circuit #t #f bar () ([a (tboolean)] [b (tboolean)])
              (type-ref M$frob)
           (block
-<<<<<<< HEAD
-            (const x (tundeclared) (call foo #t 17))
-            (const y (tundeclared) (if a (if b 3 2) (if b 1 0)))
-            (const w (tboolean) (if a #t #f))
-            (const v (tundeclared)
-              (if a #f (fold foo #t (tuple-ref (tuple (tuple)) 0))))
-=======
             (const ([x (tundeclared) (call foo #t 17)]))
             (const ([y (tundeclared) (if a (if b 3 2) (if b 1 0))]))
             (const ([w (tboolean) (if a #t #f)]))
             (const ([v
                      (tundeclared)
                      (if a #f (fold foo #t (tuple-ref (tuple (tuple)) 0)))]))
->>>>>>> main
             (if a
                 (if b
                     (assert a "a should be true")
@@ -3249,11 +3166,7 @@
             (if a
                 (block (if b (assert a "a should be true") (tuple)))
                 (block
-<<<<<<< HEAD
-                  (const v (tundeclared) a)
-=======
                   (const ([v (tundeclared) a]))
->>>>>>> main
                   (if b (assert v "a should be false") (tuple))))
             (fold (circuit ([b (tboolean)] [c (tboolean)] [d (tfield)])
                        (tboolean)
@@ -3294,23 +3207,15 @@
         (public-ledger-declaration #f #f
           x6
           (type-ref HistoricMerkleTree 10 (tfield)))
-<<<<<<< HEAD
-        (public-ledger-declaration #f #f x7 (type-ref ShieldedCoinInfo))
-=======
         (public-ledger-declaration #f #f
           x7
           (type-ref CoinInfo))
->>>>>>> main
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-<<<<<<< HEAD
-          (type-ref QualifiedShieldedCoinInfo))
-=======
           (type-ref QualifiedCoinInfo))
->>>>>>> main
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -3623,8 +3528,6 @@
 
   (test
     '(
-<<<<<<< HEAD
-=======
       "circuit foo() : Field { return 0b; }"
       )
     (oops
@@ -3670,38 +3573,10 @@
 
   (test
     '(
->>>>>>> main
       "circuit foo() : Field { return 0177; }"
       )
     (oops
       message: "~a:\n  ~?"
-<<<<<<< HEAD
-      irritants: '("testfile.compact line 1 char 32" "unsupported ~s syntax" (octal))))
-
-  (test
-    '(
-      "circuit foo() : Field { return 0o177; }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 32" "unsupported ~s syntax" (octal))))
-
-  (test
-    '(
-      "circuit foo() : Field { return 0b110; }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 32" "unsupported ~s syntax" (binary))))
-
-  (test
-    '(
-      "circuit foo() : Field { return 0X177; }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 32" "unsupported ~s syntax" (hex))))
-=======
       irritants: '("testfile.compact line 1 char 32" "unsupported numeric syntax syntax: leading 0 must be followed by b, B, o, O, x, X" ()))
     )
 
@@ -3853,8 +3728,6 @@
                   (and (== x 5) (not (== (+ (* x 3) x) 8))))))))))
 
   (test
-<<<<<<< HEAD
-=======
    '(
      "circuit foo (): Field {"
      "  const x : Field = 10, y : Field = 20, z = 30;"
@@ -3969,7 +3842,6 @@
    )
 
   (test
->>>>>>> main
     '(
       "circuit foo() : Field { const x : Field ="
       )
@@ -3986,11 +3858,7 @@
       (program
         (circuit #f #f foo () ()
              (tfield)
-<<<<<<< HEAD
-          (block (const x (tundeclared) 7) (return x))))))
-=======
           (block (const ([x (tundeclared) 7])) (return x))))))
->>>>>>> main
 
   (test
     '(
@@ -4796,11 +4664,7 @@
           (block (return (default (ttuple)))))))
     )
 
-<<<<<<< HEAD
-  (test
-=======
   (test ; TODO improve error message. PM-19118
->>>>>>> main
     '(
       "pragma language_version 0.0.0;"
       ""
@@ -5081,11 +4945,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-<<<<<<< HEAD
-      irritants: '("testfile.compact line 10 char 11" "parse error: found ~a looking for~?" ("\"ledger\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression" "\"]\""))))
-=======
       irritants: '("testfile.compact line 10 char 11" "parse error: found ~a looking for~?" ("\"ledger\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a tuple argument" "\"]\""))))
->>>>>>> main
     )
 
   (test
@@ -5532,8 +5392,6 @@
   (test
     '(
       "circuit A(): Field {"
-<<<<<<< HEAD
-=======
       "  const t1 : Uint<0..37> = 25, t2 : Uint< 0..37> = t1, t3 : Uint<0 ..37> = t2, t4 : Uint< 0 ..37> = t3, t5 : Uint<0.. 37> = t4, t6 : Uint< 0.. 37> = t5, t7 : Uint<0 .. 37> = t6, t8 : Uint< 0 .. 37> = t7, t9 : Uint<0..37 > = t8, t10 : Uint< 0..37 > = t9, t11 : Uint<0 ..37 > = t10, t12 : Uint< 0 ..37 > = t11, t13 : Uint<0.. 37 > = t12, t14 : Uint< 0.. 37 > = t13, t15 : Uint<0 .. 37 > = t14, t16 : Uint< 0 .. 37 > = t15;"
       "  return t16;"
       "}"
@@ -5565,7 +5423,6 @@
   (test
     '(
       "circuit A(): Field {"
->>>>>>> main
       "  const t1 : Uint<0..37> = 25;"
       "  const t2 : Uint< 0..37> = t1;"
       "  const t3 : Uint<0 ..37> = t2;"
@@ -5590,24 +5447,6 @@
         (circuit #f #f A () ()
              (tfield)
           (block
-<<<<<<< HEAD
-            (const t1 (tunsigned 0 37) 25)
-            (const t2 (tunsigned 0 37) t1)
-            (const t3 (tunsigned 0 37) t2)
-            (const t4 (tunsigned 0 37) t3)
-            (const t5 (tunsigned 0 37) t4)
-            (const t6 (tunsigned 0 37) t5)
-            (const t7 (tunsigned 0 37) t6)
-            (const t8 (tunsigned 0 37) t7)
-            (const t9 (tunsigned 0 37) t8)
-            (const t10 (tunsigned 0 37) t9)
-            (const t11 (tunsigned 0 37) t10)
-            (const t12 (tunsigned 0 37) t11)
-            (const t13 (tunsigned 0 37) t12)
-            (const t14 (tunsigned 0 37) t13)
-            (const t15 (tunsigned 0 37) t14)
-            (const t16 (tunsigned 0 37) t15)
-=======
             (const ([t1 (tunsigned 0 37) 25]))
             (const ([t2 (tunsigned 0 37) t1]))
             (const ([t3 (tunsigned 0 37) t2]))
@@ -5624,7 +5463,6 @@
             (const ([t14 (tunsigned 0 37) t13]))
             (const ([t15 (tunsigned 0 37) t14]))
             (const ([t16 (tunsigned 0 37) t15]))
->>>>>>> main
             (return t16)))))
     )
 
@@ -5659,14 +5497,6 @@
                                [z (tbytes 6)])
              (ttuple (tfield) (tbytes 6))
           (block
-<<<<<<< HEAD
-            (const ((((a b) a) (b1 b)) b2) (tundeclared)
-              (call bar x1 x2 y z))
-            (return
-              (tuple
-                (if b1 a (* 2 a))
-                (if b2 b #vu8(104 101 108 108 111 33))))))))
-=======
             (const ([((((a b) a) (b1 b)) b2)
                      (tundeclared)
                      (call bar x1 x2 y z)]))
@@ -5674,7 +5504,6 @@
               (tuple
                 (if b1 a (* 2 a))
                 (if b2 b ,(string->utf8 "hello!"))))))))
->>>>>>> main
     )
 
   (test
@@ -5710,11 +5539,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-<<<<<<< HEAD
-      irritants: '("testfile.compact line 6 char 39" "parse error: found ~a looking for~?" ("\"/\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"(\"" "\"{\"" "a generic argument list"))))
-=======
       irritants: '("testfile.compact line 6 char 39" "parse error: found ~a looking for~?" ("\"/\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\";\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"(\"" "\"{\"" "a generic argument list"))))
->>>>>>> main
     )
 
   (test
