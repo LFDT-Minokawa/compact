@@ -198,7 +198,8 @@
        `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,stmt)])
     (SingleStatement : Statement (ir) -> Statement ()
       [(const ,src ,var-name ,[type] ,[expr])
-       (source-errorf src "binding for ~s found in a single-statement context" var-name)]
+       (source-errorf src "const binding found in a single-statement context")]
+      [(seq ,src ,stmt* ...) `(seq ,src ,(maplr SingleStatement stmt*) ...)]
       [else (Statement ir)])
     (BlockStatement : Statement (ir) -> Statement ()
       [(const ,src ,var-name ,[type] ,[expr])
@@ -207,17 +208,20 @@
            (source-errorf src "found multiple bindings for ~s in the same block" var-name))
          (set-cdr! a #t))
        `(= ,src ,var-name ,type ,expr)]
+      [(seq ,src ,stmt* ...) `(seq ,src ,(maplr BlockStatement stmt*) ...)]
       [else (Statement ir)])
     (Statement : Statement (ir) -> Statement ()
       [(if ,src ,[expr] ,[SingleStatement : stmt1] ,[SingleStatement : stmt2]) `(if ,src ,expr ,stmt1 ,stmt2)]
       [(for ,src ,var-name ,[expr] ,[SingleStatement : stmt]) `(for ,src ,var-name ,expr ,stmt)]
-      [(seq ,src ,stmt* ...) `(seq ,src ,(map BlockStatement stmt*) ...)]
       [(block ,src ,stmt* ...)
        (fluid-let ([vars (make-hashtable symbol-hash eq?)])
-         (let ([stmt* (map BlockStatement stmt*)])
+         (let ([stmt* (maplr BlockStatement stmt*)])
            (define (symbol<? x y) (string<? (symbol->string x) (symbol->string y)))
            (let ([var-name* (sort symbol<? (vector->list (hashtable-keys vars)))])
-             `(block ,src (,var-name* ...) ,stmt* ...))))])
+             `(block ,src (,var-name* ...) ,stmt* ...))))]
+      [(statement-expression ,src ,[expr]) `(statement-expression ,src ,expr)]
+      [(return ,src ,[expr]) `(return ,src ,expr)]
+      [else (assert cannot-happen)])
     (Function : Function (ir) -> Function ()
       [(circuit ,src (,[arg*] ...) ,[type] ,[SingleStatement : stmt])
        `(circuit ,src (,arg* ...) ,type ,stmt)]))
