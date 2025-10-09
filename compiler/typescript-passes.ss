@@ -1231,7 +1231,7 @@
                   (display-string "export declare const executables: ExecutablesBuilder;\n")
               ))))))
 
-      (module (print-contract.cjs)
+      (module (print-contract.js)
         (define (print-contract-header contract-dependency*)
           (display-string "'use strict';\n")
           (display-string "const __compactRuntime = require('@midnight-ntwrk/compact-runtime');\n")
@@ -1545,7 +1545,7 @@
 
           (define (witness-checks witnesses xpelt* q*)
             ; TODO maybe remove this (there's another contract-has-witness? check)
-            #;(define (contract-has-witness? xpelt*)
+            (define (contract-has-witness? xpelt*)
               (ormap (lambda (xpelt)
                        (XPelt-case xpelt
                          [(XPelt-witness src internal-id arg* type external-name) #t]
