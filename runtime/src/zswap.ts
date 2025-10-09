@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
-import type { CircuitContext } from './circuit-context';
-import { assertDefined, CompactError } from './error';
-import type { Recipient } from './index';
-import { Bytes32Descriptor, ShieldedCoinInfoDescriptor, ShieldedCoinRecipientDescriptor } from './runtime';
-=======
 // This file is part of Compact.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
@@ -24,7 +17,7 @@ import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 import { CircuitContext } from './circuit-context.js';
 import { Bytes32Descriptor, CoinInfoDescriptor, CoinRecipientDescriptor, Recipient } from './compact-types.js';
 import { toHex } from './utils.js';
->>>>>>> main
+import { assertDefined, CompactError } from './error.js';
 
 /**
  * Tracks the coins consumed and produced throughout circuit execution.
@@ -41,30 +34,18 @@ export interface ZswapLocalState {
   /**
    * The coins consumed as inputs to the circuit.
    */
-<<<<<<< HEAD
-  inputs: ocrt.QualifiedShieldedCoinInfo[];
-=======
   inputs: ocrt.QualifiedCoinInfo[];
->>>>>>> main
   /**
    * The coins produced as outputs from the circuit.
    */
   outputs: {
-<<<<<<< HEAD
-    coinInfo: ocrt.ShieldedCoinInfo;
-=======
     coinInfo: ocrt.CoinInfo;
->>>>>>> main
     recipient: Recipient;
   }[];
 }
 
 /**
-<<<<<<< HEAD
- * A {@link ocrt.CoinPublicKey} encoded as a byte string. This representation is used internally by the contract executable.
-=======
  * A {@link CoinPublicKey} encoded as a byte string. This representation is used internally by the contract executable.
->>>>>>> main
  */
 export interface EncodedCoinPublicKey {
   /**
@@ -74,11 +55,7 @@ export interface EncodedCoinPublicKey {
 }
 
 /**
-<<<<<<< HEAD
- * A {@link ocrt.ContractAddress} encoded as a byte string. This representation is used internally by the contract executable.
-=======
  * A {@link ContractAddress} encoded as a byte string. This representation is used internally by the contract executable.
->>>>>>> main
  */
 export interface EncodedContractAddress {
   /**
@@ -88,17 +65,10 @@ export interface EncodedContractAddress {
 }
 
 /**
-<<<<<<< HEAD
- * A {@link ocrt.ShieldedCoinInfo} with its fields encoded as byte strings. This representation is used internally by
- * the contract executable.
- */
-export interface EncodedShieldedCoinInfo {
-=======
  * A {@link CoinInfo} with its fields encoded as byte strings. This representation is used internally by
  * the contract executable.
  */
 export interface EncodedCoinInfo {
->>>>>>> main
   /**
    * The coin's randomness, preventing it from colliding with other coins.
    */
@@ -114,17 +84,10 @@ export interface EncodedCoinInfo {
 }
 
 /**
-<<<<<<< HEAD
- * A {@link ocrt.QualifiedShieldedCoinInfo} with its fields encoded as byte strings. This representation is used internally by
- * the contract executable.
- */
-export interface EncodedQualifiedShieldedCoinInfo extends EncodedShieldedCoinInfo {
-=======
  * A {@link QualifiedCoinInfo} with its fields encoded as byte strings. This representation is used internally by
  * the contract executable.
  */
 export interface EncodedQualifiedCoinInfo extends EncodedCoinInfo {
->>>>>>> main
   /**
    * The coin's location in the chain's Merkle tree of coin commitments. Bounded to be a non-negative 64-bit integer.
    */
@@ -164,26 +127,17 @@ export interface EncodedZswapLocalState {
   /**
    * The coins consumed as inputs to the circuit.
    */
-<<<<<<< HEAD
-  inputs: EncodedQualifiedShieldedCoinInfo[];
-=======
   inputs: EncodedQualifiedCoinInfo[];
->>>>>>> main
   /**
    * The coins produced as outputs from the circuit.
    */
   outputs: {
-<<<<<<< HEAD
-    coinInfo: EncodedShieldedCoinInfo;
-=======
     coinInfo: EncodedCoinInfo;
->>>>>>> main
     recipient: EncodedRecipient;
   }[];
 }
 
 /**
-<<<<<<< HEAD
  * Predicate asserting that an arbitrary value is a valid struct containing `bytes`.
  *
  * @param v A possible struct containing `bytes`.
@@ -225,11 +179,11 @@ export function assertIsEncodedRecipient(v: any): asserts v is EncodedRecipient 
 }
 
 /**
- * Predicate asserting that an arbitrary value is a valid {@link EncodedShieldedCoinInfo}.
+ * Predicate asserting that an arbitrary value is a valid {@link EncodedCoinInfo}.
  *
- * @param v A possible {@link EncodedShieldedCoinInfo}.
+ * @param v A possible {@link EncodedCoinInfo}.
  */
-export function assertIsEncodedCoinInfo(v: any): asserts v is EncodedShieldedCoinInfo {
+export function assertIsEncodedCoinInfo(v: any): asserts v is EncodedCoinInfo {
   assertIsObject(v);
   if (!('nonce' in v)) {
     throw new CompactError(`Expected 'nonce' in coin info, but got ${JSON.stringify(v)}`);
@@ -256,7 +210,7 @@ export function assertIsEncodedCoinInfo(v: any): asserts v is EncodedShieldedCoi
  *
  * @param v A possible valid entry in `outputs` of {@link EncodedZswapLocalState}.
  */
-export function assertIsEncodedOutput(v: any): asserts v is { coinInfo: EncodedShieldedCoinInfo; recipient: EncodedRecipient } {
+export function assertIsEncodedOutput(v: any): asserts v is { coinInfo: EncodedCoinInfo; recipient: EncodedRecipient } {
   assertIsObject(v);
   if (!('coinInfo' in v)) {
     throw new CompactError(`Expected 'coinInfo' in output, but got ${JSON.stringify(v)}`);
@@ -269,11 +223,11 @@ export function assertIsEncodedOutput(v: any): asserts v is { coinInfo: EncodedS
 }
 
 /**
- * Predicate asserting that an arbitrary value is a valid {@link EncodedQualifiedShieldedCoinInfo}.
+ * Predicate asserting that an arbitrary value is a valid {@link EncodedQualifiedCoinInfo}.
  *
- * @param v A possible {@link EncodedQualifiedShieldedCoinInfo}.
+ * @param v A possible {@link EncodedQualifiedCoinInfo}.
  */
-export function assertIsEncodedQualifiedCoinInfo(v: any): asserts v is EncodedQualifiedShieldedCoinInfo {
+export function assertIsEncodedQualifiedCoinInfo(v: any): asserts v is EncodedQualifiedCoinInfo {
   assertIsObject(v);
   assertIsEncodedCoinInfo(v);
   if (!('mt_index' in v)) {
@@ -318,27 +272,19 @@ export function assertIsEncodedZswapLocalState(v: any): asserts v is EncodedZswa
 }
 
 /**
-=======
->>>>>>> main
  * Constructs a new {@link EncodedZswapLocalState} with the given coin public key. The result can be used to create a
  * {@link ConstructorContext}.
  *
  * @param coinPublicKey The Zswap coin public key of the user executing the circuit.
  */
-<<<<<<< HEAD
-export const freshZswapLocalState = (coinPublicKey: ocrt.CoinPublicKey): EncodedZswapLocalState => ({
-  coinPublicKey: { bytes: ocrt.encodeCoinPublicKey(coinPublicKey) },
-=======
 export const emptyZswapLocalState = (coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey): EncodedZswapLocalState => ({
   coinPublicKey: typeof coinPublicKey === 'string' ? { bytes: ocrt.encodeCoinPublicKey(coinPublicKey) } : coinPublicKey,
->>>>>>> main
   currentIndex: 0n,
   inputs: [],
   outputs: [],
 });
 
 /**
-<<<<<<< HEAD
  * Constructs a record mapping contract addresses to fresh {@link EncodedZswapLocalState}s, each with the given coin
  * public key.
  *
@@ -346,15 +292,13 @@ export const emptyZswapLocalState = (coinPublicKey: ocrt.CoinPublicKey | Encoded
  * @param addresses The set of contracts involved in the circuit call. For contracts that don't call other contracts,
  *                  the array has one element.
  */
-export const freshZswapLocalStates = (
-  coinPublicKey: ocrt.CoinPublicKey,
+export const emptyZswapLocalStates = (
+  coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey,
   addresses: ocrt.ContractAddress[],
 ): Record<ocrt.ContractAddress, EncodedZswapLocalState> =>
-  Object.fromEntries(addresses.map((address) => [address, freshZswapLocalState(coinPublicKey)]));
+  Object.fromEntries(addresses.map((address) => [address, emptyZswapLocalState(coinPublicKey)]));
 
 /**
-=======
->>>>>>> main
  * Converts an {@link Recipient} to an {@link EncodedRecipient}. Useful for testing.
  */
 export const encodeRecipient = ({ is_left, left, right }: Recipient): EncodedRecipient => ({
@@ -380,15 +324,9 @@ export const decodeRecipient = ({ is_left, left, right }: EncodedRecipient): Rec
 export const encodeZswapLocalState = (state: ZswapLocalState): EncodedZswapLocalState => ({
   coinPublicKey: { bytes: ocrt.encodeCoinPublicKey(state.coinPublicKey) },
   currentIndex: state.currentIndex,
-<<<<<<< HEAD
-  inputs: state.inputs.map(ocrt.encodeQualifiedShieldedCoinInfo),
-  outputs: state.outputs.map(({ coinInfo, recipient }) => ({
-    coinInfo: ocrt.encodeShieldedCoinInfo(coinInfo),
-=======
   inputs: state.inputs.map(ocrt.encodeQualifiedCoinInfo),
   outputs: state.outputs.map(({ coinInfo, recipient }) => ({
     coinInfo: ocrt.encodeCoinInfo(coinInfo),
->>>>>>> main
     recipient: encodeRecipient(recipient),
   })),
 });
@@ -402,15 +340,9 @@ export const encodeZswapLocalState = (state: ZswapLocalState): EncodedZswapLocal
 export const decodeZswapLocalState = (state: EncodedZswapLocalState): ZswapLocalState => ({
   coinPublicKey: ocrt.decodeCoinPublicKey(state.coinPublicKey.bytes),
   currentIndex: state.currentIndex,
-<<<<<<< HEAD
-  inputs: state.inputs.map(ocrt.decodeQualifiedShieldedCoinInfo),
-  outputs: state.outputs.map(({ coinInfo, recipient }) => ({
-    coinInfo: ocrt.decodeShieldedCoinInfo(coinInfo),
-=======
   inputs: state.inputs.map(ocrt.decodeQualifiedCoinInfo),
   outputs: state.outputs.map(({ coinInfo, recipient }) => ({
     coinInfo: ocrt.decodeCoinInfo(coinInfo),
->>>>>>> main
     recipient: decodeRecipient(recipient),
   })),
 });
@@ -421,15 +353,11 @@ export const decodeZswapLocalState = (state: EncodedZswapLocalState): ZswapLocal
  * @param circuitContext The current circuit context.
  * @param qualifiedCoinInfo The input to consume.
  */
-<<<<<<< HEAD
-export function createZswapInput(circuitContext: CircuitContext, qualifiedCoinInfo: EncodedQualifiedShieldedCoinInfo): void {
+export function createZswapInput(circuitContext: CircuitContext, qualifiedCoinInfo: EncodedQualifiedCoinInfo): void {
   assertDefined(
     circuitContext.currentZswapLocalState,
     `Zswap local state for contract '${circuitContext.contractId}' with address '${circuitContext.contractAddress}'`,
   );
-=======
-export function createZswapInput(circuitContext: CircuitContext, qualifiedCoinInfo: EncodedQualifiedCoinInfo): void {
->>>>>>> main
   circuitContext.currentZswapLocalState = {
     ...circuitContext.currentZswapLocalState,
     inputs: circuitContext.currentZswapLocalState.inputs.concat(qualifiedCoinInfo),
@@ -444,17 +372,6 @@ export function createZswapInput(circuitContext: CircuitContext, qualifiedCoinIn
  *
  * @internal
  */
-<<<<<<< HEAD
-function createCoinCommitment(coinInfo: EncodedShieldedCoinInfo, recipient: EncodedRecipient): ocrt.AlignedValue {
-  return ocrt.runtimeCoinCommitment(
-    {
-      value: ShieldedCoinInfoDescriptor.toValue(coinInfo),
-      alignment: ShieldedCoinInfoDescriptor.alignment(),
-    },
-    {
-      value: ShieldedCoinRecipientDescriptor.toValue(recipient),
-      alignment: ShieldedCoinRecipientDescriptor.alignment(),
-=======
 function createCoinCommitment(coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): ocrt.AlignedValue {
   return ocrt.coinCommitment(
     {
@@ -464,7 +381,6 @@ function createCoinCommitment(coinInfo: EncodedCoinInfo, recipient: EncodedRecip
     {
       value: CoinRecipientDescriptor.toValue(recipient),
       alignment: CoinRecipientDescriptor.alignment(),
->>>>>>> main
     },
   );
 }
@@ -477,20 +393,14 @@ function createCoinCommitment(coinInfo: EncodedCoinInfo, recipient: EncodedRecip
  * @param recipient The coin recipient - either a coin public key representing an end user or a contract address
  *                  representing a contract.
  */
-<<<<<<< HEAD
-export function createZswapOutput(circuitContext: CircuitContext, coinInfo: EncodedShieldedCoinInfo, recipient: EncodedRecipient): void {
+export function createZswapOutput(circuitContext: CircuitContext, coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): void {
   assertDefined(circuitContext.currentQueryContext, `query context for contract ${circuitContext.contractAddress}`);
   assertDefined(
     circuitContext.currentZswapLocalState,
     `Zswap local state for contract '${circuitContext.contractId}' with address '${circuitContext.contractAddress}'`,
   );
   circuitContext.currentQueryContext = circuitContext.currentQueryContext.insertCommitment(
-    Buffer.from(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)).toString('hex'),
-=======
-export function createZswapOutput(circuitContext: CircuitContext, coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): void {
-  circuitContext.currentQueryContext = circuitContext.currentQueryContext.insertCommitment(
     toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)),
->>>>>>> main
     circuitContext.currentZswapLocalState.currentIndex,
   );
   circuitContext.currentZswapLocalState = {
@@ -509,14 +419,10 @@ export function createZswapOutput(circuitContext: CircuitContext, coinInfo: Enco
  * @param circuitContext The current circuit context.
  */
 export function ownPublicKey(circuitContext: CircuitContext): EncodedCoinPublicKey {
-<<<<<<< HEAD
   assertDefined(
     circuitContext.currentZswapLocalState,
     `Zswap local state for contract '${circuitContext.contractId}' with address '${circuitContext.contractAddress}'`,
   );
-  return circuitContext.currentZswapLocalState.coinPublicKey;
-}
-=======
   return circuitContext.currentZswapLocalState.coinPublicKey;
 }
 
@@ -527,8 +433,9 @@ export function ownPublicKey(circuitContext: CircuitContext): EncodedCoinPublicK
  * @param coinInfo The coin information to check.
  * @param recipient The coin recipient to check.
  */
-export const hasCoinCommitment = (context: CircuitContext, coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): boolean =>
-  context.currentQueryContext.comIndicies.has(
+export const hasCoinCommitment = (context: CircuitContext, coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): boolean => {
+  assertDefined(context.currentQueryContext, `query context for contract ${context.contractAddress}`);
+  return context.currentQueryContext.comIndicies.has(
     toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)),
   );
->>>>>>> main
+};

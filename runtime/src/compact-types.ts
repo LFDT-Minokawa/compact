@@ -422,6 +422,8 @@ export const Bytes32Descriptor = new CompactTypeBytes(32);
 
 export const MaxUint8Descriptor = new CompactTypeUnsignedInteger(18446744073709551615n, 8);
 
+export const MaxUint1Descriptor = new CompactTypeUnsignedInteger(255n, 1);
+
 export const CoinInfoDescriptor = {
   alignment(): ocrt.Alignment {
     return Bytes32Descriptor.alignment().concat(Bytes32Descriptor.alignment().concat(MaxUint8Descriptor.alignment()));

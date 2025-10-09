@@ -1,11 +1,3 @@
-<<<<<<< HEAD
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
-import type { CompactType } from './compact-type';
-import { CompactTypeCurvePoint } from './compact-type';
-import { CompactError } from './error';
-import type { CurvePoint } from './index';
-import { MAX_FIELD } from './constants';
-=======
 // This file is part of Compact.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
@@ -25,13 +17,10 @@ import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 import { MAX_FIELD } from './constants.js';
 import { CompactType, CompactTypeCurvePoint, CurvePoint } from './compact-types.js';
 import { CompactError } from './error.js';
->>>>>>> main
 
 const FIELD_MODULUS: bigint = MAX_FIELD + 1n;
 
 /**
-<<<<<<< HEAD
-=======
  * Field addition
  * returns the result of adding x and y, wrapping if necessary
  * x and y are assumed to be values in the range [0, FIELD_MODULUS)
@@ -70,7 +59,6 @@ export function mulField(x: bigint, y: bigint): bigint {
 }
 
 /**
->>>>>>> main
  * The Compact builtin `transient_hash` function
  *
  * This function is a circuit-efficient compression function from arbitrary
@@ -108,11 +96,7 @@ export function transientCommit<A>(rtType: CompactType<A>, value: A, opening: bi
  * Note that data containing `Opaque` elements *may* throw runtime errors, and
  * cannot be relied upon as a consistent representation.
  *
-<<<<<<< HEAD
- * @throws If `rt_type` encodes a type containing Compact 'Opaque' types
-=======
  * @throws If `rtType` encodes a type containing Compact 'Opaque' types
->>>>>>> main
  */
 export function persistentHash<A>(rtType: CompactType<A>, value: A): Uint8Array {
   const wrapped = ocrt.persistentHash(rtType.alignment(), rtType.toValue(value))[0];
@@ -133,16 +117,6 @@ export function persistentHash<A>(rtType: CompactType<A>, value: A): Uint8Array 
  * Note that data containing `Opaque` elements *may* throw runtime errors, and
  * cannot be relied upon as a consistent representation.
  *
-<<<<<<< HEAD
- * @throws If `rt_type` encodes a type containing Compact 'Opaque' types, or
- * `opening` is not 32 bytes long
- */
-export function persistentCommit<A>(rt_type: CompactType<A>, value: A, opening: Uint8Array): Uint8Array {
-  if (opening.length !== 32) {
-    throw new CompactError('Expected 32-byte string');
-  }
-  const wrapped = ocrt.persistentCommit(rt_type.alignment(), rt_type.toValue(value), [opening])[0];
-=======
  * @throws If `rtType` encodes a type containing Compact 'Opaque' types, or
  * `opening` is not 32 bytes long
  */
@@ -151,7 +125,6 @@ export function persistentCommit<A>(rtType: CompactType<A>, value: A, opening: U
     throw new CompactError('Expected 32-byte string');
   }
   const wrapped = ocrt.persistentCommit(rtType.alignment(), rtType.toValue(value), [opening])[0];
->>>>>>> main
   const res = new Uint8Array(32);
   res.set(wrapped, 0);
   return res;
@@ -167,19 +140,12 @@ export function persistentCommit<A>(rtType: CompactType<A>, value: A, opening: U
  * @throws If `x` is not 32 bytes long
  */
 export function degradeToTransient(x: Uint8Array): bigint {
-<<<<<<< HEAD
-  if (x.length !== 32) {
-=======
   if (x.length != 32) {
->>>>>>> main
     throw new CompactError('Expected 32-byte string');
   }
   return ocrt.valueToBigInt(ocrt.degradeToTransient([x]));
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> main
 /**
  * The Compact builtin `upgrade_from_transient` function
  *
@@ -243,45 +209,6 @@ export function ecMulGenerator(b: bigint): CurvePoint {
 }
 
 /**
-<<<<<<< HEAD
- * Field addition
- * returns the result of adding x and y, wrapping if necessary
- * x and y are assumed to be values in the range [0, FIELD_MODULUS)
- */
-export function addField(x: bigint, y: bigint): bigint {
-  const t = x + y;
-  // effectively mod(x + y, FIELD_MODULUS) for x and y in the assumed range
-  // (x + y) % FIELD_MODULUS would also work but would likely be more expensive
-  return t < FIELD_MODULUS ? t : t - FIELD_MODULUS;
-}
-
-/**
- * Field subtraction
- * returns the result of subtracting y from x, wrapping if necessary
- * x and y are assumed to be values in the range [0, FIELD_MODULUS)
- */
-export function subField(x: bigint, y: bigint): bigint {
-  // effectively mod(x - y, FIELD_MODULUS) for x and y in the assumed range
-  // NB: JavaScript % implements remainder rather than modulus, so
-  // (x - y) % FIELD_MODULUS would return an incorrect value for negative values of x - y.
-  // also, any implementation involving % would likely be more expensive
-  const t = x - y;
-  return t >= 0 ? t : t + FIELD_MODULUS;
-}
-
-/**
- * Field multiplication
- * returns the result of multipying x and y, wrapping if necessary
- * x and y are assumed to be values in the range [0, FIELD_MODULUS)
- */
-export function mulField(x: bigint, y: bigint): bigint {
-  // effectively mod(x * y, FIELD_MODULUS) for x and y in the assumed range
-  // (although JavaScript % implements remainder rather than modulo, remainder
-  // and modulo coincide for nonnegative inputs)
-  return (x * y) % FIELD_MODULUS;
-}
-
-=======
  * Concatenates multiple {@link AlignedValue}s
  * @internal
  */
@@ -293,4 +220,3 @@ export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue
   }
   return res;
 }
->>>>>>> main

@@ -8,20 +8,15 @@ import {
   freshStackFrame,
   queryLedgerState,
   restoreCircuitContext,
-} from './circuit-context';
-import { WitnessSets } from './witness';
-import { ConstructorContext, ConstructorResult } from './constructor-context';
-import { assertDefined } from './error';
-import { PartialProofData } from './proof-data';
-import {
-  CompactTypeBytes32,
-  CompactTypeContractAddress,
-  CompactTypeUInt64,
-  CompactTypeUInt8,
-} from './compact-type';
-import { ContractReferenceLocations } from './contract-dependencies';
-import { alignedConcat } from './index';
-import { fromHex } from './utils';
+} from './circuit-context.js';
+import { WitnessSets } from './witness.js';
+import { ConstructorContext, ConstructorResult } from './constructor-context.js';
+import { assertDefined } from './error.js';
+import { PartialProofData } from './proof-data.js';
+import { Bytes32Descriptor, ContractAddressDescriptor, MaxUint1Descriptor, MaxUint8Descriptor } from './compact-types.js';
+import { ContractReferenceLocations } from './contract-dependencies.js';
+import { alignedConcat } from './index.js';
+import { fromHex } from './utils.js';
 
 /**
  * The type of an impure circuit. An impure circuit is a function that accepts a circuit context and an arbitrary list of
@@ -118,20 +113,19 @@ export type Executables = {
 
 export type EntryPointHash = string;
 
-
 const sequenceNumberToValue = (sequenceNumber: bigint): ocrt.AlignedValue => ({
-  value: CompactTypeUInt64.toValue(sequenceNumber),
-  alignment: CompactTypeUInt64.alignment(),
+  value: MaxUint8Descriptor.toValue(sequenceNumber),
+  alignment: MaxUint8Descriptor.alignment(),
 });
 
 const contractAddressToValue = (address: ocrt.ContractAddress): ocrt.AlignedValue => ({
-  value: CompactTypeContractAddress.toValue({ bytes: ocrt.encodeContractAddress(address) }),
-  alignment: CompactTypeContractAddress.alignment(),
+  value: ContractAddressDescriptor.toValue({ bytes: ocrt.encodeContractAddress(address) }),
+  alignment: ContractAddressDescriptor.alignment(),
 });
 
 const entryPointHashToValue = (hex: string): ocrt.AlignedValue => ({
-  value: CompactTypeBytes32.toValue(fromHex(hex)),
-  alignment: CompactTypeBytes32.alignment(),
+  value: Bytes32Descriptor.toValue(fromHex(hex)),
+  alignment: Bytes32Descriptor.alignment(),
 });
 
 /**
@@ -140,8 +134,8 @@ const entryPointHashToValue = (hex: string): ocrt.AlignedValue => ({
  * TODO: https://shielded.atlassian.net/browse/PM-17174
  */
 const communicationCommitmentToValue = (hex: string): ocrt.AlignedValue => ({
-  value: CompactTypeBytes32.toValue(fromHex(hex).slice(1)),
-  alignment: CompactTypeBytes32.alignment(),
+  value: Bytes32Descriptor.toValue(fromHex(hex).slice(1)),
+  alignment: Bytes32Descriptor.alignment(),
 });
 
 /**
@@ -160,40 +154,41 @@ export const kernelClaimContractCall = (
   contractAddress: ocrt.ContractAddress,
   entryPointHash: EntryPointHash,
   communicationCommitment: ocrt.CommunicationCommitment,
-) => queryLedgerState(callerContext, partialProofData, [
-  { swap: { n: 0 } },
-  {
-    idx: {
-      cached: true,
-      pushPath: true,
-      path: [
-        {
-          tag: 'value',
-          value: {
-            value: CompactTypeUInt8.toValue(3n),
-            alignment: CompactTypeUInt8.alignment(),
+) =>
+  queryLedgerState(callerContext, partialProofData, [
+    { swap: { n: 0 } },
+    {
+      idx: {
+        cached: true,
+        pushPath: true,
+        path: [
+          {
+            tag: 'value',
+            value: {
+              value: MaxUint1Descriptor.toValue(3n),
+              alignment: MaxUint1Descriptor.alignment(),
+            },
           },
-        },
-      ],
+        ],
+      },
     },
-  },
-  {
-    push: {
-      storage: false,
-      value: ocrt.StateValue.newCell(
-        alignedConcat(
-          sequenceNumberToValue(callerContext.sequenceNumber),
-          contractAddressToValue(contractAddress),
-          entryPointHashToValue(entryPointHash),
-          communicationCommitmentToValue(communicationCommitment),
-        ),
-      ).encode(),
+    {
+      push: {
+        storage: false,
+        value: ocrt.StateValue.newCell(
+          alignedConcat(
+            sequenceNumberToValue(callerContext.sequenceNumber),
+            contractAddressToValue(contractAddress),
+            entryPointHashToValue(entryPointHash),
+            communicationCommitmentToValue(communicationCommitment),
+          ),
+        ).encode(),
+      },
     },
-  },
-  { push: { storage: false, value: ocrt.StateValue.newNull().encode() } },
-  { ins: { cached: true, n: 2 } },
-  { swap: { n: 0 } },
-]);
+    { push: { storage: false, value: ocrt.StateValue.newNull().encode() } },
+    { ins: { cached: true, n: 2 } },
+    { swap: { n: 0 } },
+  ]);
 
 /**
  * Converts a communication commitment random value from its hex representation to an aligned value.
@@ -201,8 +196,8 @@ export const kernelClaimContractCall = (
  * TODO: https://shielded.atlassian.net/browse/PM-17174
  */
 const communicationCommitmentRandToValue = (hex: string): ocrt.AlignedValue => ({
-  value: CompactTypeBytes32.toValue(fromHex(hex).slice(1)),
-  alignment: CompactTypeBytes32.alignment(),
+  value: Bytes32Descriptor.toValue(fromHex(hex).slice(1)),
+  alignment: Bytes32Descriptor.alignment(),
 });
 
 /**
@@ -243,7 +238,9 @@ export const interContractCall = (
   );
   calleeProofDataFrame.communicationCommitment = communicationCommitment;
   partialProofData.privateTranscriptOutputs.push(calleeProofDataFrame.output);
-  partialProofData.privateTranscriptOutputs.push(communicationCommitmentRandToValue(calleeProofDataFrame.communicationCommitmentRand));
+  partialProofData.privateTranscriptOutputs.push(
+    communicationCommitmentRandToValue(calleeProofDataFrame.communicationCommitmentRand),
+  );
   const entryPointHash = ocrt.entryPointHash(circuitId);
   kernelClaimContractCall(callerContext, partialProofData, contractAddress, entryPointHash, communicationCommitment);
   callerContext.sequenceNumber = callerContext.sequenceNumber + 1n;

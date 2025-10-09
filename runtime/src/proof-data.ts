@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
-
-/**
- * Encapsulates most of the data required to produce a zero-knowledge proof. Lacks a circuit output entry.
-=======
 // This file is part of Compact.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
@@ -23,33 +17,24 @@ import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 
 /**
  * Encapsulates the data required to produce a zero-knowledge proof except the circuit output
->>>>>>> main
  */
 export interface PartialProofData {
   /**
    * The inputs to a circuit
    */
-<<<<<<< HEAD
-  readonly input: ocrt.AlignedValue;
-  /**
-   * The public transcript of operations
-   * TODO: Change this property to 'readonly' once the runtime is immutable.
-=======
   input: ocrt.AlignedValue;
   /**
    * The public transcript of operations
->>>>>>> main
    */
   publicTranscript: ocrt.Op<ocrt.AlignedValue>[];
   /**
    * The transcript of the witness call outputs
    */
-<<<<<<< HEAD
-  readonly privateTranscriptOutputs: ocrt.AlignedValue[];
+  privateTranscriptOutputs: ocrt.AlignedValue[];
   /**
    * The communication commitment randomness used to construct the contract call corresponding to this object.
    */
-  readonly communicationCommitmentRand: ocrt.CommunicationCommitmentRand;
+  communicationCommitmentRand: ocrt.CommunicationCommitmentRand;
   /**
    * The communication commitment computed from the circuit ID and circuit input and output values.
    */
@@ -57,33 +42,18 @@ export interface PartialProofData {
 }
 
 /**
- * The data required to create a proof of the contract call corresponding to this object.
-=======
-  privateTranscriptOutputs: ocrt.AlignedValue[];
-}
-
-/**
  * Encapsulates the data required to produce a zero-knowledge proof
->>>>>>> main
  */
 export interface ProofData extends PartialProofData {
   /**
    * The outputs from a circuit
    */
-<<<<<<< HEAD
-  readonly output: ocrt.AlignedValue;
-=======
   output: ocrt.AlignedValue;
->>>>>>> main
 }
 
 /**
  * Verifies a given {@link ProofData} satisfies the constraints of a ZK circuit
-<<<<<<< HEAD
- * described by given IR
-=======
  * described by given IR.
->>>>>>> main
  *
  * @throws If the circuit is not satisfied
  */

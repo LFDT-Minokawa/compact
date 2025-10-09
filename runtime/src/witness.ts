@@ -1,26 +1,3 @@
-<<<<<<< HEAD
-import type * as ocrt from '@midnight-ntwrk/onchain-runtime';
-import type { CircuitContext, ContractId } from './circuit-context';
-import { assertDefined } from './error';
-
-/**
- * The external information accessible from within a Compact witness call.
- *
- * @typeparam L The type of the TypeScript representation of the ledger state used in a witness.
- * @typeparam PS The type of the private state updated by a witness.
- */
-export interface WitnessContext<L = any, PS = any> {
-  /**
-   * The projected ledger state, if the transaction were to run against the ledger state as you locally see it currently.
-   */
-  readonly ledger: L;
-  /**
-   * The current private state for the contract.
-   */
-  readonly privateState: PS;
-  /**
-   * The address of the current contract.
-=======
 // This file is part of Compact.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
@@ -37,6 +14,8 @@ export interface WitnessContext<L = any, PS = any> {
 // limitations under the License.
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime';
+import { CircuitContext, ContractId } from './circuit-context.js';
+import { assertDefined } from './error.js';
 
 /**
  * The external information accessible from within a Compact witness call
@@ -53,14 +32,12 @@ export interface WitnessContext<L = any, PS = any> {
   readonly privateState: PS;
   /**
    * The address of the contract being called
->>>>>>> main
    */
   readonly contractAddress: ocrt.ContractAddress;
 }
 
 /**
  * Internal constructor for {@link WitnessContext}.
-<<<<<<< HEAD
  *
  * @typeparam L The type of the TypeScript representation of the ledger state of the contract defining the witness.
  * @typeparam PS The type of the private state updated by the witness.
@@ -140,18 +117,3 @@ export const callWitness = (
   circuitContext.currentPrivateState = nextPrivateState;
   return result;
 };
-=======
- * @internal
- */
-export function createWitnessContext<L, PS>(
-  ledger: L,
-  privateState: PS,
-  contractAddress: ocrt.ContractAddress,
-): WitnessContext<L, PS> {
-  return {
-    ledger,
-    privateState,
-    contractAddress,
-  };
-}
->>>>>>> main

@@ -13,11 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-<<<<<<< HEAD
-export const COMPACT_CONTRACT_ADDRESS_BYTE_LENGTH = 32;
-
-export function isCompactContractAddress(x: unknown): x is { bytes: Uint8Array } {
-=======
 import { ContractAddress } from '@midnight-ntwrk/onchain-runtime';
 import { EncodedContractAddress } from './zswap.js';
 
@@ -41,24 +36,16 @@ export function isContractAddress(x: unknown): x is ContractAddress {
 }
 
 export function isEncodedContractAddress(x: unknown): x is EncodedContractAddress {
->>>>>>> main
   return (
     typeof x === 'object' &&
     x !== null &&
     x !== undefined &&
     'bytes' in x &&
     x.bytes instanceof Uint8Array &&
-<<<<<<< HEAD
-    x.bytes.length == COMPACT_CONTRACT_ADDRESS_BYTE_LENGTH
-=======
     x.bytes.length == CONTRACT_ADDRESS_BYTE_LENGTH
->>>>>>> main
   );
 }
 
 export const fromHex = (s: string): Uint8Array => Buffer.from(s, 'hex');
-<<<<<<< HEAD
-=======
 
 export const toHex = (s: Uint8Array): string => Buffer.from(s).toString('hex');
->>>>>>> main

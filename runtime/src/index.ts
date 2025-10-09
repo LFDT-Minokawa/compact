@@ -1,34 +1,3 @@
-<<<<<<< HEAD
-import type * as ocrt from '@midnight-ntwrk/onchain-runtime';
-
-export * from './compact-type';
-export * from './built-ins';
-export * from './casts';
-export * from './error';
-export * from './constants';
-export * from './zswap';
-export * from './constructor-context';
-export * from './circuit-context';
-export * from './proof-data';
-export * from './witness';
-export * from './transcript';
-export * from './executables';
-export * from './contract-dependencies';
-export * from './version';
-
-/**
- * Concatenates multiple {@link ocrt.AlignedValue}s
- * @internal
- */
-export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue {
-  const res: ocrt.AlignedValue = { value: [], alignment: [] };
-  values.forEach((value) => {
-    res.value = res.value.concat(value.value);
-    res.alignment = res.alignment.concat(value.alignment);
-  });
-  return res;
-}
-=======
 // This file is part of Compact.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
@@ -57,7 +26,6 @@ export * from './proof-data.js';
 export * from './witness.js';
 export * from './contract-dependencies.js';
 export * from './utils.js';
->>>>>>> main
 
 export {
   CostModel,
@@ -72,13 +40,8 @@ export {
   TokenType,
   CoinPublicKey,
   Nonce,
-<<<<<<< HEAD
-  ShieldedCoinInfo,
-  QualifiedShieldedCoinInfo,
-=======
   CoinInfo,
   QualifiedCoinInfo,
->>>>>>> main
   Fr,
   Key,
   Op,
@@ -99,20 +62,6 @@ export {
   SignatureVerifyingKey,
   VmResults,
   VmStack,
-<<<<<<< HEAD
-  PublicAddress,
-  UserAddress,
-  DomainSeparator,
-  RawTokenType,
-  valueToBigInt,
-  bigIntToValue,
-  maxAlignedSize,
-  runtimeCoinCommitment,
-  leafHash,
-  NetworkId,
-  communicationCommitmentRandomness,
-  sampleContractAddress,
-=======
   DomainSeperator,
   valueToBigInt,
   bigIntToValue,
@@ -122,35 +71,16 @@ export {
   NetworkId,
   sampleContractAddress,
   sampleTokenType,
->>>>>>> main
   sampleSigningKey,
   signData,
   signatureVerifyingKey,
   verifySignature,
-<<<<<<< HEAD
-  encodeRawTokenType,
-  decodeRawTokenType,
-=======
   encodeTokenType,
   decodeTokenType,
->>>>>>> main
   encodeContractAddress,
   decodeContractAddress,
   encodeCoinPublicKey,
   decodeCoinPublicKey,
-<<<<<<< HEAD
-  encodeShieldedCoinInfo,
-  encodeQualifiedShieldedCoinInfo,
-  decodeShieldedCoinInfo,
-  decodeQualifiedShieldedCoinInfo,
-  dummyContractAddress,
-  rawTokenType,
-  sampleRawTokenType,
-  sampleUserAddress,
-  encodeUserAddress,
-  decodeUserAddress,
-} from '@midnight-ntwrk/onchain-runtime';
-=======
   encodeCoinInfo,
   encodeQualifiedCoinInfo,
   decodeCoinInfo,
@@ -174,4 +104,3 @@ export {
   SparseCompactStruct,
   SparseCompactContractAddress,
 } from './contract-dependencies.js';
->>>>>>> main

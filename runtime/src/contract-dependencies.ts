@@ -12,16 +12,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-<<<<<<< HEAD
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
-import { isCompactContractAddress } from './utils';
-import { CompactError } from './error';
-import { CompactType } from './compact-type';
-
-/**
- * A data structure indicating that the current {@link CompactValue} being explored is a contract reference. When this
- * type is recognized, the current {@link CompactValue} should be a {@link ocrt.ContractAddress}, and the address is added to
-=======
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 import { isEncodedContractAddress } from './utils.js';
@@ -32,7 +22,6 @@ import { EncodedContractAddress } from './zswap.js';
 /**
  * A data structure indicating that the current {@link CompactValue} being explored is a contract reference. When this
  * type is recognized, the current {@link CompactValue} should be a {@link ContractAddress}, and the address is added to
->>>>>>> main
  * the dependency set.
  */
 export type SparseCompactContractAddress = {
@@ -83,11 +72,7 @@ type CompactStruct = { [key: string]: CompactValue };
  * A TypeScript representation of a Compact value that contains a contract address. Currently, the only Compact values
  * that can contain a contract address are contract addresses themselves, `Vector`s, and `struct`s.
  */
-<<<<<<< HEAD
-type CompactValue = { bytes: Uint8Array } | CompactVector | CompactStruct;
-=======
 type CompactValue = EncodedContractAddress | CompactVector | CompactStruct;
->>>>>>> main
 
 /**
  * Tests whether the input value is a {@link CompactVector}.
@@ -118,11 +103,7 @@ function isCompactStruct(x: unknown): x is CompactStruct {
  * @param x The value that is tested to be a {@link CompactValue}.
  */
 function isCompactValue(x: unknown): x is CompactValue {
-<<<<<<< HEAD
-  return isCompactContractAddress(x) || isCompactVector(x) || isCompactStruct(x);
-=======
   return isEncodedContractAddress(x) || isCompactVector(x) || isCompactStruct(x);
->>>>>>> main
 }
 
 const expectedValueError = (expected: string, actual: unknown): void => {
@@ -130,21 +111,12 @@ const expectedValueError = (expected: string, actual: unknown): void => {
 };
 
 /**
-<<<<<<< HEAD
- * Throws an error if the input value is not a {@link ocrt.ContractAddress}, i.e., string.
- *
- * @param value The value that is asserted to be a {@link ocrt.ContractAddress}.
- */
-function assertIsContractAddress(value: CompactValue): asserts value is { bytes: Uint8Array } {
-  if (!isCompactContractAddress(value)) {
-=======
  * Throws an error if the input value is not a {@link ContractAddress}, i.e., string.
  *
  * @param value The value that is asserted to be a {@link ContractAddress}.
  */
 function assertIsContractAddress(value: CompactValue): asserts value is EncodedContractAddress {
   if (!isEncodedContractAddress(value)) {
->>>>>>> main
     expectedValueError('contract address', value);
   }
 }
@@ -219,32 +191,19 @@ const compactValueDependencies = (
 };
 
 /**
-<<<<<<< HEAD
- * Converts a Compact value in the on-chain runtime representation ({@link ocrt.AlignedValue}) into a TypeScript ({@link CompactValue})
- * representation.
- *
- * @param descriptor The descriptor to convert a {@link ocrt.AlignedValue} into a TypeScript value.
-=======
  * Converts a Compact value in the on-chain runtime representation ({@link AlignedValue}) into a TypeScript ({@link CompactValue})
  * representation.
  *
  * @param descriptor The descriptor to convert a {@link AlignedValue} into a TypeScript value.
->>>>>>> main
  * @param value The value to convert.
  */
 const alignedValueToCompactValue = (descriptor: CompactType<unknown>, { value }: ocrt.AlignedValue): CompactValue =>
   toCompactValue(descriptor.fromValue(value));
 
 /**
-<<<<<<< HEAD
- * Converts a {@link ocrt.StateValue} into a {@link CompactValue} by treating the state as a `Cell` ADT containing a Compact value.
- *
- * @param descriptor The descriptor used to convert the {@link ocrt.AlignedValue} extracted from the `Cell` ADT into a TypeScript
-=======
  * Converts a {@link StateValue} into a {@link CompactValue} by treating the state as a `Cell` ADT containing a Compact value.
  *
  * @param descriptor The descriptor used to convert the {@link AlignedValue} extracted from the `Cell` ADT into a TypeScript
->>>>>>> main
  *                   representation of a Compact value containing a contract address.
  * @param stateValue Represents a `Cell` ADT.
  */
@@ -257,11 +216,7 @@ const stateValueToCompactValue = (descriptor: CompactType<unknown>, stateValue: 
 export type SparseCompactValue = {
   tag: 'compactValue';
   /**
-<<<<<<< HEAD
-   * A descriptor that can be used to convert an {@link ocrt.AlignedValue} into a TypeScript representation of the same value.
-=======
    * A descriptor that can be used to convert an {@link AlignedValue} into a TypeScript representation of the same value.
->>>>>>> main
    * This descriptor will only ever decode `struct`s or `Vector`s that contain contract addresses.
    */
   descriptor: CompactType<unknown>;
@@ -333,11 +288,7 @@ export type SparseCompactMapADT = {
 export type SparseCompactADT = SparseCompactCellADT | SparseCompactArrayLikeADT | SparseCompactMapADT;
 
 /**
-<<<<<<< HEAD
- * Extracts the contract references contained in a Compact `Cell` ADT represented by the given {@link ocrt.StateValue}.
-=======
  * Extracts the contract references contained in a Compact `Cell` ADT represented by the given {@link StateValue}.
->>>>>>> main
  *
  * @param sparseCompactCellADT A data structure pointing to contract references in the Compact `Cell` ADT corresponding
  *                             to the given `state` parameter, if any exist.
@@ -354,11 +305,7 @@ const compactCellDependencies = (
 };
 
 /**
-<<<<<<< HEAD
- * Extracts the contract references contained in a Compact `List` or `Set` ADT represented by the given {@link ocrt.StateValue} array.
-=======
  * Extracts the contract references contained in a Compact `List` or `Set` ADT represented by the given {@link StateValue} array.
->>>>>>> main
  *
  * @param sparseCompactArrayLikeADT A data structure pointing to contract references in the Compact `List` or `Set` ADT corresponding
  *                                  to the given `states` parameter, if any exist.
@@ -375,11 +322,7 @@ const compactArrayLikeADTDependencies = (
 };
 
 /**
-<<<<<<< HEAD
- * Extracts the contract references contained in a Compact `Map` ADT represented by the given {@link ocrt.StateMap} object.
-=======
  * Extracts the contract references contained in a Compact `Map` ADT represented by the given {@link StateMap} object.
->>>>>>> main
  *
  * @param sparseCompactMapADT A data structure pointing to contract references in the Compact `Map` ADT corresponding
  *                            to the given `stateMap` parameter, if any exist.
@@ -412,11 +355,7 @@ const compactMapADTDependencies = (
 };
 
 /**
-<<<<<<< HEAD
- * Throw a {@link CompactError} if the input `s` value is undefined. Called when the input {@link ocrt.StateValue} could not be
-=======
  * Throw a {@link CompactError} if the input `s` value is undefined. Called when the input {@link StateValue} could not be
->>>>>>> main
  * cast to either a map, array, or boundary Merkle tree representation.
  *
  * @param s The value that is asserted to be defined.
@@ -434,11 +373,7 @@ function assertCastSucceeded<S extends ocrt.StateMap | ocrt.StateValue[]>(
 }
 
 /**
-<<<<<<< HEAD
- * Extracts the contract references present in the ADT that the input {@link ocrt.StateValue} represents. Attempts to cast the
-=======
  * Extracts the contract references present in the ADT that the input {@link StateValue} represents. Attempts to cast the
->>>>>>> main
  * input state to a different representation indicated by the input {@link SparseCompactADT}.
  *
  * @param sparseCompactADT A data structure pointing to contract references in the Compact ADT represented by the input state.
@@ -497,13 +432,8 @@ export type PublicLedgerSegments = {
    * then the indices record will contain keys `1` and `2`, since ledger declarations `1` and `2` contain contract
    * references while ledger declaration `0` (`List[Field]`) does not.
    *
-<<<<<<< HEAD
-   * However, the ledger implementation has a fixed maximum length on the state arrays produced by {@link ocrt.StateValue.toArray}.
-   * When the number of entries in a given state exceeds the maximum, {@link ocrt.StateValue.toArray} produces nested state arrays,
-=======
    * However, the ledger implementation has a fixed maximum length on the state arrays produced by {@link StateValue.toArray}.
    * When the number of entries in a given state exceeds the maximum, {@link StateValue.toArray} produces nested state arrays,
->>>>>>> main
    * where each inner state array is within the maximum. For each nested state array, there will be a key in the indices record
    * pointing to a {@link PublicLedgerSegments} object.
    */
@@ -554,21 +484,13 @@ const publicLedgerSegmentsDependencies = (
 };
 
 /**
-<<<<<<< HEAD
- * Given a {@link ocrt.StateValue} representing the current ledger state of a contract, uses the {@link ContractReferenceLocations}
-=======
  * Given a {@link StateValue} representing the current ledger state of a contract, uses the {@link ContractReferenceLocations}
->>>>>>> main
  * object produced by the Compact compiler to extract the current contract addresses present in the given ledger state. The produced
  * contract addresses represent the contracts on which the root contract depends. The dependencies are used in a multi-contract
  * setting to fetch the ledger states of all contracts on which the root contract depends prior to execution.
  *
  * NOTE: The given {@link ContractReferenceLocations} must be from the contract executable containing the ledger state constructor
-<<<<<<< HEAD
- *       that produced the given {@link ocrt.StateValue}.
-=======
  *       that produced the given {@link StateValue}.
->>>>>>> main
  *
  * @param contractReferenceLocations A data structure pointing to contract references in the ledger state of the root contract.
  * @param state The current ledger state of the root contract.

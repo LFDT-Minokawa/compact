@@ -8,13 +8,6 @@
     "strict": true,
     "outDir": "dist",
     "declaration": true,
-<<<<<<< HEAD
-    "rootDir": "src"
-  },
-  "include": ["src"],
-  "exclude": ["node_modules"]
-}
-=======
     "rootDir": "src",
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -23,4 +16,3 @@
   "include": ["src"],
   "exclude": ["node_modules"]
 }
->>>>>>> main

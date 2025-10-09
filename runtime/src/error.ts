@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 // This file is part of Compact.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
@@ -15,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
->>>>>>> main
 import inspect from 'object-inspect';
 
 /**
@@ -40,7 +37,6 @@ export function assert(b: boolean, s: string): void {
 }
 
 /**
-<<<<<<< HEAD
  * Compiler internal for asserting an object is non-nullable.
  * @internal
  */
@@ -54,13 +50,7 @@ export function assertDefined<T>(t: T | undefined, name: string): asserts t is N
  * Compiler internal for type errors
  * @internal
  */
-export function typeError(who: string, what: string, where: string, type: string, x: unknown): never {
-=======
- * Compiler internal for type errors
- * @internal
- */
 export function typeError(who: string, what: string, where: string, type: string, x: any): never {
->>>>>>> main
   const msg = `type error: ${who} ${what} at ${where}; expected value of type ${type} but received ${inspect(x)}`;
   throw new CompactError(msg);
 }

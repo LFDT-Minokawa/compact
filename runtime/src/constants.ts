@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
-=======
 // This file is part of Compact.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
@@ -18,26 +15,17 @@ import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 
->>>>>>> main
 /**
  * The maximum value representable in Compact's `Field` type
  *
  * One less than the prime modulus of the proof system's scalar field
  */
 export const MAX_FIELD: bigint = ocrt.maxField();
-<<<<<<< HEAD
-/**
- * A valid placeholder contract address
- *
- * @deprecated Cannot handle {@link ocrt.NetworkId}s, use
- * {@link ocrt.dummyContractAddress} instead.
-=======
 
 /**
  * A valid placeholder contract address
  *
  * @deprecated Cannot handle {@link NetworkId}s, use
  * {@link dummyContractAddress} instead.
->>>>>>> main
  */
 export const DUMMY_ADDRESS: string = ocrt.dummyContractAddress();
