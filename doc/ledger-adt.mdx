@@ -1,6 +1,6 @@
 # Ledger data types
 
-Compact language version 0.18.1, compiler version 0.26.106.
+Compact language version 0.18.1, compiler version 0.26.107.
 
 ## Kernel
 
@@ -616,7 +616,7 @@ Resets this Merkle tree to the empty Merkle tree.
 findPathForLeaf(leaf: value_type): MerkleTreePath<value_type> | undefined
 ```
 
-Finds the path for a given leaf in a Merkle tree. Be warned that this is O(n) and should be avoided for large trees. Returns undefined if no such leaf exists. 
+Finds the path for a given leaf in a Merkle tree. Be warned that this is O(n) and should be avoided for large trees. Returns undefined if no such leaf exists.
     MerkleTreePath is defined in compact-runtime.
 
 ### firstFree

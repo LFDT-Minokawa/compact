@@ -13,7 +13,7 @@ import { WitnessSets } from './witness.js';
 import { ConstructorContext, ConstructorResult } from './constructor-context.js';
 import { assertDefined } from './error.js';
 import { PartialProofData } from './proof-data.js';
-import { Bytes32Descriptor, ContractAddressDescriptor, MaxUint1Descriptor, MaxUint8Descriptor } from './compact-types.js';
+import { CompactTypeBytes32, CompactTypeContractAddress, CompactTypeUInt8, CompactTypeUInt64 } from './compact-types.js';
 import { ContractReferenceLocations } from './contract-dependencies.js';
 import { alignedConcat } from './index.js';
 import { fromHex } from './utils.js';
@@ -53,7 +53,7 @@ export type Circuits = Record<CircuitId, Circuit>;
 /**
  * A contract constructor.
  */
-export type StateConstructor = (context: ConstructorContext, ...params: any[]) => ConstructorResult;
+export type StateConstructor<PS> = (context: ConstructorContext<PS>, ...params: any[]) => ConstructorResult<PS>;
 
 /**
  * A function for converting the {@link ocrt.StateValue} representation of the contracts public state to a
@@ -64,7 +64,7 @@ export type LedgerStateDecoder = (state: ocrt.StateValue) => any;
 /**
  * All information and executables for a compiled smart contract.
  */
-export type Executables = {
+export type Executables<PS = any> = {
   /**
    * A unique identifier for the contract.
    */
@@ -96,13 +96,13 @@ export type Executables = {
    *
    * @note For contracts that do not define a ledger state constructor, this is the identity function.
    */
-  readonly stateConstructor: StateConstructor;
+  readonly initialState: StateConstructor<PS>;
   /**
    * The ledger state decoder.
    *
    * @note Any deployable contract will have a ledger state and therefore a ledger state decoder.
    */
-  readonly ledgerStateDecoder: LedgerStateDecoder;
+  readonly ledger: LedgerStateDecoder;
   /**
    * A data structure indicating where references to other contracts exist in this contract's ledger state.
    *
@@ -114,18 +114,18 @@ export type Executables = {
 export type EntryPointHash = string;
 
 const sequenceNumberToValue = (sequenceNumber: bigint): ocrt.AlignedValue => ({
-  value: MaxUint8Descriptor.toValue(sequenceNumber),
-  alignment: MaxUint8Descriptor.alignment(),
+  value: CompactTypeUInt64.toValue(sequenceNumber),
+  alignment: CompactTypeUInt64.alignment(),
 });
 
 const contractAddressToValue = (address: ocrt.ContractAddress): ocrt.AlignedValue => ({
-  value: ContractAddressDescriptor.toValue({ bytes: ocrt.encodeContractAddress(address) }),
-  alignment: ContractAddressDescriptor.alignment(),
+  value: CompactTypeContractAddress.toValue({ bytes: ocrt.encodeContractAddress(address) }),
+  alignment: CompactTypeContractAddress.alignment(),
 });
 
 const entryPointHashToValue = (hex: string): ocrt.AlignedValue => ({
-  value: Bytes32Descriptor.toValue(fromHex(hex)),
-  alignment: Bytes32Descriptor.alignment(),
+  value: CompactTypeBytes32.toValue(fromHex(hex)),
+  alignment: CompactTypeBytes32.alignment(),
 });
 
 /**
@@ -134,8 +134,8 @@ const entryPointHashToValue = (hex: string): ocrt.AlignedValue => ({
  * TODO: https://shielded.atlassian.net/browse/PM-17174
  */
 const communicationCommitmentToValue = (hex: string): ocrt.AlignedValue => ({
-  value: Bytes32Descriptor.toValue(fromHex(hex).slice(1)),
-  alignment: Bytes32Descriptor.alignment(),
+  value: CompactTypeBytes32.toValue(fromHex(hex).slice(1)),
+  alignment: CompactTypeBytes32.alignment(),
 });
 
 /**
@@ -165,8 +165,8 @@ export const kernelClaimContractCall = (
           {
             tag: 'value',
             value: {
-              value: MaxUint1Descriptor.toValue(3n),
-              alignment: MaxUint1Descriptor.alignment(),
+              value: CompactTypeUInt8.toValue(3n),
+              alignment: CompactTypeUInt8.alignment(),
             },
           },
         ],
@@ -196,8 +196,8 @@ export const kernelClaimContractCall = (
  * TODO: https://shielded.atlassian.net/browse/PM-17174
  */
 const communicationCommitmentRandToValue = (hex: string): ocrt.AlignedValue => ({
-  value: Bytes32Descriptor.toValue(fromHex(hex).slice(1)),
-  alignment: Bytes32Descriptor.alignment(),
+  value: CompactTypeBytes32.toValue(fromHex(hex).slice(1)),
+  alignment: CompactTypeBytes32.alignment(),
 });
 
 /**

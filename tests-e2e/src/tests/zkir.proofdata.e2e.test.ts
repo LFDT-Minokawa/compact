@@ -55,7 +55,7 @@ describe.skip('[ZKIR] Verify proof data for vector to bytes and bytes to vector'
 
         // check proof based on zkir
 
-        runtime.checkProofData(zkir, afterTest.proofData);
+        runtime.checkProofData(zkir, afterTest.context.proofDataTrace.at(-1)!);
     });
 
     test.skip('check if proof data is valid for vector to bytes - test2', async () => {
@@ -63,14 +63,13 @@ describe.skip('[ZKIR] Verify proof data for vector to bytes and bytes to vector'
         const contractCode = await import(outputDir + '/contract/index.js');
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        const contract = () => new contractCode.Contract({});
-        const [C, InitialContext] = startContract(contract, 0);
+        const [C, InitialContext] = startContract(contractCode, {}, 0);
 
         const afterTest = C.circuits.test2(InitialContext);
 
         const zkirFile = outputDir + '/zkir/test2.zkir';
         const zkir = fs.readFileSync(zkirFile, 'utf-8');
 
-        runtime.checkProofData(zkir, afterTest.proofData);
+        runtime.checkProofData(zkir, afterTest.context.proofDataTrace.at(-1)!);
     });
 });

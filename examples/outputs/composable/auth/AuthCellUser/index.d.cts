@@ -59,8 +59,8 @@ export type Executables<PSS extends PrivateStates = PrivateStates> = {
   readonly witnessSets: WitnessSets<PSS>;
   readonly impureCircuits: ImpureCircuits;
   readonly pureCircuits: PureCircuits;
-  readonly stateConstructor: StateConstructor<PSS[ContractId]>;
-  readonly ledgerStateDecoder: LedgerStateDecoder;
+  readonly initialState: StateConstructor<PSS[ContractId]>;
+  readonly ledger: LedgerStateDecoder;
 }
 
 export type InferredPrivateStates<W extends WitnessSets> = W extends WitnessSets<{
@@ -83,5 +83,5 @@ export type PureCircuits = {}
  */
 export declare const contractReferenceLocations: __compactRuntime.ContractReferenceLocations;
 export declare const pureCircuits: PureCircuits;
-export declare const ledgerStateDecoder: LedgerStateDecoder;
+export declare const ledger: LedgerStateDecoder;
 export declare const executables: ExecutablesBuilder;

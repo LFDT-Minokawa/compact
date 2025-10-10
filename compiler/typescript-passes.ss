@@ -839,7 +839,7 @@
              `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
           [else adt-type]))
 
-      (define (print-contract.d.cts src xpelt* uname*)
+      (define (print-contract.d.ts src xpelt* uname*)
         (define (print-exported-impure-circuit-declaration do-me?)
           (lambda (xpelt uname)
             (XPelt-case xpelt
@@ -1085,7 +1085,7 @@
                       (let ([contract-name (print-contract-name contract-name)])
                         (print-Q 0
                           (make-Qconcat
-                            (format "import * as __~a from '../../~a/contract/index.cjs';\n" contract-name contract-name)))))
+                            (format "import * as __~a from '../../~a/contract/index.js';\n" contract-name contract-name)))))
             contract-name*))
         (define (print-witness-dependency-state contract-name)
           (let ([contract-name (print-contract-name contract-name)])
@@ -1149,13 +1149,13 @@
               contract-dependency*))
 
         (define (print-state-constructor xpelt*)
-          (display-string "  readonly stateConstructor: StateConstructor<")
+          (display-string "  readonly initialState: StateConstructor<")
           (if (ormap (lambda (xpelt) (contains-witness? xpelt)) xpelt*)
               (display-string "PSS[ContractId]")
-              (display-string "undefined"))
+              (display-string "any"))
           (display-string ">;\n"))
 
-        (parameterize ([current-output-port (get-target-port 'contract.d.cts)])
+        (parameterize ([current-output-port (get-target-port 'contract.d.ts)])
           (with-local-unique-names
             (demand-unique-local-name! "W")
             (demand-unique-local-name! "PS")
@@ -1219,7 +1219,7 @@
                   (display-string "  readonly pureCircuits: PureCircuits;\n")
                   (display-string "  readonly circuits: Circuits;\n")
                   (print-state-constructor xpelt*)
-                  (display-string "  readonly ledgerStateDecoder: LedgerStateDecoder;\n")
+                  (display-string "  readonly ledger: LedgerStateDecoder;\n")
                   (display-string "  readonly contractReferenceLocations: __compactRuntime.ContractReferenceLocations;\n")
                   (display-string "}\n")
                   (newline)
@@ -1227,7 +1227,7 @@
                   (newline)
                   (display-string "export declare const contractReferenceLocations: __compactRuntime.ContractReferenceLocations;\n")
                   (display-string "export declare const pureCircuits: PureCircuits;\n")
-                  (display-string "export declare const ledgerStateDecoder: LedgerStateDecoder;\n")
+                  (display-string "export declare const ledger: LedgerStateDecoder;\n")
                   (display-string "export declare const executables: ExecutablesBuilder;\n")
               ))))))
 
@@ -1257,7 +1257,7 @@
                 " = require('../../"
                 contract-name
                 "/contract"
-                "/index.cjs');\n"))))
+                "/index.js');\n"))))
 
         (define (print-contract-descriptors src descriptor-id* type*)
           (define (print-struct-class class-name elt-name* type*)
@@ -1994,7 +1994,7 @@
                   [(XPelt-public-ledger pl-array lconstructor external-names)
                    (print-Q 0
                       (make-Qconcat
-                        "function ledgerStateDecoder(state) {"
+                        "function ledger(state) {"
                         2 "const contractAddress = __compactRuntime.dummyContractAddress();"
                         2 "const context = {"
                         4 "contractId,"
@@ -2081,7 +2081,7 @@
                                [nargs (fx+ (length arg*) 1)])
                           ; TODO removed maybe-add-private-state-check. if nothing breaks delete this todo.
                           (apply make-Qconcat/src src
-                                 (format "function stateConstructor(...~a) {" args)
+                                 (format "function initialState(...~a) {" args)
                                  2 (format "if (~a.length !== ~d) {" args nargs)
                                  4 (format "throw new __compactRuntime.CompactError(`Contract state constructor: expected ~d argument~:*~p (as invoked from Typescript), received ${~a.length}`);" nargs args)
                                  2 "}"
@@ -2107,7 +2107,7 @@
                                                2 "const privateStates = {"
                                                4 (format "[dummyAddress]: ~a.initialPrivateState" constructorContext)
                                                2 "}"
-                                               2 (format "const context = __compactRuntime.createCircuitContext(contractId, 'stateConstructor', dummyAddress,  __compactRuntime.decodeCoinPublicKey(~a.initialZswapLocalState.coinPublicKey.bytes), contractStates, privateStates);" constructorContext)
+                                               2 (format "const context = __compactRuntime.createCircuitContext(contractId, 'initialState', dummyAddress,  __compactRuntime.decodeCoinPublicKey(~a.initialZswapLocalState.coinPublicKey.bytes), contractStates, privateStates);" constructorContext)
                                                2 "const partialProofData = {"
                                                4 "input: { value: [], alignment: [] },"
                                                4 "output: undefined,"
@@ -2131,8 +2131,8 @@
                                                2 "impureCircuits,"
                                                2 "pureCircuits,"
                                                2 "circuits,"
-                                               2 "stateConstructor,"
-                                               2 "ledgerStateDecoder,"
+                                               2 "initialState,"
+                                               2 "ledger,"
                                                2 "contractReferenceLocations"
                                                0 "}")))))))))))))
                     (newline)])]
@@ -2253,7 +2253,7 @@
                         ")"
                         0 "{")
                       2 (format "const ~a = __compactRuntime.callWitness(" result)
-                      (apply (make-Qsep ",") "context" "ledgerStateDecoder(context.currentQueryContext.state)" "witnessSets" "contractId" (format "'~a'" external-name) q-formal*)
+                      (apply (make-Qsep ",") "context" "ledger(context.currentQueryContext.state)" "witnessSets" "contractId" (format "'~a'" external-name) q-formal*)
                       ");"
                       (result-type-check src external-name type result
                         (list
@@ -2481,13 +2481,13 @@
           (display-string "exports.contractReferenceLocations = contractReferenceLocations;\n")
           (display-string "exports.pureCircuits = pureCircuits;\n")
           (display-string "exports.executables = executables;\n")
-          (display-string "exports.ledgerStateDecoder = ledgerStateDecoder;\n"))
+          (display-string "exports.ledger = ledger;\n"))
 
         (define (print-contract-footer)
           (display-string "//# sourceMappingURL=index.js.map\n"))
 
         (define (print-contract.js src descriptor-id* type* xpelt* uname*)
-          (parameterize ([current-output-port (get-target-port 'contract.cjs)])
+          (parameterize ([current-output-port (get-target-port 'contract.js)])
             (fluid-let ([sourcemap-tracker (make-sourcemap-tracker)])
               (let-values ([(contract-dependency* contract-has-witness-ht) (get-contract-dependencies)])
                 (print-contract-header contract-dependency*)
@@ -2698,7 +2698,7 @@
       [(program ,src ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
        (let* ([xpelt* (maplr (lambda (x) (Program-Element x (map cons export-name* name*))) pelt*)]
               [uname* (maplr xpelt->uname xpelt*)])
-         (print-contract.d.cts src xpelt* uname*)
+         (print-contract.d.ts src xpelt* uname*)
          (fluid-let ([descriptor-table descriptor-table^])
            (print-contract.js src descriptor-id* type* xpelt* uname*)))
        ir])
@@ -3089,7 +3089,7 @@
          (set! helper*
            (cons
              (let ([i+ (enumerate (cons expr expr*))])
-               (format "  ~a(~@[~*context, witnessSets, partialProofData, ~]f, ~{~a~^, ~}) {\n    let a = [];\n    for (let i = 0; i < ~a; i++) { a[i] = f(~@[~*context, witnessSets, partialProofData, ~]~{~a~^, ~}); }\n    return a;\n  }\n"
+               (format "function ~a(~@[~*context, witnessSets, partialProofData, ~]f, ~{~a~^, ~}) {\n    let a = [];\n    for (let i = 0; i < ~a; i++) { a[i] = f(~@[~*context, witnessSets, partialProofData, ~]~{~a~^, ~}); }\n    return a;\n  }\n"
                  mapper-name
                  (not pure?)
                  (map (lambda (i) (format "a~s" i)) i+)
@@ -3127,7 +3127,7 @@
          (set! helper*
            (cons
              (let ([i+ (enumerate (cons expr expr*))])
-               (format "  ~a(~@[~*context, witnessSets, partialProofData, ~]f, x, ~{~a~^, ~}) {\n    for (let i = 0; i < ~a; i++) { x = f(~@[~*context, witnessSets, partialProofData, ~]x, ~{~a~^, ~}); }\n    return x;\n  }\n"
+               (format "function ~a(~@[~*context, witnessSets, partialProofData, ~]f, x, ~{~a~^, ~}) {\n    for (let i = 0; i < ~a; i++) { x = f(~@[~*context, witnessSets, partialProofData, ~]x, ~{~a~^, ~}); }\n    return x;\n  }\n"
                  folder-name
                  (not pure?)
                  (map (lambda (i) (format "a~s" i)) i+)

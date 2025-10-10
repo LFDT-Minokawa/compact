@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const contract = () => contractCode.executables({});
-
 const sampleDomainSep = (): Buffer => {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
@@ -48,7 +46,7 @@ const mapFindByKey = <K, V>(map: Map<K, V>, key: K): V | undefined => {
 
 test('mintUnshieldedToSelfTest', () => {
 
-  let [c, context] = startContract(contract)();
+  let [c, context] = startContract(contractCode, {});
 
   const amount = 100n;
   const domainSep = sampleDomainSep();
@@ -92,7 +90,7 @@ const sampleContractRecipient = () => ({
 
 test('mintUnshieldedToContractTest', () => {
 
-  let [c, context] = startContract(contract)();
+  let [c, context] = startContract(contractCode, {});
 
   const amount = 100n;
   const domainSep = sampleDomainSep();
@@ -131,7 +129,7 @@ const sampleUserRecipient = () => ({
 
 test('mintUnshieldedToUserTest', () => {
 
-  let [c, context] = startContract(contract)();
+  let [c, context] = startContract(contractCode, {});
 
   const amount = 100n;
   const domainSep = sampleDomainSep();
@@ -171,7 +169,7 @@ const sampleCompactUnshieldedCoinInfo = (rawTokenMinterAddress: runtime.Contract
 
 test('sendUnshieldedToSelfTest', () => {
 
-  let [c, context] = startContract(contract)();
+  let [c, context] = startContract(contractCode, {});
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
@@ -204,7 +202,7 @@ test('sendUnshieldedToSelfTest', () => {
 
 test('sendUnshieldedToContractTest', () => {
 
-  let [c, context] = startContract(contract)();
+  let [c, context] = startContract(contractCode, {});
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
@@ -238,7 +236,7 @@ test('sendUnshieldedToContractTest', () => {
 
 test('sendUnshieldedToUserTest', () => {
 
-  let [c, context] = startContract(contract)();
+  let [c, context] = startContract(contractCode, {});
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
@@ -272,7 +270,7 @@ test('sendUnshieldedToUserTest', () => {
 
 test('receiveUnshieldedTest', () => {
 
-  let [c, context] = startContract(contract)();
+  let [c, context] = startContract(contractCode, {});
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
@@ -296,7 +294,7 @@ test('receiveUnshieldedTest', () => {
 
 test('getUnshieldedBalanceTest', () => {
 
-  let [c, context] = startContract(contract)();
+  let [c, context] = startContract(contractCode, {});
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
 

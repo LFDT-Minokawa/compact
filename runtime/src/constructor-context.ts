@@ -60,13 +60,22 @@ export function assertIsConstructorContext(v: any): asserts v is ConstructorCont
  * @param initialPrivateState The private state to use to execute the contract's constructor. Undefined if the contract
  *                            has no private state.
  */
-export const createConstructorContext = <PS>(
+export function createConstructorContext(coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey): ConstructorContext<undefined>;
+
+export function createConstructorContext<PS>(
+  coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey,
+  initialPrivateState: PS,
+): ConstructorContext<PS>;
+
+export function createConstructorContext<PS>(
   coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey,
   initialPrivateState?: PS,
-): ConstructorContext<PS> => ({
-  initialPrivateState,
-  initialZswapLocalState: emptyZswapLocalState(coinPublicKey),
-});
+): ConstructorContext<PS | undefined> {
+  return {
+    initialPrivateState,
+    initialZswapLocalState: emptyZswapLocalState(coinPublicKey),
+  };
+}
 
 /**
  * The result of executing a contract constructor.

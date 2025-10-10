@@ -80,7 +80,7 @@ export type ImpureCircuits = {
 }
 
 /**
- * Type of the `stateConstructor` function.
+ * Type of the `initialState` function.
  */
 export type StateConstructor<PS> =
   (context: __compactRuntime.ConstructorContext<PS>, value: __shared.StructExample) => __compactRuntime.ConstructorResult<PS>;
@@ -95,12 +95,12 @@ export type Executables<PSS extends PrivateStates = PrivateStates> = {
   readonly impureCircuits: ImpureCircuits;
   readonly pureCircuits: PureCircuits;
   /**
-   * @parisa - The 'stateConstructor' function only needs the private state for 'AuthCell', so we project 'PSS' to the
-   *           'AuthCell' specific portion. If 'AuthCell' defined no witnesses the type of `stateConstructor` would be
+   * @parisa - The 'initialState' function only needs the private state for 'AuthCell', so we project 'PSS' to the
+   *           'AuthCell' specific portion. If 'AuthCell' defined no witnesses the type of `initialState` would be
    *           `StateConstructor<undefined>.`
    */
-  readonly stateConstructor: StateConstructor<PSS[ContractId]>;
-  readonly ledgerStateDecoder: LedgerStateDecoder;
+  readonly initialState: StateConstructor<PSS[ContractId]>;
+  readonly ledger: LedgerStateDecoder;
 }
 
 export type InferredPrivateStates<W extends WitnessSets> = W extends WitnessSets<
@@ -137,5 +137,5 @@ export type PureCircuits = {
  */
 export declare const contractReferenceLocations: __compactRuntime.ContractReferenceLocations;
 export declare const pureCircuits: PureCircuits;
-export declare const ledgerStateDecoder: LedgerStateDecoder;
+export declare const ledger: LedgerStateDecoder;
 export declare const executables: ExecutablesBuilder;

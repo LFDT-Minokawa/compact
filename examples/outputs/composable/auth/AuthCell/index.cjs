@@ -43,9 +43,9 @@ const _descriptor_0 = __compactRuntime.CompactTypeBytes32;
  *
  *  Just use the built-in descriptor the runtime now has for max Uint 1:
  *
- *    const _descriptor_3 = __compactRuntime.CompactTypeUInt1;
+ *    const _descriptor_3 = __compactRuntime.CompactTypeUInt8;
  */
-const _descriptor_3 = __compactRuntime.CompactTypeUInt1;
+const _descriptor_3 = __compactRuntime.CompactTypeUInt8;
 
 /**
  *
@@ -71,8 +71,8 @@ function _get_0(witnessSets, context, partialProofData) {
           {
             tag: 'value',
             value: {
-              value: __compactRuntime.CompactTypeUInt1.toValue(1n),
-              alignment: __compactRuntime.CompactTypeUInt1.alignment(),
+              value: __compactRuntime.CompactTypeUInt8.toValue(1n),
+              alignment: __compactRuntime.CompactTypeUInt8.alignment(),
             },
           },
         ],
@@ -101,7 +101,7 @@ function _get_0(witnessSets, context, partialProofData) {
 }
 
 function _sk_0(witnessSets, context, partialProofData) {
-  const result = __compactRuntime.callWitness(context, ledgerStateDecoder(context.currentQueryContext.state), witnessSets, contractId, 'sk');
+  const result = __compactRuntime.callWitness(context, ledger(context.currentQueryContext.state), witnessSets, contractId, 'sk');
   if (!(result.buffer instanceof ArrayBuffer && result.BYTES_PER_ELEMENT === 1 && result.length === 32)) {
     __compactRuntime.typeError('sk', 'return value', 'examples/auth-cell.compact line 7, char 1', 'Bytes[32]', result);
   }
@@ -216,7 +216,7 @@ function executables(...args) {
     },
   };
 
-  function stateConstructor(...args) {
+  function initialState(...args) {
     if (args.length !== 2) {
       throw new __compactRuntime.CompactError(`Contract state constructor: expected 2 arguments (as invoked from Typescript), received ${args.length}`);
     }
@@ -309,12 +309,12 @@ function executables(...args) {
     witnessSets,
     impureCircuits,
     pureCircuits,
-    stateConstructor,
-    ledgerStateDecoder,
+    initialState,
+    ledger,
   };
 }
 
-function ledgerStateDecoder(state) {
+function ledger(state) {
   const context = {
     currentQueryContext: new __compactRuntime.QueryContext(state, __compactRuntime.dummyContractAddress()),
   };
@@ -365,5 +365,5 @@ exports.contractId = contractId;
 exports.contractReferenceLocations = []; // @parisa - replace with actual 'contractReferenceLocations'
 exports.pureCircuits = pureCircuits;
 exports.executables = executables;
-exports.ledgerStateDecoder = ledgerStateDecoder;
+exports.ledger = ledgerStateDecoder;
 //# sourceMappingURL=index.cjs.map

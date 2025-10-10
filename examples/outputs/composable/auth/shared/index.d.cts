@@ -23,5 +23,5 @@ export declare const pureCircuits: PureCircuits;
  *           keeping the `pureCircuits` export above.
  */
 // export declare const contractReferenceLocations: __compactRuntime.ContractReferenceLocations;
-// export declare const ledgerStateDecoder: LedgerStateDecoder;
+// export declare const ledger: LedgerStateDecoder;
 // export declare const executables: ExecutablesBuilder;

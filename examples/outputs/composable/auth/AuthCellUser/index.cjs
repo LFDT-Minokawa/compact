@@ -28,11 +28,11 @@ const _descriptor_1 = __compactRuntime.CompactTypeContractAddress;
  *
  *  Just use the built-in descriptor the runtime now has for max Uint 1:
  *
- *    const _descriptor_4 = __compactRuntime.CompactTypeUInt1;
+ *    const _descriptor_4 = __compactRuntime.CompactTypeUInt8;
  *
  *  @note - See note in comment above.
  */
-const _descriptor_4 = __compactRuntime.CompactTypeUInt1;
+const _descriptor_4 = __compactRuntime.CompactTypeUInt8;
 
 function _use_auth_cell_0(witnessSets, circuitContext, partialProofData, x) {
   // Instantiate executables for AuthCell.
@@ -50,7 +50,7 @@ function _use_auth_cell_0(witnessSets, circuitContext, partialProofData, x) {
             tag: 'value',
             value: {
               /**
-               * The value 'CompactTypeUInt1.toValue(0n)' here represents the index of the item in the ledger state,
+               * The value 'CompactTypeUInt8.toValue(0n)' here represents the index of the item in the ledger state,
                * which is represented as a 0-indexed array where each item is a 'ledger' declaration starting from the
                * top. Here, we're saying "get me the value of the top-most ledger declaration."
                *
@@ -58,8 +58,8 @@ function _use_auth_cell_0(witnessSets, circuitContext, partialProofData, x) {
                * "ContractAddress" as declared in the Compact standard library. If you gave it to 'queryForContractRef'
                * instead, you get back the hex representation of the address, which the runtime uses for maintaining state.
                */
-              value: __compactRuntime.CompactTypeUInt1.toValue(0n),
-              alignment: __compactRuntime.CompactTypeUInt1.alignment(),
+              value: __compactRuntime.CompactTypeUInt8.toValue(0n),
+              alignment: __compactRuntime.CompactTypeUInt8.alignment(),
             },
           },
         ],
@@ -145,7 +145,7 @@ function executables(...args) {
     },
   };
 
-  function stateConstructor(...args) {
+  function initialState(...args) {
     if (args.length !== 2) {
       throw new __compactRuntime.CompactError(`Contract state constructor: expected 2 arguments (as invoked from Typescript), received ${args.length}`);
     }
@@ -207,13 +207,12 @@ function executables(...args) {
     witnessSets,
     impureCircuits,
     pureCircuits,
-    stateConstructor,
-    ledgerStateDecoder,
+    initialState,
+    ledger,
   };
 }
 
-// @parisa - 'ledgerStateDecoder' is just the 'ledger' function renamed
-function ledgerStateDecoder(state) {
+function ledger(state) {
   const context = {
     currentQueryContext: new __compactRuntime.QueryContext(state, __compactRuntime.dummyContractAddress()),
   };
@@ -241,5 +240,5 @@ exports.contractId = contractId;
 exports.contractReferenceLocations = []; // @parisa - replace with actual 'contractReferenceLocations'
 exports.pureCircuits = pureCircuits;
 exports.executables = executables;
-exports.ledgerStateDecoder = ledgerStateDecoder;
+exports.ledger = ledgerStateDecoder;
 //# sourceMappingURL=index.cjs.map

@@ -15,7 +15,7 @@
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 import { CircuitContext } from './circuit-context.js';
-import { Bytes32Descriptor, CoinInfoDescriptor, CoinRecipientDescriptor, Recipient } from './compact-types.js';
+import { CompactTypeBytes32, CompactTypeCoinInfo, CompactTypeRecipient, Recipient } from './compact-types.js';
 import { toHex } from './utils.js';
 import { assertDefined, CompactError } from './error.js';
 
@@ -375,12 +375,12 @@ export function createZswapInput(circuitContext: CircuitContext, qualifiedCoinIn
 function createCoinCommitment(coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): ocrt.AlignedValue {
   return ocrt.coinCommitment(
     {
-      value: CoinInfoDescriptor.toValue(coinInfo),
-      alignment: CoinInfoDescriptor.alignment(),
+      value: CompactTypeCoinInfo.toValue(coinInfo),
+      alignment: CompactTypeCoinInfo.alignment(),
     },
     {
-      value: CoinRecipientDescriptor.toValue(recipient),
-      alignment: CoinRecipientDescriptor.alignment(),
+      value: CompactTypeRecipient.toValue(recipient),
+      alignment: CompactTypeRecipient.alignment(),
     },
   );
 }
@@ -400,7 +400,7 @@ export function createZswapOutput(circuitContext: CircuitContext, coinInfo: Enco
     `Zswap local state for contract '${circuitContext.contractId}' with address '${circuitContext.contractAddress}'`,
   );
   circuitContext.currentQueryContext = circuitContext.currentQueryContext.insertCommitment(
-    toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)),
+    toHex(CompactTypeBytes32.fromValue(createCoinCommitment(coinInfo, recipient).value)),
     circuitContext.currentZswapLocalState.currentIndex,
   );
   circuitContext.currentZswapLocalState = {
@@ -436,6 +436,6 @@ export function ownPublicKey(circuitContext: CircuitContext): EncodedCoinPublicK
 export const hasCoinCommitment = (context: CircuitContext, coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): boolean => {
   assertDefined(context.currentQueryContext, `query context for contract ${context.contractAddress}`);
   return context.currentQueryContext.comIndicies.has(
-    toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)),
+    toHex(CompactTypeBytes32.fromValue(createCoinCommitment(coinInfo, recipient).value)),
   );
 };

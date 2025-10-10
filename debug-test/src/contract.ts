@@ -66,7 +66,7 @@ const initialPrivateState = {
   maxAttempts: 10n,
 };
 const difficulty = 0n;
-const { currentContractState, currentPrivateState } = exec.stateConstructor(
+const { currentContractState, currentPrivateState } = exec.initialState(
   runtime.createConstructorContext(coinPublicKey, initialPrivateState),
   difficulty,
 );
@@ -112,7 +112,7 @@ const initPS: PrivateState = {
   maxAttempts: 10n,
 };
 const { currentContractState, currentPrivateState } = sc.initialState(
-  createConstructorContext(initPS, '0'.repeat(64)),
+  createConstructorContext('0'.repeat(64), initPS),
   difficulty,
 );
 

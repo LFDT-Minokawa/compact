@@ -31,11 +31,11 @@ const setupAuthCellUserEnv = (initialAuthCellPS: AuthCellPS, witnessSets: runtim
   const authCellUserAddress = runtime.sampleContractAddress();
   // @ts-ignore
   const authCellExec = contractCodeAuthCell.executables(witnessSets);
-  const authCellConstructorResult = authCellExec.stateConstructor(
+  const authCellConstructorResult = authCellExec.initialState(
     runtime.createConstructorContext(authCellCpk, initialAuthCellPS), 1n);
   // @ts-ignore
   const authCellUserExec = contractCodeAuthCellUser.executables(witnessSets);
-  const authCellUserConstructorResult = authCellUserExec.stateConstructor(
+  const authCellUserConstructorResult = authCellUserExec.initialState(
     runtime.createConstructorContext(authCellUserCpk), toCompactContractAddress(authCellAddress));
 
   const initialLSs = {
@@ -106,10 +106,10 @@ describe('\'AuthCellUser\' works as expected', () => {
     expect(context1.contractAddress).toEqual(authCellUserAddress);
     expect(context1.initialQueryContext.address).toEqual(authCellUserAddress);
     const initialLedgerState = runtime.readQueryContext(initialAuthCellUserContext, authCellUserAddress).state;
-    expect(contractCodeAuthCellUser.ledgerStateDecoder(initialAuthCellUserContext.currentQueryContext.state)).toEqual(contractCodeAuthCellUser.ledgerStateDecoder(initialLedgerState));
+    expect(contractCodeAuthCellUser.ledger(initialAuthCellUserContext.currentQueryContext.state)).toEqual(contractCodeAuthCellUser.ledger(initialLedgerState));
     expect(context1.currentQueryContext.address).toEqual(authCellUserAddress);
     const currentLedgerState = runtime.readQueryContext(context1, authCellUserAddress).state;
-    expect(contractCodeAuthCellUser.ledgerStateDecoder(context1.currentQueryContext.state)).toEqual(contractCodeAuthCellUser.ledgerStateDecoder(currentLedgerState));
+    expect(contractCodeAuthCellUser.ledger(context1.currentQueryContext.state)).toEqual(contractCodeAuthCellUser.ledger(currentLedgerState));
   });
 
   test('\'useAuthCell\' results in the correct circuit return value', () => {
@@ -134,11 +134,11 @@ describe('\'AuthCellUser\' works as expected', () => {
     const context1 = authCellUserExec.impureCircuits.useAuthCell(initialAuthCellUserContext, 2n).context;
 
     const currentAuthCellLedgerState = runtime.readQueryContext(context1, authCellAddress).state;
-    const authCellLS = contractCodeAuthCell.ledgerStateDecoder(currentAuthCellLedgerState);
+    const authCellLS = contractCodeAuthCell.ledger(currentAuthCellLedgerState);
     expect(authCellLS.publicField).toEqual(3n);
 
     const currentAuthCellUserLedgerState = runtime.readQueryContext(context1, authCellUserAddress).state;
-    const authCellUserLS = contractCodeAuthCellUser.ledgerStateDecoder(currentAuthCellUserLedgerState);
+    const authCellUserLS = contractCodeAuthCellUser.ledger(currentAuthCellUserLedgerState);
     expect(runtime.decodeContractAddress(authCellUserLS.authCell.bytes)).toEqual(authCellAddress);
   });
 });

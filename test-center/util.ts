@@ -16,65 +16,70 @@
 import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 import * as fs from 'node:fs';
 import {
+  Executables,
+  WitnessSets,
   CircuitContext,
   createConstructorContext,
   createCircuitContext,
   checkProofData,
-  WitnessContext,
   ConstructorContext,
-  CircuitResults,
-  ConstructorResult
+  WitnessContext
 } from '@midnight-ntwrk/compact-runtime';
 
-export type Witness<PS> = (context: WitnessContext<any, PS>, ...rest: any[]) => [PS, any];
+export type StateConstructorParams<
+  E extends Executables
+> = E['initialState'] extends (c: ConstructorContext, ...a: infer A) => any ? A : never;
 
-export type Witnesses<PS> = Record<string, Witness<PS>>;
-
-export type Circuit<PS> = (context: CircuitContext<PS>, ...args: any[]) => CircuitResults<PS, any>;
-
-export type Circuits<PS> = Record<string, Circuit<PS>>;
-
-export type Contract<PS, W extends Witnesses<PS>> = {
-  witnesses: W;
-  impureCircuits: Circuits<PS>;
-  circuits: Circuits<PS>;
-  initialState(ctx: ConstructorContext<PS>, ...args: any[]): ConstructorResult<PS>;
-}
-
-export type InitialStateParams<
-  C extends Contract<any, any>
-> = C['initialState'] extends (c: ConstructorContext, ...a: infer A) => any ? A : never;
-
-export type Module<C, W> = {
-  Contract: new (witnesses: W) => C;
+export type Module<E extends Executables> = {
+  executables: (witnessSets: any) => E;
   zkirDir: string;
 }
 
+export const getRandomBytes = (size: number): Uint8Array => {
+  const randomBytes = new Uint8Array(size);
+  crypto.getRandomValues(randomBytes);
+  return randomBytes;
+};
+
+export const sampleCoinPublicKey = () =>
+    Buffer.from(getRandomBytes(32)).toString('hex');
+
+type ExtractPS<E extends Executables<any>> = E extends Executables<infer PS> ? PS : never;
+
 export function startContract<
-  PS,
-  W extends Witnesses<PS>,
-  C extends Contract<PS, W>
->(module: Module<C, W>,
-  witnesses: W,
-  privateState: PS,
-  ...args: InitialStateParams<C>
-): readonly [C, CircuitContext<PS>] {
+    E extends Executables<any>
+>(
+    module: { executables: (w: any) => E, zkirDir: string },
+    witnessSets: any,
+    privateState: ExtractPS<E>,
+    ...args: StateConstructorParams<E>
+): readonly [E, CircuitContext<ExtractPS<E>>] {
 
-  const contract = new module.Contract(witnesses);
-  const constructorContext = createConstructorContext(privateState, '0'.repeat(64));
-  const constructorResult = contract.initialState(constructorContext, ...args);
+  const exec = module.executables(witnessSets);
+  const coinPublicKey = sampleCoinPublicKey();
+  const address = ocrt.sampleContractAddress();
 
-  const circuitContext = createCircuitContext(
-    ocrt.dummyContractAddress(),
-    constructorResult.currentZswapLocalState.coinPublicKey,
-    constructorResult.currentContractState,
-    constructorResult.currentPrivateState,
-  );
+  const {
+    currentContractState,
+    currentPrivateState,
+  } = exec.initialState(createConstructorContext(coinPublicKey, privateState), ...args);
 
-  const wrappedImpureCircuits = {} as C['impureCircuits'];
+  const contractStates = {
+    [address]: currentContractState.data,
+  };
+  const privateStates = {
+    [address]: currentPrivateState,
+  };
 
-  for (const [circuitId, circuit] of Object.entries(contract.impureCircuits)) {
-    (wrappedImpureCircuits as any)[circuitId] = (context: any, ...args: any[]): any => {
+  const context = createCircuitContext(exec.contractId, '', address, coinPublicKey, contractStates, privateStates);
+
+  const wrappedImpureCircuits = {} as E['impureCircuits'];
+
+  for (const [circuitId, circuit] of Object.entries(exec.impureCircuits)) {
+    (wrappedImpureCircuits as any)[circuitId] = (context: CircuitContext, ...args: any[]): any => {
+      // To prevent from having to specify the circuit being invoked in each 'startContract' usage in the tests, we map circuits to circuits that automatically
+      // set the circuit ID. Normally, the user would pass the circuit ID into 'createCircuitContext'.
+      context.circuitId = circuitId;
       const circuitResult = (circuit as any)(context, ...args);
 
       if (!fs.existsSync(module.zkirDir)) {
@@ -87,16 +92,20 @@ export function startContract<
       }
 
       const zkir = fs.readFileSync(zkirFile, 'utf-8');
-      checkProofData(zkir, circuitResult.proofData);
+      const proofDataFrame = circuitResult.context.proofDataTrace.at(-1);
+      if (!proofDataFrame) {
+        throw new Error(`Expected proof data trace to be defined for called circuit ${circuitId}`)
+      }
+      checkProofData(zkir, proofDataFrame);
 
       return circuitResult;
     };
   }
 
-  Object.assign(contract, {
+  Object.assign(exec, {
     impureCircuits: wrappedImpureCircuits,
-    circuits: { ...contract.circuits, ...wrappedImpureCircuits },
+    circuits: { ...exec.circuits, ...wrappedImpureCircuits },
   });
 
-  return [contract, circuitContext as CircuitContext<PS>] as const;
+  return [exec as unknown as E, context as CircuitContext<ExtractPS<E>>] as const;
 }

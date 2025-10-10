@@ -80,8 +80,8 @@ describe('[Bugs] Compiler', () => {
         expectCompilerResult(result).toReturn('', '', 0);
         expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-        const contractIndexCjs = getFileContent(outputDir + '/contract/index.cjs');
-        const contractIndexDCts = getFileContent(outputDir + '/contract/index.d.cts');
+        const contractIndexCjs = getFileContent(outputDir + '/contract/index.js');
+        const contractIndexDCts = getFileContent(outputDir + '/contract/index.d.ts');
 
         // ledger variables
         ['foo_Bar', 'fOO_bAr', 'fooBar', 'fOOBAR', 'foo_bAr'].forEach((value) => {

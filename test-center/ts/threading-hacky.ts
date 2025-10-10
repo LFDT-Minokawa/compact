@@ -13,8 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const contract = () => contractCode.executables(
-  {
+const witnessSets = {
     [contractCode.contractId]:
       {
         num({ privateState }: any, n: bigint): [any, bigint] {
@@ -22,28 +21,28 @@ const contract = () => contractCode.executables(
           return [privateState, BigInt(fibs[Number(n)])];
         },
       },
-  });
+  };
 
 test('Check fib 0', () => {
-  const [c, Ctxt] = startContract(contract, 0)();
+  const [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   expect(c.impureCircuits.fib(Ctxt, 1n).result).toEqual(0n);
 });
 
 test('Check fib 1', () => {
-  let [c, Ctxt] = startContract(contract, 0)();
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
   expect(c.impureCircuits.fib(Ctxt, 2n).result).toEqual(1n);
 });
 
 test('Check fib 3', () => {
-  let [c, Ctxt] = startContract(contract, 0)();
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
   expect(c.impureCircuits.fib(Ctxt, 3n).result).toEqual(2n);
 });
 
 test('Check fib 4', () => {
-  let [c, Ctxt] = startContract(contract, 0)();
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
@@ -51,7 +50,7 @@ test('Check fib 4', () => {
 });
 
 test('Check fib 5', () => {
-  let [c, Ctxt] = startContract(contract, 0)();
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
@@ -60,12 +59,12 @@ test('Check fib 5', () => {
 });
 
 test('Check fib 0', () => {
-  const [c, Ctxt] = startContract(contract, 0)();
+  const [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   expect(c.impureCircuits.fib(Ctxt, 1n).result).toEqual(0n);
 });
 
 test('Check fib 6', () => {
-  let [c, Ctxt] = startContract(contract, 0)();
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
@@ -75,7 +74,7 @@ test('Check fib 6', () => {
 });
 
 test('Check fib reset to 1', () => {
-  let [c, Ctxt] = startContract(contract, 0)();
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
@@ -85,7 +84,7 @@ test('Check fib reset to 1', () => {
 });
 
 test('Check fib reset to 1', () => {
-  let [c, Ctxt] = startContract(contract, 0)();
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
@@ -96,7 +95,7 @@ test('Check fib reset to 1', () => {
 });
 
 test('Check c > counter + 1', () => {
-  let [c, Ctxt] = startContract(contract, 0)();
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
@@ -107,7 +106,7 @@ test('Check c > counter + 1', () => {
 });
 
 test('Check c > counter + 1', () => {
-  let [c, Ctxt] = startContract(contract, 0)();
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
   Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
   Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
   expect(() => c.impureCircuits.fib(Ctxt, 4n).result).toThrow('invalid fib num requested');
