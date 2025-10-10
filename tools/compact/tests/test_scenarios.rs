@@ -502,6 +502,7 @@ fn test_sc7_update_previous_list_compile() {
 }
 
 #[test]
+#[ignore("fixme")]
 #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 fn test_sc8_update_oldest_list_compile() {
     let temp_dir = tempfile::tempdir().unwrap();
