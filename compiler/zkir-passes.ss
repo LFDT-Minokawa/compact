@@ -569,8 +569,6 @@
                                                              (number? (car y)))
                                                   (internal-errorf 'print-zkir (format "VM+ in unexpected context: VM+ ~s ~s" x y)))
                                                 (list (+ (car x) (car y))))]
-                                             ;; TODO:
-                                             ;;  (VMmax-sizeof x)
                                              [else (internal-errorf 'print-zkir (format "unhandled vmop ~s" vmop))])]
                                           [(vmref? vmop)
                                            ;; // const foo = null[Set[Field]]();

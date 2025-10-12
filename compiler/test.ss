@@ -6942,7 +6942,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 41" "binding for ~s found in a single-statement context" (q)))
+      irritants: '("testfile.compact line 1 char 41" "const binding found in a single-statement context" ()))
     )
 
   (test
@@ -12084,7 +12084,7 @@
      )
    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 9" "found multiple bindings for ~s in the same block" (x)))
+      irritants: '("testfile.compact line 2 char 24" "found multiple bindings for ~s in the same block" (x)))
    )
 
   (test
@@ -12096,7 +12096,7 @@
      )
    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 9" "found multiple bindings for ~s in the same block" (x)))
+      irritants: '("testfile.compact line 2 char 42" "found multiple bindings for ~s in the same block" (x)))
    )
 
   (test
@@ -60446,11 +60446,11 @@
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n3 of exported circuit insert_nested_map at line 9 char 56" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to insert at line 10 char 20")))
+      irritants: '("testfile.compact line 6 char 9" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n of exported circuit init_nested_map at line 5 char 32" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the first argument to insert at line 6 char 9")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 10 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n2 of exported circuit insert_nested_map at line 9 char 45" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the first argument to insert at line 10 char 20")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 9" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n of exported circuit init_nested_map at line 5 char 32" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the first argument to insert at line 6 char 9"))))
+      irritants: '("testfile.compact line 10 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n3 of exported circuit insert_nested_map at line 9 char 56" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to insert at line 10 char 20"))))
     )
 
   (test
@@ -65944,7 +65944,8 @@
     "test-center/compact/threading.compact"
     (stage-javascript "test-center/ts/threading-hacky.ts"))
 
-  (test-group
+  ; FIXME uncomment me when zkir cc is merged.
+  #;(test-group
     ((source-file "test-center/compact3/AuthCell.compact")
      (stage-javascript contractCodeAuthCell '()))
     ((source-file "test-center/compact3/AuthCellUser.compact")
@@ -69566,7 +69567,8 @@
         ))
     )
 
-  (test-group
+  ; FIXME uncomment me when zkir cc is merged
+  #;(test-group
     ((create-file "C.compact"
        '(
          "export circuit foo(x: Bytes<32>): [] { return; }"
