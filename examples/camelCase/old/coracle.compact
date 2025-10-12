@@ -28,11 +28,7 @@ pragma language_version >= 0.14.0;
 
 import CompactStandardLibrary;
 
-<<<<<<< HEAD
-export { Maybe, ShieldedCoinInfo, QualifiedShieldedCoinInfo, Board, Commitment, Committable, State, WithdrawnCoins }
-=======
 export { Maybe, CoinInfo, QualifiedCoinInfo, Board, Commitment, Committable, State, WithdrawnCoins }
->>>>>>> main
 
 export enum Player {
   red,
