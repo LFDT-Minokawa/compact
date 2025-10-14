@@ -476,7 +476,7 @@ fn test_sc7_update_previous_list_compile() {
     run_command(
         &["--directory", &format!("{}", temp_path.display()), "list"],
         None,
-        Some("./output/list/std_previous_selected.txt"),
+        Some("./output/list/std_024_selected.txt"),
         None,
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
