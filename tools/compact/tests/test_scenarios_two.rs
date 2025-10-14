@@ -15,7 +15,7 @@
 
 use crate::common::{
     LATEST_COMPACTC_VERSION, OLDEST_COMPACTC_VERSION, PREVIOUS_COMPACTC_VERSION,
-    VERSION_WITH_NO_FORMAT, get_version, run_command,
+    VERSION_WITH_NO_FORMAT, assert_path_contains_string, get_version, run_command,
 };
 
 mod common;
