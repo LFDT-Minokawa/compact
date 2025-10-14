@@ -459,13 +459,13 @@ fn test_sc7_update_previous_list_compile() {
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
-            PREVIOUS_COMPACTC_VERSION,
+            VERSION_WITH_NO_FORMAT,
         ],
         None,
         Some("./output/update/std_update_other.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,
@@ -496,7 +496,7 @@ fn test_sc7_update_previous_list_compile() {
         None,
         Some("./output/compile/std_non_latest.txt"),
         None,
-        &[("[COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION)],
+        &[("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT)],
         None,
     );
 }
