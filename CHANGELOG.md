@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.26.108 language version 0.18.100]
+
+### Fixed
+
+- A bug in unreleased code that caused an internal error message
+  about an invalid source object.
+- Internal language version is now properly bumped to 0.18.100.
+
+
 ## [Unreleased compiler version 0.26.107 language version 0.18.1]
 
 ### Fixed
