@@ -12173,6 +12173,28 @@
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 19" "identifier ~s might be referenced before it is assigned" (a)))
    )
+
+  (test
+    '(
+      "module Test {"
+      "  export circuit test(var: Field): Field {"
+      "    return var;"
+      "  }"
+      "}"
+      ""
+      "import { test as t, t as test } from Test;"
+      ""
+      "export { t, T$t };"
+      ""
+      "export circuit test1(): Field {"
+      "  const a = t(1) + T$t(1);"
+      "  return a;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 21" "no export named ~a in module ~a" (t Test)))
+    )
 )
 
 (run-tests infer-types

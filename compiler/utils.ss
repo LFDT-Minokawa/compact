@@ -189,6 +189,7 @@
     (define-syntax source-errorf
       (syntax-rules ()
         [(_ ?src ?msg ?arg ...)
+         (datum ?src)
          (source-conditionf ?src ?msg (list ?arg ...) (make-serious-condition) raise)]))
     (indirect-export source-errorf source-conditionf)
     (define-syntax source-warningf
