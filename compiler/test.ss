@@ -76873,6 +76873,23 @@
         "});"
         ))
     )
+
+  ; pm-20004
+  (test
+    '(
+      "ledger vt2a: Boolean;"
+      "export circuit test2(): Boolean {"
+      "  return (vt2a = true, true) || true;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.test2(Ctxt).result).toEqual(true);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
