@@ -54,13 +54,15 @@ The following flags, if present, affect the tool's behavior as follows:
     [((flags [(--help) $ (begin (print-help) (exit))]
              [(--version) $ (begin (print-compiler-version) (exit))]
              [(--language-version) $ (begin (print-language-version) (exit))]
-             [(--vscode)])
+             [(--vscode)]
+             [(--update-Uint-ranges)])
       (string source-pathname)
       (optional string target-pathname #f))
      (check-pathname source-pathname)
      (when target-pathname (check-pathname target-pathname))
      (handle-exceptions ?--vscode
-       (let ([s (parse-file/fixup/format source-pathname line-length)])
+       (let ([s (parameterize ([update-Uint-ranges ?--update-Uint-ranges])
+                  (parse-file/fixup/format source-pathname line-length))])
          (if target-pathname
              (let ([op (guard (c [else (error-accessing-file c "creating output file")])
                          (open-output-file target-pathname 'replace))])

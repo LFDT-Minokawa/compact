@@ -3007,6 +3007,61 @@
     )
 )
 
+(parameterize ([(let () (import (fixup)) update-Uint-ranges) #t])
+(run-tests parse-file/fixup/format/reparse
+  (test
+    '(
+      "ledger F: Uint<0..7>;"
+      "export circuit foo(x: Uint<0..7>): Uint<0..7> {"
+      "  F = disclose(x) * 2 as Uint<0..7>;"
+      "  return F;"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "ledger F: Uint<0..8>;"
+        ""
+        "export circuit foo(x: Uint<0..8>): Uint<0..8> {"
+        "  F = disclose(x) * 2 as Uint<0..8>;"
+        "  return F;"
+        "}"))
+    (returns
+      (program
+        (public-ledger-declaration #f #f F (tunsigned 0 8))
+        (circuit #t #f foo () ([x (tunsigned 0 8)])
+             (tunsigned 0 8)
+          (block
+            (= F (cast (tunsigned 0 8) (* (disclose x) 2)))
+            (return F)))))
+    )
+
+  (test
+    '(
+      "ledger F: Uint<0..7>;"
+      "export circuit foo(x: Uint<0x0..0x7>): Uint<0o0..0o7> {"
+      "  F = disclose(x) * 2 as Uint<0b0..0b111>;"
+      "  return F;"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "ledger F: Uint<0..8>;"
+        ""
+        "export circuit foo(x: Uint<0x0..0x8>): Uint<0o0..0o10> {"
+        "  F = disclose(x) * 2 as Uint<0b0..0b1000>;"
+        "  return F;"
+        "}"))
+    (returns
+      (program
+        (public-ledger-declaration #f #f F (tunsigned 0 8))
+        (circuit #t #f foo () ([x (tunsigned 0 8)])
+             (tunsigned 0 8)
+          (block
+            (= F (cast (tunsigned 0 8) (* (disclose x) 2)))
+            (return F)))))
+    )
+))
+
 (run-tests parse-file
   (test
     '(
