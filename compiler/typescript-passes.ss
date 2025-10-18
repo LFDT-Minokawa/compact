@@ -1325,7 +1325,7 @@
               (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
                 [(tboolean ,src) "Boolean"]
                 [(tfield ,src) "Field"]
-                [(tunsigned ,src ,nat) (format "Uint<0..~d>" nat)]
+                [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
                 [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
                 [(tunknown) "Unknown"]
                 [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -3054,10 +3054,11 @@
                 (make-Qconcat
                   "((t1) => {"
                   2 (format "if (t1 > ~d) {" nat)
-                  4 (format "throw new ~a('~a: cast from enum ~a to Uint<0..~d> failed: enum value ' + t1 + ' is greater than ~:*~d');"
+                  4 (format "throw new ~a('~a: cast from enum ~a to Uint<0..~d> failed: enum value ' + t1 + ' is greater than ~d');"
                       (compact-stdlib "CompactError")
                       (format-source-object src)
                       enum-name
+                      (+ nat 1)
                       nat)
                   2 "}"
                   2 "return BigInt(t1);"

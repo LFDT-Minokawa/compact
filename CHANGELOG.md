@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.26.110 language version 0.18.101]
+
+### Changed
+
+- `Uint` range end-points are now exclusive rather than inclusive to match the
+  range syntax for `for` ranges.  That is, `Uint<0..n>` is now interpreted as the
+  set of all unsigned integers in the range 0 through `n-1`, e.g., `Uint<0..3>`
+  represents the set {0, 1, 2} rather than the set {0, 1, 2, 3}.
+
 ## [Unreleased compiler version 0.26.109 language version 0.18.100]
 
 ### Fixed
