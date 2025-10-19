@@ -264,7 +264,7 @@
       (tboolean src)                         => (tboolean)
       (tfield src)                           => (tfield)
       (tunsigned src tsize)                  => (tunsigned tsize)        ; range from 0 to 2^{tsize}-1
-      (tunsigned src tsize tsize^)           => (tunsigned tsize tsize^) ; range from tsize to tsize^
+      (tunsigned src tsize tsize^)           => (tunsigned tsize tsize^) ; range from tsize (inclusive) to tsize^ (inclusive)
       (tbytes src tsize)                     => (tbytes tsize)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src tsize type)               => (tvector tsize type)
@@ -553,7 +553,7 @@
          (tvector src tsize type)
          (tbytes src tsize))
       (+ tvar-name
-         (tunsigned src nat)    => (tunsigned nat)
+         (tunsigned src nat)    => (tunsigned nat) ; nat = max value
          (tvector src len type) => (tvector len type)
          (tbytes src len)       => (tbytes len)
          (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
