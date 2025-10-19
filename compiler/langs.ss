@@ -36,7 +36,7 @@
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
           Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats Lwithpaths-Public-Ledger-ADT? Lwithpaths-Type?
-          Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats Lnodisclose-Type-Definition?
+          Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats Lnodisclose-Export-Type-Definition?
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-Public-Ledger-ADT? Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op? Ltypescript-Type?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
@@ -112,8 +112,8 @@
   (define-language/pretty Lsrc
     (terminals
       (field (nat))
-      (boolean (exported sealed pure-dcl))
-      (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name))
+      (boolean (exported sealed pure-dcl nominal))
+      (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
       (string (prefix mesg opaque-type file))
       (datum (datum))
       (source-object (src))
@@ -133,7 +133,8 @@
       wdecl
       ecdecl
       structdef
-      enumdef)
+      enumdef
+      tdefn)
     (Include (incld)
       (include src file) =>
         (include file)
@@ -191,6 +192,10 @@
     (Enum-Definition (enumdef)
       (enum src exported? enum-name elt-name elt-name* ...) =>
         (enum exported? enum-name #f elt-name #f elt-name* ...)
+      )
+    (Type-Definition (tdefn)
+      (typedef src exported? nominal? type-name (type-param* ...) type) =>
+        (typedef exported? nominal? type-name (type-param* ...) #f type)
       )
     (Type-Param (type-param)
       (nat-valued src tvar-name) => (nat-valued tvar-name)
@@ -375,9 +380,9 @@
 
   (define-language/pretty Lpreexpand (extends Lnoandornot)
     (terminals
-      (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name))
+      (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
          (string (prefix mesg opaque-type file)))
-      (+ (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal))
+      (+ (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
          (string (prefix mesg opaque-type file discloses))
          (procedure (result-type runtime-code))
          (vm-expr (vm-expr))
@@ -450,11 +455,11 @@
   (define-language/pretty Lexpanded (extends Lpreexpand)
     (terminals
       (+ (len (len)))
-      (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal))
-         (boolean (exported sealed pure-dcl))
+      (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
+         (boolean (exported sealed pure-dcl nominal))
          (string (prefix mesg opaque-type file discloses)))
       (+ (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name opaque-type-name ledger-op ledger-op-class adt-name adt-formal symbolic-function-name generic-kind))
-         (boolean (pure-dcl))
+         (boolean (pure-dcl nominal))
          (id (name var-name function-name ledger-field-name))
          (string (mesg opaque-type file discloses))
          (native-entry (native-entry))))
@@ -469,9 +474,10 @@
          ecdecl
          structdef
          enumdef
+         tdefn
          adt-defn
          circuit-alias-defn)
-      (+ typedef))
+      (+ export-tdefn))
     (ADT-Definition (adt-defn)
       (- (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...))))
     (Circuit-Alias-Definition (circuit-alias-defn)
@@ -517,9 +523,11 @@
       (- (struct src exported? struct-name (type-param* ...) arg* ...)))
     (Enum-Definition (enumdef)
       (- (enum src exported? enum-name elt-name elt-name* ...)))
-    (Type-Definition (typedef)
-      (+ (type-definition src type-name (tvar-name* ...) type) =>
-           (type-definition type-name (tvar-name* ...) #f type)))
+    (Type-Definition (tdefn)
+      (- (typedef src exported? nominal? type-name (type-param* ...) type)))
+    (Export-Type-Definition (export-tdefn)
+      (+ (export-typedef src type-name (tvar-name* ...) type) =>
+           (export-typedef type-name (tvar-name* ...) #f type)))
     (ADT-Runtime-Op (adt-rt-op)
       (+ (ledger-op (arg* ...) result-type runtime-code) =>
            ledger-op))
@@ -570,6 +578,7 @@
            (tstruct struct-name #f (elt-name* type*) ...)
          (tenum src enum-name elt-name elt-name* ...) =>
            (tenum enum-name #f elt-name #f elt-name* ...)
+         (talias src nominal? type-name type) => (talias nominal? type-name #f type)
          public-adt))
     (Type-Ref (tref)
       (- (type-ref src tvar-name targ* ...)))
@@ -586,7 +595,7 @@
       (len (len))
       (maybe-bits (mbits))
       (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal))
-      (boolean (pure-dcl))
+      (boolean (pure-dcl nominal))
       (id (name var-name function-name ledger-field-name))
       (string (mesg opaque-type file discloses sugar))
       (datum (datum))
@@ -604,7 +613,7 @@
       wdecl
       ldecl
       lconstructor
-      typedef)
+      export-tdefn)
     (Circuit-Definition (cdefn)
       (circuit src function-name (arg* ...) type expr) =>
         (circuit function-name (arg* 0 ...) 4 type #f expr))
@@ -614,9 +623,9 @@
     (Witness-Declaration (wdecl)
       (witness src function-name (arg* ...) type) =>
         (witness function-name (arg* 0 ...) 4 type))
-    (Type-Definition (typedef)
-      (type-definition src type-name (tvar-name* ...) type) =>
-        (type-definition type-name (tvar-name* ...) #f type))
+    (Export-Type-Definition (export-tdefn)
+      (export-typedef src type-name (tvar-name* ...) type) =>
+        (export-typedef type-name (tvar-name* ...) #f type))
     (Ledger-Declaration (ldecl)
       (public-ledger-declaration src ledger-field-name public-adt) =>
         (public-ledger-declaration #f ledger-field-name #f public-adt))
@@ -728,6 +737,8 @@
         (tstruct struct-name #f (elt-name* type*) ...)
       (tenum src enum-name elt-name elt-name* ...) =>
         (tenum enum-name #f elt-name #f elt-name* ...)
+      (talias src nominal type-name type) =>
+        (talias nominal type-name #f type)
       (tundeclared)
       (tunknown)))
 
@@ -850,14 +861,16 @@
     (terminals
       (- (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
       (+ (symbol (export-name contract-name struct-name enum-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
+      (- (boolean (pure-dcl nominal)))
+      (+ (boolean (pure-dcl)))
       (- (procedure (result-type runtime-code))))
     (Program (p)
       (- (program src (contract-name* ...) ((export-name* name*) ...) pelt* ...))
       (+ (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...)))
     (Program-Element (pelt)
-      (- typedef))
-    (Type-Definition (typedef)
-      (- (type-definition src type-name (tvar-name* ...) type)))
+      (- export-tdefn))
+    (Export-Type-Definition (export-tdefn)
+      (- (export-typedef src type-name (tvar-name* ...) type)))
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration pl-array lconstructor))
       (+ (public-ledger-declaration pl-array) =>
@@ -881,7 +894,8 @@
       (+ (elt-ref src expr elt-name) => (elt-ref expr elt-name)
          (bytes->field src len expr) => (bytes->field len expr)))
     (Type (type)
-      (- tvar-name)))
+      (- tvar-name
+         (talias src nominal type-name type))))
 
   (define-language/pretty Lnoenums (extends Lposttypescript)
     (terminals

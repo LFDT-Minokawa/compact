@@ -50,13 +50,18 @@
              (with-output-language (Ltypescript Public-Ledger-ADT-Type)
                `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
             [else adt-type]))
+        (define (de-alias adt-type)
+          (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+            [(talias ,src ,nominal? ,type-name ,type)
+             (de-alias type)]
+            [else adt-type]))
         (define (type-hash type)
           (define max-tuple-elts-to-hash 10)
           (define (update hc k)
             (fxlogxor (#3%fx+ (#3%fxsll hc 2) hc) k))
           (define (nat-hash nat)
             (if (fixnum? nat) nat (modulo nat (most-positive-fixnum))))
-          (nanopass-case (Ltypescript Type) type
+          (nanopass-case (Ltypescript Type) (de-alias type)
             [(tboolean ,src) 523634023]
             [(tfield ,src) 22268065]
             [(tunsigned ,src ,nat) (update 149561537 (nat-hash nat))]
@@ -90,51 +95,52 @@
             [(tunknown) 241715055]
             [else (assert cannot-happen)]))
         (define (type=? type1 type2)
-          (let ([type1 (subst-tcontract type1)] [type2 (subst-tcontract type2)])
-            (T type1
-               [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-               [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
-               [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
-               [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
-               [(topaque ,src1 ,opaque-type1)
-                (T type2
-                   [(topaque ,src2 ,opaque-type2)
-                    (string=? opaque-type1 opaque-type2)])]
-               [(tvector ,src1 ,len1 ,type1)
-                (T type2
-                   [(tvector ,src2 ,len2 ,type2)
-                    (and (= len1 len2)
-                         (type=? type1 type2))]
-                   [(ttuple ,src2 ,type2* ...)
-                    (and (= len1 (length type2*))
-                         (andmap (lambda (type2) (type=? type1 type2)) type2*))])]
-               [(ttuple ,src1 ,type1* ...)
-                (T type2
-                   [(tvector ,src2 ,len2 ,type2)
-                    (and (= (length type1*) len2)
-                         (andmap (lambda (type1) (type=? type1 type2)) type1*))]
-                   [(ttuple ,src2 ,type2* ...)
-                    (and (= (length type1*) (length type2*))
-                         (andmap type=? type1* type2*))])]
-               [(tunknown) (T type2 [(tunknown) #t])]
-               [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-                ; since we substitute out tcontract types, this is not exercised
-                (assert cannot-happen)]
-               [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
-                (T type2
-                   [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
-                    ; include struct-name and elt-name tests for nominal typing; remove
-                    ; for structural typing.
-                    (and (eq? struct-name1 struct-name2)
-                         (fx= (length elt-name1*) (length elt-name2*))
-                         (andmap eq? elt-name1* elt-name2*)
-                         (andmap type=? type1* type2*))])]
-               [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
-                (T type2
-                   [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
-                    (and (eq? enum-name1 enum-name2)
-                         (eq? elt-name1 elt-name2)
-                         (andmap eq? elt-name1* elt-name2*))])])))
+          (let ([type1 (de-alias type1)] [type2 (de-alias type2)])
+            (let ([type1 (subst-tcontract type1)] [type2 (subst-tcontract type2)])
+              (T type1
+                 [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
+                 [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
+                 [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
+                 [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
+                 [(topaque ,src1 ,opaque-type1)
+                  (T type2
+                     [(topaque ,src2 ,opaque-type2)
+                      (string=? opaque-type1 opaque-type2)])]
+                 [(tvector ,src1 ,len1 ,type1)
+                  (T type2
+                     [(tvector ,src2 ,len2 ,type2)
+                      (and (= len1 len2)
+                           (type=? type1 type2))]
+                     [(ttuple ,src2 ,type2* ...)
+                      (and (= len1 (length type2*))
+                           (andmap (lambda (type2) (type=? type1 type2)) type2*))])]
+                 [(ttuple ,src1 ,type1* ...)
+                  (T type2
+                     [(tvector ,src2 ,len2 ,type2)
+                      (and (= (length type1*) len2)
+                           (andmap (lambda (type1) (type=? type1 type2)) type1*))]
+                     [(ttuple ,src2 ,type2* ...)
+                      (and (= (length type1*) (length type2*))
+                           (andmap type=? type1* type2*))])]
+                 [(tunknown) (T type2 [(tunknown) #t])]
+                 [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+                  ; since we substitute out tcontract types, this is not exercised
+                  (assert cannot-happen)]
+                 [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
+                  (T type2
+                     [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
+                      ; include struct-name and elt-name tests for nominal typing; remove
+                      ; for structural typing.
+                      (and (eq? struct-name1 struct-name2)
+                           (fx= (length elt-name1*) (length elt-name2*))
+                           (andmap eq? elt-name1* elt-name2*)
+                           (andmap type=? type1* type2*))])]
+                 [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
+                  (T type2
+                     [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
+                      (and (eq? enum-name1 enum-name2)
+                           (eq? elt-name1 elt-name2)
+                           (andmap eq? elt-name1* elt-name2*))])]))))
         (define descriptor-table (make-hashtable type-hash type=?))
         (define rdescriptor* '())
         (define (register-descriptor! adt-type)
@@ -149,7 +155,8 @@
                  [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                   (for-each register-descriptor! type*)]
                  [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                  (assert cannot-happen)])
+                  (assert cannot-happen)]
+                 [(talias ,src ,nominal? ,type-name ,type) (register-descriptor! type)])
               (let ([a (hashtable-cell descriptor-table adt-type #f)])
                 (unless (cdr a)
                   (let ([id (make-temp-id program-src 'descriptor)])
@@ -217,7 +224,7 @@
        `(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)])
     (ADT-Op-Class : ADT-Op-Class (ir) -> ADT-Op-Class ())
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-      [(circuit ,src ,function-name (,[arg*] ...) ,[type] ,[Stmt : expr src -> stmt])
+      [(circuit ,src ,function-name (,[arg*] ...) ,[type0 -> type] ,[Stmt : expr src -> stmt])
        (for-each register-descriptor! (map arg->type arg*))
        (maybe-register-descriptor! type)
        `(circuit ,src ,function-name (,arg* ...) ,type ,stmt)])
@@ -1064,7 +1071,17 @@
                                       elt-name+
                                       (enumerate elt-name+))))
                         0 "}"))]
-                   [else (assert cannot-happen)])
+                   [(talias ,src ,nominal? ,type-name ,type)
+                    (print-Q 0
+                      (make-Qconcat
+                        "export type "
+                        (let ([q (symbol->string export-name)])
+                          (if (null? tvar-name*)
+                              q
+                              (make-Qconcat q "<" (apply (make-Qsep ",") (map symbol->string tvar-name*)) ">")))
+                        " = "
+                        (Type type)
+                        ";"))])
                  (newline)]
                 [else (void)]))
             xpelt*))
@@ -1210,7 +1227,7 @@
             (let ([descriptor-name (format-internal-binding unique-global-name descriptor-id)])
               (printf "const ~a = ~a;\n\n"
                 descriptor-name
-                (nanopass-case (Ltypescript Type) type
+                (nanopass-case (Ltypescript Type) (de-alias type)
                   [(tboolean ,src)
                    "__compactRuntime.CompactTypeBoolean"]
                   [(tfield ,src)
@@ -1293,35 +1310,36 @@
 
           (module (argument-type-checks context-type-check result-type-check)
             (define (typeof adt-type var)
-              (let ([adt-type (subst-tcontract adt-type)])
-                (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
-                  [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
-                  [(tfield ,src) (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
-                  [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
-                  [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
-                  [(topaque ,src ,opaque-type) "true"]
-                  [(tvector ,src ,len ,type)
-                   (format "Array.isArray(~a) && ~:*~a.length === ~d && ~2:*~a.every((t) => ~*~a)"
-                           var len (typeof type "t"))]
-                  [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                   (assert cannot-happen)]
-                  [(ttuple ,src ,type* ...)
-                   (format "Array.isArray(~a) && ~:*~a.length === ~d ~{ && ~a~}"
-                     var
-                     (length type*)
-                     (map (lambda (eltno type) (typeof type (format "~a[~d]" var eltno)))
-                          (enumerate type*)
-                          type*))]
-                  [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-                   ; ignoring struct-name, so we're getting structural typing.  also ignoring extra fields.
-                   (format "typeof(~a) === 'object'~{ && ~a~}" var (map (lambda (elt-name type) (typeof type (format "~a.~s" var elt-name))) elt-name* type*))]
-                  [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-                   (format "typeof(~a) === 'number' && ~:*~a >= 0 && ~:*~a <= ~d" var (length elt-name*))]
-                  [(tunknown) (assert cannot-happen)]
-                  [,public-adt (assert cannot-happen)])))
+              (let ([adt-type (de-alias adt-type)])
+                (let ([adt-type (subst-tcontract adt-type)])
+                  (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+                    [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
+                    [(tfield ,src) (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
+                    [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
+                    [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
+                    [(topaque ,src ,opaque-type) "true"]
+                    [(tvector ,src ,len ,type)
+                     (format "Array.isArray(~a) && ~:*~a.length === ~d && ~2:*~a.every((t) => ~*~a)"
+                             var len (typeof type "t"))]
+                    [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                     (assert cannot-happen)]
+                    [(ttuple ,src ,type* ...)
+                     (format "Array.isArray(~a) && ~:*~a.length === ~d ~{ && ~a~}"
+                       var
+                       (length type*)
+                       (map (lambda (eltno type) (typeof type (format "~a[~d]" var eltno)))
+                            (enumerate type*)
+                            type*))]
+                    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                     ; ignoring struct-name, so we're getting structural typing.  also ignoring extra fields.
+                     (format "typeof(~a) === 'object'~{ && ~a~}" var (map (lambda (elt-name type) (typeof type (format "~a.~s" var elt-name))) elt-name* type*))]
+                    [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+                     (format "typeof(~a) === 'number' && ~:*~a >= 0 && ~:*~a <= ~d" var (length elt-name*))]
+                    [(tunknown) (assert cannot-happen)]
+                    [,public-adt (assert cannot-happen)]))))
 
             (define (format-type adt-type)
-              (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+              (nanopass-case (Ltypescript Public-Ledger-ADT-Type) (de-alias adt-type)
                 [(tboolean ,src) "Boolean"]
                 [(tfield ,src) "Field"]
                 [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
@@ -2117,8 +2135,6 @@
               (XPelt-case xpelt
                 [(XPelt-type-definition src type-name export-name tvar-name* type)
                  (nanopass-case (Ltypescript Type) type
-                   [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-                    (void)]
                    [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
                     (printf "export var ~a;\n" export-name)
                     (printf "(function (~a) {\n" export-name)
@@ -2129,7 +2145,7 @@
                         elt-name*
                         (enumerate elt-name*)))
                     (printf "})(~a || (~:*~a = {}));\n\n" export-name)]
-                   [else (assert cannot-happen)])]
+                   [else (void)])]
                 [else (void)]))
             xpelt*))
 
@@ -2499,6 +2515,11 @@
                    (let ([col (f (Qconcat-q* q) col col (fx> (fx+ col (Q-size q)) line-length))])
                      (f q* col reset-col break?))]
                   [else (assert cannot-happen)])))))
+      (define (de-alias adt-type)
+        (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+          [(talias ,src ,nominal? ,type-name ,type)
+           (de-alias type)]
+          [else adt-type]))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
@@ -2529,12 +2550,13 @@
       [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
        (let ([external-name (symbol->string (id-sym function-name))])
          (XPelt-external-circuit src function-name native-entry arg* type external-name (id-pure? function-name)))]
-      [(type-definition ,src ,type-name (,tvar-name* ...) ,type)
+      [(export-typedef ,src ,type-name (,tvar-name* ...) ,type)
        (let ([actual-type-name
               (nanopass-case (Ltypescript Type) type
                 [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) struct-name]
                 [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) enum-name]
-                [else (assert cannot-happen)])])
+; FIXME: should probably have the name from tnominal
+                [else type-name])])
          (XPelt-type-definition src actual-type-name type-name tvar-name* type))]
       [(public-ledger-declaration ,pl-array ,lconstructor)
        (XPelt-public-ledger pl-array lconstructor external-names)]
@@ -2686,40 +2708,41 @@
        (make-Qconcat/src src (format-id-reference var-name))]
       [(default ,src ,adt-type)
        (let default-value ([adt-type adt-type])
-         ; even though tstruct is substituted for tcontract, we will never generate a default value
-         ; for a tcontract since that would be caught earlier. so this substitution is safe.
-         (let ([adt-type (subst-tcontract adt-type)])
-           (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
-             [(tboolean ,src) "false"]
-             [(tfield ,src) "0n"]
-             [(tunsigned ,src ,nat) "0n"]
-             [(tbytes ,src ,len)
-              (parenthesize level (precedence new)
-                (format "new Uint8Array(~d)" len))]
-             [(topaque ,src ,opaque-type)
-              (case opaque-type
-                [("string") "''"]
-                [("Uint8Array") "new Uint8Array(0)"]
-                ; FIXME: what should happen with other opaque types?
-                [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
-             [(tvector ,src ,len ,type)
-              (parenthesize level (precedence new)
-                (format "new Array(~a).fill(~a)"
-                  len
-                  (default-value type)))]
-             [(ttuple ,src ,type* ...)
-              (format "[~{~a~^, ~}]" (map default-value type*))]
-             [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-              (format "{ ~{~a~^, ~} }"
-                (map (lambda (elt-name type)
-                       (format "~a: ~a" elt-name (default-value type)))
-                     elt-name*
-                     type*))]
-             [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) "0"]
-             ; FIXME: this should not appear in the output at present, but might if we implement
-             ; first-class ADT values
-             [,public-adt "undefined"]
-             [else (assert cannot-happen)])))]
+         (let ([adt-type (de-alias adt-type)])
+           ; even though tstruct is substituted for tcontract, we will never generate a default value
+           ; for a tcontract since that would be caught earlier. so this substitution is safe.
+           (let ([adt-type (subst-tcontract adt-type)])
+             (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+               [(tboolean ,src) "false"]
+               [(tfield ,src) "0n"]
+               [(tunsigned ,src ,nat) "0n"]
+               [(tbytes ,src ,len)
+                (parenthesize level (precedence new)
+                  (format "new Uint8Array(~d)" len))]
+               [(topaque ,src ,opaque-type)
+                (case opaque-type
+                  [("string") "''"]
+                  [("Uint8Array") "new Uint8Array(0)"]
+                  ; FIXME: what should happen with other opaque types?
+                  [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
+               [(tvector ,src ,len ,type)
+                (parenthesize level (precedence new)
+                  (format "new Array(~a).fill(~a)"
+                    len
+                    (default-value type)))]
+               [(ttuple ,src ,type* ...)
+                (format "[~{~a~^, ~}]" (map default-value type*))]
+               [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                (format "{ ~{~a~^, ~} }"
+                  (map (lambda (elt-name type)
+                         (format "~a: ~a" elt-name (default-value type)))
+                       elt-name*
+                       type*))]
+               [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) "0"]
+               ; FIXME: this should not appear in the output at present, but might if we implement
+               ; first-class ADT values
+               [,public-adt "undefined"]
+               [else (assert cannot-happen)]))))]
       [(not ,src ,[Expr : expr (precedence not) outer-pure? -> * expr])
        (parenthesize level (precedence not)
          (make-Qconcat "!" expr))]
@@ -3210,7 +3233,12 @@
                            (and (eq? enum-name1 enum-name2)
                                 (eq? elt-name1 elt-name2)
                                 (fx= (length elt-name1*) (length elt-name2*))
-                                (andmap eq? elt-name1* elt-name2*))])]))
+                                (andmap eq? elt-name1* elt-name2*))])]
+                      [(talias ,src1 ,nominal1? ,type-name1 ,type1)
+                       (T type2
+                          [(talias ,src2 ,nominal2? ,type-name2 ,type2)
+                           (and (eq? type-name1 type-name2)
+                                (unify? type1 type2))])]))
                  (map cdr subst*)))))
       [,tvar-name (symbol->string tvar-name)]
       [(tboolean ,src) "boolean"]
@@ -3269,6 +3297,27 @@
            ; FIXME: we could create a new global definition with a unique global name generated
            ;        from enum-name to avoid using just "number" as the type, preferably avoiding duplicates
            "number")]
+      [(talias ,src ,nominal? ,type-name ,type)
+       (or (ormap (lambda (tinfo)
+                    (cond
+                      [(unify-type (tinfo-tvar* tinfo) (tinfo-type tinfo) ir) =>
+                       (lambda (maybe-type*)
+                         (let ([q (format "~a" (tinfo-export-name tinfo))])
+                           (if (null? maybe-type*)
+                               q
+                               (make-Qconcat
+                                 q
+                                 "<"
+                                 (apply (make-Qsep ",")
+                                        (map (lambda (maybe-type)
+                                               (if maybe-type
+                                                   (Type maybe-type)
+                                                   "any"))
+                                             maybe-type*))
+                                 ">"))))]
+                      [else #f]))
+                  (hashtable-ref exported-type-ht type-name '()))
+           (Type type))]
       [else (assert cannot-happen)]))
 
   (define-passes typescript-passes

@@ -30,14 +30,14 @@
        `(program ,src ((,export-name* ,name*) ...)
           ,(fold-right
              (lambda (pelt pelt*)
-               (if (Lnodisclose-Type-Definition? pelt)
+               (if (Lnodisclose-Export-Type-Definition? pelt)
                    pelt*
                    (cons (Program-Element pelt) pelt*)))
              '()
              pelt*)
           ...)])
     (Program-Element : Program-Element (ir) -> Program-Element ()
-      [,typedef (assert cannot-happen)])
+      [,export-tdefn (assert cannot-happen)])
     (Ledger-Declaration : Ledger-Declaration (ir) -> Ledger-Declaration ()
       [(public-ledger-declaration ,[pl-array] ,lconstructor)
        `(public-ledger-declaration ,pl-array)])
@@ -62,7 +62,8 @@
            [(tunsigned ,src ,nat) `(downcast-unsigned ,src ,nat ,expr)]
            [else expr]))])
     (Type : Type (ir) -> Type ()
-      [,tvar-name (assert cannot-happen)]))
+      [,tvar-name (assert cannot-happen)]
+      [(talias ,src ,nominal? ,type-name ,[type]) type]))
 
   (define-pass replace-enums : Lposttypescript (ir) -> Lnoenums ()
     (Expression : Expression (ir) -> Expression ()
