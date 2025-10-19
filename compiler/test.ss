@@ -3060,6 +3060,58 @@
             (= F (cast (tunsigned 0 8) (* (disclose x) 2)))
             (return F)))))
     )
+
+  (test
+    '(
+      "module M<#N> {"
+      "  ledger F: Uint<0..N>;"
+      "  export circuit foo(x: Uint<0..N>): Uint<0..N> {"
+      "    F = disclose(x) * 2 as Uint<0..N>;"
+      "    return F + N as Uint<0..N>;"
+      "  }"
+      "}"
+      "import M<7>;"
+      "export { foo };"
+      )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 21" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (N))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 33" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (N))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 46" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (N))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 36" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (N))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 29" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (N)))
+    (returns
+      (program
+        (module #f M ((nat-valued N))
+          (public-ledger-declaration #f #f
+            F
+            (tunsigned 0 (type-size-ref N)))
+          (circuit #t #f foo () ([x (tunsigned 0 (type-size-ref N))])
+               (tunsigned 0 (type-size-ref N))
+            (block
+              (= F
+                 (cast (tunsigned 0 (type-size-ref N)) (* (disclose x) 2)))
+              (return (cast (tunsigned 0 (type-size-ref N)) (+ F N))))))
+        (import M (7) "")
+        (export foo)))
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "module M<#N> {"
+        "  ledger F: Uint<0..N>;"
+        "  export circuit foo(x: Uint<0..N>): Uint<0..N> {"
+        "    F = disclose(x) * 2 as Uint<0..N>;"
+        "    return F + N as Uint<0..N>;"
+        "  }"
+        "}"
+        ""
+        "import M<7>;"
+        ""
+        "export { foo };"))
+    )
 ))
 
 (run-tests parse-file
