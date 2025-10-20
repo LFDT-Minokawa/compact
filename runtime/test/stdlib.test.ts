@@ -221,11 +221,11 @@ describe('builtin hash functions', () => {
 
 test('sanity check for contract address utilities', () => {
   const address = ocrt.sampleContractAddress();
-  expect(compactRuntime.fromHex(address).length).toEqual(compactRuntime.CONTRACT_ADDRESS_BYTE_LENGTH);
+  // We add 2 to the 'CONTRACT_ADDRESS_BYTE_LENGTH' because, as of '@midnight-ntwrk/onchain-runtime@0.3.0', sampled
+  // contract addresses have a network ID prepended. This will change in future OCRT versions.
+  expect(compactRuntime.encodeContractAddress(address).length).toEqual(compactRuntime.ENCODED_CONTRACT_ADDRESS_BYTE_LENGTH);
   expect(compactRuntime.isContractAddress(address)).toBe(true);
-  const encodedAddress = { bytes: compactRuntime.fromHex(address) };
-  expect(compactRuntime.isEncodedContractAddress(encodedAddress)).toBe(true);
-
+  expect(compactRuntime.isEncodedContractAddress({ bytes: compactRuntime.encodeContractAddress(address) })).toBe(true);
   const bogusAddress = '098230498';
   expect(compactRuntime.isContractAddress(bogusAddress)).toBe(false);
   const encodedBogusAddress = { bytes: compactRuntime.fromHex(bogusAddress) };

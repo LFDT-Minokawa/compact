@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as ocrt from '@midnight-ntwrk/onchain-runtime';
-import { isEncodedContractAddress } from './utils.js';
-import { CompactError } from './error.js';
+import { assertIsEncodedContractAddress, isEncodedContractAddress } from './utils.js';
+import { CompactError, expectedValueError } from './error.js';
 import { CompactType } from './compact-types.js';
 import { EncodedContractAddress } from './zswap.js';
 import { ContractId } from './circuit-context.js';
@@ -107,21 +107,6 @@ function isCompactValue(x: unknown): x is CompactValue {
   return isEncodedContractAddress(x) || isCompactVector(x) || isCompactStruct(x);
 }
 
-const expectedValueError = (expected: string, actual: unknown): void => {
-  throw new CompactError(`Expected ${expected} but received ${JSON.stringify(actual)}`);
-};
-
-/**
- * Throws an error if the input value is not a {@link ContractAddress}, i.e., string.
- *
- * @param value The value that is asserted to be a {@link ContractAddress}.
- */
-function assertIsContractAddress(value: CompactValue): asserts value is EncodedContractAddress {
-  if (!isEncodedContractAddress(value)) {
-    expectedValueError('contract address', value);
-  }
-}
-
 /**
  * Throws an error if the input value is not a {@link CompactVector}.
  *
@@ -178,7 +163,7 @@ const compactValueDependencies = (
   dependencies: Set<ContractDependency>,
 ): void => {
   if (sparseCompactType.tag == 'contractAddress') {
-    assertIsContractAddress(compactValue);
+    assertIsEncodedContractAddress(compactValue);
     dependencies.add({
       contractId: sparseCompactType.contractId,
       address: ocrt.decodeContractAddress(compactValue.bytes),

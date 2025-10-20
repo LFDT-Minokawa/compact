@@ -27,6 +27,7 @@ import { WitnessSets } from './witness.js';
 import { ConstructorContext, ConstructorResult } from './constructor-context.js';
 import { assertDefined } from './error.js';
 import { ContractReferenceLocations, ContractReferenceLocationsSet } from './contract-dependencies.js';
+import { assertIsContractAddress } from './utils.js';
 
 /**
  * The type of an impure circuit. An impure circuit is a function that accepts a circuit context and an arbitrary list of
@@ -147,6 +148,7 @@ export const interContractCall = (
   contractAddress: ocrt.ContractAddress,
   ...args: any[]
 ): any => {
+  assertIsContractAddress(contractAddress);
   const impureCircuit = executables.impureCircuits[circuitId];
   assertDefined(impureCircuit, `'${circuitId}' in '${contractId}'`);
   const callerStackFrame = copyStackFrame(callerContext);

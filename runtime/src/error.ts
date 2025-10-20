@@ -54,3 +54,12 @@ export function typeError(who: string, what: string, where: string, type: string
   const msg = `type error: ${who} ${what} at ${where}; expected value of type ${type} but received ${inspect(x)}`;
   throw new CompactError(msg);
 }
+
+/**
+ * Compiler internal for unexpected value errors
+ * @param expected The name of the expected value
+ * @param actual The actual value
+ */
+export function expectedValueError(expected: string, actual: unknown): never {
+  throw new CompactError(`Expected ${expected} but received ${JSON.stringify(actual)}`);
+}
