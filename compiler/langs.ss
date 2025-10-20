@@ -76,7 +76,8 @@
   (define (datum? x)
     (or (boolean? x)
         (field? x)
-        (bytevector? x)))
+        (and (bytevector? x)
+             (<= (bytevector-length x) (max-bytes/vector-size)))))
 
   (define max-bytes/vector-size (make-parameter (expt 2 24)))
 

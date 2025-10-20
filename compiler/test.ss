@@ -21349,7 +21349,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 6 char 10" "instantiating a module with size/length\n    ~d causes ~a at ~s to exceed maximum ~a size/length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) "vector type" "line 2 char 32" "vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 2 char 25" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("vector type" ,(+ (max-bytes/vector-size) 1) "vector" ,(max-bytes/vector-size))))
     )
 
   ; test for bounds of bytes
@@ -21406,7 +21406,18 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 27" "Tuple type length\n    ~d\n  exceeds the maximum tuple length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 1 char 27" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("tuple type" ,(+ (max-bytes/vector-size) 1) "tuple" ,(max-bytes/vector-size))))
+    )
+
+  (test
+    `(
+      "export circuit foo() : [] {"
+      ,(format "  const x = '~a';" (make-string (+ (max-bytes/vector-size) 1) #\x))
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 13" "Bytes length ~d of ~a exceeds the maximum bytes length ~d allowed" (,(+ (max-bytes/vector-size) 1) ,(string->utf8 (format "~a" (make-string (+ (max-bytes/vector-size) 1) #\x))) ,(max-bytes/vector-size))))
     )
 )
 
@@ -21617,7 +21628,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 9 char 10" "instantiating a module with size/length\n    ~d causes ~a at ~s to exceed maximum ~a size/length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) "Bytes type" "line 5 char 29" "bytes" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 5 char 23" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21725,7 +21736,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 23" "Tuple type length\n    ~d\n  exceeds the maximum tuple length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 1 char 23" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("tuple type" ,(+ (max-bytes/vector-size) 1) "tuple" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21850,7 +21861,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 3 char 27" "Tuple type length\n    ~d\n  exceeds the maximum tuple length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 3 char 27" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("tuple type" ,(+ (max-bytes/vector-size) 1) "tuple" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -37366,7 +37377,6 @@
      ))
 
   ; PM-16065
-  ; the ticket is re the default of a big vector but this doesn't cause a problem
   (test
    '(
      "import CompactStandardLibrary;"

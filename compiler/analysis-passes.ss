@@ -870,6 +870,21 @@
                                nexpected
                                external-name)))
             x)))
+
+      (define (Type-Size->length tsize p src what)
+        (let ([len (Type-Size->nat tsize p)])
+          (if (len? len)
+              len
+              (source-errorf src "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d"
+                             what
+                             len
+                             (case what
+                               [("tuple/vector slice") "tuple/vector"]
+                               [("tuple type")         "tuple"]
+                               [("vector type")        "vector"]
+                               [("Bytes type")         "bytes"]
+                               [else (internal-errorf 'len?-check (format "invalid what ~a passed to Type-Size->length" what))])
+                             (max-bytes/vector-size)))))
       )
     (Program : Program (ir) -> Program ()
       (definitions
@@ -1060,7 +1075,7 @@
        (let ([id (make-source-id src var-name)] [p (add-rib p)])
          (env-insert! p src var-name (Info-var id))
          `(for ,src ,id ,expr1 ,(Expression expr2 p)))]
-      [(tuple-slice ,src ,[expr] ,[index] ,[Type-Size->nat/len : tsize p 'len src "tuple/vector slice" -> * len])
+      [(tuple-slice ,src ,[expr] ,[index] ,[Type-Size->length : tsize p src "tuple/vector slice" -> * len])
        `(tuple-slice ,src ,expr ,index ,len)]
       [(elt-ref ,src ,expr ,elt-name^)
        (or (nanopass-case (Lpreexpand Expression) expr
@@ -1093,13 +1108,13 @@
     (New-Field : New-Field (ir p) -> New-Field ())
     (Type : Type (ir p) -> Type ()
       [,tref (Type-Ref->Type ir p)]
-      [(tunsigned ,src ,[Type-Size->nat/len : tsize p 'nat src "tunsigned" -> * nat])
+      [(tunsigned ,src ,[Type-Size->nat : tsize p -> * nat])
        (unless (<= 1 nat (unsigned-bits))
          (source-errorf src "Uint type length ~d is not between 1 and the maximum Uint width ~d (inclusive)"
                         nat
                         (unsigned-bits)))
        `(tunsigned ,src ,(- (expt 2 nat) 1))]
-      [(tunsigned ,src ,[Type-Size->nat/len : tsize p 'nat src "tunsigned" -> * nat] ,[Type-Size->nat/len : tsize^ p 'nat src "tunsigned" -> * nat^])
+      [(tunsigned ,src ,[Type-Size->nat : tsize p -> * nat] ,[Type-Size->nat : tsize^ p -> * nat^])
        (unless (= nat 0)
          (source-errorf src "Uint type minimum must be 0" nat))
        (unless (<= nat^ (max-unsigned))
@@ -1107,12 +1122,17 @@
                         nat^
                         (max-unsigned)))
        `(tunsigned ,src ,nat^)]
-      [(tvector ,src ,[Type-Size->nat/len : tsize p 'len src "vector type" -> * len] ,[type])
+      [(tvector ,src ,[Type-Size->length : tsize p src "vector type" -> * len] ,[type])
        `(tvector ,src ,len ,type)]
-      [(tbytes ,src ,[Type-Size->nat/len : tsize p 'len src "Bytes type" -> * len])
+      [(tbytes ,src ,[Type-Size->length : tsize p src "Bytes type" -> * len])
        `(tbytes ,src ,len)]
       [(ttuple ,src ,[type*] ...)
-       (let ([len (length type*)])
+       (Type-Size->length (with-output-language (Lpreexpand Type-Size)
+                            `(type-size ,src ,(length type*)))
+                          p
+                          src
+                          "tuple type")
+       #;(let ([len (length type*)])
          (unless (len? len)
            (source-errorf src "Tuple type length\n    ~d\n  exceeds the maximum tuple length allowed\n    ~d"
                           len
@@ -1121,35 +1141,11 @@
     (Type-Ref->Type : Type-Ref (ir p) -> Type ()
       [(type-ref ,src ,tvar-name ,[Type-Argument->info : targ* p -> * info*] ...)
        (handle-type-ref src tvar-name info* (lookup p src tvar-name))])
-    (Type-Size->nat/len : Type-Size (ir p nat?/len? src what) -> * (nat/len)
-      [(type-size ,src^ ,nat)
-       (when (eq? nat?/len? 'len)
-         (unless (len? nat)
-           (source-errorf src "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d"
-                          what
-                          nat
-                          (case what
-                            [("tuple/vector slice") "tuple/vector"]
-                            [("vector type") "vector"]
-                            [("Bytes type") "bytes"]
-                            [else (internal-errorf 'len?-check "invalid what passed to Type-Size->nat/len")])
-                          (max-bytes/vector-size))))
-       nat]
-      [(type-size-ref ,src^ ,tsize-name)
-       (Info-lookup (p src^ tsize-name)
-         [(Info-size src size)
-          (when (eq? nat?/len? 'len)
-            (unless (len? size)
-              (source-errorf src "instantiating a module with size/length\n    ~d causes ~a at ~s to exceed maximum ~a size/length allowed\n    ~d"
-                             size
-                             what
-                             (format-source-object src^)
-                             (case what
-                               [("vector type") "vector"]
-                               [("Bytes type") "bytes"]
-                               [else (internal-errorf 'len?-check "invalid what passed to Type-Size->nat/len")])
-                             (max-bytes/vector-size))))
-          size]
+    (Type-Size->nat : Type-Size (ir p) -> * (nat)
+      [(type-size ,src ,nat) nat]
+      [(type-size-ref ,src ,tsize-name)
+       (Info-lookup (p src tsize-name)
+         [(Info-size src size) size]
          ; if we find a free tvar here, it's in an exported type where sizes are
          ; ultimately ignored, so any nat will do
          [(Info-free-tvar tvar-name) 0])])
@@ -2564,12 +2560,12 @@
              (and (field? datum) datum)]
             [else #f]) =>
           (lambda (kindex)
-            (define (bounds-check what nat^)
-              (unless (< kindex nat^)
+            (define (bounds-check what len)
+              (unless (< kindex len)
                 (source-errorf src "index ~d is out-of-bounds for a ~a of length ~d"
-                               kindex what nat^))
-              ; there is no need for a kindex? check here since if the index violates kindex? it will be caught
-              ; by the error above
+                               kindex what len))
+              ; there is no need for a kindex? check in values since if the index violates kindex? it will be caught
+              ; by the check above
               )
             (values
               `(tuple-ref ,src ,expr ,kindex)
@@ -2624,12 +2620,12 @@
              (and (field? datum) datum)]
             [else #f]) =>
           (lambda (kindex)
-            (define (bounds-check what nat^)
-              (unless (<= (+ kindex size) nat^)
+            (define (bounds-check what len)
+              (unless (<= (+ kindex size) len)
                 (source-errorf src "slice index ~d plus size ~d is out-of-bounds for a ~a of length ~d"
-                               kindex size what nat^))
-              ; there is no need for a kindex? check here since if the index violates kindex? it will be caught
-              ; by the error above
+                               kindex size what len))
+              ; there is no need for a kindex? check in values since if the index violates kindex? it will be caught
+              ; by the check above
             )
             (values
               `(tuple-slice ,src ,expr-type ,expr ,kindex ,size)
@@ -3289,13 +3285,7 @@
           (cond
             [(boolean? x) `(tboolean ,src)]
             [(field? x) (if (<= x (max-unsigned)) `(tunsigned ,src ,x) `(tfield ,src))]
-            [(bytevector? x)
-             (let ([len (bytevector-length x)])
-               (unless (len? len)
-                 (source-errorf src "the length of bytevector ~d exceeds the maximum allowed length ~d"
-                                len
-                                (max-bytes/vector-size)))
-               `(tbytes ,src ,len))]
+            [(bytevector? x) `(tbytes ,src ,(bytevector-length x))]
             [else (internal-errorf 'datum-type "unexpected datum ~s" x)])))
       (define-datatype Idtype
         ; ordinary expression types

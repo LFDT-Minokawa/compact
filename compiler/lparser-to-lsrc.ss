@@ -160,7 +160,17 @@
       [(true ,src ,kwd) `(quote ,src #t)]
       [(false ,src ,kwd) `(quote ,src #f)]
       [(field ,src ,nat) `(quote ,src ,(token-value nat))]
-      [(string ,src ,str) `(quote ,src ,(string->utf8 (token-value str)))]
+      [(string ,src ,str)
+       `(quote
+          ,src
+          ,(let* ([bv (string->utf8 (token-value str))]
+                  [n (bytevector-length bv)])
+             (unless (len? n)
+               (source-errorf src "Bytes length ~d of ~a exceeds the maximum bytes length ~d allowed"
+                              n
+                              bv
+                              (max-bytes/vector-size)))
+             bv))]
       [(pad ,src ,kwd ,lparen ,nat ,comma ,str ,rparen)
        `(quote
           ,src

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased compiler version 0.26.107 language version 0.18.1]
 
 ### Fixed
-- A bug that was created during putting bounds on vectors/tuples/bytes
+- An unreleased bug that was created during putting bounds on vectors/tuples/bytes
 
 ## [Unreleased compiler version 0.26.106 language version 0.18.1]
 
