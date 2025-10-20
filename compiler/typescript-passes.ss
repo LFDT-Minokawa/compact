@@ -794,7 +794,7 @@
           (if (symbol? contract-name)
               (symbol->string contract-name)
               contract-name))
-      (define (get-contract-dependencies)
+      (module (get-contract-dependencies-with-witnesses get-contract-dependencies-all)
         (define (contract-info-filename contract-name)
           (format "~a/~a/compiler/contract-info.json"
             (path-parent (target-directory))
@@ -813,7 +813,8 @@
           (fold-right (lambda (alist name*) (cons (get-assoc "name" contract-name alist) name*))
                       '()
                       (vector->list v)))
-        (let* ([contract-has-witness-ht (make-hashtable symbol-hash eq?)]
+        (define (get-contract-dependencies-with-witnesses)
+          (let* ([contract-has-witness-ht (make-hashtable symbol-hash eq?)]
                [contract-ht (contract-ht)]
                [dep-contracts (vector->list (hashtable-keys contract-ht))]
                [contract-has-witness*
@@ -831,6 +832,12 @@
                    '()
                    dep-contracts)])
           (values contract-has-witness* contract-has-witness-ht)))
+
+        ;; Returns all direct contract dependencies (keys in contract-ht)
+        (define (get-contract-dependencies-all)
+          (let* ([contract-ht (contract-ht)]
+                 [dep-contracts (vector->list (hashtable-keys contract-ht))])
+            (values dep-contracts))))
 
       (define (subst-tcontract adt-type)
         (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
@@ -1161,12 +1168,12 @@
             (demand-unique-local-name! "PS")
             (demand-unique-local-name! "PSS")
             (fluid-let ([exported-type-ht (make-hashtable symbol-hash eq?)])
-              (let-values ([(contract-dependency* contract-has-witness-ht) (get-contract-dependencies)])
+              (let-values ([(contract-dependency-with-witnesses* contract-has-witness-ht) (get-contract-dependencies-with-witnesses)])
                 (let* ([contract (get-self-contract-name)]
                        ;; add contractId if it contains a witness to the name of contract dependencies
-                       [contract-name* (contract-has-witness xpelt* "contractId" contract-dependency*)])
+                       [contract-name* (contract-has-witness xpelt* "contractId" contract-dependency-with-witnesses*)])
                   (display-string "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';\n")
-                  (print-imported-dependency contract-dependency*)
+                  (print-imported-dependency contract-dependency-with-witnesses*)
                   (newline)
                   (print-exported-types xpelt*)
                   (newline)
@@ -1221,11 +1228,14 @@
                   (print-state-constructor xpelt*)
                   (display-string "  readonly ledger: LedgerStateDecoder;\n")
                   (display-string "  readonly contractReferenceLocations: __compactRuntime.ContractReferenceLocations;\n")
+                  (display-string "  readonly contractReferenceLocationsSet: __compactRuntime.ContractReferenceLocationsSet;\n")
                   (display-string "}\n")
                   (newline)
                   (display-string "export type ExecutablesBuilder = <W extends WitnessSets>(witnessSets: W) => Executables<InferredPrivateStates<W>>;\n")
                   (newline)
                   (display-string "export declare const contractReferenceLocations: __compactRuntime.ContractReferenceLocations;\n")
+                  (display-string "export declare const contractReferenceLocationsSet: __compactRuntime.ContractReferenceLocationsSet;\n")
+                  (newline)
                   (display-string "export declare const pureCircuits: PureCircuits;\n")
                   (display-string "export declare const ledger: LedgerStateDecoder;\n")
                   (display-string "export declare const executables: ExecutablesBuilder;\n")
@@ -1760,7 +1770,7 @@
                                                 4 "output: undefined,"
                                                 4 "publicTranscript: [],"
                                                 4 "privateTranscriptOutputs: [],"
-                                                4 "communicationCommitmentRand: __compactRuntime.communicationCommitmentRandomness()"
+                                                4 "communicationCommitmentRand: undefined"
                                                 2 "};"
                                                 2 (format "const ~a = " result)
                                                   uname "("
@@ -2006,7 +2016,7 @@
                         4 "output: undefined,"
                         4 "publicTranscript: [],"
                         4 "privateTranscriptOutputs: [],"
-                        4 "communicationCommitmentRand: __compactRuntime.communicationCommitmentRandomness()"
+                        4 "communicationCommitmentRand: undefined"
                         2 "};"
                         2 "return {"
                         4 (apply (make-Qsep ",")
@@ -2113,7 +2123,7 @@
                                                4 "output: undefined,"
                                                4 "publicTranscript: [],"
                                                4 "privateTranscriptOutputs: [],"
-                                               4 "communicationCommitmentRand: __compactRuntime.communicationCommitmentRandomness()"
+                                               4 "communicationCommitmentRand: undefined"
                                                2 "};"
                                                (ledger-reset-to-default src pl-array
                                                  (list
@@ -2133,7 +2143,8 @@
                                                2 "circuits,"
                                                2 "initialState,"
                                                2 "ledger,"
-                                               2 "contractReferenceLocations"
+                                               2 "contractReferenceLocations,"
+                                               2 "contractReferenceLocationsSet"
                                                0 "}")))))))))))))
                     (newline)])]
                 [else (loop (cdr xpelt*))])))
@@ -2319,12 +2330,13 @@
                 [else (void)]))
             xpelt*))
 
-        (module (print-contract-reference-locations)
+        (module (print-contract-reference-locations print-contract-reference-locations-set)
           (define (do-type type)
             (nanopass-case (Ltypescript Type) type
               [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                (make-Qconcat
                  "{"
+                 1 (format "contractId: __~a.contractId," (print-contract-name contract-name))
                  1 "tag: 'contractAddress'"
                  0 "}")]
               [(tvector ,src ,len ,type)
@@ -2474,11 +2486,25 @@
                    2 (do-pl-array pl-array #t)
                    ";"))
                (newline)]
-              [else (void)])))
+              [else (void)]))
+          (define (print-contract-reference-locations-set contract-name*)
+            (display-string "const contractReferenceLocationsSet = {\n")
+            (for-each
+              (lambda (contract-name)
+                (let ([contract-name (print-contract-name contract-name)])
+                  (print-Q 2
+                    (make-Qconcat
+                      (if (equal? contract-name "contractId")
+                          "[contractId]: contractReferenceLocations,\n"
+                          (format "[__~a.contractId]: __~:*~a.contractReferenceLocations,\n"
+                                  contract-name))))))
+              contract-name*)
+            (display-string "}\n")))
 
         (define (print-contract-exports)
           (display-string "exports.contractId = contractId;\n")
           (display-string "exports.contractReferenceLocations = contractReferenceLocations;\n")
+          (display-string "exports.contractReferenceLocationsSet = contractReferenceLocationsSet;\n")
           (display-string "exports.pureCircuits = pureCircuits;\n")
           (display-string "exports.executables = executables;\n")
           (display-string "exports.ledger = ledger;\n"))
@@ -2489,12 +2515,14 @@
         (define (print-contract.js src descriptor-id* type* xpelt* uname*)
           (parameterize ([current-output-port (get-target-port 'contract.js)])
             (fluid-let ([sourcemap-tracker (make-sourcemap-tracker)])
-              (let-values ([(contract-dependency* contract-has-witness-ht) (get-contract-dependencies)])
-                (print-contract-header contract-dependency*)
+              (let-values ([(contract-dependency-with-witnesses* contract-has-witness-ht) (get-contract-dependencies-with-witnesses)]
+                           [(contract-dependency-all*) (get-contract-dependencies-all)])
+                (print-contract-header contract-dependency-all*)
                 (print-exported-types xpelt*)
                 (print-contract-descriptors src descriptor-id* type*)
-                (print-contract-class src contract-dependency* contract-has-witness-ht xpelt* uname*)
+                (print-contract-class src contract-dependency-with-witnesses* contract-has-witness-ht xpelt* uname*)
                 (for-each print-contract-reference-locations xpelt*)
+                (print-contract-reference-locations-set (cons "contractId" contract-dependency-all*))
                 (print-contract-exports)
                 (print-contract-footer)
                 (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
@@ -3333,7 +3361,6 @@
               (format "__~a.contractId" contract-name)
               (format "'~a'" elt-name)
               expr
-              "partialProofData"
               expr*)
             ")")]
          [else (assert cannot-happen)])])

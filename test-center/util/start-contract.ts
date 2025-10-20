@@ -17,32 +17,17 @@ import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 import * as fs from 'node:fs';
 import {
   Executables,
-  WitnessSets,
   CircuitContext,
   createConstructorContext,
   createCircuitContext,
   checkProofData,
-  ConstructorContext,
-  WitnessContext
+  ConstructorContext
 } from '@midnight-ntwrk/compact-runtime';
+import { sampleCoinPublicKey } from './rand.js';
 
 export type StateConstructorParams<
   E extends Executables
 > = E['initialState'] extends (c: ConstructorContext, ...a: infer A) => any ? A : never;
-
-export type Module<E extends Executables> = {
-  executables: (witnessSets: any) => E;
-  zkirDir: string;
-}
-
-export const getRandomBytes = (size: number): Uint8Array => {
-  const randomBytes = new Uint8Array(size);
-  crypto.getRandomValues(randomBytes);
-  return randomBytes;
-};
-
-export const sampleCoinPublicKey = () =>
-    Buffer.from(getRandomBytes(32)).toString('hex');
 
 type ExtractPS<E extends Executables<any>> = E extends Executables<infer PS> ? PS : never;
 
