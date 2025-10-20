@@ -1318,8 +1318,8 @@
          (mvor (ifconstant ctv0
                  (lambda (datum)
                    (if datum
-                       (values expr1 ctv1)
-                       (values expr2 ctv2))))
+                       (values `(seq ,src ,expr0 ,expr1) ctv1)
+                       (values `(seq ,src ,expr0 ,expr2) ctv2))))
                (values
                  `(if ,src ,expr0 ,expr1 ,expr2)
                  (intersect ctv1 ctv2))))]

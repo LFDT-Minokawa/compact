@@ -5,10 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased compiler version 0.26.107 language version 0.18.1]
+## [Unreleased compiler version 0.26.110 language version 0.18.100]
 
 ### Fixed
 - An unreleased bug that was created during putting bounds on vectors/tuples/bytes
+
+## [Unreleased compiler version 0.26.109 language version 0.18.100]
+
+### Fixed
+
+- A bug that could cause ledger operations or witness calls occurring
+  in the test part of an `if` expresssion not to be reflected in the
+  generated zkir circuit.
+
+## [Unreleased compiler version 0.26.108 language version 0.18.100]
+
+### Fixed
+
+- A bug in unreleased code that caused an internal error message
+  about an invalid source object.
+- Internal language version is now properly bumped to 0.18.100.
+
+## [Unreleased compiler version 0.26.107 language version 0.18.1]
+
+### Fixed
+
+- A bug that allowed const statements binding patterns or multiple variables
+  to appear in a single-statement context, e.g., the consequent or alternative
+  of an `if` statement.
 
 ## [Unreleased compiler version 0.26.106 language version 0.18.1]
 

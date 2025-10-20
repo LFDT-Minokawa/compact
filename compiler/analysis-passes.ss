@@ -652,7 +652,7 @@
                            [(,src ,name ,name^)
                             (let ([info* (hashtable-ref export-ht name '())])
                               (when (null? info*)
-                                (source-errorf #f "no export named ~a in module ~a"
+                                (source-errorf src "no export named ~a in module ~a"
                                                name
                                                import-name))
                               (for-each
