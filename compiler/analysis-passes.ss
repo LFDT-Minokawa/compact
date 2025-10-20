@@ -875,7 +875,7 @@
         (let ([len (Type-Size->nat tsize p)])
           (if (len? len)
               len
-              (source-errorf src "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d"
+              (source-errorf src "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d"
                              what
                              len
                              (case what

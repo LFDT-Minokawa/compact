@@ -21366,7 +21366,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 27" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("vector type" ,(+ (max-bytes/vector-size) 1) "vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 1 char 27" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("vector type" ,(+ (max-bytes/vector-size) 1) "vector" ,(max-bytes/vector-size))))
    )
 
   (test
@@ -21408,7 +21408,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 25" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("vector type" ,(+ (max-bytes/vector-size) 1) "vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 2 char 25" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("vector type" ,(+ (max-bytes/vector-size) 1) "vector" ,(max-bytes/vector-size))))
     )
 
   ; test for bounds of bytes
@@ -21424,7 +21424,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 27" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 1 char 27" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21465,7 +21465,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 27" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("tuple type" ,(+ (max-bytes/vector-size) 1) "tuple" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 1 char 27" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("tuple type" ,(+ (max-bytes/vector-size) 1) "tuple" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21533,7 +21533,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 23" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("vector type" ,(+ (max-bytes/vector-size) 1) "vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 1 char 23" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("vector type" ,(+ (max-bytes/vector-size) 1) "vector" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21546,7 +21546,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 23" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 1 char 23" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21604,7 +21604,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 36" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 1 char 36" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21687,7 +21687,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 5 char 23" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 5 char 23" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21795,7 +21795,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 23" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("tuple type" ,(+ (max-bytes/vector-size) 1) "tuple" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 1 char 23" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("tuple type" ,(+ (max-bytes/vector-size) 1) "tuple" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21891,7 +21891,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 3 char 27" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("vector type" ,(+ (max-bytes/vector-size) 1) "vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 3 char 27" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("vector type" ,(+ (max-bytes/vector-size) 1) "vector" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21903,7 +21903,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 3 char 27" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 3 char 27" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21920,7 +21920,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 3 char 27" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("tuple type" ,(+ (max-bytes/vector-size) 1) "tuple" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 3 char 27" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("tuple type" ,(+ (max-bytes/vector-size) 1) "tuple" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -21960,7 +21960,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 3 char 21" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("tuple/vector slice" 197908171978938887506682837333954029155 "tuple/vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 3 char 21" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("tuple/vector slice" 197908171978938887506682837333954029155 "tuple/vector" ,(max-bytes/vector-size))))
    )
 
   (test
@@ -21973,7 +21973,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 3 char 21" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("tuple/vector slice" 197908171978938887506682837333954029155 "tuple/vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 3 char 21" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("tuple/vector slice" 197908171978938887506682837333954029155 "tuple/vector" ,(max-bytes/vector-size))))
    )
 
   (test
@@ -21986,7 +21986,7 @@
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 3 char 21" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("tuple/vector slice" 197908171978938887506682837333954029155 "tuple/vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 3 char 21" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("tuple/vector slice" 197908171978938887506682837333954029155 "tuple/vector" ,(max-bytes/vector-size))))
    )
 
   (test
@@ -22040,7 +22040,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 18" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 2 char 18" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("Bytes type" ,(+ (max-bytes/vector-size) 1) "bytes" ,(max-bytes/vector-size))))
     )
 
   (test
@@ -37466,7 +37466,7 @@
      )
    (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 14 char 25" "~a size/length\n    ~d exceeds maximum ~a size/length allowed\n    ~d" ("vector type" 43590753987470154073008687018949015693739732443847 "vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 14 char 25" "~a size/length\n    ~d exceeds the maximum ~a size/length allowed\n    ~d" ("vector type" 43590753987470154073008687018949015693739732443847 "vector" ,(max-bytes/vector-size))))
    )
 )
 
