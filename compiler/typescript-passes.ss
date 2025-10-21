@@ -2757,9 +2757,9 @@
        (make-tuple tuple-arg*)]
       [(vector ,src ,tuple-arg* ...)
        (make-tuple tuple-arg*)]
-      [(tuple-ref ,src ,[Expr : expr (precedence vector-ref) outer-pure? -> * expr] ,nat)
+      [(tuple-ref ,src ,[Expr : expr (precedence vector-ref) outer-pure? -> * expr] ,kindex)
        (parenthesize level (precedence vector-ref)
-         (make-Qconcat expr (format "[~d]" nat)))]
+         (make-Qconcat expr (format "[~d]" kindex)))]
       [(bytes-ref ,src ,type ,[Expr : expr (precedence vector-ref) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index])
        ; NB: counting on check in optimize/resolve-indices to guarantee that the computed
        ; index cannot be out-of-range
@@ -2770,26 +2770,26 @@
        ; index cannot be out-of-range
        (parenthesize level (precedence vector-ref)
          (make-Qconcat expr "[" index "]"))]
-      [(tuple-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,nat ,size)
+      [(tuple-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,kindex ,len)
        (parenthesize level (precedence call)
          (make-Qconcat
-           (format "((e) => e.slice(~d, ~d))(" nat (+ nat size))
+           (format "((e) => e.slice(~d, ~d))(" kindex (+ kindex len))
            expr
            ")"))]
-      [(bytes-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index] ,size)
+      [(bytes-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index] ,len)
        ; NB: counting on check in optimize/resolve-indices to guarantee that the computed
-       ; index + size cannot be out-of-range
+       ; index + len cannot be out-of-range
        (parenthesize level (precedence call)
          (make-Qconcat
-           (format "((e, i) => e.slice(i, i+~d))(" size)
+           (format "((e, i) => e.slice(i, i+~d))(" len)
            ((make-Qsep ",") expr (make-Qconcat "Number(" index ")"))
            ")"))]
-      [(vector-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index] ,size)
+      [(vector-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index] ,len)
        ; NB: counting on check in optimize/resolve-indices to guarantee that the computed
-       ; index + size cannot be out-of-range
+       ; index + len cannot be out-of-range
        (parenthesize level (precedence call)
          (make-Qconcat
-           (format "((e, i) => e.slice(i, i+~d))(" size)
+           (format "((e, i) => e.slice(i, i+~d))(" len)
            ((make-Qsep ",") expr (make-Qconcat "Number(" index ")"))
            ")"))]
       [(+ ,src ,mbits ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
@@ -2886,7 +2886,7 @@
                   (Expr expr1 (precedence add1 comma) outer-pure?)
                   (Expr expr2 (precedence add1 comma) outer-pure?))
                  ")"))))]
-      [(map ,src ,nat ,[Function : fun0 outer-pure? -> * fun]
+      [(map ,src ,len ,[Function : fun0 outer-pure? -> * fun]
             ,[Map-Argument : map-arg (precedence add1 comma) outer-pure? -> * expr byte-ref?]
             ,[Map-Argument : map-arg* (precedence add1 comma) outer-pure? -> * expr* byte-ref?*]
             ...)
@@ -2901,7 +2901,7 @@
                  mapper-name
                  (not pure?)
                  (map (lambda (i) (format "a~s" i)) i+)
-                 nat
+                 len
                  (not pure?)
                  (map (lambda (i byte-ref?)
                         (let ([ref (format "a~d[i]" i)])
@@ -2924,7 +2924,7 @@
                  expr
                  expr*))
              ")")))]
-      [(fold ,src ,nat ,[Function : fun0 outer-pure? -> * fun]
+      [(fold ,src ,len ,[Function : fun0 outer-pure? -> * fun]
              (,[Expr : expr0 (precedence add1 comma) outer-pure? -> * expr0] ,type)
              ,[Map-Argument : map-arg (precedence add1 comma) outer-pure? -> * expr byte-ref?]
              ,[Map-Argument : map-arg* (precedence add1 comma) outer-pure? -> * expr* byte-ref?*]
@@ -2940,7 +2940,7 @@
                  folder-name
                  (not pure?)
                  (map (lambda (i) (format "a~s" i)) i+)
-                 nat
+                 len
                  (not pure?)
                  (map (lambda (i byte-ref?)
                         (let ([ref (format "a~d[i]" i)])

@@ -17,7 +17,7 @@
 
 (library (langs)
   (export max-field field-bytes max-unsigned unsigned-bits field? datum? path-index?
-          max-bytes/vector-size len? max-merkle-tree-depth min-merkle-tree-depth
+          max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth
           maximum-ledger-segment-length 
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
@@ -76,14 +76,20 @@
   (define (datum? x)
     (or (boolean? x)
         (field? x)
-        (bytevector? x)))
+        (and (bytevector? x)
+             (<= (bytevector-length x) (max-bytes/vector-length)))))
 
-  (define max-bytes/vector-size (make-parameter (expt 2 24)))
+  (define max-bytes/vector-length (make-parameter (expt 2 24)))
 
   (define (len? x)
     (and (integer? x)
          (exact? x)
-         (<= 0 x (max-bytes/vector-size))))
+         (<= 0 x (max-bytes/vector-length))))
+
+  (define (kindex? x)
+    (and (integer? x)
+         (exact? x)
+         (<= 0 x (- (max-bytes/vector-length) 1))))
 
   (define (max-merkle-tree-depth) 32)
   (define (min-merkle-tree-depth) 2)
@@ -441,7 +447,7 @@
 
   (define-language/pretty Lexpanded (extends Lpreexpand)
     (terminals
-      (+ (len (size len)))
+      (+ (len (len)))
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal))
          (boolean (exported sealed pure-dcl))
          (string (prefix mesg opaque-type file discloses)))
@@ -535,7 +541,7 @@
       (+ (ledger-ref src ledger-field-name) => ledger-field-name
          (new src type new-field* ...)      => (new type #f new-field* ...)
          (enum-ref src type elt-name)       => (enum-ref type elt-name)
-         (tuple-slice src expr index size)  => (tuple-slice #f expr #f index #f size)))
+         (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)))
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
@@ -574,8 +580,8 @@
 
   (define-language/pretty Ltypes (entry Program)
     (terminals
-      (field (nat))
-      (len (size len))
+      (field (nat kindex))
+      (len (len))
       (maybe-bits (mbits))
       (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal))
       (boolean (pure-dcl))
@@ -649,18 +655,18 @@
       ; for vector, the elements must all have the same type
       (vector src tuple-arg* ...)             => (vector tuple-arg* ...)
       ; for tuple-ref and tuple-slice, the index (nat) is constant, and expr's elements can have different, even unrelated types
-      (tuple-ref src expr nat)                => (tuple-ref #f expr #f nat)
-      (tuple-slice src type expr nat size)    => (tuple-slice #f expr #f nat #f size)
+      (tuple-ref src expr kindex)             => (tuple-ref #f expr #f kindex)
+      (tuple-slice src type expr kindex len)  => (tuple-slice #f expr #f kindex #f len)
       ; for vector-ref and vector-slice, index is an arbitrary expression and expr's elements must all have the same type
       ; NB: index must eventually reduce to a constant, but that manifests in a later language.  for now, it is constrained
       ; only to have some Uint type
       (vector-ref src type expr index)        => (vector-ref #f expr #f index)
-      (vector-slice src type expr index size) => (vector-slice #f expr #f index #f size)
+      (vector-slice src type expr index len)  => (vector-slice #f expr #f index #f len)
       ; for bytes-ref and bytes-slice, index is an arbitrary expression and expr must have a tbytes type
       ; NB: index must eventually reduce to a constant, but that manifests in a later language.  for now, it is constrained
       ; only to have some Uint type
       (bytes-ref src type expr index)         => (bytes-ref #f expr #f index)
-      (bytes-slice src type expr index size)  => (bytes-slice #f expr #f index #f size)
+      (bytes-slice src type expr index len)   => (bytes-slice #f expr #f index #f len)
       (+ src mbits expr1 expr2)               => (+ mbits expr1 expr2)
       (- src mbits expr1 expr2)               => (- mbits expr1 expr2)
       (* src mbits expr1 expr2)               => (* mbits expr1 expr2)
@@ -670,9 +676,9 @@
       (>= src mbits expr1 expr2)              => (>= expr1 3 expr2)
       (== src type expr1 expr2)               => (== expr1 3 expr2)
       (!= src type expr1 expr2)               => (!= expr1 3 expr2)
-      (map src nat fun map-arg map-arg* ...) =>
+      (map src len fun map-arg map-arg* ...) =>
         (map #f fun #f map-arg #f map-arg* ...)
-      (fold src nat fun (expr0 type0) map-arg map-arg* ...) =>
+      (fold src len fun (expr0 type0) map-arg map-arg* ...) =>
         (fold #f fun #f expr0 #f map-arg #f map-arg* ...)
       (call src fun expr* ...)                => (call fun #f expr* ...)
       (new src type expr* ...)                => (new type #f expr* ...)
@@ -888,8 +894,8 @@
 
   (define-language/pretty Lunrolled (extends Lnoenums)
     (Expression (expr index)
-      (- (map src nat fun map-arg map-arg* ...)
-         (fold src nat fun (expr0 type0) map-arg map-arg* ...))
+      (- (map src len fun map-arg map-arg* ...)
+         (fold src len fun (expr0 type0) map-arg map-arg* ...))
       (+ (flet src function-name (src^ (arg* ...) type expr^) expr) =>
            (flet [bracket function-name 0 (circuit (arg* 0 ...) 4 type #f expr^)] #f expr)))
     (Map-Argument (map-arg)
@@ -908,21 +914,19 @@
       (- (safe-cast src type type^ expr))))
 
   (define-language/pretty Lnovectorref (extends Lnosafecast)
-    (terminals
-      (- (len (size len)))
-      (+ (len (len))))
     (Expression (expr index)
       (- (bytes-ref src type expr index)
          (vector-ref src type expr index)
-         (tuple-slice src type expr nat size)
-         (bytes-slice src type expr index size)
-         (vector-slice src type expr index size))
-      (+ (bytes-ref src expr nat) => (bytes-ref expr nat))))
+         (tuple-slice src type expr kindex len)
+         (bytes-slice src type expr index len)
+         (vector-slice src type expr index len))
+      (+ (bytes-ref src expr kindex) => (bytes-ref expr kindex))))
 
   (define-language/pretty Lcircuit (entry Program)
     (terminals
       (field (nat))
       (len (len))
+      (kindex (kindex))
       (maybe-bits (mbits))
       (boolean (pure-dcl))
       (symbol (export-name struct-name contract-name elt-name ledger-op ledger-op-class adt-name adt-formal))
