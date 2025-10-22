@@ -1243,8 +1243,7 @@
 
       (module (print-contract.js)
         (define (print-contract-header contract-dependency*)
-          (display-string "'use strict';\n")
-          (display-string "const __compactRuntime = require('@midnight-ntwrk/compact-runtime');\n")
+          (display-string "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';\n")
           (for-each print-contract-dependencies contract-dependency*)
           (printf "const expectedRuntimeVersionString = '~a';\n" runtime-version-string)
           (printf "__compactRuntime.checkRuntimeVersion(expectedRuntimeVersionString);\n")
@@ -1262,12 +1261,12 @@
           (let ([contract-name (print-contract-name contract-name)])
             (print-Q 0
               (make-Qconcat
-                "const __"
+                "import * as __"
                 contract-name
-                " = require('../../"
+                " from '../../"
                 contract-name
                 "/contract"
-                "/index.js');\n"))))
+                "/index.js';\n"))))
 
         (define (print-contract-descriptors src descriptor-id* type*)
           (define (print-struct-class class-name elt-name* type*)
@@ -2502,12 +2501,14 @@
             (display-string "}\n")))
 
         (define (print-contract-exports)
-          (display-string "exports.contractId = contractId;\n")
-          (display-string "exports.contractReferenceLocations = contractReferenceLocations;\n")
-          (display-string "exports.contractReferenceLocationsSet = contractReferenceLocationsSet;\n")
-          (display-string "exports.pureCircuits = pureCircuits;\n")
-          (display-string "exports.executables = executables;\n")
-          (display-string "exports.ledger = ledger;\n"))
+          (display-string "export {\n")
+          (display-string "  contractId,\n")
+          (display-string "  contractReferenceLocations,\n")
+          (display-string "  contractReferenceLocationsSet,\n")
+          (display-string "  pureCircuits,\n")
+          (display-string "  executables,\n")
+          (display-string "  ledger\n")
+          (display-string "}\n"))
 
         (define (print-contract-footer)
           (display-string "//# sourceMappingURL=index.js.map\n"))

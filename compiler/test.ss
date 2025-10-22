@@ -66690,8 +66690,7 @@
     ; lines to avoid hard-coding a specific runtime version string into the test
     (output-file "compiler/testdir/contract/index.js"
       `(
-        "'use strict';"
-        "const __compactRuntime = require('@midnight-ntwrk/compact-runtime');"
+        "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         "const expectedRuntimeVersionString = '0.10.1';"
         "__compactRuntime.checkRuntimeVersion(expectedRuntimeVersionString);"
         ""
@@ -67189,12 +67188,14 @@
         "const contractReferenceLocationsSet = {"
         "  [contractId]: contractReferenceLocations,"
         "}"
-        "exports.contractId = contractId;"
-        "exports.contractReferenceLocations = contractReferenceLocations;"
-        "exports.contractReferenceLocationsSet = contractReferenceLocationsSet;"
-        "exports.pureCircuits = pureCircuits;"
-        "exports.executables = executables;"
-        "exports.ledger = ledger;"
+        "export {"
+        "  contractId,"
+        "  contractReferenceLocations,"
+        "  contractReferenceLocationsSet,"
+        "  pureCircuits,"
+        "  executables,"
+        "  ledger"
+        "}"
         "//# sourceMappingURL=index.js.map"))
     (output-file "compiler/testdir/contract/index.js.map"
       '(
@@ -67204,7 +67205,7 @@
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"compiler/standard-library.compact\", \"examples/tiny.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAuBA,SAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;AAED,SAAA,OAEC,4CAAA;AAmBD,AAAA,0BAAsD,CAArB,OAAQ;kEAAR,OAAQ;;CAAa;ACqBtD,SAAA,qBAAwC;;;;;;;;;;;;;;;;;;CAAA;AAQxC,SAAA,WAEC,yCAFgB,GAAQ;iCAChB;;;;;;;;;;;sGAAK;;SAAI,GAAC;CAClB;AAED,SAAA,MAOC,yCAPW,GAAQ;;;QAEZ,IAAyB;QACzB,KAAoB,iBAAH,IAAE;EACzB;;;;;;;yHAAY,KAAG;;uEAAN;EACT;;;;;;;yHAAiB,GAAC;;uEAAb;EACL;;;;;;;;;uEAAK;;CACN;AAWD,SAAA,MAEC;;2CAD0C;;;;;;;;;;;gHAAK;;;;CAC/C;AASD,SAAA,QAQC;;;QANO,IAAyB;QACzB,KAAoB,iBAAH,IAAE;mCAClB,KAAG;2DAAI;;;;;;;;;;;gIAAS;;QACvB,KAAS;EAAT;;;;;;;yHAAA,KAAS;;uEAAA;EACT;;;;;;;;;uEAAK;EACL;;;;;;;;;uEAAK;;CACN;;;;;AAMD,SAAA,aAEC,CAFkB,IAAa;;4BACmD,IAAE;CACpF;AAxED;;;;;;;;;;;;;;;;IA2BA,AAAA,GAOC;;;;;YAPW,GAAQ;;;;;;;;;;;;;;;;;;uCAAR,GAAQ;;;;;;;;sEAAR,GAAQ;;;;KAOnB;IAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;KAAA;IASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;KAAA;IAMD,AAAA,UAEC;;KAAA;;;;;;IAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,iBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;;;;;;;;;;;;GACN;;;;;;;;;;;;;;;;;IAPD;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;yBAAb,IAAa;GAE/B;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAuBA,SAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;AAED,SAAA,OAEC,4CAAA;AAmBD,AAAA,0BAAsD,CAArB,OAAQ;kEAAR,OAAQ;;CAAa;ACqBtD,SAAA,qBAAwC;;;;;;;;;;;;;;;;;;CAAA;AAQxC,SAAA,WAEC,yCAFgB,GAAQ;iCAChB;;;;;;;;;;;sGAAK;;SAAI,GAAC;CAClB;AAED,SAAA,MAOC,yCAPW,GAAQ;;;QAEZ,IAAyB;QACzB,KAAoB,iBAAH,IAAE;EACzB;;;;;;;yHAAY,KAAG;;uEAAN;EACT;;;;;;;yHAAiB,GAAC;;uEAAb;EACL;;;;;;;;;uEAAK;;CACN;AAWD,SAAA,MAEC;;2CAD0C;;;;;;;;;;;gHAAK;;;;CAC/C;AASD,SAAA,QAQC;;;QANO,IAAyB;QACzB,KAAoB,iBAAH,IAAE;mCAClB,KAAG;2DAAI;;;;;;;;;;;gIAAS;;QACvB,KAAS;EAAT;;;;;;;yHAAA,KAAS;;uEAAA;EACT;;;;;;;;;uEAAK;EACL;;;;;;;;;uEAAK;;CACN;;;;;AAMD,SAAA,aAEC,CAFkB,IAAa;;4BACmD,IAAE;CACpF;AAxED;;;;;;;;;;;;;;;;IA2BA,AAAA,GAOC;;;;;YAPW,GAAQ;;;;;;;;;;;;;;;;;;uCAAR,GAAQ;;;;;;;;sEAAR,GAAQ;;;;KAOnB;IAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;KAAA;IASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;KAAA;IAMD,AAAA,UAEC;;KAAA;;;;;;IAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,iBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;;;;;;;;;;;;GACN;;;;;;;;;;;;;;;;;IAPD;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;yBAAb,IAAa;GAE/B;;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -78186,9 +78187,8 @@
      ; lines to avoid hard-coding a specific runtime version string into the test
      (output-file "compiler/testdir/testfile/contract/index.js"
        `(
-         "'use strict';"
-         "const __compactRuntime = require('@midnight-ntwrk/compact-runtime');"
-         "const __AuthCell = require('../../AuthCell/contract/index.js');"
+         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+         "import * as __AuthCell from '../../AuthCell/contract/index.js';"
          "const expectedRuntimeVersionString = '0.10.1';"
          "__compactRuntime.checkRuntimeVersion(expectedRuntimeVersionString);"
          ""
@@ -78523,12 +78523,14 @@
          "  [contractId]: contractReferenceLocations,"
          "  [__AuthCell.contractId]: __AuthCell.contractReferenceLocations,"
          "}"
-         "exports.contractId = contractId;"
-         "exports.contractReferenceLocations = contractReferenceLocations;"
-         "exports.contractReferenceLocationsSet = contractReferenceLocationsSet;"
-         "exports.pureCircuits = pureCircuits;"
-         "exports.executables = executables;"
-         "exports.ledger = ledger;"
+         "export {"
+         "  contractId,"
+         "  contractReferenceLocations,"
+         "  contractReferenceLocationsSet,"
+         "  pureCircuits,"
+         "  executables,"
+         "  ledger"
+         "}"
          "//# sourceMappingURL=index.js.map"))
      ))
 
