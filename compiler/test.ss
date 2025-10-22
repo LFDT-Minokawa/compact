@@ -66691,7 +66691,7 @@
     (output-file "compiler/testdir/contract/index.js"
       `(
         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
-        "const expectedRuntimeVersionString = '0.10.1';"
+        "const expectedRuntimeVersionString = '0.10.101';"
         "__compactRuntime.checkRuntimeVersion(expectedRuntimeVersionString);"
         ""
         "const contractId = 'tiny';"
@@ -78189,7 +78189,7 @@
        `(
          "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
          "import * as __AuthCell from '../../AuthCell/contract/index.js';"
-         "const expectedRuntimeVersionString = '0.10.1';"
+         "const expectedRuntimeVersionString = '0.10.101';"
          "__compactRuntime.checkRuntimeVersion(expectedRuntimeVersionString);"
          ""
          "const contractId = 'testfile';"

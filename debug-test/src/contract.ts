@@ -13,126 +13,68 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-<<<<<<< HEAD
 import * as runtime from '@midnight-ntwrk/compact-runtime';
-import * as contract from '../gen/contract/index.cjs';
-
-// define witnesses and private state
-=======
-import {
-  createCircuitContext,
-  createConstructorContext,
-  WitnessContext,
-  dummyContractAddress,
-} from '@midnight-ntwrk/compact-runtime';
-import { Contract, Witnesses, Maybe, Ledger } from '../gen/contract/index.js';
+import * as contract from '../gen/contract/index.js';
 
 // handle private state
->>>>>>> main
 
 type PrivateState = {
   maxAttempts: bigint;
 };
 
-<<<<<<< HEAD
-const compute = (
+function compute(
   privateState: runtime.WitnessContext<contract.Ledger, PrivateState>,
   fst: boolean,
   snd: boolean,
-): [PrivateState, boolean] => {
-=======
-function compute(
-  privateState: WitnessContext<Ledger, PrivateState>,
-  fst: boolean,
-  snd: boolean,
 ): [PrivateState, boolean] {
->>>>>>> main
   if (fst) {
     return [privateState.privateState, snd];
   }
   return [privateState.privateState, snd && true];
-<<<<<<< HEAD
-};
+}
+
+const witnessSets = { [contract.contractId]: { compute } };
 
 // initialize smart contract
 
-const contractAddress = runtime.sampleContractAddress();
-const coinPublicKey = '0'.repeat(64);
-
-const witnessSets = { [contract.contractId]: { compute } };
 const exec = contract.executables(witnessSets);
-
-const initialPrivateState = {
+const difficulty = 0n;
+const initPS = {
   maxAttempts: 10n,
 };
-const difficulty = 0n;
 const { currentContractState, currentPrivateState } = exec.initialState(
-  runtime.createConstructorContext(coinPublicKey, initialPrivateState),
+  runtime.createConstructorContext('0'.repeat(64), initPS),
   difficulty,
 );
 
-export const createCircuitContext = (circuitId: string) =>
+const address = runtime.sampleContractAddress();
+const coinPubKey = '0'.repeat(64);
+
+export const circuitContext = (circuitId: string) =>
   runtime.createCircuitContext(
     contract.contractId,
     circuitId,
-    contractAddress,
-    coinPublicKey,
-    { [contractAddress]: currentContractState },
-    { [contractAddress]: currentPrivateState },
+    address,
+    coinPubKey,
+    { [contract.contractId]: currentContractState.data },
+    { [contract.contractId]: currentPrivateState },
   );
-
-export const runSmartContract = (flag: boolean) => {
-  const result1 = exec.impureCircuits.nestedCall(createCircuitContext('nestedCall'), flag, false).result; // transition function (with nested call)
-  const result2 = exec.impureCircuits.privateCall(createCircuitContext('privateCall'), flag, false).result; // witness (call private function)
-  exec.impureCircuits.ledgerCalls(createCircuitContext('ledgerCalls'), 1n); // access ledger (public state)
-  const result3 = exec.pureCircuits.stdLibCall(flag, false); // calls from standard library
-  return {
-    nestedCallResult: result1,
-    privateCallResult: result2,
-    stdLibCallResult: result3,
-  };
-};
-
-const flag: boolean = true;
-const results = runSmartContract(flag);
-
-console.log(results.nestedCallResult);
-console.log(results.privateCallResult);
-console.log(results.stdLibCallResult);
-=======
-}
-
-const myWitness: Witnesses<PrivateState> = { compute };
-
-// initialize smart contract
-
-const sc: Contract<PrivateState, Witnesses<PrivateState>> = new Contract(myWitness);
-const difficulty = 0n;
-const initPS: PrivateState = {
-  maxAttempts: 10n,
-};
-const { currentContractState, currentPrivateState } = sc.initialState(
-  createConstructorContext('0'.repeat(64), initPS),
-  difficulty,
-);
-
-export const execCtx = createCircuitContext(dummyContractAddress(), '0'.repeat(64), currentContractState.data, currentPrivateState);
 
 // helper types
 
 type AllResults = {
-  nested: Maybe<bigint>;
-  priv: Maybe<bigint>;
-  stdLib: Maybe<Uint8Array>;
+  nested: contract.Maybe<bigint>;
+  priv: contract.Maybe<bigint>;
+  stdLib: contract.Maybe<Uint8Array>;
 };
 
 // run smart contract from TypeScript
 
 export function runSmartContract(flag: boolean): AllResults {
-  const result1 = sc.circuits.nestedCall(execCtx, flag, false); // transition function (with nested call)
-  const result2 = sc.circuits.privateCall(execCtx, flag, false); // witness (call private function)
-  sc.circuits.ledgerCalls(execCtx, 1n); // access ledger (public state)
-  const result3 = sc.circuits.stdLibCall(execCtx, flag, false); // calls from standard library
+  const result1 = exec.circuits.nestedCall(circuitContext('nestedCall'), flag, false); // transition function (with nested call)
+  const result2 = exec.circuits.privateCall(circuitContext('privateCall'), flag, false); // witness (call private function)
+  exec.circuits.ledgerCalls(circuitContext('ledgerCalls'), 1n); // access ledger (public state)
+  const result3 = exec.circuits.stdLibCall(circuitContext('stdLibCall'), flag, false); // calls from standard library
 
   return {
     nested: result1.result,
@@ -147,4 +89,3 @@ const results = runSmartContract(flag);
 console.log(results.nested);
 console.log(results.priv);
 console.log(results.stdLib);
->>>>>>> main
