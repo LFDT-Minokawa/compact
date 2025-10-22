@@ -22099,9 +22099,62 @@
             (+ 8
                (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned ,(- (max-bytes/vector-length) 1)) ,(- (max-bytes/vector-length) 1))
                (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned 1) 1)))))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor(){"
+      "  for (const bob of slice<0>(default<Field>, 59678140419694436266049418467513904948)) {"
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 46" "expected a tuple, Vector, or Bytes type, received ~a" ("Field")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor(){"
+      "  const x = default<Field>[59678140419694436266049418467513904948];"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 28" "expected a tuple, Vector, or Bytes type, received ~a" ("Field")))
+    )
+
 )
 
 (run-tests resolve-indices/simplify
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor(){"
+      "  for (const bob of slice<0>(default<Bytes<32>>, 59678140419694436266049418467513904948)) {"
+      "  }"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration ())))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(): []{"
+      "  for (const bob of slice<0>(default<Bytes<32>>, 59678140419694436266049418467513904948)) {"
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 21" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (59678140419694436266049418467513904948 0 32)))
+    )
+
   (test
     `(
       ,(format "export circuit foo(v: Vector<~d, Field>): Field { return v[~d+1]; }"

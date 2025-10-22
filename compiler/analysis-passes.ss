@@ -2541,7 +2541,9 @@
                                (- (max-bytes/vector-length) 1)
                                (nanopass-case (Ltypes Type) expr-type
                                  [(ttuple ,src^ ,type* ...) "tuple"]
-                                 [(tvector ,src^ ,len^ ,type^) "vector"])))
+                                 [(tvector ,src^ ,len^ ,type^) "vector"]
+                                 [else (source-errorf src "expected a tuple, Vector, or Bytes type, received ~a"
+                                                      (format-type expr-type))])))
              (and (field? datum) datum)]
             [else #f]) =>
           (lambda (kindex)
@@ -2588,7 +2590,7 @@
             (unless (<= len input-len)
               (source-errorf src "slice length ~d exceeds the length ~d of the input Bytes" len input-len))
             (values
-              `(bytes-slice ,src ,expr-type,expr ,index ,len)
+              `(bytes-slice ,src ,expr-type ,expr ,index ,len)
               (with-output-language (Ltypes Type) `(tbytes ,src ,len))))]
          [(nanopass-case (Ltypes Expression) index
             [(quote ,src ,datum)
@@ -2598,7 +2600,9 @@
                                (- (max-bytes/vector-length) 1)
                                (nanopass-case (Ltypes Type) expr-type
                                  [(ttuple ,src^ ,type* ...) "tuple"]
-                                 [(tvector ,src^ ,len^ ,type^) "vector"])))
+                                 [(tvector ,src^ ,len^ ,type^) "vector"]
+                                 [else (source-errorf src "expected a tuple, Vector, or Bytes type, received ~a"
+                                                      (format-type expr-type))])))
              (and (field? datum) datum)]
             [else #f]) =>
           (lambda (kindex)
