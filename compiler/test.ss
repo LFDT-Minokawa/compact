@@ -22148,7 +22148,7 @@
       "ledger x: Counter;"
       "constructor(){"
       "  x.resetToDefault();"
-      "  for (const bob of slice<0>(default<Bytes<32>>, 59678140419694436266049418467513904948)) {"
+      "  for (const bob of slice<2>(default<Bytes<32>>, 59678140419694436266049418467513904948)) {"
       "    x += bob;"
       "  }"
       "}"
