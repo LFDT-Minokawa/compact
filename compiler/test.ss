@@ -22145,6 +22145,23 @@
   (test
     '(
       "import CompactStandardLibrary;"
+      "ledger x: Counter;"
+      "constructor(){"
+      "  x.resetToDefault();"
+      "  for (const bob of slice<0>(default<Bytes<32>>, 59678140419694436266049418467513904948)) {"
+      "    x += bob;"
+      "  }"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration ((%x.1 (0) (Counter))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "export circuit foo(): []{"
       "  for (const bob of slice<0>(default<Bytes<32>>, 59678140419694436266049418467513904948)) {"
       "  }"
