@@ -206,7 +206,7 @@
         )
       [(call ,src ,function-name ,[expr*] ...)
        `(call ,src ,function-name ,expr* ...)]
-      [(map ,src ,nat ,fun ,[map-arg src -> expr type make-ref] ,[map-arg* src -> expr* type* make-ref*] ...)
+      [(map ,src ,len ,fun ,[map-arg src -> expr type make-ref] ,[map-arg* src -> expr* type* make-ref*] ...)
        (let ([expr+ (cons expr expr*)]
              [type+ (cons type type*)]
              [make-ref+ (cons make-ref make-ref*)])
@@ -221,9 +221,9 @@
                                  (call ,src ,function-name
                                    ,(map (lambda (make-ref t) (make-ref t i)) make-ref+ t+)
                                    ...)))
-                            (iota nat))
+                            (iota len))
                       ...)))))))]
-      [(fold ,src ,nat ,fun (,[expr0] ,[type0]) ,[map-arg src -> expr type make-ref] ,[map-arg* src -> expr* type* make-ref*] ...)
+      [(fold ,src ,len ,fun (,[expr0] ,[type0]) ,[map-arg src -> expr type make-ref] ,[map-arg* src -> expr* type* make-ref*] ...)
        (let ([expr+ (cons expr expr*)]
              [type+ (cons type type*)]
              [make-ref+ (cons make-ref make-ref*)])
@@ -233,7 +233,7 @@
                (let ([t0 (gen-id type0)] [t+ (map gen-id type+)])
                  `(let* ,src ([(,t0 ,type0) ,expr0] [(,t+ ,type+) ,expr+] ...)
                     ,(let f ([i 0] [a `(var-ref ,src ,t0)])
-                       (if (fx= i nat)
+                       (if (fx= i len)
                            a
                            (f (fx+ i 1)
                               `(call ,src ,function-name
@@ -660,19 +660,18 @@
                     (loop (cdr elt-name*) (cdr type*)))))]
          [else (source-errorf src "expected structure type, received ~a"
                               (format-type type))])]
-      [(tuple-ref ,src ,[Care : expr -> * expr-type] ,nat)
+      [(tuple-ref ,src ,[Care : expr -> * expr-type] ,kindex)
+       (define (bounds-check len)
+         (unless (< kindex len)
+           (source-errorf src "index ~s is out-of-bounds for tuple or vector of length ~s"
+                          kindex len)))
        (nanopass-case (Linlined Type) expr-type
          [(ttuple ,src ,type* ...)
-          (let ([nat^ (length type*)])
-            (unless (< nat nat^)
-              (source-errorf src "index ~s is out-of-bounds for tuple of length ~s"
-                             nat nat^)))
-          (list-ref type* nat)]
-         [(tvector ,src^ ,len^ ,type^)
-          (unless (< nat len^)
-            (source-errorf src "index ~s is out-of-bounds for vector of length ~s"
-                           nat len^))
-          type^]
+          (bounds-check (length type*))
+          (list-ref type* kindex)]
+         [(tvector ,src ,len ,type)
+          (bounds-check len)
+          type]
          [else (source-errorf src "expected vector type, received ~a"
                               (format-type expr-type))])]
       [(bytes-ref ,src ,type ,[Care : expr -> * expr-type] ,[Care : index -> * index-type])
@@ -701,11 +700,11 @@
           type^]
          [else (source-errorf src "expected vector-ref expr to have a non-empty vector type, received ~a"
                               (format-type expr-type))])]
-      [(tuple-slice ,src ,[type] ,[Care : expr -> * expr-type] ,nat ,size)
-       (define (bounds-check nat^)
-         (unless (<= (+ nat size) nat^)
-           (source-errorf src "index ~d plus size ~d is out-of-bounds for a tuple or vector of length ~d"
-                          nat size nat^)))
+      [(tuple-slice ,src ,[type] ,[Care : expr -> * expr-type] ,kindex ,len)
+       (define (bounds-check input-len)
+         (unless (<= (+ kindex len) input-len)
+           (source-errorf src "index ~d plus length ~d is out-of-bounds for a tuple or vector of length ~d"
+                          kindex len input-len)))
        (unless (sametype? expr-type type)
          (source-errorf src "expected slice argument to have type ~a, received ~a"
                         type expr-type))
@@ -713,13 +712,13 @@
          (nanopass-case (Linlined Type) expr-type
            [(ttuple ,src^ ,type* ...)
             (bounds-check (length type*))
-            `(ttuple ,src ,(list-head (list-tail type* nat) size) ...)]
+            `(ttuple ,src ,(list-head (list-tail type* kindex) len) ...)]
            [(tvector ,src^ ,len^ ,type)
             (bounds-check len^)
-            `(tvector ,src ,size ,type)]
+            `(tvector ,src ,len ,type)]
            [else (source-errorf src "expected tuple or vector type, received ~a"
                                 (format-type expr-type))]))]
-      [(bytes-slice ,src ,type ,[Care : expr -> * expr-type] ,[Care : index -> * index-type] ,size)
+      [(bytes-slice ,src ,type ,[Care : expr -> * expr-type] ,[Care : index -> * index-type] ,len)
        (nanopass-case (Linlined Type) index-type
          [(tunsigned ,src ,nat) nat]
          [else (source-errorf src "expected index to have an unsigned type, received ~a"
@@ -727,15 +726,15 @@
        (unless (sametype? expr-type type)
          (source-errorf src "expected slice argument to have type ~a, received ~a"
                         type expr-type))
-       (let ([len^ (nanopass-case (Linlined Type) expr-type
-                     [(tbytes ,src^ ,len^) len^]
-                     [else (source-errorf src "expected slice expr to have a Bytes type, received ~a"
-                                          (format-type expr-type))])])
-         (unless (<= size len^)
-           (source-errorf src "slice size ~d exceeds the length ~d of the input Bytes" size len^))
+       (let ([input-len (nanopass-case (Linlined Type) expr-type
+                          [(tbytes ,src^ ,len^) len^]
+                          [else (source-errorf src "expected slice expr to have a Bytes type, received ~a"
+                                               (format-type expr-type))])])
+         (unless (<= len input-len)
+           (source-errorf src "slice length ~d exceeds the length ~d of the input Bytes" len input-len))
          (with-output-language (Linlined Type)
-           `(tbytes ,src ,size)))]
-      [(vector-slice ,src ,type ,[Care : expr -> * expr-type] ,[Care : index -> * index-type] ,size)
+           `(tbytes ,src ,len)))]
+      [(vector-slice ,src ,type ,[Care : expr -> * expr-type] ,[Care : index -> * index-type] ,len)
        (nanopass-case (Linlined Type) index-type
          [(tunsigned ,src ,nat) nat]
          [else (source-errorf src "expected index to have an unsigned type, received ~a"
@@ -743,18 +742,18 @@
        (unless (sametype? expr-type type)
          (source-errorf src "expected slice argument to have type ~a, received ~a"
                         type expr-type))
-       (let-values ([(len^ elt-type) (nanopass-case (Linlined Type) expr-type
-                                       [(tvector ,src^ ,len^ ,type^) (values len^ type^)]
-                                       [(ttuple ,src^) (values 0 (with-output-language (Linlined Type) `(tunknown)))]
-                                       [(ttuple ,src^ ,type^ ,type^* ...)
-                                        (guard (andmap (lambda (type^^) (sametype? type^^ type^)) type^*))
-                                        (values (fx+ (length type^*) 1) type^)]
-                                       [else (source-errorf src "expected slice expr to have a vector type, received ~a"
-                                                            (format-type expr-type))])])
-         (unless (<= size len^)
-           (source-errorf src "size ~d exceeds the length ~d of the input vector" size len^))
+       (let-values ([(input-len elt-type) (nanopass-case (Linlined Type) expr-type
+                                            [(tvector ,src^ ,len^ ,type^) (values len^ type^)]
+                                            [(ttuple ,src^) (values 0 (with-output-language (Linlined Type) `(tunknown)))]
+                                            [(ttuple ,src^ ,type^ ,type^* ...)
+                                             (guard (andmap (lambda (type^^) (sametype? type^^ type^)) type^*))
+                                             (values (fx+ (length type^*) 1) type^)]
+                                            [else (source-errorf src "expected slice expr to have a vector type, received ~a"
+                                                                 (format-type expr-type))])])
+         (unless (<= len input-len)
+           (source-errorf src "length ~d exceeds the length ~d of the input vector" len input-len))
          (with-output-language (Linlined Type)
-           `(tvector ,src ,size ,elt-type)))]
+           `(tvector ,src ,len ,elt-type)))]
       [(+ ,src ,mbits ,expr1 ,expr2)
        (arithmetic-binop src "+" mbits expr1 expr2)]
       [(- ,src ,mbits ,expr1 ,expr2)
@@ -1126,11 +1125,11 @@
                     ; should not be reached: the ctv of any var being referenced should at least be associated
                     ; with itself and be in scope
                     (values `(var-ref ,src ,var-name) ctv)))))
-      (define (handle-tuple-ref src expr ctv nat)
+      (define (handle-tuple-ref src expr ctv kindex)
         (with-output-language (Lnovectorref Expression)
           (CTV-case ctv
             [(CTV-tuple ctv*)
-             (let ([ctv (list-ref ctv* nat)])
+             (let ([ctv (list-ref ctv* kindex)])
                (values
                  (or (ifconstant ctv
                        (lambda (datum)
@@ -1138,23 +1137,23 @@
                      (if-has-in-scope-var-name ctv
                        (lambda (var-name)
                          `(seq ,src ,expr (var-ref ,src ,var-name))))
-                     `(tuple-ref ,src ,expr ,nat))
+                     `(tuple-ref ,src ,expr ,kindex))
                  ctv))]
             [else (values
-                    `(tuple-ref ,src ,expr ,nat)
+                    `(tuple-ref ,src ,expr ,kindex)
                     (CTV-unknown no-var-name))])))
-      (define (handle-bytes-ref src expr ctv nat)
+      (define (handle-bytes-ref src expr ctv kindex)
         (with-output-language (Lnovectorref Expression)
           (CTV-case ctv
             [(CTV-const datum)
-             (assert (and (bytevector? datum) (< nat (bytevector-length datum))))
-             (let* ([b (bytevector-u8-ref datum nat)]
+             (assert (and (bytevector? datum) (< kindex (bytevector-length datum))))
+             (let* ([b (bytevector-u8-ref datum kindex)]
                     [ctv (CTV-const no-var-name b)])
                (values
                  `(quote ,src ,b)
                  ctv))]
             [else (values
-                    `(bytes-ref ,src ,expr ,nat)
+                    `(bytes-ref ,src ,expr ,kindex)
                     (CTV-unknown no-var-name))])))
       (define (handle-elt-ref src expr ctv elt-name)
         (with-output-language (Lnovectorref Expression)
@@ -1336,61 +1335,61 @@
          (if (andmap values maybe-ctv**)
              (CTV-tuple no-var-name (apply append maybe-ctv**))
              (CTV-unknown no-var-name)))]
-      [(tuple-ref ,src ,[expr ctv] ,nat)
-       (handle-tuple-ref src expr ctv nat)]
+      [(tuple-ref ,src ,[expr ctv] ,kindex)
+       (handle-tuple-ref src expr ctv kindex)]
       [(bytes-ref ,src ,[type] ,[expr expr-ctv] ,[index index-ctv])
        (mvor (ifconstant index-ctv
-               (lambda (datum)
-                 (let ([nat (tbytes->length type)])
-                   (unless (< datum nat)
-                     (source-errorf src "invalid Bytes index ~d for a Bytes value of length ~d" datum nat)))
+               (lambda (kindex)
+                 (let ([len (tbytes->length type)])
+                   (unless (< kindex len)
+                     (source-errorf src "invalid Bytes index ~d for a Bytes value of length ~d" kindex len)))
                  (new-let src type expr expr-ctv
                    (lambda (var-name)
                      (let-values ([(var-ref var-ctv) (handle-var-ref src var-name)])
-                       (let-values ([(expr ctv) (handle-bytes-ref src var-ref var-ctv datum)])
+                       (let-values ([(expr ctv) (handle-bytes-ref src var-ref var-ctv kindex)])
                          (values
                            `(seq ,src ,index ,expr)
                            ctv)))))))
              (source-errorf src "Bytes index did not reduce to a constant nonnegative value at compile time"))]
       [(vector-ref ,src ,[type] ,[expr expr-ctv] ,[index index-ctv])
        (mvor (ifconstant index-ctv
-               (lambda (datum)
-                 (let ([nat (tvector->length type)])
-                   (unless (< datum nat)
-                     (source-errorf src "invalid vector index ~d for vector of length ~d" datum nat)))
+               (lambda (kindex)
+                 (let ([len (tvector->length type)])
+                   (unless (< kindex len)
+                     (source-errorf src "invalid vector index ~d for vector of length ~d" kindex len)))
                  (new-let src type expr expr-ctv
                    (lambda (var-name)
                      (let-values ([(var-ref var-ctv) (handle-var-ref src var-name)])
-                       (let-values ([(expr ctv) (handle-tuple-ref src var-ref var-ctv datum)])
+                       (let-values ([(expr ctv) (handle-tuple-ref src var-ref var-ctv kindex)])
                          (values
                            `(seq ,src ,index ,expr)
                            ctv)))))))
              (source-errorf src "vector index did not reduce to a constant nonnegative value at compile time"))]
-      [(tuple-slice ,src ,[type] ,[expr expr-ctv] ,nat ,size)
+      [(tuple-slice ,src ,[type] ,[expr expr-ctv] ,kindex ,len)
        (new-let src type expr expr-ctv
          (lambda (var-name)
            (let-values ([(var-ref var-ctv) (handle-var-ref src var-name)])
              (let-values ([(expr* ctv*)
-                           (let f ([size size] [nat nat])
-                             (if (fx= size 0)
+                           (let f ([len len] [kindex kindex])
+                             (if (fx= len 0)
                                  (values '() '())
-                                 (let-values ([(expr ctv) (handle-tuple-ref src var-ref var-ctv nat)]
-                                              [(expr* ctv*) (f (fx- size 1) (fx+ nat 1))])
+                                 (let-values ([(expr ctv) (handle-tuple-ref src var-ref var-ctv kindex)]
+                                              [(expr* ctv*) (f (fx- len 1) (fx+ kindex 1))])
                                    (values (cons expr expr*) (cons ctv ctv*)))))])
                (values
                  `(tuple ,src ,(map (lambda (expr) `(single ,src ,expr)) expr*) ...)
                  (CTV-tuple no-var-name ctv*))))))]
-      [(bytes-slice ,src ,[type] ,[expr expr-ctv] ,[index index-ctv] ,size)
+      [(bytes-slice ,src ,[type] ,[expr expr-ctv] ,[index index-ctv] ,len)
        (mvor (ifconstant index-ctv
-               (lambda (datum)
-                 (let ([nat (tbytes->length type)] [end (+ datum size)])
-                   (unless (<= end nat)
-                     (source-errorf src "invalid slice index ~d and size ~d for a Bytes value of length ~d" datum size nat)))
+               (lambda (kindex)
+                 (let ([input-len (tbytes->length type)] [end (+ kindex len)])
+                   (unless (<= end input-len)
+                     (source-errorf src "invalid slice index ~d and length ~d for a Bytes value of length ~d" kindex len input-len)))
                  (mvor (ifconstant expr-ctv
                          (lambda (bv)
-                           (assert (and (bytevector? bv) (<= (+ datum size) (bytevector-length bv))))
-                           (let ([new-bv (make-bytevector size)])
-                             (bytevector-copy! bv datum new-bv 0 size)
+                           (assert (and (bytevector? bv) (<= (+ kindex len) (bytevector-length bv))))
+                           (let ([new-bv (make-bytevector len)])
+                             (bytevector-copy! bv kindex new-bv 0 len)
                              (values
                                `(seq ,src ,expr ,index (quote ,src ,new-bv))
                                (CTV-const no-var-name new-bv)))))
@@ -1398,31 +1397,31 @@
                          (lambda (var-name)
                            (let-values ([(var-ref var-ctv) (handle-var-ref src var-name)])
                              (let-values ([(expr* ctv*)
-                                           (let f ([size size] [datum datum])
-                                             (if (fx= size 0)
+                                           (let f ([len len] [kindex kindex])
+                                             (if (fx= len 0)
                                                  (values '() '())
-                                                 (let-values ([(expr ctv) (handle-bytes-ref src var-ref var-ctv datum)]
-                                                              [(expr* ctv*) (f (fx- size 1) (fx+ datum 1))])
+                                                 (let-values ([(expr ctv) (handle-bytes-ref src var-ref var-ctv kindex)]
+                                                              [(expr* ctv*) (f (fx- len 1) (fx+ kindex 1))])
                                                    (values (cons expr expr*) (cons ctv ctv*)))))])
                                (values
-                                 `(seq ,src ,index (vector->bytes ,src ,size (tuple ,src ,(map (lambda (expr) `(single ,src ,expr)) expr*) ...)))
+                                 `(seq ,src ,index (vector->bytes ,src ,len (tuple ,src ,(map (lambda (expr) `(single ,src ,expr)) expr*) ...)))
                                  (CTV-unknown no-var-name)))))))))
              (source-errorf src "slice index did not reduce to a constant nonnegative value at compile time"))]
-      [(vector-slice ,src ,[type] ,[expr expr-ctv] ,[index index-ctv] ,size)
+      [(vector-slice ,src ,[type] ,[expr expr-ctv] ,[index index-ctv] ,len)
        (mvor (ifconstant index-ctv
-               (lambda (datum)
-                 (let ([nat (tvector->length type)] [end (+ datum size)])
-                   (unless (<= end nat)
-                     (source-errorf src "invalid slice index ~d and size ~d for vector of length ~d" datum size nat)))
+               (lambda (kindex)
+                 (let ([input-len (tvector->length type)] [end (+ kindex len)])
+                   (unless (<= end input-len)
+                     (source-errorf src "invalid slice index ~d and length ~d for vector of length ~d" kindex len input-len)))
                  (new-let src type expr expr-ctv
                    (lambda (var-name)
                      (let-values ([(var-ref var-ctv) (handle-var-ref src var-name)])
                        (let-values ([(expr* ctv*)
-                                     (let f ([size size] [datum datum])
-                                       (if (fx= size 0)
+                                     (let f ([len len] [kindex kindex])
+                                       (if (fx= len 0)
                                            (values '() '())
-                                           (let-values ([(expr ctv) (handle-tuple-ref src var-ref var-ctv datum)]
-                                                        [(expr* ctv*) (f (fx- size 1) (fx+ datum 1))])
+                                           (let-values ([(expr ctv) (handle-tuple-ref src var-ref var-ctv kindex)]
+                                                        [(expr* ctv*) (f (fx- len 1) (fx+ kindex 1))])
                                              (values (cons expr expr*) (cons ctv ctv*)))))])
                          (values
                            `(seq ,src ,index (tuple ,src ,(map (lambda (expr) `(single ,src ,expr)) expr*) ...))

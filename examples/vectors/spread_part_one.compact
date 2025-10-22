@@ -119,7 +119,7 @@ export circuit test3c(vector: Vector<8, Uint<32>>): [] {
   const e = [b[d + 1], ...slice<1>(var3.lookup(d + 1), d + 1), ...[d + 1], ...default<Vector<1, Field>>, test3a(), ...test3b()];
   const f = [b[2 + 2]];
   // const g = slice<0xffffffffffffffffffffffffffffffffffff>(default<Vector<0xffffffffffffffffffffffffffffffffffff, Field>>, 0);
-  const h = slice<0>(default<Vector<0x1000000, Field>>, 0x1000000);
+  // const h = slice<0>(default<Vector<0x1000000, Field>>, 0x1000000);
   const i = default<Vector<1000, var3a>>;
   const j = [...i, ...i];
 

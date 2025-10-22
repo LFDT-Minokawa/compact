@@ -52,7 +52,7 @@ describe('[Vectors] PM-13684/PM-17201/PM-18328 - Vector slice & spread', () => {
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                /Exception: invalid_index_length.compact line 19 char 31: slice index 100 plus size 4 is out-of-bounds for a vector of length 8/,
+                /Exception: invalid_index_length.compact line 19 char 31: slice index 100 plus length 4 is out-of-bounds for a vector of length 8/,
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();

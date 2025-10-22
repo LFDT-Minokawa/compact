@@ -4555,7 +4555,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "cannot pad ~s to length ~s since it's utf8-equivalent already exceeds that length" ("abcdefghijkl" 10)))
+      irritants: '("testfile.compact line 2 char 10" "cannot pad ~s to length ~s since its utf8-equivalent already exceeds that length" ("abcdefghijkl" 10)))
     )
 
   (test
@@ -12062,19 +12062,19 @@
       "circuit bar<T>(x: T): Field {"
       "  return x[0];"
       "}"
-      ,(format "export circuit foo(x: Vector<~d, Field>): Field {" (max-bytes/vector-size))
-      ,(format "  return bar<Vector<~d, Field>>(x);" (max-bytes/vector-size))
+      ,(format "export circuit foo(x: Vector<~d, Field>): Field {" (max-bytes/vector-length))
+      ,(format "  return bar<Vector<~d, Field>>(x);" (max-bytes/vector-length))
       "}"
       )
     (returns
       (program ((foo %foo.0))
         (circuit %bar.1 ([%x.2 (tvector
-                                 ,(max-bytes/vector-size)
+                                 ,(max-bytes/vector-length)
                                  (tfield))])
              (tfield)
           (tuple-ref %x.2 0))
         (circuit %foo.0 ([%x.3 (tvector
-                                 ,(max-bytes/vector-size)
+                                 ,(max-bytes/vector-length)
                                  (tfield))])
              (tfield)
           (call (fref ((%bar.1))) %x.3))))
@@ -19908,7 +19908,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "slice index ~d plus size ~d is out-of-bounds for a ~a of length ~d" (2 1 "vector" 1)))
+      irritants: '("testfile.compact line 3 char 10" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (2 1 "vector" 1)))
     )
 
   (test
@@ -19952,7 +19952,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "slice size ~d exceeds the length ~d of the input vector" (4 3)))
+      irritants: '("testfile.compact line 2 char 10" "slice length ~d exceeds the length ~d of the input vector" (4 3)))
     )
 
   (test
@@ -19963,7 +19963,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "slice size ~d exceeds the length ~d of the input vector" (4 3)))
+      irritants: '("testfile.compact line 2 char 10" "slice length ~d exceeds the length ~d of the input vector" (4 3)))
     )
 
   (test
@@ -21199,184 +21199,360 @@
 
   ; test for pattern blog post
   (test
-   '(
-     "enum Material { wood, glass, steel }"
-     "struct Box { dimensions: [Field, Field, Field], material: Material }"
-     "export circuit demo(): [] {"
-     "  const myBox = Box { dimensions: [1, 2, 3], material: Material.wood };"
-     "  const { dimensions: [length, width, height], material } = myBox;"
-     "}"
-     )
-   (succeeds))
-
-  (test
-   '(
-     "enum Material { wood, glass, steel }"
-     "struct Box { dimensions: [Field, Field, Field], material: Material }"
-     "export circuit demo(): [] {"
-     "  const { dimensions: [x, , , z] } = Box { [1, 2, 3], Material.wood};"
-     "}"
-     )
-   (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 23" "index ~d is out-of-bounds for a ~a of length ~d" (3 "tuple" 3)))
-   )
-
-  (test
-   '(
-     "enum Material { wood, glass, steel }"
-     "struct Box { dimensions: [Field, Field, Field], material: Material }"
-     "export circuit demo(): [] {"
-     "  const { dimensions: [x, z, , , ] } = Box { [1, 2, 3], Material.wood};"
-     "}"
-     )
-   (succeeds)
-   )
-
-  (test
-   '(
-     "export circuit do_sth(): Field {"
-      "  return fold((x: Field, [a, b]: [Field, Field]): Field => a + b + x, 0, [[1, 2], [2, 3], [3, 4]]);"
+    '(
+      "enum Material { wood, glass, steel }"
+      "struct Box { dimensions: [Field, Field, Field], material: Material }"
+      "export circuit demo(): [] {"
+      "  const myBox = Box { dimensions: [1, 2, 3], material: Material.wood };"
+      "  const { dimensions: [length, width, height], material } = myBox;"
       "}"
       )
-   (succeeds))
+    (succeeds))
+
+  (test
+    '(
+      "enum Material { wood, glass, steel }"
+      "struct Box { dimensions: [Field, Field, Field], material: Material }"
+      "export circuit demo(): [] {"
+      "  const { dimensions: [x, , , z] } = Box { [1, 2, 3], Material.wood};"
+      "}"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 4 char 23" "index ~d is out-of-bounds for a ~a of length ~d" (3 "tuple" 3)))
+    )
+
+  (test
+    '(
+      "enum Material { wood, glass, steel }"
+      "struct Box { dimensions: [Field, Field, Field], material: Material }"
+      "export circuit demo(): [] {"
+      "  const { dimensions: [x, z, , , ] } = Box { [1, 2, 3], Material.wood};"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit do_sth(): Field {"
+       "  return fold((x: Field, [a, b]: [Field, Field]): Field => a + b + x, 0, [[1, 2], [2, 3], [3, 4]]);"
+       "}"
+       )
+    (succeeds))
 
   ; tests for writing lang ref of return
   (test
-   '(
-     "export circuit foo(): [] {}"
-     )
-   (returns (program (circuit %foo.0 () (ttuple) (tuple)))))
+    '(
+      "export circuit foo(): [] {}"
+      )
+    (returns (program (circuit %foo.0 () (ttuple) (tuple)))))
 
   (test
-   '(
-     "export circuit foo(): [] { return ;}"
-     )
-   (returns (program (circuit %foo.0 () (ttuple) (tuple)))))
+    '(
+      "export circuit foo(): [] { return ;}"
+      )
+    (returns (program (circuit %foo.0 () (ttuple) (tuple)))))
 
   (test
-   '(
-     "export circuit foo(): Boolean {}"
-     )
-   (oops
+    '(
+      "export circuit foo(): Boolean {}"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
+    )
+
+  (test
+    '(
+      "export circuit foo(c: Boolean): Boolean { if (c) true;}"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
+    )
+
+  (test
+    '(
+      "export circuit foo(c: Boolean): Boolean { if (true) {return c;} }"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 1 char 43" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+    )
+
+  (test
+    '(
+      "export circuit foo(c: Boolean): Boolean { if (c) {return true; return 1;} else return false; }"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 1 char 64" "unreachable statement" ()))
+    )
+
+  (test
+    '(
+      "export circuit foo(c: Boolean): Boolean { if (c) {return true; const a = 1;} else return false; }"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 1 char 70" "unreachable statement" ()))
+    )
+
+  (test
+    '(
+      "export circuit foo(c: Boolean): Boolean { if (c) {return true; return +1;} else return false; }"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 1 char 71" "parse error: found ~a looking for~?" ("\"+\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression sequence" "\";\""))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): Boolean { return true, 1; }"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 1 char 33" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<1>" "Boolean" "circuit foo")))
+    )
+
+  (test
+    '(
+      "export circuit foo(): Boolean { return 1, true; }"
+      )
+    (returns
+       (program (circuit %foo.0 () (tboolean) (seq 1 #t))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): [] { ((x) => {return;})(true); }"
+      )
+    (returns
+       (program
+         (circuit %foo.0 ()
+              (ttuple)
+           (seq
+             (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t)
+             (tuple)))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): [] { return ((x) => {return;})(true); }"
+      )
+    (returns
+       (program
+         (circuit %foo.0 ()
+              (ttuple)
+           (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t))))
+    )
+
+  (test
+    '(
+      "constructor () { return; }"
+      )
+    (returns (program (constructor () (tuple))))
+    )
+
+  (test
+    '(
+      "constructor () { return true; }"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 1 char 18" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Boolean" "[]" "ledger constructor")))
+    )
+
+  (test
+    '(
+      "export circuit foo(c: Boolean): Boolean {"
+      "  return ((x) : Boolean => {"
+      "    if (c)"
+      "       return x;"
+      "    else"
+      "       return !x;"
+      "    })(c);"
+      "}"
+      )
+    (returns
+       (program
+         (circuit %foo.0 ([%c.1 (tboolean)])
+              (tboolean)
+           (call (circuit ([%x.2 (tboolean)])
+                      (tboolean)
+                   (if %c.1 %x.2 (if %x.2 #f #t)))
+             %c.1))))
+    )
+
+  (test
+    '(
+      "export circuit foo(c: Boolean): Boolean {"
+      "  return ((x) : Boolean => {"
+      "    if (c)"
+      "       return x;"
+      "    })(c);"
+      "}"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 3 char 5" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+    )
+
+  ; test for bounds of merkle trees
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (min-merkle-tree-depth))
+      ,(format "ledger field2: MerkleTree<~d, Boolean>;" (max-merkle-tree-depth))
+      )
+    (succeeds))
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (- (min-merkle-tree-depth) 1))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
-   )
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   '(
-     "export circuit foo(c: Boolean): Boolean { if (c) true;}"
-     )
-   (oops
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
-   )
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   '(
-     "export circuit foo(c: Boolean): Boolean { if (true) {return c;} }"
-     )
-   (oops
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 43" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
-   )
+      irritants: '("testfile.compact line 2 char 30" "expected ~a but received ~a for generic parameter ~s declared at ~a" ("non-ADT type" "ledger ADT type" value_type "<standard library>")))
+    )
 
   (test
-   '(
-     "export circuit foo(c: Boolean): Boolean { if (c) {return true; return 1;} else return false; }"
-     )
-   (oops
+    `(
+      "import CompactStandardLibrary;"
+      "module M<#n>{"
+      "  export ledger field1: MerkleTree<n, Boolean>;"
+      "}"
+      ,(format "import M<~d>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 64" "unreachable statement" ()))
-   )
+      irritants: `("testfile.compact line 3 char 25" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   '(
-     "export circuit foo(c: Boolean): Boolean { if (c) {return true; const a = 1;} else return false; }"
-     )
-   (oops
+    `(
+      "import CompactStandardLibrary;"
+      "module M<#n>{"
+      "  export ledger field1: MerkleTree<n, Boolean>;"
+      "}"
+      ,(format "import M<~d>;" (- (min-merkle-tree-depth) 1))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 70" "unreachable statement" ()))
-   )
+      irritants: `("testfile.compact line 3 char 25" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   '(
-     "export circuit foo(c: Boolean): Boolean { if (c) {return true; return +1;} else return false; }"
-     )
-   (oops
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (min-merkle-tree-depth))
+      ,(format "ledger field2: HistoricMerkleTree<~d, Boolean>;" (max-merkle-tree-depth))
+      )
+    (succeeds))
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (- (min-merkle-tree-depth) 1))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 71" "parse error: found ~a looking for~?" ("\"+\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression sequence" "\";\""))))
-   )
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   '(
-     "export circuit foo(): Boolean { return true, 1; }"
-     )
-   (oops
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 33" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<1>" "Boolean" "circuit foo")))
-   )
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   '(
-     "export circuit foo(): Boolean { return 1, true; }"
-     )
-   (returns
+    '(
+      "export circuit foo(): Boolean { return 1, true; }"
+      )
+    (returns
       (program (circuit %foo.0 () (tboolean) (seq 1 #t))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): [] { ((x) => {return;})(true); }"
+      )
+    (returns
+       (program
+         (circuit %foo.0 ()
+              (ttuple)
+           (seq
+             (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t)
+             (tuple)))))
    )
 
   (test
-   '(
-     "export circuit foo(): [] { ((x) => {return;})(true); }"
-     )
-   (returns
-      (program
-        (circuit %foo.0 ()
-             (ttuple)
-          (seq
-            (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t)
-            (tuple)))))
-   )
+    '(
+      "export circuit foo(): [] { return ((x) => {return;})(true); }"
+      )
+    (returns
+       (program
+         (circuit %foo.0 ()
+              (ttuple)
+           (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t))))
+    )
 
   (test
-   '(
-     "export circuit foo(): [] { return ((x) => {return;})(true); }"
-     )
-   (returns
-      (program
-        (circuit %foo.0 ()
-             (ttuple)
-          (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t))))
-   )
+    '(
+      "constructor () { return; }"
+      )
+    (returns (program (constructor () (tuple))))
+    )
 
   (test
-   '(
-     "constructor () { return; }"
-     )
-   (returns (program (constructor () (tuple))))
-   )
-
-  (test
-   '(
-     "constructor () { return true; }"
-     )
-   (oops
+    '(
+      "constructor () { return true; }"
+      )
+    (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 18" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Boolean" "[]" "ledger constructor")))
-   )
+    )
 
   (test
-   '(
-     "export circuit foo(c: Boolean): Boolean {"
-     "  return ((x) : Boolean => {"
-     "    if (c)"
-     "       return x;"
-     "    else"
-     "       return !x;"
-     "    })(c);"
-     "}"
-     )
-   (returns
+    '(
+      "export circuit foo(c: Boolean): Boolean {"
+      "  return ((x) : Boolean => {"
+      "    if (c)"
+      "       return x;"
+      "    else"
+      "       return !x;"
+      "    })(c);"
+      "}"
+      )
+    (returns
       (program
         (circuit %foo.0 ([%c.1 (tboolean)])
              (tboolean)
@@ -21384,312 +21560,329 @@
                      (tboolean)
                   (if %c.1 %x.2 (if %x.2 #f #t)))
             %c.1))))
-   )
+    )
 
   (test
-   '(
-     "export circuit foo(c: Boolean): Boolean {"
-     "  return ((x) : Boolean => {"
-     "    if (c)"
-     "       return x;"
-     "    })(c);"
-     "}"
-     )
-   (oops
+    '(
+      "export circuit foo(c: Boolean): Boolean {"
+      "  return ((x) : Boolean => {"
+      "    if (c)"
+      "       return x;"
+      "    })(c);"
+      "}"
+      )
+    (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 5" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
-   )
+    )
 
     ; test for bounds of merkle trees
   (test
-   `(
-     "import CompactStandardLibrary;"
-     ,(format "ledger field1: MerkleTree<~d, Boolean>;" (min-merkle-tree-depth))
-     ,(format "ledger field2: MerkleTree<~d, Boolean>;" (max-merkle-tree-depth))
-     )
-   (succeeds))
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (min-merkle-tree-depth))
+      ,(format "ledger field2: MerkleTree<~d, Boolean>;" (max-merkle-tree-depth))
+      )
+    (succeeds))
 
   (test
-   `(
-     "import CompactStandardLibrary;"
-     ,(format "ledger field1: MerkleTree<~d, Boolean>;" (- (min-merkle-tree-depth) 1))
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
-   )
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (- (min-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   `(
-     "import CompactStandardLibrary;"
-     ,(format "ledger field1: MerkleTree<~d, Boolean>;" (+ (max-merkle-tree-depth) 1))
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
-   )
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   `(
-     "import CompactStandardLibrary;"
-     ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (+ (max-merkle-tree-depth) 1))
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: '("testfile.compact line 2 char 30" "expected ~a but received ~a for generic parameter ~s declared at ~a" ("non-ADT type" "ledger ADT type" value_type "<standard library>")))
-   )
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 30" "expected ~a but received ~a for generic parameter ~s declared at ~a" ("non-ADT type" "ledger ADT type" value_type "<standard library>")))
+    )
 
   (test
-   `(
-     "import CompactStandardLibrary;"
-     "module M<#n>{"
-     "  export ledger field1: MerkleTree<n, Boolean>;"
-     "}"
-     ,(format "import M<~d>;" (+ (max-merkle-tree-depth) 1))
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 3 char 25" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
-   )
+    `(
+      "import CompactStandardLibrary;"
+      "module M<#n>{"
+      "  export ledger field1: MerkleTree<n, Boolean>;"
+      "}"
+      ,(format "import M<~d>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 25" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   `(
-     "import CompactStandardLibrary;"
-     "module M<#n>{"
-     "  export ledger field1: MerkleTree<n, Boolean>;"
-     "}"
-     ,(format "import M<~d>;" (- (min-merkle-tree-depth) 1))
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 3 char 25" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
-   )
+    `(
+      "import CompactStandardLibrary;"
+      "module M<#n>{"
+      "  export ledger field1: MerkleTree<n, Boolean>;"
+      "}"
+      ,(format "import M<~d>;" (- (min-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 25" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   `(
-     "import CompactStandardLibrary;"
-     ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (min-merkle-tree-depth))
-     ,(format "ledger field2: HistoricMerkleTree<~d, Boolean>;" (max-merkle-tree-depth))
-     )
-   (succeeds))
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (min-merkle-tree-depth))
+      ,(format "ledger field2: HistoricMerkleTree<~d, Boolean>;" (max-merkle-tree-depth))
+      )
+    (succeeds)
+    )
 
   (test
-   `(
-     "import CompactStandardLibrary;"
-     ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (- (min-merkle-tree-depth) 1))
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
-   )
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (- (min-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 
   (test
-   `(
-     "import CompactStandardLibrary;"
-     ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (+ (max-merkle-tree-depth) 1))
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
-   )
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
 )
 
-; tests limits for vectors, bytes, tuples for slicing
-; it sets max-bytes/vector-size to 10 for testing to avoid waiting a noticable time
-; for tests that builds max possible tuples
-(parameterize ([max-bytes/vector-size 50])
+; tests limits for vectors, bytes, and tuples.
+; it sets max-bytes/vector-length to 150 for testing to avoid waiting a noticable time
+; for tests that builds max possible tuples.
+; NB: if you set this to lower than what some of the types in standard library use
+; (e.g., 32 or 64) you'd get a different error for tests that import std.
+(parameterize ([max-bytes/vector-length 150])
 (run-tests expand-modules-and-types
   ; tests for bounds of vectors
   (test
-   `(
-     ,(format "export sealed ledger foo: Vector<~d, Boolean>;" (max-bytes/vector-size))
-     )
-   (succeeds))
+    `(
+      ,(format "export sealed ledger foo: Vector<~d, Boolean>;" (max-bytes/vector-length))
+      )
+    (succeeds))
 
   (test
-   `(
-     ,(format "export sealed ledger foo: Vector<~d, Boolean>;" (+ (max-bytes/vector-size) 1))
-     )
-   (oops
+    `(
+      ,(format "export sealed ledger foo: Vector<~d, Boolean>;" (+ (max-bytes/vector-length) 1))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 27" "Vector type size\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+      irritants: '("testfile.compact line 1 char 27" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("vector type" 151 150)))
    )
 
   (test
-   '(
-     "export sealed ledger foo: Vector<0, Boolean>;"
-     )
-   (succeeds))
+    '(
+      "export sealed ledger foo: Vector<0, Boolean>;"
+      )
+    (succeeds))
 
   (test
-   '(
-     "export sealed ledger foo: Vector<-1, Boolean>;"
-     )
-   (oops
+    '(
+      "export sealed ledger foo: Vector<-1, Boolean>;"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 1 char 34" "parse error: found ~a looking for~?" ("\"-\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a type size"))))
+    )
+
+  (test
+    `(
+      "module M<#n>{"
+      "  export circuit foo(v: Vector<n, Boolean>): Vector<n, Boolean> {"
+      "    return v;"
+      "  }"
+      "}"
+      ,(format "import M<~d> prefix $;" (max-bytes/vector-length))
+      "export { $foo }"
+      )
+    (succeeds))
+
+  (test
+    `(
+      "module M<#n>{"
+      "  export circuit foo(v: Vector<n, Boolean>): Vector<n, Boolean> {"
+      "    return v;"
+      "  }"
+      "}"
+      ,(format "import M<~d> prefix $;" (+ (max-bytes/vector-length) 1))
+      "export { $foo }"
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 34" "parse error: found ~a looking for~?" ("\"-\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a type size"))))
-   )
-
-  (test
-   `(
-     "module M<#n>{"
-     "  export circuit foo(v: Vector<n, Boolean>): Vector<n, Boolean> {"
-     "    return v;"
-     "  }"
-     "}"
-     ,(format "import M<~d> prefix $;" (max-bytes/vector-size))
-     "export { $foo }"
-     )
-   (succeeds))
-
-  (test
-   `(
-     "module M<#n>{"
-     "  export circuit foo(v: Vector<n, Boolean>): Vector<n, Boolean> {"
-     "    return v;"
-     "  }"
-     "}"
-     ,(format "import M<~d> prefix $;" (+ (max-bytes/vector-size) 1))
-     "export { $foo }"
-     )
-   (oops
-      message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 25" "Vector type size\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
+      irritants: '("testfile.compact line 2 char 25" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("vector type" 151 150)))
+    )
 
   ; test for bounds of bytes
   (test
-   `(
-     ,(format "export sealed ledger foo: Bytes<~d>;" (max-bytes/vector-size))
-     )
-   (succeeds))
+    `(
+      ,(format "export sealed ledger foo: Bytes<~d>;" (max-bytes/vector-length))
+      )
+    (succeeds))
 
   (test
-   `(
-     ,(format "export sealed ledger foo: Bytes<~d>;" (+ (max-bytes/vector-size) 1))
-     )
-   (oops
+    `(
+      ,(format "export sealed ledger foo: Bytes<~d>;" (+ (max-bytes/vector-length) 1))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 27" "Bytes type length\n    ~d\n  exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
+      irritants: '("testfile.compact line 1 char 27" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("bytes type" 151 150)))
+    )
 
   (test
-   '(
-     "export sealed ledger foo: Bytes<0>;"
-     )
-   (succeeds))
+    '(
+      "export sealed ledger foo: Bytes<0>;"
+      )
+    (succeeds))
 
   (test
-   '(
-     "export sealed ledger foo: Bytes<-1>;"
-     )
-   (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 33" "parse error: found ~a looking for~?" ("\"-\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a type size"))))
-   )
+    '(
+      "export sealed ledger foo: Bytes<-1>;"
+      )
+    (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 1 char 33" "parse error: found ~a looking for~?" ("\"-\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a type size"))))
+    )
 
   ; test for bounds of tuples
   (test
-   `(
-     ,(format "export sealed ledger foo: ~a;"
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-size)))
-     )
-   (succeeds))
+    `(
+      ,(format "export sealed ledger foo: ~a;"
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-length)))
+      )
+    (succeeds))
 
   (test
-   `(
-     ,(format "export sealed ledger foo: ~a;"
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "Field" result))))) (+ (max-bytes/vector-size) 1)))
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 1 char 27" "Tuple type length\n    ~d\n  exceeds the maximum tuple length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
-
-  ; test for bounds of pads
-  (test
-   `(
-     ,(format "export circuit foo() : Bytes<~d>{" (max-bytes/vector-size))
-     ,(format "  return pad(~d,'a');" (max-bytes/vector-size))
-     "}"
-     )
-   (succeeds))
-
-  (test
-   `(
-     "export circuit foo() : Bytes<0>{"
-     "  return pad(0,'a');"
-     "}"
-     )
-   (oops
+    `(
+      ,(format "export sealed ledger foo: ~a;"
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "Field" result))))) (+ (max-bytes/vector-length) 1)))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "cannot pad ~s to length ~s since it's utf8-equivalent already exceeds that length" ("a" 0)))
-   )
+      irritants: '("testfile.compact line 1 char 27" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("tuple type" 151 150)))
+    )
 
   (test
-   `(
-     ,(format "export circuit foo() : Bytes<~d>{" (max-bytes/vector-size))
-     ,(format "  return pad(~d,'a');" (+ (max-bytes/vector-size) 1))
-     "}"
-     )
-   (succeeds))
-
-  (test
-   `(
-     ,(format "export circuit foo() : Bytes<~d>{" (max-bytes/vector-size))
-     ,(format "  return pad(~d,'a');" -1)
-     "}"
-     )
-   (oops
+    `(
+      "export circuit foo() : [] {"
+      ,(format "  const x = '~a';" (make-string (+ (max-bytes/vector-length) 1) #\x))
+      "}"
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 14" "parse error: found ~a looking for~?" ("\"-\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a non-negative numeric constant"))))
-   )
+      irritants: `("testfile.compact line 2 char 13" "length ~d of the UTF-8 representation of string constant exceeds the maximum supported length ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
 )
 
 (run-tests infer-types
+  ; test for bounds of pads
+  (test
+    `(
+      ,(format "export circuit foo() : Bytes<~d>{" (max-bytes/vector-length))
+      ,(format "  return pad(~d,'a');" (max-bytes/vector-length))
+      "}"
+      )
+    (succeeds))
+
+  (test
+    `(
+      "export circuit foo() : Bytes<0>{"
+      "  return pad(0,'a');"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot pad ~s to length ~s since its utf8-equivalent already exceeds that length" ("a" 0)))
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo() : Bytes<~d>{" (max-bytes/vector-length))
+      ,(format "  return pad(~d,'a');" (+ (max-bytes/vector-length) 1))
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 10" "pad length ~d exceeds the maximum supported length ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo() : Bytes<~d>{" (max-bytes/vector-length))
+      ,(format "  return pad(~d,'a');" -1)
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "parse error: found ~a looking for~?" ("\"-\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a non-negative numeric constant"))))
+    )
+
   (test
     `(
       ,(format "export circuit foo(v: Vector<~d, Field>): Vector<~d, Field> {"
-               (+ (max-bytes/vector-size) 1)
-               (+ (max-bytes/vector-size) 1))
+               (+ (max-bytes/vector-length) 1)
+               (+ (max-bytes/vector-length) 1))
       "  return v;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 23" "Vector type size\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+      irritants: '("testfile.compact line 1 char 23" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("vector type" 151 150)))
     )
 
   (test
     `(
       ,(format "export circuit foo(v: Bytes<~d>): Bytes<~d> {"
-               (+ (max-bytes/vector-size) 1)
-               (+ (max-bytes/vector-size) 1))
+               (+ (max-bytes/vector-length) 1)
+               (+ (max-bytes/vector-length) 1))
       "  return v;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 23" "Bytes type length\n    ~d\n  exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+      irritants: '("testfile.compact line 1 char 23" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("bytes type" 151 150)))
     )
 
   (test
     `(
-      ,(format "export circuit foo(v: Vector<~d, Field>): Vector<1, Field> {" (max-bytes/vector-size))
-      ,(format "  return slice<1>(v, ~d);" (max-bytes/vector-size))
+      ,(format "export circuit foo(v: Vector<~d, Field>): Vector<1, Field> {" (max-bytes/vector-length))
+      ,(format "  return slice<1>(v, ~d);" (max-bytes/vector-length))
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 10" "slice index ~d plus size ~d is out-of-bounds for a ~a of length ~d" (,(max-bytes/vector-size) 1 "vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a ~a slicing" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
     )
 
   (test
@@ -21699,57 +21892,77 @@
                  (let loop ([i 0] [result '()])
                    (if (= i n)
                        (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-size)))
-      ,(format "  return slice<1>(v, ~d);" (max-bytes/vector-size))
+                       (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-length)))
+      ,(format "  return slice<1>(v, ~d);" (max-bytes/vector-length))
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 10" "slice index ~d plus size ~d is out-of-bounds for a ~a of length ~d" (,(max-bytes/vector-size) 1 "tuple" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a ~a slicing" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "tuple")))
     )
 
   (test
     `(
-      ,(format "export circuit foo(v: Bytes<~d>): Bytes<~d> {" (max-bytes/vector-size) (+ (max-bytes/vector-size) 1))
-      ,(format "  return slice<~d>(v, ~d);" (max-bytes/vector-size) (max-bytes/vector-size))
+      ,(format "export circuit foo(v: ~a): [Field] {"
+              ((lambda (n)
+                 (let loop ([i 0] [result '()])
+                   (if (= i n)
+                       (format #f "[~{~a~^, ~}]" (reverse result))
+                       (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-length)))
+      ,(format "  return v[~d];" (max-bytes/vector-length))
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 35" "Bytes type length\n    ~d\n  exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 2 char 12" "index ~d exceeds maximum allowed index ~d for a ~a reference" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "tuple")))
     )
 
   (test
     `(
-      ,(format "export circuit foo(v: Bytes<~d>): [] {" (max-bytes/vector-size))
+      ,(format "export circuit foo(v: Bytes<~d>): Bytes<~d> {"
+               (max-bytes/vector-length)
+               (+ (max-bytes/vector-length) 1))
+      ,(format "  return slice<~d>(v, ~d);"
+               (max-bytes/vector-length)
+               (max-bytes/vector-length))
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 36" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("bytes type" 151 150)))
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo(v: Bytes<~d>): [] {" (max-bytes/vector-length))
       "  return slice<10>(Bytes[...v, 1], 10);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 20" "Bytes construction length\n    ~d exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 2 char 20" "Bytes construction length\n    ~d exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
    )
 
   (test
     `(
-      ,(format "export circuit foo(v: Vector<~d, Field>): Vector<2, Field> {" (max-bytes/vector-size))
-      ,(format "  return slice<2>(v, ~d);" (max-bytes/vector-size))
+      ,(format "export circuit foo(v: Vector<~d, Field>): Vector<2, Field> {" (max-bytes/vector-length))
+      ,(format "  return slice<2>(v, ~d);" (max-bytes/vector-length))
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 10" "slice index ~d plus size ~d is out-of-bounds for a ~a of length ~d" (,(max-bytes/vector-size) 2 "vector" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a ~a slicing" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
     )
 
   (test
     `(
-      ,(format "export circuit foo(v: Vector<~d, Field>): Vector<2, Field> {" (- (max-bytes/vector-size) 1))
-      ,(format "  return slice<2>(v, ~d);" (max-bytes/vector-size))
+      ,(format "export circuit foo(v: Vector<~d, Field>): Vector<2, Field> {" (- (max-bytes/vector-length) 1))
+      ,(format "  return slice<2>(v, ~d);" (max-bytes/vector-length))
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 10" "slice index ~d plus size ~d is out-of-bounds for a ~a of length ~d" (,(max-bytes/vector-size) 2 "vector" ,(- (max-bytes/vector-size) 1))))
+      irritants: `("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a ~a slicing" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
     )
 
   (test
@@ -21759,30 +21972,30 @@
                   (let loop ([i 0] [result '()])
                     (if (= i n)
                         (format #f "[~{~a~^, ~}]" (reverse result))
-                        (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-size)))
-      ,(format "  return slice<2>(v, ~d);" (max-bytes/vector-size))
+                        (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-length)))
+      ,(format "  return slice<2>(v, ~d);" (max-bytes/vector-length))
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 10" "slice index ~d plus size ~d is out-of-bounds for a ~a of length ~d" (,(max-bytes/vector-size) 2 "tuple" ,(max-bytes/vector-size))))
+      irritants: `("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a ~a slicing" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "tuple")))
     )
 
   (test
-   `(
-     ,(format "export circuit foo(b: Bytes<~d>): [] {" (max-bytes/vector-size))
-     ,(format "  const x = slice<1>(~a, 0);"
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "Bytes[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "0" result))))) (+ (max-bytes/vector-size) 1)))
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 22" "Bytes construction length\n    ~d exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
+    `(
+      ,(format "export circuit foo(b: Bytes<~d>): [] {" (max-bytes/vector-length))
+      ,(format "  const x = slice<1>(~a, 0);"
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "Bytes[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "0" result))))) (+ (max-bytes/vector-length) 1)))
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 22" "Bytes construction length\n    ~d exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
 
   (test
     `(
@@ -21794,326 +22007,587 @@
       "  return bar<1>(v);"
       "}"
       "}"
-      ,(format "import M<~d>;" (+ (max-bytes/vector-size) 1))
+      ,(format "import M<~d>;" (+ (max-bytes/vector-length) 1))
       "export { foo }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 5 char 23" "Bytes type length\n    ~d\n  exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+      irritants: '("testfile.compact line 5 char 23" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("bytes type" 151 150)))
     )
 
   (test
-   `(
-     ,(format "export circuit bar(v: Vector<~d, Field>, i: Vector<1, Field>): [] {" (max-bytes/vector-size))
-     "  const x = [...v, ...i];"
-     "  return ;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+    `(
+      ,(format "export circuit bar(v: Vector<~d, Field>, i: Vector<1, Field>): [] {" (max-bytes/vector-length))
+      "  const x = [...v, ...i];"
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit bar(v: Vector<~d, Field>, i: Vector<1, Field>): [] {" (- (max-bytes/vector-length) 1))
+      "  const x = [...v, ...i];"
+      "  return ;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      ,(format "export circuit bar(v: Vector<~d, Field>, i: Vector<2, Field>): [] {" (- (max-bytes/vector-length) 1))
+      "  const x = [...v, ...i];"
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit bar(v: Vector<~d, Field>, i: Vector<1, Field>): [] {" (max-bytes/vector-length))
+      ,(format "  const y = v as ~a;"
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-length)))
+      "  const x = [...y, ...i];"
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit bar(v: Vector<~d, Field>, i: [Field]): [] {" (max-bytes/vector-length))
+      ,(format "  const y = v as ~a;"
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-length)))
+      "  const x = [...y, ...i];"
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 13" "the size of tuple/vector construction expression with tuple-typed spread\n    ~d\n  exceeds the maximum tuple size allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit bar(v: ~a, i: [Field]): [] {"
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-length)))
+      "  const x = [...v, ...i];"
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with tuple-typed spread\n    ~d\n  exceeds the maximum tuple size allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo(v: ~a): ~a {"
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "Field" result))))) (+ (max-bytes/vector-length) 1))
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "Field" result))))) (+ (max-bytes/vector-length) 1)))
+      "  return v;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 23" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("tuple type" 151 150)))
+    )
+
+  (test
+    `(
+      "export circuit bar(i: [Field, Field]): [] {"
+      ,(format " const v = ~a;"
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "1" result))))) (- (max-bytes/vector-length) 1)))
+      "  const x = [...v, ...i];"
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 13" "the size of tuple/vector construction expression with tuple-typed spread\n    ~d\n  exceeds the maximum tuple size allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit bar(v: ~a, i: [Field]): ~a {"
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "Field" result))))) (- (max-bytes/vector-length) 1))
+               ((lambda (n)
+                  (let loop ([i 0] [result '()])
+                    (if (= i n)
+                        (format #f "[~{~a~^, ~}]" (reverse result))
+                        (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-length)))
+      "  const x = [...v, ...i];"
+      "  return x;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      ,(format "export circuit bar(v: Vector<~d, Field>, i: [Field]): [] {" (max-bytes/vector-length))
+      "  const x = [...v, ...i];"
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit bar(v: Vector<~d, Field>, i: [Field]): [] {" (- (max-bytes/vector-length) 1))
+      "  const x = [...v, ...i];"
+      "  return ;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      ,(format "export circuit bar(v: Vector<~d, Field>, i: [Field, Field]): [] {" (- (max-bytes/vector-length) 1))
+      "  const x = [...v, ...i];"
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit bar(v: Vector<~d, Field>, i: [Field, Field]): [] {" (- (max-bytes/vector-length) 1))
+      "  const x = [...i, ...v];"
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit foo(f: Field): [] {"
+      ,(format "  const x = transientHash<Vector<~d, Field>>(f);" (+ (max-bytes/vector-length) 1))
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 27" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("vector type" 151 150)))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit foo(f: Field): [] {"
+      ,(format "  const x = transientHash<Bytes<~d>>(f);" (+ (max-bytes/vector-length) 1))
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 27" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("bytes type" 151 150)))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit foo(f: Field): [] {"
+      ,(format "  const x = transientHash<~a>(f);"
+               ((lambda (n)
+                    (let loop ([i 0] [result '()])
+                      (if (= i n)
+                          (format #f "[~{~a~^, ~}]" (reverse result))
+                          (loop (+ i 1) (cons "Field" result))))) (+ (max-bytes/vector-length) 1)))
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 27" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("tuple type" 151 150)))
+    )
+
+  (test
+    `(
+      "ledger F: Vector<10, Field>;"
+      ,(format "export circuit foo(bv: Vector<~d, Field>): [] {" (max-bytes/vector-length))
+      ,(format "  F = [255, ...slice<~d>(disclose(bv), 1), 0];" (max-bytes/vector-length))
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 16" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (1 ,(max-bytes/vector-length) "vector" ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      "ledger F: Bytes<10>;"
+      ,(format "export circuit foo(bv: Bytes<~d>): [] {" (max-bytes/vector-length))
+      ,(format "  F = Bytes[255, ...slice<~d>(disclose(bv), 1), 0];" (- (max-bytes/vector-length) 1))
+      "  return ;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 7" "Bytes construction length\n    ~d exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-length) 1) ,(max-bytes/vector-length))))
+    )
+
+  ; PM-19767
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor(){"
+      "  for (const bob of slice<197908171978938887506682837333954029155>(default<Either<Field,SendResult>>, 0o23103656654)) {"
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 21" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("slice" 197908171978938887506682837333954029155 150)))
    )
 
   (test
-   `(
-     ,(format "export circuit bar(v: Vector<~d, Field>, i: Vector<1, Field>): [] {" (- (max-bytes/vector-size) 1))
-     "  const x = [...v, ...i];"
-     "  return ;"
-     "}"
-     )
-   (succeeds)
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "constructor(v: Vector<~d, Field>){" (max-bytes/vector-length))
+      "  for (const bob of slice<197908171978938887506682837333954029155>(v, 0)) {"
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 21" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("slice" 197908171978938887506682837333954029155 150)))
    )
 
   (test
-   `(
-     ,(format "export circuit bar(v: Vector<~d, Field>, i: Vector<2, Field>): [] {" (- (max-bytes/vector-size) 1))
-     "  const x = [...v, ...i];"
-     "  return ;"
-     "}"
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(): []{"
+      "  for (const bob of slice<197908171978938887506682837333954029155>(default<Either<Field,SendResult>>, 0o23103656654)) {"
+      "  }"
+      "}"
      )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 21" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("slice" 197908171978938887506682837333954029155 150)))
    )
 
   (test
-   `(
-     ,(format "export circuit bar(v: Vector<~d, Field>, i: Vector<1, Field>): [] {" (max-bytes/vector-size))
-     ,(format "  const y = v as ~a;"
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-size)))
-     "  const x = [...y, ...i];"
-     "  return ;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 3 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
+    '(
+      "import CompactStandardLibrary;"
+      "constructor(){"
+      "  const bob = pad(153991381835065054463771822173069549287, 'oBjlyD');"
+      "  const tom = slice<0>(default<Opaque<'string'>>, 57855240729977993385528989091578690226);"
+      "  assert (lambda <= bob, 'QYZqgUFVDnuR');"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 15" "pad length ~d exceeds the maximum supported length ~d" (153991381835065054463771822173069549287 ,(max-bytes/vector-length))))
+    )
 
   (test
-   `(
-     ,(format "export circuit bar(v: Vector<~d, Field>, i: [Field]): [] {" (max-bytes/vector-size))
-     ,(format "  const y = v as ~a;"
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-size)))
-     "  const x = [...y, ...i];"
-     "  return ;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 3 char 13" "the size of tuple/vector construction expression with tuple-typed spread\n    ~d\n  exceeds the maximum tuple size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
+    '(
+      "import CompactStandardLibrary;"
+      "constructor(){"
+      "  const bob = default<CoinInfo>;"
+      "  const tom = pad(0b1000110101110110011101100011111, 'mABfLuWsISiQzXzpZMgaPXwnrnsy');"
+      "  assert (tom == bob < bob, 'WFleWyhsudhbmة');"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 4 char 15" "pad length ~d exceeds the maximum supported length ~d" (1186675487 ,(max-bytes/vector-length))))
+    )
 
   (test
-   `(
-     ,(format "export circuit bar(v: ~a, i: [Field]): [] {"
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-size)))
-     "  const x = [...v, ...i];"
-     "  return ;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with tuple-typed spread\n    ~d\n  exceeds the maximum tuple size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
+    `(
+      "module M<#n>{"
+      "  export circuit foo(v: Vector<n, Boolean>): Vector<n, Boolean> {"
+      "    return slice<n>(v, 1);"
+      "  }"
+      "}"
+      ,(format "import M<~d> prefix $;" (+ (max-bytes/vector-length) 0))
+      "export { $foo }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 12" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (1 ,(max-bytes/vector-length) "vector" ,(max-bytes/vector-length))))
+    )
 
   (test
-   `(
-     ,(format "export circuit foo(v: ~a): ~a {"
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "Field" result))))) (+ (max-bytes/vector-size) 1))
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "Field" result))))) (+ (max-bytes/vector-size) 1)))
-     "  return v;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 1 char 23" "Tuple type length\n    ~d\n  exceeds the maximum tuple length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
+    `(
+      ,(format "export circuit foo(v: Bytes<~d>): [] {" (max-bytes/vector-length))
+      ,(format "  const x = v as Bytes<~d>;" (+ (max-bytes/vector-length) 1))
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 18" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("bytes type" 151 150)))
+    )
 
   (test
-   `(
-     "export circuit bar(i: [Field, Field]): [] {"
-     ,(format " const v = ~a;"
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "1" result))))) (- (max-bytes/vector-size) 1)))
-     "  const x = [...v, ...i];"
-     "  return ;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 3 char 13" "the size of tuple/vector construction expression with tuple-typed spread\n    ~d\n  exceeds the maximum tuple size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
+    `(
+      "module M<#n> {"
+      "  export circuit foo(v: Vector<n, Field>): Field { return v[n]; }"
+      "}"
+      ,(format "import M<~d>;" (max-bytes/vector-length))
+      "export { foo }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 61" "index ~d exceeds maximum allowed index ~d for a ~a reference" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+    )
+
+  (test ; this is caught in resolve-indices/simplify
+    `(
+      ,(format "export circuit foo(v: Vector<~d, Field>): Field { const n = ~d; return v[n+1]; }"
+               (max-bytes/vector-length)
+               (- (max-bytes/vector-length) 1))
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector ,(max-bytes/vector-length) (tfield))])
+             (tfield)
+          (let* ([[%n.2 (tunsigned ,(- (max-bytes/vector-length) 1))] ,(- (max-bytes/vector-length) 1)])
+            (vector-ref
+              %v.1
+              (+ 8
+                 (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned ,(- (max-bytes/vector-length) 1)) %n.2)
+                 (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned 1) 1))))))))
 
   (test
-   `(
-     ,(format "export circuit bar(v: ~a, i: [Field]): ~a {"
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "Field" result))))) (- (max-bytes/vector-size) 1))
-              ((lambda (n)
-                 (let loop ([i 0] [result '()])
-                   (if (= i n)
-                       (format #f "[~{~a~^, ~}]" (reverse result))
-                       (loop (+ i 1) (cons "Field" result))))) (max-bytes/vector-size)))
-     "  const x = [...v, ...i];"
-     "  return x;"
-     "}"
-     )
-   (succeeds)
-   )
+    `(
+      ,(format "export circuit foo(v: Vector<~d, Field>): Field { return v[~d]; }"
+               (max-bytes/vector-length)
+               (max-bytes/vector-length))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 1 char 61" "index ~d exceeds maximum allowed index ~d for a ~a reference" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+    )
 
-  (test
-   `(
-     ,(format "export circuit bar(v: Vector<~d, Field>, i: [Field]): [] {" (max-bytes/vector-size))
-     "  const x = [...v, ...i];"
-     "  return ;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
-
-  (test
-   `(
-     ,(format "export circuit bar(v: Vector<~d, Field>, i: [Field]): [] {" (- (max-bytes/vector-size) 1))
-     "  const x = [...v, ...i];"
-     "  return ;"
-     "}"
-     )
-   (succeeds)
-   )
-
-  (test
-   `(
-     ,(format "export circuit bar(v: Vector<~d, Field>, i: [Field, Field]): [] {" (- (max-bytes/vector-size) 1))
-     "  const x = [...v, ...i];"
-     "  return ;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
-
-  (test
-   `(
-     ,(format "export circuit bar(v: Vector<~d, Field>, i: [Field, Field]): [] {" (- (max-bytes/vector-size) 1))
-     "  const x = [...i, ...v];"
-     "  return ;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 2 char 13" "the size of tuple/vector construction expression with vector-typed spread\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
-
-  (test
-   `(
-     "import CompactStandardLibrary;"
-     "export circuit foo(f: Field): [] {"
-     ,(format "  const x = transientHash<Vector<~d, Field>>(f);" (+ (max-bytes/vector-size) 1))
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 3 char 27" "Vector type size\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
-
-  (test
-   `(
-     "import CompactStandardLibrary;"
-     "export circuit foo(f: Field): [] {"
-     ,(format "  const x = transientHash<Bytes<~d>>(f);" (+ (max-bytes/vector-size) 1))
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 3 char 27" "Bytes type length\n    ~d\n  exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
-
-  (test
-   `(
-     "import CompactStandardLibrary;"
-     "export circuit foo(f: Field): [] {"
-     ,(format "  const x = transientHash<~a>(f);"
-              ((lambda (n)
-                   (let loop ([i 0] [result '()])
-                     (if (= i n)
-                         (format #f "[~{~a~^, ~}]" (reverse result))
-                         (loop (+ i 1) (cons "Field" result))))) (+ (max-bytes/vector-size) 1)))
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 3 char 27" "Tuple type length\n    ~d\n  exceeds the maximum tuple length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
-
-  (test
-   `(
-     "ledger F: Vector<10, Field>;"
-     ,(format "export circuit foo(bv: Vector<~d, Field>): [] {" (max-bytes/vector-size))
-     ,(format "  F = [255, ...slice<~d>(disclose(bv), 1), 0];" (max-bytes/vector-size))
-     "  return ;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 3 char 16" "slice index ~d plus size ~d is out-of-bounds for a ~a of length ~d" (1 ,(max-bytes/vector-size) "vector" ,(max-bytes/vector-size))))
-   )
-
-  (test
-   `(
-     "ledger F: Bytes<10>;"
-     ,(format "export circuit foo(bv: Bytes<~d>): [] {" (max-bytes/vector-size))
-     ,(format "  F = Bytes[255, ...slice<~d>(disclose(bv), 1), 0];" (- (max-bytes/vector-size) 1))
-     "  return ;"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: `("testfile.compact line 3 char 7" "Bytes construction length\n    ~d exceeds the maximum bytes length allowed\n    ~d" (,(+ (max-bytes/vector-size) 1) ,(max-bytes/vector-size))))
-   )
-))
+  (test ; this is caught in resolve-indices/simplify
+    `(
+      ,(format "export circuit foo(v: Vector<~d, Field>): Field { return v[~d + 1]; }"
+               (max-bytes/vector-length)
+               (- (max-bytes/vector-length) 1))
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector ,(max-bytes/vector-length) (tfield))])
+             (tfield)
+          (vector-ref
+            %v.1
+            (+ 8
+               (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned ,(- (max-bytes/vector-length) 1)) ,(- (max-bytes/vector-length) 1))
+               (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned 1) 1)))))))
+)
 
 (run-tests resolve-indices/simplify
   (test
-   '(
-     "export circuit foo(v: Bytes<10>): Bytes<1> {"
-     "  return slice<1>(v, 10);"
-     "}"
-     )
-   (oops
+    `(
+      ,(format "export circuit foo(v: Vector<~d, Field>): Field { return v[~d+1]; }"
+               (max-bytes/vector-length)
+               (- (max-bytes/vector-length) 1))
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "invalid slice index ~d and size ~d for a Bytes value of length ~d" (10 1 10)))
+      irritants: `("testfile.compact line 1 char 59" "invalid vector index ~d for vector of length ~d" (,(max-bytes/vector-length) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo(v: Vector<~d, Field>): Field { return v[~d]; }"
+               (max-bytes/vector-length)
+               (max-bytes/vector-length))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 1 char 61" "index ~d exceeds maximum allowed index ~d for a ~a reference" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+    )
+
+  (test
+    `(
+      "module M<#n> {"
+      "  export circuit foo(v: Vector<n, Field>): Field { return v[n]; }"
+      "}"
+      ,(format "import M<~d>;" (max-bytes/vector-length))
+      "export { foo }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 61" "index ~d exceeds maximum allowed index ~d for a ~a reference" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+    )
+
+  (test
+    `(
+      "module M<#n> {"
+      "  export circuit foo(v: Vector<n, Field>): Field { return v[n]; }"
+      "}"
+      ,(format "import M<~d>;" (- (max-bytes/vector-length) 1))
+      "export { foo }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 59" "index ~d is out-of-bounds for a ~a of length ~d" (,(- (max-bytes/vector-length) 1) "vector" ,(- (max-bytes/vector-length) 1))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo(): [] { const x = pad(~d, 'hi')[~d]; }"
+               (max-bytes/vector-length)
+               (- (max-bytes/vector-length) 1))
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo(): [] { const x = pad(~d, 'hi')[~d]; }"
+               (- (max-bytes/vector-length) 1)
+               (- (max-bytes/vector-length) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 1 char 38" "invalid Bytes index ~d for a Bytes value of length ~d" (,(- (max-bytes/vector-length) 1) ,(- (max-bytes/vector-length) 1))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo(): [] { const x = pad(~d, 'hi')[~d]; }"
+               (max-bytes/vector-length)
+               (max-bytes/vector-length))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 1 char 38" "invalid Bytes index ~d for a Bytes value of length ~d" (,(max-bytes/vector-length) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo(): [] { const x = slice<1>(pad(~d, 'hi'), ~d); }"
+               (max-bytes/vector-length)
+               (max-bytes/vector-length))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 1 char 38" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (,(max-bytes/vector-length) 1 ,(max-bytes/vector-length))))
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo(): [] { const x = slice<1>(pad(~d, 'hi'), ~d); }"
+               (max-bytes/vector-length)
+               (- (max-bytes/vector-length) 5))
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      ,(format "export circuit foo(v: Vector<~d, Field>): Field { const n = ~d; return v[n+1]; }"
+               (max-bytes/vector-length)
+               (- (max-bytes/vector-length) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 1 char 74" "invalid vector index ~d for vector of length ~d" (,(max-bytes/vector-length) ,(max-bytes/vector-length))))
+    )
+
+  (test
+    '(
+      "export circuit foo(v: Bytes<10>): Bytes<1> {"
+      "  return slice<1>(v, 10);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (10 1 10)))
+    )
+
+  (test
+    '(
+      "export circuit foo(v: Bytes<3>): Bytes<3> {"
+      "  return slice<3>(v, 3);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (3 3 3)))
+    )
+
+  (test
+    '(
+      "export circuit foo(v: Bytes<3>): Bytes<3> {"
+      "  return slice<3>(v, 2+1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (3 3 3)))
    )
 
   (test
-   '(
-     "export circuit foo(v: Bytes<3>): Bytes<3> {"
-     "  return slice<3>(v, 3);"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: '("testfile.compact line 2 char 10" "invalid slice index ~d and size ~d for a Bytes value of length ~d" (3 3 3)))
-  )
-
-  (test
-   '(
-     "export circuit foo(v: Bytes<3>): Bytes<3> {"
-     "  return slice<3>(v, 2+1);"
-     "}"
-     )
-   (oops
-     message: "~a:\n  ~?"
-     irritants: '("testfile.compact line 2 char 10" "invalid slice index ~d and size ~d for a Bytes value of length ~d" (3 3 3)))
-  )
-
-  (test
-   '(
-     "module M<#K> {"
-     "circuit bar<#I>(v: Bytes<K>): Bytes<I> {"
-     "  return slice<I>(v, 2);"
-     "}"
-     "export circuit foo(v: Bytes<K>): Bytes<1> {"
-     "  return bar<1>(v);"
-     "}"
-     "}"
-     "import M<1>;"
-     "export { foo }"
-     )
-   (oops
+    '(
+      "module M<#K> {"
+      "  circuit bar<#I>(v: Bytes<K>): Bytes<I> {"
+      "    return slice<I>(v, 2);"
+      "  }"
+      "  export circuit foo(v: Bytes<K>): Bytes<1> {"
+      "    return bar<1>(v);"
+      "  }"
+      "}"
+      "import M<1>;"
+      "export { foo }"
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "invalid slice index ~d and size ~d for a Bytes value of length ~d" (2 1 1)))
-   )
-)
+      irritants: '("testfile.compact line 3 char 12" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (2 1 1)))
+    )
+))
 
 (run-tests combine-ledger-declarations
   (test
@@ -37287,39 +37761,38 @@
      ))
 
   ; PM-16065
-  ; the ticket is re the default of a big vector but this doesn't cause a problem
   (test
-   '(
-     "import CompactStandardLibrary;"
-     "export ledger round: Counter;"
-     "export ledger bob: Map<Vector<10, Boolean>, Counter>;"
-     "export ledger c: List<Vector<20, Vector<20, Vector<20, Field>>>>;"
-     "export ledger counter: Counter;"
-     "export ledger boberto: Vector<10, Boolean>;"
-     "export ledger pop: Map<Uint<32>, Field>;"
-     "export ledger bop: Map<Uint<32>, Field>;"
-     ""
-     "circuit tom(s: Boolean): Uint<16> {"
-     ""
-     "    counter.increment(65535);"
-     "    const r: Uint<64> = counter.read();"
-     "    const rob = default<Vector<43590753987470154073008687018949015693739732443847, Uint<16>>>;"
-     ""
-     "    for (const i of rob) {"
-     "      counter.increment(i);"
-     "      const p = (r+i) * (i+i) * (r+i) * (i+i) * (r+i) * (i+i) * (r+4) * (i+4) * (r+5) * (i+5);"
-     "      pop.insert(i, p);"
-     "      const g = pop.lookup(i);"
-     "      bop.insert(i+1, g);"
-     "    }"
-     ""
-     "    return 1;"
-     "}"
-     )
-   (oops
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger round: Counter;"
+      "export ledger bob: Map<Vector<10, Boolean>, Counter>;"
+      "export ledger c: List<Vector<20, Vector<20, Vector<20, Field>>>>;"
+      "export ledger counter: Counter;"
+      "export ledger boberto: Vector<10, Boolean>;"
+      "export ledger pop: Map<Uint<32>, Field>;"
+      "export ledger bop: Map<Uint<32>, Field>;"
+      ""
+      "circuit tom(s: Boolean): Uint<16> {"
+      ""
+      "    counter.increment(65535);"
+      "    const r: Uint<64> = counter.read();"
+      "    const rob = default<Vector<43590753987470154073008687018949015693739732443847, Uint<16>>>;"
+      ""
+      "    for (const i of rob) {"
+      "      counter.increment(i);"
+      "      const p = (r+i) * (i+i) * (r+i) * (i+i) * (r+i) * (i+i) * (r+4) * (i+4) * (r+5) * (i+5);"
+      "      pop.insert(i, p);"
+      "      const g = pop.lookup(i);"
+      "      bop.insert(i+1, g);"
+      "    }"
+      ""
+      "    return 1;"
+      "}"
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 14 char 25" "Vector type size\n    ~d\n  exceeds the maximum vector size allowed\n    ~d" (43590753987470154073008687018949015693739732443847 ,(max-bytes/vector-size))))
-   )
+      irritants: '("testfile.compact line 14 char 25" "~a length\n  ~d\n  exceeds the maximum supported length ~d" ("vector type" 43590753987470154073008687018949015693739732443847 16777216)))
+    )
 )
 
 (run-tests optimize-circuit
@@ -41580,7 +42053,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "invalid slice index ~d and size ~d for vector of length ~d" (1 0 0)))
+      irritants: '("testfile.compact line 3 char 10" "invalid slice index ~d and length ~d for vector of length ~d" (1 0 0)))
     )
 
   (test
@@ -41592,7 +42065,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "invalid slice index ~d and size ~d for vector of length ~d" (1 0 0)))
+      irritants: '("testfile.compact line 3 char 10" "invalid slice index ~d and length ~d for vector of length ~d" (1 0 0)))
     )
 
   (test
@@ -66109,7 +66582,7 @@
     (output-file "compiler/testdir/contract/index.js"
       `(
         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
-        "const expectedRuntimeVersionString = '0.10.1';"
+        ,(format "const expectedRuntimeVersionString = '~a';" runtime-version-string)
         "__compactRuntime.checkRuntimeVersion(expectedRuntimeVersionString);"
         ""
         "const _descriptor_0 = __compactRuntime.CompactTypeField;"
@@ -75557,7 +76030,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 27" "invalid slice index ~d and size ~d for a Bytes value of length ~d" (11 10 20)))
+      irritants: '("testfile.compact line 4 char 27" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (11 10 20)))
     )
 
   (test
@@ -75599,7 +76072,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 18" "slice size ~d exceeds the length ~d of the input Bytes" (21 20)))
+      irritants: '("testfile.compact line 4 char 18" "slice length ~d exceeds the length ~d of the input Bytes" (21 20)))
     )
 
   (test
@@ -75613,7 +76086,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 27" "invalid slice index ~d and size ~d for a Bytes value of length ~d" (11 10 20)))
+      irritants: '("testfile.compact line 4 char 27" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (11 10 20)))
     )
 
   (test
@@ -75655,7 +76128,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 18" "slice size ~d exceeds the length ~d of the input Bytes" (21 20)))
+      irritants: '("testfile.compact line 4 char 18" "slice length ~d exceeds the length ~d of the input Bytes" (21 20)))
     )
 
   (test
