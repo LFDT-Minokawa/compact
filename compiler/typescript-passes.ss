@@ -1807,7 +1807,7 @@
                   [(XPelt-public-ledger pl-array lconstructor external-names)
                    (print-Q 0
                       (make-Qconcat
-                        "function ledger(state) {"
+                        "export function ledger(state) {"
                         2 "const context = {"
                         4 "currentQueryContext: new __compactRuntime.QueryContext(state, __compactRuntime.dummyContractAddress())"
                         2 "};"
@@ -2079,7 +2079,7 @@
               (demand-unique-local-name! "context")
               (demand-unique-local-name! "partialProofData")
               (let-values ([(pure-name* impure-name*) (get-pure&impure-circuit-names xpelt*)])
-                (display-string "class Contract {\n")
+                (display-string "export class Contract {\n")
                 (display-string "  witnesses;\n")
                 (fluid-let ([helper* '()])
                   (print-contract-constructor xpelt* uname* impure-name*)
@@ -2102,7 +2102,7 @@
                 (newline)
                 (print-Q 0
                   (apply make-Qconcat
-                    "const pureCircuits = {"
+                    "export const pureCircuits = {"
                     (if (null? pure-name*)
                         (list "};")
                         (list 2 (build-exported-pure-circuits xpelt* uname*) 0 "};"))))
@@ -2125,7 +2125,7 @@
                           (printf "  ~a[~:*~a['~a'] = ~d] = '~2:*~a';\n" export-name elt-name i))
                         elt-name*
                         (enumerate elt-name*)))
-                    (printf "})(~a = exports.~:*~a || (exports.~:*~a = {}));\n\n" export-name)]
+                    (printf "})(~a || (~:*~a = {}));\n\n" export-name)]
                    [else (assert cannot-happen)])]
                 [else (void)]))
             xpelt*))
@@ -2281,14 +2281,11 @@
               [(XPelt-public-ledger pl-array ledger-constructor external-names)
                (print-Q 0
                  (make-Qconcat
-                   "const contractReferenceLocations ="
+                   "export const contractReferenceLocations ="
                    2 (do-pl-array pl-array #t)
                    ";"))
                (newline)]
               [else (void)])))
-
-        (define (print-contract-exports)
-          (display-string "export { Contract, ledger, pureCircuits, contractReferenceLocations };\n"))
 
         (define (print-contract-footer)
           (display-string "//# sourceMappingURL=index.js.map\n"))
@@ -2302,7 +2299,6 @@
                 (print-contract-descriptors src descriptor-id* type*)
                 (print-contract-class src xpelt* uname*)
                 (for-each print-contract-reference-locations xpelt*)
-                (print-contract-exports)
                 (print-contract-footer)
                 (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
                 (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map)))))))
