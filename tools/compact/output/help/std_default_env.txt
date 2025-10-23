@@ -19,7 +19,8 @@ Options:
           if it does not exist. This can also be configured via an environment
           variable.
           
-          [env: COMPACT_DIRECTORY=[COMPACT_DIRECTORY]]
+          [env:
+          COMPACT_DIRECTORY=[COMPACT_DIRECTORY]]
           [default: [USER_DIR]/.compact]
 
   -h, --help

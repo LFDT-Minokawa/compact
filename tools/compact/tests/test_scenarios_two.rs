@@ -257,6 +257,7 @@ fn test_sc12_update_two_versions_keep_latest_clean_folder_check_list() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
         ],
         None,
@@ -334,6 +335,7 @@ fn test_sc13_update_two_versions_keep_previous_clean_folder_check_list() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
         ],
         None,
@@ -430,6 +432,7 @@ fn test_sc14_update_three_versions_keep_latest_clean_folder_check_list() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
         ],
         None,
@@ -475,6 +478,7 @@ fn test_sc15_update_clean_k_default_clean_list() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
             ("[SYSTEM_VERSION]", get_version()),
         ],
