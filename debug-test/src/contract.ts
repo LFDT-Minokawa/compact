@@ -56,8 +56,8 @@ export const circuitContext = (circuitId: string) =>
     circuitId,
     address,
     coinPubKey,
-    { [contract.contractId]: currentContractState.data },
-    { [contract.contractId]: currentPrivateState },
+    { [address]: currentContractState.data },
+    { [address]: currentPrivateState },
   );
 
 // helper types
