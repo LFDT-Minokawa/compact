@@ -18,7 +18,7 @@
     "lint": "eslint --fix src test"
   },
   "dependencies": {
-    "@midnight-ntwrk/compact-runtime": "../runtime",
+    "@midnight-ntwrk/compact-runtime": "../result/lib/node_modules/@midnight-ntwrk/compact-runtime",
     "@types/node": "^22.13.8",
     "typescript": "~5.9.0"
   },
