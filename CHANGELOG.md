@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   set of all unsigned integers in the range 0 through `n-1`, e.g., `Uint<0..3>`
   represents the set {0, 1, 2} rather than the set {0, 1, 2, 3}.
 
+- The runtime version has been bumped to 0.10.2.
+
 - when passed the `--update-Uint-ranges` flag, `fixup-compact` now adjusts the
   end point of each Uint whose size is given by a range with a constant end point
   and issues a warning for each Uint whose size is given by a range when the end
