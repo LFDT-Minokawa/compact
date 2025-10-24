@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased compiler version 0.26.111 language version 0.18.101]
+## [Unreleased compiler version 0.26.112 language version 0.18.101]
 
 ### Changed
 
@@ -20,6 +20,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   end point of each Uint whose size is given by a range with a constant end point
   and issues a warning for each Uint whose size is given by a range when the end
   point is a generic-variable reference.
+
+## [Unreleased compiler version 0.26.111 language version 0.18.100]
+
+### Fixed
+- A bug in which Compact enums were generated as CJS enums instead of ESM enums. Previously, `index.js` might contain:
+
+  ```javascript
+  var Status;
+  (function (Status) {
+  Status[Status['Pending'] = 0] = 'Pending';
+  // ...
+  })(Status = exports.Status || (exports.Status = {}));
+  ```
+
+  for an enum `Status`. Now, `index.js` contains:
+
+  ```javascript
+  export var Status;
+  (function (Status) {
+    Status[Status['Pending'] = 0] = 'Pending';
+    // ...
+  })(Status || (Status = {}));
+  ```
 
 ## [Unreleased compiler version 0.26.110 language version 0.18.100]
 

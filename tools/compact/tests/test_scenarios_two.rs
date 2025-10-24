@@ -57,7 +57,7 @@ fn test_sc10_update_two_versions_compile_contract_with_previous() {
 
     let temp_output = tempfile::tempdir().unwrap();
     let temp_output_path = temp_output.path();
-    let compiler = "+0.24.0";
+    let compiler = "+0.25.0";
 
     run_command(
         &[
@@ -69,7 +69,7 @@ fn test_sc10_update_two_versions_compile_contract_with_previous() {
             temp_output_path.to_str().unwrap(),
         ],
         None,
-        Some("./output/compile/std_compiling_pre_0250.txt"),
+        Some("./output/compile/std_compiling.txt"),
         Some("./output/compile/err_compiling.txt"),
         &[
             ("[COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),

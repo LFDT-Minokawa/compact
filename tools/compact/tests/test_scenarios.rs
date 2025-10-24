@@ -447,7 +447,6 @@ fn test_sc6a_update_three_versions_clean_folder_check() {
     assert_eq!(directories.len(), 2);
 }
 
-// TODO: rework it later as 0.24.0 is last without fixup and format
 #[test]
 #[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
 fn test_sc7_update_previous_list_compile() {
@@ -545,7 +544,7 @@ fn test_sc8_update_oldest_list_compile() {
             "--version",
         ],
         None,
-        Some("./output/compile/std_non_latest.txt"),
+        Some("./output/compile/std_oldest.txt"),
         None,
         &[("[COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION)],
         None,
