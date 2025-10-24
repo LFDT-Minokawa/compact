@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.26.112 language version 0.18.101]
+
+### Changed
+
+- `Uint` range end points are now exclusive rather than inclusive to match the
+  range syntax for `for` ranges.  That is, `Uint<0..n>` is now interpreted as the
+  set of all unsigned integers in the range 0 through `n-1`, e.g., `Uint<0..3>`
+  represents the set {0, 1, 2} rather than the set {0, 1, 2, 3}.
+
+- The runtime version has been bumped to 0.10.2.
+
+- when passed the `--update-Uint-ranges` flag, `fixup-compact` now adjusts the
+  end point of each Uint whose size is given by a range with a constant end point
+  and issues a warning for each Uint whose size is given by a range when the end
+  point is a generic-variable reference.
+
 ## [Unreleased compiler version 0.26.111 language version 0.18.100]
 
 ### Fixed
@@ -17,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   // ...
   })(Status = exports.Status || (exports.Status = {}));
   ```
-  
+
   for an enum `Status`. Now, `index.js` contains:
 
   ```javascript

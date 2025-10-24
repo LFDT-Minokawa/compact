@@ -1,6 +1,6 @@
 {
   "name": "@midnight-ntwrk/compact-runtime",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "Compact Runtime",
   "type": "module",
   "exports": {

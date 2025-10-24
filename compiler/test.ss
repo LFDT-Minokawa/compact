@@ -34,6 +34,62 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
+#|
+NB: Please follow the existing formatting and indentation of tests in this file.
+The formatting and indentation is specifically crafted to simplify comparison
+and updating of check forms (e.g., return and oops forms).  That is, when the
+test driver prints the actual check form, it is in the expected format and with
+the expected indentation.  This simplifies comparisons between the expected and
+actual check output and the replacement of expected check output with new expected
+output based on the actual output.
+
+For single-file tests, the test form should be indented two spaces from the left
+margin, the input filename or list of strings two spaces in from that (four total),
+and the checks also indented two spaces in from the test form (four total).
+The closing newline for the test should appear on a separate line from the last
+check. For example:
+
+  (test
+    '(
+      "circuit foo() : Bytes<20> { return 'Hello world!'; }"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () ()
+            (tbytes 20)
+          (block (return ,(string->utf8 "Hello world!"))))))
+    )
+
+When replacing a check form with the one printed by the test driver, resist
+any reformtting, since this complicates comparison.  If the output is not to
+your liking, consider instead changing the formatting controls embedded in the
+lparser.ss or langs.ss intermediate language definitions.
+
+For test groups, the test-group form should be indented two spaces from the left
+margin.  The group members should be indented two spaces in from that (four total).
+The checkers should be indented one space in from that (five total).  The closing
+newline for the group member should appear on a separate line from the last check.
+For example:
+
+  (test-group
+    ((create-file "testfile.compact" '())
+     (custom-check
+       (lambda (pass-name x)
+         (chmod "compiler/testdir/testfile.compact" 000)
+         #t))
+     )
+    ((source-file "compiler/testdir/testfile.compact")
+     (oops
+       message: "error ~a: ~a"
+       irritants: '("opening source file" "failed for compiler/testdir/testfile.compact: permission denied"))
+     )
+    )
+
+The test driver knows to indent the actual check output differently for test
+groups than for single tests.
+|#
+
+
 (import (except (chezscheme) errorf)
         (nanopass)
         (langs)
@@ -1191,7 +1247,7 @@
       "  export module N<#N, T> {"
       "  }"
       ""
-      "  export struct S { x: Uint<16>, y: Uint<0..77> }"
+      "  export struct S { x: Uint<16>, y: Uint<0..78> }"
       "/*6*/}"
       ""
       "import M;"
@@ -1263,7 +1319,7 @@
       (program
         (module #f M ()
           (module #t N ((nat-valued N) T))
-          (struct #t S () [x (tunsigned 16)] [y (tunsigned 0 77)]))
+          (struct #t S () [x (tunsigned 16)] [y (tunsigned 0 78)]))
         (import M () "")
         (import N (3 (tfield)) "")
         (enum #f E pepperoni sausage onions anchovies peppers)
@@ -1803,7 +1859,7 @@
 
   (test
     '(
-      "struct S { x: Uint<16>, y: Uint<0..77> }"
+      "struct S { x: Uint<16>, y: Uint<0..78> }"
       "circuit rat(): Vector<1, Vector<2, S>> {"
       "  const q = S {x: 3, y: 4}, x = 1;"
       "  const q = // S is ..."
@@ -1816,7 +1872,7 @@
       )
     (returns
       (program
-        (struct #f S () [x (tunsigned 16)] [y (tunsigned 0 77)])
+        (struct #f S () [x (tunsigned 16)] [y (tunsigned 0 78)])
         (circuit #f #f rat () ()
              (tvector 1 (tvector 2 (type-ref S)))
           (block
@@ -3005,7 +3061,177 @@
             (elt-call A insertDefault is_empty)
             (assert (not (elt-call A isEmpty)) "oops2")))))
     )
+
+  (test
+    '(
+      "circuit A<#t>(x: Uint<0..t>): Field {"
+      "  return x;"
+      "}"
+      "export circuit B(x: Uint<0..8>): Field {"
+      "  return A<12>(x);"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "circuit A<#t>(x: Uint<0..t>): Field {"
+        "  return x;"
+        "}"
+        ""
+        "export circuit B(x: Uint<0..8>): Field {"
+        "  return A<12>(x);"
+        "}"))
+    (returns
+      (program
+        (circuit #f #f A ((nat-valued t)) ([x (tunsigned
+                                                0
+                                                (type-size-ref t))])
+             (tfield)
+          (block (return x)))
+        (circuit #t #f B () ([x (tunsigned 0 8)])
+             (tfield)
+          (block (return (call (fref A 12) x))))))
+    )
 )
+
+(parameterize ([(let () (import (fixup)) update-Uint-ranges) #t])
+(run-tests parse-file/fixup/format/reparse
+  (test
+    '(
+      "ledger F: Uint<0..7>;"
+      "export circuit foo(x: Uint<0..7>): Uint<0..7> {"
+      "  F = disclose(x) * 2 as Uint<0..7>;"
+      "  return F;"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "ledger F: Uint<0..8>;"
+        ""
+        "export circuit foo(x: Uint<0..8>): Uint<0..8> {"
+        "  F = disclose(x) * 2 as Uint<0..8>;"
+        "  return F;"
+        "}"))
+    (returns
+      (program
+        (public-ledger-declaration #f #f F (tunsigned 0 8))
+        (circuit #t #f foo () ([x (tunsigned 0 8)])
+             (tunsigned 0 8)
+          (block
+            (= F (cast (tunsigned 0 8) (* (disclose x) 2)))
+            (return F)))))
+    )
+
+  (test
+    '(
+      "ledger F: Uint<0..7>;"
+      "export circuit foo(x: Uint<0x0..0x7>): Uint<0o0..0o7> {"
+      "  F = disclose(x) * 2 as Uint<0b0..0b111>;"
+      "  return F;"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "ledger F: Uint<0..8>;"
+        ""
+        "export circuit foo(x: Uint<0x0..0x8>): Uint<0o0..0o10> {"
+        "  F = disclose(x) * 2 as Uint<0b0..0b1000>;"
+        "  return F;"
+        "}"))
+    (returns
+      (program
+        (public-ledger-declaration #f #f F (tunsigned 0 8))
+        (circuit #t #f foo () ([x (tunsigned 0 8)])
+             (tunsigned 0 8)
+          (block
+            (= F (cast (tunsigned 0 8) (* (disclose x) 2)))
+            (return F)))))
+    )
+
+  (test
+    '(
+      "module M<#N> {"
+      "  ledger F: Uint<0..N>;"
+      "  export circuit foo(x: Uint<0..N>): Uint<0..N> {"
+      "    F = disclose(x) * 2 as Uint<0..N>;"
+      "    return F + N as Uint<0..N>;"
+      "  }"
+      "}"
+      "import M<7>;"
+      "export { foo };"
+      )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 21" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (N))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 33" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (N))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 46" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (N))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 36" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (N))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 29" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (N)))
+    (returns
+      (program
+        (module #f M ((nat-valued N))
+          (public-ledger-declaration #f #f
+            F
+            (tunsigned 0 (type-size-ref N)))
+          (circuit #t #f foo () ([x (tunsigned 0 (type-size-ref N))])
+               (tunsigned 0 (type-size-ref N))
+            (block
+              (= F
+                 (cast (tunsigned 0 (type-size-ref N)) (* (disclose x) 2)))
+              (return (cast (tunsigned 0 (type-size-ref N)) (+ F N))))))
+        (import M (7) "")
+        (export foo)))
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "module M<#N> {"
+        "  ledger F: Uint<0..N>;"
+        "  export circuit foo(x: Uint<0..N>): Uint<0..N> {"
+        "    F = disclose(x) * 2 as Uint<0..N>;"
+        "    return F + N as Uint<0..N>;"
+        "  }"
+        "}"
+        ""
+        "import M<7>;"
+        ""
+        "export { foo };"))
+    )
+
+  (test
+    '(
+      "circuit A<#t>(x: Uint<0..t>): Field {"
+      "  return x;"
+      "}"
+      "export circuit B(x: Uint<0..7>): Field {"
+      "  return A<12>(x);"
+      "}"
+      )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 26" "Uint range end expressed as a reference to generic size ~a is left unchanged and must be updated manually" (t)))
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "circuit A<#t>(x: Uint<0..t>): Field {"
+        "  return x;"
+        "}"
+        ""
+        "export circuit B(x: Uint<0..8>): Field {"
+        "  return A<12>(x);"
+        "}"))
+    (returns
+      (program
+        (circuit #f #f A ((nat-valued t)) ([x (tunsigned
+                                                0
+                                                (type-size-ref t))])
+             (tfield)
+          (block (return x)))
+        (circuit #t #f B () ([x (tunsigned 0 8)])
+             (tfield)
+          (block (return (call (fref A 12) x))))))
+    )
+))
 
 (run-tests parse-file
   (test
@@ -5281,7 +5507,7 @@
   (test
     '(
       "circuit A(): Field {"
-      "  const t1 : Uint<0..37> = 25, t2 : Uint< 0..37> = t1, t3 : Uint<0 ..37> = t2, t4 : Uint< 0 ..37> = t3, t5 : Uint<0.. 37> = t4, t6 : Uint< 0.. 37> = t5, t7 : Uint<0 .. 37> = t6, t8 : Uint< 0 .. 37> = t7, t9 : Uint<0..37 > = t8, t10 : Uint< 0..37 > = t9, t11 : Uint<0 ..37 > = t10, t12 : Uint< 0 ..37 > = t11, t13 : Uint<0.. 37 > = t12, t14 : Uint< 0.. 37 > = t13, t15 : Uint<0 .. 37 > = t14, t16 : Uint< 0 .. 37 > = t15;"
+      "  const t1 : Uint<0..38> = 25, t2 : Uint< 0..38> = t1, t3 : Uint<0 ..38> = t2, t4 : Uint< 0 ..38> = t3, t5 : Uint<0.. 38> = t4, t6 : Uint< 0.. 38> = t5, t7 : Uint<0 .. 38> = t6, t8 : Uint< 0 .. 38> = t7, t9 : Uint<0..38 > = t8, t10 : Uint< 0..38 > = t9, t11 : Uint<0 ..38 > = t10, t12 : Uint< 0 ..38 > = t11, t13 : Uint<0.. 38 > = t12, t14 : Uint< 0.. 38 > = t13, t15 : Uint<0 .. 38 > = t14, t16 : Uint< 0 .. 38 > = t15;"
       "  return t16;"
       "}"
       )
@@ -5290,44 +5516,44 @@
         (circuit #f #f A () ()
              (tfield)
           (block
-            (const ([t1 (tunsigned 0 37) 25]
-                    [t2 (tunsigned 0 37) t1]
-                    [t3 (tunsigned 0 37) t2]
-                    [t4 (tunsigned 0 37) t3]
-                    [t5 (tunsigned 0 37) t4]
-                    [t6 (tunsigned 0 37) t5]
-                    [t7 (tunsigned 0 37) t6]
-                    [t8 (tunsigned 0 37) t7]
-                    [t9 (tunsigned 0 37) t8]
-                    [t10 (tunsigned 0 37) t9]
-                    [t11 (tunsigned 0 37) t10]
-                    [t12 (tunsigned 0 37) t11]
-                    [t13 (tunsigned 0 37) t12]
-                    [t14 (tunsigned 0 37) t13]
-                    [t15 (tunsigned 0 37) t14]
-                    [t16 (tunsigned 0 37) t15]))
+            (const ([t1 (tunsigned 0 38) 25]
+                    [t2 (tunsigned 0 38) t1]
+                    [t3 (tunsigned 0 38) t2]
+                    [t4 (tunsigned 0 38) t3]
+                    [t5 (tunsigned 0 38) t4]
+                    [t6 (tunsigned 0 38) t5]
+                    [t7 (tunsigned 0 38) t6]
+                    [t8 (tunsigned 0 38) t7]
+                    [t9 (tunsigned 0 38) t8]
+                    [t10 (tunsigned 0 38) t9]
+                    [t11 (tunsigned 0 38) t10]
+                    [t12 (tunsigned 0 38) t11]
+                    [t13 (tunsigned 0 38) t12]
+                    [t14 (tunsigned 0 38) t13]
+                    [t15 (tunsigned 0 38) t14]
+                    [t16 (tunsigned 0 38) t15]))
             (return t16)))))
     )
 
   (test
     '(
       "circuit A(): Field {"
-      "  const t1 : Uint<0..37> = 25;"
-      "  const t2 : Uint< 0..37> = t1;"
-      "  const t3 : Uint<0 ..37> = t2;"
-      "  const t4 : Uint< 0 ..37> = t3;"
-      "  const t5 : Uint<0.. 37> = t4;"
-      "  const t6 : Uint< 0.. 37> = t5;"
-      "  const t7 : Uint<0 .. 37> = t6;"
-      "  const t8 : Uint< 0 .. 37> = t7;"
-      "  const t9 : Uint<0..37 > = t8;"
-      "  const t10 : Uint< 0..37 > = t9;"
-      "  const t11 : Uint<0 ..37 > = t10;"
-      "  const t12 : Uint< 0 ..37 > = t11;"
-      "  const t13 : Uint<0.. 37 > = t12;"
-      "  const t14 : Uint< 0.. 37 > = t13;"
-      "  const t15 : Uint<0 .. 37 > = t14;"
-      "  const t16 : Uint< 0 .. 37 > = t15;"
+      "  const t1 : Uint<0..38> = 25;"
+      "  const t2 : Uint< 0..38> = t1;"
+      "  const t3 : Uint<0 ..38> = t2;"
+      "  const t4 : Uint< 0 ..38> = t3;"
+      "  const t5 : Uint<0.. 38> = t4;"
+      "  const t6 : Uint< 0.. 38> = t5;"
+      "  const t7 : Uint<0 .. 38> = t6;"
+      "  const t8 : Uint< 0 .. 38> = t7;"
+      "  const t9 : Uint<0..38 > = t8;"
+      "  const t10 : Uint< 0..38 > = t9;"
+      "  const t11 : Uint<0 ..38 > = t10;"
+      "  const t12 : Uint< 0 ..38 > = t11;"
+      "  const t13 : Uint<0.. 38 > = t12;"
+      "  const t14 : Uint< 0.. 38 > = t13;"
+      "  const t15 : Uint<0 .. 38 > = t14;"
+      "  const t16 : Uint< 0 .. 38 > = t15;"
       "  return t16;"
       "}"
       )
@@ -5336,22 +5562,22 @@
         (circuit #f #f A () ()
              (tfield)
           (block
-            (const ([t1 (tunsigned 0 37) 25]))
-            (const ([t2 (tunsigned 0 37) t1]))
-            (const ([t3 (tunsigned 0 37) t2]))
-            (const ([t4 (tunsigned 0 37) t3]))
-            (const ([t5 (tunsigned 0 37) t4]))
-            (const ([t6 (tunsigned 0 37) t5]))
-            (const ([t7 (tunsigned 0 37) t6]))
-            (const ([t8 (tunsigned 0 37) t7]))
-            (const ([t9 (tunsigned 0 37) t8]))
-            (const ([t10 (tunsigned 0 37) t9]))
-            (const ([t11 (tunsigned 0 37) t10]))
-            (const ([t12 (tunsigned 0 37) t11]))
-            (const ([t13 (tunsigned 0 37) t12]))
-            (const ([t14 (tunsigned 0 37) t13]))
-            (const ([t15 (tunsigned 0 37) t14]))
-            (const ([t16 (tunsigned 0 37) t15]))
+            (const ([t1 (tunsigned 0 38) 25]))
+            (const ([t2 (tunsigned 0 38) t1]))
+            (const ([t3 (tunsigned 0 38) t2]))
+            (const ([t4 (tunsigned 0 38) t3]))
+            (const ([t5 (tunsigned 0 38) t4]))
+            (const ([t6 (tunsigned 0 38) t5]))
+            (const ([t7 (tunsigned 0 38) t6]))
+            (const ([t8 (tunsigned 0 38) t7]))
+            (const ([t9 (tunsigned 0 38) t8]))
+            (const ([t10 (tunsigned 0 38) t9]))
+            (const ([t11 (tunsigned 0 38) t10]))
+            (const ([t12 (tunsigned 0 38) t11]))
+            (const ([t13 (tunsigned 0 38) t12]))
+            (const ([t14 (tunsigned 0 38) t13]))
+            (const ([t15 (tunsigned 0 38) t14]))
+            (const ([t16 (tunsigned 0 38) t15]))
             (return t16)))))
     )
 
@@ -6319,7 +6545,7 @@
   (test
     '(
       "circuit A(): Field {"
-      "  const t1 : Uint<0..37> = 25, t2 : Uint< 0..37> = t1, t3 : Uint<0 ..37> = t2, t4 : Uint< 0 ..37> = t3, t5 : Uint<0.. 37> = t4, t6 : Uint< 0.. 37> = t5, t7 : Uint<0 .. 37> = t6, t8 : Uint< 0 .. 37> = t7, t9 : Uint<0..37 > = t8, t10 : Uint< 0..37 > = t9, t11 : Uint<0 ..37 > = t10, t12 : Uint< 0 ..37 > = t11, t13 : Uint<0.. 37 > = t12, t14 : Uint< 0.. 37 > = t13, t15 : Uint<0 .. 37 > = t14, t16 : Uint< 0 .. 37 > = t15;"
+      "  const t1 : Uint<0..38> = 25, t2 : Uint< 0..38> = t1, t3 : Uint<0 ..38> = t2, t4 : Uint< 0 ..38> = t3, t5 : Uint<0.. 38> = t4, t6 : Uint< 0.. 38> = t5, t7 : Uint<0 .. 38> = t6, t8 : Uint< 0 .. 38> = t7, t9 : Uint<0..38 > = t8, t10 : Uint< 0..38 > = t9, t11 : Uint<0 ..38 > = t10, t12 : Uint< 0 ..38 > = t11, t13 : Uint<0.. 38 > = t12, t14 : Uint< 0.. 38 > = t13, t15 : Uint<0 .. 38 > = t14, t16 : Uint< 0 .. 38 > = t15;"
       "  return t16;"
       "}"
       )
@@ -6329,22 +6555,22 @@
              (tfield)
           (block
             (seq
-              (const t1 (tunsigned 0 37) 25)
-              (const t2 (tunsigned 0 37) t1)
-              (const t3 (tunsigned 0 37) t2)
-              (const t4 (tunsigned 0 37) t3)
-              (const t5 (tunsigned 0 37) t4)
-              (const t6 (tunsigned 0 37) t5)
-              (const t7 (tunsigned 0 37) t6)
-              (const t8 (tunsigned 0 37) t7)
-              (const t9 (tunsigned 0 37) t8)
-              (const t10 (tunsigned 0 37) t9)
-              (const t11 (tunsigned 0 37) t10)
-              (const t12 (tunsigned 0 37) t11)
-              (const t13 (tunsigned 0 37) t12)
-              (const t14 (tunsigned 0 37) t13)
-              (const t15 (tunsigned 0 37) t14)
-              (const t16 (tunsigned 0 37) t15))
+              (const t1 (tunsigned 0 38) 25)
+              (const t2 (tunsigned 0 38) t1)
+              (const t3 (tunsigned 0 38) t2)
+              (const t4 (tunsigned 0 38) t3)
+              (const t5 (tunsigned 0 38) t4)
+              (const t6 (tunsigned 0 38) t5)
+              (const t7 (tunsigned 0 38) t6)
+              (const t8 (tunsigned 0 38) t7)
+              (const t9 (tunsigned 0 38) t8)
+              (const t10 (tunsigned 0 38) t9)
+              (const t11 (tunsigned 0 38) t10)
+              (const t12 (tunsigned 0 38) t11)
+              (const t13 (tunsigned 0 38) t12)
+              (const t14 (tunsigned 0 38) t13)
+              (const t15 (tunsigned 0 38) t14)
+              (const t16 (tunsigned 0 38) t15))
             (return t16)))))
     )
 
@@ -10978,7 +11204,7 @@
       "  return x + 1 as Uint<0..t>;"
       "}"
       "export circuit bar(): Field {"
-      "  return foo<21>(20);"
+      "  return foo<22>(20);"
       "}"
       )
     (returns
@@ -11006,16 +11232,16 @@
     (returns
       (program ((bar %bar.2))
         (circuit %foo.0 ([%s.1 (tstruct S
-                                 (x (tunsigned 17))
+                                 (x (tunsigned 16))
                                  (y (tunsigned 131071)))])
-             (tstruct S (x (tunsigned 17)) (y (tunsigned 131071)))
-          (new (tstruct S (x (tunsigned 17)) (y (tunsigned 131071)))
-            (x (cast (tunsigned 17) (+ (elt-ref %s.1 x) 1)))
+             (tstruct S (x (tunsigned 16)) (y (tunsigned 131071)))
+          (new (tstruct S (x (tunsigned 16)) (y (tunsigned 131071)))
+            (x (cast (tunsigned 16) (+ (elt-ref %s.1 x) 1)))
             (y (cast (tunsigned 131071) (+ (elt-ref %s.1 y) 1)))))
         (circuit %bar.2 ()
              (tfield)
           (call (fref ((%foo.0)))
-            (new (tstruct S (x (tunsigned 17)) (y (tunsigned 131071)))
+            (new (tstruct S (x (tunsigned 16)) (y (tunsigned 131071)))
               (x 7)
               (y 11))))))
     )
@@ -11028,7 +11254,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 14" "Uint type minimum must be 0" (1)))
+      irritants: '("testfile.compact line 1 char 14" "range start for Uint type is ~d but must be 0" (1)))
     )
 
   (test
@@ -11069,14 +11295,14 @@
     (returns
       (program ((bar %bar.2))
         (circuit %foo.0 ([%s.1 (tstruct S
-                                 (x (tunsigned 17))
+                                 (x (tunsigned 16))
                                  (y (tunsigned 131071)))])
              (tfield)
           (+ (* (elt-ref %s.1 x) 2) (elt-ref %s.1 y)))
         (circuit %bar.2 ()
              (tfield)
           (call (fref ((%foo.0)))
-            (new (tstruct S (x (tunsigned 17)) (y (tunsigned 131071)))
+            (new (tstruct S (x (tunsigned 16)) (y (tunsigned 131071)))
               (x 7)
               (y 11))))))
     )
@@ -11094,18 +11320,19 @@
 
   (test
     '(
-      "circuit A<t>(x: Uint<0..t>): Field {"
+      "circuit A<#t>(x: Uint<0..t>): Field {"
       "  return x;"
       "}"
-      "export circuit B(x: Uint<0..7>): Field {"
-      "  return A<11>(x);"
+      "export circuit B(x: Uint<0..8>): Field {"
+      "  return A<12>(x);"
       "}"
       )
     (returns
       (program ((B %B.0))
-        (circuit %B.0 ([%x.1 (tunsigned 7)])
+        (circuit %A.1 ([%x.2 (tunsigned 11)]) (tfield) %x.2)
+        (circuit %B.0 ([%x.3 (tunsigned 7)])
              (tfield)
-          (call (fref ()) %x.1))))
+          (call (fref ((%A.1))) %x.3))))
     )
 
   (test
@@ -11113,8 +11340,8 @@
       "circuit A<#t>(x: Uint<0..t>): Field {"
       "  return x;"
       "}"
-      "export circuit B(x: Uint<0..7>): Field {"
-      "  return A<11>(x);"
+      "export circuit B(x: Uint<0..8>): Field {"
+      "  return A<12>(x);"
       "}"
       )
     (returns
@@ -11127,10 +11354,10 @@
 
   (test
     '(
-      "circuit A<#t>(x: Uint<t..37>): Field {"
+      "circuit A<#t>(x: Uint<t..38>): Field {"
       "  return x;"
       "}"
-      "export circuit B(x: Uint<0..7>): Field {"
+      "export circuit B(x: Uint<0..8>): Field {"
       "  return A<0>(x);"
       "}"
       )
@@ -11147,13 +11374,13 @@
       "circuit A<#t>(x: Uint<t..37>): Field {"
       "  return x;"
       "}"
-      "export circuit B(x: Uint<0..7>): Field {"
+      "export circuit B(x: Uint<0..8>): Field {"
       "  return A<1>(x);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 18" "Uint type minimum must be 0" (1)))
+      irritants: '("testfile.compact line 1 char 18" "range start for Uint type is ~d but must be 0" (1)))
     )
 
   (test
@@ -11161,7 +11388,7 @@
       "circuit A<#t>(x: Uint<t..37>): Field {"
       "  return x;"
       "}"
-      "export circuit B(x: Uint<0..7>): Field {"
+      "export circuit B(x: Uint<0..8>): Field {"
       "  return A<Boolean>(x);"
       "}"
       )
@@ -11794,8 +12021,8 @@
       "import M<Counter> prefix M2$;"
       "import M<Set<Field>> prefix M3$;"
       "import M<Field> prefix M4$;"
-      "import M<Map<Uint<0..9>, Map<Uint<8>, List<Boolean>>>> prefix M5$;"
-      "import M<Map<Uint<0..9>, Map<Uint<8>, List<Boolean>>>> prefix M6$;"
+      "import M<Map<Uint<0..10>, Map<Uint<8>, List<Boolean>>>> prefix M5$;"
+      "import M<Map<Uint<0..10>, Map<Uint<8>, List<Boolean>>>> prefix M6$;"
       "export circuit foo(): Vector<5, Field> {"
       "  M1$fld += 1;"
       "  M2$fld += 2;"
@@ -12195,6 +12422,16 @@
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 7 char 21" "no export named ~a in module ~a" (t Test)))
     )
+
+  (test
+    '(
+      "export circuit foo(x: Uint<0..0>): [] {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 23" "range end for Uint type is ~d but must be at least 1 (the range end is exclusive)" (0)))
+    )
 )
 
 (run-tests infer-types
@@ -12394,31 +12631,31 @@
 
   (test
     '(
-      "circuit foo(n: Uint<0..64>): Boolean {"
+      "circuit foo(n: Uint<0..65>): Boolean {"
       "  const x = (n <= 1);"
       "  return ((x: Boolean): Boolean => 0)(!x);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 11" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..0>" "Boolean" "anonymous circuit")))
+      irritants: '("testfile.compact line 3 char 11" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "Boolean" "anonymous circuit")))
     )
 
   (test
     '(
-      "circuit foo(n: Uint<0..64>): Boolean {"
+      "circuit foo(n: Uint<0..65>): Boolean {"
       "  const x = (n <= 1);"
       "  return ((x) => 0)(!x);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..0>" "Boolean" "circuit foo")))
+      irritants: '("testfile.compact line 3 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "Boolean" "circuit foo")))
     )
 
   (test
     '(
-      "circuit foo(n: Uint<0..64>): Boolean {"
+      "circuit foo(n: Uint<0..65>): Boolean {"
       "  const x = (n <= 1);"
       "  const y = ((x: Boolean): Boolean => 0)(!x);"
       "  return x;"
@@ -12426,32 +12663,32 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 14" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..0>" "Boolean" "anonymous circuit")))
+      irritants: '("testfile.compact line 3 char 14" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "Boolean" "anonymous circuit")))
     )
 
   (test
     '(
-      "circuit foo(n: Uint<0..64>): Boolean {"
+      "circuit foo(n: Uint<0..65>): Boolean {"
       "  const x = (n <= 1);"
       "  const y = ((x: Boolean): Boolean => 0)(!x);"
       "  return x;"
       "}"
-      "export circuit bar(n: Uint<0..64>): Uint<0..64> {"
+      "export circuit bar(n: Uint<0..65>): Uint<0..65> {"
       "  return foo(n) ? n -1 : n - 2;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 14" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..0>" "Boolean" "anonymous circuit")))
+      irritants: '("testfile.compact line 3 char 14" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "Boolean" "anonymous circuit")))
     )
 
   (test
     '(
-      "circuit foo(n: Uint<0..64>): Boolean {"
+      "circuit foo(n: Uint<0..65>): Boolean {"
       "  const x = (n <= 1);"
       "  return ((x: Boolean): Boolean => x && n <= 0)(!x);"
       "}"
-      "export circuit bar(n: Uint<0..64>): Uint<0..64> {"
+      "export circuit bar(n: Uint<0..65>): Uint<0..65> {"
       "  return foo(n) ? n -1 : n + 2;"
       "}"
       "export circuit ban(x: Field): Boolean {"
@@ -12460,16 +12697,16 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..66>" "Uint<0..64>" "circuit bar")))
+      irritants: '("testfile.compact line 6 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..67>" "Uint<0..65>" "circuit bar")))
     )
 
   (test
     '(
-      "circuit foo(n: Uint<0..64>): Boolean {"
+      "circuit foo(n: Uint<0..65>): Boolean {"
       "  const x = (n <= 1);"
       "  return ((x: Boolean): Boolean => x && n <= 0)(!x);"
       "}"
-      "export circuit bar(n: Uint<0..64>): Uint<0..64> {"
+      "export circuit bar(n: Uint<0..65>): Uint<0..65> {"
       "  return foo(n) ? n -1 : n - 2;"
       "}"
       "export circuit ban(x: Field): Boolean {"
@@ -12483,48 +12720,48 @@
 
   (test
     '(
-      "circuit foo(n: Uint<0..64>): Boolean {"
+      "circuit foo(n: Uint<0..65>): Boolean {"
       "  const x = (n <= 1);"
       "  const y = ((x: Boolean): Boolean => 0)(!x);"
       "  return x;"
       "}"
-      "export circuit bar(n: Uint<0..64>): Uint<0..64> {"
+      "export circuit bar(n: Uint<0..65>): Uint<0..65> {"
       "  return foo(n) ? n -1 : n + 2;"
       "}"
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 14" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..0>" "Boolean" "anonymous circuit")))
+      irritants: '("testfile.compact line 3 char 14" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "Boolean" "anonymous circuit")))
     )
 
   (test
     '(
-      "circuit foo(n: Uint<0..64>): Boolean {"
+      "circuit foo(n: Uint<0..65>): Boolean {"
       "  const x = (n <= 1);"
       "  return ((x: Boolean): Boolean => x && n <= 0)(!x);"
       "}"
-      "export circuit bar(n: Uint<0..64>): Uint<0..64> {"
-      "  return foo(n) ? ((x: Uint<0..64>) : Uint<0..64> => x + 1)(n) : n + 2;"
+      "export circuit bar(n: Uint<0..65>): Uint<0..65> {"
+      "  return foo(n) ? ((x: Uint<0..65>) : Uint<0..65> => x + 1)(n) : n + 2;"
       "}"
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 20" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..65>" "Uint<0..64>" "anonymous circuit")))
+      irritants: '("testfile.compact line 6 char 20" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..66>" "Uint<0..65>" "anonymous circuit")))
     )
 
   (test
     '(
-      "circuit foo(n: Uint<0..64>): Boolean {"
+      "circuit foo(n: Uint<0..65>): Boolean {"
       "  const x = (n <= 1);"
       "  return ((x: Boolean): Boolean => x && n <= 0)(!x);"
       "}"
-      "export circuit bar(n: Uint<0..64>): Uint<0..64> {"
-      "  return foo(n) ? n + 2 : ((x: Uint<0..64>) : Uint<0..64> => x + 1)(n);"
+      "export circuit bar(n: Uint<0..65>): Uint<0..65> {"
+      "  return foo(n) ? n + 2 : ((x: Uint<0..65>) : Uint<0..65> => x + 1)(n);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 28" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..65>" "Uint<0..64>" "anonymous circuit")))
+      irritants: '("testfile.compact line 6 char 28" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..66>" "Uint<0..65>" "anonymous circuit")))
     )
 
   (test
@@ -12908,7 +13145,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 36" "~a should be a vector, tuple, or Bytes but has type ~a" ("map third argument" "Uint<0..12>")))
+      irritants: '("testfile.compact line 2 char 36" "~a should be a vector, tuple, or Bytes but has type ~a" ("map third argument" "Uint<0..13>")))
     )
 
   (test
@@ -13931,7 +14168,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "fold requires the return type and first-argument type to be the same\n    ~:[[inferred] ~;~]first-argument type: ~a,\n    ~:[[inferred] ~;~]return type: ~a" (#f "Uint<0..17>" #f "Field")))
+      irritants: '("testfile.compact line 2 char 10" "fold requires the return type and first-argument type to be the same\n    ~:[[inferred] ~;~]first-argument type: ~a,\n    ~:[[inferred] ~;~]return type: ~a" (#f "Uint<0..18>" #f "Field")))
     )
 
   (test
@@ -13983,7 +14220,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<0..0>" "Field") ("Field" "Field" "Field"))))
+      irritants: '("testfile.compact line 2 char 10" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<0..1>" "Field") ("Field" "Field" "Field"))))
     )
 
   (test
@@ -13996,7 +14233,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<0..0>" "Field") ("Field" "Opaque<\"string\">"))))
+      irritants: '("testfile.compact line 2 char 10" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<0..1>" "Field") ("Field" "Opaque<\"string\">"))))
     )
 
   (test
@@ -14009,7 +14246,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "fold requires the return type and first-argument type to be the same\n    ~:[[inferred] ~;~]first-argument type: ~a,\n    ~:[[inferred] ~;~]return type: ~a" (#f "Uint<0..256>" #t "Uint<8>")))
+      irritants: '("testfile.compact line 2 char 10" "fold requires the return type and first-argument type to be the same\n    ~:[[inferred] ~;~]first-argument type: ~a,\n    ~:[[inferred] ~;~]return type: ~a" (#f "Uint<0..257>" #t "Uint<8>")))
     )
 
   (test
@@ -14513,7 +14750,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<0..6>)\n      declared argument types for function at line 2 char 1:\n        (Enum<Names, bill, sally, fred, george>)" #f)))
+      irritants: '("testfile.compact line 9 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<0..7>)\n      declared argument types for function at line 2 char 1:\n        (Enum<Names, bill, sally, fred, george>)" #f)))
     )
 
   (test
@@ -15263,7 +15500,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 15" "Uint type length ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 254)))
+      irritants: '("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 254)))
     )
 
   (test
@@ -15289,7 +15526,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 15" "Uint type length ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 254)))
+      irritants: '("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 254)))
     )
 
   (test
@@ -15321,13 +15558,13 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 15" "Uint type length ~d is not between 1 and the maximum Uint width ~d (inclusive)" (255 254)))
+      irritants: '("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (255 254)))
     )
 
   (test
     `(
       "export circuit foo(b: Boolean): Field {"
-      "  return b as Uint<0..1>;"
+      "  return b as Uint<0..2>;"
       "}"
       )
     (returns
@@ -15342,7 +15579,7 @@
   (test
     `(
       "export circuit foo(b: Boolean): Field {"
-      "  return b as Uint<0..0>;"
+      "  return b as Uint<0..1>;"
       "}"
       )
     (returns
@@ -15357,7 +15594,7 @@
   (test
     `(
       "export circuit foo(b: Boolean): Field {"
-      ,(format "  return b as Uint<0..~d>;" (max-unsigned))
+      ,(format "  return b as Uint<0..~d>;" (+ (max-unsigned) 1))
       "}"
       )
     (returns
@@ -15381,12 +15618,12 @@
   (test
     `(
       "export circuit foo(b: Boolean): Field {"
-      ,(format "  return b as Uint<0 .. ~d>;" (+ (max-unsigned) 1))
+      ,(format "  return b as Uint<0 .. ~d>;" (+ (max-unsigned) 2))
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 15" "Uint type maximum value\n    ~d\n  exceeds the maximum Uint value\n    ~d" (,(+ (max-unsigned) 1) ,(max-unsigned))))
+      irritants: '("testfile.compact line 2 char 15" "range end\n    ~d\n  for Uint type exceeds the limit of\n    ~d (2^~d)\n  (the range end is exclusive)" (28948022309329048855892746252171976963317496166410141009864396001978282409985 28948022309329048855892746252171976963317496166410141009864396001978282409984 254)))
     )
 
   (test
@@ -15496,7 +15733,7 @@
     '(
       "import CompactStandardLibrary;"
       ""
-      "export circuit foo(a : Uint<0..0>): Boolean { return a == 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { return a == 0; }"
       )
     (returns
       (program
@@ -15510,12 +15747,12 @@
     '(
       "import CompactStandardLibrary;"
       ""
-      "export circuit foo(a: Uint<0..0>): Boolean { return a == 0; }"
+      "export circuit foo(a: Uint<0..1>): Boolean { return a == 0; }"
       "export circuit bar(b: Uint<32>): Boolean { return foo(b); }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 51" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<32>)\n      declared argument types for function at line 3 char 1:\n        (Uint<0..0>)" #f)))
+      irritants: '("testfile.compact line 4 char 51" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<32>)\n      declared argument types for function at line 3 char 1:\n        (Uint<0..1>)" #f)))
     )
 
   (test
@@ -15807,7 +16044,7 @@
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(x: Uint<0..4>): Uint<0..15> {"
+      "export circuit foo(x: Uint<0..5>): Uint<0..16> {"
       "  const t = x + 1;"
       "  return t;"
       "}"
@@ -16476,7 +16713,7 @@
       "circuit A<t>(x: Uint<0..t>): Field {"
       "  return x;"
       "}"
-      "export circuit B(x: Uint<0..7>): Field {"
+      "export circuit B(x: Uint<0..8>): Field {"
       "  return A<11>(x);"
       "}"
       )
@@ -16493,7 +16730,7 @@
       "circuit A<#t>(x: Uint<t..37>): Field {"
       "  return x;"
       "}"
-      "export circuit B(x: Uint<0..7>): Field {"
+      "export circuit B(x: Uint<0..8>): Field {"
       "  return A<Boolean>(x);"
       "}"
       )
@@ -16516,7 +16753,7 @@
       "circuit A<t>(x: Uint<16>, y: t): Field {"
       "  return x;"
       "}"
-      "export circuit B(x: Uint<0..7>): Field {"
+      "export circuit B(x: Uint<0..8>): Field {"
       "  return A<Boolean>(x);"
       "}"
       )
@@ -16539,7 +16776,7 @@
       "circuit A<t>(x: Uint<16>): Field {"
       "  return x;"
       "}"
-      "export circuit B(x: Uint<0..7>): Field {"
+      "export circuit B(x: Uint<0..8>): Field {"
       "  return A<Boolean>(x);"
       "}"
       )
@@ -17555,7 +17792,7 @@
   (test
     '(
       "export ledger fld: Vector<3, Field>;"
-      "export circuit bar(n: Uint<0..2>): Field {"
+      "export circuit bar(n: Uint<0..3>): Field {"
       "  return n == 0 ? fld[0] : n == 1 ? fld[1] : fld[2];"
       "}"
       )
@@ -17797,8 +18034,8 @@
       "import M<Counter> prefix M2$;"
       "import M<Set<Field>> prefix M3$;"
       "import M<Field> prefix M4$;"
-      "import M<Map<Uint<0..9>, Map<Uint<8>, List<Boolean>>>> prefix M5$;"
-      "import M<Map<Uint<0..9>, Map<Uint<8>, List<Boolean>>>> prefix M6$;"
+      "import M<Map<Uint<0..10>, Map<Uint<8>, List<Boolean>>>> prefix M5$;"
+      "import M<Map<Uint<0..10>, Map<Uint<8>, List<Boolean>>>> prefix M6$;"
       "export circuit foo(): Vector<5, Field> {"
       "  M1$fld += 1;"
       "  M2$fld += 2;"
@@ -18042,7 +18279,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 5" "expected right-hand side of ~a to have type ~a but received ~a" ("=" "Uint<16>" "Uint<0..4294836225>")))
+      irritants: '("testfile.compact line 3 char 5" "expected right-hand side of ~a to have type ~a but received ~a" ("=" "Uint<16>" "Uint<0..4294836226>")))
     )
 
   (test
@@ -18054,7 +18291,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 4" "expected ~:r argument of ~s to have type ~a but received ~a" (1 write "Uint<16>" "Uint<0..4294836225>")))
+      irritants: '("testfile.compact line 3 char 4" "expected ~:r argument of ~s to have type ~a but received ~a" (1 write "Uint<16>" "Uint<0..4294836226>")))
     )
 
   (test
@@ -19820,7 +20057,7 @@
 
   (test
     '(
-      "circuit bar(v: Vector<5, Field>, i: Uint<0..4>): Field {"
+      "circuit bar(v: Vector<5, Field>, i: Uint<0..5>): Field {"
       "  return v[i];"
       "}"
       "export circuit foo(v: Vector<5, Field>): Field {"
@@ -20574,7 +20811,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "fold requires the return type and first-argument type to be the same\n    ~:[[inferred] ~;~]first-argument type: ~a,\n    ~:[[inferred] ~;~]return type: ~a" (#f "Uint<0..0>" #f "Field")))
+      irritants: '("testfile.compact line 2 char 10" "fold requires the return type and first-argument type to be the same\n    ~:[[inferred] ~;~]first-argument type: ~a,\n    ~:[[inferred] ~;~]return type: ~a" (#f "Uint<0..1>" #f "Field")))
     )
 
   (test
@@ -20635,7 +20872,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..2>, Uint<2>, Uint<0..4>]" "Vector<2, Field>")))
+      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..3>, Uint<2>, Uint<0..5>]" "Vector<2, Field>")))
     )
 
   (test
@@ -20647,7 +20884,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..2>, Uint<2>, Uint<0..4>]" "[Field, Field]")))
+      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..3>, Uint<2>, Uint<0..5>]" "[Field, Field]")))
     )
 
   (test
@@ -20792,7 +21029,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..2>, Uint<2>, Uint<0..4>, Boolean, Boolean]" "[Field, Field, Field, Field]")))
+      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..3>, Uint<2>, Uint<0..5>, Boolean, Boolean]" "[Field, Field, Field, Field]")))
     )
 
   (test
@@ -20857,7 +21094,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..2>, Uint<2>, Uint<0..4>]" "[Field, Field]")))
+      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..3>, Uint<2>, Uint<0..5>]" "[Field, Field]")))
     )
 
   (test
@@ -20869,7 +21106,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..2>]" "[Field, Field, Field]")))
+      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..3>]" "[Field, Field, Field]")))
     )
 
   (test
@@ -20881,7 +21118,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..2>]" "[Field, Field, Field]")))
+      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("[Uint<1>, Uint<0..3>]" "[Field, Field, Field]")))
     )
 
   (test
@@ -21344,7 +21581,184 @@
       message: "~a:\n  ~?"
       irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
     )
-  )
+
+  (test
+    '(
+      "export circuit foo(): Boolean { return 1, true; }"
+      )
+    (returns
+      (program (circuit %foo.0 () (tboolean) (seq 1 #t))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): [] { ((x) => {return;})(true); }"
+      )
+    (returns
+       (program
+         (circuit %foo.0 ()
+              (ttuple)
+           (seq
+             (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t)
+             (tuple)))))
+   )
+
+  (test
+    '(
+      "export circuit foo(): [] { return ((x) => {return;})(true); }"
+      )
+    (returns
+       (program
+         (circuit %foo.0 ()
+              (ttuple)
+           (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t))))
+    )
+
+  (test
+    '(
+      "constructor () { return; }"
+      )
+    (returns (program (constructor () (tuple))))
+    )
+
+  (test
+    '(
+      "constructor () { return true; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 18" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Boolean" "[]" "ledger constructor")))
+    )
+
+  (test
+    '(
+      "export circuit foo(c: Boolean): Boolean {"
+      "  return ((x) : Boolean => {"
+      "    if (c)"
+      "       return x;"
+      "    else"
+      "       return !x;"
+      "    })(c);"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%c.1 (tboolean)])
+             (tboolean)
+          (call (circuit ([%x.2 (tboolean)])
+                     (tboolean)
+                  (if %c.1 %x.2 (if %x.2 #f #t)))
+            %c.1))))
+    )
+
+  (test
+    '(
+      "export circuit foo(c: Boolean): Boolean {"
+      "  return ((x) : Boolean => {"
+      "    if (c)"
+      "       return x;"
+      "    })(c);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 5" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+    )
+
+    ; test for bounds of merkle trees
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (min-merkle-tree-depth))
+      ,(format "ledger field2: MerkleTree<~d, Boolean>;" (max-merkle-tree-depth))
+      )
+    (succeeds))
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (- (min-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 30" "expected ~a but received ~a for generic parameter ~s declared at ~a" ("non-ADT type" "ledger ADT type" value_type "<standard library>")))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "module M<#n>{"
+      "  export ledger field1: MerkleTree<n, Boolean>;"
+      "}"
+      ,(format "import M<~d>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 25" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "module M<#n>{"
+      "  export ledger field1: MerkleTree<n, Boolean>;"
+      "}"
+      ,(format "import M<~d>;" (- (min-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 3 char 25" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (min-merkle-tree-depth))
+      ,(format "ledger field2: HistoricMerkleTree<~d, Boolean>;" (max-merkle-tree-depth))
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (- (min-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(- (min-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (+ (max-merkle-tree-depth) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
+)
 
 ; tests limits for vectors, bytes, and tuples.
 ; it sets max-bytes/vector-length to 150 for testing to avoid waiting a noticable time
@@ -23020,7 +23434,7 @@
       "circuit A<t>(x: Uint<16>): Field {"
       "  return x;"
       "}"
-      "export circuit B(x: Uint<0..7>): Field {"
+      "export circuit B(x: Uint<0..8>): Field {"
       "  return A<Boolean>(x);"
       "}"
       )
@@ -25001,8 +25415,8 @@
 
   (test
     '(
-      "export circuit foo(b: Boolean): Uint<0..0> {"
-      "  return b as Uint<0..0>;"
+      "export circuit foo(b: Boolean): Uint<0..1> {"
+      "  return b as Uint<0..1>;"
       "}"
       )
     (returns
@@ -34211,7 +34625,7 @@
       "ledger a: Vector<3, Field>;"
       "export circuit foo(v: Vector<5, Field>): Vector<3, Field> {"
       "  for (const k of 0..1) {"
-      "    a = map((x, y) => x + disclose(y), a, slice<3>(v, k as Uint<0..5>));"
+      "    a = map((x, y) => x + disclose(y), a, slice<3>(v, k as Uint<0..6>));"
       "  }"
       "  return a;"
       "}"
@@ -39713,7 +40127,7 @@
       ,(format "  const t1 = ~d as Field;" (max-field))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39734,7 +40148,7 @@
       ,(format "  const t1 = ~d as Field;" (max-field))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39755,7 +40169,7 @@
       ,(format "  const t1 : Field = ~d as Field;" (max-field))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39777,7 +40191,7 @@
          (format "  const t1 : Field = ~d + ~d;" n1 n2))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39793,7 +40207,7 @@
          (format "  const t1 : Field = ~d + (~d as Field);" n1 n2))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39814,7 +40228,7 @@
       ,(format "  const t1 = ~d as Field;" (+ (max-unsigned) 1))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39835,7 +40249,7 @@
       ,(format "  const t1 = ~d as Field;" (+ (max-unsigned) 1))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39856,7 +40270,7 @@
       ,(format "  const t1 : Field = ~d as Field;" (+ (max-unsigned) 1))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39878,7 +40292,7 @@
          (format "  const t1 : Field = (~d as Field) + (~d as Field);" n1 n2))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39899,7 +40313,7 @@
       ,(format "  const t1 = ~d as Field;" (max-unsigned))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39920,7 +40334,7 @@
       ,(format "  const t1 : Field = ~d;" (max-unsigned))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39942,7 +40356,7 @@
          (format "  const t1 : Field = (~d as Field) + (~d as Field);" n1 n2))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39965,7 +40379,7 @@
       "  // the assignment of t3 should turn into t3 = t2 because Bytes<4> fits in one Field value"
       "  // and optimize-circuit should discard it and propagate t2 straight to the reference fo t3"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -39985,7 +40399,7 @@
       ,(format "  const t1 : Field = (~d as Field) + (~:*~d as Field);" (max-field))
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456788>;"
+      "  const t4 = t3 as Uint<0..123456789123456789>;"
       "  return t4;"
       "}"
       )
@@ -40007,7 +40421,7 @@
       "  const t1 : Field = 123456789000000000 + 123456789;"
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456788>;"
+      "  const t4 = t3 as Uint<0..123456789123456789>;"
       "  return t4;"
       "}"
       )
@@ -40027,7 +40441,7 @@
       "  const t1 : Field = 123456789000000000 + 123456789;"
       "  const t2 = t1 as Bytes<256>;"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456789>;"
+      "  const t4 = t3 as Uint<0..123456789123456790>;"
       "  return t4;"
       "}"
       )
@@ -40044,7 +40458,7 @@
       "export circuit foo(): Field {"
       "  const t2 : Bytes<256> = '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$';"
       "  const t3 = t2 as Field;"
-      "  const t4 = t3 as Uint<0..123456789123456788>;"
+      "  const t4 = t3 as Uint<0..123456789123456789>;"
       "  return t4;"
       "}"
       )
@@ -41632,7 +42046,7 @@
   ; if bar is exported, i doesn't reduce to a constant ...
   (test
     '(
-      "export circuit bar(v: Vector<5, Field>, i: Uint<0..5>): Field {"
+      "export circuit bar(v: Vector<5, Field>, i: Uint<0..6>): Field {"
       "  return v[i];"
       "}"
       "export circuit foo(v: Vector<5, Field>): Field {"
@@ -41647,7 +42061,7 @@
   ; ... but if bar is not exported, i does reduce to a constant at the only place where bar is called
   (test
     '(
-      "circuit bar(v: Vector<5, Field>, i: Uint<0..5>): Field {"
+      "circuit bar(v: Vector<5, Field>, i: Uint<0..6>): Field {"
       "  return v[i];"
       "}"
       "export circuit foo(v: Vector<5, Field>): Field {"
@@ -42096,7 +42510,7 @@
       "witness forcenonpure(): [];"
       ""
       "module M {"
-      "  export circuit foo(a : Uint<0..0>): Boolean { forcenonpure(); return a == 0; }"
+      "  export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a == 0; }"
       "}"
       ""
       "import M prefix A;"
@@ -42113,7 +42527,7 @@
       ""
       "witness forcenonpure(): [];"
       ""
-      "export circuit foo(a : Uint<0..0>): Boolean { forcenonpure(); return a == 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a == 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -42137,7 +42551,7 @@
       ""
       "witness forcenonpure(): [];"
       ""
-      "export circuit foo(a : Uint<0..0>): Boolean { forcenonpure(); return a != 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a != 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -42211,7 +42625,7 @@
       ""
       "witness forcenonpure(): [];"
       ""
-      "export circuit foo(a : Uint<0..0>): Boolean { forcenonpure(); return a <= 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a <= 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -46066,9 +46480,9 @@
   (test
     '(
       "ledger impure: Boolean;"
-      "export circuit foo(): Uint<0..10> {"
+      "export circuit foo(): Uint<0..11> {"
       "  impure = true;"
-      "  return default<Uint<0..10>>;"
+      "  return default<Uint<0..11>>;"
       "}"
      )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -47532,10 +47946,10 @@
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "witness bar(x: Field): Uint<0..35>;"
-      "export circuit foo(x: Uint<0..35>): Uint<0..35> {"
+      "witness bar(x: Field): Uint<0..36>;"
+      "export circuit foo(x: Uint<0..36>): Uint<0..36> {"
       "  impure = true;"
-      "  return x - x as Uint<0..35>;"
+      "  return x - x as Uint<0..36>;"
       "}"
      )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -50859,7 +51273,7 @@
   (test
     '(
       "witness forceImpure(): [];"
-      "export circuit test(x: Uint<0..4>): [] {"
+      "export circuit test(x: Uint<0..5>): [] {"
       "  forceImpure();"
       "  assert(x == 0, \"failed\");"
       "}"
@@ -50885,7 +51299,7 @@
   (test
     '(
       "witness forceImpure(): [];"
-      "export circuit test(x: Uint<0..4>, y: Uint<0..5>): [] {"
+      "export circuit test(x: Uint<0..5>, y: Uint<0..6>): [] {"
       "  forceImpure();"
       "  assert(x == y, \"failed\");"
       "}"
@@ -50913,7 +51327,7 @@
   (test
     '(
       "witness forceImpure(): [];"
-      "export circuit test(x: Uint<0..4>, y: Uint<0..5>, z: Uint<0..6>): [] {"
+      "export circuit test(x: Uint<0..5>, y: Uint<0..6>, z: Uint<0..7>): [] {"
       "  forceImpure();"
       "  assert(x + y == z, \"failed\");"
       "}"
@@ -50946,7 +51360,7 @@
   (test
     '(
       "witness forceImpure(): [];"
-      "export circuit test(x: Uint<0..4>, y: Uint<4>): [] {"
+      "export circuit test(x: Uint<0..5>, y: Uint<4>): [] {"
       "  forceImpure();"
       "  assert(x == y, \"failed\");"
       "}"
@@ -50972,7 +51386,7 @@
   (test
     '(
       "witness forceImpure(): [];"
-      "export circuit test(x: Uint<4>, y: Uint<0..4>): [] {"
+      "export circuit test(x: Uint<4>, y: Uint<0..5>): [] {"
       "  forceImpure();"
       "  assert(x == y, \"failed\");"
       "}"
@@ -51055,7 +51469,7 @@
 
   (test
     '(
-      "circuit bar(v: Vector<5, Field>, i: Uint<0..4>): Field {"
+      "circuit bar(v: Vector<5, Field>, i: Uint<0..5>): Field {"
       "  return v[i];"
       "}"
       "export circuit foo(v: Vector<5, Field>): Field {"
@@ -52808,7 +53222,7 @@
       "witness forcenonpure(): [];"
       ""
       "module M {"
-      "  export circuit foo(a : Uint<0..0>): Boolean { forcenonpure(); return a == 0; }"
+      "  export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a == 0; }"
       "}"
       ""
       "import M prefix A;"
@@ -52825,7 +53239,7 @@
       ""
       "witness forcenonpure(): [];"
       ""
-      "export circuit foo(a : Uint<0..0>): Boolean { forcenonpure(); return a == 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a == 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -52849,7 +53263,7 @@
       ""
       "witness forcenonpure(): [];"
       ""
-      "export circuit foo(a : Uint<0..0>): Boolean { forcenonpure(); return a != 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a != 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -52923,7 +53337,7 @@
       ""
       "witness forcenonpure(): [];"
       ""
-      "export circuit foo(a : Uint<0..0>): Boolean { forcenonpure(); return a <= 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a <= 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -56863,9 +57277,9 @@
   (test
     '(
       "ledger impure: Boolean;"
-      "export circuit foo(): Uint<0..10> {"
+      "export circuit foo(): Uint<0..11> {"
       "  impure = true;"
-      "  return default<Uint<0..10>>;"
+      "  return default<Uint<0..11>>;"
       "}"
      )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -58329,10 +58743,10 @@
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "witness bar(x: Field): Uint<0..35>;"
-      "export circuit foo(x: Uint<0..35>): Uint<0..35> {"
+      "witness bar(x: Field): Uint<0..36>;"
+      "export circuit foo(x: Uint<0..36>): Uint<0..36> {"
       "  impure = true;"
-      "  return x - x as Uint<0..35>;"
+      "  return x - x as Uint<0..36>;"
       "}"
      )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -61692,7 +62106,7 @@
   (test
     '(
       "witness forceImpure(): [];"
-      "export circuit test(x: Uint<0..4>): [] {"
+      "export circuit test(x: Uint<0..5>): [] {"
       "  forceImpure();"
       "  assert(x == 0, \"failed\");"
       "}"
@@ -61718,7 +62132,7 @@
   (test
     '(
       "witness forceImpure(): [];"
-      "export circuit test(x: Uint<0..4>, y: Uint<0..5>): [] {"
+      "export circuit test(x: Uint<0..5>, y: Uint<0..6>): [] {"
       "  forceImpure();"
       "  assert(x == y, \"failed\");"
       "}"
@@ -61746,7 +62160,7 @@
   (test
     '(
       "witness forceImpure(): [];"
-      "export circuit test(x: Uint<0..4>, y: Uint<0..5>, z: Uint<0..6>): [] {"
+      "export circuit test(x: Uint<0..5>, y: Uint<0..6>, z: Uint<0..7>): [] {"
       "  forceImpure();"
       "  assert(x + y == z, \"failed\");"
       "}"
@@ -61779,7 +62193,7 @@
   (test
     '(
       "witness forceImpure(): [];"
-      "export circuit test(x: Uint<0..4>, y: Uint<4>): [] {"
+      "export circuit test(x: Uint<0..5>, y: Uint<4>): [] {"
       "  forceImpure();"
       "  assert(x == y, \"failed\");"
       "}"
@@ -61805,7 +62219,7 @@
   (test
     '(
       "witness forceImpure(): [];"
-      "export circuit test(x: Uint<4>, y: Uint<0..4>): [] {"
+      "export circuit test(x: Uint<4>, y: Uint<0..5>): [] {"
       "  forceImpure();"
       "  assert(x == y, \"failed\");"
       "}"
@@ -61888,7 +62302,7 @@
 
   (test
     '(
-      "circuit bar(v: Vector<5, Field>, i: Uint<0..4>): Field {"
+      "circuit bar(v: Vector<5, Field>, i: Uint<0..5>): Field {"
       "  return v[i];"
       "}"
       "export circuit foo(v: Vector<5, Field>): Field {"
@@ -63943,11 +64357,11 @@
 
   (test
     '(
-      "circuit foo(n: Uint<0..64>): Boolean {"
+      "circuit foo(n: Uint<0..65>): Boolean {"
       "  const x = (n <= 1);"
       "  return ((x) => x && n <= 0)(!x);"
       "}"
-      "export circuit bar(n: Uint<0..64>): Uint<0..64> {"
+      "export circuit bar(n: Uint<0..65>): Uint<0..65> {"
       "  return foo(n - 1) ? n -1 : n - 2;"
       "}"
       )
@@ -65801,8 +66215,8 @@
 
   (test
     '(
-      "export circuit foo(): Uint<0..10> {"
-      "  return default<Uint<0..10>>;"
+      "export circuit foo(): Uint<0..11> {"
+      "  return default<Uint<0..11>>;"
       "}"
       )
     (stage-javascript
@@ -66257,8 +66671,7 @@
     (output-file "compiler/testdir/contract/index.js"
       `(
         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
-        "const expectedRuntimeVersionString = '0.10.1';"
-        "__compactRuntime.checkRuntimeVersion(expectedRuntimeVersionString);"
+        ,(format "__compactRuntime.checkRuntimeVersion('~a');" runtime-version-string)
         ""
         "const _descriptor_0 = __compactRuntime.CompactTypeField;"
         ""
@@ -66739,7 +67152,7 @@
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EAmBD,AAAA,iBAAsD,CAArB,OAAQ;oEAAR,OAAQ;;GAAa;EDqBtD,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EAmBD,AAAA,iBAAsD,CAArB,OAAQ;oEAAR,OAAQ;;GAAa;EDqBtD,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -66891,9 +67304,9 @@
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(x: Field): Uint<0..35>;"
-      "export circuit foo(x: Uint<0..35>): Uint<0..35> {"
-      "  return x - x as Uint<0..35>;"
+      "witness bar(x: Field): Uint<0..36>;"
+      "export circuit foo(x: Uint<0..36>): Uint<0..36> {"
+      "  return x - x as Uint<0..36>;"
       "}"
       )
     (stage-javascript
@@ -66909,7 +67322,7 @@
         "});"
         "test('check 2b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, 37n)).toThrow('type error: foo argument 1 at testfile.compact line 3 char 1; expected value of type Uint<0..35> but received 37n');"
+        "  expect(() => C.circuits.foo(Ctxt, 37n)).toThrow('type error: foo argument 1 at testfile.compact line 3 char 1; expected value of type Uint<0..36> but received 37n');"
         "});"
         ))
     )
@@ -66997,7 +67410,7 @@
         "});"
         "test('check 5b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).toThrow('type error: uno argument 1 at testfile.compact line 3 char 1; expected value of type struct Q<x: Boolean, y: Vector<3, Uint<0..4294967295>>> but received { x: 3n, y: 4n }');"
+        "  expect(() => C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).toThrow('type error: uno argument 1 at testfile.compact line 3 char 1; expected value of type struct Q<x: Boolean, y: Vector<3, Uint<0..4294967296>>> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 6a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
@@ -67049,7 +67462,7 @@
         "});"
         "test('check 5b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).toThrow('type error: uno argument 1 at testfile.compact line 2 char 1; expected value of type struct Q<x: Vector<3, Boolean>, y: Uint<0..4095>, z: Opaque<\"string\">> but received { x: 3n, y: 4n }');"
+        "  expect(() => C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).toThrow('type error: uno argument 1 at testfile.compact line 2 char 1; expected value of type struct Q<x: Vector<3, Boolean>, y: Uint<0..4096>, z: Opaque<\"string\">> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 6a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
@@ -67057,7 +67470,7 @@
         "});"
         "test('check 6b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).toThrow('type error: dos argument 1 at testfile.compact line 5 char 1; expected value of type struct Q<x: Vector<2, Field>, y: Uint<0..4095>, z: Opaque<\"string\">> but received { x: true, y: 4n }');"
+        "  expect(() => C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).toThrow('type error: dos argument 1 at testfile.compact line 5 char 1; expected value of type struct Q<x: Vector<2, Field>, y: Uint<0..4096>, z: Opaque<\"string\">> but received { x: true, y: 4n }');"
         "});"
         ))
     )
@@ -67118,7 +67531,7 @@
         "});"
         "test('check 4b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).toThrow('type error: uno argument 1 at testfile.compact line 3 char 3; expected value of type struct Q<x: Vector<2, Uint<0..4095>>, y: Uint<0..4095>> but received { x: 3n, y: 4n }');"
+        "  expect(() => C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).toThrow('type error: uno argument 1 at testfile.compact line 3 char 3; expected value of type struct Q<x: Vector<2, Uint<0..4096>>, y: Uint<0..4096>> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 5a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
@@ -67134,7 +67547,7 @@
         "});"
         "test('check 6b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.tres(Ctxt, <any>{ x: true, y: 4n })).toThrow('type error: tres argument 1 at testfile.compact line 14 char 3; expected value of type struct Q<x: Vector<2, Uint<0..4095>>, y: Boolean> but received { x: true, y: 4n }');"
+        "  expect(() => C.circuits.tres(Ctxt, <any>{ x: true, y: 4n })).toThrow('type error: tres argument 1 at testfile.compact line 14 char 3; expected value of type struct Q<x: Vector<2, Uint<0..4096>>, y: Boolean> but received { x: true, y: 4n }');"
         "});"
         ))
     )
@@ -70052,7 +70465,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..49>" "[]" "circuit foo")))
+      irritants: '("testfile.compact line 5 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..50>" "[]" "circuit foo")))
     )
 
  (test
@@ -70646,8 +71059,8 @@
       "import M<Counter> prefix M2$;"
       "import M<Set<Field>> prefix M3$;"
       "import M<Field> prefix M4$;"
-      "import M<Map<Uint<0..9>, Map<Uint<8>, List<Boolean>>>> prefix M5$;"
-      "import M<Map<Uint<0..9>, Map<Uint<8>, List<Boolean>>>> prefix M6$;"
+      "import M<Map<Uint<0..10>, Map<Uint<8>, List<Boolean>>>> prefix M5$;"
+      "import M<Map<Uint<0..10>, Map<Uint<8>, List<Boolean>>>> prefix M6$;"
       "export circuit foo(x: Field): Vector<5, Field> {"
       "  M1$fld += 1;"
       "  M2$fld += 2;"
@@ -70786,7 +71199,7 @@
         "  expect(C.circuits.oak(Ctxt, [17n, new Uint8Array([1,2,3,4,5,6,7,8])], 19n, new Uint8Array([1,2,3,4,5,6,7,8])).result).toEqual([false, [19n, new Uint8Array([1,2,3,4,5,6,7,8])]]);"
         "  expect(C.circuits.oak(Ctxt, [17n, new Uint8Array([1,2,3,4,5,6,7,8])], 17n, new Uint8Array([0,2,3,4,5,6,7,8])).result).toEqual([false, [17n, new Uint8Array([0,2,3,4,5,6,7,8])]]);"
         "  expect(() => C.circuits.oak(Ctxt, [17n, new Uint8Array([0,1,2,3,4,5,6,7,8])], 17n, new Uint8Array([0,2,3,4,5,6,7,8]))).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.oak(Ctxt, [17n, new Uint8Array([0,1,2,3,4,5,6,7,8])], 17n, new Uint8Array([0,2,3,4,5,6,7,8]))).toThrow('type error: oak argument 1 at testfile.compact line 2 char 1; expected value of type [Uint<0..255>, Bytes<8>] but received [ 17n, Uint8Array [Uint8Array] { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8 } ]');"
+        "  expect(() => C.circuits.oak(Ctxt, [17n, new Uint8Array([0,1,2,3,4,5,6,7,8])], 17n, new Uint8Array([0,2,3,4,5,6,7,8]))).toThrow('type error: oak argument 1 at testfile.compact line 2 char 1; expected value of type [Uint<0..256>, Bytes<8>] but received [ 17n, Uint8Array [Uint8Array] { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8 } ]');"
         "  });"
         ))
     )
@@ -70844,7 +71257,7 @@
         "  expect(C.circuits.birch(Ctxt, [19n, new Uint8Array([1,2,3,4,5,6,7,8])]).result).toEqual(false);"
         "  expect(C.circuits.birch(Ctxt, [17n, new Uint8Array([0,2,3,4,5,6,7,8])]).result).toEqual(false);"
         "  expect(() => C.circuits.birch(Ctxt, [17n, new Uint8Array([0,1,2,3,4,5,6,7,8])])).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.birch(Ctxt, [17n, new Uint8Array([0,1,2,3,4,5,6,7,8])])).toThrow('type error: birch argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 7 char 1; expected value of type [Uint<0..255>, Bytes<8>] but received [ 17n, Uint8Array [Uint8Array] { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8 } ]');"
+        "  expect(() => C.circuits.birch(Ctxt, [17n, new Uint8Array([0,1,2,3,4,5,6,7,8])])).toThrow('type error: birch argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 7 char 1; expected value of type [Uint<0..256>, Bytes<8>] but received [ 17n, Uint8Array [Uint8Array] { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8 } ]');"
         "  });"
         ))
     )
@@ -70872,11 +71285,11 @@
         "  expect(C.circuits.birch(Ctxt, [19n, new Uint8Array([1,2,3,4,5,6,7,8])]).result).toEqual(false);"
         "  expect(C.circuits.birch(Ctxt, [17n, new Uint8Array([0,2,3,4,5,6,7,8])]).result).toEqual(false);"
         "  expect(() => C.circuits.birch(Ctxt, [17n, new Uint8Array([0,1,2,3,4,5,6,7,8])])).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.birch(Ctxt, [17n, new Uint8Array([0,1,2,3,4,5,6,7,8])])).toThrow('type error: birch argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 7 char 1; expected value of type [Uint<0..255>, Bytes<8>] but received [ 17n, Uint8Array [Uint8Array] { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8 } ]');"
+        "  expect(() => C.circuits.birch(Ctxt, [17n, new Uint8Array([0,1,2,3,4,5,6,7,8])])).toThrow('type error: birch argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 7 char 1; expected value of type [Uint<0..256>, Bytes<8>] but received [ 17n, Uint8Array [Uint8Array] { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8 } ]');"
         "  expect(() => C.circuits.birch(Ctxt, [new Uint8Array([1,2,3,4,5,6,7,8])])).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.birch(Ctxt, [new Uint8Array([1,2,3,4,5,6,7,8])])).toThrow('type error: birch argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 7 char 1; expected value of type [Uint<0..255>, Bytes<8>] but received [ Uint8Array [Uint8Array] { 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8 } ]');"
+        "  expect(() => C.circuits.birch(Ctxt, [new Uint8Array([1,2,3,4,5,6,7,8])])).toThrow('type error: birch argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 7 char 1; expected value of type [Uint<0..256>, Bytes<8>] but received [ Uint8Array [Uint8Array] { 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8 } ]');"
         "  expect(() => C.circuits.birch(Ctxt, [17n, 19n])).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.birch(Ctxt, [17n, 19n])).toThrow('type error: birch argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 7 char 1; expected value of type [Uint<0..255>, Bytes<8>] but received [ 17n, 19n ]');"
+        "  expect(() => C.circuits.birch(Ctxt, [17n, 19n])).toThrow('type error: birch argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 7 char 1; expected value of type [Uint<0..256>, Bytes<8>] but received [ 17n, 19n ]');"
         "  });"
         ))
     )
@@ -72003,7 +72416,7 @@
 
   (test
     '(
-      "circuit bar(v: Vector<5, Field>, i: Uint<0..4>): Field {"
+      "circuit bar(v: Vector<5, Field>, i: Uint<0..5>): Field {"
       "  return v[i];"
       "}"
       "export circuit foo(v: Vector<5, Field>): Field {"
@@ -73487,7 +73900,7 @@
         "  const t = C.circuits.foo(Ctxt, new Array(10).fill(255n));"
         "  expect(t.result).toEqual(new Uint8Array([254, 255, 255, 255, 255, 255, 255, 255, 255, 0]));"
         "  expect(() => C.circuits.foo(Ctxt, new Array(10).fill(256n))).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, new Array(10).fill(256n))).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 2 char 1; expected value of type Vector<10, Uint<0..255>> but received [ 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n ]');"
+        "  expect(() => C.circuits.foo(Ctxt, new Array(10).fill(256n))).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 2 char 1; expected value of type Vector<10, Uint<0..256>> but received [ 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n ]');"
         "  });"
         ))
     )
@@ -73507,7 +73920,7 @@
         "  const t = C.circuits.foo(Ctxt, new Array(10).fill(255n));"
         "  expect(t.result).toEqual(new Uint8Array([254, 255, 255, 255, 255, 255, 255, 255, 255, 0]));"
         "  expect(() => C.circuits.foo(Ctxt, new Array(10).fill(256n))).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, new Array(10).fill(256n))).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 2 char 1; expected value of type Vector<10, Uint<0..255>> but received [ 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n ]');"
+        "  expect(() => C.circuits.foo(Ctxt, new Array(10).fill(256n))).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 2 char 1; expected value of type Vector<10, Uint<0..256>> but received [ 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n, 256n ]');"
         "  });"
         ))
     )
@@ -73522,20 +73935,20 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 46" "expected type of Bytes constructor argument to be a subtype of Uint<8> but received ~a" ("Uint<0..256>")))
+      irritants: '("testfile.compact line 3 char 46" "expected type of Bytes constructor argument to be a subtype of Uint<8> but received ~a" ("Uint<0..257>")))
     )
 
   (test
     `(
       "ledger F: Bytes<10>;"
-      "export circuit foo(v: Vector<10, Uint<0..256>>): Bytes<10> {"
+      "export circuit foo(v: Vector<10, Uint<0..257>>): Bytes<10> {"
       "  F = Bytes[...slice<8>(disclose(v), 1), 0, 255];"
       "  return F;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 13" "expected type of Bytes spread to be a Bytes value or a Tuple or Vector of Uint<8> subtypes but received ~a" ("Vector<8, Uint<0..256>>")))
+      irritants: '("testfile.compact line 3 char 13" "expected type of Bytes spread to be a Bytes value or a Tuple or Vector of Uint<8> subtypes but received ~a" ("Vector<8, Uint<0..257>>")))
     )
 
   (test
@@ -73549,7 +73962,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 16" "expected type of Bytes spread to be a Bytes value or a Tuple or Vector of Uint<8> subtypes but received ~a" ("[Uint<0..0>, Uint<3>, Uint<0..107>, Uint<0..207>, Uint<8>, Uint<0..256>, Uint<0..17>, Uint<0..27>]")))
+      irritants: '("testfile.compact line 4 char 16" "expected type of Bytes spread to be a Bytes value or a Tuple or Vector of Uint<8> subtypes but received ~a" ("[Uint<0..1>, Uint<3>, Uint<0..108>, Uint<0..208>, Uint<8>, Uint<0..257>, Uint<0..18>, Uint<0..28>]")))
     )
 
   (test
@@ -73563,7 +73976,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 16" "expected type of Bytes spread to be a Bytes value or a Tuple or Vector of Uint<8> subtypes but received ~a" ("[Uint<0..0>, Uint<3>, Uint<0..107>, Uint<0..207>, Uint<8>, Boolean, Uint<0..17>, Uint<0..27>]")))
+      irritants: '("testfile.compact line 4 char 16" "expected type of Bytes spread to be a Bytes value or a Tuple or Vector of Uint<8> subtypes but received ~a" ("[Uint<0..1>, Uint<3>, Uint<0..108>, Uint<0..208>, Uint<8>, Boolean, Uint<0..18>, Uint<0..28>]")))
     )
 
   (test
@@ -74415,7 +74828,7 @@
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 7" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<8>" "Uint<0..10>" "Uint<8>") ("Uint<7>" "Uint<9>" "Undeclared"))))
+      irritants: '("testfile.compact line 6 char 7" "incompatible arguments in call to anonymous circuit\n    supplied argument types:\n      (~{~a~^, ~})\n    declared circuit type:\n      (~{~a~^, ~})" (("Uint<8>" "Uint<0..11>" "Uint<8>") ("Uint<7>" "Uint<9>" "Undeclared"))))
     )
 
   (test
@@ -76256,7 +76669,7 @@
     '(
       "enum E { thumb, fore, the, ring, pinky }"
       "ledger F: E;"
-      "export circuit foo(ix: Uint<0..3>): E {"
+      "export circuit foo(ix: Uint<0..4>): E {"
       "  const x = disclose(ix);"
       "  F = x as E;"
       "  if (x == 0) assert(F == E.thumb, 'oops0');"
@@ -76276,7 +76689,7 @@
         "  expect(C.circuits.foo(Ctxt, 2n).result).toEqual(2);"
         "  expect(C.circuits.foo(Ctxt, 3n).result).toEqual(3);"
         "  expect(() => C.circuits.foo(Ctxt, 4n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, 4n)).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type Uint<0..3> but received 4n');"
+        "  expect(() => C.circuits.foo(Ctxt, 4n)).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type Uint<0..4> but received 4n');"
         "  });"
         ))
     )
@@ -76285,7 +76698,7 @@
     '(
       "enum E { thumb, fore, the, ring, pinky }"
       "ledger F: E;"
-      "export circuit foo(ix: Uint<0..4>): E {"
+      "export circuit foo(ix: Uint<0..5>): E {"
       "  const x = disclose(ix);"
       "  F = x as E;"
       "  if (x == 0) assert(F == E.thumb, 'oops0');"
@@ -76306,7 +76719,7 @@
         "  expect(C.circuits.foo(Ctxt, 3n).result).toEqual(3);"
         "  expect(C.circuits.foo(Ctxt, 4n).result).toEqual(4);"
         "  expect(() => C.circuits.foo(Ctxt, 5n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, 5n)).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type Uint<0..4> but received 5n');"
+        "  expect(() => C.circuits.foo(Ctxt, 5n)).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type Uint<0..5> but received 5n');"
         "  });"
         ))
     )
@@ -76336,6 +76749,29 @@
       "ledger F: Field;"
       "export circuit foo(e: E) : Field {"
       "  F = disclose(e) as Field;"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0).result).toEqual(0n);"
+        "  expect(C.circuits.foo(Ctxt, 1).result).toEqual(1n);"
+        "  expect(C.circuits.foo(Ctxt, 2).result).toEqual(2n);"
+        "  expect(C.circuits.foo(Ctxt, 3).result).toEqual(3n);"
+        "  expect(() => C.circuits.foo(Ctxt, 4)).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(Ctxt, 4)).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type Enum<E, spring, summer, fall, winter> but received 4');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "enum E { spring, summer, fall, winter }"
+      "ledger F: Uint<0..5>;"
+      "export circuit foo(e: E) : Uint<0..5> {"
+      "  F = disclose(e) as Uint<0..5>;"
       "  return F;"
       "}"
       )
@@ -76392,31 +76828,8 @@
         "  expect(C.circuits.foo(Ctxt, 0).result).toEqual(0n);"
         "  expect(C.circuits.foo(Ctxt, 1).result).toEqual(1n);"
         "  expect(C.circuits.foo(Ctxt, 2).result).toEqual(2n);"
-        "  expect(C.circuits.foo(Ctxt, 3).result).toEqual(3n);"
-        "  expect(() => C.circuits.foo(Ctxt, 4)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, 4)).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type Enum<E, spring, summer, fall, winter> but received 4');"
-        "});"
-        ))
-    )
-
-  (test
-    '(
-      "enum E { spring, summer, fall, winter }"
-      "ledger F: Uint<0..2>;"
-      "export circuit foo(e: E) : Uint<0..2> {"
-      "  F = disclose(e) as Uint<0..2>;"
-      "  return F;"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('check 1', () => {"
-        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0).result).toEqual(0n);"
-        "  expect(C.circuits.foo(Ctxt, 1).result).toEqual(1n);"
-        "  expect(C.circuits.foo(Ctxt, 2).result).toEqual(2n);"
         "  expect(() => C.circuits.foo(Ctxt, 3)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, 3)).toThrow('testfile.compact line 4 char 7: cast from enum E to Uint<0..2> failed: enum value 3 is greater than 2');"
+        "  expect(() => C.circuits.foo(Ctxt, 3)).toThrow('testfile.compact line 4 char 7: cast from enum E to Uint<0..3> failed: enum value 3 is greater than 2');"
         "  expect(() => C.circuits.foo(Ctxt, 4)).toThrow(runtime.CompactError);"
         "  expect(() => C.circuits.foo(Ctxt, 4)).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type Enum<E, spring, summer, fall, winter> but received 4');"
         "});"
@@ -76429,6 +76842,24 @@
       "ledger F: [ Field, Field, Field, Field ];"
       "export circuit foo() : [ Field, Field, Field, Field ] {"
       "  F = [E.summer as Field, E.spring as Field, E.winter as Field, E.fall as Field];"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual([1n, 0n, 3n, 2n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "enum E { spring, summer, fall, winter }"
+      "ledger F: Vector<4, Uint<0..5>>;"
+      "export circuit foo() : Vector<4, Uint<0..5>> {"
+      "  F = [E.summer as Uint<0..5>, E.spring as Uint<0..5>, E.winter as Uint<0..5>, E.fall as Uint<0..5>];"
       "  return F;"
       "}"
       )
@@ -76472,26 +76903,8 @@
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual([1n, 0n, 3n, 2n]);"
-        "});"
-        ))
-    )
-
-  (test
-    '(
-      "enum E { spring, summer, fall, winter }"
-      "ledger F: Vector<4, Uint<0..2>>;"
-      "export circuit foo() : Vector<4, Uint<0..2>> {"
-      "  F = [E.summer as Uint<0..2>, E.spring as Uint<0..2>, E.winter as Uint<0..2>, E.fall as Uint<0..2>];"
-      "  return F;"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('check 1', () => {"
-        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  expect(() => C.circuits.foo(Ctxt)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt)).toThrow('testfile.compact line 4 char 56: cast from enum E to Uint<0..2> failed: enum value 3 is greater than 2');"
+        "  expect(() => C.circuits.foo(Ctxt)).toThrow('testfile.compact line 4 char 56: cast from enum E to Uint<0..3> failed: enum value 3 is greater than 2');"
         "});"
         ))
     )
@@ -76571,7 +76984,7 @@
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         ,(format "  expect(C.circuits.foo(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).result).toEqual(~dn);" #x09080706)
         "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow('range error at testfile.compact line 3 char 7: the integer value of 9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4 is greater than the maximum value of Uint<0..4294967295>');"
+        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow('range error at testfile.compact line 3 char 7: the integer value of 9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4 is greater than the maximum value of Uint<0..4294967296>');"
         "});"
         ))
     )

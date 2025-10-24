@@ -31,7 +31,7 @@ describe('[Errors] Compiler', () => {
         },
         {
             file: 'multiSource.compact',
-            error: /Exception: multiSource.compact line 28 char 10: no compatible function named enabledPower is in scope at this call; one function is incompatible with the supplied argument types; supplied argument types: \(Uint<0..0>, Field\); declared argument types for function at line 19 char 1: \(Boolean, Field\)/,
+            error: /Exception: multiSource.compact line 28 char 10: no compatible function named enabledPower is in scope at this call; one function is incompatible with the supplied argument types; supplied argument types: \(Uint<0..1>, Field\); declared argument types for function at line 19 char 1: \(Boolean, Field\)/,
         },
         {
             file: 'multiSource2.compact',
@@ -39,7 +39,7 @@ describe('[Errors] Compiler', () => {
         },
         {
             file: 'multiSource4.compact',
-            error: /Exception: multiSource4.compact line 18 char 10: incompatible arguments in call to anonymous circuit; supplied argument types: \(Uint<0..0>, Field\); declared circuit type: \(Field, Field, Field\)/,
+            error: /Exception: multiSource4.compact line 18 char 10: incompatible arguments in call to anonymous circuit; supplied argument types: \(Uint<0..1>, Field\); declared circuit type: \(Field, Field, Field\)/,
         },
         {
             file: 'typeParams.compact',

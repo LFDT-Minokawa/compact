@@ -1102,18 +1102,22 @@
       [,tref (Type-Ref->Type ir p)]
       [(tunsigned ,src ,[Type-Size->nat : tsize p -> * nat])
        (unless (<= 1 nat (unsigned-bits))
-         (source-errorf src "Uint type length ~d is not between 1 and the maximum Uint width ~d (inclusive)"
+         (source-errorf src "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)"
                         nat
                         (unsigned-bits)))
        `(tunsigned ,src ,(- (expt 2 nat) 1))]
       [(tunsigned ,src ,[Type-Size->nat : tsize p -> * nat] ,[Type-Size->nat : tsize^ p -> * nat^])
        (unless (= nat 0)
-         (source-errorf src "Uint type minimum must be 0" nat))
-       (unless (<= nat^ (max-unsigned))
-         (source-errorf src "Uint type maximum value\n    ~d\n  exceeds the maximum Uint value\n    ~d"
+         (source-errorf src "range start for Uint type is ~d but must be 0" nat))
+       (unless (<= 1 nat^)
+         (source-errorf src "range end for Uint type is ~d but must be at least 1 (the range end is exclusive)"
+                        nat^))
+       (unless (<= nat^ (+ (max-unsigned) 1))
+         (source-errorf src "range end\n    ~d\n  for Uint type exceeds the limit of\n    ~d (2^~d)\n  (the range end is exclusive)"
                         nat^
-                        (max-unsigned)))
-       `(tunsigned ,src ,nat^)]
+                        (+ (max-unsigned) 1)
+                        (unsigned-bits)))
+       `(tunsigned ,src ,(- nat^ 1))]
       [(tvector ,src ,[Type-Size->nat : tsize p -> * nat] ,[type])
        (check-length! src "vector type" nat)
        `(tvector ,src ,nat ,type)]
@@ -1260,7 +1264,7 @@
                     (let ([bits (integer-length nat)])
                       (and (= (expt 2 bits) (+ nat 1))
                            (format "Uint<~d>" bits))))
-               (format "Uint<0..~d>" nat))]
+               (format "Uint<0..~d>" (+ nat 1)))]
           [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tunknown) "Unknown"]
           [(tundeclared) "Undeclared"]
@@ -3303,7 +3307,7 @@
         (nanopass-case (Lnodca Public-Ledger-ADT-Type) type
           [(tboolean ,src) "Boolean"]
           [(tfield ,src) "Field"]
-          [(tunsigned ,src ,nat) (format "Uint<0..~d>" nat)]
+          [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
           [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tunknown) "Unknown"]
           [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]

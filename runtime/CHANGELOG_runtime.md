@@ -1,5 +1,9 @@
 # `@midnight-ntwrk/compact-runtime` Changelog
 
+# Runtime version `0.10.2`
+- Adjusts the convertBytesToUint error message to account for `Uint` range end
+  points now being exclusive rather than inclusive
+
 # Runtime version `0.10.1`
 - Addresses PM 19145: Migrated to ES Modules (ESM). The runtime package is now a pure ES module.
   * Added "type": "module" to package.json
