@@ -39,21 +39,21 @@
       (define (arg->type arg)
         (nanopass-case (Ltypescript Argument) arg
           [(,var-name ,type) type]))
+      (define (de-alias adt-type)
+        (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+          [(talias ,src ,nominal? ,type-name ,type)
+           (de-alias type)]
+          [else adt-type]))
       (module (descriptor-table register-descriptor! maybe-register-descriptor! get-descriptors)
         (define-syntax T
           (syntax-rules ()
             [(T ty clause ...)
              (nanopass-case (Ltypescript Public-Ledger-ADT-Type) ty clause ... [else #f])]))
         (define (subst-tcontract adt-type)
-          (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+          (nanopass-case (Ltypescript Public-Ledger-ADT-Type) (de-alias adt-type)
             [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
              (with-output-language (Ltypescript Public-Ledger-ADT-Type)
                `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
-            [else adt-type]))
-        (define (de-alias adt-type)
-          (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
-            [(talias ,src ,nominal? ,type-name ,type)
-             (de-alias type)]
             [else adt-type]))
         (define (type-hash type)
           (define max-tuple-elts-to-hash 10)
@@ -147,7 +147,7 @@
           (let ([adt-type (subst-tcontract adt-type)])
             (when (Ltypescript-Type? adt-type)
               ; types aren't recursive, so no need to handle cycles here
-              (T adt-type
+              (T (de-alias adt-type)
                  [(tvector ,src ,len ,type)
                   (register-descriptor! type)]
                  [(ttuple ,src ,type* ...)
@@ -155,15 +155,14 @@
                  [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                   (for-each register-descriptor! type*)]
                  [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                  (assert cannot-happen)]
-                 [(talias ,src ,nominal? ,type-name ,type) (register-descriptor! type)])
+                  (assert cannot-happen)])
               (let ([a (hashtable-cell descriptor-table adt-type #f)])
                 (unless (cdr a)
                   (let ([id (make-temp-id program-src 'descriptor)])
                     (set-cdr! a id)
                     (set! rdescriptor* (cons (cons id adt-type) rdescriptor*))))))))
         (define (maybe-register-descriptor! adt-type)
-          (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+          (nanopass-case (Ltypescript Public-Ledger-ADT-Type) (de-alias adt-type)
             [(ttuple ,src) (void)]
             [else (register-descriptor! adt-type)]))
         (define (get-descriptors)
@@ -835,7 +834,7 @@
           (values contract-has-witness* contract-has-witness-ht)))
 
       (define (subst-tcontract adt-type)
-        (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+        (nanopass-case (Ltypescript Public-Ledger-ADT-Type) (de-alias adt-type)
           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
            (with-output-language (Ltypescript Public-Ledger-ADT-Type)
              `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
@@ -2151,7 +2150,7 @@
 
         (module (print-contract-reference-locations)
           (define (do-type type)
-            (nanopass-case (Ltypescript Type) type
+            (nanopass-case (Ltypescript Type) (de-alias type)
               [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                (make-Qconcat
                  "{"
@@ -2555,7 +2554,7 @@
               (nanopass-case (Ltypescript Type) type
                 [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) struct-name]
                 [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) enum-name]
-; FIXME: should probably have the name from tnominal
+                [(talias ,src ,nominal? ,type-name ,type) type-name]
                 [else type-name])])
          (XPelt-type-definition src actual-type-name type-name tvar-name* type))]
       [(public-ledger-declaration ,pl-array ,lconstructor)
@@ -2639,7 +2638,7 @@
             (with-output-to-string
               (lambda ()
                 (let f ([type type] [i 0] [indent 4])
-                  (nanopass-case (Ltypescript Type) type
+                  (nanopass-case (Ltypescript Type) (de-alias type)
                     [(tbytes ,src ,len)
                      (print-indent indent)
                      (printf "if (!x~s.every((x, i) => y~:*~s[i] === x)) { return false; }\n" i)]
@@ -2766,7 +2765,7 @@
            (format "~s" elt-name)))]
       [(enum-ref ,src ,type ,elt-name^)
        (parenthesize level (precedence call)
-         (nanopass-case (Ltypescript Type) type
+         (nanopass-case (Ltypescript Type) (de-alias type)
            [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
             (let loop ([elt-name elt-name] [elt-name* elt-name*] [i 0])
               (if (eq? elt-name elt-name^)
@@ -2863,7 +2862,7 @@
        (parenthesize level (precedence >=)
          (make-Qconcat expr1 0 ">=" 0 expr2))]
       [(== ,src ,type ,expr1 ,expr2)
-       (if (nanopass-case (Ltypescript Type) type
+       (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
              [(tfield ,src) #t]
              [(topaque ,src ,opaque-type) #t]
@@ -2886,7 +2885,7 @@
                   (Expr expr2 (precedence add1 comma) outer-pure?))
                  ")"))))]
       [(!= ,src ,type ,expr1 ,expr2)
-       (if (nanopass-case (Ltypescript Type) type
+       (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
              [(tfield ,src) #t]
              [(topaque ,src ,opaque-type) #t]
@@ -2994,7 +2993,7 @@
            (make-Qargs (id-pure? function-name) expr*)
            ")"))]
       [(new ,src ,type ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
-       (nanopass-case (Ltypescript Type) type
+       (nanopass-case (Ltypescript Type) (de-alias type)
          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
           (make-Qconcat
             "{ "
@@ -3034,7 +3033,7 @@
            ")"))]
       [(cast-from-bytes ,src ,type ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
-         (nanopass-case (Ltypescript Type) type
+         (nanopass-case (Ltypescript Type) (de-alias type)
            [(tfield ,src^)
             (make-Qconcat
               (compact-stdlib "convertBytesToField")
@@ -3063,12 +3062,12 @@
       [(cast-from-enum ,src ,type ,type^ ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (let-values ([(enum-name maxval)
-                       (nanopass-case (Ltypescript Type) type^
+                       (nanopass-case (Ltypescript Type) (de-alias type^)
                          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
                           (values enum-name (length elt-name*))]
                          [else (assert cannot-happen)])])
            (cond
-             [(nanopass-case (Ltypescript Type) type
+             [(nanopass-case (Ltypescript Type) (de-alias type)
                 [(tfield ,src) #f]
                 [(tunsigned ,src ,nat) (guard (< nat maxval)) nat]
                 [else #f]) =>
@@ -3091,11 +3090,11 @@
       [(cast-to-enum ,src ,type ,type^ ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (let-values ([(enum-name maxval)
-                       (nanopass-case (Ltypescript Type) type
+                       (nanopass-case (Ltypescript Type) (de-alias type)
                          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
                           (values enum-name (length elt-name*))]
                          [else (assert cannot-happen)])])
-           (if (nanopass-case (Ltypescript Type) type
+           (if (nanopass-case (Ltypescript Type) (de-alias type)
                  [(tunsigned ,src ,nat) (<= nat maxval)]
                  [else #f])
                (make-Qconcat "Number(" expr ")")
@@ -3137,7 +3136,7 @@
           (when (Ltypescript-Public-Ledger-ADT? adt-type) (source-errorf src "incomplete reference to nested ADT"))
           (let ([descriptor-name? (and (eq? op-class 'read) (type->maybe-descriptor-name adt-type))])
             (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)])
-              (nanopass-case (Ltypescript Type) adt-type
+              (nanopass-case (Ltypescript Type) (de-alias adt-type)
                 [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                  (assert not-implemented)]
                 [else
@@ -3154,7 +3153,7 @@
       [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
        (values
          expr
-         (nanopass-case (Ltypescript Type) type
+         (nanopass-case (Ltypescript Type) (de-alias type)
            [(tbytes ,src ,len) #t]
            [else #f]))])
     (Function : Function (ir outer-pure?) -> * (str)

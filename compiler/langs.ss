@@ -703,7 +703,7 @@
       (cast-from-enum src type type^ expr)    => (cast-from-enum type type^ #f expr) ; type is tfield or tunsigned, type^ is tenum
       (cast-to-enum src type type^ expr)      => (cast-to-enum type type^ #f expr) ; type is tenum, type^ is tfield or tunsigned
       (safe-cast src type type^ expr)         => (safe-cast type 10 type^ #f expr) ; type^ < type
-      (downcast-unsigned src nat expr)        => (downcast-unsigned nat expr)
+      (downcast-unsigned src nat expr)        => (downcast-unsigned nat #f expr)
       (disclose src expr)                     => (disclose expr)
       (ledger-call src ledger-op (maybe sugar) expr expr* ...) =>
         (ledger-call ledger-op #f expr #f expr* ...)
