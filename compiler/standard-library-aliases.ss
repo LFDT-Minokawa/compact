@@ -38,7 +38,8 @@
         (hash_to_curve . hashToCurve)
         (own_public_key . ownPublicKey)
         (create_zswap_input . createZswapInput)
-        (create_zswap_output . createZswapOutput))))
+        (create_zswap_output . createZswapOutput)
+        (create_nonce . createNonce))))
 
   (define stdlib-circuit-aliases
     '((transient_hash . transientHash)
@@ -57,6 +58,7 @@
       (own_public_key . ownPublicKey)
       (create_zswap_input . createZswapInput)
       (create_zswap_output . createZswapOutput)
+      (create_nonce . createNonce)
       (token_type . tokenType)
       (mint_token . mintToken)
       (evolve_nonce . evolveNonce)

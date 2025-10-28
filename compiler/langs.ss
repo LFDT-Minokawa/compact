@@ -685,6 +685,7 @@
       (disclose src expr)                     => (disclose expr)
       (ledger-call src ledger-op (maybe sugar) expr expr* ...) =>
         (ledger-call ledger-op #f expr #f expr* ...)
+      ; TODO if you don't use type* drop it
       ; type* takes the types of args in contract call
       ; this is needed for generating the first argument of
       ; transientCommit for a contract call expansion.
@@ -746,6 +747,7 @@
       (+ (src ledger-op expr* ...)              => (ledger-op #f expr* ...)))
     (Expression (expr index)
       (- (contract-call src elt-name (expr type) (expr* type*) ...))
+      ; TODO if you don't use it drop public-binding
       (+ (contract-call src elt-name public-binding (expr type) (expr* type*) ...) =>
          (contract-call elt-name 4 public-binding 4 (expr 0 type) #f (expr* type*) ...))))
 

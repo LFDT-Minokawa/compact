@@ -82,7 +82,7 @@
         });
         isDarwin = pkgs.lib.hasSuffix "-darwin" system;
         chez = if isDarwin then pkgs.chez.override {
-          stdenv = pkgs.llvmPackages_17.stdenv;
+          stdenv = pkgs.llvmPackages_18.stdenv;
         } else pkgs.chez;
         sources = (import ./_sources/generated.nix) {inherit (pkgs) fetchgit fetchurl fetchFromGitHub;};
         nanopass = sources.nanopass.src;

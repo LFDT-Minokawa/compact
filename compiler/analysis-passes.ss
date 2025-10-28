@@ -30,6 +30,235 @@
           (frontend-passes)
           (standard-library-aliases))
 
+  ; NB this is linked to the hash function used in the ledger to hash the called circuit name
+  ; any change to the ledger's hash func should be propagated to this.
+  (define (midnight-hash-entry-point) "midnight:entry-point\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0")
+
+  ; in a pass prev to expand-modules-and-types
+  ; A contract decl is augmented by a module that defines n new circuits where n is the number of circuits in the contract
+  ; import std into this module,
+  ; - add a syntactic case for transientCommit
+  ; contract A -->
+  ; - module contract_A { import std; export {transient}  }
+  ; - module contract_A { import std; export cicruit transient_foo } import contract_A;
+  ; Best to pull this off without changing expand-module-and-types
+  ; TODO once this works add what's needed in infer-types and then drop extra stuff you've added (added them as todos in langs.ss)
+  ; and then merge main into this and feature/cc
+  (define-pass wrap-contract-circuits : Lpreexpand (ir) -> Lpreexpand ()
+    (definitions
+      (define (sha256 circuit-name)
+
+        (define (valid-hex-char? c)
+          (or (char<=? #\0 c #\9)
+              (char<=? #\a c #\f)
+              (char<=? #\A c #\F)))
+        (define (valid-hex-string? str)
+          (and (= (string-length str) 64)
+               (let loop ([i 0])
+                 (if (= i 64)
+                     #t
+                     (and (valid-hex-char? (string-ref str i))
+                          (loop (+ i 1)))))))
+        (define (hex-string->bytevector hex-str)
+          (let* ([len (string-length hex-str)]
+                 [bv (make-bytevector (/ len 2))])
+            (let loop ([i 0])
+              (when (< i len)
+                (let* ([hex-byte (substring hex-str i (+ i 2))]
+                       [byte (string->number hex-byte 16)])
+                  (bytevector-u8-set! bv (/ i 2) byte)
+                  (loop (+ i 2)))))
+            bv))
+
+        (let* ([entry (midnight-hash-entry-point)])
+          ; TODO ask Kent the previous one didn't work and this one results in invalid hex string
+          ; (let-values ([(stdout-stuff stderr-stuff) (shell "shasum -a 256" (format "~a~a" entry circuit-name))])
+          (let-values ([(stdout-stuff stderr-stuff) (shell (format "echo -n ~a~a | shasum -a 256" entry circuit-name))])
+            (unless (string=? stderr-stuff "")
+              (internal-errorf 'shasum "shasum resulted in an error: ~a" stderr-stuff))
+            ;; (if (valid-hex-string? stdout-stuff)
+                (hex-string->bytevector (substring stdout-stuff 0 64))
+                ;; (internal-errorf 'shasum "shasum resulted in an invalid hex string: ~a" stdout-stuff))
+          )))
+      (define (get-var-type arg)
+        (nanopass-case (Lpreexpand Argument) arg
+          [(,src ,var-name ,type)
+           (list var-name type)]))
+      (define (append-symbol sym str)
+        (string->symbol (string-append (symbol->string sym) str)))
+      (define (cons-end obj obj*)
+        (reverse (cons obj (reverse obj*))))
+      (define (make-circuit #;exported? ecdecl-circuit)
+        (nanopass-case (Lpreexpand External-Contract-Circuit) ecdecl-circuit
+          [(,src ,pure-dcl ,function-name (,arg* ...) ,type)
+           (define (ref-var arg)
+             (let ([var-name (car (get-var-type arg))])
+               (with-output-language (Lpreexpand Expression)
+                 `(var-ref ,src ,var-name))))
+           (define (arg->targ arg)
+             (let ([type (cadr (get-var-type arg))])
+               (with-output-language (Lpreexpand Type-Argument)
+                 `(targ-type ,src ,type))))
+           (let* ([call-function (with-output-language (Lpreexpand Expression)
+                                   `(call ,src (fref ,src ,function-name) ,(map ref-var arg*) ...))]
+                  [res-arg (with-output-language (Lpreexpand Argument) `(,src ,(string->symbol "res") ,type))]
+                  [arg* (cons-end res-arg arg*)]
+                  [var-type-pair* (map get-var-type arg*)]
+                  [var-name* (map car var-type-pair*)]
+                  [type* (map cadr var-type-pair*)]
+                  [tc-targ* (map arg->targ arg*)]
+                  [tc-expr* (cons-end (with-output-language (Lpreexpand Expression)
+                                        `(call ,src (fref ,src ,(string->symbol "createNonce")) ,(list) ...))
+                                      (map ref-var arg*))]
+                  [tc-call (with-output-language (Lpreexpand Expression)
+                             `(call ,src (fref ,src ,(string->symbol "transientCommit")
+                                               (,tc-targ* ...))
+                                    ,tc-expr* ...))]
+                  [circuit-hash (sha256 function-name)]
+                  [body (with-output-language (Lpreexpand Expression)
+                          `(seq ,src
+                                (elt-call ,src (var-ref ,src ,(string->symbol "kernel"))
+                                          ,(string->symbol "claimContractCall")
+                                          ,(list `(var-ref ,src ,(string->symbol "address"))
+                                                 `(quote ,src ,circuit-hash)
+                                                 tc-call) ...)
+                                (return ,src ,call-function)))]
+                  [address-arg (with-output-language (Lpreexpand Argument)
+                                 `(,src ,(string->symbol "address") (tbytes ,src (type-size ,src 32))))]
+                  [arg* (cons-end address-arg arg*)])
+             (with-output-language (Lpreexpand Circuit-Definition)
+               ; the circuit is always exported. then if exported? is #t it will be exported from the original scope.
+               ; FIXME
+               `(circuit ,src #t #;,exported? #f ,(append-symbol function-name "-wrapper") () (,arg* ...) ,type ,body)))]))
+      ; if the contract isn't exported then the module with wrapper circuits also shouldn't be exported
+      (define (make-contract src exported? contract-name ecdecl-circuit* contract-decl)
+        (let ([std (with-output-language (Lpreexpand Import-Declaration)
+                     `(import ,src ,(string->symbol "CompactStandardLibrary") () ""))]
+              [helper-circuit* (map (lambda (ecdecl-circuit) (make-circuit #;exported? ecdecl-circuit)) ecdecl-circuit*)])
+          (with-output-language (Lpreexpand Module-Definition)
+            `(module ,src ,exported? ,(append-symbol contract-name "-contract") () ,(cons std (cons contract-decl helper-circuit*)) ...))))
+      )
+    (Program : Program (ir) -> Program ()
+      ; FIXME
+      ; you need to add exports in the original scope where a contract is defined and its circuits are in scope
+      ; FIXME
+      ; use transformers to do this recursively. you might have to keep the exported modules/contracts/circuits in
+      ; program ,src ,pelt*
+      [(program ,src ,pelt* ...)
+         (let loop ([pelt* pelt*] [helper-module* '()] [keep-pelt* '()])
+           (if (null? pelt*)
+               `(program ,src ,(append (reverse helper-module*) keep-pelt*) ...)
+               (let ([current-pelt (car pelt*)])
+                 (nanopass-case (Lpreexpand Program-Element) current-pelt
+                   [(external-contract ,src ,exported? ,contract-name ,ecdecl-circuit* ...)
+                    (let ([import-module (with-output-language (Lpreexpand Import-Declaration)
+                                           `(import ,src ,(append-symbol contract-name "-contract") () ""))])
+                    (loop (cdr pelt*)
+                          (cons import-module
+                            (if exported?
+                                (cons-end (with-output-language (Lpreexpand Export-Declaration)
+                                            `(export ,src (,src ,(append-symbol contract-name "-contract"))))
+                                          (cons (make-contract src exported? contract-name ecdecl-circuit* (car pelt*)) helper-module*))
+                                (cons (make-contract src exported? contract-name ecdecl-circuit* current-pelt) helper-module*)))
+                          keep-pelt*))]
+                   [else (loop (cdr pelt*) helper-module* (cons current-pelt keep-pelt*))]))))])
+    )
+
+  ; move contract def into module contract, have the module be exported and then in the main program import the module and
+  ; if the contract decl is being exported export it from the main program
+  ; or maybe copy the contract def into the module and just export the wrappers
+  ;
+  ;
+
+  #;(define-pass expand-contract-call : Lnodisclose (ir) -> Lnodisclose ()
+    (definitions
+      (define (sha256 circuit-name)
+
+        (define (valid-hex-char? c)
+          (or (char<=? #\0 c #\9)
+              (char<=? #\a c #\f)
+              (char<=? #\A c #\F)))
+        (define (valid-hex-string? str)
+          (and (= (string-length str) 64)
+               (let loop ([i 0])
+                 (if (= i 64)
+                     #t
+                     (and (valid-hex-char? (string-ref str i))
+                          (loop (+ i 1)))))))
+        (define (hex-string->bytevector hex-str)
+          (let* ([len (string-length hex-str)]
+                 [bv (make-bytevector (/ len 2))])
+            (let loop ([i 0])
+              (when (< i len)
+                (let* ([hex-byte (substring hex-str i (+ i 2))]
+                       [byte (string->number hex-byte 16)])
+                  (bytevector-u8-set! bv (/ i 2) byte)
+                  (loop (+ i 2)))))
+            bv))
+
+        (let* ([entry (midnight-hash-entry-point)])
+          (let-values ([(stdout-stuff stderr-stuff) (shell "shasum -a 256" (format "~a~a" entry circuit-name))])
+            (unless (string=? stderr-stuff "")
+              (internal-errorf 'shasum "shasum resulted in an error: ~a" stderr-stuff))
+            (if (valid-hex-string? stdout-stuff)
+                (hex-string->bytevector (substring stdout-stuff 0 64))
+                (internal-errorf 'shasum "shasum resulted in an invalid hex string: ~a" stdout-stuff)))))
+      )
+    (Expression : Expression (ir) -> Expression ()
+      ; TODO cleanup
+      ; kernel circuit-name ledger-field.read contract-type args
+      ; kernel-op should come from lexpanded
+      ;                    circuit-name  kernel    ledger-contract  args + their types
+      [(contract-call ,src ,elt-name ,public-binding (,expr ,type) (,expr* ,type*) ...)
+       (let ([kernel (nanopass-case (Lnodisclose Public-Ledger-Binding) public-binding
+                       [(,src^ ,ledger-field-name (,path-index* ...) ,public-adt)
+                        ledger-field-name])]
+             [tmp-contract (make-temp-id src 'contract-address)]
+             [tmp-arg* (map (lambda (e) (make-temp-id src 't) expr*))]
+             [tmp-result (make-temp-id src 'c)]
+             [tmp-circuit-hash (make-temp-id src 'circuit-hash)]
+             [tmp-tc (make-temp-id src 'tc)]
+             [return-type (nanopass-case (Lnodisclose Type) type
+                            ; infer-types has already insured that elt-name exists in type
+                            [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
+                             (let loop ([elt-name* elt-name*] [type* type*])
+                               (if (null? elt-name*)
+                                   ; this will never be exercised because infer-types would have
+                                   ; already caught it
+                                   (source-errorf src^ "contract ~s has no circuit declaration named ~s"
+                                                  contract-name
+                                                  elt-name)
+                                   (if (eq? (car elt-name*) elt-name)
+                                       (car type*)
+                                       (loop (cdr elt-name*) (cdr type**) (cdr type*)))))]
+                            [else (assert cannot-happen)])])
+         `(let* ,src ([(,tmp-contract (tbytes ,src 32)) ,expr]
+                      [(,tmp-arg* ,type*) ,expr*]
+                      [(,tmp-result ,return-type)
+                       (contract-call src elt-name public-binding (tmp-contract type) (tmp-arg* type*))]
+                      [(,tmp-tc (tfield ,src))
+                                        ; generate transientCommit call with input +output and rand
+                       (call src (fref src
+                                       ,(make-id src 'transientCommit) ; TODO can I just call transientCommit or do I need to add it to externals?
+                                       ,(list return-type
+                                              (list tmp-arg* tmp-result)
+                                              'createNonce)))]
+                      [(,tmp-circuit-hash (tbytes ,src 32)) ,(sha256 elt-name)] ...)
+            ; bytes32 bytes32 field
+            ; kernel.claimcontractcall(addr, circuit-hash, tc)
+            (seq
+              (public-ledger ,src ,kernel '() '() ,src
+                             'claimContractCall ,(list `(var-ref ,src ,tmp-contract)
+                                                       ,tmp-circuit-hash
+                                                       ,tmp-tc))
+              (var-ref ,src ,tmp-result))))])
+    )
+; if the first approach doesn't work
+; a dummy ledger for kernel, you have to create it only if you
+; __compactKernel
+; have a pass after expand-moduels-and-types that carries over Kernel public-adt into contract-call (this is the Cell-ADT-env that you need to lookup Kernel,)
+; info-ledger-adt --> look for apply-ledger-adt
+
   ;;; expand-modules-and-types resolves identifier bindings, expands away module and
   ;;; import forms, substitutes generic parameter references with the corresponding types
   ;;; and sizes, replaces struct-name, enum-name, contract-name, and ADT-name references
@@ -2314,6 +2543,7 @@
            (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
              [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
               (guard (not adt-type-only?))
+              ; TODO this is where expansion of contract call should happen
               (find-contract-circuit src src^ contract-name elt-name elt-name* type** type* adt-type adt-type* expr expr*)]
              [else (err)]))
          (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
@@ -5275,6 +5505,7 @@
       [(disclose ,src ,[expr]) expr]))
 
   (define-passes analysis-passes
+    (wrap-contract-circuits          Lpreexpand)
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
     (infer-types                     Ltypes)

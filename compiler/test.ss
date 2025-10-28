@@ -7892,6 +7892,301 @@
         (import M (1) ""))))
 )
 
+(run-tests wrap-contract-circuits
+  (test ; TODO check with Kent
+     '(
+       "export struct StructExample {"
+       "  value: Field;"
+       "}"
+       "contract AuthCell {"
+       ;; "export contract AuthCell {"
+       "  circuit get(): StructExample;"
+       "  circuit set(new_value: StructExample): [];"
+       "}"
+       "sealed ledger auth_cell: AuthCell;"
+       "witness foo(): Bytes<32>;"
+       "constructor (auth_cell_param: AuthCell) {"
+       "  auth_cell = disclose(auth_cell_param);"
+       "}"
+       "export circuit use_auth_cell(x: StructExample): StructExample {"
+       "  const v = auth_cell.get();"
+       "  auth_cell.set(StructExample {value: v.value + disclose(x.value)});"
+       "  return v;"
+       "}"
+       )
+    (returns
+      (program
+        (module #f AuthCell-contract ()
+          (import CompactStandardLibrary () "")
+          (external-contract #f AuthCell
+            (#f get () (type-ref StructExample))
+            (#f set ([new_value (type-ref StructExample)]) (ttuple)))
+          (circuit #t #f get-wrapper () ([res (type-ref StructExample)]
+                                         [address (tbytes 32)])
+               (type-ref StructExample)
+            (seq
+              (elt-call kernel claimContractCall address
+                #vu8(251 146 130 247 211 33 155 0 219 189 159 44 66 80 241
+                     97 153 158 106 9 63 126 215 224 109 121 9 132 44 242 69
+                     40)
+                (call (fref transientCommit (type-ref StructExample))
+                  res
+                  (call createNonce)))
+              (call get)))
+          (circuit #t #f set-wrapper () ([new_value (type-ref StructExample)]
+                                         [res (ttuple)]
+                                         [address (tbytes 32)])
+               (ttuple)
+            (seq
+              (elt-call kernel claimContractCall address
+                #vu8(35 28 150 19 141 247 164 165 64 131 35 83 155 34 189 15
+                     248 10 244 173 125 198 158 93 86 33 130 210 202 181 88 40)
+                (call (fref transientCommit
+                        (type-ref StructExample)
+                        (ttuple))
+                  new_value
+                  res
+                  (call createNonce)))
+              (call set new_value))))
+        (import AuthCell-contract () "")
+        (circuit #t #f use_auth_cell () ([x (type-ref StructExample)])
+             (type-ref StructExample)
+          (block (v)
+            (let* ([[v (tundeclared)] (elt-call auth_cell get)])
+              (seq
+                (elt-call
+                  auth_cell
+                  set
+                  (new (type-ref StructExample)
+                    (value
+                      (+ (elt-ref v value) (disclose (elt-ref x value))))))
+                v))))
+        (constructor ([auth_cell_param (type-ref AuthCell)])
+          (seq (= auth_cell (disclose auth_cell_param)) (tuple)))
+        (witness #f foo () () (tbytes 32))
+        (public-ledger-declaration #f #t
+          auth_cell
+          (type-ref AuthCell))
+        (struct #t StructExample () [value (tfield)])))
+     )
+
+  (test
+    '(
+      "contract C {"
+      "  circuit foo(x: Bytes<32>): [];"
+      "  pure circuit bar(): Bytes<32>;"
+      "}"
+      "ledger contract_c: C;"
+      "constructor (c: C) { contract_c = disclose(c); }"
+      "export circuit hello(): [] { return contract_c.read().foo(contract_c.read().bar()); }"
+      "import CompactStandardLibrary;"
+      )
+    (returns
+      (program
+        (module #f C-contract ()
+          (import CompactStandardLibrary () "")
+          (external-contract #f C
+            (#f foo ([x (tbytes 32)]) (ttuple))
+            (#t bar () (tbytes 32)))
+          (circuit #t #f foo-wrapper () ([x (tbytes 32)]
+                                         [res (ttuple)]
+                                         [address (tbytes 32)])
+               (ttuple)
+            (seq
+              (elt-call kernel claimContractCall address
+                #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
+                     154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
+                (call (fref transientCommit (tbytes 32) (ttuple))
+                  x
+                  res
+                  (call createNonce)))
+              (call foo x)))
+          (circuit #t #f bar-wrapper () ([res (tbytes 32)]
+                                         [address (tbytes 32)])
+               (tbytes 32)
+            (seq
+              (elt-call kernel claimContractCall address
+                #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
+                     91 167 33 168 90 209 87 29 198 155 79 107 183 182 161 126
+                     44)
+                (call (fref transientCommit (tbytes 32))
+                  res
+                  (call createNonce)))
+              (call bar))))
+        (import C-contract () "")
+        (import CompactStandardLibrary () "")
+        (circuit #t #f hello () ()
+             (ttuple)
+          (elt-call
+            (elt-call contract_c read)
+            foo
+            (elt-call (elt-call contract_c read) bar)))
+        (constructor ([c (type-ref C)])
+          (seq (= contract_c (disclose c)) (tuple)))
+        (public-ledger-declaration #f #f contract_c (type-ref C))))
+    )
+
+  (test
+    '(
+      "export contract C {"
+      "  circuit foo(x: Bytes<32>): [];"
+      "  pure circuit bar(): Bytes<32>;"
+      "}"
+      "ledger contract_c: C;"
+      "constructor (c: C) { contract_c = disclose(c); }"
+      "export circuit hello(): [] { return contract_c.read().foo(contract_c.read().bar()); }"
+      "import CompactStandardLibrary;"
+      )
+    (returns
+      (program
+        (export C-contract)
+        (module #t C-contract ()
+          (import CompactStandardLibrary () "")
+          (external-contract #t C
+            (#f foo ([x (tbytes 32)]) (ttuple))
+            (#t bar () (tbytes 32)))
+          (circuit #t #f foo-wrapper () ([x (tbytes 32)]
+                                         [res (ttuple)]
+                                         [address (tbytes 32)])
+               (ttuple)
+            (seq
+              (elt-call kernel claimContractCall address
+                #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
+                     154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
+                (call (fref transientCommit (tbytes 32) (ttuple))
+                  x
+                  res
+                  (call createNonce)))
+              (call foo x)))
+          (circuit #t #f bar-wrapper () ([res (tbytes 32)]
+                                         [address (tbytes 32)])
+               (tbytes 32)
+            (seq
+              (elt-call kernel claimContractCall address
+                #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
+                     91 167 33 168 90 209 87 29 198 155 79 107 183 182 161 126
+                     44)
+                (call (fref transientCommit (tbytes 32))
+                  res
+                  (call createNonce)))
+              (call bar))))
+        (import C-contract () "")
+        (import CompactStandardLibrary () "")
+        (circuit #t #f hello () ()
+             (ttuple)
+          (elt-call
+            (elt-call contract_c read)
+            foo
+            (elt-call (elt-call contract_c read) bar)))
+        (constructor ([c (type-ref C)])
+          (seq (= contract_c (disclose c)) (tuple)))
+        (public-ledger-declaration #f #f contract_c (type-ref C))))
+    )
+
+  (test
+    '(
+      "module M{"
+      "  export contract C {"
+      "    circuit foo(x: Bytes<32>): [];"
+      "    pure circuit bar(): Bytes<32>;"
+      "  }"
+      "}"
+      "import M;"
+      "ledger contract_c: C;"
+      "constructor (c: C) { contract_c = disclose(c); }"
+      "export circuit hello(): [] { return contract_c.read().foo(contract_c.read().bar()); }"
+      )
+    (returns
+      (program
+        (circuit #t #f hello () ()
+             (ttuple)
+          (elt-call
+            (elt-call contract_c read)
+            foo
+            (elt-call (elt-call contract_c read) bar)))
+        (constructor ([c (type-ref C)])
+          (seq (= contract_c (disclose c)) (tuple)))
+        (public-ledger-declaration #f #f contract_c (type-ref C))
+        (import M () "")
+        (module #f M ()
+          (external-contract #t C
+            (#f foo ([x (tbytes 32)]) (ttuple))
+            (#t bar () (tbytes 32))))))
+    )
+
+  (test
+    '(
+      "module m<A> {"
+      "  export contract C {"
+      "    circuit foo(x: A): [];"
+      "    pure circuit bar(): A;"
+      "  }"
+      "  import CompactStandardLibrary;"
+      "  export ledger contract_c: C;"
+      "}"
+      "import m<Bytes<32>> prefix $;"
+      )
+    (returns
+      (program
+        (import m ((tbytes 32)) "$")
+        (module #f m (A)
+          (external-contract #t C
+            (#f foo ([x (type-ref A)]) (ttuple))
+            (#t bar () (type-ref A)))
+          (import CompactStandardLibrary () "")
+          (public-ledger-declaration #t #f contract_c (type-ref C)))))
+    )
+
+  (test
+    '(
+      "contract C1 {"
+      "  circuit foo(x: C2): [];"
+      "}"
+      ""
+      "contract C2 {"
+      " circuit bar(): [];"
+      "}"
+       )
+    (returns
+      (program
+        (module #f C1-contract ()
+          (import CompactStandardLibrary () "")
+          (external-contract #f C1
+            (#f foo ([x (type-ref C2)]) (ttuple)))
+          (circuit #t #f foo-wrapper () ([x (type-ref C2)]
+                                         [res (ttuple)]
+                                         [address (tbytes 32)])
+               (ttuple)
+            (seq
+              (elt-call kernel claimContractCall address
+                #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
+                     154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
+                (call (fref transientCommit (type-ref C2) (ttuple))
+                  x
+                  res
+                  (call createNonce)))
+              (call foo x))))
+        (import C1-contract () "")
+        (module #f C2-contract ()
+          (import CompactStandardLibrary () "")
+          (external-contract #f C2 (#f bar () (ttuple)))
+          (circuit #t #f bar-wrapper () ([res (ttuple)]
+                                         [address (tbytes 32)])
+               (ttuple)
+            (seq
+              (elt-call kernel claimContractCall address
+                #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
+                     91 167 33 168 90 209 87 29 198 155 79 107 183 182 161 126
+                     44)
+                (call (fref transientCommit (ttuple))
+                  res
+                  (call createNonce)))
+              (call bar))))
+        (import C2-contract () "")))
+    )
+
+  )
+#!eof
 (run-tests expand-modules-and-types
   (test
     '(
@@ -12137,7 +12432,7 @@
       irritants: '("testfile.compact line 2 char 19" "identifier ~s might be referenced before it is assigned" (a)))
    )
 )
-
+#!eof
 (run-tests infer-types
   (test
     '("import CompactStandardLibrary;")
@@ -28502,7 +28797,7 @@
 
 (run-tests save-contract-info
   ; TODO drop this before pushing/submitting
-           (test
+  (test
     '(
       "import CompactStandardLibrary;"
       "export circuit foo(x: Uint<12>, c: ContractAddress): Field {"

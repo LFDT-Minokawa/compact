@@ -225,5 +225,5 @@ export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue
 
 export const communicationCommitmentRandomnessField = (): bigint => {
   const rand = fromHex(ocrt.communicationCommitmentRandomness()).slice(1);
-  return convertBytesToField(rand.length, rand)
+  return convertBytesToField(rand.length, rand, "") // TODO the last arg is string that represents src
 }
