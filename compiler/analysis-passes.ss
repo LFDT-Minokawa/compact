@@ -47,18 +47,6 @@
   (define-pass wrap-contract-circuits : Lpreexpand (ir) -> Lpreexpand ()
     (definitions
       (define (sha256 circuit-name)
-
-        (define (valid-hex-char? c)
-          (or (char<=? #\0 c #\9)
-              (char<=? #\a c #\f)
-              (char<=? #\A c #\F)))
-        (define (valid-hex-string? str)
-          (and (= (string-length str) 64)
-               (let loop ([i 0])
-                 (if (= i 64)
-                     #t
-                     (and (valid-hex-char? (string-ref str i))
-                          (loop (+ i 1)))))))
         (define (hex-string->bytevector hex-str)
           (let* ([len (string-length hex-str)]
                  [bv (make-bytevector (/ len 2))])
@@ -66,20 +54,32 @@
               (when (< i len)
                 (let* ([hex-byte (substring hex-str i (+ i 2))]
                        [byte (string->number hex-byte 16)])
+                  (unless byte (external-errorf "shasum produced invalid hex string ~s" hex-str))
                   (bytevector-u8-set! bv (/ i 2) byte)
                   (loop (+ i 2)))))
             bv))
-
         (let* ([entry (midnight-hash-entry-point)])
           ; TODO ask Kent the previous one didn't work and this one results in invalid hex string
           ; (let-values ([(stdout-stuff stderr-stuff) (shell "shasum -a 256" (format "~a~a" entry circuit-name))])
           (let-values ([(stdout-stuff stderr-stuff) (shell (format "echo -n ~a~a | shasum -a 256" entry circuit-name))])
             (unless (string=? stderr-stuff "")
-              (internal-errorf 'shasum "shasum resulted in an error: ~a" stderr-stuff))
-            ;; (if (valid-hex-string? stdout-stuff)
-                (hex-string->bytevector (substring stdout-stuff 0 64))
-                ;; (internal-errorf 'shasum "shasum resulted in an invalid hex string: ~a" stdout-stuff))
-          )))
+              (external-errorf "shasum resulted in an error: ~a" stderr-stuff))
+            (unless (>= (string-length stdout-stuff) 64)
+              (external-errorf "shasum returned too little output: ~s" stdout-stuff))
+            (hex-string->bytevector (substring stdout-stuff 0 64)))))
+      ;; another solution
+      #;(define (f entry circuit-name)
+        (let-values ([(stdout-stuff stderr-stuff) (shell (format "echo -n ~a~a | shasum -a 256" entry circuit-name))])
+          (unless (string=? stderr-stuff "")
+            (internal-errorf 'shasum "shasum resulted in an error: ~a" stderr-stuff))
+          (unless (>= (string-length stdout-stuff) 64)
+            (internal-errorf 'shasum "shasum returned too little output: ~a" stdout-stuff))
+          (let ([n (string->number (substring stdout-stuff 0 64) 16)])
+            (unless (and (exact? n) (integer? n))
+              (external-errorf "shasum ..."))
+            (let ([bv (make-bytevector 32)])
+              (bytevector-uint-set! bv 0 n 'big 32)
+              bv))))
       (define (get-var-type arg)
         (nanopass-case (Lpreexpand Argument) arg
           [(,src ,var-name ,type)

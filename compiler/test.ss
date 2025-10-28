@@ -7894,26 +7894,82 @@
 
 (run-tests wrap-contract-circuits
   (test ; TODO check with Kent
-     '(
-       "export struct StructExample {"
-       "  value: Field;"
-       "}"
-       "contract AuthCell {"
-       ;; "export contract AuthCell {"
-       "  circuit get(): StructExample;"
-       "  circuit set(new_value: StructExample): [];"
-       "}"
-       "sealed ledger auth_cell: AuthCell;"
-       "witness foo(): Bytes<32>;"
-       "constructor (auth_cell_param: AuthCell) {"
-       "  auth_cell = disclose(auth_cell_param);"
-       "}"
-       "export circuit use_auth_cell(x: StructExample): StructExample {"
-       "  const v = auth_cell.get();"
-       "  auth_cell.set(StructExample {value: v.value + disclose(x.value)});"
-       "  return v;"
-       "}"
-       )
+    '(
+      "export struct StructExample {"
+      "  value: Field;"
+      "}"
+      "contract AuthCell {"
+      ;; "export contract AuthCell {"
+      "  circuit get(): StructExample;"
+      "  circuit set(new_value: StructExample): [];"
+      "}"
+      "sealed ledger auth_cell: AuthCell;"
+      "witness foo(): Bytes<32>;"
+      "constructor (auth_cell_param: AuthCell) {"
+      "  auth_cell = disclose(auth_cell_param);"
+      "}"
+      "export circuit use_auth_cell(x: StructExample): StructExample {"
+      "  const v = auth_cell.get();"
+      "  auth_cell.set(StructExample {value: v.value + disclose(x.value)});"
+      "  return v;"
+      "}"
+      )
+    (returns
+      (program
+        (struct #t StructExample () [value (tfield)])
+        (external-contract #f AuthCell
+          (#f get __compact_AuthCell_get () (type-ref StructExample))
+          (#f set __compact_AuthCell_set ([new_value (type-ref StructExample)]) (ttuple)))
+        (public-ledger-declaration #f #t
+          auth_cell
+          (type-ref AuthCell))
+        (witness #f foo () () (tbytes 32))
+        (constructor ([auth_cell_param (type-ref AuthCell)])
+          (seq (= auth_cell (disclose auth_cell_param)) (tuple)))
+        (module #f __compact_contract_AuthCell
+          (import CompactStandardLibrary () "__compact_std_")
+          (circuit #t #f get () ([__compact_c (type-ref AuthCell)])
+                   (type-ref StructExample)
+            (block (__compact_local_res)
+              (let* ([__compact_local_res (contract-call get (_compact_local_c AuthCell))])
+                (seq
+                  (elt-call __compact_std_kernel claimContractCall __compact_local_c
+                    #vu8(251 146 130 247 211 33 155 0 219 189 159 44 66 80 241
+                         97 153 158 106 9 63 126 215 224 109 121 9 132 44 242 69
+                         40)
+                    (call (fref __compact_std_transientCommit (type-ref StructExample))
+                      __compact_local_res
+                      (call __compact_std_createNonce)))
+                  __compact_local_res))))
+          (circuit #t #f set () ([__compact_local_c (type-ref AuthCell)]
+                                 [new_value (type-ref StructExample)])
+                   (ttuple)
+            (block (__compact_local_res)
+              (let* ([__compact_local_res (contract-call set (__compact_local_c AuthCell) (new_value (type-ref StructExample)))])
+                (seq
+                  (elt-call __compact_std_kernel claimContractCall __compact_local_c
+                    #vu8(35 28 150 19 141 247 164 165 64 131 35 83 155 34 189 15
+                         248 10 244 173 125 198 158 93 86 33 130 210 202 181 88 40)
+                    (call (fref __compact_std_transientCommit
+                            (ttuple (type-ref StructExample) (ttuple)))
+                      (tuple new_value __compact_local_res)
+                      (call __compact_std_createNonce)))
+                  __compact_local_res)))))
+        (import __compact_contract_AuthCell () "__compact_contract_AuthCell_")
+        (circuit #t #f use_auth_cell () ([x (type-ref StructExample)])
+             (type-ref StructExample)
+          (block (v)
+            ; infer-types (elt-call auth_cell get) => (call (fref __compact_AuthCell_get) auth_cell)
+            (let* ([[v (tundeclared)] (elt-call auth_cell get)])
+              (seq
+                ; infer-types (elt-call auth_cell set (new ---)) => (call (fref __compact_AuthCell_set) auth_cell (new ---))
+                (elt-call
+                  auth_cell
+                  set
+                  (new (type-ref StructExample)
+                    (value
+                      (+ (elt-ref v value) (disclose (elt-ref x value))))))
+                v))))
     (returns
       (program
         (module #f AuthCell-contract ()
