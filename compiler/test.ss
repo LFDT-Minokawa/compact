@@ -7149,6 +7149,18 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 7 char 9" "unreachable statement" ()))
     )
+
+  (test
+    '(
+      "export circuit foo(): [] {"
+      "  return;"
+      "  const a = 0, b = 0, c = 0;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 9" "unreachable statement" ()))
+    )
 )
 
 (run-tests hoist-local-variables
