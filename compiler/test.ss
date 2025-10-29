@@ -7894,6 +7894,10 @@
 
 (run-tests wrap-contract-circuits
   (test ; TODO check with Kent
+        ; FIXME fix iindentation
+        ; FIXME/CHECH contracts shouldn't be arg to top level circuits and not circuits in modules
+        ;
+        ; we reserve __compactc prefix so when you are generating stuff
     '(
       "export struct StructExample {"
       "  value: Field;"
@@ -7914,6 +7918,7 @@
       "  return v;"
       "}"
       )
+    ; this is the expected output
     (returns
       (program
         (struct #t StructExample () [value (tfield)])
@@ -7969,61 +7974,7 @@
                   (new (type-ref StructExample)
                     (value
                       (+ (elt-ref v value) (disclose (elt-ref x value))))))
-                v))))
-    (returns
-      (program
-        (module #f AuthCell-contract ()
-          (import CompactStandardLibrary () "")
-          (external-contract #f AuthCell
-            (#f get () (type-ref StructExample))
-            (#f set ([new_value (type-ref StructExample)]) (ttuple)))
-          (circuit #t #f get-wrapper () ([res (type-ref StructExample)]
-                                         [address (tbytes 32)])
-               (type-ref StructExample)
-            (seq
-              (elt-call kernel claimContractCall address
-                #vu8(251 146 130 247 211 33 155 0 219 189 159 44 66 80 241
-                     97 153 158 106 9 63 126 215 224 109 121 9 132 44 242 69
-                     40)
-                (call (fref transientCommit (type-ref StructExample))
-                  res
-                  (call createNonce)))
-              (call get)))
-          (circuit #t #f set-wrapper () ([new_value (type-ref StructExample)]
-                                         [res (ttuple)]
-                                         [address (tbytes 32)])
-               (ttuple)
-            (seq
-              (elt-call kernel claimContractCall address
-                #vu8(35 28 150 19 141 247 164 165 64 131 35 83 155 34 189 15
-                     248 10 244 173 125 198 158 93 86 33 130 210 202 181 88 40)
-                (call (fref transientCommit
-                        (type-ref StructExample)
-                        (ttuple))
-                  new_value
-                  res
-                  (call createNonce)))
-              (call set new_value))))
-        (import AuthCell-contract () "")
-        (circuit #t #f use_auth_cell () ([x (type-ref StructExample)])
-             (type-ref StructExample)
-          (block (v)
-            (let* ([[v (tundeclared)] (elt-call auth_cell get)])
-              (seq
-                (elt-call
-                  auth_cell
-                  set
-                  (new (type-ref StructExample)
-                    (value
-                      (+ (elt-ref v value) (disclose (elt-ref x value))))))
-                v))))
-        (constructor ([auth_cell_param (type-ref AuthCell)])
-          (seq (= auth_cell (disclose auth_cell_param)) (tuple)))
-        (witness #f foo () () (tbytes 32))
-        (public-ledger-declaration #f #t
-          auth_cell
-          (type-ref AuthCell))
-        (struct #t StructExample () [value (tfield)])))
+                v))))))
      )
 
   (test

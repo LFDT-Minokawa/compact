@@ -44,6 +44,12 @@
   ; Best to pull this off without changing expand-module-and-types
   ; TODO once this works add what's needed in infer-types and then drop extra stuff you've added (added them as todos in langs.ss)
   ; and then merge main into this and feature/cc
+  ; Q what happens if I have two contract decl with same name. where is this caught?
+
+  ; @Kevin: are we going to release feature branches into the world or are they going to be merged into main and then released
+
+  ; creates a module per contract declaration.  it moves the contract declaration into this module.
+  ; then this module is imported in the scope that the contract was declared and
   (define-pass wrap-contract-circuits : Lpreexpand (ir) -> Lpreexpand ()
     (definitions
       (define (sha256 circuit-name)
@@ -106,7 +112,7 @@
                   [var-type-pair* (map get-var-type arg*)]
                   [var-name* (map car var-type-pair*)]
                   [type* (map cadr var-type-pair*)]
-                  [tc-targ* (map arg->targ arg*)]
+                  [tc-targ* (map arg->targ arg*)] ; TODO wrap this in a tuple
                   [tc-expr* (cons-end (with-output-language (Lpreexpand Expression)
                                         `(call ,src (fref ,src ,(string->symbol "createNonce")) ,(list) ...))
                                       (map ref-var arg*))]
@@ -115,7 +121,10 @@
                                                (,tc-targ* ...))
                                     ,tc-expr* ...))]
                   [circuit-hash (sha256 function-name)]
-                  [body (with-output-language (Lpreexpand Expression)
+                  [body (with-output-language (Lpreexpand Expression) ;
+                                        ; add block
+                                        ; add let*
+                                        ; changing address to contract
                           `(seq ,src
                                 (elt-call ,src (var-ref ,src ,(string->symbol "kernel"))
                                           ,(string->symbol "claimContractCall")
@@ -239,7 +248,7 @@
                       [(,tmp-tc (tfield ,src))
                                         ; generate transientCommit call with input +output and rand
                        (call src (fref src
-                                       ,(make-id src 'transientCommit) ; TODO can I just call transientCommit or do I need to add it to externals?
+                                       ,(make-id src 'transientCommit)
                                        ,(list return-type
                                               (list tmp-arg* tmp-result)
                                               'createNonce)))]
