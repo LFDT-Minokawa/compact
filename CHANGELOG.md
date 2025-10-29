@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A bug in which some obviously unreachable statements were not being reported as such.
   This should be considered a breaking change since some programs that previously compiled
-  will no longer compile do to this fix.
+  will no longer compile due to this fix.
 
 ## [Unreleased compiler version 0.26.112 language version 0.18.101]
 
