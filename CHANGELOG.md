@@ -10,12 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Compact now supports the definition of type aliases:
-  - Structually typed aliases:
+  Structually typed aliases:
     `type Name = Type;` defines `Name` to be an alias for `Type`.  For example,
     `type U32 = Uint<32>` defines `U32` to be the equivalent of and interchangeable
     with `Uint<32>`.
 
-  - Nominally typed aliases:
+  Nominally typed aliases:
     `new type Name = Type;` is similar, but `Name` is defined as a distinct type
     compatible with `Type` but neither a subtype of nor a supertype of `Type` or
     any other type.  It is compatible in the senses that (a) values of type `Name`
@@ -34,9 +34,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Values of some nominally typed alias T cannot be directly compared (using,
     e.g., `<`, or `==`) with values of any other type without an explicit cast.
 
-  - Both types of aliases can take type parameters, e.g.:
-    `type V3<T> = Vector<3, T>`
-    `new type VField<#N> = Vector<N, Field>`
+  Both types of aliases can take type parameters, e.g.:
+  `type V3<T> = Vector<3, T>`
+  `new type VField<#N> = Vector<N, Field>`
+
+  This is a breaking change due to the reservation of the `new` and `type` keywords.
+
+### Changed
+
+- Out-of-range constant Bytes value indices are now detected earlier in the
+  compiler, which means that additional such errors might be caught, specifically
+  those in code that is later discarded.  This is a breaking change.
+
+- Upward casts no longer prevent tuple references and slices from from recognizing
+  constant indices, which allows more programs with references to non-vector tuple
+  types to pass type checking.
+
+### Fixed
+
+- A bug that caused a misleading source location to be reported for some type
+  errors, e.g., for invalid arguments to some calls to `map` and `fold`.
 
 ## [Unreleased compiler version 0.26.119 language version 0.18.103]
 
