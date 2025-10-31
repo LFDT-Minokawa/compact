@@ -69,20 +69,20 @@ jobs:
         run: |
           cd ./runtime
           echo "
-          //npm.pkg.github.com/:_authToken=${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
+          //npm.pkg.github.com/:_authToken=${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
           @midnight-ntwrk:registry=https://npm.pkg.github.com/
           " > .npmrc
 
       - name: Configure yarn
         run: |
           cd ./runtime
-          yarn config set 'npmScopes.midnight-ntwrk.npmAuthToken' "${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}"
+          yarn config set 'npmScopes.midnight-ntwrk.npmAuthToken' "${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}"
           echo 'checksumBehavior: update' >> ./.yarnrc.yml
 
       - name: Test compatibility
         timeout-minutes: 40
         env:
-          GITHUB_TOKEN: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
+          GITHUB_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
         run: |
           cd tests-e2e
           nix develop .#compiler --command yarn install
@@ -96,4 +96,3 @@ jobs:
           files: |
             **/reports/test-report.xml
             !(node_modules)/**/test-report.xml
-

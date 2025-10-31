@@ -40,7 +40,7 @@ jobs:
           regex: true
           file: "compactc_.*\\.zip"
           target: "./"
-          token: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
+          token: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
           repo: ${{ env.GITHUB_REPOSITORY }}
 
       - name: AWS - Configure credentials
@@ -63,7 +63,7 @@ jobs:
         run: |
           # Set up Git credentials
           git config credential.helper "store --file=.git/credentials"
-          echo "https://github.com:${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}@github.com" > .git/credentials
+          echo "https://github.com:${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}@github.com" > .git/credentials
           
           # create link files
           git checkout -b compactc_${{ inputs.tag }}-branch origin/gh-pages
@@ -89,7 +89,7 @@ jobs:
           git push origin compactc_${{ inputs.tag }}-branch
           
           # Set GH_TOKEN environment variable for Github CLI
-          export GH_TOKEN="${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}"
+          export GH_TOKEN="${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}"
           
           # Create a pull request using GitHub CLI
           gh pr create --base gh-pages --head compactc_${{ inputs.tag }}-branch --title "Release compactc version compactc_${{ inputs.tag }}" --body "Approve this PR to release compactc_${{ inputs.tag }} to the public."
