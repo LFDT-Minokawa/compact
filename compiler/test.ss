@@ -77635,7 +77635,6 @@ groups than for single tests.
         ))
     )
 
-
   ; pm-20032
   (test
     '(
@@ -77655,6 +77654,57 @@ groups than for single tests.
         "});"
         ))
     )
+
+  ; pm-20028 and pm-20222
+  (let ([width (+ (unsigned-bits) 1)])
+  (test
+    `(
+      ,(format "export ledger chain9_result: Uint<~d>;" width)
+      ""
+      ,(format "// Chain: Uint<~d> → Uint<128> → Uint<64> → Uint<32> → Uint<128> → Uint<~:*~d>" width)
+      ,(format "export circuit test9(): Uint<~d> {" width)
+      ,(format "    const max_width = 123456789 as Uint<~d>;" width)
+      "    const down128 = max_width as Uint<128>;"
+      "    const down64 = down128 as Uint<64>;"
+      "    const down32 = down64 as Uint<32>;"
+      "    const up128 = down32 as Uint<128>;"
+      ,(format "    const back = up128 as Uint<~a>;" width)
+      ""
+      "    chain9_result = back;"
+      "    return chain9_result;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 25" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (249 248)))
+    ))
+
+  (let ([width (unsigned-bits)])
+  (test
+    `(
+      ,(format "export ledger chain9_result: Uint<~d>;" width)
+      ""
+      ,(format "// Chain: Uint<~d> → Uint<128> → Uint<64> → Uint<32> → Uint<128> → Uint<~:*~d>" width)
+      ,(format "export circuit test9(): Uint<~d> {" width)
+      ,(format "    const max_width = 123456789 as Uint<~d>;" width)
+      "    const down128 = max_width as Uint<128>;"
+      "    const down64 = down128 as Uint<64>;"
+      "    const down32 = down64 as Uint<32>;"
+      "    const up128 = down32 as Uint<128>;"
+      ,(format "    const back = up128 as Uint<~a>;" width)
+      ""
+      "    chain9_result = back;"
+      "    return chain9_result;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.test9(Ctxt).result).toEqual(123456789n);"
+        "});"
+        ))
+    ))
 )
 
 (run-javascript)
