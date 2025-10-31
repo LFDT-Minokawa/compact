@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.26.115 language version 0.18.102]
+
+### Fixed
+
+- A bug in which the compiler sometimes mentioned the same incompatible function
+  more than once in the error message produced when no function with compatible
+  generic or run-time parameters is found at a call site.
+
 ## [Unreleased compiler version 0.26.114 language version 0.18.102]
 
 ### Changed
