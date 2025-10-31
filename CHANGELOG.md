@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.26.114 language version 0.18.102]
+
+### Changed
+
+- The maximum representable unsigned integer has been reduced from the maximum value
+  that fits in the number of _bits_ in a field to the maximum value that fits in the
+  number of _bytes_ in a field.  This change is necessary because values that do not
+  fit in the number of bytes in a field do not have a valid representation in the
+  ledger.  Given that the maximum field value at present is between 2^254 and 2^255,
+  the number of whole bytes representable by a field is 31, and the maximum unsigned
+  value is (2^8)^31-1 = 2^248-1.
+
+  This is a breaking change because programs that used unsigned integers between
+  2^248 (inclusive) and 2^254 (exclusive) will no longer compile.  Though while they
+  would previously have compiled, they would not necessarily have worked properly.
+
 ## [Unreleased compiler version 0.26.113 language version 0.18.101]
 
 ### Fixed
