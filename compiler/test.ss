@@ -15441,39 +15441,36 @@ groups than for single tests.
               (safe-cast (tunsigned 1023) (tunsigned 0) 0)))))
     )
 
+  (let* ([bits (- (unsigned-bits) 3)])
   (test
-    '(
-      "export circuit foo(x: Uint<250>): Uint<250> {"
-      "  return x * x as Uint<250>;"
+    `(
+      ,(format "export circuit foo(x: Uint<~d>): Uint<~:*~d> {" bits)
+      ,(format "  return x * x as Uint<~d>;" bits)
       "}"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 10" "resulting value might exceed largest representable Uint value (for Field semantics, cast either operand to Field)" ()))
-    )
+    ))
 
+  (let* ([bits (- (unsigned-bits) 3)] [maxval (- (expt 2 bits) 1)])
   (test
-    '(
-      "export circuit foo(x: Uint<250>): Uint<250> {"
-      "  return (x as Field) * x as Uint<250>;"
+    `(
+      ,(format "export circuit foo(x: Uint<~d>): Uint<~:*~d> {" bits)
+      ,(format "  return (x as Field) * x as Uint<~d>;" bits)
       "}"
       )
     (returns
       (program
-        (circuit %foo.0 ([%x.1 (tunsigned
-                                 1809251394333065553493296640760748560207343510400633813116524750123642650623)])
-             (tunsigned
-               1809251394333065553493296640760748560207343510400633813116524750123642650623)
-          (downcast-unsigned
-            1809251394333065553493296640760748560207343510400633813116524750123642650623
+        (circuit %foo.0 ([%x.1 (tunsigned ,maxval)])
+             (tunsigned ,maxval)
+          (downcast-unsigned ,maxval
             (* #f
-               (safe-cast (tfield) (tunsigned
-                                     1809251394333065553493296640760748560207343510400633813116524750123642650623)
+               (safe-cast (tfield) (tunsigned ,maxval)
                  %x.1)
-               (safe-cast (tfield) (tunsigned
-                                     1809251394333065553493296640760748560207343510400633813116524750123642650623)
+               (safe-cast (tfield) (tunsigned ,maxval)
                  %x.1))))))
-    )
+    ))
 
   (test
     '(
@@ -15512,7 +15509,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 254)))
+      irritants: `("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 ,(unsigned-bits))))
     )
 
   (test
@@ -15538,7 +15535,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 254)))
+      irritants: `("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 ,(unsigned-bits))))
     )
 
   (test
@@ -15570,7 +15567,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (255 254)))
+      irritants: `("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (,(+ (unsigned-bits) 1) ,(unsigned-bits))))
     )
 
   (test
@@ -15614,15 +15611,12 @@ groups than for single tests.
         (circuit %foo.0 ([%b.1 (tboolean)])
              (tfield)
           (safe-cast (tfield)
-                     (tunsigned
-                       28948022309329048855892746252171976963317496166410141009864396001978282409983)
+                     (tunsigned ,(max-unsigned))
             (if %b.1
-                (safe-cast (tunsigned
-                             28948022309329048855892746252171976963317496166410141009864396001978282409983)
+                (safe-cast (tunsigned ,(max-unsigned))
                            (tunsigned 1)
                   1)
-                (safe-cast (tunsigned
-                             28948022309329048855892746252171976963317496166410141009864396001978282409983)
+                (safe-cast (tunsigned ,(max-unsigned))
                            (tunsigned 0)
                   0))))))
     )
@@ -15635,7 +15629,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 15" "range end\n    ~d\n  for Uint type exceeds the limit of\n    ~d (2^~d)\n  (the range end is exclusive)" (28948022309329048855892746252171976963317496166410141009864396001978282409985 28948022309329048855892746252171976963317496166410141009864396001978282409984 254)))
+      irritants: `("testfile.compact line 2 char 15" "range end\n    ~d\n  for Uint type exceeds the limit of\n    ~d (2^~d)\n  (the range end is exclusive)" (,(+ (max-unsigned) 2) ,(+ (max-unsigned) 1) ,(unsigned-bits))))
     )
 
   (test

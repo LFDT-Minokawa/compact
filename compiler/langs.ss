@@ -57,9 +57,11 @@
   ; one smaller than the number of bytes required to represent the maximum field value
   (define (field-bytes) (quotient (field-bits) 8))
 
-  ; unsigned values are natural numbers that fit into the number of full bits representable by
-  ; a field, i.e., natural numbers bounded by the largest power of two representable by a field
-  (define (unsigned-bits) (field-bits))
+  ; unsigned values are natural numbers that fit into the number of full bytes representable
+  ; by a field.  larger unsigned values would fit in a field when (field-bits) is not an
+  ; even multiple of (field-bytes), but the lower limit allows the ledger to measure unsigned
+  ; alignments in bytes rather than bits
+  (define (unsigned-bits) (* (field-bytes) 8))
   (define (max-unsigned) (- (expt 2 (unsigned-bits)) 1))
 
   (define (maybe-bits? x)

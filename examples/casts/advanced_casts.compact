@@ -488,7 +488,7 @@ export circuit test19(): [] {
     const f = returnTuple19() as [Uint<1>, Bytes<1>];
     const g = Bytes[1,2,3,4,5] as Vector<5, Uint<9>>;
 
-    const z = default<Uint<254>> as Uint<128> as Uint<64> as Uint<32> as Uint<16> as Uint<8> as Uint<4> as Uint<2> as Uint<1>;
+    const z = default<Uint<248>> as Uint<128> as Uint<64> as Uint<32> as Uint<16> as Uint<8> as Uint<4> as Uint<2> as Uint<1>;
     const x = 1 as Uint<1> as Uint<2> as Uint<4> as Uint<8> as Uint<16> as Uint<32> as Uint<64>;
 
     const h = returnFancyVector(true) as [Vector<3, Field>, Vector<4, Field>];
