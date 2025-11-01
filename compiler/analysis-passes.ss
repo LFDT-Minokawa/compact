@@ -2950,6 +2950,7 @@
                 [(tfield ,src1)
                  (T type^
                     [(tbytes ,src2 ,len2)
+                     (guard (not (= len2 0)))
                      `(cast-from-bytes ,src ,type ,len2 ,expr)]
                     [(tenum ,src2 ,enum-name ,elt-name ,elt-name* ...)
                      `(cast-from-enum ,src ,type ,type^ ,expr)]
@@ -2960,8 +2961,10 @@
                 [(tbytes ,src1 ,len1)
                  (T type^
                     [(tfield ,src2)
+                     (guard (not (= len1 0)))
                      `(field->bytes ,src ,len1 ,expr)]
                     [(tunsigned ,src2 ,nat2)
+                     (guard (not (= len1 0)))
                      `(field->bytes ,src ,len1 (safe-cast ,src (tfield ,src2) ,type^ ,expr))]
                     [(ttuple ,src2 (tunsigned ,src2* ,nat2*) ...)
                      (guard
@@ -2995,6 +2998,7 @@
                      (assert (> nat2 nat1))
                      `(downcast-unsigned ,src ,nat1 ,expr)]
                     [(tbytes ,src2 ,len2)
+                     (guard (not (= len2 0)))
                      `(cast-from-bytes ,src ,type ,len2 ,expr)]
                     [(tenum ,src2 ,enum-name ,elt-name ,elt-name* ...)
                      `(cast-from-enum ,src ,type ,type^ ,expr)]
@@ -3948,6 +3952,7 @@
        type]
       [(field->bytes ,src ,len ,[Care : expr -> * type])
        (check-tfield src "argument to field->bytes" type)
+       (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
        (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
       [(bytes->vector ,src ,len ,[Care : expr -> * type])
        (unless (nanopass-case (Lnodca Type) type

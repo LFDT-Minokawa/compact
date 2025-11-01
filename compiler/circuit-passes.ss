@@ -924,6 +924,7 @@
        (with-output-language (Linlined Type) `(tfield ,src))]
       [(field->bytes ,src ,len ,[Care : expr -> * type])
        (check-tfield src "argument to field->bytes" type)
+       (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
        (with-output-language (Linlined Type) `(tbytes ,src ,len))]
       [(bytes->vector ,src ,len ,[Care : expr -> * type])
        (nanopass-case (Linlined Type) type
@@ -1502,6 +1503,7 @@
          `(assert ,src ,expr ,mesg)
          (CTV-tuple no-var-name '()))]
       [(field->bytes ,src ,len ,[expr ctv])
+       (assert (not (= len 0)))
        (cond
          [(ifconstant ctv
             (lambda (datum)
@@ -2409,6 +2411,7 @@
                       (list `(= ,var-name (bytes->field ,src ,test ,len ,triv1 ,triv2)))))
                   (list-head triv* n)))])))]
       [(field->bytes ,src ,[Single-Triv : test] ,len ,[Single-Triv : triv])
+       (assert (not (= len 0)))
        (let ([var-name1 (make-new-id var-name)]
              [var-name2 (make-new-id var-name)])
          (hashtable-set! var-ht var-name
@@ -2809,6 +2812,7 @@
          (cons `(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...)) rstmt*))]
       [(field->bytes ,src ,[FWD-Triv : test] ,len ,[FWD-Triv : triv])
        (assert (fx= (length var-name*) 2))
+       (assert (not (= len 0)))
        (with-output-language (Lflattened Statement)
          (let ([var-name1 (car var-name*)] [var-name2 (cadr var-name*)])
            (or (ifconstant triv
@@ -3346,6 +3350,7 @@
       [(= (,var-name1 ,var-name2) (field->bytes ,src ,test ,len ,[* type]))
        (verify-test src test)
        (check-tfield (format "argument to field->bytes at ~a" (format-source-object src)) type)
+       (assert (not (= len 0)))
        (with-output-language (Lflattened Primitive-Type)
          (set-idtype! var-name1 (Idtype-Base `(tfield ,(max 0 (- (expt 2 (* (fxmin (fxmax 0 (fx- len (field-bytes))) (field-bytes)) 8)) 1)))))
          (set-idtype! var-name2 (Idtype-Base `(tfield ,(max 0 (- (expt 2 (* (fxmin len (field-bytes)) 8)) 1))))))]
