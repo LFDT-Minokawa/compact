@@ -77605,6 +77605,27 @@ groups than for single tests.
         "});"
         ))
     )
+
+
+  ; pm-20032
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export enum Status {"
+      "  Active"
+      "}"
+      "export circuit test(): Status {"
+      "  return Status.Active;"
+      "}"
+    )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.test(Ctxt).result).toEqual(contractCode.Status.Active);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)

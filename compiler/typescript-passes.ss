@@ -2116,7 +2116,7 @@
                    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                     (void)]
                    [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-                    (printf "var ~a;\n" export-name)
+                    (printf "export var ~a;\n" export-name)
                     (printf "(function (~a) {\n" export-name)
                     (let ([elt-name* (cons elt-name elt-name*)])
                       (for-each
