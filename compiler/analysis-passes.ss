@@ -982,23 +982,24 @@
            (let ([reachable* (process-frob-worklist seqno.pelt*)])
              ; process uninstantiated modules to catch any errors therein, skipping those
              ; with generic parameters since we have no generic values to supply
-             (for-each
-               (lambda (info name)
-                 (Info-case info
-                   [(Info-module type-param* pelt* p seqno dirname instance-table)
-                    (when (and (null? type-param*) (eqv? (hashtable-size instance-table) 0))
-                      (with-module-cycle-check src info name
-                        (lambda ()
-                          ; presently dirname should never be non-false for an unreachable module:
-                          ; the only way a module has a non-false dirname is via a reachable import
-                          (parameterize ([relative-path (if dirname dirname (relative-path))])
-                            (process-pelts #f
-                              pelt*
-                              (map (lambda (i) (cons i seqno)) (enumerate pelt*))
-                              p)))))]
-                   [else (assert cannot-happen)]))
-               (map car all-Info-modules)
-               (map cdr all-Info-modules))
+             (let loop ()
+               (unless (null? all-Info-modules)
+                 (let-values ([(info name) (let ([a (car all-Info-modules)]) (values (car a) (cdr a)))])
+                   (set! all-Info-modules (cdr all-Info-modules))
+                   (Info-case info
+                     [(Info-module type-param* pelt* p seqno dirname instance-table)
+                      (when (and (null? type-param*) (eqv? (hashtable-size instance-table) 0))
+                        (with-module-cycle-check src info name
+                          (lambda ()
+                            ; presently dirname should never be non-false for an unreachable module:
+                            ; the only way a module has a non-false dirname is via a reachable import
+                            (parameterize ([relative-path (if dirname dirname (relative-path))])
+                              (process-pelts #f
+                                pelt*
+                                (map (lambda (i) (cons i seqno)) (enumerate pelt*))
+                                p)))))]
+                     [else (assert cannot-happen)])
+                   (loop))))
              (for-each
                (lambda (info-fun name)
                  (when (and (null? (info-fun-type-param* info-fun))

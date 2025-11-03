@@ -21793,6 +21793,67 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 54" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<8>)\n      declared argument types for function at line 2 char 3:\n        (Uint<8>)" #f)))
     )
+
+  (test
+    '(
+      "module M {"
+      "  module M { }"
+      "  import M;"
+      "}"
+      )
+    (returns (program))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  module M {"
+      "    module M { }"
+      "    import M;"
+      "  }"
+      "}"
+      )
+    (returns (program))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  module M {"
+      "    module M { }"
+      "    import M;"
+      "  }"
+      "}"
+      )
+    (returns (program))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  module M {"
+      "    import M; // so far we've seen only the other M, so this is a cycle"
+      "    module M { }"
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 5" "cycle involving ~a~?" ("module" "~#[~; ~a~;s ~a and ~a~:;s~@{~#[~; and~] ~a~^,~}~]" (M))))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  module M {"
+      "    export circuit foo(): Boolean { return 0; }"
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 37" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "Boolean" "circuit foo")))
+    )
 )
 
 ; tests limits for vectors, bytes, and tuples.
