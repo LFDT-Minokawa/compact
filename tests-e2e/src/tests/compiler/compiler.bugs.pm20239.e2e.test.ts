@@ -19,21 +19,19 @@ import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectComp
 import * as fs from 'fs';
 import path from 'node:path';
 
-describe('[Unreachable] Compiler', () => {
+describe('[Bug] [PM-20239] Unreachable statements', () => {
     const CONTRACTS_ROOT = buildPathTo('/bugs/pm-20239');
     const files = fs.readdirSync(CONTRACTS_ROOT);
 
-    describe('[PM-20239]', () => {
-        files.forEach((fileName) => {
-            const filePath = path.join(CONTRACTS_ROOT, fileName);
+    files.forEach((fileName) => {
+        const filePath = path.join(CONTRACTS_ROOT, fileName);
 
-            test(`should be not able to compile contract due to unreachable statement: '${fileName}'`, async () => {
-                const outputDir = createTempFolder();
+        test(`should not be able to compile contract due to unreachable statement: '${fileName}'`, async () => {
+            const outputDir = createTempFolder();
 
-                const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir], CONTRACTS_ROOT);
-                expectCompilerResult(result).toBeFailure(/unreachable statement/, compilerDefaultOutput());
-                expectFiles(outputDir).thatNoFilesAreGenerated();
-            });
+            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir], CONTRACTS_ROOT);
+            expectCompilerResult(result).toBeFailure(/unreachable statement/, compilerDefaultOutput());
+            expectFiles(outputDir).thatNoFilesAreGenerated();
         });
     });
 });
