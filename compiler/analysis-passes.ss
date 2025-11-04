@@ -176,7 +176,6 @@
         (nongenerative)
         (fields seqno pelt p id))
       (define frob* '())
-      (define seqno.pelt* '())
       (define all-info-funs '())
       (define all-Info-modules '())
       (define ecdecl* '())
@@ -906,20 +905,20 @@
                 (or (< (car n1*) (car n2*))
                     (and (= (car n1*) (car n2*))
                          (f (cdr n1*) (cdr n2*)))))))
-        (define (process-frob-worklist seqno.pelt*)
-          ; We're going to some trouble here to maintain the original ordering
-          ; of pelts to simplify testing and manual comparision of pass outputs.
-          ; A specific ordering is not required for correctness.  The order of
-          ; any two pelts or groups of (module) pelts produced via type
-          ; parameterization of the same function is not guaranteed.
-          (if (null? frob*)
-              (map cdr (sort sp<? seqno.pelt*))
-              (let ([frob (car frob*)])
-                (set! frob* (cdr frob*))
-                (process-frob-worklist
-                  (cons
-                    (cons (frob-seqno frob) (process-frob frob))
-                    seqno.pelt*))))))
+        (define (process-frob-worklist)
+          (let f ([seqno.pelt* '()])
+            ; We're going to some trouble here to maintain the original ordering
+            ; of pelts to simplify testing and manual comparision of pass outputs.
+            ; A specific ordering is not required for correctness.  The order of
+            ; any two pelts or groups of (module) pelts produced via type
+            ; parameterization of the same function is not guaranteed.
+            (if (null? frob*)
+                (map cdr (sort sp<? seqno.pelt*))
+                (let ([frob (car frob*)])
+                  (set! frob* (cdr frob*))
+                  (f (cons
+                      (cons (frob-seqno frob) (process-frob frob))
+                      seqno.pelt*)))))))
       [(program ,src ,pelt* ...)
        (fluid-let ([program-src src])
          (let ([exported-type* '()] [exported-other* '()])
@@ -979,7 +978,7 @@
                           (set! exported-other* (cons (cons export-name ledger-field-name) exported-other*)))]
                        [else (export-oops src export-name info)])))
                  (reverse export*))))
-           (let ([reachable* (process-frob-worklist seqno.pelt*)])
+           (let ([reachable* (process-frob-worklist)])
              ; process uninstantiated modules to catch any errors therein, skipping those
              ; with generic parameters since we have no generic values to supply
              (let loop ()
@@ -1007,7 +1006,7 @@
                    (make/register-frob src name info-fun '() #f)))
                (map car all-info-funs)
                (map cdr all-info-funs))
-             (let ([unreachable* (process-frob-worklist '())]
+             (let ([unreachable* (process-frob-worklist)]
                    [ecdecl* (map (lambda (ecdecl) (External-Contract-Declaration (car ecdecl) (cdr ecdecl))) ecdecl*)]
                    [exported-other* (sort (lambda (x y) (string<? (symbol->string (car x)) (symbol->string (car y))))
                                           exported-other*)])
