@@ -458,13 +458,13 @@ fn test_sc7_update_previous_list_compile() {
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
-            PREVIOUS_COMPACTC_VERSION,
+            VERSION_WITH_NO_FORMAT,
         ],
         None,
         Some("./output/update/std_update_other.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,
@@ -475,7 +475,7 @@ fn test_sc7_update_previous_list_compile() {
     run_command(
         &["--directory", &format!("{}", temp_path.display()), "list"],
         None,
-        Some("./output/list/std_previous_selected.txt"),
+        Some("./output/list/std_024_selected.txt"),
         None,
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
@@ -495,7 +495,7 @@ fn test_sc7_update_previous_list_compile() {
         None,
         Some("./output/compile/std_non_latest.txt"),
         None,
-        &[("[COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION)],
+        &[("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT)],
         None,
     );
 }

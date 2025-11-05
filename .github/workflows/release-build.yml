@@ -95,7 +95,7 @@ jobs:
           scope: '@midnight-ntwrk'
           node-version-file: '.nvmrc'
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
+          NODE_AUTH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
 
       - name: Create binary for specific system
         run: |
@@ -108,6 +108,3 @@ jobs:
           name: ${{ inputs.artifact }}
           path: ${{ env.ARTIFACT_NAME }}.zip
           if-no-files-found: error
-
-
-

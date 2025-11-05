@@ -43,6 +43,23 @@ fn test_sc10_update_two_versions_compile_contract_with_previous() {
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
+            VERSION_WITH_NO_FORMAT,
+        ],
+        None,
+        Some("./output/update/std_update_other.txt"),
+        None,
+        &[
+            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    run_command(
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "update",
             PREVIOUS_COMPACTC_VERSION,
         ],
         None,
@@ -57,7 +74,7 @@ fn test_sc10_update_two_versions_compile_contract_with_previous() {
 
     let temp_output = tempfile::tempdir().unwrap();
     let temp_output_path = temp_output.path();
-    let compiler = "+0.25.0";
+    let compiler = &format!("+{}", PREVIOUS_COMPACTC_VERSION);
 
     run_command(
         &[

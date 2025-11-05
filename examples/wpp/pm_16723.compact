@@ -16,8 +16,8 @@
 import CompactStandardLibrary;
 
 ledger maps: Map<Field, Field>;
-ledger set: Set<QualifiedCoinInfo>;
-ledger list: List<QualifiedCoinInfo>;
+ledger set: Set<QualifiedShieldedCoinInfo>;
+ledger list: List<QualifiedShieldedCoinInfo>;
 ledger field: Field;
 ledger counter: Counter;
 ledger bool: Boolean;
@@ -58,8 +58,8 @@ export circuit alan(a: Uint<8>, b: Uint<8>) :[] {
   if (disclose(a - b) > disclose(a) - disclose(b)) list.isEmpty();
   if (disclose(a * b > a * b)) list.length();
   if (disclose(a + a + b) > 0) list.popFront();
-  if (disclose(b + a - a) < 0) list.pushFront(default<QualifiedCoinInfo>);
-  if (disclose(b * a * b) < 0) list.pushFrontCoin(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  if (disclose(b + a - a) < 0) list.pushFront(default<QualifiedShieldedCoinInfo>);
+  if (disclose(b * a * b) < 0) list.pushFrontCoin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
   if (disclose(b - b - a) < 0) list.resetToDefault();
 
   const z = disclose(a) + disclose(b) > 0 ? field.write(1) : field.write(2);
@@ -77,17 +77,17 @@ export circuit paulo() : Field{
 
 constructor(f: Uint<8>, z: Uint<8>, u: Vector<1, Uint<8>>) {
   if (disclose(f) > 0) {
-    set.insert(default<QualifiedCoinInfo>);
+    set.insert(default<QualifiedShieldedCoinInfo>);
   } else {
     const p = default<Boolean>;
     if(p && disclose(f) > 0) {
-      set.insertCoin(default<CoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+      set.insertCoin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
     } else {
       if(disclose(u[0]) > 0) {
-        set.member(default<QualifiedCoinInfo>);
+        set.member(default<QualifiedShieldedCoinInfo>);
       } else {
         if(disclose(f + z) > 0) {
-          set.remove(default<QualifiedCoinInfo>);
+          set.remove(default<QualifiedShieldedCoinInfo>);
         } else {
           if(disclose(z - f) < 0) {
             const z = 8;

@@ -680,9 +680,13 @@ groups than for single tests.
                   (for-each
                     (lambda (s) (put-string javascript-op s))
                     '(
-                      "import { describe, expect, test } from 'vitest';\n"
                       "import * as runtime from '@midnight-ntwrk/compact-runtime';\n"
-                      "import { startContract } from './util.js';\n"
+                      "import { startContract, flushProofChecks } from './util.js';\n"
+                      "import { describe, expect, test, afterEach } from 'vitest';\n"
+                      "\n"
+                      "afterEach(async () => {\n"
+                      "  await flushProofChecks();\n"
+                      "});\n"
                       "\n"
                       )))
                 (unless (file-directory? javascript-dir) (mkdir javascript-dir))
@@ -725,7 +729,7 @@ groups than for single tests.
                       (fprintf javascript-op "{\n")
                       (for-each
                         (lambda (a test-root)
-                          (fprintf javascript-op "  const ~a = { ...~a, zkirDir: '~a' };\n" (car a) (cdr a) (format "../~a/zkir" test-root)))
+                          (fprintf javascript-op "  const ~a = { ...~a, contractDir: '~a' };\n" (car a) (cdr a) (format "../~a" test-root)))
                         (reverse contractCode*) (reverse test-root*))
                       (fprintf javascript-op "  describe('~a', () => {\n" desc)
                       (fprintf javascript-op "~{    ~a\n~}" line*)
@@ -1465,13 +1469,13 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           x6
           (type-ref HistoricMerkleTree 10 (tfield)))
-        (public-ledger-declaration #f #f x7 (type-ref CoinInfo))
+        (public-ledger-declaration #f #f x7 (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-          (type-ref QualifiedCoinInfo))
+          (type-ref QualifiedShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -1553,7 +1557,7 @@ groups than for single tests.
       ""
       "circuit f(topic_param: Opaque<'string'>,"
       "          beneficiary_param: ZswapCoinPublicKey,"
-      "          seedCoin: CoinInfo): []"
+      "          seedCoin: ShieldedCoinInfo): []"
       "{ }
       "
       "circuit g(xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxtopic_param: Opaque<'string'>,"
@@ -1566,12 +1570,12 @@ groups than for single tests.
       "
       "circuit set_topic(topic_param: Opaque<'string'>,"
       "                  beneficiary_param: ZswapCoinPublicKey,"
-      "                  seedCoin: CoinInfo): [] // Really minor - why not moving the closing paren and return type declaration to next line and why moving opening brace to the next line in this case?"
+      "                  seedCoin: ShieldedCoinInfo): [] // Really minor - why not moving the closing paren and return type declaration to next line and why moving opening brace to the next line in this case?"
       "{"
       ""
       "pot.writeCoin(mergeCoinImmediate(pot, seedCoin),"
       "                      right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "return mintToken("
+      "return mintShieldedToken("
       "           dao_token_domain_separator(),"
       "           amount,"
       "           evolveNonce(0, coin.nonce),"
@@ -1610,7 +1614,7 @@ groups than for single tests.
       "}"
       ""
       "if (a < f(a))"
-      "return mintToken("
+      "return mintShieldedToken("
       "           dao_token_domain_separator(),"
       "           amount,"
       "           evolveNonce(0, coin.nonce),"
@@ -1625,7 +1629,7 @@ groups than for single tests.
         ""
         "circuit f(topic_param: Opaque<'string'>,"
         "          beneficiary_param: ZswapCoinPublicKey,"
-        "          seedCoin: CoinInfo"
+        "          seedCoin: ShieldedCoinInfo"
         "          ): [] {"
         "}"
         ""
@@ -1639,14 +1643,14 @@ groups than for single tests.
         "circuit set_topic("
         "          topic_param: Opaque<'string'>,"
         "          beneficiary_param: ZswapCoinPublicKey,"
-        "          seedCoin: CoinInfo"
+        "          seedCoin: ShieldedCoinInfo"
         "          ): [] // Really minor - why not moving the closing paren and return type declaration to next line and why moving opening brace to the next line in this case?"
         "{"
         ""
         "  pot.writeCoin("
         "    mergeCoinImmediate(pot, seedCoin),"
         "    right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-        "  return mintToken("
+        "  return mintShieldedToken("
         "           dao_token_domain_separator(),"
         "           amount,"
         "           evolveNonce(0, coin.nonce),"
@@ -1681,7 +1685,7 @@ groups than for single tests.
         "  }"
         ""
         "  if (a < f(a))"
-        "    return mintToken("
+        "    return mintShieldedToken("
         "             dao_token_domain_separator(),"
         "             amount,"
         "             evolveNonce(0, coin.nonce),"
@@ -3325,13 +3329,13 @@ groups than for single tests.
           (type-ref HistoricMerkleTree 10 (tfield)))
         (public-ledger-declaration #f #f
           x7
-          (type-ref CoinInfo))
+          (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-          (type-ref QualifiedCoinInfo))
+          (type-ref QualifiedShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -7279,13 +7283,13 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           x6
           (type-ref HistoricMerkleTree 10 (tfield)))
-        (public-ledger-declaration #f #f x7 (type-ref CoinInfo))
+        (public-ledger-declaration #f #f x7 (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-          (type-ref QualifiedCoinInfo))
+          (type-ref QualifiedShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -7809,13 +7813,13 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           x6
           (type-ref HistoricMerkleTree 10 (tfield)))
-        (public-ledger-declaration #f #f x7 (type-ref CoinInfo))
+        (public-ledger-declaration #f #f x7 (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-          (type-ref QualifiedCoinInfo))
+          (type-ref QualifiedShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -8067,13 +8071,13 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           x6
           (type-ref HistoricMerkleTree 10 (tfield)))
-        (public-ledger-declaration #f #f x7 (type-ref CoinInfo))
+        (public-ledger-declaration #f #f x7 (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-          (type-ref QualifiedCoinInfo))
+          (type-ref QualifiedShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -8472,7 +8476,7 @@ groups than for single tests.
         (public-ledger-declaration
           %x7.26
           (__compact_Cell
-            (tstruct CoinInfo
+            (tstruct ShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned
@@ -8484,7 +8488,7 @@ groups than for single tests.
         (public-ledger-declaration
           %x11.28
           (__compact_Cell
-            (tstruct QualifiedCoinInfo
+            (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
@@ -11414,10 +11418,10 @@ groups than for single tests.
     (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger field1: QualifiedCoinInfo;"
+      "export ledger field1: QualifiedShieldedCoinInfo;"
       "export circuit foo(b: Boolean): [] {"
       "  if (b) {"
-      "    field1 = null(QualifiedCoinInfo);"
+      "    field1 = null(QualifiedShieldedCoinInfo);"
       "  }"
       "}")
     (oops
@@ -11427,10 +11431,10 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger field1: QualifiedCoinInfo;"
+      "export ledger field1: QualifiedShieldedCoinInfo;"
       "export circuit foo(b: Boolean): [] {"
       "  if (b) {"
-      "    field1 = blah(QualifiedCoinInfo);"
+      "    field1 = blah(QualifiedShieldedCoinInfo);"
       "  }"
       "}")
     (oops
@@ -11469,17 +11473,17 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "ledger c: QualifiedCoinInfo;"
+      "ledger c: QualifiedShieldedCoinInfo;"
       ""
       "export circuit resetToDefault(): [] {"
       "  c.resetToDefault();"
       "}"
       ""
-      "export circuit write(value: QualifiedCoinInfo): [] {"
+      "export circuit write(value: QualifiedShieldedCoinInfo): [] {"
       "  return c.write(value);"
       "}"
       ""
-      "export circuit writeCoin(coin: CoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [] {"
+      "export circuit writeCoin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [] {"
       "  return c.writeCoin(coin, recipient);"
       "}"
        )
@@ -12531,7 +12535,7 @@ groups than for single tests.
         (public-ledger-declaration
           %x7.26
           (__compact_Cell
-            (tstruct CoinInfo
+            (tstruct ShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned
@@ -12543,7 +12547,7 @@ groups than for single tests.
         (public-ledger-declaration
           %x11.28
           (__compact_Cell
-            (tstruct QualifiedCoinInfo
+            (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
@@ -15016,12 +15020,12 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedCoinInfo;"
-      "ledger field8: Set<QualifiedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedCoinInfo>;"
-      "ledger field10: List<QualifiedCoinInfo>;"
+      "ledger field7: QualifiedShieldedCoinInfo;"
+      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
+      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
+      "ledger field10: List<QualifiedShieldedCoinInfo>;"
       ""
-      "export circuit foo(x: Field, ci: CoinInfo): Boolean {"
+      "export circuit foo(x: Field, ci: ShieldedCoinInfo): Boolean {"
       "  field0.resetToDefault();"
       "  field0.increment(5);"
       "  field0.decrement(2);"
@@ -15102,7 +15106,7 @@ groups than for single tests.
         (public-ledger-declaration
           %field7.10
           (__compact_Cell
-            (tstruct QualifiedCoinInfo
+            (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
@@ -15110,7 +15114,7 @@ groups than for single tests.
         (public-ledger-declaration
           %field8.11
           (Set
-            (tstruct QualifiedCoinInfo
+            (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
@@ -15119,7 +15123,7 @@ groups than for single tests.
           %field9.12
           (Map
             (tfield)
-            (tstruct QualifiedCoinInfo
+            (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
@@ -15127,13 +15131,13 @@ groups than for single tests.
         (public-ledger-declaration
           %field10.13
           (List
-            (tstruct QualifiedCoinInfo
+            (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
               (mt_index (tunsigned 18446744073709551615)))))
         (circuit %foo.14 ([%x.15 (tfield)]
-                          [%ci.16 (tstruct CoinInfo
+                          [%ci.16 (tstruct ShieldedCoinInfo
                                     (nonce (tbytes 32))
                                     (color (tbytes 32))
                                     (value (tunsigned
@@ -15215,7 +15219,7 @@ groups than for single tests.
                   %field7.10
                   %ci.16
                   (call %right.1 (ledger-call self %kernel.0)))
-                (let* ([[%q2.18 (tstruct QualifiedCoinInfo
+                (let* ([[%q2.18 (tstruct QualifiedShieldedCoinInfo
                                   (nonce (tbytes 32))
                                   (color (tbytes 32))
                                   (value (tunsigned
@@ -15239,7 +15243,7 @@ groups than for single tests.
                       %x.15
                       %ci.16
                       (call %right.1 (ledger-call self %kernel.0)))
-                    (let* ([[%q4.19 (tstruct QualifiedCoinInfo
+                    (let* ([[%q4.19 (tstruct QualifiedShieldedCoinInfo
                                       (nonce (tbytes 32))
                                       (color (tbytes 32))
                                       (value (tunsigned
@@ -15255,7 +15259,7 @@ groups than for single tests.
                           (call %right.1 (ledger-call self %kernel.0)))
                         (let* ([[%q5.20 (tstruct Maybe
                                           (is_some (tboolean))
-                                          (value (tstruct QualifiedCoinInfo
+                                          (value (tstruct QualifiedShieldedCoinInfo
                                                    (nonce (tbytes 32))
                                                    (color (tbytes 32))
                                                    (value (tunsigned
@@ -17585,9 +17589,9 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger fld: List<QualifiedCoinInfo>;"
-      "export circuit bar(): QualifiedCoinInfo {"
-      "  const coin = CoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
+      "export ledger fld: List<QualifiedShieldedCoinInfo>;"
+      "export circuit bar(): QualifiedShieldedCoinInfo {"
+      "  const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
       "  const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
       "  fld.pushFrontCoin(coin, rcpnt);"
       "  assert(!fld.isEmpty(), 'oops empty');"
@@ -17601,23 +17605,23 @@ groups than for single tests.
         (public-ledger-declaration
           %fld.1
           (List
-            (tstruct QualifiedCoinInfo
+            (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
               (mt_index (tunsigned 18446744073709551615)))))
         (circuit %bar.2 ()
-             (tstruct QualifiedCoinInfo
+             (tstruct QualifiedShieldedCoinInfo
                (nonce (tbytes 32))
                (color (tbytes 32))
                (value (tunsigned 340282366920938463463374607431768211455))
                (mt_index (tunsigned 18446744073709551615)))
-          (let* ([[%coin.3 (tstruct CoinInfo
+          (let* ([[%coin.3 (tstruct ShieldedCoinInfo
                              (nonce (tbytes 32))
                              (color (tbytes 32))
                              (value (tunsigned
                                       340282366920938463463374607431768211455)))]
-                  (new (tstruct CoinInfo
+                  (new (tstruct ShieldedCoinInfo
                          (nonce (tbytes 32))
                          (color (tbytes 32))
                          (value (tunsigned
@@ -17664,15 +17668,15 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "module M {"
-      "  struct QualifiedCoinInfo {"
+      "  struct QualifiedShieldedCoinInfo {"
       "    nonce: Bytes<32>;"
       "    color: Bytes<32>;"
       "    value: Uint<128>;"
       "    mt_index: Uint<64>;"
       "  }"
-      "  export ledger fld: List<QualifiedCoinInfo>;"
-      "  export circuit bar(): QualifiedCoinInfo {"
-      "    const coin = CoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
+      "  export ledger fld: List<QualifiedShieldedCoinInfo>;"
+      "  export circuit bar(): QualifiedShieldedCoinInfo {"
+      "    const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
       "    const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
       "    fld.pushFrontCoin(coin, rcpnt);"
       "    assert(!fld.isEmpty(), 'oops empty');"
@@ -17683,7 +17687,7 @@ groups than for single tests.
       "import M;"
       "export { bar }"
       )
-    ; should produce same output as above, since M's definition of  QualifiedCoinInfo
+    ; should produce same output as above, since M's definition of  QualifiedShieldedCoinInfo
     ; matches the one from the CompactStandardLibrary
     (returns
       (program
@@ -17691,23 +17695,23 @@ groups than for single tests.
         (public-ledger-declaration
           %fld.1
           (List
-            (tstruct QualifiedCoinInfo
+            (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
               (mt_index (tunsigned 18446744073709551615)))))
         (circuit %bar.2 ()
-             (tstruct QualifiedCoinInfo
+             (tstruct QualifiedShieldedCoinInfo
                (nonce (tbytes 32))
                (color (tbytes 32))
                (value (tunsigned 340282366920938463463374607431768211455))
                (mt_index (tunsigned 18446744073709551615)))
-          (let* ([[%coin.3 (tstruct CoinInfo
+          (let* ([[%coin.3 (tstruct ShieldedCoinInfo
                              (nonce (tbytes 32))
                              (color (tbytes 32))
                              (value (tunsigned
                                       340282366920938463463374607431768211455)))]
-                  (new (tstruct CoinInfo
+                  (new (tstruct ShieldedCoinInfo
                          (nonce (tbytes 32))
                          (color (tbytes 32))
                          (value (tunsigned
@@ -17754,9 +17758,9 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "module M {"
-      "  export ledger fld: List<CoinInfo>;"
-      "  export circuit bar(): QualifiedCoinInfo {"
-      "    const coin = CoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
+      "  export ledger fld: List<ShieldedCoinInfo>;"
+      "  export circuit bar(): QualifiedShieldedCoinInfo {"
+      "    const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
       "    const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
       "    fld.pushFrontCoin(coin, rcpnt);"
       "    assert(!fld.isEmpty(), 'oops empty');"
@@ -17769,17 +17773,17 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 8" "operation ~a undefined for ledger field type ~a" (pushFrontCoin "List<struct CoinInfo<nonce: Bytes<32>, color: Bytes<32>, value: Uint<128>>>")))
+      irritants: '("testfile.compact line 7 char 8" "operation ~a undefined for ledger field type ~a" (pushFrontCoin "List<struct ShieldedCoinInfo<nonce: Bytes<32>, color: Bytes<32>, value: Uint<128>>>")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "module M {"
-      "  struct QualifiedCoinInfo { nonce: Bytes<16>, color: Bytes<16>, Value: Field }"
-      "  export ledger fld: List<QualifiedCoinInfo>;"
-      "  export circuit bar(): QualifiedCoinInfo {"
-      "    const coin = CoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
+      "  struct QualifiedShieldedCoinInfo { nonce: Bytes<16>, color: Bytes<16>, Value: Field }"
+      "  export ledger fld: List<QualifiedShieldedCoinInfo>;"
+      "  export circuit bar(): QualifiedShieldedCoinInfo {"
+      "    const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
       "    const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
       "    fld.pushFrontCoin(coin, rcpnt);"
       "    assert(!fld.isEmpty(), 'oops empty');"
@@ -17792,7 +17796,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 8" "operation ~a undefined for ledger field type ~a" (pushFrontCoin "List<struct QualifiedCoinInfo<nonce: Bytes<16>, color: Bytes<16>, Value: Field>>")))
+      irritants: '("testfile.compact line 8 char 8" "operation ~a undefined for ledger field type ~a" (pushFrontCoin "List<struct QualifiedShieldedCoinInfo<nonce: Bytes<16>, color: Bytes<16>, Value: Field>>")))
     )
 
   (test
@@ -17820,14 +17824,14 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger fld: QualifiedCoinInfo;"
-      "export circuit bar(coin: CoinInfo): [] {"
+      "export ledger fld: QualifiedShieldedCoinInfo;"
+      "export circuit bar(coin: ShieldedCoinInfo): [] {"
       "  fld.insertCoin(coin, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 6" "operation ~a undefined for ledger field type ~a" (insertCoin "struct QualifiedCoinInfo<nonce: Bytes<32>, color: Bytes<32>, value: Uint<128>, mt_index: Uint<64>>")))
+      irritants: '("testfile.compact line 4 char 6" "operation ~a undefined for ledger field type ~a" (insertCoin "struct QualifiedShieldedCoinInfo<nonce: Bytes<32>, color: Bytes<32>, value: Uint<128>, mt_index: Uint<64>>")))
     )
 
   (test
@@ -17846,8 +17850,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger fld: QualifiedCoinInfo;"
-      "export circuit bar(coin: CoinInfo): [] {"
+      "export ledger fld: QualifiedShieldedCoinInfo;"
+      "export circuit bar(coin: ShieldedCoinInfo): [] {"
       "  fld.writeCoin(coin, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "}"
       )
@@ -17870,12 +17874,12 @@ groups than for single tests.
         (public-ledger-declaration
           %fld.3
           (__compact_Cell
-            (tstruct QualifiedCoinInfo
+            (tstruct QualifiedShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
               (value (tunsigned 340282366920938463463374607431768211455))
               (mt_index (tunsigned 18446744073709551615)))))
-        (circuit %bar.4 ([%coin.5 (tstruct CoinInfo
+        (circuit %bar.4 ([%coin.5 (tstruct ShieldedCoinInfo
                                     (nonce (tbytes 32))
                                     (color (tbytes 32))
                                     (value (tunsigned
@@ -19640,7 +19644,7 @@ groups than for single tests.
     "examples/bugs/pm-16611.compact"
     (oops
       message: "~a:\n  ~?"
-      irritants: '("pm-16611.compact line 21 char 9" "expected ~:r argument of ~s to have type ~a but received ~a" (2 mint "Uint<64>" "Uint<128>")))
+      irritants: '("pm-16611.compact line 21 char 9" "expected ~:r argument of ~s to have type ~a but received ~a" (2 mintShielded "Uint<64>" "Uint<128>")))
     )
 
   (test
@@ -22464,7 +22468,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "constructor(){"
-      "  for (const bob of slice<197908171978938887506682837333954029155>(default<Either<Field,SendResult>>, 0o23103656654)) {"
+      "  for (const bob of slice<197908171978938887506682837333954029155>(default<Either<Field,ShieldedSendResult>>, 0o23103656654)) {"
       "  }"
       "}"
       )
@@ -22490,7 +22494,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo(): []{"
-      "  for (const bob of slice<197908171978938887506682837333954029155>(default<Either<Field,SendResult>>, 0o23103656654)) {"
+      "  for (const bob of slice<197908171978938887506682837333954029155>(default<Either<Field,ShieldedSendResult>>, 0o23103656654)) {"
       "  }"
       "}"
      )
@@ -23675,7 +23679,7 @@ groups than for single tests.
           (%x6.7 (HistoricMerkleTree 10 (tfield)))
           (%x7.8
             (__compact_Cell
-              (tstruct CoinInfo
+              (tstruct ShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
                 (value (tunsigned
@@ -23685,7 +23689,7 @@ groups than for single tests.
               (tstruct MerkleTreeDigest (field (tfield)))))
           (%x11.10
             (__compact_Cell
-              (tstruct QualifiedCoinInfo
+              (tstruct QualifiedShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
                 (value (tunsigned 340282366920938463463374607431768211455))
@@ -24849,12 +24853,12 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedCoinInfo;"
-      "ledger field8: Set<QualifiedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedCoinInfo>;"
-      "ledger field10: List<QualifiedCoinInfo>;"
+      "ledger field7: QualifiedShieldedCoinInfo;"
+      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
+      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
+      "ledger field10: List<QualifiedShieldedCoinInfo>;"
       ""
-      "export circuit foo(x: Field, ci: CoinInfo): Boolean {"
+      "export circuit foo(x: Field, ci: ShieldedCoinInfo): Boolean {"
       "  field0.resetToDefault();"
       "  field0.increment(5);"
       "  field0.decrement(2);"
@@ -24915,27 +24919,27 @@ groups than for single tests.
           (%field6.7 (HistoricMerkleTree 10 (tfield)))
           (%field7.8
             (__compact_Cell
-              (tstruct QualifiedCoinInfo
+              (tstruct QualifiedShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
                 (value (tunsigned 340282366920938463463374607431768211455))
                 (mt_index (tunsigned 18446744073709551615)))))
           (%field8.9
-            (Set (tstruct QualifiedCoinInfo
+            (Set (tstruct QualifiedShieldedCoinInfo
                    (nonce (tbytes 32))
                    (color (tbytes 32))
                    (value (tunsigned 340282366920938463463374607431768211455))
                    (mt_index (tunsigned 18446744073709551615)))))
           (%field9.10
             (Map (tfield)
-                 (tstruct QualifiedCoinInfo
+                 (tstruct QualifiedShieldedCoinInfo
                    (nonce (tbytes 32))
                    (color (tbytes 32))
                    (value (tunsigned 340282366920938463463374607431768211455))
                    (mt_index (tunsigned 18446744073709551615)))))
           (%field10.11
             (List
-              (tstruct QualifiedCoinInfo
+              (tstruct QualifiedShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
                 (value (tunsigned 340282366920938463463374607431768211455))
@@ -24955,7 +24959,7 @@ groups than for single tests.
             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
             %value.13))
         (circuit %foo.14 ([%x.15 (tfield)]
-                          [%ci.16 (tstruct CoinInfo
+                          [%ci.16 (tstruct ShieldedCoinInfo
                                     (nonce (tbytes 32))
                                     (color (tbytes 32))
                                     (value (tunsigned
@@ -25031,7 +25035,7 @@ groups than for single tests.
                   (writeCoin
                     %ci.16
                     (call %right.12 (public-ledger %kernel.0 (self)))))
-                (let* ([[%q2.18 (tstruct QualifiedCoinInfo
+                (let* ([[%q2.18 (tstruct QualifiedShieldedCoinInfo
                                   (nonce (tbytes 32))
                                   (color (tbytes 32))
                                   (value (tunsigned
@@ -25057,7 +25061,7 @@ groups than for single tests.
                         %x.15
                         %ci.16
                         (call %right.12 (public-ledger %kernel.0 (self)))))
-                    (let* ([[%q4.19 (tstruct QualifiedCoinInfo
+                    (let* ([[%q4.19 (tstruct QualifiedShieldedCoinInfo
                                       (nonce (tbytes 32))
                                       (color (tbytes 32))
                                       (value (tunsigned
@@ -25073,7 +25077,7 @@ groups than for single tests.
                             (call %right.12 (public-ledger %kernel.0 (self)))))
                         (let* ([[%q5.20 (tstruct Maybe
                                           (is_some (tboolean))
-                                          (value (tstruct QualifiedCoinInfo
+                                          (value (tstruct QualifiedShieldedCoinInfo
                                                    (nonce (tbytes 32))
                                                    (color (tbytes 32))
                                                    (value (tunsigned
@@ -28189,95 +28193,95 @@ groups than for single tests.
 
   (test
     '("import CompactStandardLibrary;"
-      "export { burnAddress }"
+      "export { shieldedBurnAddress }"
       )
     (succeeds))
 
   (test
     '("import CompactStandardLibrary;"
-      "export { mintToken }"
+      "export { mintShieldedToken }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter domain_sep of exported circuit mintToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the domain separator of the token being minted given by the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter domain_sep of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the domain separator of the token being minted given by the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit mintToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the value of a token mint given by the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the value of a token mint given by the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit mintToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter nonce of exported circuit mintToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter nonce of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value"))))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value"))))
     )
 
   (test
     '("import CompactStandardLibrary;"
-      "export { receive }"
+      "export { receiveShielded }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter coin of exported circuit receive at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter coin of exported circuit receiveShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))))
 
   (test
     '("import CompactStandardLibrary;"
-      "export { sendImmediate }"
+      "export { sendImmediateShielded }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
     ))
 
   (test
     '("import CompactStandardLibrary;"
-      "export { send }"
+      "export { sendShielded }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
     ))
 
   (test
@@ -28316,6 +28320,141 @@ groups than for single tests.
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { mintUnshieldedToken }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter domainSep of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the domain separator of the unshielded token being minted given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being minted given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being transferred given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the recipient of the unshielded token being transferred given by the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { sendUnshielded }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token being spent given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being spent given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token being transferred given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being transferred given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the recipient of the unshielded token being transferred given by the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { receiveUnshielded }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit receiveUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token being received given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit receiveUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being received given by the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { unshieldedBalance }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit unshieldedBalance at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token having its balanced checked given by the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { unshieldedBalanceLt }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit unshieldedBalanceLt at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token having its balanced checked given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit unshieldedBalanceLt at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the upper bound of the balance of the unshielded token being checked the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { unshieldedBalanceGte }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit unshieldedBalanceGte at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token having its balanced checked given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit unshieldedBalanceGte at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the upper bound of the balance of the unshielded token being checked the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { unshieldedBalanceGt }"
+      )
+    (oops
+
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit unshieldedBalanceGt at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token having its balanced checked given by the witness value")))
+
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit unshieldedBalanceGt at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the lower bound of the balance of the unshielded token being checked the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { unshieldedBalanceLte }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit unshieldedBalanceLte at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token having its balanced checked given by the witness value")))
+
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit unshieldedBalanceLte at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the lower bound of the balance of the unshielded token being checked the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { blockTimeLte }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter time of exported circuit blockTimeLte at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the upper bound of the time being checked the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { blockTimeGt }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter time of exported circuit blockTimeGt at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the upper bound of the time being checked the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { blockTimeGte }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter time of exported circuit blockTimeGte at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the lower bound of the time being checked the witness value")))
+    ))
+
+  (test
+    '("import CompactStandardLibrary;"
+      "export { blockTimeLt }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter time of exported circuit blockTimeLt at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the lower bound of the time being checked the witness value")))
     ))
 
   (test
@@ -29347,8 +29486,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness qcoin(): QualifiedCoinInfo;"
-      "export circuit foo(coin: CoinInfo): [] {"
+      "witness qcoin(): QualifiedShieldedCoinInfo;"
+      "export circuit foo(coin: ShieldedCoinInfo): [] {"
       "  return createZswapInput(qcoin());"
       "}"
       )
@@ -35599,12 +35738,12 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedCoinInfo;"
-      "ledger field8: Set<QualifiedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedCoinInfo>;"
-      "ledger field10: List<QualifiedCoinInfo>;"
+      "ledger field7: QualifiedShieldedCoinInfo;"
+      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
+      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
+      "ledger field10: List<QualifiedShieldedCoinInfo>;"
       ""
-      "export circuit foo(x: Field, ci: CoinInfo): Boolean {"
+      "export circuit foo(x: Field, ci: ShieldedCoinInfo): Boolean {"
       "  field0.resetToDefault();"
       "  field0.increment(5);"
       "  field0.decrement(2);"
@@ -35663,14 +35802,14 @@ groups than for single tests.
            (%field7.8
              (7)
              (__compact_Cell
-               (tstruct QualifiedCoinInfo
+               (tstruct QualifiedShieldedCoinInfo
                  (nonce (tbytes 32))
                  (color (tbytes 32))
                  (value (tunsigned 340282366920938463463374607431768211455))
                  (mt_index (tunsigned 18446744073709551615)))))
            (%field8.9
              (8)
-             (Set (tstruct QualifiedCoinInfo
+             (Set (tstruct QualifiedShieldedCoinInfo
                     (nonce (tbytes 32))
                     (color (tbytes 32))
                     (value (tunsigned 340282366920938463463374607431768211455))
@@ -35678,7 +35817,7 @@ groups than for single tests.
            (%field9.10
              (9)
              (Map (tfield)
-                  (tstruct QualifiedCoinInfo
+                  (tstruct QualifiedShieldedCoinInfo
                     (nonce (tbytes 32))
                     (color (tbytes 32))
                     (value (tunsigned 340282366920938463463374607431768211455))
@@ -35686,13 +35825,13 @@ groups than for single tests.
            (%field10.11
              (10)
              (List
-               (tstruct QualifiedCoinInfo
+               (tstruct QualifiedShieldedCoinInfo
                  (nonce (tbytes 32))
                  (color (tbytes 32))
                  (value (tunsigned 340282366920938463463374607431768211455))
                  (mt_index (tunsigned 18446744073709551615)))))))
         (circuit %foo.12 ([%x.13 (tfield)]
-                          [%ci.14 (tstruct CoinInfo
+                          [%ci.14 (tstruct ShieldedCoinInfo
                                     (nonce (tbytes 32))
                                     (color (tbytes 32))
                                     (value (tunsigned
@@ -40647,9 +40786,9 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "export circuit relay(coin: CoinInfo, target: ContractAddress): [] {"
-      "  receive(disclose(coin));"
-      "  const foo = sendImmediate(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(disclose(target)), disclose(coin.value));"
+      "export circuit relay(coin: ShieldedCoinInfo, target: ContractAddress): [] {"
+      "  receiveShielded(disclose(coin));"
+      "  const foo = sendImmediateShielded(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(disclose(target)), disclose(coin.value));"
       "}"
       )
     (returns
@@ -40866,9 +41005,9 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "export circuit relay(coin: CoinInfo, target: ContractAddress): SendResult {"
-      "  receive(disclose(coin));"
-      "  return sendImmediate(disclose(coin), disclose(right<ZswapCoinPublicKey, ContractAddress>(target)), disclose(coin.value));"
+      "export circuit relay(coin: ShieldedCoinInfo, target: ContractAddress): ShieldedSendResult {"
+      "  receiveShielded(disclose(coin));"
+      "  return sendImmediateShielded(disclose(coin), disclose(right<ZswapCoinPublicKey, ContractAddress>(target)), disclose(coin.value));"
       "}"
       )
     (returns
@@ -47131,7 +47270,7 @@ groups than for single tests.
       "struct Foo {"
       "  bar: Bytes<32>;"
       "  baz: Boolean;"
-      "  rats: Vector<1, CoinInfo>;"
+      "  rats: Vector<1, ShieldedCoinInfo>;"
       "  mice: Uint<16>;"
       "}"
       ""
@@ -47142,12 +47281,12 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedCoinInfo;"
-      "ledger field8: Set<QualifiedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedCoinInfo>;"
-      "ledger field10: List<QualifiedCoinInfo>;"
+      "ledger field7: QualifiedShieldedCoinInfo;"
+      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
+      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
+      "ledger field10: List<QualifiedShieldedCoinInfo>;"
       ""
-      "export circuit foo(x: Field, y: Foo, ci: CoinInfo): Boolean {"
+      "export circuit foo(x: Field, y: Foo, ci: ShieldedCoinInfo): Boolean {"
       "  field0.resetToDefault();"
       "  field0.increment(5);"
       "  field0.decrement(2);"
@@ -48436,7 +48575,7 @@ groups than for single tests.
       "import M2;"
       "import M3;"
       "export { uno, dos, tres }"
-     ) 
+     )
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
@@ -49169,7 +49308,7 @@ groups than for single tests.
       "ledger committed: Set<Bytes<32>>;"
       "ledger revealed: Set<Bytes<32>>;"
       ""
-      "ledger pot: QualifiedCoinInfo;"
+      "ledger pot: QualifiedShieldedCoinInfo;"
       "ledger pot_has_coin: Boolean;"
       ""
       "constructor(organizer_secret_key: Bytes<32>) {"
@@ -49289,7 +49428,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit baz(): Field {"
-      "  kernel.mint(pad(32, ''), 5);"
+      "  kernel.mintShielded(pad(32, ''), 5);"
       "  return bar.length();"
       "}"
      )
@@ -51121,17 +51260,17 @@ groups than for single tests.
     '(
       "module M1 {"
       "  import CompactStandardLibrary;"
-      "  export { QualifiedCoinInfo, CoinInfo, ZswapCoinPublicKey, ContractAddress };"
+      "  export { QualifiedShieldedCoinInfo, ShieldedCoinInfo, ZswapCoinPublicKey, ContractAddress };"
       "  export { left, ownPublicKey, createZswapInput, createZswapOutput };"
       "}"
       "import M1 prefix std$;"
-      "circuit foo(qcoin: std$QualifiedCoinInfo, coin: std$CoinInfo): [] {"
+      "circuit foo(qcoin: std$QualifiedShieldedCoinInfo, coin: std$ShieldedCoinInfo): [] {"
       "  std$createZswapInput(qcoin);"
       "  std$createZswapOutput(coin, std$left<std$ZswapCoinPublicKey, std$ContractAddress>(std$ownPublicKey()));"
       "}"
       "module M2 {"
       "  import CompactStandardLibrary;"
-      "  export circuit bar(qcoin: QualifiedCoinInfo, coin: CoinInfo): [] {"
+      "  export circuit bar(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "    createZswapInput(qcoin);"
       "    createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "  }"
@@ -51210,7 +51349,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(qcoin: QualifiedCoinInfo, coin: CoinInfo): [] {"
+      "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "  createZswapInput(qcoin);"
       "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "}"
@@ -57928,7 +58067,7 @@ groups than for single tests.
       "struct Foo {"
       "  bar: Bytes<32>;"
       "  baz: Boolean;"
-      "  rats: Vector<1, CoinInfo>;"
+      "  rats: Vector<1, ShieldedCoinInfo>;"
       "  mice: Uint<16>;"
       "}"
       ""
@@ -57939,12 +58078,12 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedCoinInfo;"
-      "ledger field8: Set<QualifiedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedCoinInfo>;"
-      "ledger field10: List<QualifiedCoinInfo>;"
+      "ledger field7: QualifiedShieldedCoinInfo;"
+      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
+      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
+      "ledger field10: List<QualifiedShieldedCoinInfo>;"
       ""
-      "export circuit foo(x: Field, y: Foo, ci: CoinInfo): Boolean {"
+      "export circuit foo(x: Field, y: Foo, ci: ShieldedCoinInfo): Boolean {"
       "  field0.resetToDefault();"
       "  field0.increment(5);"
       "  field0.decrement(2);"
@@ -59233,7 +59372,7 @@ groups than for single tests.
       "import M2;"
       "import M3;"
       "export { uno, dos, tres }"
-     ) 
+     )
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
@@ -59966,7 +60105,7 @@ groups than for single tests.
       "ledger committed: Set<Bytes<32>>;"
       "ledger revealed: Set<Bytes<32>>;"
       ""
-      "ledger pot: QualifiedCoinInfo;"
+      "ledger pot: QualifiedShieldedCoinInfo;"
       "ledger pot_has_coin: Boolean;"
       ""
       "constructor(organizer_secret_key: Bytes<32>) {"
@@ -60086,7 +60225,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit baz(): Field {"
-      "  kernel.mint(pad(32, ''), 5);"
+      "  kernel.mintShielded(pad(32, ''), 5);"
       "  return bar.length();"
       "}"
      )
@@ -61918,17 +62057,17 @@ groups than for single tests.
     '(
       "module M1 {"
       "  import CompactStandardLibrary;"
-      "  export { QualifiedCoinInfo, CoinInfo, ZswapCoinPublicKey, ContractAddress };"
+      "  export { QualifiedShieldedCoinInfo, ShieldedCoinInfo, ZswapCoinPublicKey, ContractAddress };"
       "  export { left, ownPublicKey, createZswapInput, createZswapOutput };"
       "}"
       "import M1 prefix std$;"
-      "circuit foo(qcoin: std$QualifiedCoinInfo, coin: std$CoinInfo): [] {"
+      "circuit foo(qcoin: std$QualifiedShieldedCoinInfo, coin: std$ShieldedCoinInfo): [] {"
       "  std$createZswapInput(qcoin);"
       "  std$createZswapOutput(coin, std$left<std$ZswapCoinPublicKey, std$ContractAddress>(std$ownPublicKey()));"
       "}"
       "module M2 {"
       "  import CompactStandardLibrary;"
-      "  export circuit bar(qcoin: QualifiedCoinInfo, coin: CoinInfo): [] {"
+      "  export circuit bar(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "    createZswapInput(qcoin);"
       "    createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "  }"
@@ -62007,7 +62146,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(qcoin: QualifiedCoinInfo, coin: CoinInfo): [] {"
+      "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "  createZswapInput(qcoin);"
       "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "}"
@@ -64262,11 +64401,11 @@ groups than for single tests.
 
   (test
     '(
-      "ledger field7: List<QualifiedCoinInfo>;"
+      "ledger field7: List<QualifiedShieldedCoinInfo>;"
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 21" "unbound identifier ~s" (QualifiedCoinInfo)))
+      irritants: '("testfile.compact line 1 char 21" "unbound identifier ~s" (QualifiedShieldedCoinInfo)))
     )
 
   (test
@@ -64350,21 +64489,25 @@ groups than for single tests.
            (%descriptor.0 (tunsigned 18446744073709551615))
            (%descriptor.1 (tboolean))
            (%descriptor.2 (tbytes 32))
-           (%descriptor.3 (tstruct ContractAddress
+           (%descriptor.3 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tbytes 32))
+                            (right (tbytes 32))))
+           (%descriptor.4 (tunsigned
+                            340282366920938463463374607431768211455))
+           (%descriptor.5 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-           (%descriptor.4 (tunsigned 255))
-           (%descriptor.5 (tunsigned
-                            340282366920938463463374607431768211455)))
-         (kernel-declaration (%kernel.6 () (Kernel)))
+           (%descriptor.6 (tunsigned 255)))
+         (kernel-declaration (%kernel.7 () (Kernel)))
          (public-ledger-declaration
-           ((%calc.7
+           ((%calc.8
               (0)
               (__compact_Cell
                 (tcontract Calculator
                   (get_square #f ((tfield)) (tfield))))))
-           (constructor ([%c.8 (tcontract Calculator
+           (constructor ([%c.9 (tcontract Calculator
                                  (get_square #f ((tfield)) (tfield)))])
-             (seq (public-ledger %calc.7 (0) write %c.8) (tuple))))))
+             (seq (public-ledger %calc.8 (0) write %c.9) (tuple))))))
       ))
 
   (test
@@ -64433,7 +64576,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -64511,7 +64654,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -64601,7 +64744,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -64691,7 +64834,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -66170,16 +66313,20 @@ groups than for single tests.
           (%descriptor.1 (tfield))
           (%descriptor.2 (tboolean))
           (%descriptor.3 (tbytes 32))
-          (%descriptor.4 (tstruct ContractAddress
+          (%descriptor.4 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tbytes 32))
+                           (right (tbytes 32))))
+          (%descriptor.5 (tunsigned
+                           340282366920938463463374607431768211455))
+          (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.5 (tunsigned 255))
-          (%descriptor.6 (tunsigned
-                           340282366920938463463374607431768211455)))
-        (kernel-declaration (%kernel.7 () (Kernel)))
+          (%descriptor.7 (tunsigned 255)))
+        (kernel-declaration (%kernel.8 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.8 (0) (Counter)))
+          ((%field1.9 (0) (Counter)))
           (constructor () (tuple)))
-        (circuit %foo.9 ()
+        (circuit %foo.10 ()
              (tfield)
           (safe-cast (tfield)
                      (tunsigned 18446744073709551615)
@@ -66285,20 +66432,24 @@ groups than for single tests.
           (%descriptor.1 (tbytes 32))
           (%descriptor.2 (tfield))
           (%descriptor.3 (tboolean))
-          (%descriptor.4 (tstruct ContractAddress
+          (%descriptor.4 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tbytes 32))
+                           (right (tbytes 32))))
+          (%descriptor.5 (tunsigned
+                           340282366920938463463374607431768211455))
+          (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.5 (tunsigned 65535))
-          (%descriptor.6 (tunsigned 255))
-          (%descriptor.7 (tunsigned
-                           340282366920938463463374607431768211455)))
-        (kernel-declaration (%kernel.8 () (Kernel)))
+          (%descriptor.7 (tunsigned 65535))
+          (%descriptor.8 (tunsigned 255)))
+        (kernel-declaration (%kernel.9 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.9 (0) (Counter)))
-          (constructor ([%state.10 (tunsigned 65535)])
+          ((%field1.10 (0) (Counter)))
+          (constructor ([%state.11 (tunsigned 65535)])
             (seq
-              (public-ledger %field1.9 (0) increment %state.10)
+              (public-ledger %field1.10 (0) increment %state.11)
               (tuple))))
-        (circuit %foo.11 ([%x.12 (tbytes 32)])
+        (circuit %foo.12 ([%x.13 (tbytes 32)])
              (tfield)
           (safe-cast (tfield)
                      (tunsigned 18446744073709551615)
@@ -66615,7 +66766,7 @@ groups than for single tests.
       "struct Foo {"
       "  bar: Bytes<32>;"
       "  baz: Boolean;"
-      "  rats: Vector<1, CoinInfo>;"
+      "  rats: Vector<1, ShieldedCoinInfo>;"
       "  mice: Uint<16>;"
       "}"
       ""
@@ -66626,12 +66777,12 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedCoinInfo;"
-      "ledger field8: Set<QualifiedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedCoinInfo>;"
-      "ledger field10: List<QualifiedCoinInfo>;"
+      "ledger field7: QualifiedShieldedCoinInfo;"
+      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
+      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
+      "ledger field10: List<QualifiedShieldedCoinInfo>;"
       ""
-      "export circuit foo(x0: Field, y0: Foo, ci0: CoinInfo): Boolean {"
+      "export circuit foo(x0: Field, y0: Foo, ci0: ShieldedCoinInfo): Boolean {"
       "  const x = disclose(x0); const y = disclose(y0); const ci = disclose(ci0);"
       "  field0.resetToDefault();"
       "  field0.increment(5);"
@@ -66775,8 +66926,16 @@ groups than for single tests.
     )
 
   (test
+    "test-center/compact/gas-cost.compact"
+    (stage-javascript "test-center/ts/gas-cost.ts"))
+
+  (test
     "test-center/compact/block-time.compact"
     (stage-javascript "test-center/ts/block-time.ts"))
+
+  (test
+    "test-center/compact/unshielded-tokens.compact"
+    (stage-javascript "test-center/ts/unshielded-tokens.ts"))
 
   (test
     "test-center/compact/threading.compact"
@@ -66831,7 +66990,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>, v_0: bigint): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
@@ -66869,6 +67028,26 @@ groups than for single tests.
         ""
         "const _descriptor_6 = new __compactRuntime.CompactTypeUnsignedInteger(18446744073709551615n, 8);"
         ""
+        "class _Either_0 {"
+        "  alignment() {"
+        "    return _descriptor_3.alignment().concat(_descriptor_1.alignment().concat(_descriptor_1.alignment()));"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_left: _descriptor_3.fromValue(value_0),"
+        "      left: _descriptor_1.fromValue(value_0),"
+        "      right: _descriptor_1.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_3.toValue(value_0.is_left).concat(_descriptor_1.toValue(value_0.left).concat(_descriptor_1.toValue(value_0.right)));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_7 = new _Either_0();"
+        ""
+        "const _descriptor_8 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
+        ""
         "class _ContractAddress_0 {"
         "  alignment() {"
         "    return _descriptor_1.alignment();"
@@ -66883,11 +67062,9 @@ groups than for single tests.
         "  }"
         "}"
         ""
-        "const _descriptor_7 = new _ContractAddress_0();"
+        "const _descriptor_9 = new _ContractAddress_0();"
         ""
-        "const _descriptor_8 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
-        ""
-        "const _descriptor_9 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
+        "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
         ""
         "export class Contract {"
         "  witnesses;"
@@ -66924,7 +67101,7 @@ groups than for single tests.
         "                                     'Field',"
         "                                     v_0)"
         "        }"
-        "        const context = { ...contextOrig_0 };"
+        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost() };"
         "        const partialProofData = {"
         "          input: {"
         "            value: _descriptor_0.toValue(v_0),"
@@ -66936,7 +67113,7 @@ groups than for single tests.
         "        };"
         "        const result_0 = this._set_0(context, partialProofData, v_0);"
         "        partialProofData.output = { value: [], alignment: [] };"
-        "        return { result: result_0, context: context, proofData: partialProofData };"
+        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost };"
         "      },"
         "      get: (...args_1) => {"
         "        if (args_1.length !== 1) {"
@@ -66950,7 +67127,7 @@ groups than for single tests.
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
-        "        const context = { ...contextOrig_0 };"
+        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost() };"
         "        const partialProofData = {"
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
@@ -66959,7 +67136,7 @@ groups than for single tests.
         "        };"
         "        const result_0 = this._get_0(context, partialProofData);"
         "        partialProofData.output = { value: _descriptor_4.toValue(result_0), alignment: _descriptor_4.alignment() };"
-        "        return { result: result_0, context: context, proofData: partialProofData };"
+        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost };"
         "      },"
         "      clear: (...args_1) => {"
         "        if (args_1.length !== 1) {"
@@ -66973,7 +67150,7 @@ groups than for single tests.
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
-        "        const context = { ...contextOrig_0 };"
+        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost() };"
         "        const partialProofData = {"
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
@@ -66982,7 +67159,7 @@ groups than for single tests.
         "        };"
         "        const result_0 = this._clear_0(context, partialProofData);"
         "        partialProofData.output = { value: [], alignment: [] };"
-        "        return { result: result_0, context: context, proofData: partialProofData };"
+        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost };"
         "      },"
         "      public_key(context, ...args_1) {"
         "        return { result: pureCircuits.public_key(...args_1), context };"
@@ -67024,11 +67201,11 @@ groups than for single tests.
         "    stateValue_0 = stateValue_0.arrayPush(__compactRuntime.StateValue.newNull());"
         "    stateValue_0 = stateValue_0.arrayPush(__compactRuntime.StateValue.newNull());"
         "    stateValue_0 = stateValue_0.arrayPush(__compactRuntime.StateValue.newNull());"
-        "    state_0.data = stateValue_0;"
+        "    state_0.data = new __compactRuntime.ChargedState(stateValue_0);"
         "    state_0.setOperation('set', new __compactRuntime.ContractOperation());"
         "    state_0.setOperation('get', new __compactRuntime.ContractOperation());"
         "    state_0.setOperation('clear', new __compactRuntime.ContractOperation());"
-        "    const context = __compactRuntime.createCircuitContext(__compactRuntime.DUMMY_ADDRESS, constructorContext_0.initialZswapLocalState.coinPublicKey, state_0.data, constructorContext_0.initialPrivateState)"
+        "    const context = __compactRuntime.createCircuitContext(__compactRuntime.dummyContractAddress(), constructorContext_0.initialZswapLocalState.coinPublicKey, state_0.data, constructorContext_0.initialPrivateState);"
         "    const partialProofData = {"
         "      input: { value: [], alignment: [] },"
         "      output: undefined,"
@@ -67039,8 +67216,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(0n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(new Uint8Array(32)),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -67049,8 +67226,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(1n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(0n),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -67059,8 +67236,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(2n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(0),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -67071,8 +67248,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(0n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(tmp_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -67081,8 +67258,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(1n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(v_0),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -67091,8 +67268,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(2n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(1),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -67136,8 +67313,8 @@ groups than for single tests.
         "                                                                               pushPath: false,"
         "                                                                               path: ["
         "                                                                                      { tag: 'value',"
-        "                                                                                        value: { value: _descriptor_8.toValue(2n),"
-        "                                                                                                 alignment: _descriptor_8.alignment() } }] } },"
+        "                                                                                        value: { value: _descriptor_10.toValue(2n),"
+        "                                                                                                 alignment: _descriptor_10.alignment() } }] } },"
         "                                                                      { popeq: { cached: false,"
         "                                                                                 result: undefined } }]).value)"
         "           ==="
@@ -67152,8 +67329,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(0n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(apk_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -67162,8 +67339,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(1n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(v_0),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -67172,8 +67349,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(2n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(1),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -67190,8 +67367,8 @@ groups than for single tests.
         "                                                                                              pushPath: false,"
         "                                                                                              path: ["
         "                                                                                                     { tag: 'value',"
-        "                                                                                                       value: { value: _descriptor_8.toValue(1n),"
-        "                                                                                                                alignment: _descriptor_8.alignment() } }] } },"
+        "                                                                                                       value: { value: _descriptor_10.toValue(1n),"
+        "                                                                                                                alignment: _descriptor_10.alignment() } }] } },"
         "                                                                                     { popeq: { cached: false,"
         "                                                                                                result: undefined } }]).value));"
         "    } else {"
@@ -67212,8 +67389,8 @@ groups than for single tests.
         "                                                                                                              pushPath: false,"
         "                                                                                                              path: ["
         "                                                                                                                     { tag: 'value',"
-        "                                                                                                                       value: { value: _descriptor_8.toValue(0n),"
-        "                                                                                                                                alignment: _descriptor_8.alignment() } }] } },"
+        "                                                                                                                       value: { value: _descriptor_10.toValue(0n),"
+        "                                                                                                                                alignment: _descriptor_10.alignment() } }] } },"
         "                                                                                                     { popeq: { cached: false,"
         "                                                                                                                result: undefined } }]).value)),"
         "                            'clear: attempted clear without proper authorization');"
@@ -67222,8 +67399,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(0n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(tmp_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -67232,8 +67409,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(1n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(0n),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -67242,8 +67419,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(2n),"
-        "                                                                                              alignment: _descriptor_8.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
+        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(0),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -67259,9 +67436,12 @@ groups than for single tests.
         "    return true;"
         "  }"
         "}"
-        "export function ledger(state) {"
+        "export function ledger(stateOrChargedState) {"
+        "  const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
+        "  const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
         "  const context = {"
-        "    currentQueryContext: new __compactRuntime.QueryContext(state, __compactRuntime.dummyContractAddress())"
+        "    currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()),"
+        "    costModel: __compactRuntime.CostModel.initialCostModel()"
         "  };"
         "  const partialProofData = {"
         "    input: { value: [], alignment: [] },"
@@ -67279,8 +67459,8 @@ groups than for single tests.
         "                                                                                 pushPath: false,"
         "                                                                                 path: ["
         "                                                                                        { tag: 'value',"
-        "                                                                                          value: { value: _descriptor_8.toValue(1n),"
-        "                                                                                                   alignment: _descriptor_8.alignment() } }] } },"
+        "                                                                                          value: { value: _descriptor_10.toValue(1n),"
+        "                                                                                                   alignment: _descriptor_10.alignment() } }] } },"
         "                                                                        { popeq: { cached: false,"
         "                                                                                   result: undefined } }]).value);"
         "    }"
@@ -67319,7 +67499,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EAmBD,AAAA,iBAAsD,CAArB,OAAQ;oEAAR,OAAQ;;GAAa;EDqBtD,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EAmBD,AAAA,iBAAsD,CAArB,OAAQ;oEAAR,OAAQ;;GAAa;EDqBtD,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -67770,7 +67950,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       `(
@@ -67832,7 +68012,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       `(
@@ -67886,7 +68066,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>, x_0: string): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       `(
@@ -67969,7 +68149,7 @@ groups than for single tests.
         "               witnesses_0: bigint): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       `(
@@ -68152,7 +68332,7 @@ groups than for single tests.
         "  expect(L2.baz.firstFree()).toEqual(2n);"
         "  expect(L4.baz.isFull()).toEqual(true);"
         "  expect(contractCode.pureCircuits.root_of(L1.baz.findPathForLeaf(71n)!)).toEqual(L1.baz.root());"
-        "  expect(contractCode.pureCircuits.root_of(L2.baz.pathForLeaf(1n, 71n))).toEqual(L2.baz.root());"
+        "  expect(contractCode.pureCircuits.root_of(L2.baz.pathForLeaf(1n, 71n)!)).toEqual(L2.baz.root());"
         "  expect(L1.baz.checkRoot(contractCode.pureCircuits.root_of(L1.baz.findPathForLeaf(71n)!))).toEqual(true);"
         "  expect(L2.baz.checkRoot(contractCode.pureCircuits.root_of(L1.baz.findPathForLeaf(71n)!))).toEqual(false);"
         ; FIXME: test more L1.baz operators
@@ -68220,7 +68400,7 @@ groups than for single tests.
       "ledger committed: Set<Bytes<32>>;"
       "ledger revealed: Set<Bytes<32>>;"
       ""
-      "ledger pot: QualifiedCoinInfo;"
+      "ledger pot: QualifiedShieldedCoinInfo;"
       "export ledger potHasCoin: Boolean;"
       ""
       "constructor(organizerSecretKey: Bytes<32>) {"
@@ -68503,7 +68683,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit baz(): Field {"
-      "  kernel.mint(pad(32, ''), 5);"
+      "  kernel.mintShielded(pad(32, ''), 5);"
       "  return bar.length();"
       "}"
       )
@@ -68701,7 +68881,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     )
 
@@ -68998,7 +69178,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     )
 
@@ -69466,19 +69646,23 @@ groups than for single tests.
           (%descriptor.1 (tboolean))
           (%descriptor.2 (tunsigned 18446744073709551615))
           (%descriptor.3 (tbytes 32))
-          (%descriptor.4 (tstruct ContractAddress
+          (%descriptor.4 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tbytes 32))
+                           (right (tbytes 32))))
+          (%descriptor.5 (tunsigned
+                           340282366920938463463374607431768211455))
+          (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.5 (tunsigned 255))
-          (%descriptor.6 (tunsigned
-                           340282366920938463463374607431768211455)))
+          (%descriptor.7 (tunsigned 255)))
         (kernel-declaration (%kernel.7 () (Kernel)))
         (public-ledger-declaration
           ((%fld.8 (0) (Map (tboolean) (Map (tfield) (Counter)))))
           (constructor () (tuple)))
-        (circuit %bogus.9 ([%v.10 (tfield)])
+        (circuit %bogus.9 ([%v.0 (tfield)])
              (ttuple)
           (seq
-            (public-ledger %fld.8 (0 ((tboolean) #t) ((tfield) %v.10)) read)
+            (public-ledger %fld.8 (0 ((tboolean) #t) ((tfield) %v.0)) read)
             (tuple)))))
     )
 
@@ -69673,7 +69857,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     )
 
@@ -69707,8 +69891,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const state = new contractCode.Contract({}).initialState(runtime.createConstructorContext(undefined, '0'.repeat(64))).currentContractState;"
-        "  const viaSerialization = runtime.ContractState.deserialize(state.serialize(runtime.NetworkId.Undeployed), runtime.NetworkId.Undeployed);"
-        "  expect(state.serialize(runtime.NetworkId.Undeployed)).toEqual(viaSerialization.serialize(runtime.NetworkId.Undeployed));"
+        "  const viaSerialization = runtime.ContractState.deserialize(state.serialize());"
+        "  expect(state.serialize()).toEqual(viaSerialization.serialize());"
         "})"
         "test('check 2', () => {"
         "  expect(contractCode.pureCircuits.folding([3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).toEqual(93n);"
@@ -69730,8 +69914,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const state = new contractCode.Contract({}).initialState(runtime.createConstructorContext(undefined, '0'.repeat(64))).currentContractState;"
-        "  const viaSerialization = runtime.ContractState.deserialize(state.serialize(runtime.NetworkId.Undeployed), runtime.NetworkId.Undeployed);"
-        "  expect(state.serialize(runtime.NetworkId.Undeployed)).toEqual(viaSerialization.serialize(runtime.NetworkId.Undeployed));"
+        "  const viaSerialization = runtime.ContractState.deserialize(state.serialize());"
+        "  expect(state.serialize()).toEqual(viaSerialization.serialize());"
         "})"
         ))
     )
@@ -69753,8 +69937,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const state = new contractCode.Contract({}).initialState(runtime.createConstructorContext(undefined, '0'.repeat(64))).currentContractState;"
-        "  const viaSerialization = runtime.ContractState.deserialize(state.serialize(runtime.NetworkId.Undeployed), runtime.NetworkId.Undeployed);"
-        "  expect(state.serialize(runtime.NetworkId.Undeployed)).toEqual(viaSerialization.serialize(runtime.NetworkId.Undeployed));"
+        "  const viaSerialization = runtime.ContractState.deserialize(state.serialize());"
+        "  expect(state.serialize()).toEqual(viaSerialization.serialize());"
         "})"
         ))
     )
@@ -70255,7 +70439,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(qcoin: QualifiedCoinInfo, coin: CoinInfo): [] {"
+      "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "  createZswapInput(qcoin);"
       "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "}"
@@ -70610,7 +70794,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -71880,23 +72064,27 @@ groups than for single tests.
           (%descriptor.5 (tstruct S (a (tfield)) (b (tboolean))))
           (%descriptor.6 (tunsigned 18446744073709551615))
           (%descriptor.7 (tbytes 32))
-          (%descriptor.8 (tstruct ContractAddress
-                           (bytes (tbytes 32))))
-          (%descriptor.9 (tunsigned 255))
-          (%descriptor.10 (tunsigned
-                            340282366920938463463374607431768211455)))
-        (kernel-declaration (%kernel.11 () (Kernel)))
+          (%descriptor.8 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tbytes 32))
+                           (right (tbytes 32))))
+          (%descriptor.9 (tunsigned
+                           340282366920938463463374607431768211455))
+          (%descriptor.10 (tstruct ContractAddress
+                            (bytes (tbytes 32))))
+          (%descriptor.11 (tunsigned 255)))
+        (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.12 ([%x.13 (tboolean)] [%y.14 (tfield)])
+        (circuit %bar.13 ([%x.14 (tboolean)] [%y.15 (tfield)])
              (tstruct S (a (tfield)) (b (tboolean)))
-          (new (tstruct S (a (tfield)) (b (tboolean))) %y.14 %x.13))
-        (circuit %foo.15 ([%x.16 (tboolean)] [%y.17 (tfield)])
+          (new (tstruct S (a (tfield)) (b (tboolean))) %y.15 %x.14))
+        (circuit %foo.16 ([%x.17 (tboolean)] [%y.18 (tfield)])
              (tfield)
           (seq
-            (const [%__compact_pattern_tmp1.18 (tstruct S
+            (const [%__compact_pattern_tmp1.19 (tstruct S
                                                  (a (tfield))
                                                  (b (tboolean)))]
-              (call %bar.12 %x.16 %y.17))
+              (call %bar.13 %x.17 %y.18))
             (seq
               (const [%b.19 (tboolean)]
                 (elt-ref %__compact_pattern_tmp1.18 b 1))
@@ -72169,9 +72357,9 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger coins: List<QualifiedCoinInfo>;"
-      "export circuit receiveToken(dust: CoinInfo): [] {"
-      "  receive(disclose(dust));"
+      "export ledger coins: List<QualifiedShieldedCoinInfo>;"
+      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
+      "  receiveShielded(disclose(dust));"
       "  coins.pushFrontCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "}"
       )
@@ -72183,7 +72371,7 @@ groups than for single tests.
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
         "    value: 5n"
-        "  })).not.toThrow(runtime.CompactError);"
+        "  })).not.toThrow();"
         "});"
         ))
     )
@@ -72191,8 +72379,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger coins: List<QualifiedCoinInfo>;"
-      "export circuit receiveToken(dust: CoinInfo): [] {"
+      "export ledger coins: List<QualifiedShieldedCoinInfo>;"
+      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
       "  coins.pushFrontCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "}"
       )
@@ -72212,9 +72400,9 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger coins: Map<Field, QualifiedCoinInfo>;"
-      "export circuit receiveToken(dust: CoinInfo): [] {"
-      "  receive(disclose(dust));"
+      "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
+      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
+      "  receiveShielded(disclose(dust));"
       "  coins.insertCoin(0, disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "}"
       )
@@ -72226,7 +72414,7 @@ groups than for single tests.
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
         "    value: 5n"
-        "  })).not.toThrow(runtime.CompactError);"
+        "  })).not.toThrow();"
         "});"
         ))
     )
@@ -72234,8 +72422,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger coins: Map<Field, QualifiedCoinInfo>;"
-      "export circuit receiveToken(dust: CoinInfo): [] {"
+      "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
+      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
       "  coins.insertCoin(0, disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "}"
       )
@@ -72255,9 +72443,9 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger coins: Set<QualifiedCoinInfo>;"
-      "export circuit receiveToken(dust: CoinInfo): [] {"
-      "  receive(disclose(dust));"
+      "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
+      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
+      "  receiveShielded(disclose(dust));"
       "  coins.insertCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "}"
       )
@@ -72269,7 +72457,7 @@ groups than for single tests.
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
         "    value: 5n"
-        "  })).not.toThrow(runtime.CompactError);"
+        "  })).not.toThrow();"
         "});"
         ))
     )
@@ -72277,8 +72465,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger coins: Set<QualifiedCoinInfo>;"
-      "export circuit receiveToken(dust: CoinInfo): [] {"
+      "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
+      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
       "  coins.insertCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "}"
       )
@@ -72298,9 +72486,9 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger coin: QualifiedCoinInfo;"
-      "export circuit receiveToken(dust: CoinInfo): [] {"
-      "  receive(disclose(dust));"
+      "export ledger coin: QualifiedShieldedCoinInfo;"
+      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
+      "  receiveShielded(disclose(dust));"
       "  coin.writeCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "}"
       )
@@ -72312,7 +72500,7 @@ groups than for single tests.
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
         "    value: 5n"
-        "  })).not.toThrow(runtime.CompactError);"
+        "  })).not.toThrow();"
         "});"
         ))
     )
@@ -72320,8 +72508,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger coin: QualifiedCoinInfo;"
-      "export circuit receiveToken(dust: CoinInfo): [] {"
+      "export ledger coin: QualifiedShieldedCoinInfo;"
+      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
       "  coin.writeCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "}"
       )
@@ -73988,30 +74176,36 @@ groups than for single tests.
       )
     (returns
       (program
-        (type-descriptors
-          (%descriptor.32 (tbytes 32))
-          (%descriptor.33 (tunsigned 255))
-          (%descriptor.34 (tvector 62 (tunsigned 255)))
-          (%descriptor.35 (tunsigned 18446744073709551615))
-          (%descriptor.36 (tboolean))
-          (%descriptor.37 (tstruct ContractAddress
-                            (bytes (tbytes 32))))
-          (%descriptor.38 (tunsigned
-                            340282366920938463463374607431768211455)))
-        (kernel-declaration (%kernel.39 () (Kernel)))
+        (type-descriptors (%descriptor.108 (tbytes 32))
+          (%descriptor.109 (tunsigned 255))
+          (%descriptor.110 (tvector 62 (tunsigned 255)))
+          (%descriptor.111 (tunsigned 18446744073709551615))
+          (%descriptor.112 (tboolean))
+          (%descriptor.113
+            (tstruct
+              Either
+              (is_left (tboolean))
+              (left (tbytes 32))
+              (right (tbytes 32))))
+          (%descriptor.114
+            (tunsigned 340282366920938463463374607431768211455))
+          (%descriptor.115
+            (tstruct ContractAddress (bytes (tbytes 32)))))
+        (kernel-declaration (%kernel.1 () (Kernel)))
         (public-ledger-declaration
-          ((%F.40 (0) (__compact_Cell (tbytes 32))))
+          ((%F.2 (0) (__compact_Cell (tbytes 32))))
           (constructor () (tuple)))
-        (circuit %foo.41 ([%v.42 (tvector 62 (tunsigned 255))])
-             (tbytes 32)
-          (seq
-            (seq
-              (const [%tmp.43 (tbytes 32)]
-                (vector->bytes
-                  32
-                  (vector (spread 32 (tuple-slice %v.42 7 32)))))
-              (public-ledger %F.40 (0) write %tmp.43))
-            (public-ledger %F.40 (0) read)))))
+        (circuit
+          %foo.0
+          ((%v.3 (tvector 62 (tunsigned 255))))
+          (tbytes 32)
+          (seq (seq (const
+                      (%tmp.4 (tbytes 32))
+                      (vector->bytes
+                        32
+                        (vector (spread 32 (tuple-slice %v.3 7 32)))))
+                    (public-ledger %F.2 (0) write %tmp.4))
+               (public-ledger %F.2 (0) read)))))
     (stage-javascript
       `(
         "test('check 1', () => {"
@@ -74242,37 +74436,43 @@ groups than for single tests.
       )
     (returns
       (program
-        (type-descriptors
-          (%descriptor.70 (tbytes 70))
-          (%descriptor.71 (tunsigned 63))
-          (%descriptor.72 (tvector 1000 (tunsigned 63)))
-          (%descriptor.73 (tunsigned 18446744073709551615))
-          (%descriptor.74 (tboolean))
-          (%descriptor.75 (tbytes 32))
-          (%descriptor.76 (tstruct ContractAddress
-                            (bytes (tbytes 32))))
-          (%descriptor.77 (tunsigned 255))
-          (%descriptor.78 (tunsigned
-                            340282366920938463463374607431768211455)))
-        (kernel-declaration (%kernel.79 () (Kernel)))
+        (type-descriptors (%descriptor.1086 (tbytes 70))
+          (%descriptor.1087 (tunsigned 63))
+          (%descriptor.1088 (tvector 1000 (tunsigned 63)))
+          (%descriptor.1089 (tunsigned 18446744073709551615))
+          (%descriptor.1090 (tboolean)) (%descriptor.1091 (tbytes 32))
+          (%descriptor.1092
+            (tstruct
+              Either
+              (is_left (tboolean))
+              (left (tbytes 32))
+              (right (tbytes 32))))
+          (%descriptor.1093
+            (tunsigned 340282366920938463463374607431768211455))
+          (%descriptor.1094
+            (tstruct ContractAddress (bytes (tbytes 32))))
+          (%descriptor.1095 (tunsigned 255)))
+        (kernel-declaration (%kernel.1 () (Kernel)))
         (public-ledger-declaration
-          ((%F.80 (0) (__compact_Cell (tbytes 70))))
+          ((%F.2 (0) (__compact_Cell (tbytes 70))))
           (constructor () (tuple)))
-        (circuit %foo.81 ([%v.82 (tvector 1000 (tunsigned 63))])
-             (tbytes 70)
-          (seq
-            (seq
-              (const [%tmp.83 (tbytes 70)]
-                (vector->bytes
-                  70
-                  (vector
-                    (spread
-                      70
-                      (safe-cast (tvector 70 (tunsigned 255))
-                                 (tvector 70 (tunsigned 63))
-                        (tuple-slice %v.82 0 70))))))
-              (public-ledger %F.80 (0) write %tmp.83))
-            (public-ledger %F.80 (0) read)))))
+        (circuit
+          %foo.0
+          ((%v.3 (tvector 1000 (tunsigned 63))))
+          (tbytes 70)
+          (seq (seq (const
+                      (%tmp.4 (tbytes 70))
+                      (vector->bytes
+                        70
+                        (vector
+                          (spread
+                            70
+                            (safe-cast
+                              (tvector 70 (tunsigned 255))
+                              (tvector 70 (tunsigned 63))
+                              (tuple-slice %v.3 0 70))))))
+                    (public-ledger %F.2 (0) write %tmp.4))
+               (public-ledger %F.2 (0) read)))))
     (stage-javascript
       '(
         "test('check 1', () => {"
@@ -76652,42 +76852,50 @@ groups than for single tests.
      ; FIXME replace with stage-javascript checks for CC print-TS pass implementation
      (returns
        (program
-         (type-descriptors
-           (%descriptor.0 (tunsigned 18446744073709551615))
-           (%descriptor.1 (tboolean))
-           (%descriptor.2 (tbytes 32))
-           (%descriptor.3 (tstruct ContractAddress
-                            (bytes (tbytes 32))))
-           (%descriptor.4 (tunsigned 255))
-           (%descriptor.5 (tunsigned
-                            340282366920938463463374607431768211455)))
-         (kernel-declaration (%kernel.6 () (Kernel)))
+         (type-descriptors (%descriptor.5 (tunsigned 18446744073709551615))
+           (%descriptor.6 (tboolean)) (%descriptor.7 (tbytes 32))
+           (%descriptor.8
+             (tstruct
+               Either
+               (is_left (tboolean))
+               (left (tbytes 32))
+               (right (tbytes 32))))
+           (%descriptor.9
+             (tunsigned 340282366920938463463374607431768211455))
+           (%descriptor.10
+             (tstruct ContractAddress (bytes (tbytes 32))))
+           (%descriptor.11 (tunsigned 255)))
+         (kernel-declaration (%kernel.0 () (Kernel)))
          (public-ledger-declaration
-           ((%F.7
+           ((%F.1
               (0)
               (__compact_Cell
-                (tcontract C
+                (tcontract
+                  C
                   (foo #f ((tfield)) (tfield))
                   (bar #f () (ttuple)))))
-            (%F.8
-              (1)
-              (__compact_Cell
-                (tcontract C (foo #f ((tfield)) (tfield))))))
-           (constructor ([%c1.9 (tcontract C
-                                  (foo #f ((tfield)) (tfield))
-                                  (bar #f () (ttuple)))])
-             (seq
-               (public-ledger %F.7 (0) write %c1.9)
-               (seq
-                 (const [%tmp.10 (tcontract C (foo #f ((tfield)) (tfield)))]
-                   (safe-cast (tcontract C (foo #f ((tfield)) (tfield)))
-                              (tcontract C
-                                (foo #f ((tfield)) (tfield))
-                                (bar #f () (ttuple)))
-                     %c1.9))
-                 (public-ledger %F.8 (1) write %tmp.10))
-               (tuple))))))
-     ))
+             (%F.2
+               (1)
+               (__compact_Cell
+                 (tcontract C (foo #f ((tfield)) (tfield))))))
+           (constructor
+             ((%c1.3
+                (tcontract
+                  C
+                  (foo #f ((tfield)) (tfield))
+                  (bar #f () (ttuple)))))
+             (seq (public-ledger %F.1 (0) write %c1.3)
+                  (seq (const
+                         (%tmp.4 (tcontract C (foo #f ((tfield)) (tfield))))
+                         (safe-cast
+                           (tcontract C (foo #f ((tfield)) (tfield)))
+                           (tcontract
+                             C
+                             (foo #f ((tfield)) (tfield))
+                             (bar #f () (ttuple)))
+                           %c1.3))
+                       (public-ledger %F.2 (1) write %tmp.4))
+                  (tuple))))))))
 
   ; downcast failure for Contract types
   (test-group

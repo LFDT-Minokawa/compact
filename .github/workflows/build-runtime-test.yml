@@ -60,14 +60,14 @@ jobs:
         run: |
           cd ./runtime
           echo "
-          //npm.pkg.github.com/:_authToken=${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
+          //npm.pkg.github.com/:_authToken=${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
           @midnight-ntwrk:registry=https://npm.pkg.github.com/
           " > .npmrc
 
       - name: Configure yarn
         run: |
           cd ./runtime
-          yarn config set 'npmScopes.midnight-ntwrk.npmAuthToken' "${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}"
+          yarn config set 'npmScopes.midnight-ntwrk.npmAuthToken' "${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}"
           echo 'checksumBehavior: update' >> ./.yarnrc.yml
 
       - name: Build lib

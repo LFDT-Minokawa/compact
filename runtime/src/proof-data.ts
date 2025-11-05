@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
 
 /**
  * Encapsulates the data required to produce a zero-knowledge proof except the circuit output
@@ -41,20 +41,4 @@ export interface ProofData extends PartialProofData {
    * The outputs from a circuit
    */
   output: ocrt.AlignedValue;
-}
-
-/**
- * Verifies a given {@link ProofData} satisfies the constraints of a ZK circuit
- * described by given IR.
- *
- * @throws If the circuit is not satisfied
- */
-export function checkProofData(zkir: string, proofData: ProofData): void {
-  return ocrt.checkProofData(
-    zkir,
-    proofData.input,
-    proofData.output,
-    proofData.publicTranscript,
-    proofData.privateTranscriptOutputs,
-  );
 }

@@ -90,5 +90,5 @@ jobs:
           draft: false
           prerelease: false
           files: result/compact-*.vsix
-          token: ${{ secrets.MIDNIGHTBOT_PACKAGES_WRITE }}
+          token: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
           body: Compact VSC Plugin ${{ env.version }}
