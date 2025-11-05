@@ -21858,25 +21858,6 @@ groups than for single tests.
 
   (test
     '(
-      "import CompactStandardLibrary;"
-      "export type U32 = Uint<32>;"
-      "export circuit foo(x: U32): Uint<32> {"
-      "  return x;"
-      "}"
-      )
-    (returns
-      (program
-        (export-typedef U32 ()
-          (talias #f U32 (tunsigned 4294967295)))
-        (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %foo.1 ([%x.2 (talias #f U32
-                                 (tunsigned 4294967295))])
-             (tunsigned 4294967295)
-          %x.2)))
-    )
-
-  (test
-    '(
       "module M {"
       "  module M {"
       "    module M { }"
@@ -21911,19 +21892,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 5" "cycle involving ~a~?" ("module" "~#[~; ~a~;s ~a and ~a~:;s~@{~#[~; and~] ~a~^,~}~]" (M))))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "new type U32 = Uint<32>;"
-      "export circuit foo(x: U32): Uint<32> {"
-      "  return x;"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("U32=Uint<32>" "Uint<32>" "circuit foo")))
     )
 
   (test
@@ -22000,6 +21968,38 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 9" "cannot cast from type ~a to type ~a" ("Bytes<0>" "Field")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type U32 = Uint<32>;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  return x;"
+      "}"
+      )
+    (returns
+      (program
+        (export-typedef U32 ()
+          (talias #f U32 (tunsigned 4294967295)))
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%x.2 (talias #f U32
+                                 (tunsigned 4294967295))])
+             (tunsigned 4294967295)
+          %x.2)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type U32 = Uint<32>;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  return x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("U32=Uint<32>" "Uint<32>" "circuit foo")))
     )
 
   (test
