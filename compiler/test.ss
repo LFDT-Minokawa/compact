@@ -22652,7 +22652,7 @@ groups than for single tests.
         (public-ledger-declaration ())))
     )
 
-  ; FIXME PM-20353
+  ; FIXME PM-20295
   (test
     `(
       "import CompactStandardLibrary;"
