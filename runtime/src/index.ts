@@ -26,6 +26,7 @@ export * from './proof-data.js';
 export * from './witness.js';
 export * from './contract-dependencies.js';
 export * from './utils.js';
+export * from './executables.js';
 
 export {
   CostModel,
@@ -60,6 +61,7 @@ export {
   Signature,
   SigningKey,
   SignatureVerifyingKey,
+  communicationCommitmentRandomness,
   VmResults,
   VmStack,
   DomainSeperator,

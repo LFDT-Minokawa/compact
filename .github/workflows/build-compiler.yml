@@ -28,10 +28,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          
+
       - name: Run header checker
         run: python add_headers.py
-        
+
       - name: Add files
         run: |
           git add -A

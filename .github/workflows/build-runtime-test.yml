@@ -53,7 +53,7 @@ jobs:
           cache: midnight
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
-      - name: Checkout compactc repository 
+      - name: Checkout compactc repository
         uses: actions/checkout@v4
 
       - name: Setup .npmrc

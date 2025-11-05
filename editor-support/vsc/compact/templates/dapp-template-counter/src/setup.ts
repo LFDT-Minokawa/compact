@@ -14,50 +14,51 @@
 // limitations under the License.
 
 import {
-  type ContractState,
-  sampleContractAddress,
-  createCircuitContext
+    type ContractState,
+    sampleContractAddress,
+    createCircuitContext
 } from '@midnight-ntwrk/compact-runtime';
 import * as crypto from 'node:crypto';
-import { Contract, type Ledger, ledger, type Witnesses } from './managed/counter/contract/index.js';
+import {executables, type Executables, type Ledger, ledger, type Witnesses} from './managed/counter/contract/index.js';
 
 class PrivateState {
-  constructor(
-    public readonly secretKey: Uint8Array,
-    public readonly round: bigint
-  ) {}
+    constructor(
+        public readonly secretKey: Uint8Array,
+        public readonly round: bigint
+    ) {
+    }
 
-  static random(): PrivateState {
-    const outArray = new Uint8Array(32);
-    const secretKey = crypto.getRandomValues(outArray);
+    static random(): PrivateState {
+        const outArray = new Uint8Array(32);
+        const secretKey = crypto.getRandomValues(outArray);
 
-    return new PrivateState(secretKey, 0n);
-  }
+        return new PrivateState(secretKey, 0n);
+    }
 }
 
 export class SimpleWallet {
-  readonly contract: Contract<PrivateState>;
-  readonly privateState: PrivateState;
-  readonly contractState: ContractState;
+    readonly contract: Executables;
+    readonly privateState: PrivateState;
+    readonly contractState: ContractState;
 
-  constructor() {
-    const witnesses: Witnesses<PrivateState> = {};
-    this.contract = new Contract<PrivateState>(witnesses);
-    const privateState = PrivateState.random();
+    constructor() {
+        const witnesses: Witnesses<PrivateState> = {};
+        this.contract = executables(witnesses);
+        const privateState = PrivateState.random();
 
-    const [initPrivState, contractState] = this.contract.initialState(privateState);
-    this.contractState = contractState;
-    this.privateState = initPrivState;
-  }
+        const [initPrivState, contractState] = this.contract.initialState(privateState);
+        this.contractState = contractState;
+        this.privateState = initPrivState;
+    }
 
-  public getLedger(): Ledger {
-    return ledger(this.contractState.data);
-  }
+    public getLedger(): Ledger {
+        return ledger(this.contractState.data);
+    }
 
-  public increment(): Ledger {
-    const address = sampleContractAddress();
-    const ctx = createCircuitContext(address, '0'.repeat(64), this.contractState, this.privateState);
-    const circuitResults = this.contract.impureCircuits.increment(ctx);
-    return ledger(circuitResults.context.currentQueryContext.state);
-  }
+    public increment(): Ledger {
+        const address = sampleContractAddress();
+        const ctx = createCircuitContext('simpleWallet', 'increment', address, '0'.repeat(64), {[address]: this.contractState}, {[address]: this.privateState});
+        const circuitResults = this.contract.impureCircuits.increment(ctx);
+        return ledger(circuitResults.context.currentQueryContext.state);
+    }
 }

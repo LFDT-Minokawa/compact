@@ -533,4 +533,3 @@ echo '(import (json)) (equal? (read-json-file "/tmp/test.json") (read))' | schem
     -0.0 -1234567890 -3/2 -2300000 -1500000000000000000000000000
     (("string" . "a") ("zero" . 0.0) ("int" . 123))))
 END
-

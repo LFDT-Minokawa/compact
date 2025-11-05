@@ -14,7 +14,14 @@
 // limitations under the License.
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime';
-import { emptyZswapLocalState, EncodedCoinPublicKey, EncodedZswapLocalState } from './zswap.js';
+import {
+  assertIsEncodedZswapLocalState,
+  assertIsObject,
+  emptyZswapLocalState,
+  EncodedCoinPublicKey,
+  EncodedZswapLocalState,
+} from './zswap.js';
+import { CompactError } from './error.js';
 
 /**
  * Passed to the constructor of a contract. Used to compute the contract's initial ledger state.
@@ -23,7 +30,7 @@ export interface ConstructorContext<PS = any> {
   /**
    * The private state we would like to use to execute the contract's constructor.
    */
-  initialPrivateState: PS;
+  initialPrivateState: PS | undefined;
   /**
    * An initial (usually empty) Zswap local state to use to execute the contract's constructor.
    */
@@ -31,18 +38,44 @@ export interface ConstructorContext<PS = any> {
 }
 
 /**
+ * Predicate asserting that an arbitrary value is a valid constructor context.
+ *
+ * @param v A possible {@link ConstructorContext}.
+ */
+export function assertIsConstructorContext(v: any): asserts v is ConstructorContext {
+  assertIsObject(v);
+  if (!('initialPrivateState' in v)) {
+    throw new CompactError("Missing 'initialPrivateState' in constructor context");
+  }
+  if (!('initialZswapLocalState' in v)) {
+    throw new CompactError("Missing 'initialZswapLocalState' in constructor context");
+  }
+  assertIsEncodedZswapLocalState(v.initialZswapLocalState);
+}
+
+/**
  * Creates a new {@link ConstructorContext} with the given initial private state and an empty Zswap local state.
  *
- * @param initialPrivateState The private state to use to execute the contract's constructor.
  * @param coinPublicKey The Zswap coin public key of the user executing the contract.
+ * @param initialPrivateState The private state to use to execute the contract's constructor. Undefined if the contract
+ *                            has no private state.
  */
-export const createConstructorContext = <PS>(
-  initialPrivateState: PS,
+export function createConstructorContext(coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey): ConstructorContext<undefined>;
+
+export function createConstructorContext<PS>(
   coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey,
-): ConstructorContext<PS> => ({
-  initialPrivateState,
-  initialZswapLocalState: emptyZswapLocalState(coinPublicKey),
-});
+  initialPrivateState: PS,
+): ConstructorContext<PS>;
+
+export function createConstructorContext<PS>(
+  coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey,
+  initialPrivateState?: PS,
+): ConstructorContext<PS | undefined> {
+  return {
+    initialPrivateState,
+    initialZswapLocalState: emptyZswapLocalState(coinPublicKey),
+  };
+}
 
 /**
  * The result of executing a contract constructor.
@@ -55,7 +88,7 @@ export interface ConstructorResult<PS = any> {
   /**
    * The contract's initial private state. Potentially different from the private state passed in {@link ConstructorContext}.
    */
-  currentPrivateState: PS;
+  currentPrivateState?: PS;
   /**
    * The contract's initial Zswap local state. Potentially includes outputs created in the contract's constructor.
    */

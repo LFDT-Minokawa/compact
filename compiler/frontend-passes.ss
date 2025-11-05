@@ -26,6 +26,8 @@
           (ledger)
           (pass-helpers))
 
+  (define pattern-tmp-prefix "__compact_pattern_tmp")
+
   (define-pass resolve-includes : Lsrc (ir) -> Lnoinclude ()
     (definitions
       (define already-seen '()))
@@ -68,7 +70,7 @@
         (let ([n 0])
           (lambda ()
             (set! n (fx+ n 1))
-            (string->symbol (format "__compact_pattern_tmp~a" n)))))
+            (string->symbol (format "~a~a" pattern-tmp-prefix n)))))
       (define (do-pattern pattern stmt*)
         (with-output-language (Lnopattern Statement)
           (nanopass-case (Lsingleconst Pattern) pattern
@@ -189,7 +191,8 @@
   ;; context, i.e., one of the arms of an if statement.
   (define-pass hoist-local-variables : Lnopattern (ir) -> Lhoisted ()
     (definitions
-      (define vars))
+      (define vars)
+      (define in-seq-single-statement? #f))
     (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
       [(constructor ,src (,[arg*] ...) ,[SingleStatement : stmt])
        `(constructor ,src (,arg* ...) ,stmt)])

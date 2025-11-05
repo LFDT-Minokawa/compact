@@ -57,4 +57,3 @@ cargo-nextest = "0.9.97"
 pretty_assertions = "1.4.1"
 tempfile = "3.20.0"
 wiremock = "0.6.4"
-

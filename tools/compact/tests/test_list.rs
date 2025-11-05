@@ -15,7 +15,7 @@
 
 use crate::common::{
     COMPACT_VERSION, LATEST_COMPACTC_VERSION, OLDEST_COMPACTC_VERSION, PREVIOUS_COMPACTC_VERSION,
-    run_command,
+    VERSION_WITH_NO_FORMAT, run_command,
 };
 use std::env;
 
@@ -31,6 +31,7 @@ fn test_compact_list_no_param() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
         ],
         None,

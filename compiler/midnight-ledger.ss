@@ -888,7 +888,7 @@
   (function js-only find_path_for_leaf ([leaf value_type]) "${rtlib}MerkleTreePath<${value_type}> | undefined"
     "Finds the path for a given leaf in a Merkle tree. Be warned that this is \
     O(n) and should be avoided for large trees. Returns undefined if no such \
-    leaf exists. 
+    leaf exists.
     MerkleTreePath is defined in compact-runtime."
     ("((result) => result"
      "             ? new ${rtlib}CompactTypeMerkleTreePath(${nat}, ${value_type}).fromValue(result)"

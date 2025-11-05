@@ -13,100 +13,101 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const witnesses = {
-    num({ privateState }: any, n: bigint): [any, bigint] {
-        const fibs = [0, 0, 1, 1, 2, 3, 5, 8, 13];
-        return [privateState, BigInt(fibs[Number(n)])]
-    }
-};
+const witnessSets = {
+    [contractCode.contractId]:
+      {
+        num({ privateState }: any, n: bigint): [any, bigint] {
+          const fibs = [0, 0, 1, 1, 2, 3, 5, 8, 13];
+          return [privateState, BigInt(fibs[Number(n)])];
+        },
+      },
+  };
 
 test('Check fib 0', () => {
-  const [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    expect(c.circuits.fib(Ctxt, 1n).result).toEqual(0n)
+  const [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  expect(c.impureCircuits.fib(Ctxt, 1n).result).toEqual(0n);
 });
 
 test('Check fib 1', () => {
-    var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    expect(c.circuits.fib(Ctxt, 2n).result).toEqual(1n)
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  expect(c.impureCircuits.fib(Ctxt, 2n).result).toEqual(1n);
 });
 
 test('Check fib 3', () => {
-    var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    expect(c.circuits.fib(Ctxt, 3n).result).toEqual(2n)
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
+  expect(c.impureCircuits.fib(Ctxt, 3n).result).toEqual(2n);
 });
 
 test('Check fib 4', () => {
-    var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    expect(c.circuits.fib(Ctxt, 4n).result).toEqual(3n)
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
+  expect(c.impureCircuits.fib(Ctxt, 4n).result).toEqual(3n);
 });
 
 test('Check fib 5', () => {
-    var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    Ctxt = c.circuits.fib(Ctxt, 4n).context;
-    expect(c.circuits.fib(Ctxt, 5n).result).toEqual(5n)
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 4n).context;
+  expect(c.impureCircuits.fib(Ctxt, 5n).result).toEqual(5n);
 });
 
 test('Check fib 0', () => {
-    const [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    expect(c.circuits.fib(Ctxt, 1n).result).toEqual(0n)
+  const [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  expect(c.impureCircuits.fib(Ctxt, 1n).result).toEqual(0n);
 });
 
 test('Check fib 6', () => {
-    var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    Ctxt = c.circuits.fib(Ctxt, 4n).context;
-    Ctxt = c.circuits.fib(Ctxt, 5n).context;
-    expect(c.circuits.fib(Ctxt, 6n).result).toEqual(8n)
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 4n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 5n).context;
+  expect(c.impureCircuits.fib(Ctxt, 6n).result).toEqual(8n);
 });
 
 test('Check fib reset to 1', () => {
-    var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    Ctxt = c.circuits.fib(Ctxt, 4n).context;
-    Ctxt = c.circuits.fib(Ctxt, 5n).context;
-    expect(c.circuits.fib(Ctxt, 1n).result).toEqual(0n)
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 4n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 5n).context;
+  expect(c.impureCircuits.fib(Ctxt, 1n).result).toEqual(0n);
 });
 
 test('Check fib reset to 1', () => {
-    var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    Ctxt = c.circuits.fib(Ctxt, 4n).context;
-    Ctxt = c.circuits.fib(Ctxt, 5n).context;
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    expect(c.circuits.fib(Ctxt, 2n).result).toEqual(1n)
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 4n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 5n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  expect(c.impureCircuits.fib(Ctxt, 2n).result).toEqual(1n);
 });
 
 test('Check c > counter + 1', () => {
-    var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    Ctxt = c.circuits.fib(Ctxt, 4n).context;
-    Ctxt = c.circuits.fib(Ctxt, 5n).context;
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    expect(() => c.circuits.fib(Ctxt, 3n).result).toThrow(runtime.CompactError)
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 3n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 4n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 5n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  expect(() => c.impureCircuits.fib(Ctxt, 3n).result).toThrow(runtime.CompactError);
 });
 
 test('Check c > counter + 1', () => {
-    var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    expect(() => c.circuits.fib(Ctxt, 4n).result).toThrow('invalid fib num requested')
+  let [c, Ctxt] = startContract(contractCode, witnessSets, 0);
+  Ctxt = c.impureCircuits.fib(Ctxt, 1n).context;
+  Ctxt = c.impureCircuits.fib(Ctxt, 2n).context;
+  expect(() => c.impureCircuits.fib(Ctxt, 4n).result).toThrow('invalid fib num requested');
 });
-
-

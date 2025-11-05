@@ -413,77 +413,74 @@ export const CompactTypeOpaqueString: CompactType<string> = {
   },
 };
 
-/**
- * The following are type descriptors used to implement {@link createCoinCommitment}. They are not intended for direct
- * consumption.
- */
+export const CompactTypeBytes32 = new CompactTypeBytes(32);
 
-export const Bytes32Descriptor = new CompactTypeBytes(32);
+export const CompactTypeUInt64 = new CompactTypeUnsignedInteger(18446744073709551615n, 8);
 
-export const MaxUint8Descriptor = new CompactTypeUnsignedInteger(18446744073709551615n, 8);
+export const CompactTypeUInt8 = new CompactTypeUnsignedInteger(255n, 1);
 
-export const CoinInfoDescriptor = {
+export const CompactTypeCoinInfo = {
   alignment(): ocrt.Alignment {
-    return Bytes32Descriptor.alignment().concat(Bytes32Descriptor.alignment().concat(MaxUint8Descriptor.alignment()));
+    return CompactTypeBytes32.alignment().concat(CompactTypeBytes32.alignment().concat(CompactTypeUInt64.alignment()));
   },
   fromValue(value: ocrt.Value): { nonce: Uint8Array; color: Uint8Array; value: bigint } {
     return {
-      nonce: Bytes32Descriptor.fromValue(value),
-      color: Bytes32Descriptor.fromValue(value),
-      value: MaxUint8Descriptor.fromValue(value),
+      nonce: CompactTypeBytes32.fromValue(value),
+      color: CompactTypeBytes32.fromValue(value),
+      value: CompactTypeUInt64.fromValue(value),
     };
   },
   toValue(value: { nonce: Uint8Array; color: Uint8Array; value: bigint }): ocrt.Value {
-    return Bytes32Descriptor.toValue(value.nonce).concat(
-      Bytes32Descriptor.toValue(value.color).concat(MaxUint8Descriptor.toValue(value.value)),
+    return CompactTypeBytes32.toValue(value.nonce).concat(
+      CompactTypeBytes32.toValue(value.color).concat(CompactTypeUInt64.toValue(value.value)),
     );
   },
 };
 
-export const ZswapCoinPublicKeyDescriptor = {
+export const CompactTypeZswapCoinPublicKey = {
   alignment(): ocrt.Alignment {
-    return Bytes32Descriptor.alignment();
+    return CompactTypeBytes32.alignment();
   },
   fromValue(value: ocrt.Value): { bytes: Uint8Array } {
     return {
-      bytes: Bytes32Descriptor.fromValue(value),
+      bytes: CompactTypeBytes32.fromValue(value),
     };
   },
   toValue(value: { bytes: Uint8Array }): ocrt.Value {
-    return Bytes32Descriptor.toValue(value.bytes);
+    return CompactTypeBytes32.toValue(value.bytes);
   },
 };
 
-export const ContractAddressDescriptor = {
+export const CompactTypeContractAddress = {
   alignment(): ocrt.Alignment {
-    return Bytes32Descriptor.alignment();
+    return CompactTypeBytes32.alignment();
   },
   fromValue(value: ocrt.Value): { bytes: Uint8Array } {
     return {
-      bytes: Bytes32Descriptor.fromValue(value),
+      bytes: CompactTypeBytes32.fromValue(value),
     };
   },
   toValue(value: { bytes: Uint8Array }): ocrt.Value {
-    return Bytes32Descriptor.toValue(value.bytes);
+    return CompactTypeBytes32.toValue(value.bytes);
   },
 };
 
-export const CoinRecipientDescriptor = {
+export const CompactTypeRecipient = {
   alignment(): ocrt.Alignment {
     return CompactTypeBoolean.alignment().concat(
-      ZswapCoinPublicKeyDescriptor.alignment().concat(ContractAddressDescriptor.alignment()),
+      CompactTypeZswapCoinPublicKey.alignment().concat(CompactTypeContractAddress.alignment()),
     );
   },
   fromValue(value: ocrt.Value): { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } } {
     return {
       is_left: CompactTypeBoolean.fromValue(value),
-      left: ZswapCoinPublicKeyDescriptor.fromValue(value),
-      right: ContractAddressDescriptor.fromValue(value),
+      left: CompactTypeZswapCoinPublicKey.fromValue(value),
+      right: CompactTypeContractAddress.fromValue(value),
     };
   },
   toValue(value: { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } }): ocrt.Value {
     return CompactTypeBoolean.toValue(value.is_left).concat(
-      ZswapCoinPublicKeyDescriptor.toValue(value.left).concat(ContractAddressDescriptor.toValue(value.right)),
+      CompactTypeZswapCoinPublicKey.toValue(value.left).concat(CompactTypeContractAddress.toValue(value.right)),
     );
   },
 };

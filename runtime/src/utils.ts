@@ -15,6 +15,7 @@
 
 import { ContractAddress } from '@midnight-ntwrk/onchain-runtime';
 import { EncodedContractAddress } from './zswap.js';
+import { expectedValueError } from './error.js';
 
 /**
  * Regex matching hex strings of even length.
@@ -22,7 +23,7 @@ import { EncodedContractAddress } from './zswap.js';
 export const HEX_REGEX_NO_PREFIX = /^([0-9A-Fa-f]{2})*$/;
 
 /**
- * The expected length (in bytes) of a contract address.
+ * The expected length (in bytes) of a contract address as represented in compact.
  */
 export const CONTRACT_ADDRESS_BYTE_LENGTH = 34;
 
@@ -35,6 +36,27 @@ export function isContractAddress(x: unknown): x is ContractAddress {
   return typeof x === 'string' && x.length === CONTRACT_ADDRESS_BYTE_LENGTH * 2 && HEX_REGEX_NO_PREFIX.test(x);
 }
 
+/**
+ * Throws an error if the input value is not a {@link ContractAddress}, i.e., string.
+ *
+ * @param value The value that is asserted to be a {@link ContractAddress}.
+ */
+export function assertIsContractAddress(value: unknown): asserts value is ContractAddress {
+  if (!isContractAddress(value)) {
+    expectedValueError('contract address', value);
+  }
+}
+
+/**
+ * The expected length (in bytes) of a contract address as represented in compact.
+ */
+export const ENCODED_CONTRACT_ADDRESS_BYTE_LENGTH = 32;
+
+/**
+ * Tests whether the input value is a {@link EncodedContractAddress}.
+ *
+ * @param x The value that is tested to be a {@link EncodedContractAddress}.
+ */
 export function isEncodedContractAddress(x: unknown): x is EncodedContractAddress {
   return (
     typeof x === 'object' &&
@@ -42,8 +64,19 @@ export function isEncodedContractAddress(x: unknown): x is EncodedContractAddres
     x !== undefined &&
     'bytes' in x &&
     x.bytes instanceof Uint8Array &&
-    x.bytes.length == CONTRACT_ADDRESS_BYTE_LENGTH
+    x.bytes.length == ENCODED_CONTRACT_ADDRESS_BYTE_LENGTH
   );
+}
+
+/**
+ * Throws an error if the input value is not a {@link EncodedContractAddress}, i.e., string.
+ *
+ * @param value The value that is asserted to be a {@link EncodedContractAddress}.
+ */
+export function assertIsEncodedContractAddress(value: unknown): asserts value is EncodedContractAddress {
+  if (!isEncodedContractAddress(value)) {
+    expectedValueError('encoded contract address', value);
+  }
 }
 
 export const fromHex = (s: string): Uint8Array => Buffer.from(s, 'hex');

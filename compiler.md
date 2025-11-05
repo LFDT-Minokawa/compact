@@ -2701,11 +2701,11 @@ number and types of arguments.
     if (typeof(witnesses.private$secret_key) !== 'function')
       throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor does not contain a function-valued field named private$secret_key');
     if (!(typeof(value) === 'bigint' && value >= 0 && value <= __compactRuntime.MAX_FIELD))
-      __compactRuntime.type_error('Contract constructor',
-                                  'argument 1',
-                                  'tiny.compact line 12, char 3',
-                                  'Field',
-                                  value)
+      __compactRuntime.typeError('Contract constructor',
+                                 'argument 1',
+                                 'tiny.compact line 12, char 3',
+                                 'Field',
+                                 value)
     this.witnesses = witnesses;
 ```
 
@@ -2769,12 +2769,12 @@ Structuring the code in this manner has a couple of benefits:
           throw new __compactRuntime.CompactError(`set: expected 1 argument, received ${args_0.length}`);
         const value_0 = args_0[0];
         if (!(typeof(value_0) === 'bigint' && value_0 >= 0 && value_0 <= __compactRuntime.MAX_FIELD))
-          __compactRuntime.type_error('set',
-                                      'argument 1',
-                                      'tiny.compact line 22, char 1',
-                                      'Field',
-                                      value_0)
-        return this._set_0(value_0);
+          __compactRuntime.typeError('set',
+                                     'argument 1',
+                                     'tiny.compact line 22, char 1',
+                                     'Field',
+                                     value_0)
+        return this.#_set_0(value_0);
       },
       get: (...args_0) => {
         if (args_0.length !== 0)

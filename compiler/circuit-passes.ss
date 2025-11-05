@@ -243,7 +243,7 @@
     (Map-Argument : Map-Argument (ir src) -> Expression (type make-ref)
       [(,[expr] ,[type] ,[type^])
        (values
-         expr 
+         expr
          type
          (nanopass-case (Lunrolled Type) type
            [(ttuple ,src ,type* ...)
@@ -1091,7 +1091,7 @@
         (nanopass-case (Lnovectorref Type) type
           [(tbytes ,src ,len) len]
           [else (assert cannot-happen)]))
-      (define-syntax mvor 
+      (define-syntax mvor
         (syntax-rules ()
           [(_ e) e]
           [(_ e1 e2 e3 ...)
@@ -1106,7 +1106,7 @@
                         (and
                           (or (not (bytevector? datum))
                               (<= (bytevector-length datum) (field-bytes))) ; avoid duplicating bytes objects that don't fit in a field
-                          (values 
+                          (values
                             `(quote ,src ,datum)
                             ctv))))
                     (if-has-in-scope-var-name ctv

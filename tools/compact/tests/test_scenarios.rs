@@ -46,6 +46,7 @@ fn test_sc1_update_list_compile() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
             ("[SYSTEM_VERSION]", get_version()),
         ],
@@ -109,6 +110,7 @@ fn test_sc2_update_update_list() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
             ("[SYSTEM_VERSION]", get_version()),
         ],
@@ -164,6 +166,7 @@ fn test_sc3_update_compile_clean_list() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
         ],
         None,
@@ -183,6 +186,7 @@ fn test_sc4_list_update_list_clean_list() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
         ],
         None,
@@ -208,6 +212,7 @@ fn test_sc4_list_update_list_clean_list() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
         ],
         None,
@@ -230,6 +235,7 @@ fn test_sc4_list_update_list_clean_list() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
         ],
         None,
@@ -481,6 +487,7 @@ fn test_sc7_update_previous_list_compile() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
         ],
         None,
@@ -532,6 +539,7 @@ fn test_sc8_update_oldest_list_compile() {
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
             ("[PREVIOUS_COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[VERSION_WITH_NO_FORMAT]", VERSION_WITH_NO_FORMAT),
             ("[OLDEST_COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION),
         ],
         None,

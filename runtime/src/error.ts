@@ -37,10 +37,29 @@ export function assert(b: boolean, s: string): void {
 }
 
 /**
+ * Compiler internal for asserting an object is non-nullable.
+ * @internal
+ */
+export function assertDefined<T>(t: T | undefined, name: string): asserts t is NonNullable<T> {
+  if (t === undefined || t === null) {
+    throw new CompactError(`Expected ${name} to be defined`);
+  }
+}
+
+/**
  * Compiler internal for type errors
  * @internal
  */
 export function typeError(who: string, what: string, where: string, type: string, x: any): never {
   const msg = `type error: ${who} ${what} at ${where}; expected value of type ${type} but received ${inspect(x)}`;
   throw new CompactError(msg);
+}
+
+/**
+ * Compiler internal for unexpected value errors
+ * @param expected The name of the expected value
+ * @param actual The actual value
+ */
+export function expectedValueError(expected: string, actual: unknown): never {
+  throw new CompactError(`Expected ${expected} but received ${JSON.stringify(actual)}`);
 }

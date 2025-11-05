@@ -15,8 +15,9 @@
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime';
 import { CircuitContext } from './circuit-context.js';
-import { Bytes32Descriptor, CoinInfoDescriptor, CoinRecipientDescriptor, Recipient } from './compact-types.js';
+import { CompactTypeBytes32, CompactTypeCoinInfo, CompactTypeRecipient, Recipient } from './compact-types.js';
 import { toHex } from './utils.js';
+import { assertDefined, CompactError } from './error.js';
 
 /**
  * Tracks the coins consumed and produced throughout circuit execution.
@@ -137,6 +138,140 @@ export interface EncodedZswapLocalState {
 }
 
 /**
+ * Predicate asserting that an arbitrary value is a valid struct containing `bytes`.
+ *
+ * @param v A possible struct containing `bytes`.
+ */
+export function assertIsEncodedBytes(v: any): asserts v is { bytes: Uint8Array } {
+  assertIsObject(v);
+  if (!('bytes' in v)) {
+    throw new CompactError(`Expected 'bytes' in struct, but got ${JSON.stringify(v)}`);
+  }
+  if (!(v.bytes instanceof Uint8Array)) {
+    throw new CompactError(`Expected 'bytes' to be a Uint8Array, but got ${JSON.stringify(v)}`);
+  }
+}
+
+export function assertIsObject(v: any): asserts v is object {
+  if (typeof v !== 'object' || v === null || v === undefined) {
+    throw new CompactError(`Expected an object, but got ${JSON.stringify(v)}`);
+  }
+}
+
+/**
+ * Predicate asserting that an arbitrary value is a valid {@link EncodedRecipient}.
+ *
+ * @param v A possible {@link EncodedRecipient}.
+ */
+export function assertIsEncodedRecipient(v: any): asserts v is EncodedRecipient {
+  assertIsObject(v);
+  if (!('is_left' in v)) {
+    throw new CompactError(`Expected 'is_left' in recipient, but got ${JSON.stringify(v)}`);
+  }
+  if (!('left' in v)) {
+    throw new CompactError(`Expected 'left' in recipient, but got ${JSON.stringify(v)}`);
+  }
+  if (!('right' in v)) {
+    throw new CompactError(`Expected 'right' in recipient, but got ${JSON.stringify(v)}`);
+  }
+  assertIsEncodedBytes(v.left);
+  assertIsEncodedBytes(v.right);
+}
+
+/**
+ * Predicate asserting that an arbitrary value is a valid {@link EncodedCoinInfo}.
+ *
+ * @param v A possible {@link EncodedCoinInfo}.
+ */
+export function assertIsEncodedCoinInfo(v: any): asserts v is EncodedCoinInfo {
+  assertIsObject(v);
+  if (!('nonce' in v)) {
+    throw new CompactError(`Expected 'nonce' in coin info, but got ${JSON.stringify(v)}`);
+  }
+  if (!('color' in v)) {
+    throw new CompactError(`Expected 'color' in coin info, but got ${JSON.stringify(v)}`);
+  }
+  if (!('value' in v)) {
+    throw new CompactError(`Expected 'value' in coin info, but got ${JSON.stringify(v)}`);
+  }
+  if (!(v.nonce instanceof Uint8Array)) {
+    throw new CompactError(`Expected 'nonce' to be a Uint8Array, but got ${JSON.stringify(v)}`);
+  }
+  if (!(v.color instanceof Uint8Array)) {
+    throw new CompactError(`Expected 'color' to be a Uint8Array, but got ${JSON.stringify(v)}`);
+  }
+  if (typeof v.value !== 'bigint') {
+    throw new CompactError(`Expected 'value' to be a bigint, but got ${JSON.stringify(v)}`);
+  }
+}
+
+/**
+ * Predicate asserting that an arbitrary value is a valid entry in `outputs` of {@link EncodedZswapLocalState}.
+ *
+ * @param v A possible valid entry in `outputs` of {@link EncodedZswapLocalState}.
+ */
+export function assertIsEncodedOutput(v: any): asserts v is { coinInfo: EncodedCoinInfo; recipient: EncodedRecipient } {
+  assertIsObject(v);
+  if (!('coinInfo' in v)) {
+    throw new CompactError(`Expected 'coinInfo' in output, but got ${JSON.stringify(v)}`);
+  }
+  if (!('recipient' in v)) {
+    throw new CompactError(`Expected 'recipient' in output, but got ${JSON.stringify(v)}`);
+  }
+  assertIsEncodedCoinInfo(v.coinInfo);
+  assertIsEncodedRecipient(v.recipient);
+}
+
+/**
+ * Predicate asserting that an arbitrary value is a valid {@link EncodedQualifiedCoinInfo}.
+ *
+ * @param v A possible {@link EncodedQualifiedCoinInfo}.
+ */
+export function assertIsEncodedQualifiedCoinInfo(v: any): asserts v is EncodedQualifiedCoinInfo {
+  assertIsObject(v);
+  assertIsEncodedCoinInfo(v);
+  if (!('mt_index' in v)) {
+    throw new CompactError(`Expected an object with 'mt_index', but got ${JSON.stringify(v)}`);
+  }
+  if (typeof v.mt_index !== 'bigint') {
+    throw new CompactError(`Expected 'mt_index' to be a bigint, but got ${JSON.stringify(v)}`);
+  }
+}
+
+/**
+ * Predicate asserting that an arbitrary value is a valid {@link EncodedZswapLocalState}.
+ *
+ * @param v A possible {@link EncodedZswapLocalState}.
+ */
+export function assertIsEncodedZswapLocalState(v: any): asserts v is EncodedZswapLocalState {
+  assertIsObject(v);
+  if (!('coinPublicKey' in v)) {
+    throw new CompactError(`Expected 'coinPublicKey' in Zswap local state, but got ${JSON.stringify(v)}`);
+  }
+  if (!('currentIndex' in v)) {
+    throw new CompactError(`Expected 'currentIndex' in Zswap local state, but got ${JSON.stringify(v)}`);
+  }
+  if (!('inputs' in v)) {
+    throw new CompactError(`Expected 'inputs' in Zswap local state, but got ${JSON.stringify(v)}`);
+  }
+  if (!('outputs' in v)) {
+    throw new CompactError(`Expected 'outputs' in Zswap local state, but got ${JSON.stringify(v)}`);
+  }
+  assertIsEncodedBytes(v.coinPublicKey);
+  if (typeof v.currentIndex !== 'bigint') {
+    throw new CompactError(`Expected 'currentIndex' to be a bigint, but got ${JSON.stringify(v)}`);
+  }
+  if (!Array.isArray(v.inputs)) {
+    throw new CompactError(`Expected 'inputs' to be an array, but got ${JSON.stringify(v)}`);
+  }
+  if (!Array.isArray(v.outputs)) {
+    throw new CompactError(`Expected 'outputs' to be an array, but got ${JSON.stringify(v)}`);
+  }
+  v.inputs.forEach(assertIsEncodedQualifiedCoinInfo);
+  v.outputs.forEach(assertIsEncodedOutput);
+}
+
+/**
  * Constructs a new {@link EncodedZswapLocalState} with the given coin public key. The result can be used to create a
  * {@link ConstructorContext}.
  *
@@ -148,6 +283,20 @@ export const emptyZswapLocalState = (coinPublicKey: ocrt.CoinPublicKey | Encoded
   inputs: [],
   outputs: [],
 });
+
+/**
+ * Constructs a record mapping contract addresses to fresh {@link EncodedZswapLocalState}s, each with the given coin
+ * public key.
+ *
+ * @param coinPublicKey The Zswap coin public key of the user executing the circuit.
+ * @param addresses The set of contracts involved in the circuit call. For contracts that don't call other contracts,
+ *                  the array has one element.
+ */
+export const emptyZswapLocalStates = (
+  coinPublicKey: ocrt.CoinPublicKey | EncodedCoinPublicKey,
+  addresses: ocrt.ContractAddress[],
+): Record<ocrt.ContractAddress, EncodedZswapLocalState> =>
+  Object.fromEntries(addresses.map((address) => [address, emptyZswapLocalState(coinPublicKey)]));
 
 /**
  * Converts an {@link Recipient} to an {@link EncodedRecipient}. Useful for testing.
@@ -205,6 +354,10 @@ export const decodeZswapLocalState = (state: EncodedZswapLocalState): ZswapLocal
  * @param qualifiedCoinInfo The input to consume.
  */
 export function createZswapInput(circuitContext: CircuitContext, qualifiedCoinInfo: EncodedQualifiedCoinInfo): void {
+  assertDefined(
+    circuitContext.currentZswapLocalState,
+    `Zswap local state for contract '${circuitContext.contractId}' with address '${circuitContext.contractAddress}'`,
+  );
   circuitContext.currentZswapLocalState = {
     ...circuitContext.currentZswapLocalState,
     inputs: circuitContext.currentZswapLocalState.inputs.concat(qualifiedCoinInfo),
@@ -222,12 +375,12 @@ export function createZswapInput(circuitContext: CircuitContext, qualifiedCoinIn
 function createCoinCommitment(coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): ocrt.AlignedValue {
   return ocrt.coinCommitment(
     {
-      value: CoinInfoDescriptor.toValue(coinInfo),
-      alignment: CoinInfoDescriptor.alignment(),
+      value: CompactTypeCoinInfo.toValue(coinInfo),
+      alignment: CompactTypeCoinInfo.alignment(),
     },
     {
-      value: CoinRecipientDescriptor.toValue(recipient),
-      alignment: CoinRecipientDescriptor.alignment(),
+      value: CompactTypeRecipient.toValue(recipient),
+      alignment: CompactTypeRecipient.alignment(),
     },
   );
 }
@@ -241,8 +394,13 @@ function createCoinCommitment(coinInfo: EncodedCoinInfo, recipient: EncodedRecip
  *                  representing a contract.
  */
 export function createZswapOutput(circuitContext: CircuitContext, coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): void {
+  assertDefined(circuitContext.currentQueryContext, `query context for contract ${circuitContext.contractAddress}`);
+  assertDefined(
+    circuitContext.currentZswapLocalState,
+    `Zswap local state for contract '${circuitContext.contractId}' with address '${circuitContext.contractAddress}'`,
+  );
   circuitContext.currentQueryContext = circuitContext.currentQueryContext.insertCommitment(
-    toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)),
+    toHex(CompactTypeBytes32.fromValue(createCoinCommitment(coinInfo, recipient).value)),
     circuitContext.currentZswapLocalState.currentIndex,
   );
   circuitContext.currentZswapLocalState = {
@@ -261,6 +419,10 @@ export function createZswapOutput(circuitContext: CircuitContext, coinInfo: Enco
  * @param circuitContext The current circuit context.
  */
 export function ownPublicKey(circuitContext: CircuitContext): EncodedCoinPublicKey {
+  assertDefined(
+    circuitContext.currentZswapLocalState,
+    `Zswap local state for contract '${circuitContext.contractId}' with address '${circuitContext.contractAddress}'`,
+  );
   return circuitContext.currentZswapLocalState.coinPublicKey;
 }
 
@@ -271,7 +433,9 @@ export function ownPublicKey(circuitContext: CircuitContext): EncodedCoinPublicK
  * @param coinInfo The coin information to check.
  * @param recipient The coin recipient to check.
  */
-export const hasCoinCommitment = (context: CircuitContext, coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): boolean =>
-  context.currentQueryContext.comIndicies.has(
-    toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)),
+export const hasCoinCommitment = (context: CircuitContext, coinInfo: EncodedCoinInfo, recipient: EncodedRecipient): boolean => {
+  assertDefined(context.currentQueryContext, `query context for contract ${context.contractAddress}`);
+  return context.currentQueryContext.comIndicies.has(
+    toHex(CompactTypeBytes32.fromValue(createCoinCommitment(coinInfo, recipient).value)),
   );
+};

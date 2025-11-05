@@ -31,6 +31,14 @@ export interface PartialProofData {
    * The transcript of the witness call outputs
    */
   privateTranscriptOutputs: ocrt.AlignedValue[];
+  /**
+   * The communication commitment randomness used to construct the contract call corresponding to this object.
+   */
+  communicationCommitmentRand: ocrt.CommunicationCommitmentRand;
+  /**
+   * The communication commitment computed from the circuit ID and circuit input and output values.
+   */
+  communicationCommitment?: ocrt.CommunicationCommitment;
 }
 
 /**

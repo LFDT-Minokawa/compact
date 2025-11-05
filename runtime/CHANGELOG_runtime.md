@@ -1,5 +1,17 @@
 # `@midnight-ntwrk/compact-runtime` Changelog
 
+# Runtime Version `0.10.101`
+
+- Introduces standard type definitions for the different kinds of executable JavaScript the compiler generates, such as `Circuits` and `StateConstructor`.
+  This allows third-party libraries, e.g. Midnight.js, to interact with contract executables in the most general and type-safe way possible.
+- Introduces the `Executables` type to represent the collection of JavaScript executables generated for a compiled contract, including pure and impure circuits,
+  an initial state constructor, a ledger state decoder, and witness sets. `Executables` replaces the `Contract` class the compiler previously generated.
+- Generalizes `CircuitContext` to track the public and private states of multiple contracts and maintain the `ProofData` associated with each contract call.
+  Functions for creating and manipulating `CircuitContext` are also introduced to simplify the compiler target and reduce code duplication.
+- Introduces the `queryLedgerState` utility function. This prevents the compiler from having to generate a separate `query` function for each contract.
+- Generalizes the `ConstructorContext` type to allow `initialPrivateState` to be optional. This makes it more economical to instantiate and execute contracts
+  that do not have a private state.
+
 # Runtime version `0.10.1`
 - Addresses PM 19145: Migrated to ES Modules (ESM). The runtime package is now a pure ES module.
   * Added "type": "module" to package.json
@@ -30,3 +42,4 @@
   to convertFieldToBytes and convertBytesToField, added a source string, and
   modified the error message to include the source information.  added a new
   routine convertBytesToUint to handle casts from Bytes to Uints.
+

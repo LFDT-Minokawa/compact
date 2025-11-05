@@ -1009,7 +1009,7 @@
        `(public-ledger-declaration ,src ,id
           ,(nanopass-case (Lexpanded Type) type
              [,public-adt public-adt]
-             [else 
+             [else
               (let ([p (or Cell-ADT-env
                            (let ([p (add-rib empty-env)])
                              (do-import src 'CompactStandardLibrary '() ""
@@ -3892,7 +3892,7 @@
                            len
                            len^))]
          [else (source-errorf src "expected Bytes<~d>, got ~a for cast-from-bytes"
-                              len 
+                              len
                               (format-type type^))])
        type]
       [(field->bytes ,src ,len ,[Care : expr -> * type])
@@ -4617,7 +4617,7 @@
            (let ([witness1 (car witness1*)] [witness2 (car witness2*)])
              (if (eq? witness1 witness2)
                  (cons witness1 (merge-witnesses (cdr witness1*) (cdr witness2*)))
-                 (let ([uid1 (witness-uid witness1)] [uid2 (witness-uid witness2)]) 
+                 (let ([uid1 (witness-uid witness1)] [uid2 (witness-uid witness2)])
                    (cond
                      [(fx= uid1 uid2)
                       (cons (let ([path1 (witness-path witness1)] [path2 (witness-path witness2)])

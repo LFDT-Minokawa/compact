@@ -68,7 +68,7 @@ Products:
   of clauses, the last must be an else clause of the form:
 
     [else <body>]
-  
+
   The variant clauses may appear in any order and the field names need not be the
   same as those given in the datatype definition.  (They are instead specified
   positionally.)
@@ -93,7 +93,7 @@ Example:
          [(fun) (Fun (cadr x) (parse (caddr x)))]
          [else (Call (parse (car x)) (map parse (cdr x)))])]
       [else (Const x)]))
-    
+
   (define (ev x r)
     (AST-case x
       [(Ref v) (cdr (assq v r))]
@@ -104,7 +104,7 @@ Example:
          (ev body (append (map cons fmls args) r)))]
       [(Call proc actuals)
         (apply (ev proc r) (map (lambda (x) (ev x r)) actuals))]))
-  
+
   (AST? (parse #'(fun (x) x)))
 
   (parse #'(fun (x) x)) ;=> (Const #<syntax (fun (x) x)>)

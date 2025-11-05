@@ -11,7 +11,7 @@ on:
         description: 'Release branch'
         required: true
         type: string
-    secrets: 
+    secrets:
       MIDNIGHTCI_PACKAGES_READ:
         required: true
       MIDNIGHTBOT_PACKAGES_WRITE:
