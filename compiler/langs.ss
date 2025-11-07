@@ -29,7 +29,7 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
-          Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
+          Lexpanded unparse-Lexpanded Lexpanded-pretty-formats Lexpanded-Public-Ledger-ADT?
           Ltypes unparse-Ltypes Ltypes-pretty-formats Ltypes-Public-Ledger-ADT?
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Type? Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats Loneledger-Ledger-Declaration?

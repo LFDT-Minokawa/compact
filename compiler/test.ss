@@ -20070,7 +20070,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "expected a tuple, Vector, or Bytes type, received ~a" ("Boolean")))
+      irritants: '("testfile.compact line 2 char 10" "expected first slice argument to be a tuple, Vector, or Bytes type, received ~a" ("Boolean")))
     )
 
   (test
@@ -22189,6 +22189,64 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~s" ("T1=Uint<32>" "T2=Uint<32>" *)))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type X = Map<Field, Field>;"
+      "export ledger x: X;"
+      "export circuit foo(y: Field): Field {"
+      "  x.insert(disclose(y), disclose(y) + 1);"
+      "  return x.lookup(disclose(y));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "cannot export alias for ADT types from the top level" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type X = Map<Field, Field>;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "cannot export alias for ADT types from the top level" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type X = Map<Field, Field>;"
+      "export ledger x: X;"
+      "export circuit foo(y: Field): Field {"
+      "  x.insert(disclose(y), disclose(y) + 1);"
+      "  return x.lookup(disclose(y));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "nominal type aliases are not supported for ADT types; use 'type' instead of 'new type'" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type X = Map<Field, Field>;"
+      )
+    (returns
+      (program (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct S { x: Blue };"
+      )
+    (returns
+      (program (public-ledger-declaration %kernel.0 (Kernel))))
+    )
 )
 
 ; tests limits for vectors, bytes, and tuples.
@@ -22949,25 +23007,25 @@ groups than for single tests.
     `(
       "import CompactStandardLibrary;"
       "constructor(){"
-      ,(format "  for (const bob of slice<0>(default<Field>, ~d)) {" (max-bytes/vector-length))
+      ,(format "  for (const bob of slice<0>(default<Field>, ~d)) {" 0)
       "  }"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 46" "expected a tuple, Vector, or Bytes type, received ~a" ("Field")))
+      irritants: '("testfile.compact line 3 char 21" "expected first slice argument to be a tuple, Vector, or Bytes type, received ~a" ("Field")))
     )
 
   (test
     `(
       "import CompactStandardLibrary;"
       "constructor(){"
-      ,(format "  const x = default<Field>[~d];" (max-bytes/vector-length))
+      ,(format "  const x = default<Field>[~d];" 0)
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 28" "expected a tuple, Vector, or Bytes type, received ~a" ("Field")))
+      irritants: '("testfile.compact line 3 char 13" "expected a tuple, Vector, or Bytes type, received ~a" ("Field")))
     )
 
 )
@@ -22977,7 +23035,7 @@ groups than for single tests.
     `(
       "import CompactStandardLibrary;"
       "constructor(){"
-      ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" (+ (max-bytes/vector-length) 1))
+      ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" 32)
       "  }"
       "}"
       )
@@ -22987,35 +23045,33 @@ groups than for single tests.
         (public-ledger-declaration ())))
     )
 
-  ; FIXME PM-20295
   (test
     `(
       "import CompactStandardLibrary;"
       "ledger x: Counter;"
       "constructor(){"
       "  x.resetToDefault();"
-      ,(format "  for (const bob of slice<2>(default<Bytes<32>>, ~d)) {" (+ (max-bytes/vector-length) 1))
+      ,(format "  for (const bob of slice<2>(default<Bytes<32>>, ~d)) {" 32)
       "    x += bob;"
       "  }"
       "}"
       )
-    (returns
-      (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
-        (public-ledger-declaration ((%x.1 (0) (Counter))))))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 21" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (32 2 "Bytes value" 32)))
     )
 
   (test
     `(
       "import CompactStandardLibrary;"
       "export circuit foo(): []{"
-      ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" (+ (max-bytes/vector-length) 1))
+      ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" 33)
       "  }"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 3 char 21" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (,(+ (max-bytes/vector-length) 1) 0 32)))
+      irritants: '("testfile.compact line 3 char 21" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (33 0 "Bytes value" 32)))
     )
 
   (test
@@ -78566,7 +78622,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -78623,7 +78679,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -78680,7 +78736,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -78735,7 +78791,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -78795,7 +78851,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -78878,7 +78934,7 @@ groups than for single tests.
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
-        "export declare function ledger(state: __compactRuntime.StateValue): Ledger;"
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       '(
@@ -79613,6 +79669,105 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: false }).result).toEqual(false);"
         "  expect(C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 108n], b: true }).result).toEqual(false);"
         "  expect(C.circuits.mt(Ctxt).result).toEqual({ x: [0n, 0n, 0n], b: false });"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger V: V3U16;"
+      "export type V3U16 = VU16<3>;"
+      "export type VU16<#N> = Vector<N, U16>;"
+      "export type U16 = Uint<16>;"
+      "export circuit foo(v: V3U16): V3U16 {"
+      "  V = map((x) => x + x as U16, disclose(v));"
+      "  return V;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [101n, 103n, 107n]).result).toEqual([202n, 206n, 214n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger V: V3U16;"
+      "export new type V3U16 = VU16<3>;"
+      "export new type VU16<#N> = Vector<N, U16>;"
+      "export new type U16 = Uint<16>;"
+      "export circuit foo(v: V3U16): V3U16 {"
+      "  V = map((x) => x + x, disclose(v)) as V3U16;"
+      "  return V;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [101n, 103n, 107n]).result).toEqual([202n, 206n, 214n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger V: U16;"
+      "export type V3U16 = VU16<3>;"
+      "export type VU16<#N> = Vector<N, U16>;"
+      "export type U16 = Uint<16>;"
+      "export circuit foo(v: V3U16): U16 {"
+      "  V = fold((a: U16, x) => a + x as U16, 4, disclose(v));"
+      "  return V;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [7n, 11n, 13n]).result).toEqual(35n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger V: U16;"
+      "export new type V3U16 = VU16<3>;"
+      "export new type VU16<#N> = Vector<N, U16>;"
+      "export new type U16 = Uint<16>;"
+      "export circuit foo(v: V3U16): U16 {"
+      "  V = fold((a: U16, x) => a + x as U16, 4 as U16, disclose(v));"
+      "  return V;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [7n, 11n, 13n]).result).toEqual(35n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type X = Map<Field, Field>;"
+      "export ledger x: X;"
+      "export circuit foo(y: Field): Field {"
+      "  x.insert(disclose(y), disclose(y) + 1);"
+      "  return x.lookup(disclose(y));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 17n).result).toEqual(18n);"
         "});"
         ))
     )

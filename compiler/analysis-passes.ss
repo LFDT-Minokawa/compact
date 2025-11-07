@@ -831,8 +831,13 @@
         (let ([nactual (length info*)] [ndeclared (length type-param*)])
           (unless (fx= nactual ndeclared) (generic-argument-count-oops src type-name nactual ndeclared)))
         (let ([p^ (add-tvar-rib src p^ type-param* info*)])
-          (with-output-language (Lexpanded Type)
-            `(talias ,alias-src ,nominal? ,type-name ,(Type type p^)))))
+          (let ([type (Type type p^)])
+            (cond
+              [(Lexpanded-Public-Ledger-ADT? type)
+               (when nominal? (source-errorf alias-src "nominal type aliases are not supported for ADT types; use 'type' instead of 'new type'"))
+               type]
+              [else (with-output-language (Lexpanded Type)
+                      `(talias ,alias-src ,nominal? ,type-name ,type))]))))
       (define (apply-ledger-ADT src adt-name type-param* vm-expr adt-op* adt-rt-op* p info*)
         (let ([nactual (length info*)] [ndeclared (length type-param*)])
           (unless (fx= nactual ndeclared)
@@ -996,7 +1001,7 @@
                           (set! exported-type*
                             (cons
                               (let ([type (apply-type-alias src src^ #f type-name type-param* type p^
-                                                        (map Info-free-tvar (map type-param->tvar-name type-param*)))]
+                                            (map Info-free-tvar (map type-param->tvar-name type-param*)))]
                                     [tvar-name* (fold-right
                                                   (lambda (type-param tvar-name*)
                                                     (nanopass-case (Lpreexpand Type-Param) type-param
@@ -1070,7 +1075,7 @@
        `(public-ledger-declaration ,src ,id
           ,(nanopass-case (Lexpanded Type) type
              [,public-adt public-adt]
-             [else 
+             [else
               (let ([p (or Cell-ADT-env
                            (let ([p (add-rib empty-env)])
                              (do-import src 'CompactStandardLibrary '() ""
@@ -2291,6 +2296,12 @@
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
       [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
        `(witness ,src ,function-name (,arg* ...) ,type)])
+    (Export-Type-Definition :  Export-Type-Definition (ir) -> Export-Type-Definition ()
+      [(export-typedef ,src ,type-name (,tvar-name* ...) ,type)
+       (let ([adt-type (Public-Ledger-ADT-Type type)])
+         (if (Ltypes-Public-Ledger-ADT? adt-type)
+             (source-errorf src "cannot export alias for ADT types from the top level")
+             `(export-typedef ,src ,type-name (,tvar-name* ...) ,adt-type)))])
     (ADT-Op : ADT-Op (ir) -> ADT-Op ())
     (ADT-Op-Class : ADT-Op-Class (ir) -> ADT-Op-Class ())
     (Argument : Argument (ir) -> Argument ()
@@ -2740,7 +2751,7 @@
                  `(tuple-slice ,src ,expr-type ,expr ,kindex ,len)
                  (with-output-language (Ltypes Type)
                    `(tvector ,src ,len ,type^)))]
-              [else (source-errorf src "expected a tuple, Vector, or Bytes type, received ~a"
+              [else (source-errorf src "expected first slice argument to be a tuple, Vector, or Bytes type, received ~a"
                                    (format-type expr-type))]))]
          [else
           (let ()
