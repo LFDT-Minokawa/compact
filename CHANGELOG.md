@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.26.119 language version 0.18.103]
+
+### Fixed
+
+- The type checker was not raising an exception for casts from Bytes<0> values
+  to Field or Uint values and vice versa, which led to confusing downstream errors
+  in some cases.
+
 ## [Unreleased compiler version 0.26.118 language version 0.18.103]
 
 ### Added

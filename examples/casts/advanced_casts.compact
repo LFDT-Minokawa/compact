@@ -484,7 +484,6 @@ export circuit test19(): [] {
     const b = (0 as Uint<1>) as Bytes<1>;
     const c = [1, 2, ...returnBytes19()] as Vector<3, Uint<9>>;
     const d = returnVector19(true) as Vector<1, Bytes<1>>;
-    const e = Bytes[] as Uint<1>;
     const f = returnTuple19() as [Uint<1>, Bytes<1>];
     const g = Bytes[1,2,3,4,5] as Vector<5, Uint<9>>;
 

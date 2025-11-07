@@ -14059,7 +14059,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incomptable with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at line 4 char 1:\n        <type>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Boolean, Field)\n      declared argument types for function at line 2 char 1:\n        (Field, Field)\n      declared argument types for function at line 5 char 1:\n        (Vector<7, Field>, Field)" "\n    one function is incompatible because fold requires the return type and the first argument type to be the same\n      declared first-argument and return types for function at line 3 char 1:\n        Boolean\n        Field")))
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at line 4 char 1:\n        <type>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Boolean, Field)\n      declared argument types for function at line 2 char 1:\n        (Field, Field)\n      declared argument types for function at line 5 char 1:\n        (Vector<7, Field>, Field)" "\n    one function is incompatible because fold requires the return type and the first argument type to be the same\n      declared first-argument and return types for function at line 3 char 1:\n        Boolean\n        Field")))
     )
 
   (test
@@ -16715,7 +16715,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (P "\n    one function is incomptable with the supplied generic values\n      supplied generic values:\n        <size 2, type Field, type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>" #f #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (P "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 2, type Field, type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>" #f #f)))
     )
 
   (test
@@ -16729,7 +16729,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    one function is incomptable with the supplied generic values\n      supplied generic values:\n        <size 11>\n      declared generics for function at line 1 char 1:\n        <type>" #f #f)))
+      irritants: '("testfile.compact line 5 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 11>\n      declared generics for function at line 1 char 1:\n        <type>" #f #f)))
     )
 
   (test
@@ -16746,7 +16746,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    two functions are incomptable with the supplied generic values\n      supplied generic values:\n        <type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>\n      declared generics for function at line 4 char 1:\n        <size>" #f #f)))
+      irritants: '("testfile.compact line 8 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    two functions are incompatible with the supplied generic values\n      supplied generic values:\n        <type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>\n      declared generics for function at line 4 char 1:\n        <size>" #f #f)))
     )
 
   (test
@@ -16769,7 +16769,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 14 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    two functions are incomptable with the supplied generic values\n      supplied generic values:\n        <type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>\n      declared generics for function at line 4 char 1:\n        <size>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<3>)\n      declared argument types for function at line 7 char 1:\n        (Boolean)\n      declared argument types for function at line 10 char 1:\n        (Uint<16>, Boolean)" #f)))
+      irritants: '("testfile.compact line 14 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    two functions are incompatible with the supplied generic values\n      supplied generic values:\n        <type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>\n      declared generics for function at line 4 char 1:\n        <size>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<3>)\n      declared argument types for function at line 7 char 1:\n        (Boolean)\n      declared argument types for function at line 10 char 1:\n        (Uint<16>, Boolean)" #f)))
     )
 
   (test
@@ -17503,7 +17503,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (transientHash "\n    one function is incomptable with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at <standard library>:\n        <type>" #f #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (transientHash "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at <standard library>:\n        <type>" #f #f)))
     )
 
   (test-group
@@ -21781,7 +21781,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 54" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incomptable with the supplied generic values\n      supplied generic values:\n        <size 8, type Field>\n      declared generics for function at line 2 char 3:\n        <size>" #f #f)))
+      irritants: '("testfile.compact line 3 char 54" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 8, type Field>\n      declared generics for function at line 2 char 3:\n        <size>" #f #f)))
     )
 
   (test
@@ -21857,6 +21857,69 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 37" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "Boolean" "circuit foo")))
+    )
+
+  ; pm-20231
+  (test
+    `(
+      "ledger F: Bytes<0>;"
+      "export circuit foo(): Bytes<0> {"
+      "  F = 0 as Bytes<0>;"
+      "  return F;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 7" "cannot cast from type ~a to type ~a" ("Uint<0..1>" "Bytes<0>")))
+    )
+
+  (test
+    `(
+      "module M<#N> {"
+      "  ledger F: Bytes<N>;"
+      "  export circuit foo(x: Field): Bytes<N> {"
+      "    F = disclose(x) as Bytes<N>;"
+      "    return F;"
+      "  }"
+      "}"
+      "import { foo as foo0} from M<0>;"
+      "export { foo0 };"
+      ; "import { foo as foo1} from M<1>;"
+      ; "export { foo1 };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 9" "cannot cast from type ~a to type ~a" ("Field" "Bytes<0>")))
+    )
+
+  (test
+    `(
+      "ledger F: Field;"
+      "export circuit foo(): Field {"
+      "  return Bytes[] as Field;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Bytes<0>" "Field")))
+    )
+
+  (test
+    `(
+      "module M<#N> {"
+      "  ledger F: Field;"
+      "  export circuit foo(bv: Bytes<N>): Field {"
+      "    F = disclose(bv) as Field;"
+      "    return F;"
+      "  }"
+      "}"
+      "import { foo as foo0} from M<0>;"
+      "import { foo as foo1} from M<1>;"
+      "export { foo0, foo1 };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 9" "cannot cast from type ~a to type ~a" ("Bytes<0>" "Field")))
     )
 )
 
@@ -37029,12 +37092,9 @@ groups than for single tests.
     '(
        "export circuit baz(arg: Bytes<0>) : Field { return arg as Field; }"
        )
-    (returns
-      (program
-        (public-ledger-declaration ())
-        (circuit %baz.0 ((argument () (ty ((abytes 0)) ())))
-             (ty ((afield)) ((tfield)))
-          (0))))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 52" "cannot cast from type ~a to type ~a" ("Bytes<0>" "Field")))
     )
 
   (test
@@ -37132,15 +37192,9 @@ groups than for single tests.
     '(
        "export circuit foo(arg: Field) : Bytes<0> { return arg as Bytes<0>; }"
        )
-    (returns
-      (program
-        (public-ledger-declaration ())
-        (circuit %foo.0 ((argument
-                           (%arg.1)
-                           (ty ((afield)) ((tfield)))))
-             (ty ((abytes 0)) ())
-          (= (%t.2 %t.3) (field->bytes 1 0 %arg.1))
-          ())))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 52" "cannot cast from type ~a to type ~a" ("Field" "Bytes<0>")))
     )
 
   (test
@@ -73717,14 +73771,9 @@ groups than for single tests.
       "  return F;"
       "}"
       )
-    (stage-javascript
-      '(
-        "test('check 1', () => {"
-        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const t = C.circuits.foo(Ctxt);"
-        "  expect(t.result).toEqual(0n);"
-        "  });"
-        ))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 7" "cannot cast from type ~a to type ~a" ("Bytes<0>" "Field")))
     )
 
   (test
@@ -73736,14 +73785,9 @@ groups than for single tests.
       "  return F;"
       "}"
       )
-    (stage-javascript
-      '(
-        "test('check 1', () => {"
-        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const t = C.circuits.foo(Ctxt, new Uint8Array([]));"
-        "  expect(t.result).toEqual(0n);"
-        "  });"
-        ))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 7" "cannot cast from type ~a to type ~a" ("Bytes<0>" "Field")))
     )
 
   (test

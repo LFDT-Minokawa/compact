@@ -43,7 +43,6 @@ export circuit test3(): Field {
     var_3a = b * b;
 
     const [] = [];
-    const _ = [], [] = _, g = (_ as Bytes<0> as Field as Uint<128> as Field) * (_ as Bytes<0> as Field as Uint<128> as Field) * (0 - 1) as Bytes<0> as Field as Uint<128> as Field;
   }
 
   return (1 as Boolean || () => { const a = 1, b = 2; return true; }()) as Field;

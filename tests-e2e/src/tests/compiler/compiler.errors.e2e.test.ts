@@ -43,7 +43,7 @@ describe('[Errors] Compiler', () => {
         },
         {
             file: 'typeParams.compact',
-            error: /Exception: typeParams.compact line 22 char 10: no compatible function named none is in scope at this call; one function is incomptable with the supplied generic values; supplied generic values: <>; declared generics for function at <standard library>: <type>/,
+            error: /Exception: typeParams.compact line 22 char 10: no compatible function named none is in scope at this call; one function is incompatible with the supplied generic values; supplied generic values: <>; declared generics for function at <standard library>: <type>/,
         },
         {
             file: 'missing.compact',
