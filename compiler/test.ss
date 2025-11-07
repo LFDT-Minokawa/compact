@@ -14059,7 +14059,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incomptable with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at line 4 char 1:\n        <type>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Boolean, Field)\n      declared argument types for function at line 2 char 1:\n        (Field, Field)\n      declared argument types for function at line 5 char 1:\n        (Vector<7, Field>, Field)" "\n    one function is incompatible because fold requires the return type and the first argument type to be the same\n      declared first-argument and return types for function at line 3 char 1:\n        Boolean\n        Field")))
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at line 4 char 1:\n        <type>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Boolean, Field)\n      declared argument types for function at line 2 char 1:\n        (Field, Field)\n      declared argument types for function at line 5 char 1:\n        (Vector<7, Field>, Field)" "\n    one function is incompatible because fold requires the return type and the first argument type to be the same\n      declared first-argument and return types for function at line 3 char 1:\n        Boolean\n        Field")))
     )
 
   (test
@@ -16715,7 +16715,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (P "\n    one function is incomptable with the supplied generic values\n      supplied generic values:\n        <size 2, type Field, type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>" #f #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (P "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 2, type Field, type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>" #f #f)))
     )
 
   (test
@@ -16729,7 +16729,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    one function is incomptable with the supplied generic values\n      supplied generic values:\n        <size 11>\n      declared generics for function at line 1 char 1:\n        <type>" #f #f)))
+      irritants: '("testfile.compact line 5 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 11>\n      declared generics for function at line 1 char 1:\n        <type>" #f #f)))
     )
 
   (test
@@ -16746,7 +16746,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    two functions are incomptable with the supplied generic values\n      supplied generic values:\n        <type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>\n      declared generics for function at line 4 char 1:\n        <size>" #f #f)))
+      irritants: '("testfile.compact line 8 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    two functions are incompatible with the supplied generic values\n      supplied generic values:\n        <type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>\n      declared generics for function at line 4 char 1:\n        <size>" #f #f)))
     )
 
   (test
@@ -16769,7 +16769,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 14 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    two functions are incomptable with the supplied generic values\n      supplied generic values:\n        <type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>\n      declared generics for function at line 4 char 1:\n        <size>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<3>)\n      declared argument types for function at line 7 char 1:\n        (Boolean)\n      declared argument types for function at line 10 char 1:\n        (Uint<16>, Boolean)" #f)))
+      irritants: '("testfile.compact line 14 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (A "\n    two functions are incompatible with the supplied generic values\n      supplied generic values:\n        <type Boolean>\n      declared generics for function at line 1 char 1:\n        <type, type>\n      declared generics for function at line 4 char 1:\n        <size>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<3>)\n      declared argument types for function at line 7 char 1:\n        (Boolean)\n      declared argument types for function at line 10 char 1:\n        (Uint<16>, Boolean)" #f)))
     )
 
   (test
@@ -17503,7 +17503,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (transientHash "\n    one function is incomptable with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at <standard library>:\n        <type>" #f #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (transientHash "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at <standard library>:\n        <type>" #f #f)))
     )
 
   (test-group
@@ -21781,7 +21781,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 54" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incomptable with the supplied generic values\n      supplied generic values:\n        <size 8, type Field>\n      declared generics for function at line 2 char 3:\n        <size>" #f #f)))
+      irritants: '("testfile.compact line 3 char 54" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 8, type Field>\n      declared generics for function at line 2 char 3:\n        <size>" #f #f)))
     )
 
   (test

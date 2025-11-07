@@ -1645,7 +1645,7 @@
                                                     generic-kind**))])
                        (and (not (null? generic-kind**))
                             (format "\n    \
-                                     ~a incomptable with the supplied generic values\n      \
+                                     ~a incompatible with the supplied generic values\n      \
                                      supplied generic values:\n        <~{~a~^, ~}>\
                                      ~{\n      ~a~}"
                               (functions-are generic-failure*)
