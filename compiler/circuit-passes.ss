@@ -978,7 +978,7 @@
                                (format-type type^))))
             adt-type* type^* (enumerate adt-type*))
           adt-type])]
-      [(contract-call ,src ,elt-name (,expr ,type) (,expr* ,type*) ...)
+      [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (nanopass-case (Linlined Type) type
          [(tcontract ,src^ ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ... )
           (let ([adt-type* (map Care expr*)])
@@ -1571,9 +1571,9 @@
        (values
          `(call ,src ,function-name ,expr* ...)
          (CTV-unknown no-var-name))]
-      [(contract-call ,src ,elt-name (,[expr ctv] ,[type]) (,[expr* ctv*] ,[type*]) ...)
+      [(contract-call ,src ,elt-name (,[expr ctv] ,[type]) ,[expr* ctv*]...)
        (values
-         `(contract-call ,src ,elt-name (,expr ,type) (,expr* ,type*) ...)
+         `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
          (CTV-unknown no-var-name))]
       [else (internal-errorf 'Expression "unexpected expr ~s" (unparse-Lnovectorref ir))])
     (Tuple-Argument : Tuple-Argument (ir) -> Tuple-Argument (maybe-ctv*)
@@ -1757,9 +1757,9 @@
        (values
          `(call ,src ,function-name ,expr* ...)
          (idset-union-all idset*))]
-      [(contract-call ,src ,elt-name (,[Value : expr idset] ,type) (,[Value : expr* idset*] ,type*) ...)
+      [(contract-call ,src ,elt-name (,[Value : expr idset] ,type) ,[Value : expr* idset*] ...)
        (values
-         `(contract-call ,src ,elt-name (,expr ,type) (,expr* ,type*) ...)
+         `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
          (idset-union-all (cons idset idset*)))])
     (Tuple-Argument-Value : Tuple-Argument (ir) -> Tuple-Argument (idset)
       [(single ,src ,[Value : expr idset])
@@ -2136,8 +2136,7 @@
              (lambda (triv*)
                (k (with-output-language (Lcircuit Rhs)
                     `(public-ledger ,src ,test ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,triv* ...)))))))]
-      [(contract-call ,src ,elt-name (,expr ,[type]) (,expr* ,[type*]) ...)
-       ; FIXME do i need type* in the result
+      [(contract-call ,src ,elt-name (,expr ,[type]) ,expr* ...)
        (Triv expr test
          (lambda (triv)
            (Triv* expr* test

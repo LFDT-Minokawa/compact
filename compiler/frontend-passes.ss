@@ -384,6 +384,8 @@
       [(and ,src ,[expr1] ,[expr2]) `(if ,src ,expr1 ,expr2 (quote ,src #f))]
       [(or ,src ,[expr1] ,[expr2]) `(if ,src ,expr1 (quote ,src #t) ,expr2)]))
 
+  ; NB this is linked to the hash function used in the ledger to hash the called circuit name
+  ; any change to the ledger's hash func should be propagated to this.
   (define (midnight-hash-entry-point) "midnight:entry-point\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0")
 
   (define-pass wrap-contract-circuits : Lnoandornot (ir) -> Lexpandedcontractcall ()

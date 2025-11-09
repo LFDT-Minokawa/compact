@@ -374,9 +374,10 @@
       ;;      (tcontract contract-name #f (elt-name* function-name* pure-dcl* (type** ...) #f type*) ...))
       )
     (Expression (expr index)
-      (+ (contract-call-temp src elt-name) => (contract-call-temp elt-name))
-      (+ (contract-call src elt-name (expr type) expr* ...) =>
-           (contract-call elt-name 4 (expr 0 type) #f expr* ...))
+      (+ (contract-call-temp src elt-name) => (contract-call-temp elt-name)
+         ;; (contract-call src elt-name (expr type) expr* ...) => ; uncommenting this results in the weirdest error
+         ;;   (contract-call elt-name 4 (expr 0 type) #f expr* ...)
+           )
       ))
 
   (define-language/pretty Lpreexpand (extends Lexpandedcontractcall)
@@ -686,7 +687,7 @@
       (>= src mbits expr1 expr2)              => (>= expr1 3 expr2)
       (== src type expr1 expr2)               => (== expr1 3 expr2)
       (!= src type expr1 expr2)               => (!= expr1 3 expr2)
-      (map src nat fun map-arg map-arg* ...) =>
+      (map src nat fun map-arg map-arg* ...)  =>
         (map #f fun #f map-arg #f map-arg* ...)
       (fold src nat fun (expr0 type0) map-arg map-arg* ...) =>
         (fold #f fun #f expr0 #f map-arg #f map-arg* ...)

@@ -4308,7 +4308,7 @@
       [(call ,src ,function-name^ ,[expr*] ...)
        (process-function-name! function-name src function-name^)
        ir]
-      [(contract-call ,src ,elt-name (,expr ,type) ,[expr*]...)
+      [(contract-call ,src ,elt-name (,expr ,type) ,[expr*] ...)
        (nanopass-case (Lnodca Type) type
          [(tcontract ,src^ ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...)
           (let loop ([elt-name* elt-name*] [pure-dcl* pure-dcl*])
@@ -5262,7 +5262,6 @@
       [(disclose ,src ,[expr]) expr]))
 
   (define-passes analysis-passes
-    ;; (wrap-contract-circuits          Lwrapper)
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
     (infer-types                     Ltypes)
