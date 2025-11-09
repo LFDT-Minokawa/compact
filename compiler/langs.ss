@@ -27,6 +27,7 @@
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
           Lexpr unparse-Lexpr Lexpr-pretty-formats
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
+          Lexpandedcontractcall unparse-Lexpandedcontractcall Lexpandedcontractcall-pretty-formats
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
@@ -360,7 +361,25 @@
          (or src expr1 expr2)
          (not src expr))))
 
-  (define-language/pretty Lpreexpand (extends Lnoandornot)
+  (define-language/pretty Lexpandedcontractcall (extends Lnoandornot)
+    (External-Contract-Circuit (ecdecl-circuit)
+      (- (src pure-dcl function-name (arg* ...) type))
+      (+ (src pure-dcl function-name function-name^ (arg* ...) type) =>
+           (pure-dcl function-name function-name^ (arg* ...) type)))
+    (Type (type)
+          ; TODO do i need to add wrapper function name to tcontract type??
+      (+ (tcontract-temp src contract-name) => (tcontract contract-name))
+      ; function-name* are the wrapper names
+      ;; (+ (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...) =>
+      ;;      (tcontract contract-name #f (elt-name* function-name* pure-dcl* (type** ...) #f type*) ...))
+      )
+    (Expression (expr index)
+      (+ (contract-call-temp src elt-name) => (contract-call-temp elt-name))
+      (+ (contract-call src elt-name (expr type) expr* ...) =>
+           (contract-call elt-name 4 (expr 0 type) #f expr* ...))
+      ))
+
+  (define-language/pretty Lpreexpand (extends Lexpandedcontractcall)
     (terminals
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name))
          (string (prefix mesg opaque-type file)))
@@ -479,7 +498,8 @@
       (+ (external-contract src contract-name ecdecl-circuit* ...) =>
            (external-contract contract-name ecdecl-circuit* ...)))
     (External-Contract-Circuit (ecdecl-circuit)
-      (- (src pure-dcl function-name (arg* ...) type))
+      ; function-name^ is inserted in tcontract and can be dropped here
+      (- (src pure-dcl function-name function-name^ (arg* ...) type))
       (+ (src pure-dcl elt-name (arg* ...) type) =>
            (pure-dcl elt-name (arg* ...) type)))
     (Module-Definition (mdefn)
@@ -551,8 +571,9 @@
          (tunsigned src nat)    => (tunsigned nat)
          (tvector src len type) => (tvector len type)
          (tbytes src len)       => (tbytes len)
-         (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
-           (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
+         ; FIXME if you're keeping function-name then you have to set pure and export for it. export is always t and then you can drop pure-dcl
+         (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...) =>
+           (tcontract contract-name #f (elt-name* function-name* pure-dcl* (type** ...) #f type*) ...)
          (tstruct src struct-name (elt-name* type*) ...) =>
            (tstruct struct-name #f (elt-name* type*) ...)
          (tenum src enum-name elt-name elt-name* ...) =>
@@ -685,12 +706,8 @@
       (disclose src expr)                     => (disclose expr)
       (ledger-call src ledger-op (maybe sugar) expr expr* ...) =>
         (ledger-call ledger-op #f expr #f expr* ...)
-      ; TODO if you don't use type* drop it
-      ; type* takes the types of args in contract call
-      ; this is needed for generating the first argument of
-      ; transientCommit for a contract call expansion.
-      (contract-call src elt-name (expr type) (expr* type*) ...) =>
-        (contract-call elt-name 4 (expr 0 type) #f (expr* type*) ...)
+      (contract-call src elt-name (expr type) expr* ...) =>
+        (contract-call elt-name 4 (expr 0 type) #f expr* ...)
       (return src expr)                       => expr
       )
     (Map-Argument (map-arg)
@@ -713,8 +730,9 @@
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
-      (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
-        (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
+      ; TODO decide if you need to function-name -> elt-name
+      (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...) =>
+        (tcontract contract-name #f (elt-name* function-name* pure-dcl* (type** ...) #f type*) ...)
       (tstruct src struct-name (elt-name* type*) ...) =>
         (tstruct struct-name #f (elt-name* type*) ...)
       (tenum src enum-name elt-name elt-name* ...) =>
@@ -744,12 +762,7 @@
       (+ (public-ledger src ledger-field-name (maybe sugar) accessor* ...) =>
            (public-ledger ledger-field-name #f accessor* ...)))
     (Ledger-Accessor (accessor)
-      (+ (src ledger-op expr* ...)              => (ledger-op #f expr* ...)))
-    (Expression (expr index)
-      (- (contract-call src elt-name (expr type) (expr* type*) ...))
-      ; TODO if you don't use it drop public-binding
-      (+ (contract-call src elt-name public-binding (expr type) (expr* type*) ...) =>
-         (contract-call elt-name 4 public-binding 4 (expr 0 type) #f (expr* type*) ...))))
+      (+ (src ledger-op expr* ...)              => (ledger-op #f expr* ...))))
 
   (define-language/pretty Lnodca (extends Loneledger)
     (Expression (expr index)
@@ -1023,7 +1036,7 @@
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
-      (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
+      (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) => ; do I need the wrapper name here? TODO
         (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
       (tstruct src struct-name (elt-name* type*) ...) =>
         (tstruct struct-name #f (elt-name* type*) ...)

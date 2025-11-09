@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A new IR is added.  It is called `Lexpanedcontractcall`.  It adds the wrapper 
+  function name for a circuit defined in a contract.  This wrapper name is what 
+  is eventually called for a contract call and since it is prodcued in one 
+  pass but consumed in another we pass it through a structure between these
+  two passes.  This IR also adds `tcontract` type and `contract-call` expression.
+  These were needed for what the corresponding pass needs to generate. 
+  TODO fix the tcontract and contract-call in this IR.
+- 
 - Inserts `transientCommit` when a contract declaration exists in 
   `insert-transientCommit`. Note: this has to come before `expand-modules-and-types` 
   so that the `transientCommit` is added to the external declarations and so that 

@@ -384,7 +384,139 @@
       [(and ,src ,[expr1] ,[expr2]) `(if ,src ,expr1 ,expr2 (quote ,src #f))]
       [(or ,src ,[expr1] ,[expr2]) `(if ,src ,expr1 (quote ,src #t) ,expr2)]))
 
-  (define-pass prepare-for-expand : Lnoandornot (ir) -> Lpreexpand())
+  (define (midnight-hash-entry-point) "midnight:entry-point\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0")
+
+  (define-pass wrap-contract-circuits : Lnoandornot (ir) -> Lexpandedcontractcall ()
+    (definitions
+      (define (sha256 circuit-name)
+        (define (hex-string->bytevector hex-str)
+          (let* ([len (string-length hex-str)]
+                 [bv (make-bytevector (/ len 2))])
+            (let loop ([i 0])
+              (when (< i len)
+                (let* ([hex-byte (substring hex-str i (+ i 2))]
+                       [byte (string->number hex-byte 16)])
+                  (unless byte (external-errorf "shasum produced invalid hex string ~s" hex-str))
+                  (bytevector-u8-set! bv (/ i 2) byte)
+                  (loop (+ i 2)))))
+            bv))
+        (let* ([entry (midnight-hash-entry-point)])
+          ; TODO have TK check this with what ledger generates
+          (let-values ([(stdout-stuff stderr-stuff) (shell (format "echo -n ~a~a | shasum -a 256" entry circuit-name))])
+            (unless (string=? stderr-stuff "")
+              (external-errorf "shasum resulted in an error: ~a" stderr-stuff))
+            (unless (>= (string-length stdout-stuff) 64)
+              (external-errorf "shasum returned too little output: ~s" stdout-stuff))
+            (hex-string->bytevector (substring stdout-stuff 0 64)))))
+      ;; another solution
+      #;(define (f entry circuit-name)
+        (let-values ([(stdout-stuff stderr-stuff) (shell (format "echo -n ~a~a | shasum -a 256" entry circuit-name))])
+          (unless (string=? stderr-stuff "")
+            (internal-errorf 'shasum "shasum resulted in an error: ~a" stderr-stuff))
+          (unless (>= (string-length stdout-stuff) 64)
+            (internal-errorf 'shasum "shasum returned too little output: ~a" stdout-stuff))
+          (let ([n (string->number (substring stdout-stuff 0 64) 16)])
+            (unless (and (exact? n) (integer? n))
+              (external-errorf "shasum ..."))
+            (let ([bv (make-bytevector 32)])
+              (bytevector-uint-set! bv 0 n 'big 32)
+              bv))))
+      (define (get-arg-type arg)
+        (nanopass-case (Lexpandedcontractcall Argument) arg
+          [(,src ,var-name ,type)
+           (list var-name type)]))
+      #;(define (compact-prefix sym str)
+        (string->symbol (string-append (symbol->string sym) str)))
+      (define (cons-end obj obj*)
+        (reverse (cons obj (reverse obj*))))
+      (define (make-circuit #;exported? contract-name ecdecl-circuit)
+        (nanopass-case (Lexpandedcontractcall External-Contract-Circuit) ecdecl-circuit
+          [(,src ,pure-dcl ,function-name ,function-name^ (,arg* ...) ,type)
+           (define (ref-var arg)
+             (let ([var-name (car (get-arg-type arg))])
+               (with-output-language (Lexpandedcontractcall Expression)
+                 `(var-ref ,src ,var-name))))
+           (define (arg->targ arg)
+             (let ([type (cadr (get-arg-type arg))])
+               (with-output-language (Lexpandedcontractcall Type-Argument)
+                 `(targ-type ,src ,type))))
+           (let* ([call-function (with-output-language (Lexpandedcontractcall Expression)
+                                   `(call ,src (fref ,src ,function-name) ,(map ref-var arg*) ...))]
+                  [res-arg (with-output-language (Lexpandedcontractcall Argument) `(,src ,(string->symbol "__compact_local_res") ,type))]
+                  [arg* (cons-end res-arg arg*)]
+                  [var-type-pair* (map get-arg-type arg*)]
+                  [var-name* (map car var-type-pair*)]
+                  [type* (map cadr var-type-pair*)]
+                  [tc-targ (with-output-language (Lexpandedcontractcall Type-Argument)
+                              `(targ-type ,src (ttuple ,src ,type* ...)))]
+                  [tc-expr-tuple (with-output-language (Lexpandedcontractcall Expression)
+                                   `(tuple ,src ,(map (lambda (x) `(single ,src ,x)) (map ref-var arg*)) ...))]
+                  [tc-expr-nonce (with-output-language (Lexpandedcontractcall Expression)
+                                   `(call ,src (fref ,src ,(string->symbol "__compact_std_createNonce")) ,(list) ...))]
+                  [tc-call (with-output-language (Lexpandedcontractcall Expression)
+                             `(call ,src (fref ,src ,(string->symbol "__compact_std_transientCommit")
+                                               (,(list tc-targ) ...))
+                                    ,(list tc-expr-tuple tc-expr-nonce) ...))]
+                  [circuit-hash (sha256 function-name)]
+                  ;; [local-res (make-temp-id src '__compact_local_res)]
+                  [body (with-output-language (Lexpandedcontractcall Expression)
+                                        ; changing address to contract
+                          `(default ,src ,type) ; FIXME change this to the next line, I have this for now due to weird not proper list error that cmopact_local_c is causing
+                          #;`(block ,src (,(list (string->symbol "__compact_local_res")) ...)
+                                  (let* ,src ([,res-arg
+                                               ; FIXME this is a placeholder for adding contract-call to this lang
+                                               (contract-call-temp ,src ,(string->symbol "__compact_local_c"))] ...)
+                                        (seq ,src
+                                             (elt-call ,src (var-ref ,src ,(string->symbol "__compact_std_kernel"))
+                                                       ,(string->symbol "claimContractCall")
+                                                       ,(list `(var-ref ,src ,(string->symbol "__compact_local_c"))
+                                                              `(quote ,src ,circuit-hash)
+                                                              tc-call) ...)
+                                             (return ,src ,call-function) ; TODO just return the local-res
+                                             ))))]
+                  [contract-type (with-output-language (Lexpandedcontractcall Type)
+                                   `(tcontract-temp ,src ,contract-name))]
+                  [contract-arg (with-output-language (Lexpandedcontractcall Argument)
+                                 `(,src ,(string->symbol "__compact_local_c") ,contract-type))]
+                  [arg* (cons-end contract-arg arg*)])
+             (with-output-language (Lexpandedcontractcall Circuit-Definition)
+               `(circuit ,src #t #f ,function-name^ #;(string->symbol (format "__compact_~s_~s" (symbol->string contract-name) (symbol->string function-name))) () (,arg* ...) ,type ,body)))]))
+      ; if the contract isn't exported then the module with wrapper circuits also shouldn't be exported
+      (define (make-contract src exported? contract-name ecdecl-circuit*)
+        (let ([std (with-output-language (Lexpandedcontractcall Import-Declaration)
+                     `(import ,src ,(string->symbol "CompactStandardLibrary") () "__compact_std_"))]
+              [helper-circuit* (map (lambda (ecdecl-circuit) (make-circuit contract-name ecdecl-circuit)) ecdecl-circuit*)])
+          (with-output-language (Lexpandedcontractcall Module-Definition)
+            `(module ,src ,exported? ,(string->symbol (format "__compact_contract_~a" contract-name)) () ,(cons std helper-circuit*) ...))))
+      )
+    (Program : Program (ir) -> Program ()
+      [(program ,src ,[pelt*] ...)
+         (let loop ([pelt* pelt*] [keep-pelt* '()])
+           (if (null? pelt*)
+               `(program ,src ,(reverse keep-pelt*) ...)
+               (let ([current-pelt (car pelt*)])
+                 (nanopass-case (Lexpandedcontractcall Program-Element) current-pelt
+                   [(external-contract ,src ,exported? ,contract-name ,ecdecl-circuit* ...)
+                    (let ([import-module (with-output-language (Lexpandedcontractcall Import-Declaration)
+                                           `(import ,src ,(string->symbol (format "__compact_contract_~a" contract-name)) () ""))])
+                    (loop (cdr pelt*)
+                          (cons current-pelt (cons import-module
+                            (if exported?
+                                (cons (with-output-language (Lexpandedcontractcall Export-Declaration)
+                                            `(export ,src (,src ,(string->symbol (format "__compact_contract_~a" contract-name)))))
+                                          (cons (make-contract src exported? contract-name ecdecl-circuit* #;current-pelt) keep-pelt*))
+                                (cons (make-contract src exported? contract-name ecdecl-circuit* #;current-pelt) keep-pelt*))))
+                          ))]
+                   [else (loop (cdr pelt*) (cons current-pelt keep-pelt*))]))))])
+    (External-Contract-Declaration : External-Contract-Declaration (ir) -> External-Contract-Declaration ()
+      [(external-contract ,src ,exported? ,contract-name ,[External-Contract-Circuit : ecdecl-circuit* contract-name -> ecdecl-circuit*] ...)
+       `(external-contract ,src ,exported? ,contract-name ,ecdecl-circuit* ...)])
+    (External-Contract-Circuit : External-Contract-Circuit (ir contract-name) -> External-Contract-Circuit ()
+      [(,src ,pure-dcl ,function-name (,[arg*] ...) ,[type])
+       `(,src ,pure-dcl ,function-name ,(string->symbol (format "__compact_~s_~s" (symbol->string contract-name) (symbol->string function-name))) (,arg* ...) ,type)])
+    )
+
+  (define-pass prepare-for-expand : Lexpandedcontractcall (ir) -> Lpreexpand())
 
   (define-passes frontend-passes
     (resolve-includes                Lnoinclude)
@@ -395,5 +527,6 @@
     (reject-duplicate-bindings       Lhoisted)
     (eliminate-statements            Lexpr)
     (eliminate-boolean-connectives   Lnoandornot)
+    (wrap-contract-circuits          Lexpandedcontractcall)
     (prepare-for-expand              Lpreexpand))
 )

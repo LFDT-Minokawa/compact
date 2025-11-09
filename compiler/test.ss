@@ -7933,7 +7933,7 @@
           (seq (= auth_cell (disclose auth_cell_param)) (tuple)))
         (module #f __compact_contract_AuthCell
           (import CompactStandardLibrary () "__compact_std_")
-          (circuit #t #f get () ([__compact_c (type-ref AuthCell)])
+          (circuit #t #f get () ([__compact_c (type-ref AuthCell)]) ; should I change this to tcontract? TODO
                    (type-ref StructExample)
             (block (__compact_local_res)
               (let* ([__compact_local_res (contract-call get (_compact_local_c AuthCell))])
@@ -7976,7 +7976,8 @@
                       (+ (elt-ref v value) (disclose (elt-ref x value))))))
                 v))))))
      )
-
+;; )
+;; #!eof
   (test
     '(
       "contract C {"
@@ -9783,7 +9784,6 @@
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 5 char 3" "invalid context for reference to ~a name ~s" ("type" A)))
     )
-
 
   (test-group
     ((create-file "C.compact"

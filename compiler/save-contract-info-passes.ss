@@ -127,16 +127,17 @@
          (cons "type-name" "Vector")
          (cons "length" len)
          (cons "type" (Type type)))]
-      [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+      [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...)
        (list
          (cons "type-name" "Contract")
          (cons "name" (symbol->string contract-name))
          (cons
            "circuits"
            (list->vector
-             (map (lambda (elt-name pure-dcl type* type)
+             (map (lambda (elt-name function-name pure-dcl type* type)
                     (list
                       (cons "name" (symbol->string elt-name))
+                      (cons "wrapper" (symbol->string function-name))
                       (cons "pure" pure-dcl)
                       (cons
                         "argument-types"
