@@ -367,8 +367,8 @@
       (+ (src pure-dcl function-name function-name^ (arg* ...) type) =>
            (pure-dcl function-name function-name^ (arg* ...) type)))
     (Expression (expr index)
-      (+ (contract-call src elt-name (expr type) expr* ...) =>
-           (contract-call elt-name 4 (expr 0 type) #f expr* ...)))
+      (+ (contract-call-temp src elt-name (expr type) expr* ...) =>
+           (contract-call-temp elt-name 4 (expr 0 type) #f expr* ...)))
     #;(Expression (expr index) ; I get the weirdeest error if I uncomment this
       (+ (contract-call src elt-name (expr type) expr* ...) =>
            (contract-call elt-name 4 (expr 0 type) #f expr* ...))))

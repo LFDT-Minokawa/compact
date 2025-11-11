@@ -468,7 +468,7 @@
                                   (let* ,src ([,res-arg
                                                ; FIXME this is a placeholder for adding contract-call to this lang
                                                ; for some reason if I uncomment the actual contract-call case I get the weirdest error
-                                               (contract-call ,src ,function-name ((var-ref ,src ,local-c) ,contract-type) ,(map ref-var arg*) ...)])
+                                               (contract-call-temp ,src ,function-name ((var-ref ,src ,local-c) ,contract-type) ,(map ref-var arg*) ...)])
                                         (seq ,src
                                              (elt-call ,src (var-ref ,src ,(string->symbol "__compact_std_kernel"))
                                                        ,(string->symbol "claimContractCall")

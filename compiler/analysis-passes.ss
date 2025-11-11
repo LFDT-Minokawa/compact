@@ -3008,6 +3008,9 @@
        (values
          `(return ,src ,expr)
          type)]
+      ;; [(contract-call src elt-name (expr type) expr* ...)
+       ;; ()]
+      ; TODO add else clause first and then add contract-call
       )
     (Tuple-Argument : Tuple-Argument (ir) -> Expression (type kind nat elt-type*)
       [(single ,src ,[Care : expr type])
