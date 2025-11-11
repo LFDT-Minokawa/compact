@@ -137,8 +137,8 @@
         (external-contract kwd-export? contract-name #f ecdecl-circuit* ...)
       )
     (External-Contract-Circuit (ecdecl-circuit)
-      (src (maybe kwd-pure?) kwd function-name arg-list return-type) =>
-        (kwd-pure? function-name arg-list 4 return-type)
+      (src (maybe kwd-pure?) kwd elt-name arg-list return-type) =>
+        (kwd-pure? elt-name arg-list 4 return-type)
       )
     (Structure-Definition (structdef)
       (struct src (maybe kwd-export?) kwd struct-name (maybe generic-param-list?) lbrace (arg* ...) (sep* ...) rbrace (maybe semicolon?)) =>

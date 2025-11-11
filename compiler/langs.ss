@@ -169,8 +169,8 @@
         (external-contract exported? contract-name #f ecdecl-circuit* ...)
       )
     (External-Contract-Circuit (ecdecl-circuit)
-      (src pure-dcl function-name (arg* ...) type) =>
-        (pure-dcl function-name (arg* 0 ...) 4 type)
+      (src pure-dcl elt-name (arg* ...) type) =>
+        (pure-dcl elt-name (arg* 0 ...) 4 type)
       )
     (Structure-Definition (structdef)
       (struct src exported? struct-name (type-param* ...) arg* ...) =>
@@ -363,13 +363,10 @@
 
   (define-language/pretty Lexpandedcontractcall (extends Lnoandornot)
     (External-Contract-Circuit (ecdecl-circuit)
-      (- (src pure-dcl function-name (arg* ...) type))
-      (+ (src pure-dcl function-name function-name^ (arg* ...) type) =>
-           (pure-dcl function-name function-name^ (arg* ...) type)))
+      (- (src pure-dcl elt-name (arg* ...) type))
+      (+ (src pure-dcl elt-name function-name (arg* ...) type) =>
+           (pure-dcl elt-name function-name (arg* ...) type)))
     (Expression (expr index)
-      (+ (contract-call-temp src elt-name (expr type) expr* ...) =>
-           (contract-call-temp elt-name 4 (expr 0 type) #f expr* ...)))
-    #;(Expression (expr index) ; I get the weirdeest error if I uncomment this
       (+ (contract-call src elt-name (expr type) expr* ...) =>
            (contract-call elt-name 4 (expr 0 type) #f expr* ...))))
 
@@ -492,8 +489,8 @@
       (+ (external-contract src contract-name ecdecl-circuit* ...) =>
            (external-contract contract-name ecdecl-circuit* ...)))
     (External-Contract-Circuit (ecdecl-circuit)
-      ; function-name^ is inserted in tcontract and can be dropped here
-      (- (src pure-dcl function-name function-name^ (arg* ...) type))
+      ; function-name is inserted in tcontract and can be dropped here
+      (- (src pure-dcl elt-name function-name (arg* ...) type))
       (+ (src pure-dcl elt-name (arg* ...) type) =>
            (pure-dcl elt-name (arg* ...) type)))
     (Module-Definition (mdefn)
@@ -566,8 +563,8 @@
          (tvector src len type) => (tvector len type)
          (tbytes src len)       => (tbytes len)
          ; FIXME if you're keeping function-name then you have to set pure and export for it. export is always t and then you can drop pure-dcl
-         (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...) =>
-           (tcontract contract-name #f (elt-name* function-name* pure-dcl* (type** ...) #f type*) ...)
+         (tcontract src contract-name (elt-name* fun* pure-dcl* (type** ...) type*) ...) =>
+           (tcontract contract-name #f (elt-name* fun* pure-dcl* (type** ...) #f type*) ...)
          (tstruct src struct-name (elt-name* type*) ...) =>
            (tstruct struct-name #f (elt-name* type*) ...)
          (tenum src enum-name elt-name elt-name* ...) =>
@@ -593,7 +590,7 @@
       (string (mesg opaque-type file discloses sugar))
       (datum (datum))
       (source-object (src))
-      (procedure (result-type runtime-code))
+      (procedure (result-type runtime-code hack))
       (vm-expr (vm-expr))
       (vm-code (vm-code))
       (native-entry (native-entry))
@@ -725,8 +722,8 @@
       (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
       ; TODO decide if you need to function-name -> elt-name
-      (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...) =>
-        (tcontract contract-name #f (elt-name* function-name* pure-dcl* (type** ...) #f type*) ...)
+      (tcontract src contract-name (elt-name* hack* pure-dcl* (type** ...) type*) ...) =>
+        (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
       (tstruct src struct-name (elt-name* type*) ...) =>
         (tstruct struct-name #f (elt-name* type*) ...)
       (tenum src enum-name elt-name elt-name* ...) =>

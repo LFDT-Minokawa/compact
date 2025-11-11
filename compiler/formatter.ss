@@ -893,13 +893,13 @@
          (add-punctuation colon
            (cons* nbsp (Type type) '())))])
     (External-Contract-Circuit : External-Contract-Circuit (ir) -> * (q)
-      [(,src ,kwd-pure? ,kwd ,function-name ,arg-list ,return-type)
+      [(,src ,kwd-pure? ,kwd ,elt-name ,arg-list ,return-type)
        (// src
            (apply make-Qconcat
              (add-modifier kwd-pure?
                (list
                  (make-Qtoken kwd)
-                 nbsp (make-Qtoken function-name)
+                 nbsp (make-Qtoken elt-name)
                  (Argument-List arg-list)
                  (Return-Type return-type)))))])
     (Import-Element : Import-Element (ir) -> * (q)
