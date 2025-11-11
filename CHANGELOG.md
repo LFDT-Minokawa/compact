@@ -13,10 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   function name for a circuit defined in a contract.  This wrapper name is what 
   is eventually called for a contract call and since it is prodcued in one 
   pass but consumed in another we pass it through a structure between these
-  two passes.  This IR also adds `tcontract` type and `contract-call` expression.
+  two passes.  This IR also adds `contract-call` expression.
   These were needed for what the corresponding pass needs to generate. 
   TODO fix the tcontract and contract-call in this IR.
-- 
+- A new pass `wrap-contract-circuits : Lnoandornot -> Lexpandedcontractcall` is 
+  added to frontend passes.  It adds a module `__compact_contract_C` for a contract
+  type `C` to the program.  `compact_contract_C`
+  - imports `CompactStandardLibrary` and renames it to `__compact_std`
+  - defines wrapper circuits for each circtuit defined in `C`.  For circuit `foo`
+    it defines 
+    ```
+    export circuit __compact_C_foo (__compact_c: C, x1: T1, ...): T {
+      (block (__compact_local_res)
+        (let* ([__compact_local_res (contract-call foo (__compact_local_c C))])
+          (seq
+            (elt-call __compact_std_kernel claimContractCall __compact_local_c
+                      <foo-hash>
+                      (call (fref __compact_std_transientCommit (ttuple T1 ... T))
+                            (tuple x1 ... __compact_local_res)
+                            (call __compact_std_createNonce)))
+            (return __compact_local_res))))
+    }
+    ```
+  - then `__compact_contract_C` is imported in the program where a contract call
+    to `C` existed and if `foo` was exported an export of `__compact_C_foo` is 
+    also added in the same scope.
+- changes to ecdecl-circuit record 
+- elt-call -> function call 
+- where tcontract and contract-call are dropped
+- what you get for zkir
 - Inserts `transientCommit` when a contract declaration exists in 
   `insert-transientCommit`. Note: this has to come before `expand-modules-and-types` 
   so that the `transientCommit` is added to the external declarations and so that 

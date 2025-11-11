@@ -145,7 +145,7 @@
             (fprintf p "#[info-fun ~s ~a ~s ~s]" (info-fun-seqno x) (format-source-object (info-fun-src x)) (info-fun-kind x) (info-fun-renamed? x)))))
       (define-record-type ecdecl-circuit
         (nongenerative)
-        (fields function-name pure? type* type))
+        (fields function-name wrapper-function pure? type* type))
       ; environments map raw names (symbols) to Infos, i.e., p : symbol -> Info
       (define-datatype Info
         ; the following Infos represent Lpreexpand program elements
@@ -537,7 +537,11 @@
                  (let ([Type (lambda (type) (Type type p))])
                    `(tcontract ,src ,contract-name
                       (,(map ecdecl-circuit-function-name ecdecl-circuit*)
-                       ,(map (lambda (f) (make-source-id src (ecdecl-circuit-function-name f))) ecdecl-circuit*)
+                       ; FIXME make-source-id cannot be here, this way every time you see a tcontract you're generating new ids
+                       ; check with Kent
+                       ; change id -> symbol
+                       ,(map (lambda (f) (make-source-id src (ecdecl-circuit-wrapper-function f))) ecdecl-circuit*)
+                       ;; ,(map ecdecl-circuit-wrapper-function ecdecl-circuit*)
                        ,(map ecdecl-circuit-pure? ecdecl-circuit*)
                        (,(map (lambda (type*) (map Type type*)) (map ecdecl-circuit-type* ecdecl-circuit*)) ...)
                        ,(map Type (map ecdecl-circuit-type ecdecl-circuit*)))
@@ -741,7 +745,7 @@
                     [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
                      (handle-fun src 'witness pelt exported? function-name type-param*)]
                     [(external-contract ,src ,exported? ,contract-name (,src* ,pure-dcl* ,function-name* ,function-name^* ((,src** ,var-name** ,type**) ...) ,type*) ...)
-                     (let ([info (Info-contract src contract-name (map make-ecdecl-circuit function-name* pure-dcl* type** type*) p)])
+                     (let ([info (Info-contract src contract-name (map make-ecdecl-circuit function-name* function-name^* pure-dcl* type** type*) p)])
                        (env-insert! p src contract-name info)
                        (set! ecdecl* (cons (cons pelt p) ecdecl*))
                        (loop pelt* seqno*
@@ -1983,14 +1987,15 @@
         (find-adt-op src elt-name sugar? adt-name adt-op* adt-type* expr expr*
           (lambda ()
             (adt-op-error! src elt-name sugar? adt-name adt-rt-op* adt-arg*))))
-      (define (find-contract-circuit src src^ contract-name elt-name elt-name* type** type* adt-type adt-type* expr expr*)
-        (let loop ([elt-name* elt-name*] [type** type**] [type* type*])
+      (define (find-contract-circuit src src^ contract-name elt-name elt-name* function-name* type** type* adt-type adt-type* expr expr*)
+        (let loop ([elt-name* elt-name*] [function-name* function-name*] [type** type**] [type* type*])
           (if (null? elt-name*)
               (source-errorf src^ "contract ~s has no circuit declaration named ~s"
                              contract-name
                              elt-name)
             (if (eq? (car elt-name*) elt-name)
-                (let ([declared-type* (car type**)])
+                (let ([declared-type* (car type**)]
+                      [function-name (car function-name*)])
                   (let ([ndeclared (length declared-type*)] [nactual (length adt-type*)])
                     (unless (fx= nactual ndeclared)
                       (source-errorf src "~s.~s requires ~s argument~:*~p but received ~s"
@@ -2006,11 +2011,16 @@
                                      (format-type actual-adt-type))))
                   declared-type* adt-type* (enumerate declared-type*))
                 (values
-                  (let ([expr* (map (maybe-upcast src) declared-type* adt-type* expr*)])
+                  (let ([expr* (reverse (cons expr
+                                         #;(with-output-language (Ltypes Expression)
+                                                `(ledger-ref src ledger-field-name))
+                                              (reverse (map (maybe-upcast src) declared-type* adt-type* expr*))))])
                     (with-output-language (Ltypes Expression)
-                      `(contract-call ,src ,elt-name (,expr ,adt-type) ,expr* ...)))
+                      `(call ,src (fref ,src ,function-name) ,expr* ...)
+                      ;; `(contract-call ,src ,elt-name (,expr ,adt-type) ,expr* ...)
+                      ))
                   (car type*)))
-              (loop (cdr elt-name*) (cdr type**) (cdr type*))))))
+              (loop (cdr elt-name*) (cdr function-name*) (cdr type**) (cdr type*))))))
       (define (get-contract-name ecdecl)
         (nanopass-case (Lexpanded External-Contract-Declaration) ecdecl
           [(external-contract ,src ,contract-name ,ecdecl-circuit* ...)
@@ -2145,7 +2155,7 @@
              (External-Contract-Circuit! ecdecl-circuit check-circuit))
            ecdecl-circuit*))])
     (External-Contract-Circuit! : External-Contract-Circuit (ir check-circuit) -> * (void)
-      [(,src ,pure-dcl ,elt-name #;,function-name (,[arg*] ...) ,type) ; TODO does anything else need to change here
+      [(,src ,pure-dcl ,elt-name #;,function-name (,[arg*] ...) ,type) ; FIXME / cleanup
        (let ([type (Non-ADT-Type type src "circuit ~a return" elt-name)])
          (check-circuit src elt-name pure-dcl (map arg->type arg*) type))])
     (Program-Element : Program-Element (ir) -> Program-Element ())
@@ -2155,7 +2165,9 @@
          `(constructor ,src (,arg* ...) ,expr))])
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
       [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
-       (when (id-exported? function-name)
+       ; FIXME do we need this anymore? I heard from someone that we're lifting this restriction
+       ; check with Kent
+       #;(when (id-exported? function-name)
          (when (contains-contract? type)
            (source-errorf src "invalid type ~a for circuit ~a return value:\n  exported circuit return values cannot include contract values"
                           (format-type type)
@@ -2314,8 +2326,7 @@
            (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
              [(tcontract ,src^ ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ... )
               (guard (not adt-type-only?))
-              ; TODO this is where expansion of contract call should happen
-              (find-contract-circuit src src^ contract-name elt-name elt-name* type** type* adt-type adt-type* expr expr*)]
+              (find-contract-circuit src src^ contract-name elt-name elt-name* function-name* type** type* adt-type adt-type* expr expr*)]
              [else (err)]))
          (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
            [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))

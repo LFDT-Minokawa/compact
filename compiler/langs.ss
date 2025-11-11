@@ -366,19 +366,12 @@
       (- (src pure-dcl function-name (arg* ...) type))
       (+ (src pure-dcl function-name function-name^ (arg* ...) type) =>
            (pure-dcl function-name function-name^ (arg* ...) type)))
-    (Type (type)
-          ; TODO do i need to add wrapper function name to tcontract type??
-      (+ (tcontract-temp src contract-name) => (tcontract contract-name))
-      ; function-name* are the wrapper names
-      ;; (+ (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...) =>
-      ;;      (tcontract contract-name #f (elt-name* function-name* pure-dcl* (type** ...) #f type*) ...))
-      )
     (Expression (expr index)
-      (+ (contract-call-temp src elt-name) => (contract-call-temp elt-name)
-         ;; (contract-call src elt-name (expr type) expr* ...) => ; uncommenting this results in the weirdest error
-         ;;   (contract-call elt-name 4 (expr 0 type) #f expr* ...)
-           )
-      ))
+      (+ (contract-call src elt-name (expr type) expr* ...) =>
+           (contract-call elt-name 4 (expr 0 type) #f expr* ...)))
+    #;(Expression (expr index) ; I get the weirdeest error if I uncomment this
+      (+ (contract-call src elt-name (expr type) expr* ...) =>
+           (contract-call elt-name 4 (expr 0 type) #f expr* ...))))
 
   (define-language/pretty Lpreexpand (extends Lexpandedcontractcall)
     (terminals
