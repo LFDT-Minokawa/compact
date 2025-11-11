@@ -329,11 +329,8 @@
           [(public-ledger-declaration ,pl-array)
            (for-each Public-Ledger-Binding (pl-array->public-bindings pl-array))])
         (Public-Ledger-Binding : Public-Ledger-Binding (ir) -> * (void)
-          [(,src ,ledger-field-name (,path-index* ...) ,[Public-Ledger-ADT : public-adt -> * ops])
+          [(,src ,ledger-field-name (,path-index* ...) ,primitive-type)
            (void)])
-        (Public-Ledger-ADT : Public-Ledger-ADT (ir) -> * (ops)
-          [(,src ,adt-name ((,adt-formal* ,adt-arg*) ...) ,vm-expr (,adt-op* ...))
-           (map ADT-Op adt-op*)])
         (ADT-Op : ADT-Op (ir) -> * (op)
           [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...) (,type* ...) ,type ,vm-code)
            (let ([type-length (lambda (type)
@@ -440,21 +437,15 @@
                                              [(VMstate-value-cell val) (list* 1 (vm-eval val))]
                                              [(VMstate-value-ADT val type)
                                               ; wrap val in a cell, unless it is already an ADT
-                                              (let ([public-adt (nanopass-case (Lflattened Type) type
-                                                                  [(ty (,alignment* ...) (,primitive-type* ...))
-                                                                   (and (not (null? primitive-type*))
-                                                                        (null? (cdr primitive-type*))
-                                                                        (Lflattened-Public-Ledger-ADT? (car primitive-type*))
-                                                                        (car primitive-type*))])])
-                                                (if public-adt
-                                                    (nanopass-case (Lflattened Public-Ledger-ADT) public-adt
-                                                      [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
-                                                       (vm-eval
-                                                         (expand-vm-expr
-                                                           src
-                                                           (map cons adt-formal* adt-arg*)
-                                                           (vm-expr-expr vm-expr)))])
-                                                    (list* 1 (vm-eval val))))]
+                                              (or (nanopass-case (Lflattened Type) type
+                                                    [(ty (,alignment* ...) ((tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))))
+                                                     (vm-eval
+                                                       (expand-vm-expr
+                                                         src
+                                                         (map cons adt-formal* adt-arg*)
+                                                         (vm-expr-expr vm-expr)))]
+                                                    [else #f])
+                                                  (list* 1 (vm-eval val)))]
                                              [(VMstate-value-map key* val*)
                                               (append (list (+ 2 (* (length key*) 16)))
                                                       (apply append (maplr vm-eval key*))
