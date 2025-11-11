@@ -21945,6 +21945,7 @@
    )
 )
 
+#!eof
 (run-tests infer-types
   (test
     `(
