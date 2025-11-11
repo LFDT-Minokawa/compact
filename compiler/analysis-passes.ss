@@ -1991,15 +1991,15 @@
         (find-adt-op src elt-name sugar? adt-name adt-op* adt-type* expr expr*
           (lambda ()
             (adt-op-error! src elt-name sugar? adt-name adt-rt-op* adt-arg*))))
-      (define (find-contract-circuit src src^ contract-name elt-name elt-name* hack* type** type* adt-type adt-type* expr expr*)
-        (let loop ([elt-name* elt-name*] [hack* hack*] [type** type**] [type* type*])
+      (define (find-contract-circuit src src^ contract-name elt-name elt-name* fun* type** type* adt-type adt-type* expr expr*)
+        (let loop ([elt-name* elt-name*] [fun* fun*] [type** type**] [type* type*])
           (if (null? elt-name*)
               (source-errorf src^ "contract ~s has no circuit declaration named ~s"
                              contract-name
                              elt-name)
             (if (eq? (car elt-name*) elt-name)
                 (let ([declared-type* (car type**)]
-                      [hack (car hack*)])
+                      [fun (car fun*)])
                   (let ([ndeclared (length declared-type*)] [nactual (length adt-type*)])
                     (unless (fx= nactual ndeclared)
                       (source-errorf src "~s.~s requires ~s argument~:*~p but received ~s"
@@ -2014,18 +2014,16 @@
                                        (format-type declared-adt-type)
                                        (format-type actual-adt-type))))
                     declared-type* adt-type* (enumerate declared-type*))
-                  (hack
+                  (values
+
                     ; FIXME: need to get an extra declared type for the extra argument
                     ; and hack needs to account for that as well
-                    (cons extra-declared-type declared-type*)
                     (let ([expr* (reverse (cons expr
                                          #;(with-output-language (Ltypes Expression)
                                                 `(ledger-ref src ledger-field-name))
                                               (reverse (map (maybe-upcast src) declared-type* adt-type* expr*))))])
-                    (hack declared-type* expr*)
-                    (do-call ...
                     (with-output-language (Ltypes Expression)
-                      `(call ,src (fref ,src ,function-name) ,expr* ...)
+                      `(call ,src ,fun ,expr* ...)
                       ;; `(contract-call ,src ,elt-name (,expr ,adt-type) ,expr* ...)
                       ))
                   (car type*)))
@@ -2243,15 +2241,14 @@
              [type* (map (lambda (type elt-name) (Non-ADT-Type type src "circuit '~a' return" elt-name))
                          type*
                          elt-name*)])
-         (let ([hack* (map (lambda (fun type*)
-                             (do-call src #f fun type*
-                               (lambda (declared-type* return-type fun)
-                                 (lambda (actual-type* expr*)
-                                   (values
-                                     `(call ,src ,fun ,(map (maybe-upcast src) declared-type* actual-type* expr*) ...)
-                                     return-type)))))
-                           fun* type**)])
-           `(tcontract ,src ,contract-name (,elt-name* ,hack* ,pure-dcl* (,type** ...) ,type*) ...)))]
+         (let ([fun* (map (lambda (fun type* type)
+                            (do-call src #f fun type*
+                              (lambda (declared-type* return-type fun)
+                                (assert (andmap sametype? declared-type* type*))
+                                (assert (sametype? return-type type))
+                                fun)))
+                          fun* type** type*)])
+           `(tcontract ,src ,contract-name (,elt-name* ,fun* ,pure-dcl* (,type** ...) ,type*) ...)))]
       [(ttuple ,src ,type* ...)
        (let ([type* (map (lambda (type i)
                            (Non-ADT-Type type src "tuple element ~d" (fx+ i 1)))
@@ -2341,9 +2338,9 @@
        (let ()
          (define (handle-contract expr adt-type err)
            (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
-             [(tcontract ,src^ ,contract-name (,elt-name* ,hack* ,pure-dcl* (,type** ...) ,type*) ... )
+             [(tcontract ,src^ ,contract-name (,elt-name* ,fun* ,pure-dcl* (,type** ...) ,type*) ... )
               (guard (not adt-type-only?))
-              (find-contract-circuit src src^ contract-name elt-name elt-name* hack* type** type* adt-type adt-type* expr expr*)]
+              (find-contract-circuit src src^ contract-name elt-name elt-name* fun* type** type* adt-type adt-type* expr expr*)]
              [else (err)]))
          (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
            [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))

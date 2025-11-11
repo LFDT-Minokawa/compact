@@ -590,7 +590,7 @@
       (string (mesg opaque-type file discloses sugar))
       (datum (datum))
       (source-object (src))
-      (procedure (result-type runtime-code hack))
+      (procedure (result-type runtime-code))
       (vm-expr (vm-expr))
       (vm-code (vm-code))
       (native-entry (native-entry))
@@ -722,8 +722,8 @@
       (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
       ; TODO decide if you need to function-name -> elt-name
-      (tcontract src contract-name (elt-name* hack* pure-dcl* (type** ...) type*) ...) =>
-        (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
+      (tcontract src contract-name (elt-name* fun* pure-dcl* (type** ...) type*) ...) =>
+        (tcontract contract-name #f (elt-name* fun* pure-dcl* (type** ...) #f type*) ...)
       (tstruct src struct-name (elt-name* type*) ...) =>
         (tstruct struct-name #f (elt-name* type*) ...)
       (tenum src enum-name elt-name elt-name* ...) =>
