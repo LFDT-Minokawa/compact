@@ -29,15 +29,15 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
-          Lexpanded unparse-Lexpanded Lexpanded-pretty-formats Lexpanded-Public-Ledger-ADT?
-          Ltypes unparse-Ltypes Ltypes-pretty-formats Ltypes-Public-Ledger-ADT?
+          Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
+          Ltypes unparse-Ltypes Ltypes-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Type? Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats Loneledger-Ledger-Declaration?
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
-          Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats Lwithpaths-Public-Ledger-ADT? Lwithpaths-Type?
+          Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats Lwithpaths-Type?
           Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats Lnodisclose-Export-Type-Definition?
-          Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-Public-Ledger-ADT? Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op? Ltypescript-Type?
+          Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op? Ltypescript-Type?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
           Lunrolled unparse-Lunrolled Lunrolled-pretty-formats
@@ -45,7 +45,7 @@
           Lnosafecast unparse-Lnosafecast Lnosafecast-pretty-formats
           Lnovectorref unparse-Lnovectorref Lnovectorref-pretty-formats
           Lcircuit unparse-Lcircuit Lcircuit-pretty-formats Lcircuit-External-Declaration? Lcircuit-Witness-Declaration? Lcircuit-Circuit-Definition? Lcircuit-Kernel-Declaration? Lcircuit-Ledger-Declaration? Lcircuit-Triv?
-          Lflattened unparse-Lflattened Lflattened-pretty-formats Lflattened-Triv? Lflattened-Circuit-Definition? Lflattened-Type? Lflattened-Public-Ledger-ADT?
+          Lflattened unparse-Lflattened Lflattened-pretty-formats Lflattened-Triv? Lflattened-Circuit-Definition? Lflattened-Type?
           Lzkir unparse-Lzkir Lzkir-pretty-formats
           )
   (import (chezscheme) (nanopass) (nanopass-extension) (field) (natives))
@@ -484,11 +484,8 @@
       (- (circuit-alias function-name^ function-name)))
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration src exported? sealed? ledger-field-name type))
-      (+ (public-ledger-declaration src ledger-field-name public-adt) =>
-           (public-ledger-declaration #f ledger-field-name #f public-adt)))
-    (Public-Ledger-ADT (public-adt)
-      (+ (src adt-name ([adt-formal* generic-value*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
-           (adt-name #f generic-value* ...)))
+      (+ (public-ledger-declaration src ledger-field-name type) =>
+           (public-ledger-declaration #f ledger-field-name #f type)))
     (Circuit-Definition (cdefn)
       (- (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type expr))
       (+ (circuit src function-name (arg* ...) type expr) =>
@@ -579,7 +576,8 @@
          (tenum src enum-name elt-name elt-name* ...) =>
            (tenum enum-name #f elt-name #f elt-name* ...)
          (talias src nominal? type-name type) => (talias nominal? type-name #f type)
-         public-adt))
+         (tadt src adt-name ([adt-formal* generic-value*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
+           (adt-name #f generic-value* ...)))
     (Type-Ref (tref)
       (- (type-ref src tvar-name targ* ...)))
     (Type-Size (tsize)
@@ -627,37 +625,31 @@
       (export-typedef src type-name (tvar-name* ...) type) =>
         (export-typedef type-name (tvar-name* ...) #f type))
     (Ledger-Declaration (ldecl)
-      (public-ledger-declaration src ledger-field-name public-adt) =>
-        (public-ledger-declaration #f ledger-field-name #f public-adt))
+      (public-ledger-declaration src ledger-field-name type) =>
+        (public-ledger-declaration #f ledger-field-name #f type))
     (Ledger-Constructor (lconstructor)
       (constructor src (arg* ...) expr)      => (constructor (arg* 0 ...) #f expr))
-    (Public-Ledger-ADT (public-adt)
-      (src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) => (adt-name #f adt-arg* ...)
-      )
     (ADT-Runtime-Op (adt-rt-op)
       (ledger-op (arg* ...) result-type runtime-code) =>
         ledger-op)
     (ADT-Op (adt-op)
-      (ledger-op op-class ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code) =>
+      (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code) =>
         ledger-op)
     (ADT-Op-Class (op-class)
       ledger-op-class
       (ledger-op-class nat nat^))
     (Public-Ledger-ADT-Arg (adt-arg)
       nat
-      adt-type)
-    (Public-Ledger-ADT-Type (adt-type)
-      type
-      public-adt)
+      type)
     (Argument (arg)
       (var-name type) => (bracket var-name type))
     (Local (local)
-      (var-name adt-type) => (bracket var-name adt-type))
+      (var-name type) => (bracket var-name type))
     (Expression (expr index)
       (quote src datum)                       => datum
       (var-ref src var-name)                  => var-name
       (ledger-ref src ledger-field-name)      => ledger-field-name
-      (default src adt-type)                  => (default adt-type)
+      (default src type)                      => (default type)
       (if src expr0 expr1 expr2)              => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name nat)         => (elt-ref expr elt-name nat)
       (enum-ref src type elt-name)            => (enum-ref type elt-name)
@@ -739,6 +731,8 @@
         (tenum enum-name #f elt-name #f elt-name* ...)
       (talias src nominal type-name type) =>
         (talias nominal type-name #f type)
+      (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
+        (adt-name #f adt-arg* ...)
       (tundeclared)
       (tunknown)))
 
@@ -753,11 +747,11 @@
     (Kernel-Declaration (kdecl)
       (+ (kernel-declaration public-binding)))
     (Ledger-Declaration (ldecl)
-      (- (public-ledger-declaration src ledger-field-name public-adt))
+      (- (public-ledger-declaration src ledger-field-name type))
       (+ (public-ledger-declaration public-binding* ... lconstructor) =>
            (public-ledger-declaration #f public-binding* ... #f lconstructor)))
     (Public-Ledger-Binding (public-binding)
-      (+ (src ledger-field-name public-adt) => (ledger-field-name public-adt)))
+      (+ (src ledger-field-name type) => (ledger-field-name type)))
     (Expression (expr index)
       (- (ledger-ref src ledger-field-name)
          (ledger-call src ledger-op (maybe sugar) expr expr* ...))
@@ -791,9 +785,9 @@
       (+ pl-array
          public-binding))
     (Public-Ledger-Binding (public-binding)
-      (- (src ledger-field-name public-adt))
-      (+ (src ledger-field-name (path-index* ...) public-adt) =>
-           (ledger-field-name #f (path-index* ...) #f public-adt))))
+      (- (src ledger-field-name type))
+      (+ (src ledger-field-name (path-index* ...) type) =>
+           (ledger-field-name #f (path-index* ...) #f type))))
 
   (define-language/pretty Lwithpaths (extends Lwithpaths0)
     (Expression (expr index)
@@ -804,8 +798,8 @@
       (+ (public-ledger src ledger-field-name (maybe sugar) (path-elt ...) src^ adt-op expr* ...) =>
            (public-ledger ledger-field-name (path-elt ...) adt-op #f expr* ...)))
     (ADT-Op (adt-op)
-      (- (ledger-op op-class ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code))
-      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code) =>
+      (- (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code))
+      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type* (maybe discloses?)) ...) type vm-code) =>
            ledger-op))
     (Ledger-Accessor (accessor)
       (- (src ledger-op expr* ...)))
@@ -815,8 +809,8 @@
 
   (define-language/pretty Lnodisclose (extends Lwithpaths)
     (ADT-Op (adt-op)
-      (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code))
-      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code) =>
+      (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type* (maybe discloses?)) ...) type vm-code))
+      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type*) ...) type vm-code) =>
          ledger-op))
     (Expression (expr index)
       (- (disclose src expr))))
@@ -877,10 +871,6 @@
            (public-ledger-declaration #f pl-array)))
     (Ledger-Constructor (lconstructor)
       (- (constructor src (arg* ...) expr)))
-    (Public-Ledger-ADT (public-adt)
-      (- (src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)))
-      (+ (src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...)) =>
-           (adt-name #f adt-arg* ...)))
     (ADT-Runtime-Op (adt-rt-op)
       (- (ledger-op (arg* ...) result-type runtime-code)))
     (Expression (expr index)
@@ -895,7 +885,10 @@
          (bytes->field src len expr) => (bytes->field len expr)))
     (Type (type)
       (- tvar-name
-         (talias src nominal type-name type))))
+         (talias src nominal type-name type)
+         (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)))
+      (+ (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...)) =>
+           (adt-name #f adt-arg* ...))))
 
   (define-language/pretty Lnoenums (extends Lposttypescript)
     (terminals
@@ -974,22 +967,17 @@
       pl-array
       public-binding)
     (Public-Ledger-Binding (public-binding)
-      (src ledger-field-name (path-index* ...) public-adt) => (ledger-field-name #f (path-index* ...) #f public-adt)
+      (src ledger-field-name (path-index* ...) type) => (ledger-field-name #f (path-index* ...) #f type)
       )
-    (Public-Ledger-ADT (public-adt)
-      (src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...)) => (adt-name #f adt-arg* ...))
     (ADT-Op (adt-op)
-      (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code) =>
+      (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type*) ...) type vm-code) =>
         ledger-op)
     (ADT-Op-Class (op-class)
       ledger-op-class
       (ledger-op-class nat nat^))
     (Public-Ledger-ADT-Arg (adt-arg)
       nat
-      adt-type)
-    (Public-Ledger-ADT-Type (adt-type)
-      type
-      public-adt)
+      type)
     (Argument (arg)
       (var-name type) => (bracket var-name type))
     (Statement (stmt)
@@ -1021,7 +1009,7 @@
       (downcast-unsigned src test nat triv)   => (downcast-unsigned test nat triv))
     (Triv (triv test)
       var-name
-      (default adt-type)
+      (default type)
       (quote datum)                          => datum
       )
     (Tuple-Argument (tuple-arg)
@@ -1043,6 +1031,8 @@
         (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
       (tstruct src struct-name (elt-name* type*) ...) =>
         (tstruct struct-name #f (elt-name* type*) ...)
+      (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...)) =>
+        (adt-name #f adt-arg* ...)
       (tunknown)))
 
   (define-language/pretty Lflattened (extends Lcircuit)
@@ -1055,16 +1045,14 @@
       (- (circuit src function-name (arg* ...) type stmt* ... triv))
       (+ (circuit src function-name (arg* ...) type stmt* ... (triv* ...)) =>
             (circuit function-name (arg* 0 ...) 4 type #f stmt* ... #f (triv* ...))))
+    (Public-Ledger-Binding (public-binding)
+      (- (src ledger-field-name (path-index* ...) type))
+      (+ (src ledger-field-name (path-index* ...) primitive-type) =>
+          (ledger-field-name #f (path-index* ...) #f primitive-type)))
     (ADT-Op (adt-op)
-      (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code))
+      (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type*) ...) type vm-code))
       (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) (ledger-op-formal* ...) (type* ...) type vm-code) =>
            ledger-op))
-    (Public-Ledger-ADT-Arg (adt-arg)
-      (- adt-type)
-      (+ type))
-    (Public-Ledger-ADT-Type (adt-type)
-      (- type
-         public-adt))
     (Argument (arg)
       (- (var-name type))
       (+ (argument (var-name* ...) type)))
@@ -1119,7 +1107,7 @@
            (contract-call test elt-name 4 (triv primitive-type) #f triv* ...)))
     (Triv (triv test)
       (- (quote datum)
-         (default adt-type))
+         (default type))
       (+ nat))
     (Tuple-Argument (tuple-arg)
       (- (single src triv)
@@ -1151,7 +1139,8 @@
          (topaque opaque-type)
          (tcontract contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
            (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
-         public-adt)))
+         (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...)) =>
+           (adt-name #f adt-arg* ...))))
 
   (define-language/pretty Lzkir (entry Program)
     (terminals
