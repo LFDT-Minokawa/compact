@@ -118,11 +118,11 @@
         (public-ledger-declaration kwd-export? kwd-sealed? #f ledger-field-name #f type)
       )
     (Ledger-Constructor (lconstructor)
-      (constructor src kwd parg-list stmt) => (constructor parg-list #f stmt)
+      (constructor src kwd parg-list blck) => (constructor parg-list #f blck)
       )
     (Circuit-Definition (cdefn)
-      (circuit src (maybe kwd-export?) (maybe kwd-pure?) kwd function-name (maybe generic-param-list?) parg-list return-type stmt) =>
-        (circuit kwd-export? kwd-pure? function-name generic-param-list? parg-list 4 return-type #f stmt)
+      (circuit src (maybe kwd-export?) (maybe kwd-pure?) kwd function-name (maybe generic-param-list?) parg-list return-type blck) =>
+        (circuit kwd-export? kwd-pure? function-name generic-param-list? parg-list 4 return-type #f blck)
       )
     (External-Declaration (edecl)
       (external src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) arg-list return-type semicolon) =>
@@ -188,6 +188,9 @@
     (Return-Type (return-type)
       (colon type) => type
       )
+    (Block (blck)
+      (block src lbrace stmt* ... rbrace) => (block #f stmt* ...)
+      )
     (Statement (stmt)
       (statement-expression src expr semicolon) => expr
       (return src kwd semicolon) => (return)
@@ -197,7 +200,7 @@
       (if src kwd lparen expr rparen stmt) => (if expr 3 stmt)
       (for src kwd lparen kwd-const var-name kwd-of start dotdot end rparen stmt) => (for var-name start end #f stmt)
       (for src kwd lparen kwd-const var-name kwd-of expr rparen stmt) => (for var-name expr #f stmt)
-      (block src lbrace stmt* ... rbrace) => (block #f stmt* ...)
+      blck
       )
     (Expression (expr index)
       (true src kwd) => true
@@ -231,7 +234,7 @@
       )
     (Function (fun)
       (fref src function-name (maybe generic-arg-list?)) => (fref function-name #f generic-arg-list?)
-      (arrow-stmt src parg-list (maybe return-type?) arrow stmt) => (circuit parg-list 4 return-type? #f stmt)
+      (arrow-block src parg-list (maybe return-type?) arrow blck) => (circuit parg-list 4 return-type? #f blck)
       (arrow-expr src parg-list (maybe return-type?) arrow expr) => (circuit parg-list 4 return-type? #f expr)
       (parenthesized src lparen fun rparen) => (parenthesized fun)
       )
