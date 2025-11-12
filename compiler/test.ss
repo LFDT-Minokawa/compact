@@ -7395,6 +7395,40 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 16" "const binding found in a single-statement context" ()))
     )
+
+  ; pm-20423
+  (test
+    '(
+      "export circuit foo(b: Boolean): Uint<16> {"
+      "if (b) const x = 0, y = 1;"
+      "return x + y;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "const binding found in a single-statement context" ()))
+    )
+
+  (test
+    '(
+      "export circuit foo(b: Boolean): Uint<16> const x = 0, y = 1;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 42" "parse error: found ~a looking for~?" ("\"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "\";\""))))
+    )
+
+  (test
+    '(
+      "export circuit foo(b: Boolean): Uint<16> {"
+      "  (() => const x = 0, y = 1)();"
+      "  return 3;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "parse error: found ~a looking for~?" ("\"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "an expression"))))
+    )
 )
 
 (run-tests reject-duplicate-bindings
