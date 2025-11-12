@@ -19573,7 +19573,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 36" "invalid context for a ledger ADT type" ()))
+      irritants: '("testfile.compact line 5 char 19" "cannot cast from type ~a to type ~a" ("Uint<64>" "Map<Field, Field>")))
     )
 
   (test
@@ -19587,7 +19587,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 13" "invalid context for a ledger ADT type" ()))
+      irritants: '("testfile.compact line 4 char 13" "expected structure type, received ~a" ("Counter")))
     )
 
   (test
@@ -22225,9 +22225,20 @@ groups than for single tests.
       "  return x.lookup(disclose(y));"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "nominal type aliases are not supported for ADT types; use 'type' instead of 'new type'" ()))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (public-ledger-declaration
+          %x.1
+          (talias #t X (Map (tfield) (tfield))))
+        (circuit %foo.2 ([%y.3 (tfield)])
+             (tfield)
+          (seq
+            (ledger-call insert
+              %x.1
+              (disclose %y.3)
+              (+ #f (disclose %y.3) (safe-cast (tfield) (tunsigned 1) 1)))
+            (ledger-call lookup %x.1 (disclose %y.3))))))
     )
 
   (test
@@ -22246,6 +22257,24 @@ groups than for single tests.
       )
     (returns
       (program (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type T1 = Map<Field, Field>;"
+      "new type T2 = Map<Field, T1>;"
+      "ledger F: T2;"
+      "export circuit foo(in: Field): Field {"
+      "  const n = disclose(in);"
+      "  F.insert(n, default<Map<Field, Field>>);"
+      "  F.lookup(n).insert(n + 2, n + 4);"
+      "  return F.lookup(n).lookup(n + 2);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 4" "expected ~:r argument of ~s to have type ~a but received ~a" (2 insert "T1=Map<Field, Field>" "Map<Field, Field>")))
     )
 )
 
@@ -79768,6 +79797,72 @@ groups than for single tests.
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  expect(C.circuits.foo(Ctxt, 17n).result).toEqual(18n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type T1 = Map<Field, Field>;"
+      "type T2 = Map<Field, T1>;"
+      "ledger F: T2;"
+      "export circuit foo(in: Field): Field {"
+      "  const n = disclose(in);"
+      "  F.insert(n, default<T1> as T1);"
+      "  F.lookup(n).insert(n + 2, n + 4);"
+      "  return F.lookup(n).lookup(n + 2);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 3n).result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type T1 = Map<Field, Field>;"
+      "new type T2 = Map<Field, T1>;"
+      "ledger F: T2;"
+      "export circuit foo(in: Field): Field {"
+      "  const n = disclose(in);"
+      "  F.insert(n, default<T1> as T1);"
+      "  F.lookup(n).insert(n + 2, n + 4);"
+      "  return F.lookup(n).lookup(n + 2);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 3n).result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type T1 = Map<Field, Field>;"
+      "new type T2 = Map<Field, T1>;"
+      "ledger F: T2;"
+      "export circuit foo(in: Field): Field {"
+      "  const n = disclose(in);"
+      "  F.insert(n, default<Map<Field, Field>> as T1);"
+      "  F.lookup(n).insert(n + 2, n + 4);"
+      "  return F.lookup(n).lookup(n + 2);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 3n).result).toEqual(7n);"
         "});"
         ))
     )

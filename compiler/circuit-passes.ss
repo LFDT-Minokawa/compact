@@ -960,12 +960,12 @@
          (source-errorf src "expected Field or Uint, got ~a for downcast-unsigned"
                               (format-type type)))
        (with-output-language (Linlined Type) `(tunsigned ,src ,nat))]
-      [(safe-cast ,src ,type ,type^ ,[Care : expr -> * type^^])
-       (unless (sametype? type^^ type^)
+      [(safe-cast ,src ,adt-type ,adt-type^ ,[Care : expr -> * adt-type^^])
+       (unless (sametype? adt-type^^ adt-type^)
          (source-errorf src "expected ~a, got ~a for upcast"
-                        (format-type type^)
-                        (format-type type^^)))
-       type]
+                        (format-type adt-type^)
+                        (format-type adt-type^^)))
+       adt-type]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[Care : expr* -> * type^*] ...)
        (nanopass-case (Linlined ADT-Op) adt-op
          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
@@ -1012,7 +1012,7 @@
 
   (define-pass drop-safe-casts : Linlined (ir) -> Lnosafecast ()
     (Expression : Expression (ir) -> Expression ()
-      [(safe-cast ,src ,type ,type^ ,[expr]) expr]))
+      [(safe-cast ,src ,adt-type ,adt-type^ ,[expr]) expr]))
 
   (define-pass resolve-indices/simplify : Lnosafecast (ir) -> Lnovectorref ()
     (definitions

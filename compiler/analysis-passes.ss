@@ -106,7 +106,7 @@
              (+ 10 (combine (map symbol-hash (cons* enum-name elt-name elt-name*))))]
             [(talias ,src ,nominal? ,type-name ,type)
              (+ 11 (combine (list (symbol-hash type-name) (type-hash type))))]
-            [(,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+            [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
              (+ 12 (combine (cons (symbol-hash adt-name) (map gv-hash generic-value*))))]
             [else (internal-errorf 'type-hash "unrecognized type ~s" type)]))
         (define (targ-info-hash info*)
@@ -268,9 +268,7 @@
                     [(non-adt-type-valued ,src^ ,tvar-name)
                      (Info-case info
                        [(Info-type src type)
-                        (when (nanopass-case (Lexpanded Type) type
-                                [,public-adt #t]
-                                [else #f])
+                        (when (public-adt? type)
                           (oops src src^ "non-ADT type" tvar-name))]
                        [(Info-size src size) (oops src src^ "non-ADT type" tvar-name)]
                        [(Info-free-tvar tvar-name) (void)]
@@ -279,6 +277,12 @@
                 type-param*
                 info*)
               p)))
+      (define (public-adt? type)
+        (let again ([type type])
+          (nanopass-case (Lexpanded Type) type
+            [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
+            [(talias ,src ,nominal? ,type-name ,type) (again type)]
+            [else #f])))
       (module (sametype?)
         (define-syntax T
           (syntax-rules ()
@@ -356,9 +360,9 @@
                        (eq? elt-name1 elt-name2)
                        (fx= (length elt-name1*) (length elt-name2*))
                        (andmap eq? elt-name1* elt-name2*))])]
-            [(,src1 ,adt-name1 ([,adt-formal1* ,generic-value1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
+            [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,generic-value1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
              (T type2
-                [(,src2 ,adt-name2 ([,adt-formal2* ,generic-value2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
+                [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,generic-value2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
                  (and (eq? adt-name1 adt-name2)
                       (fx= (length generic-value1*) (length generic-value2*))
                       (andmap same-generic-value? generic-value1* generic-value2*))])])))
@@ -437,10 +441,7 @@
                            ; type-param kind non-adt-type-valued
                            [(non-adt-type-valued ,src^ ,tvar-name)
                             (Info-case info
-                              [(Info-type src type)
-                               (nanopass-case (Lexpanded Type) type
-                                 [,public-adt #f]
-                                 [else #t])]
+                              [(Info-type src type) (not (public-adt? type))]
                               [else #f])]))
                        type-param*
                        info*)))
@@ -534,7 +535,7 @@
           [(Info-module type-param* ^export* p seqno dirname instance-table) "module"]
           [(Info-var id) "variable"]
           [(Info-bogus) "variable"]
-          [(Info-type src type) (nanopass-case (Lexpanded Type) type [,public-adt "ledger ADT type"] [else "type"])]
+          [(Info-type src type) (if (public-adt? type) "ledger ADT type" "type")]
           [(Info-free-tvar tvar-name) "type"]
           [(Info-size src size) "size"]
           [(Info-functions name info-fun+) "function"]
@@ -831,13 +832,8 @@
         (let ([nactual (length info*)] [ndeclared (length type-param*)])
           (unless (fx= nactual ndeclared) (generic-argument-count-oops src type-name nactual ndeclared)))
         (let ([p^ (add-tvar-rib src p^ type-param* info*)])
-          (let ([type (Type type p^)])
-            (cond
-              [(Lexpanded-Public-Ledger-ADT? type)
-               (when nominal? (source-errorf alias-src "nominal type aliases are not supported for ADT types; use 'type' instead of 'new type'"))
-               type]
-              [else (with-output-language (Lexpanded Type)
-                      `(talias ,alias-src ,nominal? ,type-name ,type))]))))
+          (with-output-language (Lexpanded Type)
+            `(talias ,alias-src ,nominal? ,type-name ,(Type type p^)))))
       (define (apply-ledger-ADT src adt-name type-param* vm-expr adt-op* adt-rt-op* p info*)
         (let ([nactual (length info*)] [ndeclared (length type-param*)])
           (unless (fx= nactual ndeclared)
@@ -894,8 +890,8 @@
                                         (with-output-language (Lexpanded ADT-Runtime-Op)
                                           `(,ledger-op ((,var-name* ,type*) ...) ,result-type ,runtime-code)))]))
                                  adt-rt-op*)])
-            (with-output-language (Lexpanded Public-Ledger-ADT)
-              `(,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))))))
+            (with-output-language (Lexpanded Type)
+              `(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))))))
       (define (get-native-entry src external-name ndeclared)
         (let ([external-name
                (cond
@@ -1073,18 +1069,17 @@
       [(public-ledger-declaration ,src ,exported? ,sealed? ,ledger-field-name ,[type])
        (when sealed? (id-sealed?-set! id #t))
        `(public-ledger-declaration ,src ,id
-          ,(nanopass-case (Lexpanded Type) type
-             [,public-adt public-adt]
-             [else
-              (let ([p (or Cell-ADT-env
-                           (let ([p (add-rib empty-env)])
-                             (do-import src 'CompactStandardLibrary '() ""
-                                        (list (with-output-language (Lpreexpand Import-Element)
-                                                `(,src __compact_Cell __compact_Cell)))
-                                        p)
-                             (set! Cell-ADT-env p)
-                             p))])
-                (handle-type-ref src 'Cell (list (Info-type src type)) (lookup p src '__compact_Cell)))]))]
+          ,(if (public-adt? type)
+               type
+               (let ([p (or Cell-ADT-env
+                            (let ([p (add-rib empty-env)])
+                              (do-import src 'CompactStandardLibrary '() ""
+                                         (list (with-output-language (Lpreexpand Import-Element)
+                                                 `(,src __compact_Cell __compact_Cell)))
+                                         p)
+                              (set! Cell-ADT-env p)
+                              p))])
+                 (handle-type-ref src 'Cell (list (Info-type src type)) (lookup p src '__compact_Cell)))))]
       [(constructor ,src (,[arg*] ...) ,expr)
        (let ([var-id* (map arg->id arg*)] [p (add-rib p)])
          (for-each
@@ -1363,7 +1358,7 @@
                  s))]
           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
            (format-public-adt adt-name adt-arg*)]
-          [else (internal-errorf 'format-type "unrecognized type ~a" adt-type)]))
+          [else (internal-errorf 'format-type "unrecognized type ~a" type)]))
       (define (de-alias type nominal-too?)
         (nanopass-case (Ltypes Type) type
           [(talias ,src ,nominal? ,type-name ,type)
@@ -1395,71 +1390,73 @@
                   elt-name2* pure-dcl2* type2** type2*))
         (define (sametype? type1 type2)
           (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
-            (T type1
-               [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-               [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
-               [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
-               [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
-               [(topaque ,src1 ,opaque-type1)
-                (T type2
-                   [(topaque ,src2 ,opaque-type2)
-                    (string=? opaque-type1 opaque-type2)])]
-               [(tvector ,src1 ,len1 ,type1)
-                (T type2
-                   [(tvector ,src2 ,len2 ,type2)
-                    (and (= len1 len2)
-                         (sametype? type1 type2))]
-                   [(ttuple ,src2 ,type2* ...)
-                    (and (= len1 (length type2*))
-                         (andmap (lambda (type2) (sametype? type1 type2)) type2*))])]
-               [(ttuple ,src1 ,type1* ...)
-                (T type2
-                   [(tvector ,src2 ,len2 ,type2)
-                    (and (= (length type1*) len2)
-                         (andmap (lambda (type1) (sametype? type1 type2)) type1*))]
-                   [(ttuple ,src2 ,type2* ...)
-                    (and (= (length type1*) (length type2*))
-                         (andmap sametype? type1* type2*))])]
-               [(tunknown) (T type2 [(tunknown) #t])]
-               [(tundeclared) (T type2 [(tundeclared) #t])]
-               [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-                (T type2
-                   [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
-                    (and (eq? contract-name1 contract-name2)
-                         (fx= (length elt-name1*) (length elt-name2*))
-                         (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
-               [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
-                (T type2
-                   [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
-                    ; include struct-name and elt-name tests for nominal typing; remove
-                    ; for structural typing.
-                    (and (eq? struct-name1 struct-name2)
-                         (fx= (length elt-name1*) (length elt-name2*))
-                         (andmap eq? elt-name1* elt-name2*)
-                         (andmap sametype? type1* type2*))])]
-               [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
-                (T type2
-                   [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
-                    (and (eq? enum-name1 enum-name2)
-                         (eq? elt-name1 elt-name2)
-                         (fx= (length elt-name1*) (length elt-name2*))
-                         (andmap eq? elt-name1* elt-name2*))])]
-               [(talias ,src1 ,nominal1? ,type-name1 ,type1)
-                (assert nominal1?)
-                (T type2
-                   [(talias ,src2 ,nominal2? ,type-name2 ,type2)
-                    (assert nominal2?)
-                    (and (eq? type-name1 type-name2)
-                         (sametype? type1 type2))])]
-               [(,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
-                (T type2
-                   [(,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
-                    (and (eq? adt-name1 adt-name2)
-                         (fx= (length adt-arg1*) (length adt-arg2*))
-                         (andmap same-adt-arg? adt-arg1* adt-arg2*))])])))
+            (or #;(eq? type1 type2)
+                (T type1
+                   [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
+                   [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
+                   [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
+                   [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
+                   [(topaque ,src1 ,opaque-type1)
+                    (T type2
+                       [(topaque ,src2 ,opaque-type2)
+                        (string=? opaque-type1 opaque-type2)])]
+                   [(tvector ,src1 ,len1 ,type1)
+                    (T type2
+                       [(tvector ,src2 ,len2 ,type2)
+                        (and (= len1 len2)
+                             (sametype? type1 type2))]
+                       [(ttuple ,src2 ,type2* ...)
+                        (and (= len1 (length type2*))
+                             (andmap (lambda (type2) (sametype? type1 type2)) type2*))])]
+                   [(ttuple ,src1 ,type1* ...)
+                    (T type2
+                       [(tvector ,src2 ,len2 ,type2)
+                        (and (= (length type1*) len2)
+                             (andmap (lambda (type1) (sametype? type1 type2)) type1*))]
+                       [(ttuple ,src2 ,type2* ...)
+                        (and (= (length type1*) (length type2*))
+                             (andmap sametype? type1* type2*))])]
+                   [(tunknown) (T type2 [(tunknown) #t])]
+                   [(tundeclared) (T type2 [(tundeclared) #t])]
+                   [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+                    (T type2
+                       [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                        (and (eq? contract-name1 contract-name2)
+                             (fx= (length elt-name1*) (length elt-name2*))
+                             (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
+                   [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
+                    (T type2
+                       [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
+                        ; include struct-name and elt-name tests for nominal typing; remove
+                        ; for structural typing.
+                        (and (eq? struct-name1 struct-name2)
+                             (fx= (length elt-name1*) (length elt-name2*))
+                             (andmap eq? elt-name1* elt-name2*)
+                             (andmap sametype? type1* type2*))])]
+                   [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
+                    (T type2
+                       [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
+                        (and (eq? enum-name1 enum-name2)
+                             (eq? elt-name1 elt-name2)
+                             (fx= (length elt-name1*) (length elt-name2*))
+                             (andmap eq? elt-name1* elt-name2*))])]
+                   [(talias ,src1 ,nominal1? ,type-name1 ,type1)
+                    (assert nominal1?)
+                    (T type2
+                       [(talias ,src2 ,nominal2? ,type-name2 ,type2)
+                        (assert nominal2?)
+                        (and (eq? type-name1 type-name2)
+                             (sametype? type1 type2))])]
+                   [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
+                    (T type2
+                       [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
+                        (and (eq? adt-name1 adt-name2)
+                             (fx= (length adt-arg1*) (length adt-arg2*))
+                             (andmap same-adt-arg? adt-arg1* adt-arg2*))])]))))
         (define (subtype? type1 type2)
           (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
-            (or (T type1
+            (or #;(eq? type1 type2)
+                (T type1
                    [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
                    [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
                    [(tunsigned ,src1 ,nat1)
@@ -1518,20 +1515,20 @@
                         (assert nominal2?)
                         (and (eq? type-name1 type-name2)
                              (sametype? type1 type2))])]
-                   [(,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
+                   [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
                     (T type2
-                       [(,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
+                       [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
                         (and (eq? adt-name1 adt-name2)
                              (fx= (length adt-arg1*) (length adt-arg2*))
                              (andmap same-adt-arg? adt-arg1* adt-arg2*))])])
                 (T type2
                    [(tundeclared) #t])))))
-      (define (adt-type? type)
-        (nanopass-case (Ltypes Type)
+      (define (public-adt? type)
+        (nanopass-case (Ltypes Type) (de-alias type #t)
           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
           [else #f]))
-      (define (verify-non-adt-type! src adt-type fmt . arg*)
-        (when (adt-type? type)
+      (define (verify-non-adt-type! src type fmt . arg*)
+        (when (public-adt? type)
           (source-errorf src
                           "expected ~a type to be an ordinary Compact type but received ADT type ~a"
                           (apply format fmt arg*)
@@ -1677,12 +1674,12 @@
                 whose-body))
             (for-each unset-idtype! id*)
             (if (declared? return-type)
-                (values (maybe-upcast src return-type actual-type expr) return-type)
+                (values (maybe-safecast src return-type actual-type expr) return-type)
                 (values expr actual-type)))))
-      (define maybe-upcast
+      (define maybe-safecast
         (case-lambda
           [(src) (lambda (declared-type actual-type expr)
-                   (maybe-upcast src declared-type actual-type expr))]
+                   (maybe-safecast src declared-type actual-type expr))]
           [(src declared-type actual-type expr)
            (if (sametype? declared-type actual-type)
                expr
@@ -1729,7 +1726,7 @@
                               (functions-are generic-failure*)
                               (map (lambda (generic-value)
                                      (nanopass-case (Lexpanded Generic-Value) generic-value
-                                       [,type (format "type ~a" (format-type (Public-Ledger-ADT-Type type)))]
+                                       [,type (format "type ~a" (format-type (Type type)))]
                                        [,nat (format "size ~d" nat)]))
                                    generic-value*)
                               generic-failure*)))
@@ -1985,7 +1982,7 @@
                                                                ,(let-values ([(type nat) (if (< nat1 nat2) (values type2 nat2) (values type1 nat1))])
                                                                   (let ([mbits (fxmax 1 (integer-length nat))])
                                                                     (with-output-language (Ltypes Expression)
-                                                                      `(>= ,src ,mbits ,(maybe-upcast src type type1 expr1) ,(maybe-upcast src type type2 expr2)))))
+                                                                      `(>= ,src ,mbits ,(maybe-safecast src type type1 expr1) ,(maybe-safecast src type type2 expr2)))))
                                                                "result of subtraction would be negative")
                                                        ,(k mbits
                                                            (maybe-cast nat1 type1 expr1)
@@ -1997,8 +1994,8 @@
                               (let ([result-type (with-output-language (Ltypes Type) `(tfield ,src))])
                                 (values
                                   (k #f
-                                     (maybe-upcast src result-type type1 expr1)
-                                     (maybe-upcast src result-type type2 expr2))
+                                     (maybe-safecast src result-type type1 expr1)
+                                     (maybe-safecast src result-type type2 expr2))
                                   result-type)))])
               (if (and (null? type-name1*) (null? type-name2*))
                   (values result-expr result-type)
@@ -2026,7 +2023,7 @@
                          [(tunsigned ,src2 ,nat2)
                           (let-values ([(type nat) (if (< nat1 nat2) (values type2 nat2) (values type1 nat1))])
                             (let ([mbits (fxmax 1 (integer-length nat))])
-                              (k mbits (maybe-upcast src type type1 expr1) (maybe-upcast src type type2 expr2))))])]
+                              (k mbits (maybe-safecast src type type1 expr1) (maybe-safecast src type type2 expr2))))])]
                      [(talias ,src1 ,nominal1? ,type-name1 ,type1)
                       (T (de-alias type2 #f)
                          [(talias ,src2 ,nominal2? ,type-name2 ,type2)
@@ -2040,16 +2037,16 @@
         (let*-values ([(expr1 type1) (Care expr1)] [(expr2 type2) (Care expr2)])
           (verify-non-adt-type! src type1 "equality-operator left operand")
           (verify-non-adt-type! src type2 "equality-operator right operand")
-          (let ([adt-type (cond
-                            [(subtype? type1 type2) type2]
-                            [(subtype? type2 type1) type1]
-                            [else #f])])
+          (let ([type (cond
+                        [(subtype? type1 type2) type2]
+                        [(subtype? type2 type1) type1]
+                        [else #f])])
             (unless type
               (source-errorf src "incompatible types ~a and ~a for equality operator"
                              (format-type type1)
                              (format-type type2)))
             (values
-              (k type (maybe-upcast src type type1 expr1) (maybe-upcast src type type2 expr2))
+              (k type (maybe-safecast src type type1 expr1) (maybe-safecast src type type2 expr2))
               (with-output-language (Ltypes Type) `(tboolean ,src))))))
       (define (find-adt-op src elt-name sugar? adt-name adt-op* type* expr expr* fail)
         (let ([elt-name (cond
@@ -2084,7 +2081,7 @@
                                                   (format-type actual-type)))))
                            type^* type* (enumerate type^*))
                          (values
-                           (let ([expr* (map (maybe-upcast src) type^* type* expr*)])
+                           (let ([expr* (map (maybe-safecast src) type^* type* expr*)])
                              (with-output-language (Ltypes Expression)
                                `(ledger-call ,src ,elt-name ,sugar? ,expr ,expr* ...)))
                            type))
@@ -2128,7 +2125,7 @@
                                        (format-type actual-type))))
                     declared-type* actual-type* (enumerate declared-type*))
                   (values
-                    (let ([expr* (map (maybe-upcast src) declared-type* actual-type* expr*)])
+                    (let ([expr* (map (maybe-safecast src) declared-type* actual-type* expr*)])
                       (with-output-language (Ltypes Expression)
                         `(contract-call ,src ,elt-name (,expr ,actual-type) ,expr* ...)))
                     (car return-type*)))
@@ -2258,15 +2255,9 @@
                         (id-sym function-name)))
        (build-function 'witness function-name arg* type)]
       [(public-ledger-declaration ,src ,ledger-field-name ,[type])
-       (unless (nanopass-case (Ltypes Type) type
-                 [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
-                 [else #f])
-         (internal-errof src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
-                         (format-type type)))
-       (when (contains-contract? type)
-         (source-errorf src "invalid type ~a for witness ~a return value:\n  witness return values cannot include contract values"
-                        (format-type type)
-                        (id-sym function-name)))
+       (unless (public-adt? type)
+         (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
+                            (format-type type)))
        (set-idtype! ledger-field-name (Idtype-Base type))]
       [else (void)])
     (External-Contract-Declaration! : External-Contract-Declaration (ir) -> * (void)
@@ -2311,7 +2302,7 @@
        `(witness ,src ,function-name (,arg* ...) ,type)])
     (Export-Type-Definition :  Export-Type-Definition (ir) -> Export-Type-Definition ()
       [(export-typedef ,src ,type-name (,tvar-name* ...) ,[type])
-       (if (adt-type? type)
+       (if (public-adt? type)
            (source-errorf src "cannot export alias for ADT types from the top level")
            `(export-typedef ,src ,type-name (,tvar-name* ...) ,type))])
     (ADT-Op : ADT-Op (ir) -> ADT-Op ())
@@ -2403,7 +2394,7 @@
              (let ([expr (CareNot expr)])
                (for-each unset-idtype! var-name*)
                `(let* ,src ([(,var-name* ,declared-type*)
-                             ,(map (maybe-upcast src) declared-type* actual-type* expr*)]
+                             ,(map (maybe-safecast src) declared-type* actual-type* expr*)]
                             ...)
                   ,expr)))))]
       [else (let-values ([(expr type) (Care ir)]) expr)])
@@ -2446,11 +2437,11 @@
          (define (handle-contract expr actual-type err)
            (nanopass-case (Ltypes Type) (de-alias actual-type #t)
              [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
-              (guard (not actual-type-only?))
+              (guard (not adt-type-only?))
               (find-contract-circuit src src^ contract-name elt-name elt-name* type** type* actual-type actual-type* expr expr*)]
              [else (err)]))
          (nanopass-case (Ltypes Type) (de-alias actual-type #t)
-           [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
             (find-adt-op src elt-name #f adt-name adt-op* actual-type* expr expr*
               (lambda ()
                 (let-values ([(expr actual-type) (find-adt-op src 'read #f adt-name adt-op* '() expr '()
@@ -2462,8 +2453,8 @@
     (Care : Expression (ir) -> Expression (type)
       (definitions
         (define (desugar-ledger-read src expr type)
-          (nanopass-case (Ltypes Type) type
-            [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+          (nanopass-case (Ltypes Type) (de-alias type #t)
+            [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
              (find-adt-op src 'read #f adt-name adt-op* '() expr '()
                (lambda ()
                  (source-errorf src "incomplete chain of ledger indirects: final result must be a regular type, but received ADT type ~a"
@@ -2512,7 +2503,7 @@
        (nanopass-case (Ltypes Type) (de-alias type #t)
          [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
           (source-errorf src "default is not defined for contract types")]
-         [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+         [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
           (guard (eq? adt-name 'Kernel))
           (source-errorf src "default is not defined for ADT type Kernel")]
          [else (values `(default ,src ,type) type)])]
@@ -2532,8 +2523,8 @@
            (values
              `(if ,src
                   ,expr0
-                  ,(maybe-upcast src type type1 expr1)
-                  ,(maybe-upcast src type type2 expr2))
+                  ,(maybe-safecast src type type1 expr1)
+                  ,(maybe-safecast src type type2 expr2))
              type)))]
       [(elt-ref ,src ,[Care : expr type] ,elt-name)
        (nanopass-case (Ltypes Type) (de-alias type #t)
@@ -2563,20 +2554,20 @@
        (let-values ([(expr type) (elt-call-lhs ir src "." #f)])
          (desugar-ledger-read src expr type))]
       [(= ,src ,[elt-call-lhs : expr1 src "=" #t -> expr1 type1] ,[Care : expr2 type2])
-       (nanopass-case (Ltypes Public-Ledger-ADT-Type) type1
-         [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (nanopass-case (Ltypes Type) type1
+         [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
           (find-adt-op! src 'write "=" adt-name adt-op* adt-rt-op* (list type2) expr1 (list expr2) adt-arg*)]
          [else (source-errorf src "expected left-hand side of = to have an ADT type, received ~a"
                               (format-type type1))])]
       [(+= ,src ,[elt-call-lhs : expr1 src "+=" #t -> expr1 type1] ,[Care : expr2 type2])
-       (nanopass-case (Ltypes Public-Ledger-ADT-Type) type1
-         [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (nanopass-case (Ltypes Type) type1
+         [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
           (find-adt-op! src 'increment "+=" adt-name adt-op* adt-rt-op* (list type2) expr1 (list expr2) adt-arg*)]
          [else (source-errorf src "expected left-hand side of += to have an ADT type, received ~a"
                               (format-type type1))])]
       [(-= ,src ,[elt-call-lhs : expr1 src "-=" #t -> expr1 type1] ,[Care : expr2 type2])
-       (nanopass-case (Ltypes Public-Ledger-ADT-Type) type1
-         [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (nanopass-case (Ltypes Type) type1
+         [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
           (find-adt-op! src 'decrement "-=" adt-name adt-op* adt-rt-op* (list type2) expr1 (list expr2) adt-arg*)]
          [else (source-errorf src "expected left-hand side of -= to have an ADT type, received ~a"
                               (format-type type1))])]
@@ -2625,8 +2616,8 @@
              (values
                `(vector ,src ,(map (lambda (kind nat expr type)
                                      (if (eq? kind 'single)
-                                         `(single ,src ,(maybe-upcast src elt-type type expr))
-                                         `(spread ,src ,nat ,(maybe-upcast src (make-vector-type nat) type expr))))
+                                         `(single ,src ,(maybe-safecast src elt-type type expr))
+                                         `(spread ,src ,nat ,(maybe-safecast src (make-vector-type nat) type expr))))
                                    kind* nat* expr* type*)
                         ...)
                (make-vector-type (apply + nat*))))
@@ -2713,7 +2704,7 @@
                (let-values ([(len^ elt-type) (vector-element-type src "tuple reference with a non-constant index" expr-type)])
                  (zero-check len^)
                  (let* ([vector-type (with-output-language (Ltypes Type) `(tvector ,src ,len^ ,elt-type))]
-                        [expr (maybe-upcast src vector-type expr-type expr)])
+                        [expr (maybe-safecast src vector-type expr-type expr)])
                    (values
                      `(vector-ref ,src ,vector-type ,expr ,index)
                      elt-type)))]))])]
@@ -2777,7 +2768,7 @@
                                        ; there is no need to check (len? len^) since since if the check is violated the construction of expr-type
                                        ; would have already caught it
                                        `(tvector ,src ,input-len ,elt-type))]
-                        [expr (maybe-upcast src vector-type expr-type expr)])
+                        [expr (maybe-safecast src vector-type expr-type expr)])
                    (values
                      `(vector-slice ,src ,vector-type ,expr ,index ,len)
                      (with-output-language (Ltypes Type)
@@ -2859,7 +2850,7 @@
          (do-call src #t fun (cons actual-type0 actual-elt-type+)
            (lambda (declared-type+ return-type fun)
              (let ([declared-type0 (car declared-type+)] [declared-type+ (cdr declared-type+)])
-               (let ([expr0 (maybe-upcast src declared-type0 actual-type0 expr0)])
+               (let ([expr0 (maybe-safecast src declared-type0 actual-type0 expr0)])
                  (values
                    `(fold ,src ,len ,fun
                       (,expr0 ,declared-type0)
@@ -2873,7 +2864,7 @@
          (do-call src #f fun actual-type*
            (lambda (declared-type* return-type fun)
              (values
-               `(call ,src ,fun ,(map (maybe-upcast src) declared-type* actual-type* expr*) ...)
+               `(call ,src ,fun ,(map (maybe-safecast src) declared-type* actual-type* expr*) ...)
                return-type))))]
       [(new ,src ,[type] ,new-field* ...)
        (nanopass-case (Ltypes Type) (de-alias type #t)
@@ -2993,7 +2984,7 @@
                                                                (format-type declared-type)
                                                                elt-name
                                                                (format-type type)))
-                                              (maybe-upcast src declared-type actual-type (field-expr field)))))]
+                                              (maybe-safecast src declared-type actual-type (field-expr field)))))]
                                        [maybe-spread-expr
                                         (lambda () `(elt-ref ,src ,maybe-spread-expr ,elt-name ,i))]
                                        [else
@@ -3041,7 +3032,7 @@
                (for-each unset-idtype! var-name*)
                (values
                  `(let* ,src ([(,var-name* ,declared-type*)
-                               ,(map (maybe-upcast src) declared-type* actual-type* expr*)]
+                               ,(map (maybe-safecast src) declared-type* actual-type* expr*)]
                               ...)
                     ,expr)
                   body-type)))))]
@@ -3078,7 +3069,7 @@
              [(tfield ,src) #t]
              [else #f]))
          (or (and (subtype? type^ type)
-                  (maybe-upcast src type type^ expr))
+                  (maybe-safecast src type type^ expr))
              (T type
                 [(tfield ,src1)
                  (T type^
@@ -3111,7 +3102,7 @@
                  (T type^
                     [(tbytes ,src2 ,len2)
                      (guard (= len2 (length type^*)) (andmap u8-supertype? type^*))
-                     (maybe-upcast src type
+                     (maybe-safecast src type
                        (with-output-language (Ltypes Type)
                          `(tvector ,src ,len2 (tunsigned ,src 255)))
                        `(bytes->vector ,src ,len2 ,expr))])]
@@ -3119,7 +3110,7 @@
                  (T type^
                     [(tbytes ,src2 ,len2)
                      (guard (= len2 len1) (u8-supertype? type^^))
-                     (maybe-upcast src type
+                     (maybe-safecast src type
                        (with-output-language (Ltypes Type)
                          `(tvector ,src ,len2 (tunsigned ,src 255)))
                        `(bytes->vector ,src ,len1 ,expr))])]
@@ -3165,14 +3156,10 @@
              (source-errorf src "cannot cast from type ~a to type ~a"
                             (format-type type^)
                             (format-type type))))
-       (define (cast/neq type type^ expr)
-         (if (eq? type type^)
-             expr
-             `(safe-cast ,src ,type ,type^ ,expr)))
        (values
          (let ([unaliased-type (de-alias type #t)] [unaliased-type^ (de-alias type^ #t)])
-           (let ([expr (cast/neq unaliased-type^ type^ expr)])
-             (cast/neq type unaliased-type (handle-unaliased unaliased-type unaliased-type^ expr))))
+           (let ([expr (maybe-safecast src unaliased-type^ type^ expr)])
+             (maybe-safecast src type unaliased-type (handle-unaliased unaliased-type unaliased-type^ expr))))
          type)]
       [(disclose ,src ,[Care : expr type])
        (values
@@ -3218,7 +3205,7 @@
        (values
          (let ([new-type (with-output-language (Ltypes Type)
                            `(tunsigned ,src 255))])
-           `(single ,src ,(maybe-upcast src new-type type expr)))
+           `(single ,src ,(maybe-safecast src new-type type expr)))
          1)]
       [(spread ,src ,[Care : expr type])
        (nanopass-case (Ltypes Type) (de-alias type #t)
@@ -3235,7 +3222,7 @@
                                           ; there is no need to check (len? nat) since construction of tuple
                                           ; would have already caught it
                                           `(tvector ,src ,nat (tunsigned ,src 255)))])
-                          (maybe-upcast src new-type type expr)))
+                          (maybe-safecast src new-type type expr)))
               nat))]
          [(tvector ,src ,len ,type^)
           (guard (u8-subtype? type^))
@@ -3243,13 +3230,34 @@
             `(spread ,src ,len
                      ,(let ([new-type (with-output-language (Ltypes Type)
                                         `(tvector ,src ,len (tunsigned ,src 255)))])
-                        (maybe-upcast src new-type type expr)))
+                        (maybe-safecast src new-type type expr)))
             len)]
          [else (source-errorf src "expected type of Bytes spread to be a Bytes value or a Tuple or Vector of Uint<8> subtypes but received ~a"
                               (format-type type))])])
     )
 
-  (define-pass remove-tundeclared : Ltypes (ir) -> Lnotundeclared ())
+  (define-pass remove-tadt : Ltypes (ir) -> Lpublicadt ()
+    (definitions
+      (define (public-adt? adt-type)
+        (nanopass-case (Lpublicadt Public-Ledger-ADT-Type) adt-type
+          [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
+          [else #f])))
+    (Ledger-Declaration : Ledger-Declaration (ir) -> Ledger-Declaration ()
+      [(public-ledger-declaration ,src ,ledger-field-name ,[adt-type])
+       (assert (public-adt? adt-type))
+       `(public-ledger-declaration ,src ,ledger-field-name ,adt-type)])
+    (Public-Ledger-ADT-Type : Type (ir) -> Public-Ledger-ADT-Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,[adt-arg*]] ...) ,vm-expr (,[adt-op*] ...) (,[adt-rt-op*] ...))
+       `(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))]
+      [(talias ,src ,nominal? ,type-name ,[adt-type])
+       (if (public-adt? adt-type)
+           adt-type
+           `(talias ,src ,nominal? ,type-name ,adt-type))])
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (assert cannot-happen)]))
+
+  (define-pass remove-tundeclared : Lpublicadt (ir) -> Lnotundeclared ())
 
   (define-pass combine-ledger-declarations : Lnotundeclared (ir) -> Loneledger ()
     (definitions
@@ -4126,12 +4134,12 @@
          (source-errorf src "expected Uint, got ~a for downcast-unsigned"
                               (format-type type)))
        (with-output-language (Lnodca Type) `(tunsigned ,src ,nat))]
-      [(safe-cast ,src ,type ,type^ ,[Care : expr -> * type^^])
-       (unless (sametype? type^^ type^)
+      [(safe-cast ,src ,adt-type ,adt-type^ ,[Care : expr -> * adt-type^^])
+       (unless (sametype? adt-type^^ adt-type^)
          (source-errorf src "expected ~a, got ~a for upcast"
-                        (format-type type^)
-                        (format-type type^^)))
-       type]
+                        (format-type adt-type^)
+                        (format-type adt-type^^)))
+       adt-type]
       [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor ,accessor* ...)
        (let loop ([accessor accessor]
                   [accessor* accessor*]
@@ -5389,7 +5397,7 @@
       [(bytes->vector ,src ,len ,[* abs]) (Abs-single (Abs-atomic (abs->witnesses abs)))]
       [(vector->bytes ,src ,len ,[* abs]) (Abs-atomic (abs->witnesses abs))]
       [(downcast-unsigned ,src ,nat ,[* abs]) abs]
-      [(safe-cast ,src ,type ,type^ ,[* abs]) abs]
+      [(safe-cast ,src ,adt-type ,adt-type^ ,[* abs]) abs]
 
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[* abs*] ...)
        (nanopass-case (Lwithpaths ADT-Op) adt-op
@@ -5473,6 +5481,7 @@
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
     (infer-types                     Ltypes)
+    (remove-tadt                     Lpublicadt)
     (remove-tundeclared              Lnotundeclared)
     (combine-ledger-declarations     Loneledger)
     (discard-unused-functions        Loneledger)

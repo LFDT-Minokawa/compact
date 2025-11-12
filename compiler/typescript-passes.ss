@@ -3126,7 +3126,7 @@
              0 "})("
              expr
              ")")))]
-      [(safe-cast ,src ,type ,type^ ,expr)
+      [(safe-cast ,src ,adt-type ,adt-type^ ,expr)
        ; no checks needed for safe casts
        (Expr expr level outer-pure?)]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
