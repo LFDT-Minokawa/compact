@@ -4638,6 +4638,10 @@
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
           [else type]))
+      (define (public-adt? type)
+        (nanopass-case (Lwithpaths Type) (de-alias type)
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
+          [else #f]))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -4717,8 +4721,9 @@
                                       ; nothing but lookup with one argument (the key) should have gotten past the type checker
                                       (assert (and (eq? ledger-op 'lookup) (fx= (length expr*) 1)))
                                       ; and the only element of type* should be a base type
-                                      (assert (Lwithpaths-Type? (car type*)))
+                                      (assert (not (public-adt? (car type*))))
                                       ; and since we're nested, nothing but a public-adt return type should have gotten past the type checker
+                                      (assert (public-adt? type))
                                       (loop (car accessor*)
                                             (cdr accessor*)
                                             type

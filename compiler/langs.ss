@@ -31,11 +31,11 @@
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
-          Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Type? Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
-          Loneledger unparse-Loneledger Loneledger-pretty-formats Loneledger-Ledger-Declaration?
+          Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
+          Loneledger unparse-Loneledger Loneledger-pretty-formats
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
-          Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats Lwithpaths-Type?
+          Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats
           Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats Lnodisclose-Export-Type-Definition?
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
@@ -45,7 +45,7 @@
           Lnosafecast unparse-Lnosafecast Lnosafecast-pretty-formats
           Lnovectorref unparse-Lnovectorref Lnovectorref-pretty-formats
           Lcircuit unparse-Lcircuit Lcircuit-pretty-formats Lcircuit-External-Declaration? Lcircuit-Witness-Declaration? Lcircuit-Circuit-Definition? Lcircuit-Kernel-Declaration? Lcircuit-Ledger-Declaration? Lcircuit-Triv?
-          Lflattened unparse-Lflattened Lflattened-pretty-formats Lflattened-Triv? Lflattened-Circuit-Definition? Lflattened-Type?
+          Lflattened unparse-Lflattened Lflattened-pretty-formats Lflattened-Triv? Lflattened-Circuit-Definition?
           Lzkir unparse-Lzkir Lzkir-pretty-formats
           )
   (import (chezscheme) (nanopass) (nanopass-extension) (field) (natives))
