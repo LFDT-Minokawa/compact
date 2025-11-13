@@ -126,7 +126,7 @@ groups than for single tests.
   (define contractCode*)
   (define test-root*)
 
-  (define show-last-successes (make-parameter 4))
+  (define show-last-successes (make-parameter 0))
   (define show-successes (make-parameter #f))
   (define show-all-passes (make-parameter #f))
   (define show-stack-backtrace (make-parameter #t))
@@ -36852,9 +36852,9 @@ groups than for single tests.
       "}")
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%ledger_counter.2 (0) (Counter))))
+          ((%ledger_counter.2 (0) (ty ((aadt)) ((Counter))))))
         (circuit %minimal_error_circuit.3 ((argument
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
@@ -36888,9 +36888,9 @@ groups than for single tests.
       "}")
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%ledger_counter.2 (0) (Counter))))
+          ((%ledger_counter.2 (0) (ty ((aadt)) ((Counter))))))
         (circuit %minimal_error_circuit.3 ((argument
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
@@ -36930,9 +36930,9 @@ groups than for single tests.
       "}")
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%ledger_counter.2 (0) (Counter))))
+          ((%ledger_counter.2 (0) (ty ((aadt)) ((Counter))))))
         (circuit %minimal_error_circuit.3 ((argument
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
@@ -36971,9 +36971,9 @@ groups than for single tests.
       "}")
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%ledger_counter.2 (0) (Counter))))
+          ((%ledger_counter.2 (0) (ty ((aadt)) ((Counter))))))
         (circuit %minimal_error_circuit.3 ((argument
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
@@ -37011,9 +37011,9 @@ groups than for single tests.
       "}")
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%ledger_counter.1 (0) (Counter))))
+          ((%ledger_counter.1 (0) (ty ((aadt)) ((Counter))))))
         (circuit %minimal_error_circuit.2 () (ty () ()) ())))
     )
 
@@ -37035,9 +37035,9 @@ groups than for single tests.
       "}")
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%ledger_counter.2 (0) (Counter))))
+          ((%ledger_counter.2 (0) (ty ((aadt)) ((Counter))))))
         (circuit %minimal_error_circuit.3 ((argument
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
@@ -37074,9 +37074,9 @@ groups than for single tests.
       "}")
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%ledger_counter.1 (0) (Counter))))
+          ((%ledger_counter.1 (0) (ty ((aadt)) ((Counter))))))
         (circuit %minimal_error_circuit.2 ()
              (ty () ())
           (= () (public-ledger 1 %ledger_counter.1 (0) increment 1))
@@ -37100,9 +37100,9 @@ groups than for single tests.
       "}")
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%ledger_counter.2 (0) (Counter))))
+          ((%ledger_counter.2 (0) (ty ((aadt)) ((Counter))))))
         (circuit %minimal_error_circuit.3 ((argument
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
@@ -37153,12 +37153,13 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.1
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((abytes 1)) ((tfield 1)))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((abytes 1)) ((tfield 1)))))))))
         (circuit %foo.2 ((argument
                            (%n.3)
                            (ty ((afield)) ((tfield)))))
@@ -37184,12 +37185,13 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.2
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((abytes 1)) ((tfield 1)))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((abytes 1)) ((tfield 1)))))))))
         (circuit %foo.3 ((argument
                            (%n.0)
                            (ty ((afield)) ((tfield)))))
@@ -37220,12 +37222,13 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
+        (kernel-declaration (%kernel.6 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.0
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((abytes 1)) ((tfield 1)))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((abytes 1)) ((tfield 1)))))))))
         (circuit %foo.1 ((argument
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
@@ -37252,14 +37255,15 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
+        (kernel-declaration (%kernel.6 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.0
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((aadt))
-                      ((Map (ty ((afield)) ((tfield)))
-                            (ty ((abytes 1)) ((tfield 1))))))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((aadt))
+                           ((Map (ty ((afield)) ((tfield)))
+                                 (ty ((abytes 1)) ((tfield 1))))))))))))
         (circuit %foo.1 ((argument
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
@@ -37292,12 +37296,13 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
+        (kernel-declaration (%kernel.6 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.0
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((abytes 1)) ((tfield 1)))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((abytes 1)) ((tfield 1)))))))))
         (circuit %foo.1 ((argument
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
@@ -37323,14 +37328,15 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
+        (kernel-declaration (%kernel.6 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.0
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((aadt))
-                      ((Map (ty ((afield)) ((tfield)))
-                            (ty ((abytes 1)) ((tfield 1))))))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((aadt))
+                           ((Map (ty ((afield)) ((tfield)))
+                                 (ty ((abytes 1)) ((tfield 1))))))))))))
         (circuit %foo.1 ((argument
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
@@ -37354,14 +37360,15 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
+        (kernel-declaration (%kernel.6 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.0
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((aadt))
-                      ((Map (ty ((afield)) ((tfield)))
-                            (ty ((abytes 1)) ((tfield 1))))))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((aadt))
+                           ((Map (ty ((afield)) ((tfield)))
+                                 (ty ((abytes 1)) ((tfield 1))))))))))))
         (circuit %foo.1 ((argument
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
@@ -37392,14 +37399,15 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
+        (kernel-declaration (%kernel.6 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.0
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((aadt))
-                      ((Map (ty ((afield)) ((tfield)))
-                            (ty ((abytes 1)) ((tfield 1))))))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((aadt))
+                           ((Map (ty ((afield)) ((tfield)))
+                                 (ty ((abytes 1)) ((tfield 1))))))))))))
         (circuit %foo.1 ((argument
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
@@ -37430,14 +37438,15 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
+        (kernel-declaration (%kernel.6 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.0
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((aadt))
-                      ((Map (ty ((afield)) ((tfield)))
-                            (ty ((abytes 1)) ((tfield 1))))))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((aadt))
+                           ((Map (ty ((afield)) ((tfield)))
+                                 (ty ((abytes 1)) ((tfield 1))))))))))))
         (circuit %foo.1 ((argument
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
@@ -38341,8 +38350,8 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
-        (public-ledger-declaration ((field1 (0) (Counter))))
+        (kernel-declaration (%kernel.6 () (ty ((aadt)) ((Kernel)))))
+        (public-ledger-declaration ((field1 (0) (ty ((aadt)) ((Counter))))))
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= (%t.1) (public-ledger 1 field1 (0) read))
@@ -38359,8 +38368,8 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
-        (public-ledger-declaration ((%x.0 (0) (Counter))))
+        (kernel-declaration (%kernel.6 () (ty ((aadt)) ((Kernel)))))
+        (public-ledger-declaration ((%x.0 (0) (ty ((aadt)) ((Counter))))))
         (circuit %foo.1 ((argument
                            (%v.2 %v.3 %v.4)
                            (ty ((abytes 1) (abytes 1) (abytes 1))
@@ -38388,8 +38397,8 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
-        (public-ledger-declaration ((x (0) (Counter))))
+        (kernel-declaration (%kernel.6 () (ty ((aadt)) ((Kernel)))))
+        (public-ledger-declaration ((x (0) (ty ((aadt)) ((Counter))))))
         (circuit %foo.0 ()
              (ty () ())
           (= () (public-ledger 1 x (0) increment 3))
@@ -38651,9 +38660,9 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.4 () (Kernel)))
+        (kernel-declaration (%kernel.4 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%a.3 (0) (__compact_Cell (ty ((afield)) ((tfield)))))))
+          ((%a.3 (0) (ty ((aadt)) ((__compact_Cell (ty ((afield)) ((tfield)))))))))
         (circuit %foo.5 ((argument
                            (%x0.6)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -38673,7 +38682,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (circuit %foo.1 () (ty ((abytes 1)) ((tfield 1))) (1))))
     )
@@ -38690,7 +38699,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (circuit %foo.2 ((argument
                            (%x.0)
@@ -40473,28 +40482,31 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.9 () (Kernel)))
+        (kernel-declaration (%kernel.9 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.10
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((abytes 32) (abytes 1))
-                      ((tfield 255)
-                        (tfield
-                          452312848583266388373324160190187140051835877600158453279131187530910662655)
-                        (tfield 1)))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((abytes 32) (abytes 1))
+                           ((tfield 255)
+                             (tfield
+                               452312848583266388373324160190187140051835877600158453279131187530910662655)
+                             (tfield 1)))))))
            (%field2.11
              (1)
-             (HistoricMerkleTree
-               10
-               (ty ((abytes 32) (abytes 1))
-                   ((tfield 255)
-                     (tfield
-                       452312848583266388373324160190187140051835877600158453279131187530910662655)
-                     (tfield 1)))))
+             (ty ((aadt))
+                 ((HistoricMerkleTree
+                    10
+                    (ty ((abytes 32) (abytes 1))
+                        ((tfield 255)
+                          (tfield
+                            452312848583266388373324160190187140051835877600158453279131187530910662655)
+                          (tfield 1)))))))
            (%field3.12
              (2)
-             (__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))
+             (ty ((aadt))
+                 ((__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))))
         (witness %merklePathRoot.13 ((argument
                                          (%foo.14 %foo.15 %foo.16)
                                          (ty ((abytes 32) (abytes 1))
@@ -40543,8 +40555,8 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
-        (public-ledger-declaration ((%field1.0 (0) (Counter))))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
+        (public-ledger-declaration ((%field1.1 (0) (ty ((aadt)) ((Counter))))))
         (circuit %foo.1 ()
              (ty ((afield)) ((tfield)))
           (= (%t.2) (public-ledger 1 %field1.0 (0) read))
@@ -40555,85 +40567,107 @@ groups than for single tests.
     "test-center/compact/test.compact"
     (returns
       (program
-        (kernel-declaration (%kernel.13 () (Kernel)))
+        (kernel-declaration (%kernel.13 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          (((%x0.14 (0 0) (__compact_Cell (ty ((afield)) ((tfield)))))
-             (%x1.15 (0 1) (Set (ty ((afield)) ((tfield)))))
-             (%x2.16 (0 2) (Counter)))
-           ((%x3.17 (1 0) (List (ty ((afield)) ((tfield)))))
+          (((%x0.14
+              (0 0)
+              (ty ((aadt)) ((__compact_Cell (ty ((afield)) ((tfield)))))))
+             (%x1.15
+               (0 1)
+               (ty ((aadt)) ((Set (ty ((afield)) ((tfield)))))))
+             (%x2.16 (0 2) (ty ((aadt)) ((Counter)))))
+           ((%x3.17
+              (1 0)
+              (ty ((aadt)) ((List (ty ((afield)) ((tfield)))))))
              (%x4.18
                (1 1)
-               (Map (ty ((afield)) ((tfield)))
-                    (ty ((abytes 1)) ((tfield 1)))))
-             (%x5.19 (1 2) (MerkleTree 32 (ty ((afield)) ((tfield)))))
+               (ty ((aadt))
+                   ((Map (ty ((afield)) ((tfield)))
+                         (ty ((abytes 1)) ((tfield 1)))))))
+             (%x5.19
+               (1 2)
+               (ty ((aadt)) ((MerkleTree 32 (ty ((afield)) ((tfield)))))))
              (%x6.20
                (1 3)
-               (HistoricMerkleTree 10 (ty ((afield)) ((tfield)))))
+               (ty ((aadt))
+                   ((HistoricMerkleTree 10 (ty ((afield)) ((tfield)))))))
              (%x7.21
                (1 4)
-               (__compact_Cell
-                 (ty ((abytes 32) (abytes 32) (abytes 16))
-                     ((tfield 255)
-                       (tfield
-                         452312848583266388373324160190187140051835877600158453279131187530910662655)
-                       (tfield 255)
-                       (tfield
-                         452312848583266388373324160190187140051835877600158453279131187530910662655)
-                       (tfield 340282366920938463463374607431768211455)))))
-             (%x10.22 (1 5) (__compact_Cell (ty ((afield)) ((tfield)))))
+               (ty ((aadt))
+                   ((__compact_Cell
+                      (ty ((abytes 32) (abytes 32) (abytes 16))
+                          ((tfield 255)
+                            (tfield
+                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                            (tfield 255)
+                            (tfield
+                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                            (tfield
+                              340282366920938463463374607431768211455)))))))
+             (%x10.22
+               (1 5)
+               (ty ((aadt)) ((__compact_Cell (ty ((afield)) ((tfield)))))))
              (%x11.23
                (1 6)
-               (__compact_Cell
-                 (ty ((abytes 32) (abytes 32) (abytes 16) (abytes 8))
-                     ((tfield 255)
-                       (tfield
-                         452312848583266388373324160190187140051835877600158453279131187530910662655)
-                       (tfield 255)
-                       (tfield
-                         452312848583266388373324160190187140051835877600158453279131187530910662655)
-                       (tfield 340282366920938463463374607431768211455)
-                       (tfield 18446744073709551615)))))
+               (ty ((aadt))
+                   ((__compact_Cell
+                      (ty ((abytes 32) (abytes 32) (abytes 16) (abytes 8))
+                          ((tfield 255)
+                            (tfield
+                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                            (tfield 255)
+                            (tfield
+                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                            (tfield 340282366920938463463374607431768211455)
+                            (tfield 18446744073709551615)))))))
              (%x13.24
                (1 7)
-               (__compact_Cell
-                 (ty ((abytes 32))
-                     ((tfield 255)
-                       (tfield
-                         452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+               (ty ((aadt))
+                   ((__compact_Cell
+                      (ty ((abytes 32))
+                          ((tfield 255)
+                            (tfield
+                              452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
              (%authority.25
                (1 8)
-               (__compact_Cell
-                 (ty ((abytes 32))
-                     ((tfield 255)
-                       (tfield
-                         452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+               (ty ((aadt))
+                   ((__compact_Cell
+                      (ty ((abytes 32))
+                          ((tfield 255)
+                            (tfield
+                              452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
              (%state.26
                (1 9)
-               (__compact_Cell (ty ((abytes 1)) ((tfield 3)))))
+               (ty ((aadt))
+                   ((__compact_Cell (ty ((abytes 1)) ((tfield 3)))))))
              (%topic.27
                (1 10)
-               (__compact_Cell
-                 (ty ((abytes 1) (acompress))
-                     ((tfield 1) (topaque "string")))))
-             (%tally_yes.28 (1 11) (Counter))
+               (ty ((aadt))
+                   ((__compact_Cell
+                      (ty ((abytes 1) (acompress))
+                          ((tfield 1) (topaque "string")))))))
+             (%tally_yes.28 (1 11) (ty ((aadt)) ((Counter))))
              (%committed_votes.29
                (1 12)
-               (MerkleTree
-                 10
-                 (ty ((abytes 32))
-                     ((tfield 255)
-                       (tfield
-                         452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+               (ty ((aadt))
+                   ((MerkleTree
+                      10
+                      (ty ((abytes 32))
+                          ((tfield 255)
+                            (tfield
+                              452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
              (%committed.30
                (1 13)
-               (Set (ty ((abytes 32))
-                        ((tfield 255)
-                          (tfield
-                            452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+               (ty ((aadt))
+                   ((Set (ty ((abytes 32))
+                             ((tfield 255)
+                               (tfield
+                                 452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
              (%ciphertexts.31
                (1 14)
-               (__compact_Cell
-                 (ty ((acompress)) ((topaque "Uint8Array"))))))))
+               (ty ((aadt))
+                   ((__compact_Cell
+                      (ty ((acompress)) ((topaque "Uint8Array"))))))))))
         (circuit %foo.32 ((argument
                             (%a.33)
                             (ty ((abytes 1)) ((tfield 1))))
@@ -40669,19 +40703,23 @@ groups than for single tests.
     "examples/tiny.compact"
     (returns
       (program
-        (kernel-declaration (%kernel.14 () (Kernel)))
+        (kernel-declaration (%kernel.14 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%authority.15
              (0)
-             (__compact_Cell
-               (ty ((abytes 32))
-                   ((tfield 255)
-                     (tfield
-                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-           (%value.16 (1) (__compact_Cell (ty ((afield)) ((tfield)))))
+             (ty ((aadt))
+                 ((__compact_Cell
+                    (ty ((abytes 32))
+                        ((tfield 255)
+                          (tfield
+                            452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
+           (%value.16
+             (1)
+             (ty ((aadt)) ((__compact_Cell (ty ((afield)) ((tfield)))))))
            (%state.17
              (2)
-             (__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))
+             (ty ((aadt))
+                 ((__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))))
         (external %persistentHash.18 ((argument
                                          (%value.19
                                            %value.20
@@ -40811,7 +40849,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.5 () (Kernel)))
+        (kernel-declaration (%kernel.5 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (circuit %foo.6 ((argument
                            (%x.0)
@@ -40855,7 +40893,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.5 () (Kernel)))
+        (kernel-declaration (%kernel.5 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (circuit %foo.6 ((argument
                            (%x.0)
@@ -40879,7 +40917,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (circuit %foo.1 () (ty ((abytes 1)) ((tfield 255))) (0))))
     )
@@ -40893,7 +40931,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (circuit %foo.2 ()
              (ty ((abytes 1)) ((tfield 255)))
@@ -40924,9 +40962,9 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.18 () (Kernel)))
+        (kernel-declaration (%kernel.18 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%X.19 (0) (__compact_Cell (ty ((afield)) ((tfield)))))))
+          ((%X.19 (0) (ty ((aadt)) ((__compact_Cell (ty ((afield)) ((tfield)))))))))
         (circuit %foo.20 ((argument
                             (%x.0)
                             (ty ((abytes 4)) ((tfield 4294967295))))
@@ -40987,8 +41025,8 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
-        (public-ledger-declaration ((%ctr.1 (0) (Counter))))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
+        (public-ledger-declaration ((%ctr.1 (0) (ty ((aadt)) ((Counter))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
           (= (%t1.0) (public-ledger 1 %ctr.1 (0) read))
@@ -41364,7 +41402,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.3 () (Kernel)))
+        (kernel-declaration (%kernel.3 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (external %transientHash.4 ((argument
                                        (%value.5 %value.6)
@@ -41583,7 +41621,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.3 () (Kernel)))
+        (kernel-declaration (%kernel.3 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (external %transientHash.4 ((argument
                                        (%value.5 %value.6)
@@ -41823,7 +41861,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.2 () (Kernel)))
+        (kernel-declaration (%kernel.2 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (witness %W.3 () (ty ((afield)) ((tfield))))
         (circuit %bar.4 ((argument
@@ -41911,7 +41949,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (circuit %foo.1 () (ty ((abytes 1)) ((tfield 1))) (1))))
     )
@@ -41925,7 +41963,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (circuit %foo.2 ((argument
                            (%x.0)
@@ -41947,7 +41985,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration ())
         (circuit %foo.2 ((argument
                            (%x.0)
@@ -42014,11 +42052,11 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.5 () (Kernel)))
+        (kernel-declaration (%kernel.5 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%y.3
              (0)
-             (__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))
+             (ty ((aadt)) ((__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))))
         (circuit %foo.6 ((argument
                            (%p.4)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -42045,12 +42083,13 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.13 () (Kernel)))
+        (kernel-declaration (%kernel.13 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%m.6
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((abytes 1)) ((tfield 1)))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((abytes 1)) ((tfield 1)))))))))
         (circuit %foo.14 ((argument
                             (%b0.9)
                             (ty ((abytes 1)) ((tfield 1))))
@@ -42084,14 +42123,15 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.3 () (Kernel)))
+        (kernel-declaration (%kernel.3 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%m.4
              (0)
-             (Map (ty ((afield)) ((tfield)))
-                  (ty ((aadt))
-                      ((Map (ty ((afield)) ((tfield)))
-                            (ty ((abytes 1)) ((tfield 1))))))))))
+             (ty ((aadt))
+                 ((Map (ty ((afield)) ((tfield)))
+                       (ty ((aadt))
+                           ((Map (ty ((afield)) ((tfield)))
+                                 (ty ((abytes 1)) ((tfield 1))))))))))))
         (circuit %foo.5 ((argument
                            (%b0.0)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -42267,28 +42307,30 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.3 () (Kernel)))
+        (kernel-declaration (%kernel.3 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%v.4
              (0)
-             (__compact_Cell
-               (ty ((abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
-                    (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
-                    (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
-                    (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
-                    (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
-                    (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
-                    (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
-                    (abytes 1))
-                   ((tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                    (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                    (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                    (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                    (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                    (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                    (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                    (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                    (tfield 255) (tfield 255) (tfield 255) (tfield 255)))))))
+             (ty ((aadt))
+                 ((__compact_Cell
+                    (ty ((abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                         (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                         (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                         (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                         (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                         (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                         (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                         (abytes 1))
+                        ((tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                         (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                         (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                         (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                         (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                         (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                         (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                         (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                         (tfield 255) (tfield 255) (tfield 255)
+                         (tfield 255)))))))))
         (circuit %foo.5 ((argument
                            (%bv.0 %bv.1)
                            (ty ((abytes 36))
@@ -42376,15 +42418,16 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.36 () (Kernel)))
+        (kernel-declaration (%kernel.36 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%bv.37
              (0)
-             (__compact_Cell
-               (ty ((abytes 36))
-                   ((tfield 1099511627775)
-                     (tfield
-                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
+             (ty ((aadt))
+                 ((__compact_Cell
+                    (ty ((abytes 36))
+                        ((tfield 1099511627775)
+                          (tfield
+                            452312848583266388373324160190187140051835877600158453279131187530910662655)))))))))
         (circuit %foo.38 ((argument
                             (%v.5 %v.6 %v.7 %v.8 %v.9 %v.10 %v.11 %v.12 %v.13
                              %v.14 %v.15 %v.16 %v.17 %v.18 %v.19 %v.20 %v.21
@@ -42833,8 +42876,8 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
-        (public-ledger-declaration ((%counter.1 (0) (Counter))))
+        (kernel-declaration (%kernel.0 () (ty ((aadt)) ((Kernel)))))
+        (public-ledger-declaration ((%counter.1 (0) (ty ((aadt)) ((Counter))))))
         (circuit %foo.2 ((argument
                            (%v.3 %v.4 %v.5 %v.6 %v.7 %v.8 %v.9 %v.10 %v.11
                              %v.12)
@@ -43046,24 +43089,28 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.1 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%V1.2
              (0)
-             (__compact_Cell
-               (ty ((abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
-                     (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1))
-                   ((tfield 255) (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                     (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                     (tfield 255)))))
+             (ty ((aadt))
+                 ((__compact_Cell
+                    (ty ((abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                          (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                          (abytes 1))
+                        ((tfield 255) (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                          (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                          (tfield 255)))))))
            (%V2.3
              (1)
-             (__compact_Cell
-               (ty ((abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
-                     (abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1))
-                   ((tfield 255) (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                     (tfield 255) (tfield 255) (tfield 255) (tfield 255)
-                     (tfield 255)))))))
+             (ty ((aadt))
+                 ((__compact_Cell
+                    (ty ((abytes 1) (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                          (abytes 1) (abytes 1) (abytes 1) (abytes 1)
+                          (abytes 1))
+                        ((tfield 255) (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                          (tfield 255) (tfield 255) (tfield 255) (tfield 255)
+                          (tfield 255)))))))))
         (circuit %foo.4 ((argument
                            (%bv.0)
                            (ty ((abytes 10))
@@ -43098,11 +43145,11 @@ groups than for single tests.
      )
     (returns
       (program
-        (kernel-declaration (%kernel.5 () (Kernel)))
+        (kernel-declaration (%kernel.5 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%F.6
              (0)
-             (__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))
+             (ty ((aadt)) ((__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))))
         (circuit %foo.7 ((argument
                            (%a.0)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -43126,9 +43173,9 @@ groups than for single tests.
      )
     (returns
       (program
-        (kernel-declaration (%kernel.4 () (Kernel)))
+        (kernel-declaration (%kernel.4 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%F.5 (0) (__compact_Cell (ty ((afield)) ((tfield)))))))
+          ((%F.5 (0) (ty ((aadt)) ((__compact_Cell (ty ((afield)) ((tfield)))))))))
         (circuit %foo.6 ((argument
                            (%a.0)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -43153,9 +43200,12 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.10 () (Kernel)))
+        (kernel-declaration (%kernel.10 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%F.11 (0) (__compact_Cell (ty ((afield)) ((tfield)))))))
+          ((%F.11
+             (0)
+             (ty ((aadt))
+                 ((__compact_Cell (ty ((afield)) ((tfield)))))))))
         (witness %w.3 ()
              (ty ((acompress) (acompress) (acompress))
                  ((topaque "string") (topaque "string") (topaque "string"))))
@@ -43192,11 +43242,12 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%F.1
              (0)
-             (__compact_Cell (ty ((abytes 2)) ((tfield 65535)))))))
+             (ty ((aadt))
+                 ((__compact_Cell (ty ((abytes 2)) ((tfield 65535)))))))))
         (circuit %foo.2 ((argument
                            (%is.3)
                            (ty ((abytes 2)) ((tfield 65535)))))
@@ -43253,16 +43304,19 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.5 () (Kernel)))
+        (kernel-declaration (%kernel.5 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%B1.6
              (0)
-             (__compact_Cell
-               (ty ((abytes 10)) ((tfield 1208925819614629174706175)))))
+             (ty ((aadt))
+                 ((__compact_Cell
+                    (ty ((abytes 10)) ((tfield 1208925819614629174706175)))))))
            (%B2.7
              (1)
-             (__compact_Cell
-               (ty ((abytes 10)) ((tfield 1208925819614629174706175)))))))
+             (ty ((aadt))
+                 ((__compact_Cell
+                    (ty ((abytes 10))
+                        ((tfield 1208925819614629174706175)))))))))
         (circuit %foo.8 ((argument
                            (%ia.0)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -43295,16 +43349,19 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.3 () (Kernel)))
+        (kernel-declaration (%kernel.3 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%B1.4
              (0)
-             (__compact_Cell
-               (ty ((abytes 10)) ((tfield 1208925819614629174706175)))))
+             (ty ((aadt))
+                 ((__compact_Cell
+                    (ty ((abytes 10)) ((tfield 1208925819614629174706175)))))))
            (%B2.5
              (1)
-             (__compact_Cell
-               (ty ((abytes 10)) ((tfield 1208925819614629174706175)))))))
+             (ty ((aadt))
+                 ((__compact_Cell
+                    (ty ((abytes 10))
+                        ((tfield 1208925819614629174706175)))))))))
         (circuit %foo.6 ((argument
                            (%ib.0)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -43333,10 +43390,10 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.2 () (Kernel)))
+        (kernel-declaration (%kernel.2 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
-          ((%F.3 (0) (__compact_Cell (ty ((afield)) ((tfield)))))
-           (%B.4 (1) (__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))
+          ((%F.3 (0) (ty ((aadt)) ((__compact_Cell (ty ((afield)) ((tfield)))))))
+           (%B.4 (1) (ty ((aadt)) ((__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))))
         (circuit %foo.5 ((argument
                            (%ix.0)
                            (ty ((afield)) ((tfield)))))
@@ -51977,14 +52034,16 @@ groups than for single tests.
      )
     (returns
       (program
-        (kernel-declaration (%kernel.2 () (Kernel)))
+        (kernel-declaration (%kernel.2 () (ty ((aadt)) ((Kernel)))))
         (public-ledger-declaration
           ((%field1.3
              (0)
-             (Map (ty ((abytes 1)) ((tfield 1)))
-                  (ty ((aadt))
-                      ((Map (ty ((abytes 2)) ((tfield 65535)))
-                            (ty ((afield) (afield)) ((tfield) (tfield))))))))))
+             (ty ((aadt))
+                 ((Map (ty ((abytes 1)) ((tfield 1)))
+                       (ty ((aadt))
+                           ((Map (ty ((abytes 2)) ((tfield 65535)))
+                                 (ty ((afield) (afield))
+                                     ((tfield) (tfield))))))))))))
         (circuit %init.4 ((argument
                             (%b.0)
                             (ty ((abytes 1)) ((tfield 1))))
@@ -52378,8 +52437,8 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.14 () (Kernel)))
-        (public-ledger-declaration ((%x.15 (0) (Counter))))
+        (kernel-declaration (%kernel.14 () (ty ((aadt)) ((Kernel)))))
+        (public-ledger-declaration ((%x.15 (0) (ty ((aadt)) ((Counter))))))
         (circuit %foo.16 ((argument
                             (%v.10 %v.0 %v.1 %v.4 %v.7)
                             (ty ((abytes 2)
