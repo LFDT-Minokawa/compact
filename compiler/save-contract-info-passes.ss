@@ -26,7 +26,7 @@
           (pass-helpers))
 
   ; NB: must come after identify-pure-circuits
-  (define-pass save-contract-info : Lnodisclose (ir) -> Lnodisclose ()
+  (define-pass save-contract-info : Lpublicadt (ir) -> Lpublicadt ()
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (let ([op (get-target-port 'contract-info.json)])
@@ -176,5 +176,5 @@
       [else (assert cannot-happen)]))
 
   (define-passes save-contract-info-passes
-    (save-contract-info              Lnodisclose))
+    (save-contract-info              Lpublicadt))
 )

@@ -183,7 +183,7 @@
                              (run-passes typescript-passes analyzed-ir))
                             (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass))))]))))))))]))
 
-  (define-pass exported-impure-circuit-names : Lnodisclose (ir) -> * (ls)
+  (define-pass exported-impure-circuit-names : Lpublicadt (ir) -> * (ls)
     (definitions
       (define impure-circuit-ht (make-eq-hashtable))
       (define export-name-table (make-hashtable string-ci-hash string-ci=?))

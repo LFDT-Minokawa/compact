@@ -3236,36 +3236,23 @@
                               (format-type type))])])
     )
 
-  (define-pass remove-tadt : Ltypes (ir) -> Lpublicadt ()
-    (definitions
-      (define (public-adt? adt-type)
-        (nanopass-case (Lpublicadt Public-Ledger-ADT-Type) adt-type
-          [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
-          [else #f])))
-    (Ledger-Declaration : Ledger-Declaration (ir) -> Ledger-Declaration ()
-      [(public-ledger-declaration ,src ,ledger-field-name ,[adt-type])
-       (assert (public-adt? adt-type))
-       `(public-ledger-declaration ,src ,ledger-field-name ,adt-type)])
-    (Public-Ledger-ADT-Type : Type (ir) -> Public-Ledger-ADT-Type ()
-      [(tadt ,src ,adt-name ([,adt-formal* ,[adt-arg*]] ...) ,vm-expr (,[adt-op*] ...) (,[adt-rt-op*] ...))
-       `(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))]
-      [(talias ,src ,nominal? ,type-name ,[adt-type])
-       (if (public-adt? adt-type)
-           adt-type
-           `(talias ,src ,nominal? ,type-name ,adt-type))])
-    (Type : Type (ir) -> Type ()
-      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-       (assert cannot-happen)]))
-
-  (define-pass remove-tundeclared : Lpublicadt (ir) -> Lnotundeclared ())
+  (define-pass remove-tundeclared : Ltypes (ir) -> Lnotundeclared ())
 
   (define-pass combine-ledger-declarations : Lnotundeclared (ir) -> Loneledger ()
     (definitions
       (define kernel-id*)
+      (define (de-alias type)
+        (nanopass-case (Lnotundeclared Type) type
+          [(talias ,src ,nominal? ,type-name ,type)
+           (de-alias type)]
+          [else type]))
       (define (kernel? ldecl)
         (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
-          [(public-ledger-declaration ,src ,ledger-field-name (,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)))
-           (eq? adt-name 'Kernel)])))
+          [(public-ledger-declaration ,src ,ledger-field-name ,type)
+           (nanopass-case (Lnotundeclared Type) (de-alias type)
+             [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+              (eq? adt-name 'Kernel)]
+             [else (assert cannot-happen)])])))
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (let*-values ([(ldecl* pelt*) (partition Lnotundeclared-Ledger-Declaration? pelt*)]
@@ -3273,7 +3260,7 @@
                      [(kernel-ldecl* ldecl*) (partition kernel? ldecl*)])
          (fluid-let ([kernel-id* (map (lambda (kernel-ldecl)
                                         (nanopass-case (Lnotundeclared Ledger-Declaration) kernel-ldecl
-                                          [(public-ledger-declaration ,src ,ledger-field-name ,public-adt)
+                                          [(public-ledger-declaration ,src ,ledger-field-name ,type)
                                            ledger-field-name]))
                                       kernel-ldecl*)])
            `(program ,src (,contract-name* ...) ((,export-name* ,name*) ...)
@@ -3281,14 +3268,14 @@
                    '()
                    (list
                      (nanopass-case (Lnotundeclared Ledger-Declaration) (car kernel-ldecl*)
-                       [(public-ledger-declaration ,src ,ledger-field-name ,public-adt)
-                        `(kernel-declaration (,src ,ledger-field-name ,(Public-Ledger-ADT public-adt)))])))
+                       [(public-ledger-declaration ,src ,ledger-field-name ,type)
+                        `(kernel-declaration (,src ,ledger-field-name ,(Type type)))])))
               ...
               (public-ledger-declaration
                 ,(map (lambda (ldecl)
                         (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
-                          [(public-ledger-declaration ,src ,ledger-field-name ,public-adt)
-                           `(,src ,ledger-field-name ,(Public-Ledger-ADT public-adt))]))
+                          [(public-ledger-declaration ,src ,ledger-field-name ,type)
+                           `(,src ,ledger-field-name ,(Type type))]))
                       ldecl*)
                 ...
                 ,(cond
@@ -3311,8 +3298,8 @@
     (Program-Element : Program-Element (ir) -> Program-Element ()
       [,ldecl (assert cannot-happen)]
       [,lconstructor (assert cannot-happen)])
-    (Public-Ledger-ADT : Public-Ledger-ADT (ir) -> Public-Ledger-ADT ())
     (Argument : Argument (ir) -> Argument ())
+    (Type : Type (ir) -> Type ())
     (Expression : Expression (ir) -> Expression ()
       [(ledger-ref ,src ,ledger-field-name) (assert cannot-happen)]
       [(ledger-call ,src ,ledger-op ,sugar? ,expr ,expr* ...)
@@ -3440,7 +3427,7 @@
       (define-syntax T
         (syntax-rules ()
           [(T ty clause ...)
-           (nanopass-case (Lnodca Public-Ledger-ADT-Type) ty clause ... [else #f])]))
+           (nanopass-case (Lnodca Type) ty clause ... [else #f])]))
       (define (datum-type src x)
         (with-output-language (Lnodca Type)
           (cond
@@ -3473,16 +3460,16 @@
           [(,var-name ,type) type]))
       (define (local->name local)
         (nanopass-case (Lnodca Local) local
-          [(,var-name ,adt-type) var-name]))
-      (define (local->adt-type local)
+          [(,var-name ,type) var-name]))
+      (define (local->type local)
         (nanopass-case (Lnodca Local) local
-          [(,var-name ,adt-type) adt-type]))
+          [(,var-name ,type) type]))
       (define (format-type type)
         (define (format-adt-arg adt-arg)
           (nanopass-case (Lnodca Public-Ledger-ADT-Arg) adt-arg
             [,nat (format "~d" nat)]
-            [,adt-type (format-type adt-type)]))
-        (nanopass-case (Lnodca Public-Ledger-ADT-Type) type
+            [,type (format-type type)]))
+        (nanopass-case (Lnodca Type) type
           [(tboolean ,src) "Boolean"]
           [(tfield ,src) "Field"]
           [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
@@ -3513,14 +3500,14 @@
              (if nominal?
                  (format "~a=~a" type-name s)
                  s))]
-          [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
            (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]
           [else (internal-errorf 'check-types/Lnodca-format-type "unexpected type ~s" type)]))
-      (define (de-alias adt-type)
-        (nanopass-case (Lnodca Public-Ledger-ADT-Type) adt-type
+      (define (de-alias type)
+        (nanopass-case (Lnodca Type) type
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
-          [else adt-type]))
+          [else type]))
       (define (sametype? type1 type2)
         (define (same-adt-arg? adt-arg1 adt-arg2)
           (nanopass-case (Lnodca Public-Ledger-ADT-Arg) adt-arg1
@@ -3528,9 +3515,9 @@
              (nanopass-case (Lnodca Public-Ledger-ADT-Arg) adt-arg2
                [,nat2 (= nat1 nat2)]
                [else #f])]
-            [,adt-type1
+            [,type1
              (nanopass-case (Lnodca Public-Ledger-ADT-Arg) adt-arg2
-               [,adt-type2 (sametype? adt-type1 adt-type2)]
+               [,type2 (sametype? type1 type2)]
                [else #f])]))
         (let ([type1 (de-alias type1)] [type2 (de-alias type2)])
           (T type1
@@ -3591,9 +3578,9 @@
                        (eq? elt-name1 elt-name2)
                        (= (length elt-name1*) (length elt-name2*))
                        (andmap eq? elt-name1* elt-name2*))])]
-             [(,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
+             [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
               (T type2
-                 [(,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
+                 [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
                   (and (eq? adt-name1 adt-name2)
                        (fx= (length adt-arg1*) (length adt-arg2*))
                        (andmap same-adt-arg? adt-arg1* adt-arg2*))])])))
@@ -3703,8 +3690,11 @@
         (define ledger-ht (make-eq-hashtable))
         (define (record-one! public-binding)
           (nanopass-case (Lnodca Public-Ledger-Binding) public-binding
-            [(,src ,ledger-field-name (,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)))
-             (hashtable-set! ledger-ht ledger-field-name adt-op*)]))
+            [(,src ,ledger-field-name ,type)
+             (nanopass-case (Lnodca Type) (de-alias type)
+               [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                (hashtable-set! ledger-ht ledger-field-name adt-op*)]
+               [else (assert cannot-happen)])]))
         (define (record-adt-ops! pelt)
           (nanopass-case (Lnodca Program-Element) pelt
             [(kernel-declaration ,public-binding)
@@ -3758,7 +3748,7 @@
        (maplr CareNot expr*)
        (CareNot expr)]
       [(let* ,src ([,local* ,expr*] ...) ,expr)
-       (let ([var-name* (map local->name local*)] [adt-type* (map local->adt-type local*)])
+       (let ([var-name* (map local->name local*)] [declared-type* (map local->type local*)])
          (let ([actual-type* (maplr Care expr*)])
            (for-each (lambda (var-name declared-type actual-type)
                        (let ([type (nanopass-case (Lnodca Type) declared-type
@@ -3773,7 +3763,7 @@
                          (set-idtype! var-name (Idtype-Base type))
                          type))
                      var-name*
-                     adt-type*
+                     declared-type*
                      actual-type*))
          (CareNot expr)
          (for-each unset-idtype! var-name*))]
@@ -3790,7 +3780,7 @@
           (source-errorf src "invalid context for reference to ~s name ~s"
                          kind
                          var-name)])]
-      [(default ,src ,adt-type) adt-type]
+      [(default ,src ,type) type]
       [(if ,src ,[Care : expr0 -> * type0] ,expr1 ,expr2)
        (unless (nanopass-case (Lnodca Type) (de-alias type0)
                  [(tboolean ,src1) #t]
@@ -4001,7 +3991,7 @@
        (for-each CareNot expr*)
        (Care expr)]
       [(let* ,src ([,local* ,expr*] ...) ,expr)
-       (let ([var-name* (map local->name local*)] [adt-type* (map local->adt-type local*)])
+       (let ([var-name* (map local->name local*)] [declared-type* (map local->type local*)])
          (let ([actual-type* (maplr Care expr*)])
            (for-each (lambda (var-name declared-type actual-type)
                        (let ([type (nanopass-case (Lnodca Type) declared-type
@@ -4016,7 +4006,7 @@
                          (set-idtype! var-name (Idtype-Base type))
                          type))
                      var-name*
-                     adt-type*
+                     declared-type*
                      actual-type*)
            (let ([type (Care expr)])
              (for-each unset-idtype! var-name*)
@@ -4134,42 +4124,42 @@
          (source-errorf src "expected Uint, got ~a for downcast-unsigned"
                               (format-type type)))
        (with-output-language (Lnodca Type) `(tunsigned ,src ,nat))]
-      [(safe-cast ,src ,adt-type ,adt-type^ ,[Care : expr -> * adt-type^^])
-       (unless (sametype? adt-type^^ adt-type^)
+      [(safe-cast ,src ,type ,type^ ,[Care : expr -> * type^^])
+       (unless (sametype? type^^ type^)
          (source-errorf src "expected ~a, got ~a for upcast"
-                        (format-type adt-type^)
-                        (format-type adt-type^^)))
-       adt-type]
+                        (format-type type^)
+                        (format-type type^^)))
+       type]
       [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor ,accessor* ...)
        (let loop ([accessor accessor]
                   [accessor* accessor*]
                   [adt-op* (lookup-adt-ops ledger-field-name)])
          (nanopass-case (Lnodca Ledger-Accessor) accessor
            [(,src^ ,ledger-op ,expr* ...)
-            (let ([adt-type^* (map Care expr*)])
+            (let ([type^* (map Care expr*)])
               (let find-adt-op ([adt-op* adt-op*])
                 (assert (not (null? adt-op*)))
                 (nanopass-case (Lnodca ADT-Op) (car adt-op*)
-                  [(,ledger-op^ ,op-class ((,var-name* ,adt-type* ,discloses?*) ...) ,adt-type ,vm-code)
+                  [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
                    (guard (eq? ledger-op^ ledger-op))
-                   (assert (fx=? (length adt-type*) (length adt-type^*)))
+                   (assert (fx=? (length type*) (length type^*)))
                    (for-each
-                     (lambda (adt-type adt-type^ i)
-                       (unless (sametype? adt-type^ adt-type)
+                     (lambda (type type^ i)
+                       (unless (sametype? type^ type)
                          (source-errorf src "expected ~:r argument of ~s to have type ~a but received ~a"
                                         (fx1+ i)
                                         ledger-op
-                                        (format-type adt-type)
-                                        (format-type adt-type^))))
-                     adt-type* adt-type^* (enumerate adt-type*))
+                                        (format-type type)
+                                        (format-type type^))))
+                     type* type^* (enumerate type*))
                    (if (null? accessor*)
-                       adt-type
+                       type
                        (loop (car accessor*)
                              (cdr accessor*)
-                             (nanopass-case (Lnodca Public-Ledger-ADT-Type) adt-type
-                               [,type (assert cannot-happen)]
-                               [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                                adt-op*])))]
+                             (nanopass-case (Lnodca Type) (de-alias type)
+                               [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                                adt-op*]
+                               [else (assert cannot-happen)])))]
                   [else (find-adt-op (cdr adt-op*))])))]))]
       ; FIXME: syntax post-desugar should require at least one accessor
       [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...)
@@ -4177,7 +4167,7 @@
       [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (nanopass-case (Lnodca Type) (de-alias type)
          [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
-          (let ([adt-type* (map Care expr*)])
+          (let ([actual-type* (map Care expr*)])
             (let loop ([elt-name* elt-name*] [type** type**] [type* type*])
               (if (null? elt-name*)
                 (source-errorf src^ "contract ~s has no circuit declaration named ~s"
@@ -4185,20 +4175,20 @@
                                elt-name)
                 (if (eq? (car elt-name*) elt-name)
                   (let ([declared-type* (car type**)])
-                    (let ([ndeclared (length declared-type*)] [nactual (length adt-type*)])
+                    (let ([ndeclared (length declared-type*)] [nactual (length actual-type*)])
                       (unless (fx= nactual ndeclared)
                         (source-errorf src "~s.~s requires ~s argument~:*~p but received ~s"
                                        contract-name elt-name ndeclared nactual)))
                     (for-each
-                      (lambda (declared-adt-type actual-adt-type i)
-                        (unless (sametype? actual-adt-type declared-adt-type)
+                      (lambda (declared-type actual-type i)
+                        (unless (sametype? actual-type declared-type)
                           (source-errorf src "expected ~:r argument of ~s.~s to have type ~a but received ~a"
                                          (fx1+ i)
                                          contract-name
                                          elt-name
-                                         (format-type declared-adt-type)
-                                         (format-type actual-adt-type))))
-                      declared-type* adt-type* (enumerate declared-type*))
+                                         (format-type declared-type)
+                                         (format-type actual-type))))
+                      declared-type* actual-type* (enumerate declared-type*))
                     (car type*))
                   (loop (cdr elt-name*) (cdr type**) (cdr type*))))))]
          [else (assert cannot-happen)])]
@@ -4266,22 +4256,25 @@
                (let find-adt-op ([adt-op* adt-op*])
                  (assert (not (null? adt-op*)))
                  (nanopass-case (Lnodca ADT-Op) (car adt-op*)
-                   [(,ledger-op^ ,op-class ((,var-name* ,adt-type* ,discloses?*) ...) ,adt-type ,vm-code)
+                   [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
                     (guard (eq? ledger-op^ ledger-op))
                     (if (null? accessor*)
                         (eq? op-class 'read)
                         (loop accessor*
-                              (nanopass-case (Lnodca Public-Ledger-ADT-Type) adt-type
-                                [,type (assert cannot-happen)]
-                                [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                                 adt-op*])))]
+                              (nanopass-case (Lnodca Type) type
+                                [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                                 adt-op*]
+                                [else (assert cannot-happen)])))]
                    [else (find-adt-op (cdr adt-op*))]))]))))
       (module (record-adt-ops! lookup-adt-ops)
         (define ledger-ht (make-eq-hashtable))
         (define (record-one! public-binding)
           (nanopass-case (Lnodca Public-Ledger-Binding) public-binding
-            [(,src ,ledger-field-name (,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)))
-             (hashtable-set! ledger-ht ledger-field-name adt-op*)]))
+            [(,src ,ledger-field-name ,type)
+             (nanopass-case (Lnodca Type) (de-alias type)
+               [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                (hashtable-set! ledger-ht ledger-field-name adt-op*)]
+               [else (assert cannot-happen)])]))
         (define (record-adt-ops! pelt)
           (nanopass-case (Lnodca Program-Element) pelt
             [(kernel-declaration ,public-binding)
@@ -4291,6 +4284,11 @@
             [else (void)]))
         (define (lookup-adt-ops ledger-field-name)
           (assert (hashtable-ref ledger-ht ledger-field-name #f))))
+      (define (de-alias type)
+        (nanopass-case (Lnodca Type) type
+          [(talias ,src ,nominal? ,type-name ,type)
+           (de-alias type)]
+          [else type]))
     )
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -4367,11 +4365,11 @@
             (assert (not (eq? result 'inprocess-circuit)))
             (when (cc-call-condition? result)
               (raise-continuable result)))))
-      (define (de-alias adt-type)
-        (nanopass-case (Lnodca Public-Ledger-ADT-Type) adt-type
+      (define (de-alias type)
+        (nanopass-case (Lnodca Type) type
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
-          [else adt-type]))
+          [else type]))
       (define (name-of-contract type)
         (nanopass-case (Lnodca Type) (de-alias type)
           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
@@ -4462,11 +4460,11 @@
               [(impure-condition? result) (raise-continuable result)]
               [(eq? result 'inprocess-circuit) (assert cannot-happen)] ; should have been caught by reject-recursive-circuits
               [else (assert cannot-happen)]))))
-      (define (de-alias adt-type)
-        (nanopass-case (Lnodca Public-Ledger-ADT-Type) adt-type
+      (define (de-alias type)
+        (nanopass-case (Lnodca Type) type
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
-          [else adt-type]))
+          [else type]))
     )
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -4575,8 +4573,8 @@
                  (Public-Ledger-Binding pbtree (reverse ridx*))))
           ,lconstructor)])
     (Public-Ledger-Binding : Public-Ledger-Binding (ir idx*) -> Public-Ledger-Binding ()
-      [(,src ,ledger-field-name ,[public-adt])
-       `(,src ,ledger-field-name (,idx* ...) ,public-adt)]))
+      [(,src ,ledger-field-name ,[type])
+       `(,src ,ledger-field-name (,idx* ...) ,type)]))
 
   ; FIXME: building in knowledge of the ledger here
   (define-pass propagate-ledger-paths : Lwithpaths0 (ir) -> Lwithpaths ()
@@ -4595,26 +4593,29 @@
             [(_ ir e) ($memoize ir (lambda () e))])))
       (module (record-ledger-binding! lookup-ledger-binding)
         (define ledger-ht (make-eq-hashtable))
-        (define (check-adt-nesting! public-adt)
-          (nanopass-case (Lwithpaths0 Public-Ledger-ADT) public-adt
-            [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+        (define (check-adt-nesting! type)
+          (nanopass-case (Lwithpaths Type) (de-alias type)
+            [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
              (for-each
                (lambda (adt-arg)
-                 (nanopass-case (Lwithpaths0 Public-Ledger-ADT-Arg) adt-arg
-                   [(,src ,adt-name^ ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                    (unless (eq? adt-name 'Map)
-                      ; this should already be ruled out by the ledger meta-type checks
-                      (source-errorf src "ADT nesting is permitted only within Map ADTs"))
-                    (when (eq? adt-name^ 'Kernel)
-                      (source-errorf src "cannot nest ~s ADTs within another ADT" adt-name^))
-                    (check-adt-nesting! adt-arg)]
+                 (nanopass-case (Lwithpaths Public-Ledger-ADT-Arg) adt-arg
+                   [,type
+                    (nanopass-case (Lwithpaths Type) (de-alias type)
+                      [(tadt ,src ,adt-name^ ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                       (unless (eq? adt-name 'Map)
+                         ; this should already be ruled out by the ledger meta-type checks
+                         (source-errorf src "ADT nesting is permitted only within Map ADTs"))
+                       (when (eq? adt-name^ 'Kernel)
+                         (source-errorf src "cannot nest ~s ADTs within another ADT" adt-name^))
+                       (check-adt-nesting! type)]
+                      [else (void)])]
                    [else (void)]))
                adt-arg*)]))
         (define (record-one! public-binding)
           (nanopass-case (Lwithpaths0 Public-Ledger-Binding) public-binding
-            [(,src ,ledger-field-name (,path-index* ...) ,public-adt)
-             (check-adt-nesting! public-adt)
-             (hashtable-set! ledger-ht ledger-field-name (list (Public-Ledger-ADT public-adt) path-index*))]))
+            [(,src ,ledger-field-name (,path-index* ...) ,[Type : type])
+             (check-adt-nesting! type)
+             (hashtable-set! ledger-ht ledger-field-name (list (de-alias type) path-index*))]))
         (define (record-ledger-binding! pelt)
           (nanopass-case (Lwithpaths0 Program-Element) pelt
             [(kernel-declaration ,public-binding)
@@ -4632,25 +4633,29 @@
             [else (void)]))
         (define (lookup-ledger-binding ledger-field-name)
           (assert (hashtable-ref ledger-ht ledger-field-name #f))))
-      (define (de-alias adt-type)
-        (nanopass-case (Lwithpaths Public-Ledger-ADT-Type) adt-type
+      (define (de-alias type)
+        (nanopass-case (Lwithpaths Type) type
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
-          [else adt-type]))
+          [else type]))
+      (define (public-adt? type)
+        (nanopass-case (Lwithpaths Type) type
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
+          [else #f]))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (for-each record-ledger-binding! pelt*)
        `(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,(map Program-Element pelt*) ...)])
     (Program-Element : Program-Element (ir) -> Program-Element ())
-    (Public-Ledger-ADT : Public-Ledger-ADT (ir) -> Public-Ledger-ADT ()
-      [(,src ,adt-name ((,adt-formal* ,[adt-arg*]) ...) ,vm-expr (,adt-op* ...) (,[adt-rt-op*] ...))
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ((,adt-formal* ,[adt-arg*]) ...) ,vm-expr (,adt-op* ...) (,[adt-rt-op*] ...))
        (memoize ir
          (let ([adt-op* (map (lambda (adt-op) (ADT-Op adt-op adt-name adt-formal* adt-arg*)) adt-op*)])
-           `(,src ,adt-name ((,adt-formal* ,adt-arg*) ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))))])
+           `(tadt ,src ,adt-name ((,adt-formal* ,adt-arg*) ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))))])
     (ADT-Op : ADT-Op (ir adt-name adt-formal* adt-arg*) -> ADT-Op ()
-      [(,ledger-op ,[op-class] ((,var-name* ,[adt-type*] ,discloses?*) ...) ,[adt-type] ,vm-code)
-       `(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type* ,discloses?*) ...) ,adt-type ,vm-code)])
+      [(,ledger-op ,[op-class] ((,var-name* ,[type*] ,discloses?*) ...) ,[type] ,vm-code)
+       `(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)])
     (ADT-Op-Class : ADT-Op-Class (ir) -> ADT-Op-Class ())
     (Expr : Expression (ir) -> Expression ()
       (definitions
@@ -4660,13 +4665,13 @@
               [(quote ,src ,datum) #f]
               [(var-ref ,src ,var-name) #f]
               [(enum-ref ,src ,type ,elt-name^) #f]
-              [(default ,src ,adt-type)
-               (nanopass-case (Lwithpaths Public-Ledger-ADT-Type) (de-alias adt-type)
+              [(default ,src ,type)
+               (nanopass-case (Lwithpaths Type) (de-alias type)
                  [(tboolean ,src) #f]
                  [(tfield ,src) #f]
                  [(tunsigned ,src ,nat) #f]
                  [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #f]
-                 [,public-adt #f]
+                 [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #f]
                  [else #t])]
               [(disclose ,src ,expr) (complex? expr)]
               [else #t]))
@@ -4691,21 +4696,21 @@
            (nanopass-case (Lwithpaths0 Ledger-Accessor) accessor
              [(,src^ ,ledger-op ,expr* ...)
               (let ([expr* (map Expr expr*)])
-                (nanopass-case (Lwithpaths Public-Ledger-ADT) public-adt
-                  [(,src^^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                (nanopass-case (Lwithpaths Type) (de-alias public-adt)
+                  [(tadt ,src^^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                    (let find-adt-op ([adt-op* adt-op*])
                      (assert (not (null? adt-op*)))
                      (let ([adt-op (car adt-op*)] [adt-op* (cdr adt-op*)])
                        (nanopass-case (Lwithpaths ADT-Op) adt-op
-                         [(,ledger-op^ ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type* ,discloses?*) ...) ,adt-type ,vm-code)
+                         [(,ledger-op^ ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
                           (if (eq? ledger-op^ ledger-op)
                               (begin
-                                (assert (fx= (length adt-type*) (length expr*)))
+                                (assert (fx= (length type*) (length expr*)))
                                 (if (null? accessor*)
                                     (let ([path-src* (reverse rpath-src*)]
                                           [path-expr* (reverse rpath-expr*)]
                                           [path-type* (reverse rpath-type*)])
-                                      (bind-if-complex src expr* adt-type*
+                                      (bind-if-complex src expr* type*
                                         (lambda (expr*)
                                           (bind-if-complex src path-expr* path-type*
                                             (lambda (path-expr*)
@@ -4715,16 +4720,15 @@
                                       (assert (eq? adt-name 'Map))
                                       ; nothing but lookup with one argument (the key) should have gotten past the type checker
                                       (assert (and (eq? ledger-op 'lookup) (fx= (length expr*) 1)))
-                                      ; and the only element of adt-type* should be a base type
-                                      (assert (Lwithpaths-Type? (car adt-type*)))
+                                      ; and the only element of type* should be a base type
+                                      (assert (Lwithpaths-Type? (car type*)))
                                       ; and since we're nested, nothing but a public-adt return type should have gotten past the type checker
-                                      (assert (Lwithpaths-Public-Ledger-ADT? adt-type))
                                       (loop (car accessor*)
                                             (cdr accessor*)
-                                            adt-type
+                                            type
                                             (cons src^ rpath-src*)
                                             (cons (car expr*) rpath-expr*)
-                                            (cons (car adt-type*) rpath-type*)))))
+                                            (cons (car type*) rpath-type*)))))
                               (find-adt-op adt-op*))])))]))])))]))
 
   (define-pass track-witness-data : Lwithpaths (ir) -> Lwithpaths ()
@@ -5116,11 +5120,11 @@
                                   (reverse desc*)))))
                        via*))))
             (sort-witnesses witness*))))
-      (define (de-alias adt-type)
-        (nanopass-case (Lwithpaths Public-Ledger-ADT-Type) adt-type
+      (define (de-alias type)
+        (nanopass-case (Lwithpaths Type) type
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
-          [else adt-type]))
+          [else type]))
     )
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -5182,7 +5186,7 @@
            [else (assert cannot-happen)]))]
       [(seq ,src ,[*] ... ,expr)
        (Effect expr p control-witness* disclosing-function-name?)]
-      [(let* ,src ([(,var-name* ,adt-type*) ,[* abs*]] ...) ,expr)
+      [(let* ,src ([(,var-name* ,type*) ,[* abs*]] ...) ,expr)
        (let ([abs* (map add-path-binding var-name* abs*)])
          (Effect expr (extend-env p var-name* abs*) control-witness* disclosing-function-name?))]
       [else (Expression ir p control-witness* disclosing-function-name?)])
@@ -5200,7 +5204,7 @@
          [(#f) (Abs-boolean #f '())]
          [else (Abs-atomic '())])]
 
-      [(default ,src ,adt-type) (default-value adt-type)]
+      [(default ,src ,type) (default-value type)]
       [(enum-ref ,src ,type ,elt-name^) (Abs-atomic '())]
 
       [(var-ref ,src ,var-name) (lookup-env p var-name)]
@@ -5382,7 +5386,7 @@
 
       [(seq ,src ,[*] ... ,[* abs]) abs]
 
-      [(let* ,src ([(,var-name* ,adt-type*) ,[* abs*]] ...) ,expr)
+      [(let* ,src ([(,var-name* ,type*) ,[* abs*]] ...) ,expr)
        (let ([abs* (map add-path-binding var-name* abs*)])
          (Expression expr (extend-env p var-name* abs*) control-witness* disclosing-function-name?))]
       ; define-pass doesn't realize above pattern covers let*
@@ -5397,11 +5401,11 @@
       [(bytes->vector ,src ,len ,[* abs]) (Abs-single (Abs-atomic (abs->witnesses abs)))]
       [(vector->bytes ,src ,len ,[* abs]) (Abs-atomic (abs->witnesses abs))]
       [(downcast-unsigned ,src ,nat ,[* abs]) abs]
-      [(safe-cast ,src ,adt-type ,adt-type^ ,[* abs]) abs]
+      [(safe-cast ,src ,type ,type^ ,[* abs]) abs]
 
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[* abs*] ...)
        (nanopass-case (Lwithpaths ADT-Op) adt-op
-         [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type* ,discloses?*) ...) ,adt-type ,vm-code)
+         [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
           (unless (null? control-witness*)
             (record-leak! src^ "performing this ledger operation" control-witness*))
           (for-each
@@ -5419,7 +5423,7 @@
             abs*
             discloses?*
             (if (= (length abs*) 1) '(#f) (enumerate abs*)))
-          (default-value adt-type)])]
+          (default-value type)])]
       [(contract-call ,src ,elt-name (,[* abs] ,type) ,[* abs*] ...)
        (unless (null? control-witness*)
          (record-leak! src "making this contract call" control-witness*))
@@ -5472,16 +5476,38 @@
 
   (define-pass remove-disclose : Lwithpaths (ir) -> Lnodisclose ()
     (ADT-Op : ADT-Op (ir) -> ADT-Op ()
-      [(,ledger-op ,[op-class] (,adt-name (,adt-formal* ,[adt-arg*]) ...) ((,var-name* ,[adt-type*] ,discloses?*) ...) ,[adt-type] ,vm-code)
-       `(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)])
+      [(,ledger-op ,[op-class] (,adt-name (,adt-formal* ,[adt-arg*]) ...) ((,var-name* ,[type*] ,discloses?*) ...) ,[type] ,vm-code)
+       `(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)])
     (Expression : Expression (ir) -> Expression ()
       [(disclose ,src ,[expr]) expr]))
+
+  (define-pass remove-tadt : Lnodisclose (ir) -> Lpublicadt ()
+    (definitions
+      (define (public-adt? adt-type)
+        (nanopass-case (Lpublicadt Public-Ledger-ADT-Type) adt-type
+          [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
+          [else #f])))
+    (Public-Ledger-ADT : Type (ir) -> Public-Ledger-ADT ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,[adt-arg*]] ...) ,vm-expr (,[adt-op*] ...) (,[adt-rt-op*] ...))
+       `(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))]
+      [(talias ,src ,nominal? ,type-name ,[adt-type])
+       (assert (public-adt? adt-type))
+       adt-type])
+    (Public-Ledger-ADT-Type : Type (ir) -> Public-Ledger-ADT-Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,[adt-arg*]] ...) ,vm-expr (,[adt-op*] ...) (,[adt-rt-op*] ...))
+       `(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))]
+      [(talias ,src ,nominal? ,type-name ,[adt-type])
+       (if (public-adt? adt-type)
+           adt-type
+           `(talias ,src ,nominal? ,type-name ,adt-type))])
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (assert cannot-happen)]))
 
   (define-passes analysis-passes
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
     (infer-types                     Ltypes)
-    (remove-tadt                     Lpublicadt)
     (remove-tundeclared              Lnotundeclared)
     (combine-ledger-declarations     Loneledger)
     (discard-unused-functions        Loneledger)
@@ -5493,7 +5519,8 @@
     (determine-ledger-paths          Lwithpaths0)
     (propagate-ledger-paths          Lwithpaths)
     (track-witness-data              Lwithpaths)
-    (remove-disclose                 Lnodisclose))
+    (remove-disclose                 Lnodisclose)
+    (remove-tadt                     Lpublicadt))
 
   (define-passes fixup-analysis-passes
     (expand-modules-and-types        Lexpanded)

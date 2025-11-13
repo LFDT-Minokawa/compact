@@ -31,13 +31,13 @@
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
-          Lpublicadt unparse-Lpublicadt Lpublicadt-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Type? Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats Loneledger-Ledger-Declaration?
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
-          Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats Lwithpaths-Public-Ledger-ADT? Lwithpaths-Type?
-          Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats Lnodisclose-Export-Type-Definition?
+          Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats Lwithpaths-Type?
+          Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats
+          Lpublicadt unparse-Lpublicadt Lpublicadt-pretty-formats Lpublicadt-Export-Type-Definition?
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-Public-Ledger-ADT? Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op? Ltypescript-Type?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
@@ -737,36 +737,7 @@
       (tundeclared)
       (tunknown)))
 
-  (define-language/pretty Lpublicadt (extends Ltypes)
-    (Ledger-Declaration (ldecl)
-      (- (public-ledger-declaration src ledger-field-name type))
-      (+ (public-ledger-declaration src ledger-field-name public-adt) =>
-           (public-ledger-declaration #f ledger-field-name #f public-adt)))
-    (ADT-Op (adt-op)
-      (- (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code))
-      (+ (ledger-op op-class ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code) =>
-           ledger-op))
-    (Public-Ledger-ADT (public-adt)
-      (+ (src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
-           (adt-name #f adt-arg* ...)))
-    (Public-Ledger-ADT-Arg (adt-arg)
-      (- type)
-      (+ adt-type))
-    (Public-Ledger-ADT-Type (adt-type)
-      (+ type
-         public-adt))
-    (Local (local)
-      (- (var-name type))
-      (+ (var-name adt-type) => (bracket var-name adt-type)))
-    (Expression (expr index)
-      (- (default src type))
-      (+ (default src adt-type) => (default adt-type))
-      (- (safe-cast src type type^ expr))
-      (+ (safe-cast src adt-type adt-type^ expr) => (safe-cast adt-type 10 adt-type^ #f expr)))
-    (Type (type)
-      (- (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)))))
-
-  (define-language/pretty Lnotundeclared (extends Lpublicadt)
+  (define-language/pretty Lnotundeclared (extends Ltypes)
     (Type (type)
       (- (tundeclared))))
 
@@ -777,11 +748,11 @@
     (Kernel-Declaration (kdecl)
       (+ (kernel-declaration public-binding)))
     (Ledger-Declaration (ldecl)
-      (- (public-ledger-declaration src ledger-field-name public-adt))
+      (- (public-ledger-declaration src ledger-field-name type))
       (+ (public-ledger-declaration public-binding* ... lconstructor) =>
            (public-ledger-declaration #f public-binding* ... #f lconstructor)))
     (Public-Ledger-Binding (public-binding)
-      (+ (src ledger-field-name public-adt) => (ledger-field-name public-adt)))
+      (+ (src ledger-field-name type) => (ledger-field-name type)))
     (Expression (expr index)
       (- (ledger-ref src ledger-field-name)
          (ledger-call src ledger-op (maybe sugar) expr expr* ...))
@@ -815,9 +786,9 @@
       (+ pl-array
          public-binding))
     (Public-Ledger-Binding (public-binding)
-      (- (src ledger-field-name public-adt))
-      (+ (src ledger-field-name (path-index* ...) public-adt) =>
-           (ledger-field-name #f (path-index* ...) #f public-adt))))
+      (- (src ledger-field-name type))
+      (+ (src ledger-field-name (path-index* ...) type) =>
+           (ledger-field-name #f (path-index* ...) #f type))))
 
   (define-language/pretty Lwithpaths (extends Lwithpaths0)
     (Expression (expr index)
@@ -828,8 +799,8 @@
       (+ (public-ledger src ledger-field-name (maybe sugar) (path-elt ...) src^ adt-op expr* ...) =>
            (public-ledger ledger-field-name (path-elt ...) adt-op #f expr* ...)))
     (ADT-Op (adt-op)
-      (- (ledger-op op-class ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code))
-      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code) =>
+      (- (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code))
+      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type* (maybe discloses?)) ...) type vm-code) =>
            ledger-op))
     (Ledger-Accessor (accessor)
       (- (src ledger-op expr* ...)))
@@ -839,13 +810,42 @@
 
   (define-language/pretty Lnodisclose (extends Lwithpaths)
     (ADT-Op (adt-op)
-      (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type* (maybe discloses?)) ...) adt-type vm-code))
-      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code) =>
+      (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type* (maybe discloses?)) ...) type vm-code))
+      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type*) ...) type vm-code) =>
          ledger-op))
     (Expression (expr index)
       (- (disclose src expr))))
 
-  (define-language/pretty Ltypescript (extends Lnodisclose)
+  (define-language/pretty Lpublicadt (extends Lnodisclose)
+    (ADT-Op (adt-op)
+      (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type*) ...) type vm-code))
+      (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* adt-type*) ...) adt-type vm-code) =>
+           ledger-op))
+    (Public-Ledger-Binding (public-binding)
+      (- (src ledger-field-name (path-index* ...) type))
+      (+ (src ledger-field-name (path-index* ...) public-adt) =>
+           (ledger-field-name #f (path-index* ...) #f public-adt)))
+    (Public-Ledger-ADT (public-adt)
+      (+ (src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
+           (adt-name #f adt-arg* ...)))
+    (Public-Ledger-ADT-Arg (adt-arg)
+      (- type)
+      (+ adt-type))
+    (Public-Ledger-ADT-Type (adt-type)
+      (+ type
+         public-adt))
+    (Local (local)
+      (- (var-name type))
+      (+ (var-name adt-type) => (bracket var-name adt-type)))
+    (Expression (expr index)
+      (- (default src type))
+      (+ (default src adt-type) => (default adt-type))
+      (- (safe-cast src type type^ expr))
+      (+ (safe-cast src adt-type adt-type^ expr) => (safe-cast adt-type 10 adt-type^ #f expr)))
+    (Type (type)
+      (- (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...) (adt-rt-op* ...)))))
+
+  (define-language/pretty Ltypescript (extends Lpublicadt)
     (terminals
       (- (id (name var-name function-name ledger-field-name)))
       (+ (id (name var-name function-name ledger-field-name descriptor-id))
@@ -881,7 +881,7 @@
          (const src (local* ...))                => (const (local* 0 ...))
          (statement-expression expr)             => expr)))
 
-  (define-language/pretty Lposttypescript (extends Lnodisclose)
+  (define-language/pretty Lposttypescript (extends Lpublicadt)
     (terminals
       (- (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
       (+ (symbol (export-name contract-name struct-name enum-name elt-name ledger-op ledger-op-class adt-name adt-formal)))

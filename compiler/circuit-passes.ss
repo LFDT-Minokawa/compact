@@ -24,13 +24,13 @@
           (langs)
           (pass-helpers))
 
-  (define-pass drop-ledger-runtime : Lnodisclose (ir) -> Lposttypescript ()
+  (define-pass drop-ledger-runtime : Lpublicadt (ir) -> Lposttypescript ()
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        `(program ,src ((,export-name* ,name*) ...)
           ,(fold-right
              (lambda (pelt pelt*)
-               (if (Lnodisclose-Export-Type-Definition? pelt)
+               (if (Lpublicadt-Export-Type-Definition? pelt)
                    pelt*
                    (cons (Program-Element pelt) pelt*)))
              '()
@@ -58,7 +58,7 @@
       [(!= ,src ,[type] ,[expr1] ,[expr2]) (do-not src `(== ,src ,type ,expr1 ,expr2))]
       [(cast-from-bytes ,src ,type ,len ,[expr])
        (let ([expr `(bytes->field ,src ,len ,expr)])
-         (nanopass-case (Lnodisclose Type) type
+         (nanopass-case (Lpublicadt Type) type
            [(tunsigned ,src ,nat) `(downcast-unsigned ,src ,nat ,expr)]
            [else expr]))])
     (Type : Type (ir) -> Type ()

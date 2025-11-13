@@ -29,7 +29,7 @@
           (vm)
           (sourcemaps))
 
-  (define-pass prepare-for-typescript : Lnodisclose (ir) -> Ltypescript ()
+  (define-pass prepare-for-typescript : Lpublicadt (ir) -> Ltypescript ()
     (definitions
       (define program-src)
       (define local-local*)
