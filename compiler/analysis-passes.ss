@@ -4261,7 +4261,7 @@
                     (if (null? accessor*)
                         (eq? op-class 'read)
                         (loop accessor*
-                              (nanopass-case (Lnodca Type) type
+                              (nanopass-case (Lnodca Type) (de-alias type)
                                 [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                                  adt-op*]
                                 [else (assert cannot-happen)])))]
@@ -4638,10 +4638,6 @@
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
           [else type]))
-      (define (public-adt? type)
-        (nanopass-case (Lwithpaths Type) type
-          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
-          [else #f]))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
