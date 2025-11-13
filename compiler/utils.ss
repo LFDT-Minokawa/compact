@@ -23,6 +23,7 @@
           verbose-source-path? source-object<? format-source-object
           parent-src
           errorf internal-errorf external-errorf error-accessing-file pending-errorf source-errorf source-warningf
+          assertf
           format-condition
           maplr maplr2 compose shell string-prefix? rm-rf mkdir-p
           to-camel-case
@@ -279,6 +280,23 @@
   (define (internal-errorf who fmt . arg*)
     (import (only (chezscheme) errorf))
     (errorf who "~?" fmt arg*))
+
+  (module (assertf)
+    (define ($assertf src-string fmt . arg*)
+      (import (only (chezscheme) errorf))
+      (errorf #f "assertion failed at ~a: ~?" src-string fmt arg*))
+    (define-syntax assertf
+      (lambda (x)
+        (syntax-case x ()
+          [(_ expr fmt arg ...)
+           (let ([src (annotation-source (assert (syntax->annotation #'expr)))])
+             (let ([src-string (call-with-values
+                                 (lambda () (locate-source-object-source src #t #f))
+                                 (case-lambda
+                                   [() (format "~a character ~s" (source-file-descriptor-path (source-object-sfd src)) (source-object-bfp src))]
+                                   [(path line col) (format "~a line ~s char ~s" path line col)]))])
+               #`(or expr ($assertf #,src-string fmt arg ...))))])))
+    (indirect-export assertf $assertf))
 
   ; like map but processes left-to-right
   (define (maplr p ls . ls*)

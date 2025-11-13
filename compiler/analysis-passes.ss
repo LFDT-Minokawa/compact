@@ -5477,29 +5477,6 @@
     (Expression : Expression (ir) -> Expression ()
       [(disclose ,src ,[expr]) expr]))
 
-  (define-pass remove-tadt : Lnodisclose (ir) -> Lpublicadt ()
-    (definitions
-      (define (public-adt? adt-type)
-        (nanopass-case (Lpublicadt Public-Ledger-ADT-Type) adt-type
-          [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
-          [else #f])))
-    (Public-Ledger-ADT : Type (ir) -> Public-Ledger-ADT ()
-      [(tadt ,src ,adt-name ([,adt-formal* ,[adt-arg*]] ...) ,vm-expr (,[adt-op*] ...) (,[adt-rt-op*] ...))
-       `(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))]
-      [(talias ,src ,nominal? ,type-name ,[adt-type])
-       (assert (public-adt? adt-type))
-       adt-type])
-    (Public-Ledger-ADT-Type : Type (ir) -> Public-Ledger-ADT-Type ()
-      [(tadt ,src ,adt-name ([,adt-formal* ,[adt-arg*]] ...) ,vm-expr (,[adt-op*] ...) (,[adt-rt-op*] ...))
-       `(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))]
-      [(talias ,src ,nominal? ,type-name ,[adt-type])
-       (if (public-adt? adt-type)
-           adt-type
-           `(talias ,src ,nominal? ,type-name ,adt-type))])
-    (Type : Type (ir) -> Type ()
-      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-       (assert cannot-happen)]))
-
   (define-passes analysis-passes
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
@@ -5515,8 +5492,7 @@
     (determine-ledger-paths          Lwithpaths0)
     (propagate-ledger-paths          Lwithpaths)
     (track-witness-data              Lwithpaths)
-    (remove-disclose                 Lnodisclose)
-    (remove-tadt                     Lpublicadt))
+    (remove-disclose                 Lnodisclose))
 
   (define-passes fixup-analysis-passes
     (expand-modules-and-types        Lexpanded)

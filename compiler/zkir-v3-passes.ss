@@ -170,12 +170,6 @@
 
       ;; Encode a VM operand, collecting codes in reverse.
       (define (assemble-operand-acc code* rand)
-        (define (public-adt type)
-          (nanopass-case (Lflattened Type) type
-            [(ty (,alignment ...) (,primitive-type))
-             (guard (Lflattened-Public-Ledger-ADT? primitive-type))
-             primitive-type]
-            [else #f]))
         ;; Encode a string in a field, return a load_imm instruction index and the length of the
         ;; UTF-8 encoding
         (define (domain-separator str)
@@ -338,15 +332,14 @@
               [(VMstate-value-null) (cons (Ie-imm 0) code*)]
               [(VMstate-value-cell val) (assemble-operand-acc (cons (Ie-imm 1) code*) val)]
               [(VMstate-value-ADT val type)
-               (let ([adt (public-adt type)])
-                 (if (not adt)
-                     (assemble-operand-acc (cons (Ie-imm 1) code*) val)
-                     (nanopass-case (Lflattened Public-Ledger-ADT) adt
-                       [(,src ,adt-name ((,adt-formal* ,adt-arg*) ...) ,vm-expr (,adt-op* ...))
-                        (assemble-operand-acc code*
-                          (expand-vm-expr src
-                            (map cons adt-formal* adt-arg*)
-                            (vm-expr-expr vm-expr)))])))]
+               (or (nanopass-case (Lflattened Type) type
+                     [(ty (,alignment* ...) ((tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))))
+                      (assemble-operand-acc code*
+                        (expand-vm-expr src
+                          (map cons adt-formal* adt-arg*)
+                          (vm-expr-expr vm-expr)))]
+                     [else #f])
+                   (assemble-operand-acc (cons (Ie-imm 1) code*) val))]
               [(VMstate-value-map key* val*)
                (fold-left assemble-operand-acc
                  (fold-left assemble-operand-acc

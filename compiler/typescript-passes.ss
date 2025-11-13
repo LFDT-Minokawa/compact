@@ -29,32 +29,32 @@
           (vm)
           (sourcemaps))
 
-  (define-pass prepare-for-typescript : Lpublicadt (ir) -> Ltypescript ()
+  (define-pass prepare-for-typescript : Lnodisclose (ir) -> Ltypescript ()
     (definitions
       (define program-src)
       (define local-local*)
       (define (local->id arg)
         (nanopass-case (Ltypescript Local) arg
-          [(,var-name ,adt-type) var-name]))
+          [(,var-name ,type) var-name]))
       (define (arg->type arg)
         (nanopass-case (Ltypescript Argument) arg
           [(,var-name ,type) type]))
-      (define (de-alias adt-type)
-        (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+      (define (de-alias type)
+        (nanopass-case (Ltypescript Type) type
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
-          [else adt-type]))
+          [else type]))
       (module (descriptor-table register-descriptor! maybe-register-descriptor! get-descriptors)
         (define-syntax T
           (syntax-rules ()
             [(T ty clause ...)
-             (nanopass-case (Ltypescript Public-Ledger-ADT-Type) ty clause ... [else #f])]))
-        (define (subst-tcontract adt-type)
-          (nanopass-case (Ltypescript Public-Ledger-ADT-Type) (de-alias adt-type)
+             (nanopass-case (Ltypescript Type) ty clause ... [else #f])]))
+        (define (subst-tcontract type)
+          (nanopass-case (Ltypescript Type) (de-alias type)
             [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-             (with-output-language (Ltypescript Public-Ledger-ADT-Type)
+             (with-output-language (Ltypescript Type)
                `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
-            [else adt-type]))
+            [else type]))
         (define (type-hash type)
           (define max-tuple-elts-to-hash 10)
           (define (update hc k)
@@ -141,13 +141,17 @@
                       (and (eq? enum-name1 enum-name2)
                            (eq? elt-name1 elt-name2)
                            (andmap eq? elt-name1* elt-name2*))])]))))
+        (define (public-adt? type)
+          (nanopass-case (Ltypescript Type) (de-alias type)
+            [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
+            [else #f]))
         (define descriptor-table (make-hashtable type-hash type=?))
         (define rdescriptor* '())
-        (define (register-descriptor! adt-type)
-          (let ([adt-type (subst-tcontract adt-type)])
-            (when (Ltypescript-Type? adt-type)
+        (define (register-descriptor! type)
+          (let ([type (subst-tcontract type)])
+            (unless (public-adt? type)
               ; types aren't recursive, so no need to handle cycles here
-              (T (de-alias adt-type)
+              (T (de-alias type)
                  [(tvector ,src ,len ,type)
                   (register-descriptor! type)]
                  [(ttuple ,src ,type* ...)
@@ -156,15 +160,15 @@
                   (for-each register-descriptor! type*)]
                  [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                   (assert cannot-happen)])
-              (let ([a (hashtable-cell descriptor-table adt-type #f)])
+              (let ([a (hashtable-cell descriptor-table type #f)])
                 (unless (cdr a)
                   (let ([id (make-temp-id program-src 'descriptor)])
                     (set-cdr! a id)
-                    (set! rdescriptor* (cons (cons id adt-type) rdescriptor*))))))))
-        (define (maybe-register-descriptor! adt-type)
-          (nanopass-case (Ltypescript Public-Ledger-ADT-Type) (de-alias adt-type)
+                    (set! rdescriptor* (cons (cons id type) rdescriptor*))))))))
+        (define (maybe-register-descriptor! type)
+          (nanopass-case (Ltypescript Type) (de-alias type)
             [(ttuple ,src) (void)]
-            [else (register-descriptor! adt-type)]))
+            [else (register-descriptor! type)]))
         (define (get-descriptors)
           (let ([ldescriptor* (reverse rdescriptor*)])
             (values (map car ldescriptor*) (map cdr ldescriptor*))))))
@@ -201,26 +205,25 @@
       [(witness ,src ,function-name (,[arg*] ...) ,[type])
        (maybe-register-descriptor! type)
        `(witness ,src ,function-name (,arg* ...) ,type)])
-    (Public-Ledger-ADT : Public-Ledger-ADT (ir) -> Public-Ledger-ADT ()
-      [(,src ,adt-name ([,adt-formal* ,[adt-arg*]] ...) ,vm-expr (,[adt-op* adt-name -> adt-op*] ...) (,[adt-rt-op*] ...))
-       `(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))])
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,[adt-arg*]] ...) ,vm-expr (,[adt-op* adt-name -> adt-op*] ...) (,[adt-rt-op*] ...))
+       `(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))])
     (Public-Ledger-ADT-Arg : Public-Ledger-ADT-Arg (ir) -> Public-Ledger-ADT-Arg ()
        [,nat nat]
-       [,adt-type (let ([adt-type (Public-Ledger-ADT-Type adt-type)])
-                    (register-descriptor! adt-type)
-                    adt-type)])
-    (Public-Ledger-ADT-Type : Public-Ledger-ADT-Type (ir) -> Public-Ledger-ADT-Type ())
+       [,type (let ([type (Type type)])
+                (register-descriptor! type)
+                type)])
     (ADT-Runtime-Op : ADT-Runtime-Op (ir) -> ADT-Runtime-Op ())
     (ADT-Op : ADT-Op (ir adt-name) -> ADT-Op ()
-      [(,ledger-op ,[op-class] (,adt-name (,adt-formal* ,[adt-arg*]) ...) ((,var-name* ,[adt-type*]) ...) ,[adt-type] ,vm-code)
+      [(,ledger-op ,[op-class] (,adt-name (,adt-formal* ,[adt-arg*]) ...) ((,var-name* ,[type*]) ...) ,[type] ,vm-code)
        ; FIXME: this can result in too many descriptors being created.  the root problem is that
        ; print-typescript opts not to generate all of the runtime ops if an op named read is
        ; available.  the solution is probably to weed out ops we don't want to generate earlier
        ; ideally much earlier, but at least in this pass.
        (when (eq? op-class 'read)
-         (for-each register-descriptor! adt-type*)
-         (maybe-register-descriptor! adt-type))
-       `(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)])
+         (for-each register-descriptor! type*)
+         (maybe-register-descriptor! type))
+       `(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)])
     (ADT-Op-Class : ADT-Op-Class (ir) -> ADT-Op-Class ())
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
       [(circuit ,src ,function-name (,[arg*] ...) ,[type0 -> type] ,[Stmt : expr src -> stmt])
@@ -294,9 +297,9 @@
                 ,expr)))]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,[path-elt*] ...) ,src^ ,[adt-op] ,[expr*] ...)
        (nanopass-case (Ltypescript ADT-Op) adt-op
-         [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
-          (for-each register-descriptor! adt-type*)
-          (maybe-register-descriptor! adt-type)
+         [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+          (for-each register-descriptor! type*)
+          (maybe-register-descriptor! type)
           `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)])]
       [(return ,src ,expr) (Expr expr)])
     (Path-Element : Path-Element (ir) -> Path-Element ()
@@ -528,10 +531,9 @@
                        v))
                  "]")]
               [(vmref? v)
-               (let ([adt-type (vmref-type v)] [q (vmref-q v)])
-                 (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
-                   [,type (construct-typed-value (type->descriptor-name type) q)]
-                   [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+               (let ([v-type (vmref-type v)] [q (vmref-q v)])
+                 (nanopass-case (Ltypescript Type) (de-alias v-type)
+                   [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                     ; FIXME: at present, we can assume that whenever we passs a value of some
                     ; public-adt as a query argument, it must be the result of default<public-adt>,
                     ; since that's all that can get past the type checker.  if we generalize to
@@ -541,7 +543,8 @@
                         src
                         (map cons adt-formal* adt-arg*)
                         (vm-expr-expr vm-expr))
-                      top-level?)]))]
+                      top-level?)]
+                   [else (construct-typed-value (type->descriptor-name v-type) q)]))]
               [(VMop? v)
                (VMop-case v
                  [(VMstack) "{ tag: 'stack' }"]
@@ -566,23 +569,22 @@
                     (type->descriptor-name (with-output-language (Ltypescript Type) `(tunsigned ,src ,(- (expt 2 (* bytes 8)) 1))))
                     (format "~dn" value))]
                  [(VMnull type)
-                  (nanopass-case (Ltypescript Public-Ledger-ADT-Type) type
-                    [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                  (nanopass-case (Ltypescript Type) (de-alias type)
+                    [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                      (construct-query-value
                        (expand-vm-expr
                          src
                          (map cons adt-formal* adt-arg*)
                          (vm-expr-expr vm-expr))
                        top-level?)]
-                    [,type
+                    [else
                      (construct-typed-value
                        (type->descriptor-name type)
                        (Expr (with-output-language (Ltypescript Expression) `(default ,src ,type))
                              (precedence add1 comma)
-                             #f))]
-                    [else (assert cannot-happen)])]
+                             #f))])]
                  [(VMmax-sizeof type)
-                  (assert (Ltypescript-Type? type))
+                  (assert (not (public-adt? type)))
                   (make-Qconcat
                     "Number(__compactRuntime.maxAlignedSize("
                     2 (type->descriptor-name type)
@@ -595,8 +597,8 @@
                     (if top-level?
                         ").encode()"
                         ")"))]
-                 [(VMstate-value-ADT val adt-type)
-                  (if (Ltypescript-Public-Ledger-ADT? adt-type)
+                 [(VMstate-value-ADT val v-type)
+                  (if (public-adt? v-type)
                       (construct-query-value val top-level?)
                       (make-Qconcat
                         "__compactRuntime.StateValue.newCell("
@@ -682,7 +684,7 @@
                     0 ")")])]
               [else (internal-errorf 'construct-query-value "unhandled case ~s" v)]))
           (nanopass-case (Ltypescript ADT-Op) adt-op
-            [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+            [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
              (assert (fx= (length expr*) (length var-name*)))
              (let ([vminstr* (expand-vm-code
                                src
@@ -693,11 +695,11 @@
                                     path-elt*)
                                #f
                                (append (map cons adt-formal* adt-arg*)
-                                       (map (lambda (var-name adt-type expr)
+                                       (map (lambda (var-name type expr)
                                               (let ([sym (id-sym var-name)])
-                                                (cons sym (make-vmref adt-type expr))))
+                                                (cons sym (make-vmref type expr))))
                                             var-name*
-                                            adt-type*
+                                            type*
                                             expr*))
                                (vm-code-code vm-code))])
                (make-Qconcat
@@ -724,12 +726,12 @@
 
         (define (coin-recipient-indices adt-op)
           (nanopass-case (Ltypescript ADT-Op) adt-op
-            [(,ledger-op (,ledger-op-class ,nat ,nat^) (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+            [(,ledger-op (,ledger-op-class ,nat ,nat^) (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
              (list nat nat^)]))
 
         (define (should-check-coin-commitment? adt-op)
           (nanopass-case (Ltypescript ADT-Op) adt-op
-            [(,ledger-op (,ledger-op-class ,nat ,nat^) (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+            [(,ledger-op (,ledger-op-class ,nat ,nat^) (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
              (eq? ledger-op-class 'update-with-coin-check)]
             [else #f]))
 
@@ -771,7 +773,7 @@
       (define (op-name adt-op)
         (if (Ltypescript-ADT-Op? adt-op)
             (nanopass-case (Ltypescript ADT-Op) adt-op
-              [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+              [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
                ledger-op])
             (nanopass-case (Ltypescript ADT-Runtime-Op) adt-op
               [(,ledger-op (,arg* ...) ,result-type ,runtime-code)
@@ -779,7 +781,7 @@
       (define (is-runtime-op? adt-op)
         (or (not (Ltypescript-ADT-Op? adt-op))
             (nanopass-case (Ltypescript ADT-Op) adt-op
-              [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+              [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
                (eq? op-class 'read)])))
       (define (maybe-iterator op-name)
         (if (eq? op-name 'iter)
@@ -787,7 +789,7 @@
             (to-camel-case (symbol->string op-name) #f)))
       (define (exported-public-binding? public-binding)
         (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
-          [(,src ,ledger-field-name (,path-index* ...) ,public-adt)
+          [(,src ,ledger-field-name (,path-index* ...) ,type)
            (id-exported? ledger-field-name)]))
       (define (get-self-contract-name)
         (source-file-name))
@@ -833,12 +835,12 @@
                    dep-contracts)])
           (values contract-has-witness* contract-has-witness-ht)))
 
-      (define (subst-tcontract adt-type)
-        (nanopass-case (Ltypescript Public-Ledger-ADT-Type) (de-alias adt-type)
+      (define (subst-tcontract type)
+        (nanopass-case (Ltypescript Type) (de-alias type)
           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-           (with-output-language (Ltypescript Public-Ledger-ADT-Type)
+           (with-output-language (Ltypescript Type)
              `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
-          [else adt-type]))
+          [else type]))
 
       (define (print-contract.d.ts src xpelt* uname*)
         (define (print-exported-impure-circuit-declaration do-me?)
@@ -911,40 +913,40 @@
         (module (print-ledger-declaration)
           (define (op-signature-Q adt-op)
             (nanopass-case (Ltypescript ADT-Op) adt-op
-              [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+              [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
                (with-local-unique-names
                  (let ([formal* (map (lambda (var-name) (format-internal-binding unique-local-name var-name))
                                      var-name*)])
                    (apply list
                      "("
                      (apply (make-Qsep ",")
-                       (map (lambda (formal adt-type)
-                              (assert (Ltypescript-Type? adt-type))
-                              (make-Qconcat formal ": " (Type adt-type)))
+                       (map (lambda (formal type)
+                              (assert (not (public-adt? type)))
+                              (make-Qconcat formal ": " (Type type)))
                             formal*
-                            adt-type*))
+                            type*))
                      "): "
-                     (if (Ltypescript-Public-Ledger-ADT? adt-type)
-                         (nanopass-case (Ltypescript Public-Ledger-ADT) adt-type
-                           [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                     (if (public-adt? type)
+                         (nanopass-case (Ltypescript Type) (de-alias type)
+                           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                             (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
                                    [all-op* (cond [(has-read? all-op*) => list] [else all-op*])])
                               (list
                                 "{"
                                 2 (ledger-field-decl-Q src adt-arg* all-op*)
                                 0 "}"))])
-                         (list (Type adt-type))))))]))
+                         (list (Type type))))))]))
           (define (rt-op-return-type adt-arg* result-type)
             (let ([targs (map (lambda (adt-arg)
                                 (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
                                   [,nat (number->string nat)]
-                                  [,adt-type
-                                   (if (Ltypescript-Public-Ledger-ADT? adt-type)
+                                  [,type
+                                   (if (public-adt? type)
                                        ; at present, this case should be ruled out by the ledger meta-type checks
                                        "undefined"
                                        (with-output-to-string
                                          (lambda ()
-                                           (print-Q 0 (Type adt-type)))))]))
+                                           (print-Q 0 (Type type)))))]))
                               adt-arg*)])
               (apply result-type "__compactRuntime." targs)))
           (define (rt-op-signature-Q adt-rt-op adt-arg*)
@@ -978,40 +980,43 @@
                            (and (Ltypescript-ADT-Runtime-Op? op)
                                 (ormap (lambda (adt-arg)
                                          (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
-                                           [,public-adt #t]
+                                           [,type (public-adt? type)]
                                            [else #f]))
                                        adt-arg*)))
                          all-op*))))
           (define (print-public-binding public-binding external-names)
             (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
-              [(,src ,ledger-field-name (,path-index* ...) (,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)))
-               (for-each
-                 (lambda (export-name)
-                   (print-Q 2
-                     (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
-                            [maybe-read (has-read? all-op*)])
-                       (if maybe-read
-                           (make-Qconcat
-                             "readonly "
-                             export-name
-                             ": "
-                             (if (Ltypescript-ADT-Op? maybe-read)
-                                 (nanopass-case (Ltypescript ADT-Op) maybe-read
-                                   [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
-                                    (assert (Ltypescript-Type? adt-type))
-                                    (Type adt-type)])
-                                 ; at present, no adt-rt-ops qualify (i.e., none are named "read")
-                                 (nanopass-case (Ltypescript ADT-Runtime-Op) maybe-read
-                                   [(,ledger-op (,arg* ...) ,result-type ,runtime-code)
-                                    (rt-op-return-type adt-arg* result-type)]))
-                             ";")
-                           (make-Qconcat
-                             export-name
-                             ": {"
-                             2 (ledger-field-decl-Q src adt-arg* all-op*)
-                             0 "};"))))
-                   (newline))
-                 (external-names ledger-field-name))]))
+              [(,src ,ledger-field-name (,path-index* ...) ,type)
+               (nanopass-case (Ltypescript Type) (de-alias type)
+                 [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                  (for-each
+                    (lambda (export-name)
+                      (print-Q 2
+                        (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
+                               [maybe-read (has-read? all-op*)])
+                          (if maybe-read
+                              (make-Qconcat
+                                "readonly "
+                                export-name
+                                ": "
+                                (if (Ltypescript-ADT-Op? maybe-read)
+                                    (nanopass-case (Ltypescript ADT-Op) maybe-read
+                                      [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+                                       (assert (not (public-adt? type)))
+                                       (Type type)])
+                                    ; at present, no adt-rt-ops qualify (i.e., none are named "read")
+                                    (nanopass-case (Ltypescript ADT-Runtime-Op) maybe-read
+                                      [(,ledger-op (,arg* ...) ,result-type ,runtime-code)
+                                       (rt-op-return-type adt-arg* result-type)]))
+                                ";")
+                              (make-Qconcat
+                                export-name
+                                ": {"
+                                2 (ledger-field-decl-Q src adt-arg* all-op*)
+                                0 "};"))))
+                      (newline))
+                    (external-names ledger-field-name))]
+                 [else (assert cannot-happen)])]))
           (define (print-ledger-declaration xpelt uname)
             (XPelt-case xpelt
               [(XPelt-public-ledger pl-array ledger-constructor external-names)
@@ -1294,24 +1299,27 @@
             (define (find-adt-op ledger-op adt-op*)
               (assert (find (lambda (adt-op)
                               (nanopass-case (Ltypescript ADT-Op) adt-op
-                                [(,ledger-op^ ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+                                [(,ledger-op^ ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
                                  (eq? ledger-op^ ledger-op)]))
                             adt-op*)))
             (fold-right
               (lambda (public-binding q*)
                 (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
-                  [(,src ,ledger-field-name (,path-index* ...) (,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)))
-                   (cons*
-                     2 (construct-query src path-index* adt-formal* adt-arg* (find-adt-op 'resetToDefault adt-op*) '()) ";"
-                     q*)]))
+                  [(,src ,ledger-field-name (,path-index* ...) ,type)
+                   (nanopass-case (Ltypescript Type) (de-alias type)
+                     [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                      (cons*
+                        2 (construct-query src path-index* adt-formal* adt-arg* (find-adt-op 'resetToDefault adt-op*) '()) ";"
+                        q*)]
+                     [else (assert cannot-happen)])]))
               q*
               (pl-array->public-bindings pl-array)))
 
           (module (argument-type-checks context-type-check result-type-check)
-            (define (typeof adt-type var)
-              (let ([adt-type (de-alias adt-type)])
-                (let ([adt-type (subst-tcontract adt-type)])
-                  (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+            (define (typeof type var)
+              (let ([type (de-alias type)])
+                (let ([type (subst-tcontract type)])
+                  (nanopass-case (Ltypescript Type) type
                     [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
                     [(tfield ,src) (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
                     [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
@@ -1335,10 +1343,11 @@
                     [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
                      (format "typeof(~a) === 'number' && ~:*~a >= 0 && ~:*~a <= ~d" var (length elt-name*))]
                     [(tunknown) (assert cannot-happen)]
-                    [,public-adt (assert cannot-happen)]))))
+                    [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                     (assert cannot-happen)]))))
 
-            (define (format-type adt-type)
-              (nanopass-case (Ltypescript Public-Ledger-ADT-Type) (de-alias adt-type)
+            (define (format-type type)
+              (nanopass-case (Ltypescript Type) (de-alias type)
                 [(tboolean ,src) "Boolean"]
                 [(tfield ,src) "Field"]
                 [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
@@ -1364,13 +1373,14 @@
                         elt-name* type*))]
                 [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
                  (format "Enum<~a, ~s~{, ~s~}>" enum-name elt-name elt-name*)]
-                [,public-adt (assert cannot-happen)]))
+                [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                 (assert cannot-happen)]))
 
-            (define (argument-type-checks src what extra-arguments var-name* adt-type* q*)
+            (define (argument-type-checks src what extra-arguments var-name* type* q*)
               (fold-right
-                (lambda (var-name adt-type i q*)
+                (lambda (var-name type i q*)
                   (let ([arg-name (format-id-reference var-name)])
-                    (let ([typeof-expr (typeof adt-type arg-name)])
+                    (let ([typeof-expr (typeof type arg-name)])
                       (if (equal? typeof-expr "true")
                           q*
                           (cons*
@@ -1388,14 +1398,14 @@
                                       (format "'argument ~d'" i)
                                       (format "'argument ~d (argument ~d as invoked from Typescript)'" i (fx+ i extra-arguments))))
                                 (format "'~a'" (format-source-object src))
-                                (format "'~a'" (format-type adt-type))
+                                (format "'~a'" (format-type type))
                                 arg-name)
                               ")"
                               0 "}")
                             q*)))))
                 q*
                 var-name*
-                adt-type*
+                type*
                 (enumerate var-name*)))
 
             (define (context-type-check src what var q*)
@@ -1708,7 +1718,7 @@
                 (apply (make-Qsep ",")
                   (map (lambda (op)
                          (with-local-unique-names
-                           (let-values ([(var-name* adt-type*) (op-args op)])
+                           (let-values ([(var-name* type*) (op-args op)])
                              (let ([formal* (map (lambda (var-name) (format-internal-binding unique-local-name var-name)) var-name*)]
                                    [args (format-internal-binding unique-local-name (make-temp-id src 'args))]
                                    [nargs (length var-name*)]
@@ -1720,7 +1730,7 @@
                                  4 (format "throw new __compactRuntime.CompactError(`~a: expected ~d argument~:*~p, received ${~a.length}`);" name nargs args)
                                  2 "}"
                                  (bind-args args formal*
-                                   (argument-type-checks src name 0 var-name* adt-type*
+                                   (argument-type-checks src name 0 var-name* type*
                                      (list
                                        2 (adt-op-body-Q src op path-elt* formal* adt-arg*)
                                        0 "}"))))))))
@@ -1732,7 +1742,7 @@
                                (and (Ltypescript-ADT-Runtime-Op? op)
                                     (ormap (lambda (adt-arg)
                                              (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
-                                               [,public-adt #t]
+                                               [,type (public-adt? type)]
                                                [else #f]))
                                            adt-arg*)))
                              all-op*))))
@@ -1751,15 +1761,15 @@
                               path-elt*)))
                 (if (Ltypescript-ADT-Op? adt-op)
                     (nanopass-case (Ltypescript ADT-Op) adt-op
-                      [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
-                       (if (Ltypescript-Public-Ledger-ADT? adt-type)
+                      [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+                       (if (public-adt? type)
                            (begin
                              (assert (and (eq? ledger-op 'lookup)
-                                          (fx= (length adt-type*) 1)
-                                          (Ltypescript-Type? (car adt-type*))))
+                                          (fx= (length type*) 1)
+                                          (not (public-adt? (car type*)))))
                              (let ([path-elt* (append path-elt*
                                                       (list (with-output-language (Ltypescript Path-Element)
-                                                              `(,src ,(car adt-type*) (var-ref ,src ,(car var-name*))))))])
+                                                              `(,src ,(car type*) (var-ref ,src ,(car var-name*))))))])
                                (make-Qconcat
                                  "if (state"
                                  (path-chain-Q path-elt*)
@@ -1769,15 +1779,15 @@
                                  ");"
                                  0 "}"
                                  0 "return {"
-                                 2 (nanopass-case (Ltypescript Public-Ledger-ADT) adt-type
-                                     [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                                 2 (nanopass-case (Ltypescript Type) (de-alias type)
+                                     [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                                       (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
                                              [all-op* (cond [(has-read? all-op*) => list] [else all-op*])])
                                         (ledger-field-Q src path-elt* adt-arg* all-op*))])
                                  0 "}")))
                            (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op formal*)])
                              (let ([descriptor-name? (and (eq? op-class 'read)
-                                                          (type->maybe-descriptor-name adt-type))])
+                                                          (type->maybe-descriptor-name type))])
                                (if descriptor-name?
                                    (make-Qconcat
                                      "return "
@@ -1806,15 +1816,16 @@
                                       (map (lambda (adt-arg)
                                              (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
                                                [,nat (number->string nat)]
-                                               [,type (type->descriptor-name type)]
-                                               [,public-adt (assert cannot-happen)]))
+                                               [,type
+                                                (assert (not (public-adt? type)))
+                                                (type->descriptor-name type)]))
                                            adt-arg*))))
                            ";"))])))
               (define (op-args adt-op)
                 (if (Ltypescript-ADT-Op? adt-op)
                     (nanopass-case (Ltypescript ADT-Op) adt-op
-                      [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
-                       (values var-name* adt-type*)])
+                      [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+                       (values var-name* type*)])
                     (nanopass-case (Ltypescript ADT-Runtime-Op) adt-op
                       [(,ledger-op ((,var-name* ,type*) ...) ,result-type ,runtime-code)
                        (values var-name* type*)])))
@@ -1842,27 +1853,30 @@
                             (fold-right
                               (lambda (binding q*)
                                 (nanopass-case (Ltypescript Public-Ledger-Binding) binding
-                                  [(,src ,ledger-field-name (,path-index* ...) (,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)))
-                                   (fold-right
-                                     (lambda (export-name q*)
-                                       (cons
-                                         (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
-                                                [read-op (has-read? all-op*)])
-                                           (if read-op
-                                               (make-Qconcat/src src
-                                                                 "get "
-                                                                 export-name
-                                                                 "() {"
-                                                                 2 (adt-op-body-Q src read-op path-index* '() adt-arg*)
-                                                                 0 "}")
-                                               (make-Qconcat/src src
-                                                                 export-name
-                                                                 ": {"
-                                                                 2 (ledger-field-Q src path-index* adt-arg* all-op*)
-                                                                 0 "}")))
-                                         q*))
-                                     q*
-                                     (external-names ledger-field-name))]))
+                                  [(,src ,ledger-field-name (,path-index* ...) ,type)
+                                   (nanopass-case (Ltypescript Type) (de-alias type)
+                                     [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                                      (fold-right
+                                        (lambda (export-name q*)
+                                          (cons
+                                            (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
+                                                   [read-op (has-read? all-op*)])
+                                              (if read-op
+                                                  (make-Qconcat/src src
+                                                                    "get "
+                                                                    export-name
+                                                                    "() {"
+                                                                    2 (adt-op-body-Q src read-op path-index* '() adt-arg*)
+                                                                    0 "}")
+                                                  (make-Qconcat/src src
+                                                                    export-name
+                                                                    ": {"
+                                                                    2 (ledger-field-Q src path-index* adt-arg* all-op*)
+                                                                    0 "}")))
+                                            q*))
+                                        q*
+                                        (external-names ledger-field-name))]
+                                     [else (assertf cannot-happen "expected adt type, received ~a" type)])]))
                               '()
                               (filter
                                 exported-public-binding?
@@ -2222,19 +2236,21 @@
               ; can't get a nat at present since only merkle trees have nat adt-args
               ; and contract references cannot be retrieved from merkle trees
               [,nat #f]
-              [,type (let ([q (do-type type)])
-                       (and q
-                            (make-Qconcat
-                              "{"
-                              1 ((make-Qsep ",")
-                                 "tag: 'compactValue'"
-                                 (make-Qconcat "descriptor: " (type->descriptor-name type))
-                                 (make-Qconcat "sparseType: " q))
-                              0 "}")))]
-              [,public-adt (do-public-adt public-adt)]))
+              [,type
+               (if (public-adt? type)
+                   (do-public-adt type)
+                   (let ([q (do-type type)])
+                     (and q
+                          (make-Qconcat
+                            "{"
+                            1 ((make-Qsep ",")
+                               "tag: 'compactValue'"
+                               (make-Qconcat "descriptor: " (type->descriptor-name type))
+                               (make-Qconcat "sparseType: " q))
+                            0 "}"))))]))
           (define (do-public-adt public-adt)
-            (nanopass-case (Ltypescript Public-Ledger-ADT) public-adt
-              [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+            (nanopass-case (Ltypescript Type) (de-alias public-adt)
+              [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                ; FIXME: building in knowledge of the ledger here
                ; contract references cannot be retreived from merkle trees
                (and (not (or (eq? adt-name 'MerkleTree) (eq? adt-name 'HistoricMerkleTree)))
@@ -2262,8 +2278,8 @@
                              0 "}"))))]))
           (define (do-public-binding public-binding)
             (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
-              [(,src ,ledger-field-name (,path-index* ...) ,public-adt)
-               (do-public-adt public-adt)]))
+              [(,src ,ledger-field-name (,path-index* ...) ,type)
+               (do-public-adt type)]))
           (define (do-pl-array-elt pl-array-elt)
             (nanopass-case (Ltypescript Public-Ledger-Array-Element) pl-array-elt
               [,pl-array (do-pl-array pl-array #f)]
@@ -2449,7 +2465,7 @@
         ; make-Qlocal! calls format-internal-binding, which must be called before
         ; format-id-reference is called on the same id
         (nanopass-case (Ltypescript Local) local
-          [(,var-name ,adt-type)
+          [(,var-name ,type)
            (make-Qconcat/src
              (id-src var-name)
              (format-internal-binding unique-local-name var-name))]))
@@ -2514,11 +2530,15 @@
                    (let ([col (f (Qconcat-q* q) col col (fx> (fx+ col (Q-size q)) line-length))])
                      (f q* col reset-col break?))]
                   [else (assert cannot-happen)])))))
-      (define (de-alias adt-type)
-        (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+      (define (de-alias type)
+        (nanopass-case (Ltypescript Type) type
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
-          [else adt-type]))
+          [else type]))
+      (define (public-adt? type)
+        (nanopass-case (Ltypescript Type) (de-alias type)
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
+          [else #f]))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
@@ -2705,13 +2725,13 @@
          [else (assert cannot-happen)])]
       [(var-ref ,src ,var-name)
        (make-Qconcat/src src (format-id-reference var-name))]
-      [(default ,src ,adt-type)
-       (let default-value ([adt-type adt-type])
-         (let ([adt-type (de-alias adt-type)])
+      [(default ,src ,type)
+       (let default-value ([type type])
+         (let ([type (de-alias type)])
            ; even though tstruct is substituted for tcontract, we will never generate a default value
            ; for a tcontract since that would be caught earlier. so this substitution is safe.
-           (let ([adt-type (subst-tcontract adt-type)])
-             (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
+           (let ([type (subst-tcontract type)])
+             (nanopass-case (Ltypescript Type) type
                [(tboolean ,src) "false"]
                [(tfield ,src) "0n"]
                [(tunsigned ,src ,nat) "0n"]
@@ -2740,7 +2760,8 @@
                [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) "0"]
                ; FIXME: this should not appear in the output at present, but might if we implement
                ; first-class ADT values
-               [,public-adt "undefined"]
+               [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                "undefined"]
                [else (assert cannot-happen)]))))]
       [(not ,src ,[Expr : expr (precedence not) outer-pure? -> * expr])
        (parenthesize level (precedence not)
@@ -3126,17 +3147,17 @@
              0 "})("
              expr
              ")")))]
-      [(safe-cast ,src ,adt-type ,adt-type^ ,expr)
+      [(safe-cast ,src ,type ,type^ ,expr)
        ; no checks needed for safe casts
        (Expr expr level outer-pure?)]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
        (nanopass-case (Ltypescript ADT-Op) adt-op
-         [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,adt-type*) ...) ,adt-type ,vm-code)
+         [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
           ; this should be caught by ledger meta-type checks or by propagate-ledger-paths
-          (when (Ltypescript-Public-Ledger-ADT? adt-type) (source-errorf src "incomplete reference to nested ADT"))
-          (let ([descriptor-name? (and (eq? op-class 'read) (type->maybe-descriptor-name adt-type))])
+          (when (public-adt? type) (source-errorf src "incomplete reference to nested ADT"))
+          (let ([descriptor-name? (and (eq? op-class 'read) (type->maybe-descriptor-name type))])
             (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)])
-              (nanopass-case (Ltypescript Type) (de-alias adt-type)
+              (nanopass-case (Ltypescript Type) (de-alias type)
                 [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                  (assert not-implemented)]
                 [else
