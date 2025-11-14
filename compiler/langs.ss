@@ -163,10 +163,10 @@
         (public-ledger-declaration exported? sealed? #f ledger-field-name #f type)
       )
     (Ledger-Constructor (lconstructor)
-      (constructor src (parg* ...) stmt) => (constructor (parg* 0 ...) #f stmt))
+      (constructor src (parg* ...) blck) => (constructor (parg* 0 ...) #f blck))
     (Circuit-Definition (cdefn)
-      (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type stmt) =>
-        (circuit exported? pure-dcl? function-name (type-param* ...) (parg* 0 ...) 4 type #f stmt)
+      (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type blck) =>
+        (circuit exported? pure-dcl? function-name (type-param* ...) (parg* 0 ...) 4 type #f blck)
       )
     (External-Declaration (edecl)
       (external src exported? function-name (type-param* ...) (arg* ...) type) =>
@@ -202,13 +202,16 @@
       )
     (Const-Binding (cbinding)
       (src pattern type expr) => (bracket pattern 0 type 0 expr))
+    (Block (blck)
+      (block src stmt* ...)              => (block #f stmt* ...)
+      )
     (Statement (stmt)
       (statement-expression src expr)    => expr
       (return src expr)                  => (return expr)
       (const src cbinding cbinding* ...) => (const (cbinding 0 cbinding* ...))
       (if src expr stmt1 stmt2)          => (if expr 3 stmt1 3 stmt2)
       (for src var-name expr stmt)       => (for var-name expr #f stmt)
-      (block src stmt* ...)              => (block #f stmt* ...)
+      blck
       )
     (Pattern (pattern)
       var-name
@@ -256,7 +259,7 @@
       ; form when targ* is empty
       (fref src function-name)               => function-name
       (fref src function-name (targ* ...))   => (fref function-name #f targ* ...)
-      (circuit src (parg* ...) type stmt)    => (circuit (parg* 0 ...) 4 type #f stmt)
+      (circuit src (parg* ...) type blck)    => (circuit (parg* 0 ...) 4 type #f blck)
       )
     (Tuple-Argument (tuple-arg bytes-arg)
       (single src expr)                      => expr
@@ -310,20 +313,20 @@
 
   (define-language/pretty Lnopattern (extends Lsingleconst)
     (Ledger-Constructor (lconstructor)
-      (- (constructor src (parg* ...) stmt))
-      (+ (constructor src (arg* ...) stmt) => (constructor (arg* ...) stmt)))
+      (- (constructor src (parg* ...) blck))
+      (+ (constructor src (arg* ...) blck) => (constructor (arg* ...) blck)))
     (Circuit-Definition (cdefn)
-      (- (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type stmt))
-      (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type stmt) =>
-           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f stmt)))
+      (- (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type blck))
+      (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type blck) =>
+           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f blck)))
     (Pattern-Argument (parg)
       (- (src pattern type)))
     (Statement (stmt)
       (- (const src pattern type expr))
       (+ (const src var-name type expr) => (const var-name type expr)))
     (Function (fun)
-      (- (circuit src (parg* ...) type stmt))
-      (+ (circuit src (arg* ...) type stmt) => (circuit (arg* 0 ...) 4 type #f stmt)))
+      (- (circuit src (parg* ...) type blck))
+      (+ (circuit src (arg* ...) type blck) => (circuit (arg* 0 ...) 4 type #f blck)))
     (Pattern (pattern)
       (- var-name)
       (- (tuple src (maybe pattern?*) ...))
@@ -332,22 +335,27 @@
     )
 
   (define-language/pretty Lhoisted (extends Lnopattern)
+    (Block (blck)
+      (- (block src stmt* ...))
+      (+ (block src (var-name* ...) stmt* ...)       => (block (var-name* ...) #f stmt* ...))
+      )
     (Statement (stmt)
-      (- (const src var-name type expr)
-         (block src stmt* ...))
-      (+ (= src var-name type expr)                  => (= var-name type expr)
-         (block src (var-name* ...) stmt* ...)       => (block (var-name* ...) #f stmt* ...)
-         )))
+      (- (const src var-name type expr))
+      (+ (= src var-name type expr)                  => (= var-name type expr))
+      )
+    )
 
   (define-language/pretty Lexpr (extends Lhoisted)
     (Ledger-Constructor (lconstructor)
-      (- (constructor src (arg* ...) stmt))
+      (- (constructor src (arg* ...) blck))
       (+ (constructor src (arg* ...) expr) => (constructor (arg* 0 ...) #f expr)))
     (Circuit-Definition (cdefn)
-      (- (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type stmt))
+      (- (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type blck))
       (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type expr) =>
            (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f expr)
       ))
+    (Block (blck)
+      (- (block src (var-name* ...) stmt* ...)))
     (Statement (stmt)
       (- (statement-expression src expr)
          (return src expr)
@@ -355,7 +363,7 @@
          (if src expr stmt1 stmt2)
          (for src var-name expr stmt)
          (seq src stmt* ...)
-         (block src (var-name* ...) stmt* ...)))
+         blck))
     (Expression (expr index)
       (+ (let* src ([arg* expr*] ...) expr)      => (let* ([bracket arg* 0 expr*] 0 ...) #f expr)
          (for src var-name expr1 expr2)          => (for var-name expr1 #f expr2)
@@ -363,7 +371,7 @@
          (return src expr)                       => expr
          ))
     (Function (fun)
-      (- (circuit src (arg* ...) type stmt))
+      (- (circuit src (arg* ...) type blck))
       (+ (circuit src (arg* ...) type expr) =>
            (circuit (arg* 0 ...) 4 type #f expr))))
 

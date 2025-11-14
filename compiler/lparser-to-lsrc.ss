@@ -62,14 +62,14 @@
       [(public-ledger-declaration ,src ,kwd-export? ,kwd-sealed? ,kwd ,ledger-field-name ,colon ,[type] ,semicolon)
        `(public-ledger-declaration ,src ,(and kwd-export? #t) ,(and kwd-sealed? #t) ,(token-value ledger-field-name) ,type)])
     (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
-      [(constructor ,src ,kwd ,parg-list ,[stmt])
+      [(constructor ,src ,kwd ,parg-list ,[blck])
        (let ([parg* (Pattern-Argument-List parg-list)])
-         `(constructor ,src (,parg* ...) ,stmt))])
+         `(constructor ,src (,parg* ...) ,blck))])
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-      [(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,parg-list ,[type] ,[stmt])
+      [(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,parg-list ,[type] ,[blck])
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
              [parg* (Pattern-Argument-List parg-list)])
-         `(circuit ,src ,(and kwd-export? #t) ,(and kwd-pure? #t) ,(token-value function-name) (,type-param* ...) (,parg* ...) ,type ,stmt))])
+         `(circuit ,src ,(and kwd-export? #t) ,(and kwd-pure? #t) ,(token-value function-name) (,type-param* ...) (,parg* ...) ,type ,blck))])
     (External-Declaration : External-Declaration (ir) -> External-Declaration ()
       [(external ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,[type] ,semicolon)
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
@@ -128,6 +128,9 @@
     (Pattern-Struct-Elt : Pattern-Struct-Elt (ir) -> * (pattern elt-name)
       [,elt-name (let ([elt-name (token-value elt-name)]) (values elt-name elt-name))]
       [(,elt-name ,colon ,[pattern]) (values pattern (token-value elt-name))])
+    (Block : Block (ir) -> Block ()
+      [(block ,src ,lbrace ,[stmt*] ... ,rbrace)
+       `(block ,src ,stmt* ...)])
     (Statement : Statement (ir) -> Statement ()
       [(statement-expression ,src ,[expr] ,semicolon)
        `(statement-expression ,src ,expr)]
@@ -153,9 +156,7 @@
               (tuple ,src ,(map (lambda (i) `(single ,src (quote ,src ,(fx+ start i)))) (iota n)) ...)
               ,stmt)))]
       [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,[expr] ,rparen ,[stmt])
-       `(for ,src ,(token-value var-name) ,expr ,stmt)]
-      [(block ,src ,lbrace ,[stmt*] ... ,rbrace)
-       `(block ,src ,stmt* ...)])
+       `(for ,src ,(token-value var-name) ,expr ,stmt)])
     (Expression : Expression (ir) -> Expression ()
       [(true ,src ,kwd) `(quote ,src #t)]
       [(false ,src ,kwd) `(quote ,src #f)]
@@ -248,25 +249,25 @@
        `(assert ,src ,expr ,(token-value mesg))])
     (Function : Function (ir) -> Function ()
       (definitions
-        (define (do-arrow src parg-list return-type? stmt)
+        (define (do-arrow src parg-list return-type? blck)
           (let ([parg* (Pattern-Argument-List parg-list)]
                 [type (if return-type?
                           (Return-Type return-type?)
                           (with-output-language (Lsrc Type)
                             `(tundeclared)))])
             (with-output-language (Lsrc Function)
-              `(circuit ,src (,parg* ...) ,type ,stmt)))))
+              `(circuit ,src (,parg* ...) ,type ,blck)))))
       [(fref ,src ,function-name ,generic-arg-list?)
        (if generic-arg-list?
            (let ([targ* (Generic-Arg-List generic-arg-list?)])
              `(fref ,src ,(token-value function-name) (,targ* ...)))
            `(fref ,src ,(token-value function-name)))]
-      [(arrow-stmt ,src ,parg-list ,return-type? ,arrow ,[stmt])
-       (do-arrow src parg-list return-type? stmt)]
+      [(arrow-block ,src ,parg-list ,return-type? ,arrow ,[blck])
+       (do-arrow src parg-list return-type? blck)]
       [(arrow-expr ,src ,parg-list ,return-type? ,arrow ,[expr])
        (do-arrow src parg-list return-type?
-         (with-output-language (Lsrc Statement)
-           `(return ,src ,expr)))]
+         (with-output-language (Lsrc Block)
+           `(block ,src (return ,src ,expr))))]
       [(parenthesized ,src ,lparen ,[fun] ,rparen) fun])
     (Tuple-Argument : Tuple-Argument (ir) -> Tuple-Argument ()
       [(single ,src ,[expr])

@@ -669,17 +669,17 @@
                      (cons*
                        nbsp (Type type)
                        (add-punctuation semicolon '()))))))))]
-      [(constructor ,src ,kwd ,parg-list ,stmt)
+      [(constructor ,src ,kwd ,parg-list ,blck)
        (// src
-           (add-block stmt
+           (add-block blck
              (lambda (q*)
                (cons*
                  (make-Qtoken kwd)
                  (Pattern-Argument-List parg-list #f)
                  q*))))]
-      [(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,parg-list ,return-type ,stmt)
+      [(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,parg-list ,return-type ,blck)
        (// src
-           (add-block stmt
+           (add-block blck
              (lambda (q*)
                (add-modifier kwd-export?
                  (add-modifier kwd-pure?
@@ -907,6 +907,17 @@
       [(,src ,name ,kwd-as ,name^)
        (// src
            (make-Qconcat (make-Qtoken name) nbsp (make-Qtoken kwd-as) nbsp (make-Qtoken name^)))])
+    (Block : Block (ir) -> * (q)
+      [(block ,src ,lbrace ,stmt* ... ,rbrace)
+       (// src
+           (apply make-Qconcat
+             (make-Qtoken lbrace)
+             nl
+             (fold-right
+               (lambda (stmt q*)
+                 (cons* 2 (Statement stmt) nl q*))
+               (add-closer 2 nl rbrace '())
+               stmt*)))])
     (Statement : Statement (ir) -> * (q)
       [(statement-expression ,src ,expr ,semicolon)
        (// src
@@ -1000,16 +1011,7 @@
                    nbsp (Expression expr)
                    (add-closer 1 #f rparen '()))
                  q*))))]
-      [(block ,src ,lbrace ,stmt* ... ,rbrace)
-       (// src
-           (apply make-Qconcat
-             (make-Qtoken lbrace)
-             nl
-             (fold-right
-               (lambda (stmt q*)
-                 (cons* 2 (Statement stmt) nl q*))
-               (add-closer 2 nl rbrace '())
-               stmt*)))])
+      [,blck (Block blck)])
     (Expression : Expression (ir) -> * (q)
       [(true ,src ,kwd) (// src (make-Qtoken kwd))]
       [(false ,src ,kwd) (// src (make-Qtoken kwd))]
@@ -1229,14 +1231,14 @@
       [(fref ,src ,function-name ,generic-arg-list?)
        (// src
            (apply make-Qconcat (make-Qtoken function-name) (maybe-add Generic-Arg-List generic-arg-list? '())))]
-      [(arrow-stmt ,src ,parg-list ,return-type? ,arrow ,stmt)
+      [(arrow-block ,src ,parg-list ,return-type? ,arrow ,blck)
        (// src
            (apply make-Qconcat
              (Pattern-Argument-List parg-list #f)
              (maybe-add Return-Type return-type?
                (list
                  0 (make-Qtoken arrow)
-                 nbsp (Statement stmt)))))]
+                 nbsp (Block blck)))))]
       [(arrow-expr ,src ,parg-list ,return-type? ,arrow ,expr)
        (// src
            (apply make-Qconcat

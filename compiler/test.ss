@@ -1353,7 +1353,7 @@ groups than for single tests.
             (return
               (fold (circuit ([a (tundeclared)] [x (tundeclared)])
                          (tundeclared)
-                      (return (+ a x)))
+                      (block (return (+ a x))))
                 0
                 v))))
         (constructor ([c (type-ref C)])
@@ -1380,7 +1380,7 @@ groups than for single tests.
             (return
               (map (circuit ([a (tundeclared)] [n (tundeclared)])
                         (tundeclared)
-                     (return (+ a n)))
+                     (block (return (+ a n))))
                 v))))))
     )
 
@@ -2225,7 +2225,7 @@ groups than for single tests.
             (return
               (map (circuit ([(a b) (tundeclared)])
                         (tundeclared)
-                     (return (and a b)))
+                     (block (return (and a b))))
                 v))))))
     (output-file "compiler/testdir/formatter/testfile.compact"
       '(
@@ -2250,7 +2250,7 @@ groups than for single tests.
             (return
               (fold (circuit ([(x y) (tundeclared)])
                          (tundeclared)
-                      (return (+ x y)))
+                      (block (return (+ x y))))
                 0
                 v))))))
     (output-file "compiler/testdir/formatter/testfile.compact"
@@ -6855,10 +6855,11 @@ groups than for single tests.
                           b2
                           (tundeclared)
                           (tuple-ref __compact_pattern_tmp1 1))
-                        (return
-                          (tuple
-                            (if b1 a (* 2 a))
-                            (if b2 b #vu8(104 101 108 108 111 33))))))
+                        (block
+                          (return
+                            (tuple
+                              (if b1 a (* 2 a))
+                              (if b2 b #vu8(104 101 108 108 111 33)))))))
                 t))))))
     )
 
@@ -7393,6 +7394,40 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 16" "const binding found in a single-statement context" ()))
+    )
+
+  ; pm-20423
+  (test
+    '(
+      "export circuit foo(b: Boolean): Uint<16> {"
+      "if (b) const x = 0, y = 1;"
+      "return x + y;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "const binding found in a single-statement context" ()))
+    )
+
+  (test
+    '(
+      "export circuit foo(b: Boolean): Uint<16> const x = 0, y = 1;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 42" "parse error: found ~a looking for~?" ("\"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "\";\""))))
+    )
+
+  (test
+    '(
+      "export circuit foo(b: Boolean): Uint<16> {"
+      "  (() => const x = 0, y = 1)();"
+      "  return 3;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "parse error: found ~a looking for~?" ("\"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "an expression"))))
     )
 )
 
