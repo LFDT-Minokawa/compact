@@ -1,0 +1,111 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Test1: check constructor
+export ledger sum: Field;
+
+constructor(var: Vector<10, Uint<0..10>>) {
+
+  for(const a of disclose(var)) {
+    sum = sum + a;
+  }
+
+  assert(sum == 1, "Sum is equal to expected sum of 1");
+}
+
+// Test2: addition of Uints
+export circuit test1(): [] {
+  const a: Uint<0..4> = 3;
+  const b: Uint<0..17> = 16;
+  const c: Uint<0..20> = a + b;
+
+  assert(c == 19, "Should be equal 19");
+}
+
+// Test3: multiply of Uints
+export circuit test2(): [] {
+  const a: Uint<0..5> = 3;
+  const b: Uint<0..14> = 3;
+
+  assert(a == b, "Should be equal !");
+
+  const c: Uint<0..53> = a * b;
+
+  assert(a == b, "Should be equal 9");
+}
+
+// Test 4: large multiply
+export circuit test3(): [] {
+  const a1: Uint<0..16777216> = 16777215;
+  const b1: Uint<0..16777216> = 16777215;
+
+  const c1: Uint<0..1766846011655750113544625596581365108725980414689607521304057678212890626> = (a1 * b1) * (a1 * b1) * (a1 * b1) * (a1 * b1) * (a1 * b1);
+  assert(c1 == 1766846011655750113544625596581365108725980414689607521304057678212890625, "Should be equal !");
+}
+
+// Test5: some casting
+export circuit test4(): [] {
+  const a: Vector<3, Uint<0..1000>> = [997, 998, 999];
+
+  for(const i of 0..0) {
+    const a: Uint<0..15689910391039020> = i;
+  }
+  
+  const z1: Uint<0..2> = 1, z2: Uint<0..123> = 1, z3: [Uint<0..101>, Uint<0..102>, Uint<0..101>] = [100, 100, 100];
+
+  assert(true as Uint<0..1222> == true as Uint<0..676>, "Should be equal to 1");
+}
+
+// Test6: initial issue from ticket
+export circuit test5(var1: Uint<0..17>): [] {
+
+  for(const i of 0..0) {
+    const a: Uint<0..15689910391039020> = 0;
+  }
+
+  for (const i of 3..3) return i;
+}
+
+// Test7: casting with generics
+circuit test6a<#N>(a: Uint<0..N>): Uint<0..N> {
+  return a;
+}
+
+export circuit test6(): Uint<0..13> {
+  return test6a<13>(13 as Uint<0..13>);
+}
+
+// Test8: generics
+circuit test7a<#t>(x: Uint<0..t>): Uint<t> {
+  return x;
+}
+
+export circuit test7b(x: Uint<0..8>): Uint<0..4096> {
+  return test7a<12>(x);
+}
+
+// Test9: generics
+module Test8<#N> {
+  export ledger a: Uint<0b0..N>;
+  witness test(): Uint<0x00..N>;
+
+  export circuit test(b: Uint<0..N>): [Uint<0..N>, Uint<0..N>]  {
+    a = disclose(b) * 2 as Uint<0..N>;
+    return [a + N as Uint<0..N>, a + N as Uint<0..N>];
+  }
+}
+
+import Test8<7>;
+export { test };
