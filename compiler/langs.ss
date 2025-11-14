@@ -1045,6 +1045,10 @@
       (- (circuit src function-name (arg* ...) type stmt* ... triv))
       (+ (circuit src function-name (arg* ...) type stmt* ... (triv* ...)) =>
             (circuit function-name (arg* 0 ...) 4 type #f stmt* ... #f (triv* ...))))
+    (Public-Ledger-Binding (public-binding)
+      (- (src ledger-field-name (path-index* ...) type))
+      (+ (src ledger-field-name (path-index* ...) primitive-type) =>
+           (ledger-field-name #f (path-index* ...) #f primitive-type)))
     (ADT-Op (adt-op)
       (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type*) ...) type vm-code))
       (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) (ledger-op-formal* ...) (type* ...) type vm-code) =>

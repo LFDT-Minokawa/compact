@@ -329,7 +329,7 @@
           [(public-ledger-declaration ,pl-array)
            (for-each Public-Ledger-Binding (pl-array->public-bindings pl-array))])
         (Public-Ledger-Binding : Public-Ledger-Binding (ir) -> * (void)
-          [(,src ,ledger-field-name (,path-index* ...) ,type)
+          [(,src ,ledger-field-name (,path-index* ...) ,primitive-type)
            (void)])
         (ADT-Op : ADT-Op (ir) -> * (op)
           [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...) (,type* ...) ,type ,vm-code)
