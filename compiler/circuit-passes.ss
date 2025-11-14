@@ -141,9 +141,9 @@
                 (and (= (length type1*) (length type2*))
                      (andmap sametype? type1* type2*))])]
            [(tunknown) #t] ; tunknown originates from empty vectors
-           [(tcontract ,src1 ,contract-name1 (,elt-name1* ,function-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+           [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
             (T type2
-               [(tcontract ,src2 ,contract-name2 (,elt-name2* ,function-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+               [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                 (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
                   (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
                             (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
@@ -438,7 +438,7 @@
           [(tunknown) "Unknown"]
           [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
           [(tbytes ,src ,len) (format "Bytes<~s>" len)]
-          [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
            (format "contract ~a[~{~a~^, ~}]" contract-name
              (map (lambda (elt-name pure-dcl type* type)
                     (if pure-dcl
@@ -493,9 +493,9 @@
                 (and (= (length type1*) (length type2*))
                      (andmap sametype? type1* type2*))])]
            [(tunknown) #t] ; tunknown originates from empty vectors
-           [(tcontract ,src1 ,contract-name1 (,elt-name1* ,function-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+           [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
             (T type2
-               [(tcontract ,src2 ,contract-name2 (,elt-name2* ,function-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+               [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                 (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
                   (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
                             (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
@@ -980,7 +980,7 @@
           adt-type])]
       [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (nanopass-case (Linlined Type) type
-         [(tcontract ,src^ ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ... )
+         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
           (let ([adt-type* (map Care expr*)])
             (let loop ([elt-name* elt-name*] [type** type**] [type* type*])
               (if (null? elt-name*)
@@ -1848,36 +1848,6 @@
     (Tuple-Argument-Effect : Tuple-Argument (ir) -> Expression (idset)
       [(single ,src ,[Effect : expr idset]) (values expr idset)]
       [(spread ,src ,nat ,[Effect : expr idset]) (values expr idset)]))
-
-    ; TODO drop me when you decide where to put remove-contract-call
-  #;(define-pass drop-contract-call : Linlined (ir) -> Lnocontractcall ()
-    (Expression : Expression (ir) -> Expression ()
-      [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
-       (let ([return-type (nanopass-case (Lnodca Type) type
-                            ; infer-types has already insured that elt-name exists in type
-                            [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
-                             (let loop ([elt-name* elt-name*] [type* type*])
-                               (if (null? elt-name*)
-                                   ; this will never be exercised because infer-types would have
-                                   ; already caught it
-                                   (source-errorf src^ "contract ~s has no circuit declaration named ~s"
-                                                  contract-name
-                                                  elt-name)
-                                   (if (eq? (car elt-name*) elt-name)
-                                       (car type*)
-                                       (loop (cdr elt-name*) (cdr type**) (cdr type*)))))]
-                            [else (assert cannot-happen)])])
-         (let* ([tmp-contract expr]
-                [tmp-arg* expr*]
-                [tmp-result (contract-call tmp-contract tmp-arg* …)]
-                [tmp-tc  `(call ,src (fref ,src "transientCommit") return-type
-                           (tuple tmp-arg* tmp-result)
-                           (makeNonce))]
-                ; TODO fill in the sha command and process it
-                [,circuit-hash (shell "sha256sum")])
-           (kernel.claimContractCall (var-ref ,tmp-contract) ,circuit-hash )
-           (var-ref ,tmp-result)))])
-    )
 
   (define-pass reduce-to-circuit : Lnovectorref (ir) -> Lcircuit ()
     (definitions

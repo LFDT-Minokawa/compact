@@ -8174,7 +8174,7 @@
         (import CompactStandardLibrary () "")))
     )
 
-  #;(test
+  (test
     '(
       "module M{"
       "  export contract C {"
@@ -8187,9 +8187,9 @@
       "constructor (c: C) { contract_c = disclose(c); }"
       "export circuit hello(): [] { return contract_c.read().foo(contract_c.read().bar()); }"
       )
-    (returns what)) ; FIXME
+    (returns what))
 
-  #;(test
+  (test
     '(
       "module m<A> {"
       "  export contract C {"
@@ -8201,7 +8201,7 @@
       "}"
       "import m<Bytes<32>> prefix $;"
       )
-    (returns what)) ; FIXME
+    (returns what))
 
   (test
     '(
@@ -21945,7 +21945,6 @@
    )
 )
 
-#!eof
 (run-tests infer-types
   (test
     `(
@@ -22407,6 +22406,7 @@
    )
 )
 
+#!eof
 (run-tests combine-ledger-declarations
   (test
     '(

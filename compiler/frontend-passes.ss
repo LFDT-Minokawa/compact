@@ -479,13 +479,13 @@
              (with-output-language (Lexpandedcontractcall Circuit-Definition)
                `(circuit ,src #t #f ,function-name () (,arg* ...) ,type ,body)))]))
       ; if the contract isn't exported then the module with wrapper circuits also shouldn't be exported
-      (define (make-contract-module src exported? contract-name ecdecl-circuit*)
+      (define (make-contract-module src exported? contract-name ecdecl-circuit* contract-module-name)
         (let ([std (with-output-language (Lexpandedcontractcall Import-Declaration)
                      `(import ,src CompactStandardLibrary () "__compact_std_"))]
               [helper-circuit* (map (lambda (ecdecl-circuit) (make-circuit contract-name ecdecl-circuit)) ecdecl-circuit*)])
           (with-output-language (Lexpandedcontractcall Module-Definition)
-            `(module ,src ,exported? ,(compact-contract-name contract-name) () ,(cons std helper-circuit*) ...))))
-      (define (export-circuit src ecdecl-circuit)
+            `(module ,src ,exported? ,contract-module-name () ,(cons std helper-circuit*) ...))))
+      #;(define (export-circuit src ecdecl-circuit)
         (nanopass-case (Lexpandedcontractcall External-Contract-Circuit) ecdecl-circuit
           [(,src^ ,pure-dcl ,elt-name ,function-name (,arg* ...) ,type)
            (with-output-language (Lexpandedcontractcall Export-Declaration)
@@ -493,8 +493,8 @@
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ,pelt* ...)
-       `(program ,src ,(fold-right process-program-element pelt* '()) ...)])
-    (process-Program-Element : Program-Element (ir pelt*) -> * (pelt*)
+       `(program ,src ,(fold-right process-program-element '() pelt*) ...)])
+    (process-program-element : Program-Element (ir pelt*) -> * (pelt*)
       [(external-contract ,src ,exported? ,contract-name ,[External-Contract-Circuit : ecdecl-circuit* contract-name -> ecdecl-circuit*] ...)
        (let ([contract-module-name (compact-contract-name contract-name)])
          (cons*
@@ -507,8 +507,8 @@
       [else (cons (Program-Element ir) pelt*)])
     (Program-Element : Program-Element (ir) -> Program-Element ())
     (Module-Definition : Module-Definition (ir) -> Module-Definition ()
-      [(module ,src ,exported? ,module-name (,type-param* ...) ,pelt* ...)
-       `(module ,src ,exported? ,module-name (,type-param* ...) ,(fold-right process-program-element pelt* '()) ...)])
+      [(module ,src ,exported? ,module-name (,[type-param*] ...) ,pelt* ...)
+       `(module ,src ,exported? ,module-name (,type-param* ...) ,(fold-right process-program-element '() pelt*) ...)])
     (External-Contract-Circuit : External-Contract-Circuit (ir contract-name) -> External-Contract-Circuit ()
       [(,src ,pure-dcl ,elt-name (,[arg*] ...) ,[type])
        `(,src ,pure-dcl ,elt-name ,(string->symbol (format "~a_~s" (compact-contract-name contract-name) elt-name)) (,arg* ...) ,type)])

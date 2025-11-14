@@ -32,6 +32,7 @@
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats Ltypes-Public-Ledger-ADT?
+          Lnofunintcontract unparse-Lnofunintcontract Lnofunintcontract-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Type? Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats Loneledger-Ledger-Declaration?
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
@@ -489,7 +490,7 @@
       (+ (external-contract src contract-name ecdecl-circuit* ...) =>
            (external-contract contract-name ecdecl-circuit* ...)))
     (External-Contract-Circuit (ecdecl-circuit)
-      ; function-name is inserted in tcontract and can be dropped here
+      ; function-name is inserted as fun in tcontract and can be dropped here
       (- (src pure-dcl elt-name function-name (arg* ...) type))
       (+ (src pure-dcl elt-name (arg* ...) type) =>
            (pure-dcl elt-name (arg* ...) type)))
@@ -562,7 +563,6 @@
          (tunsigned src nat)    => (tunsigned nat)
          (tvector src len type) => (tvector len type)
          (tbytes src len)       => (tbytes len)
-         ; FIXME if you're keeping function-name then you have to set pure and export for it. export is always t and then you can drop pure-dcl
          (tcontract src contract-name (elt-name* fun* pure-dcl* (type** ...) type*) ...) =>
            (tcontract contract-name #f (elt-name* fun* pure-dcl* (type** ...) #f type*) ...)
          (tstruct src struct-name (elt-name* type*) ...) =>
@@ -721,7 +721,6 @@
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
-      ; TODO decide if you need to function-name -> elt-name
       (tcontract src contract-name (elt-name* fun* pure-dcl* (type** ...) type*) ...) =>
         (tcontract contract-name #f (elt-name* fun* pure-dcl* (type** ...) #f type*) ...)
       (tstruct src struct-name (elt-name* type*) ...) =>
@@ -731,7 +730,12 @@
       (tundeclared)
       (tunknown)))
 
-  (define-language/pretty Lnotundeclared (extends Ltypes)
+  (define-language/pretty Lnofunintcontract (extends Ltypes)
+    (Type (type)
+      (- (tcontract src contract-name (elt-name* fun* pure-dcl* (type** ...) type*) ...))
+      (+ (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...))))
+
+  (define-language/pretty Lnotundeclared (extends Lnofunintcontract)
     (Type (type)
       (- (tundeclared))))
 
