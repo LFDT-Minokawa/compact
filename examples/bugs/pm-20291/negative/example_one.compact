@@ -1,0 +1,29 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// test3: multiple methods with same signature
+module M3 {
+  export circuit test3<#N, #P>(n: Vector<N, Vector<P, Field>>): Boolean { return true; }
+  export circuit test3<T>(n: T): Boolean { return true; }
+  export circuit test3<#N, #Z>(n: Vector<N, Vector<Z, Uint<8>>>): Boolean { return true; }
+  export circuit test3<#N, #Z>(n: Vector<N, Vector<Z, Uint<16>>>): Boolean { return true; }
+  export circuit test3<#N, #Z>(n: Vector<N, Vector<Z, Uint<32>>>): Boolean { return true; }
+  export circuit call3(n: Uint<8>): Boolean { return test3<1, 1>(default<Vector<1, Vector<1, Field>>>); }
+  export circuit call4(n: Uint<8>): Boolean { return test3<1, 1>(default<Vector<1, Vector<1, Uint<1>>>>); }
+  export circuit call5(n: Uint<8>): Boolean { return test3<1, 1>(default<Vector<1, Vector<1, Uint<128>>>>); }
+}
+
+import M3;
+export { call3, call4, call5 };
