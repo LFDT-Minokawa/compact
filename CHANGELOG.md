@@ -62,12 +62,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   This simplifies and regularizes the representation of types and allows type
   aliases to be used for ADT types as well as for non-ADT types.
 
-- Equality testing in the unit test framework has been tightened up to avoid
+- Equality testing in the unit-test framework has been tightened up to avoid
   false positives when the expected output uses different symbols to represent
   what turns out to be the same id or gensym in the actual output.  This can
   occur when the expected output is wrong or the compiler actually generates
   code that uses the same id or gensym for different purposes.  Several instances
   of the first have been fixed in the unit tests.
+
+- A new checker, `pass-returns`, as been added to the unit-test framework.  It
+  is like `returns` but checks the output of a specific pass.  This is intended
+  to allow us to move toward having a single occurrence with checks for multiple
+  passes rather than having to put multiple copies of the same test in different
+  test groups.
+
+- A new form `(assertf expr format-string arg ...)` has been added to utils.ss.
+  Like `(assert expr)`, it returns the value of `expr` if `expr` evaluates to a
+  true value and raises an exception if `expr` evaluates to #f.  Its error message
+  includes the source location of the `assertf` form, as with `assert`, and also
+  the result of applying `format` to `format-string` and `arg ...`.  `assertf`
+  is useful in preference to `assert` when the assertion expression does not
+  already indicate the problem and the problem is not otherwise obvious from the
+  context.
+
+- internal-errorf now also includes the source location in the error message.
 
 ## [Unreleased compiler version 0.26.121 language version 0.18.103]
 

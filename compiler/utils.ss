@@ -277,26 +277,39 @@
             (fmt s 100)
             s))))
 
-  (define (internal-errorf who fmt . arg*)
-    (import (only (chezscheme) errorf))
-    (errorf who "~?" fmt arg*))
-
-  (module (assertf)
-    (define ($assertf src-string fmt . arg*)
-      (import (only (chezscheme) errorf))
-      (errorf #f "assertion failed at ~a: ~?" src-string fmt arg*))
-    (define-syntax assertf
+  (module (internal-errorf assertf)
+    (define-syntax get-source-string
       (lambda (x)
         (syntax-case x ()
-          [(_ expr fmt arg ...)
+          [(_ expr)
            (let ([src (annotation-source (assert (syntax->annotation #'expr)))])
-             (let ([src-string (call-with-values
-                                 (lambda () (locate-source-object-source src #t #f))
-                                 (case-lambda
-                                   [() (format "~a character ~s" (source-file-descriptor-path (source-object-sfd src)) (source-object-bfp src))]
-                                   [(path line col) (format "~a line ~s char ~s" path line col)]))])
-               #`(or expr ($assertf #,src-string fmt arg ...))))])))
-    (indirect-export assertf $assertf))
+             (call-with-values
+               (lambda () (locate-source-object-source src #t #f))
+               (case-lambda
+                 [() (format "~a character ~s" (source-file-descriptor-path (source-object-sfd src)) (source-object-bfp src))]
+                 [(path line col) (format "~a line ~s char ~s" path line col)])))])))
+    (module (internal-errorf)
+      (define ($internal-errorf src-string who fmt . arg*)
+        (import (only (chezscheme) errorf))
+        (errorf who "detected at ~a: ~?" src-string fmt arg*))
+      (define-syntax internal-errorf
+        (lambda (x)
+          (syntax-case x ()
+            [(_ who fmt arg ...)
+             #`($internal-errorf (get-source-string #,x) who fmt arg ...)])))
+      (indirect-export internal-errorf $internal-errorf))
+    (module (assertf)
+      (define ($assertf src-string fmt . arg*)
+        (import (only (chezscheme) errorf))
+        (errorf #f "assertion failed at ~a: ~?" src-string fmt arg*))
+      (define-syntax assertf
+        (lambda (x)
+          (syntax-case x ()
+            [(_ expr fmt arg ...)
+             #`(or expr ($assertf (get-source-string #,x) fmt arg ...))])))
+      (indirect-export assertf $assertf))
+    (indirect-export internal-errorf get-source-string)
+    (indirect-export assertf get-source-string))
 
   ; like map but processes left-to-right
   (define (maplr p ls . ls*)
