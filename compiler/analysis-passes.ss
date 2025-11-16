@@ -1303,12 +1303,6 @@
       (define (arg->type arg)
         (nanopass-case (Ltypes Argument) arg
           [(,var-name ,type) type]))
-      (define (local->name local)
-        (nanopass-case (Ltypes Local) local
-          [(,var-name ,type) var-name]))
-      (define (local->type local)
-        (nanopass-case (Ltypes Local) local
-          [(,var-name ,type) type]))
       (define (format-adt-arg adt-arg)
         (nanopass-case (Ltypes Public-Ledger-ADT-Arg) adt-arg
           [,nat (format "~d" nat)]
@@ -2376,8 +2370,8 @@
       [(seq ,src ,expr* ... ,expr)
        (let* ([expr* (maplr CareNot expr*)] [expr (CareNot expr)])
          `(seq ,src ,expr* ... ,expr))]
-      [(let* ,src ([,[local*] ,expr*] ...) ,expr)
-       (let ([var-name* (map local->name local*)] [declared-type* (map local->type local*)])
+      [(let* ,src ([(,var-name* ,[type*]) ,expr*] ...) ,expr)
+       (let ([declared-type* type*])
          (let-values ([(expr* actual-type*) (maplr2 Care expr*)])
            (let ([declared-type* (maplr (lambda (var-name declared-type actual-type)
                                           (unless (subtype? actual-type declared-type)
@@ -3013,8 +3007,8 @@
          (values
            `(seq ,src ,expr* ... ,expr)
            type))]
-      [(let* ,src ([,[local*] ,expr*] ...) ,expr)
-       (let ([var-name* (map local->name local*)] [declared-type* (map local->type local*)])
+      [(let* ,src ([(,var-name* ,[type*]) ,expr*] ...) ,expr)
+       (let ([declared-type* type*])
          (let-values ([(expr* actual-type*) (maplr2 Care expr*)])
            (let ([declared-type* (maplr (lambda (var-name declared-type actual-type)
                                           (unless (subtype? actual-type declared-type)
@@ -3177,7 +3171,7 @@
        (values
          `(return ,src ,expr)
          type)]
-      )
+      [else (internal-errorf 'Care "unexpected ir ~s" ir)])
     (Tuple-Argument : Tuple-Argument (ir) -> Expression (type kind nat elt-type*)
       [(single ,src ,[Care : expr type])
        (verify-non-adt-type! src type "tuple element")
@@ -3459,12 +3453,6 @@
           [(,var-name ,type) var-name]))
       (define (arg->type arg)
         (nanopass-case (Lnodca Argument) arg
-          [(,var-name ,type) type]))
-      (define (local->name local)
-        (nanopass-case (Lnodca Local) local
-          [(,var-name ,type) var-name]))
-      (define (local->type local)
-        (nanopass-case (Lnodca Local) local
           [(,var-name ,type) type]))
       (define (format-type type)
         (define (format-adt-arg adt-arg)
@@ -3750,7 +3738,7 @@
        (maplr CareNot expr*)
        (CareNot expr)]
       [(let* ,src ([,local* ,expr*] ...) ,expr)
-       (let ([var-name* (map local->name local*)] [declared-type* (map local->type local*)])
+       (let ([var-name* (map arg->name local*)] [declared-type* (map arg->type local*)])
          (let ([actual-type* (maplr Care expr*)])
            (for-each (lambda (var-name declared-type actual-type)
                        (let ([type (nanopass-case (Lnodca Type) declared-type
@@ -3993,7 +3981,7 @@
        (for-each CareNot expr*)
        (Care expr)]
       [(let* ,src ([,local* ,expr*] ...) ,expr)
-       (let ([var-name* (map local->name local*)] [declared-type* (map local->type local*)])
+       (let ([var-name* (map arg->name local*)] [declared-type* (map arg->type local*)])
          (let ([actual-type* (maplr Care expr*)])
            (for-each (lambda (var-name declared-type actual-type)
                        (let ([type (nanopass-case (Lnodca Type) declared-type

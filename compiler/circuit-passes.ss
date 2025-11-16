@@ -275,12 +275,6 @@
       (define (arg->type arg)
         (nanopass-case (Linlined Argument) arg
           [(,var-name ,type) type]))
-      (define (local->name local)
-        (nanopass-case (Linlined Local) local
-          [(,var-name ,type) var-name]))
-      (define (local->type local)
-        (nanopass-case (Linlined Local) local
-          [(,var-name ,type) type]))
       (define empty-env '())
       (define (extend-env p var-name*)
         (let ([ht (make-eq-hashtable)])
@@ -297,8 +291,8 @@
         (Expression : Expression (ir p) -> Expression ()
           [(var-ref ,src ,var-name) `(var-ref ,src ,(maybe-rename p var-name))]
           [(let* ,src ([,local* ,[expr*]] ...) ,expr)
-           (let-values ([(p var-name*) (extend-env p (map local->name local*))]
-                        [(type*) (map local->type local*)])
+           (let-values ([(p var-name*) (extend-env p (map arg->name local*))]
+                        [(type*) (map arg->type local*)])
              `(let* ,src ([(,var-name* ,type*) ,expr*] ...) ,(Expression expr p)))])
         (Tuple-Argument : Tuple-Argument (ir p) -> Tuple-Argument ())
         (Path-Element : Path-Element (ir p) -> Path-Element ()))
@@ -418,12 +412,6 @@
           [(,var-name ,type) var-name]))
       (define (arg->type arg)
         (nanopass-case (Linlined Argument) arg
-          [(,var-name ,type) type]))
-      (define (local->name local)
-        (nanopass-case (Linlined Local) local
-          [(,var-name ,type) var-name]))
-      (define (local->type local)
-        (nanopass-case (Linlined Local) local
           [(,var-name ,type) type]))
       (define (format-type type)
         (define (format-adt-arg adt-arg)
@@ -602,7 +590,7 @@
        (maplr CareNot expr*)
        (CareNot expr)]
       [(let* ,src ([,local* ,expr*] ...) ,expr)
-       (let ([var-name* (map local->name local*)] [declared-type* (map local->type local*)])
+       (let ([var-name* (map arg->name local*)] [declared-type* (map arg->type local*)])
          (let ([actual-type* (maplr Care expr*)])
            (for-each (lambda (var-name declared-type actual-type)
                        (let ([type (nanopass-case (Linlined Type) declared-type
@@ -843,7 +831,7 @@
        (for-each CareNot expr*)
        (Care expr)]
       [(let* ,src ([,local* ,expr*] ...) ,expr)
-       (let ([var-name* (map local->name local*)] [declared-type* (map local->type local*)])
+       (let ([var-name* (map arg->name local*)] [declared-type* (map arg->type local*)])
          (let ([actual-type* (maplr Care expr*)])
            (for-each (lambda (var-name declared-type actual-type)
                        (let ([type (nanopass-case (Linlined Type) declared-type
@@ -1244,7 +1232,7 @@
        (let loop ([local* local*] [expr* expr*] [expr-ctv* expr-ctv*])
          (if (null? local*)
              (Expression expr)
-             (nanopass-case (Lnovectorref Local) (car local*)
+             (nanopass-case (Lnovectorref Argument) (car local*)
                [(,var-name ,type)
                 (handle-let src var-name type (car expr*) (car expr-ctv*)
                   (lambda () (loop (cdr local*) (cdr expr*) (cdr expr-ctv*))))])))]
@@ -1634,14 +1622,14 @@
                     `(seq ,src ,final-expr* ... ,final-expr?))
                 `(tuple ,src)))))
       (define (handle-let effect? src local* expr* expr idset)
-        (define (local->var-name local)
-          (nanopass-case (Lnovectorref Local) local
+        (define (arg->var-name arg)
+          (nanopass-case (Lnovectorref Argument) arg
             [(,var-name ,type) var-name]))
         (let f ([local* local*] [expr* expr*])
           (if (null? local*)
               (values expr idset)
               (let-values ([(body body-idset) (f (cdr local*) (cdr expr*))])
-                (let* ([local (car local*)] [var-name (local->var-name local)])
+                (let* ([local (car local*)] [var-name (arg->var-name local)])
                   (if (idset-member? var-name body-idset)
                       (let-values ([(rhs rhs-idset) (Value (car expr*))])
                         (values
@@ -1932,7 +1920,7 @@
       [(let* ,src ([,local* ,expr*] ...) ,expr)
        (fold-right
          (lambda (local expr stmt*)
-           (nanopass-case (Lnovectorref Local) local
+           (nanopass-case (Lnovectorref Argument) local
              [(,var-name ,type)
               (Rhs expr test
                 (lambda (rhs)
@@ -1979,7 +1967,7 @@
        (let f ([local* local*] [expr* expr*])
          (if (null? local*)
              (Rhs expr test k)
-             (nanopass-case (Lnovectorref Local) (car local*)
+             (nanopass-case (Lnovectorref Argument) (car local*)
                [(,var-name ,type)
                 (Rhs (car expr*) test
                   (lambda (rhs)

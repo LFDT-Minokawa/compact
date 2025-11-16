@@ -359,6 +359,7 @@
       (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type expr) =>
            (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f expr)
       ))
+    (Argument (arg local))
     (Block (blck)
       (- (block src (var-name* ...) stmt* ...)))
     (Statement (stmt)
@@ -370,7 +371,7 @@
          (seq src stmt* ...)
          blck))
     (Expression (expr index)
-      (+ (let* src ([arg* expr*] ...) expr)      => (let* ([bracket arg* 0 expr*] 0 ...) #f expr)
+      (+ (let* src ([local* expr*] ...) expr)    => (let* ([bracket local* 0 expr*] 0 ...) #f expr)
          (for src var-name expr1 expr2)          => (for var-name expr1 #f expr2)
          (block src (var-name* ...) expr)        => (block (var-name* 0 ...) #f expr)
          (return src expr)                       => expr
@@ -546,7 +547,7 @@
       (- (nat-valued src tvar-name))
       (- (type-valued src tvar-name))
       (- (non-adt-type-valued src tvar-name)))
-    (Argument (arg)
+    (Argument (arg local)
       (- (src var-name type))
       (+ (var-name type) => (bracket var-name type)))
     (Expression (expr index)
@@ -649,9 +650,7 @@
     (Public-Ledger-ADT-Arg (adt-arg)
       nat
       type)
-    (Argument (arg)
-      (var-name type) => (bracket var-name type))
-    (Local (local) ; same as Argument, but used for const bindings and treated a bit differently
+    (Argument (arg local)
       (var-name type) => (bracket var-name type))
     (Expression (expr index)
       (quote src datum)                       => datum

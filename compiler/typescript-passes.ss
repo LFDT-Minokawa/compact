@@ -33,8 +33,8 @@
     (definitions
       (define program-src)
       (define local-local*)
-      (define (local->id arg)
-        (nanopass-case (Ltypescript Local) arg
+      (define (arg->id arg)
+        (nanopass-case (Ltypescript Argument) arg
           [(,var-name ,type) var-name]))
       (define (arg->type arg)
         (nanopass-case (Ltypescript Argument) arg
@@ -292,7 +292,7 @@
            (begin
              (set! local-local* (append local* local-local*))
              `(seq ,src
-                ,(map (lambda (local expr) `(= ,src ,(local->id local) ,expr)) local* expr*)
+                ,(map (lambda (local expr) `(= ,src ,(arg->id local) ,expr)) local* expr*)
                 ...
                 ,expr)))]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,[path-elt*] ...) ,src^ ,[adt-op] ,[expr*] ...)
@@ -2464,7 +2464,7 @@
       (define (make-Qlocal! local)
         ; make-Qlocal! calls format-internal-binding, which must be called before
         ; format-id-reference is called on the same id
-        (nanopass-case (Ltypescript Local) local
+        (nanopass-case (Ltypescript Argument) local
           [(,var-name ,type)
            (make-Qconcat/src
              (id-src var-name)
