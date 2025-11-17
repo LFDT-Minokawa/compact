@@ -117,7 +117,7 @@ describe('[Bug] [PM-20291] Redundant incompatible functions', () => {
 
             const secondContract: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
             expectCompilerResult(secondContract).toBeFailure(
-                'Exception: example_six.compact line 21 char 57: no compatible function named test1 is in scope at this call; three functions are incomptable with the supplied generic values; supplied generic values: <size 8, type Field>; declared generics for function at M1.compact line 17 char 3: <size>; declared generics for function at line 19 char 3: <size>; declared generics for function at line 20 char 3: <size>',
+                'Exception: example_six.compact line 21 char 57: no compatible function named test1 is in scope at this call; three functions are incompatible with the supplied generic values; supplied generic values: <size 8, type Field>; declared generics for function at M1.compact line 17 char 3: <size>; declared generics for function at line 19 char 3: <size>; declared generics for function at line 20 char 3: <size>',
                 compilerDefaultOutput(),
             );
         });
