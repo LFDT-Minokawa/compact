@@ -534,16 +534,12 @@
                  tvar-name]
                 [(Info-contract src contract-name ecdecl-circuit* p)
                  (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 ;; (let ([fun* (map (lambda (ecdecl-circuit)
-                 ;;                    (lookup-fun p src (ecdecl-circuit-function-name ecdecl-circuit) '()))
-                 ;;                  ecdecl-circuit*)])
                    (let ([Type (lambda (type) (Type type p))])
                      `(tcontract ,src ,contract-name
                         (,(map ecdecl-circuit-elt-name ecdecl-circuit*)
                          ,(map (lambda (ecdecl-circuit)
                                  (lookup-fun p src (ecdecl-circuit-function-name ecdecl-circuit) '()))
                                ecdecl-circuit*)
-                         ;; ,(map (lambda (f) (make-source-id src (ecdecl-circuit-function-name f))) ecdecl-circuit*)
                          ,(map ecdecl-circuit-pure? ecdecl-circuit*)
                          (,(map (lambda (type*) (map Type type*)) (map ecdecl-circuit-type* ecdecl-circuit*)) ...)
                          ,(map Type (map ecdecl-circuit-type ecdecl-circuit*)))
@@ -1991,6 +1987,13 @@
           (lambda ()
             (adt-op-error! src elt-name sugar? adt-name adt-rt-op* adt-arg*))))
       (define (find-contract-circuit src src^ contract-name elt-name elt-name* fun* type** type* adt-type adt-type* expr expr*)
+        ;; (let ([fun* (map (lambda (fun type* type)
+        ;;                              (do-call src #f fun type*
+        ;;                                       (lambda (declared-type* return-type fun)
+        ;;                                         (assert (andmap sametype? declared-type* type*))
+        ;;                                         (assert (sametype? return-type type))
+        ;;                                         fun)))
+        ;;                            fun* type** type*)])
         (let loop ([elt-name* elt-name*] [fun* fun*] [type** type**] [type* type*])
           (if (null? elt-name*)
               (source-errorf src^ "contract ~s has no circuit declaration named ~s"
@@ -2013,6 +2016,8 @@
                                        (format-type declared-adt-type)
                                        (format-type actual-adt-type))))
                     declared-type* adt-type* (enumerate declared-type*))
+                  ;; (let-values ([(expr return-type) (do-circuit-body src (format "contract call ~a" (id-sym function-name)) arg* )]))
+                  ;; (map (lambda fun type* type))
                   (values
                     ; FIXME: need to get an extra declared type for the extra argument
                     ; and hack needs to account for that as well, we might not actually need this as long
@@ -2020,8 +2025,7 @@
                     (let ([expr* (cons expr
                                        (map (maybe-upcast src) declared-type* adt-type* expr*))])
                     (with-output-language (Ltypes Expression)
-                      `(call ,src ,fun ,expr* ...)
-                      ))
+                      `(call ,src ,fun ,expr* ...)))
                   (car type*)))
               (loop (cdr elt-name*) (cdr fun*) (cdr type**) (cdr type*))))))
       (define (get-contract-name ecdecl)
@@ -2168,9 +2172,7 @@
          `(constructor ,src (,arg* ...) ,expr))])
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
       [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
-       ; FIXME do we need this anymore? I heard from someone that we're lifting this restriction
-       ; check with Kent
-       #;(when (id-exported? function-name)
+       (when (id-exported? function-name)
          (when (contains-contract? type)
            (source-errorf src "invalid type ~a for circuit ~a return value:\n  exported circuit return values cannot include contract values"
                           (format-type type)
@@ -2237,6 +2239,8 @@
              [type* (map (lambda (type elt-name) (Non-ADT-Type type src "circuit '~a' return" elt-name))
                          type*
                          elt-name*)])
+         ; TODO we need to do do-circuit-body before doing do-call. so I need to pass circuit-definition here
+         ;; (let-values ([(expr known-type) (do-circuit-body src "contract call" arg* return-type expr-body)]))
          (let ([fun* (map (lambda (fun type* type)
                             (do-call src #f fun type*
                               (lambda (declared-type* return-type fun)
@@ -3080,21 +3084,10 @@
                               (format-type type))])])
     )
 
-  (echo-define-pass remove-fun-in-tcontract : Ltypes (ir) -> Lnofunintcontract ()
-    (Program : Program (ir) -> Program ())
-      ;; [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,[pelt*] ...)
-      ;;  `(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)])
-    ;; (Program-Element : Program-Element (ir) -> Program-Element ())
-    ;; (Expression : Expression (ir) -> Expression ())
-    ;; (Function : Function (ir) -> Function ())
-    (do-type : Type (ir) -> Type ()
+  (define-pass remove-fun-in-tcontract : Ltypes (ir) -> Lnofunintcontract ()
+    (Type : Type (ir) -> Type ()
       [(tcontract ,src ,contract-name (,elt-name* ,fun* ,pure-dcl* (,[type**] ...) ,[type*]) ...)
-       `(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[type**] ...) ,[type*]) ...)]
-      ;; [(tvector ,src ,len ,[type])
-      ;;  `(tvector ,src ,len ,type)]
-      ;; [(ttuple ,src ,[type*] ...)
-      ;;  `(ttuple ,src ,[type*] ...)]
-      ))
+       `(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[type**] ...) ,[type*]) ...)]))
 
   (define-pass remove-tundeclared : Lnofunintcontract (ir) -> Lnotundeclared ())
 
@@ -5305,6 +5298,7 @@
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
     (infer-types                     Ltypes)
+    (remove-fun-in-tcontract         Lnofunintcontract)
     (remove-tundeclared              Lnotundeclared)
     (combine-ledger-declarations     Loneledger)
     (discard-unused-functions        Loneledger)

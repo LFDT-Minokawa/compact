@@ -455,14 +455,13 @@
                   [tc-expr-nonce (with-output-language (Lexpandedcontractcall Expression)
                                    `(call ,src (fref ,src __compact_std_createNonce) ,(list) ...))]
                   [tc-call (with-output-language (Lexpandedcontractcall Expression)
-                             `(call ,src (fref ,src __compact_std_transientCommit
-                                               (,(list tc-targ) ...))
+                             `(call ,src (fref ,src __compact_std_transientCommit (,(list tc-targ) ...))
                                     ,(list tc-expr-tuple tc-expr-nonce) ...))]
                   [circuit-hash (sha256 elt-name)]
                   [contract-type (with-output-language (Lexpandedcontractcall Type)
                                    `(type-ref ,src ,contract-name ,(list) ...))]
                   [contract-arg (with-output-language (Lexpandedcontractcall Argument)
-                                 `(,src ,local-c ,contract-type))]
+                                  `(,src ,local-c ,contract-type))]
                   [body (with-output-language (Lexpandedcontractcall Expression)
                           `(block ,src (,(list local-res) ...)
                                   (let* ,src ([,res-arg (contract-call ,src ,elt-name ((var-ref ,src ,local-c) ,contract-type) ,(map ref-var arg*) ...)])
@@ -472,10 +471,8 @@
                                                        ,(list `(var-ref ,src ,local-c)
                                                               `(quote ,src ,circuit-hash)
                                                               tc-call) ...)
-                                             (return ,src (var-ref ,src ,local-res))
-                                             )
-                                        )))]
-                                    [arg* (cons-end contract-arg arg*)])
+                                             (return ,src (var-ref ,src ,local-res))))))]
+                  [arg* (cons-end contract-arg arg*)])
              (with-output-language (Lexpandedcontractcall Circuit-Definition)
                `(circuit ,src #t #f ,function-name () (,arg* ...) ,type ,body)))]))
       ; if the contract isn't exported then the module with wrapper circuits also shouldn't be exported
@@ -485,11 +482,6 @@
               [helper-circuit* (map (lambda (ecdecl-circuit) (make-circuit contract-name ecdecl-circuit)) ecdecl-circuit*)])
           (with-output-language (Lexpandedcontractcall Module-Definition)
             `(module ,src ,exported? ,contract-module-name () ,(cons std helper-circuit*) ...))))
-      #;(define (export-circuit src ecdecl-circuit)
-        (nanopass-case (Lexpandedcontractcall External-Contract-Circuit) ecdecl-circuit
-          [(,src^ ,pure-dcl ,elt-name ,function-name (,arg* ...) ,type)
-           (with-output-language (Lexpandedcontractcall Export-Declaration)
-             `(export ,src (,src^ ,function-name)))]))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ,pelt* ...)

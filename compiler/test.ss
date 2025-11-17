@@ -7893,13 +7893,12 @@
 )
 
 (run-tests wrap-contract-circuits
-  (test ; FIXME/CHECH contracts shouldn't be arg to top level circuits and not circuits in modules
+  (test
     '(
       "export struct StructExample {"
       "  value: Field;"
       "}"
       "contract AuthCell {"
-      ;; "export contract AuthCell {"
       "  circuit get(): StructExample;"
       "  circuit set(new_value: StructExample): [];"
       "}"
@@ -7917,22 +7916,13 @@
     (returns
       (program
         (struct #t StructExample () [value (tfield)])
-        (external-contract #f AuthCell
-          (#f get
-              __compact_contract_AuthCell_get
-              ()
-              (type-ref StructExample))
-          (#f set
-              __compact_contract_AuthCell_set
-              ((new_value (type-ref StructExample)))
-              (ttuple)))
         (module #f __compact_contract_AuthCell ()
           (import CompactStandardLibrary () "__compact_std_")
           (circuit #t #f __compact_contract_AuthCell_get () ([__compact_local_c (type-ref AuthCell)])
                (type-ref StructExample)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (type-ref StructExample)]
-                      (contract-call-temp get
+                      (contract-call get
                            (__compact_local_c (type-ref AuthCell)))])
                 (seq
                   (elt-call __compact_std_kernel claimContractCall __compact_local_c
@@ -7948,7 +7938,7 @@
                (ttuple)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (ttuple)]
-                      (contract-call-temp set
+                      (contract-call set
                            (__compact_local_c (type-ref AuthCell))
                         new_value)])
                 (seq
@@ -7962,8 +7952,15 @@
                       (call __compact_std_createNonce)))
                   __compact_local_res)))))
         (import __compact_contract_AuthCell () "")
-        (export __compact_contract_AuthCell_set)
-        (export __compact_contract_AuthCell_get)
+        (external-contract #f AuthCell
+          (#f get
+              __compact_contract_AuthCell_get
+              ()
+              (type-ref StructExample))
+          (#f set
+              __compact_contract_AuthCell_set
+              ((new_value (type-ref StructExample)))
+              (ttuple)))
         (public-ledger-declaration #f #t
           auth_cell
           (type-ref AuthCell))
@@ -7997,7 +7994,7 @@
           (seq (= auth_cell (disclose auth_cell_param)) (tuple)))
         (module #f __compact_contract_AuthCell
           (import CompactStandardLibrary () "__compact_std_")
-          (circuit #t #f __compact_AuthCell_get () ([__compact_c (type-ref AuthCell)]) ; should I change this to tcontract? TODO
+          (circuit #t #f __compact_AuthCell_get () ([__compact_c (type-ref AuthCell)])
                    (type-ref StructExample)
             (block (__compact_local_res)
               (let* ([__compact_local_res (contract-call get (_compact_local_c AuthCell))])
@@ -8054,9 +8051,6 @@
       )
     (returns
       (program
-        (external-contract #f C
-          (#f foo __compact_contract_C_foo ((x (tbytes 32))) (ttuple))
-          (#t bar __compact_contract_C_bar () (tbytes 32)))
         (module #f __compact_contract_C ()
           (import CompactStandardLibrary () "__compact_std_")
           (circuit #t #f __compact_contract_C_foo () ([x (tbytes 32)]
@@ -8064,9 +8058,7 @@
                (ttuple)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (ttuple)]
-                      (contract-call-temp foo
-                           (__compact_local_c (type-ref C))
-                        x)])
+                      (contract-call foo (__compact_local_c (type-ref C)) x)])
                 (seq
                   (elt-call __compact_std_kernel claimContractCall __compact_local_c
                     #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
@@ -8081,8 +8073,7 @@
                (tbytes 32)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (tbytes 32)]
-                      (contract-call-temp bar
-                           (__compact_local_c (type-ref C)))])
+                      (contract-call bar (__compact_local_c (type-ref C)))])
                 (seq
                   (elt-call __compact_std_kernel claimContractCall __compact_local_c
                     #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
@@ -8093,8 +8084,9 @@
                       (call __compact_std_createNonce)))
                   __compact_local_res)))))
         (import __compact_contract_C () "")
-        (export __compact_contract_C_bar)
-        (export __compact_contract_C_foo)
+        (external-contract #f C
+          (#f foo __compact_contract_C_foo ((x (tbytes 32))) (ttuple))
+          (#t bar __compact_contract_C_bar () (tbytes 32)))
         (public-ledger-declaration #f #f contract_c (type-ref C))
         (constructor ([c (type-ref C)])
           (seq (= contract_c (disclose c)) (tuple)))
@@ -8120,9 +8112,6 @@
       )
     (returns
       (program
-        (external-contract #t C
-          (#f foo __compact_contract_C_foo ((x (tbytes 32))) (ttuple))
-          (#t bar __compact_contract_C_bar () (tbytes 32)))
         (module #t __compact_contract_C ()
           (import CompactStandardLibrary () "__compact_std_")
           (circuit #t #f __compact_contract_C_foo () ([x (tbytes 32)]
@@ -8130,9 +8119,7 @@
                (ttuple)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (ttuple)]
-                      (contract-call-temp foo
-                           (__compact_local_c (type-ref C))
-                        x)])
+                      (contract-call foo (__compact_local_c (type-ref C)) x)])
                 (seq
                   (elt-call __compact_std_kernel claimContractCall __compact_local_c
                     #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
@@ -8147,8 +8134,7 @@
                (tbytes 32)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (tbytes 32)]
-                      (contract-call-temp bar
-                           (__compact_local_c (type-ref C)))])
+                      (contract-call bar (__compact_local_c (type-ref C)))])
                 (seq
                   (elt-call __compact_std_kernel claimContractCall __compact_local_c
                     #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
@@ -8159,9 +8145,9 @@
                       (call __compact_std_createNonce)))
                   __compact_local_res)))))
         (import __compact_contract_C () "")
-        (export __compact_contract_C_bar)
-        (export __compact_contract_C_foo)
-        (export __compact_contract_C)
+        (external-contract #t C
+          (#f foo __compact_contract_C_foo ((x (tbytes 32))) (ttuple))
+          (#t bar __compact_contract_C_bar () (tbytes 32)))
         (public-ledger-declaration #f #f contract_c (type-ref C))
         (constructor ([c (type-ref C)])
           (seq (= contract_c (disclose c)) (tuple)))
@@ -8187,7 +8173,58 @@
       "constructor (c: C) { contract_c = disclose(c); }"
       "export circuit hello(): [] { return contract_c.read().foo(contract_c.read().bar()); }"
       )
-    (returns what))
+    (returns
+      (program
+        (module #f M ()
+          (module #t __compact_contract_C ()
+            (import CompactStandardLibrary () "__compact_std_")
+            (circuit #t #f __compact_contract_C_foo () ([x (tbytes 32)]
+                                                        [__compact_local_c (type-ref C)])
+                 (ttuple)
+              (block (__compact_local_res)
+                (let* ([[__compact_local_res (ttuple)]
+                        (contract-call foo
+                             (__compact_local_c (type-ref C))
+                          x)])
+                  (seq
+                    (elt-call __compact_std_kernel claimContractCall __compact_local_c
+                      #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143
+                           77 154 224 100 209 63 230 245 22 70 70 186 190 96
+                           158 222)
+                      (call (fref __compact_std_transientCommit
+                              (ttuple (tbytes 32)))
+                        (tuple x)
+                        (call __compact_std_createNonce)))
+                    __compact_local_res))))
+            (circuit #t #f __compact_contract_C_bar () ([__compact_local_c (type-ref C)])
+                 (tbytes 32)
+              (block (__compact_local_res)
+                (let* ([[__compact_local_res (tbytes 32)]
+                        (contract-call bar (__compact_local_c (type-ref C)))])
+                  (seq
+                    (elt-call __compact_std_kernel claimContractCall __compact_local_c
+                      #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12
+                           200 91 167 33 168 90 209 87 29 198 155 79 107 183
+                           182 161 126 44)
+                      (call (fref __compact_std_transientCommit (ttuple))
+                        (tuple)
+                        (call __compact_std_createNonce)))
+                    __compact_local_res)))))
+          (import __compact_contract_C () "")
+          (external-contract #t C
+            (#f foo __compact_contract_C_foo ((x (tbytes 32))) (ttuple))
+            (#t bar __compact_contract_C_bar () (tbytes 32))))
+        (import M () "")
+        (public-ledger-declaration #f #f contract_c (type-ref C))
+        (constructor ([c (type-ref C)])
+          (seq (= contract_c (disclose c)) (tuple)))
+        (circuit #t #f hello () ()
+             (ttuple)
+          (elt-call
+            (elt-call contract_c read)
+            foo
+            (elt-call (elt-call contract_c read) bar)))))
+    )
 
   (test
     '(
@@ -8201,7 +8238,54 @@
       "}"
       "import m<Bytes<32>> prefix $;"
       )
-    (returns what))
+    (returns
+      (program
+        (module #f m (A)
+          (module #t __compact_contract_C ()
+            (import CompactStandardLibrary () "__compact_std_")
+            (circuit #t #f __compact_contract_C_foo () ([x (type-ref A)]
+                                                        [__compact_local_c (type-ref C)])
+                 (ttuple)
+              (block (__compact_local_res)
+                (let* ([[__compact_local_res (ttuple)]
+                        (contract-call foo
+                             (__compact_local_c (type-ref C))
+                          x)])
+                  (seq
+                    (elt-call __compact_std_kernel claimContractCall __compact_local_c
+                      #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143
+                           77 154 224 100 209 63 230 245 22 70 70 186 190 96
+                           158 222)
+                      (call (fref __compact_std_transientCommit
+                              (ttuple (type-ref A)))
+                        (tuple x)
+                        (call __compact_std_createNonce)))
+                    __compact_local_res))))
+            (circuit #t #f __compact_contract_C_bar () ([__compact_local_c (type-ref C)])
+                 (type-ref A)
+              (block (__compact_local_res)
+                (let* ([[__compact_local_res (type-ref A)]
+                        (contract-call bar (__compact_local_c (type-ref C)))])
+                  (seq
+                    (elt-call __compact_std_kernel claimContractCall __compact_local_c
+                      #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12
+                           200 91 167 33 168 90 209 87 29 198 155 79 107 183
+                           182 161 126 44)
+                      (call (fref __compact_std_transientCommit (ttuple))
+                        (tuple)
+                        (call __compact_std_createNonce)))
+                    __compact_local_res)))))
+          (import __compact_contract_C () "")
+          (external-contract #t C
+            (#f foo
+                __compact_contract_C_foo
+                ((x (type-ref A)))
+                (ttuple))
+            (#t bar __compact_contract_C_bar () (type-ref A)))
+          (import CompactStandardLibrary () "")
+          (public-ledger-declaration #t #f contract_c (type-ref C)))
+        (import m ((tbytes 32)) "$")))
+    )
 
   (test
     '(
@@ -8215,11 +8299,6 @@
        )
     (returns
       (program
-        (external-contract #f C1
-          (#f foo
-              __compact_contract_C1_foo
-              ((x (type-ref C2)))
-              (ttuple)))
         (module #f __compact_contract_C1 ()
           (import CompactStandardLibrary () "__compact_std_")
           (circuit #t #f __compact_contract_C1_foo () ([x (type-ref C2)]
@@ -8227,9 +8306,7 @@
                (ttuple)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (ttuple)]
-                      (contract-call-temp foo
-                           (__compact_local_c (type-ref C1))
-                        x)])
+                      (contract-call foo (__compact_local_c (type-ref C1)) x)])
                 (seq
                   (elt-call __compact_std_kernel claimContractCall __compact_local_c
                     #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
@@ -8241,17 +8318,18 @@
                       (call __compact_std_createNonce)))
                   __compact_local_res)))))
         (import __compact_contract_C1 () "")
-        (export __compact_contract_C1_foo)
-        (external-contract #f C2
-          (#f bar __compact_contract_C2_bar () (ttuple)))
+        (external-contract #f C1
+          (#f foo
+              __compact_contract_C1_foo
+              ((x (type-ref C2)))
+              (ttuple)))
         (module #f __compact_contract_C2 ()
           (import CompactStandardLibrary () "__compact_std_")
           (circuit #t #f __compact_contract_C2_bar () ([__compact_local_c (type-ref C2)])
                (ttuple)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (ttuple)]
-                      (contract-call-temp bar
-                           (__compact_local_c (type-ref C2)))])
+                      (contract-call bar (__compact_local_c (type-ref C2)))])
                 (seq
                   (elt-call __compact_std_kernel claimContractCall __compact_local_c
                     #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
@@ -8262,7 +8340,8 @@
                       (call __compact_std_createNonce)))
                   __compact_local_res)))))
         (import __compact_contract_C2 () "")
-        (export __compact_contract_C2_bar)))
+        (external-contract #f C2
+          (#f bar __compact_contract_C2_bar () (ttuple)))))
     )
   )
 
@@ -9877,17 +9956,46 @@
           "}"
          ))
      (returns
-       (program ((bar %bar.3))
-         (public-ledger-declaration %kernel.0 (Kernel))
+       (program ((bar %bar.0))
+         (public-ledger-declaration %kernel.1 (Kernel))
+         (external %transientCommit.2 ([%value.3 (ttuple (tboolean))]
+                                       [%rand.4 (tfield)])
+              (tfield))
+         (external %createNonce.5 () (tfield))
+         (circuit %__compact_contract_C_id.6 ([%x.7 (tboolean)]
+                                              [%__compact_local_c.8 (tcontract C
+                                                                      (id (fref
+                                                                            ((%__compact_contract_C_id.6))) #f ((tboolean))
+                                                                        (tboolean)))])
+              (tboolean)
+           (let* ([[%__compact_local_res.9 (tboolean)]
+                   (contract-call id
+                        (%__compact_local_c.8
+                         (tcontract C
+                           (id (fref ((%__compact_contract_C_id.6))) #f ((tboolean))
+                             (tboolean))))
+                     %x.7)])
+             (seq
+               (elt-call %kernel.1 claimContractCall %__compact_local_c.8
+                 #vu8(184 55 177 158 136 123 214 13 235 67 82 105 244 91 71
+                      48 0 161 168 188 63 255 150 102 58 175 67 193 167 155 73
+                      148)
+                 (call (fref ((%transientCommit.2)))
+                   (tuple %x.7)
+                   (call (fref ((%createNonce.5))))))
+               %__compact_local_res.9)))
          (public-ledger-declaration
-           %contract_c.1
-           (__compact_Cell (tcontract C (id #f ((tboolean)) (tboolean)))))
-         (circuit %foo.2 ()
+           %contract_c.10
+           (__compact_Cell
+             (tcontract C
+               (id (fref ((%__compact_contract_C_id.6))) #f ((tboolean))
+                 (tboolean)))))
+         (circuit %foo.11 ()
               (tboolean)
-           (seq (elt-call %contract_c.1 id #t) (tuple)))
-         (circuit %bar.3 ()
+           (seq (elt-call %contract_c.10 id #t) (tuple)))
+         (circuit %bar.0 ()
               (tboolean)
-           (seq (call (fref ((%foo.2)))) (tuple)))))
+           (seq (call (fref ((%foo.11)))) (tuple)))))
      ))
 
   (test
@@ -10122,21 +10230,95 @@
       "export circuit hello(): [] { return contract_c.foo(contract_c.bar()); }"
       )
     (returns
-      (program ((hello %hello.2))
-        (public-ledger-declaration %kernel.0 (Kernel))
+      (program ((hello %hello.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (external %transientCommit.2 ([%value.3 (ttuple ; discuss with Kent: drop the extra transient commit.
+                                        ; there's one per wrapper
+                                                  (tbytes 32))]
+                                      [%rand.4 (tfield)])
+             (tfield))
+        (external %transientCommit.5 ([%value.6 (ttuple)]
+                                      [%rand.7 (tfield)])
+             (tfield))
+        (external %createNonce.8 () (tfield))
+        (circuit %__compact_contract_C_foo.9 ([%x.10 (tbytes 32)]
+                                              [%__compact_local_c.11 (tcontract C
+                                                                       (foo (fref
+                                                                              ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                                                     32))
+                                                                         (ttuple))
+                                                                       (bar (fref
+                                                                              ((%__compact_contract_C_bar.12))) #t ()
+                                                                         (tbytes
+                                                                           32)))])
+             (ttuple)
+          (let* ([[%__compact_local_res.13 (ttuple)]
+                  (contract-call foo
+                       (%__compact_local_c.11
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                            32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                            (tbytes 32))))
+                    %x.10)])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.11
+                #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
+                     154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
+                (call (fref ((%transientCommit.2)))
+                  (tuple %x.10)
+                  (call (fref ((%createNonce.8))))))
+              %__compact_local_res.13)))
+        (circuit %__compact_contract_C_bar.12 ([%__compact_local_c.14 (tcontract C
+                                                                        (foo (fref
+                                                                               ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                                                      32))
+                                                                          (ttuple))
+                                                                        (bar (fref
+                                                                               ((%__compact_contract_C_bar.12))) #t ()
+                                                                          (tbytes
+                                                                            32)))])
+             (tbytes 32)
+          (let* ([[%__compact_local_res.15 (tbytes 32)]
+                  (contract-call bar
+                       (%__compact_local_c.14
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                            32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                            (tbytes 32)))))])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.14
+                #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
+                     91 167 33 168 90 209 87 29 198 155 79 107 183 182 161 126
+                     44)
+                (call (fref ((%transientCommit.5)))
+                  (tuple)
+                  (call (fref ((%createNonce.8))))))
+              %__compact_local_res.15)))
         (public-ledger-declaration
-          %contract_c.0
+          %contract_c.16
           (__compact_Cell
             (tcontract C
-              (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
-        (constructor ([%c.1 (tcontract C
-                              (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
-          (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
-        (circuit %hello.2 ()
+              (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes 32))
+                (ttuple))
+              (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                (tbytes 32)))))
+        (constructor ([%c.17 (tcontract C
+                               (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                 32))
+                                 (ttuple))
+                               (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                                 (tbytes 32)))])
+          (seq (= %contract_c.16 (disclose %c.17)) (tuple)))
+        (circuit %hello.0 ()
              (ttuple)
-          (elt-call %contract_c.0 foo (elt-call %contract_c.0 bar)))))
+          (elt-call
+            %contract_c.16
+            foo
+            (elt-call %contract_c.16 bar)))))
     )
 
   (test
@@ -10152,23 +10334,152 @@
       "export circuit hello(x: Field, y: Boolean): [] { return contract_c.read().blah(x, y); }"
       )
     (returns
-      (program ((hello %hello.2))
-        (public-ledger-declaration %kernel.0 (Kernel))
+      (program ((hello %hello.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (external %transientCommit.2 ([%value.3 (ttuple
+                                                  (tfield)
+                                                  (tboolean))]
+                                      [%rand.4 (tfield)])
+             (tfield))
+        (external %transientCommit.5 ([%value.6 (ttuple
+                                                  (tbytes 32))]
+                                      [%rand.7 (tfield)])
+             (tfield))
+        (external %transientCommit.8 ([%value.9 (ttuple)]
+                                      [%rand.10 (tfield)])
+             (tfield))
+        (external %createNonce.11 () (tfield))
+        (circuit %__compact_contract_C_foo.12 ([%x.13 (tbytes 32)]
+                                               [%__compact_local_c.14 (tcontract C
+                                                                        (foo (fref
+                                                                               ((%__compact_contract_C_foo.12))) #f ((tbytes
+                                                                                                                       32))
+                                                                          (ttuple))
+                                                                        (bar (fref
+                                                                               ((%__compact_contract_C_bar.15))) #t ()
+                                                                          (tbytes
+                                                                            32))
+                                                                        (blah (fref
+                                                                                ((%__compact_contract_C_blah.16))) #f ((tfield) (tboolean))
+                                                                          (tboolean)))])
+             (ttuple)
+          (let* ([[%__compact_local_res.17 (ttuple)]
+                  (contract-call foo
+                       (%__compact_local_c.14
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.12))) #f ((tbytes
+                                                                             32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.15))) #t ()
+                            (tbytes 32))
+                          (blah (fref ((%__compact_contract_C_blah.16))) #f ((tfield) (tboolean))
+                            (tboolean))))
+                    %x.13)])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.14
+                #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
+                     154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
+                (call (fref ((%transientCommit.5)))
+                  (tuple %x.13)
+                  (call (fref ((%createNonce.11))))))
+              %__compact_local_res.17)))
+        (circuit %__compact_contract_C_bar.15 ([%__compact_local_c.18 (tcontract C
+                                                                        (foo (fref
+                                                                               ((%__compact_contract_C_foo.12))) #f ((tbytes
+                                                                                                                       32))
+                                                                          (ttuple))
+                                                                        (bar (fref
+                                                                               ((%__compact_contract_C_bar.15))) #t ()
+                                                                          (tbytes
+                                                                            32))
+                                                                        (blah (fref
+                                                                                ((%__compact_contract_C_blah.16))) #f ((tfield) (tboolean))
+                                                                          (tboolean)))])
+             (tbytes 32)
+          (let* ([[%__compact_local_res.19 (tbytes 32)]
+                  (contract-call bar
+                       (%__compact_local_c.18
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.12))) #f ((tbytes
+                                                                             32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.15))) #t ()
+                            (tbytes 32))
+                          (blah (fref ((%__compact_contract_C_blah.16))) #f ((tfield) (tboolean))
+                            (tboolean)))))])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.18
+                #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
+                     91 167 33 168 90 209 87 29 198 155 79 107 183 182 161 126
+                     44)
+                (call (fref ((%transientCommit.8)))
+                  (tuple)
+                  (call (fref ((%createNonce.11))))))
+              %__compact_local_res.19)))
+        (circuit %__compact_contract_C_blah.16 ([%x.20 (tfield)]
+                                                [%y.21 (tboolean)]
+                                                [%__compact_local_c.22 (tcontract C
+                                                                         (foo (fref
+                                                                                ((%__compact_contract_C_foo.12))) #f ((tbytes
+                                                                                                                        32))
+                                                                           (ttuple))
+                                                                         (bar (fref
+                                                                                ((%__compact_contract_C_bar.15))) #t ()
+                                                                           (tbytes
+                                                                             32))
+                                                                         (blah (fref
+                                                                                 ((%__compact_contract_C_blah.16))) #f ((tfield) (tboolean))
+                                                                           (tboolean)))])
+             (tboolean)
+          (let* ([[%__compact_local_res.23 (tboolean)]
+                  (contract-call blah
+                       (%__compact_local_c.22
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.12))) #f ((tbytes
+                                                                             32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.15))) #t ()
+                            (tbytes 32))
+                          (blah (fref ((%__compact_contract_C_blah.16))) #f ((tfield) (tboolean))
+                            (tboolean))))
+                    %x.20
+                    %y.21)])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.22
+                #vu8(231 211 105 87 70 53 227 239 41 167 116 130 83 13 125
+                     44 110 146 58 206 47 122 212 34 98 124 70 103 33 179 220
+                     156)
+                (call (fref ((%transientCommit.2)))
+                  (tuple %x.20 %y.21)
+                  (call (fref ((%createNonce.11))))))
+              %__compact_local_res.23)))
         (public-ledger-declaration
-          %contract_c.0
+          %contract_c.24
           (__compact_Cell
             (tcontract C
-              (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32))
-              (blah #f ((tfield) (tboolean)) (tboolean)))))
-        (constructor ([%c.1 (tcontract C
-                              (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32))
-                              (blah #f ((tfield) (tboolean)) (tboolean)))])
-          (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
-        (circuit %hello.2 ([%x.3 (tfield)] [%y.4 (tboolean)])
+              (foo (fref ((%__compact_contract_C_foo.12))) #f ((tbytes
+                                                                 32))
+                (ttuple))
+              (bar (fref ((%__compact_contract_C_bar.15))) #t ()
+                (tbytes 32))
+              (blah (fref ((%__compact_contract_C_blah.16))) #f ((tfield) (tboolean))
+                (tboolean)))))
+        (constructor ([%c.25 (tcontract C
+                               (foo (fref ((%__compact_contract_C_foo.12))) #f ((tbytes
+                                                                                  32))
+                                 (ttuple))
+                               (bar (fref ((%__compact_contract_C_bar.15))) #t ()
+                                 (tbytes 32))
+                               (blah (fref ((%__compact_contract_C_blah.16))) #f ((tfield) (tboolean))
+                                 (tboolean)))])
+          (seq (= %contract_c.24 (disclose %c.25)) (tuple)))
+        (circuit %hello.0 ([%x.26 (tfield)] [%y.27 (tboolean)])
              (ttuple)
-          (elt-call (elt-call %contract_c.0 read) blah %x.3 %y.4))))
+          (elt-call
+            (elt-call %contract_c.24 read)
+            blah
+            %x.26
+            %y.27))))
     )
 
   (test
@@ -10183,24 +10494,94 @@
       "import CompactStandardLibrary;"
       )
     (returns
-      (program ((hello %hello.2))
-        (public-ledger-declaration %kernel.0 (Kernel))
+      (program ((hello %hello.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (external %transientCommit.2 ([%value.3 (ttuple
+                                                  (tbytes 32))]
+                                      [%rand.4 (tfield)])
+             (tfield))
+        (external %transientCommit.5 ([%value.6 (ttuple)]
+                                      [%rand.7 (tfield)])
+             (tfield))
+        (external %createNonce.8 () (tfield))
+        (circuit %__compact_contract_C_foo.9 ([%x.10 (tbytes 32)]
+                                              [%__compact_local_c.11 (tcontract C
+                                                                       (foo (fref
+                                                                              ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                                                     32))
+                                                                         (ttuple))
+                                                                       (bar (fref
+                                                                              ((%__compact_contract_C_bar.12))) #t ()
+                                                                         (tbytes
+                                                                           32)))])
+             (ttuple)
+          (let* ([[%__compact_local_res.13 (ttuple)]
+                  (contract-call foo
+                       (%__compact_local_c.11
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                            32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                            (tbytes 32))))
+                    %x.10)])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.11
+                #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
+                     154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
+                (call (fref ((%transientCommit.2)))
+                  (tuple %x.10)
+                  (call (fref ((%createNonce.8))))))
+              %__compact_local_res.13)))
+        (circuit %__compact_contract_C_bar.12 ([%__compact_local_c.14 (tcontract C
+                                                                        (foo (fref
+                                                                               ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                                                      32))
+                                                                          (ttuple))
+                                                                        (bar (fref
+                                                                               ((%__compact_contract_C_bar.12))) #t ()
+                                                                          (tbytes
+                                                                            32)))])
+             (tbytes 32)
+          (let* ([[%__compact_local_res.15 (tbytes 32)]
+                  (contract-call bar
+                       (%__compact_local_c.14
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                            32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                            (tbytes 32)))))])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.14
+                #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
+                     91 167 33 168 90 209 87 29 198 155 79 107 183 182 161 126
+                     44)
+                (call (fref ((%transientCommit.5)))
+                  (tuple)
+                  (call (fref ((%createNonce.8))))))
+              %__compact_local_res.15)))
         (public-ledger-declaration
-          %contract_c.0
+          %contract_c.16
           (__compact_Cell
             (tcontract C
-              (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
-        (constructor ([%c.1 (tcontract C
-                              (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
-          (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
-        (circuit %hello.2 ()
+              (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes 32))
+                (ttuple))
+              (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                (tbytes 32)))))
+        (constructor ([%c.17 (tcontract C
+                               (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                 32))
+                                 (ttuple))
+                               (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                                 (tbytes 32)))])
+          (seq (= %contract_c.16 (disclose %c.17)) (tuple)))
+        (circuit %hello.0 ()
              (ttuple)
           (elt-call
-            (elt-call %contract_c.0 read)
+            (elt-call %contract_c.16 read)
             foo
-            (elt-call (elt-call %contract_c.0 read) bar)))))
+            (elt-call (elt-call %contract_c.16 read) bar)))))
     )
 
   (test
@@ -10237,21 +10618,94 @@
       "export circuit hello(): [] { return contract_c.foo(contract_c.bar()); }"
       )
     (returns
-      (program ((hello %hello.2))
-        (public-ledger-declaration %kernel.0 (Kernel))
+      (program ((hello %hello.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (external %transientCommit.2 ([%value.3 (ttuple
+                                                  (tbytes 32))]
+                                      [%rand.4 (tfield)])
+             (tfield))
+        (external %transientCommit.5 ([%value.6 (ttuple)]
+                                      [%rand.7 (tfield)])
+             (tfield))
+        (external %createNonce.8 () (tfield))
+        (circuit %__compact_contract_C_foo.9 ([%x.10 (tbytes 32)]
+                                              [%__compact_local_c.11 (tcontract C
+                                                                       (foo (fref
+                                                                              ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                                                     32))
+                                                                         (ttuple))
+                                                                       (bar (fref
+                                                                              ((%__compact_contract_C_bar.12))) #t ()
+                                                                         (tbytes
+                                                                           32)))])
+             (ttuple)
+          (let* ([[%__compact_local_res.13 (ttuple)]
+                  (contract-call foo
+                       (%__compact_local_c.11
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                            32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                            (tbytes 32))))
+                    %x.10)])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.11
+                #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
+                     154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
+                (call (fref ((%transientCommit.2)))
+                  (tuple %x.10)
+                  (call (fref ((%createNonce.8))))))
+              %__compact_local_res.13)))
+        (circuit %__compact_contract_C_bar.12 ([%__compact_local_c.14 (tcontract C
+                                                                        (foo (fref
+                                                                               ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                                                      32))
+                                                                          (ttuple))
+                                                                        (bar (fref
+                                                                               ((%__compact_contract_C_bar.12))) #t ()
+                                                                          (tbytes
+                                                                            32)))])
+             (tbytes 32)
+          (let* ([[%__compact_local_res.15 (tbytes 32)]
+                  (contract-call bar
+                       (%__compact_local_c.14
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                            32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                            (tbytes 32)))))])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.14
+                #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
+                     91 167 33 168 90 209 87 29 198 155 79 107 183 182 161 126
+                     44)
+                (call (fref ((%transientCommit.5)))
+                  (tuple)
+                  (call (fref ((%createNonce.8))))))
+              %__compact_local_res.15)))
         (public-ledger-declaration
-          %contract_c.0
+          %contract_c.16
           (__compact_Cell
             (tcontract C
-              (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
-        (constructor ([%c.1 (tcontract C
-                              (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
-          (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
-        (circuit %hello.2 ()
+              (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes 32))
+                (ttuple))
+              (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                (tbytes 32)))))
+        (constructor ([%c.17 (tcontract C
+                               (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                 32))
+                                 (ttuple))
+                               (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                                 (tbytes 32)))])
+          (seq (= %contract_c.16 (disclose %c.17)) (tuple)))
+        (circuit %hello.0 ()
              (ttuple)
-          (elt-call %contract_c.0 foo (elt-call %contract_c.0 bar)))))
+          (elt-call
+            %contract_c.16
+            foo
+            (elt-call %contract_c.16 bar)))))
     )
 
   (test
@@ -10287,19 +10741,90 @@
       "export circuit hello(): [] { return contract_c.foo(contract_c.bar()); }"
       )
     (returns
-      (program ((contract_c %contract_c.0) (hello %hello.2))
-        (public-ledger-declaration %kernel.0 (Kernel))
+      (program ((contract_c %contract_c.0) (hello %hello.1))
+        (public-ledger-declaration %kernel.2 (Kernel))
+        (external %transientCommit.3 ([%value.4 (ttuple
+                                                  (tbytes 32))]
+                                      [%rand.5 (tfield)])
+             (tfield))
+        (external %transientCommit.6 ([%value.7 (ttuple)]
+                                      [%rand.8 (tfield)])
+             (tfield))
+        (external %createNonce.9 () (tfield))
+        (circuit %__compact_contract_C_foo.10 ([%x.11 (tbytes 32)]
+                                               [%__compact_local_c.12 (tcontract C
+                                                                        (foo (fref
+                                                                               ((%__compact_contract_C_foo.10))) #f ((tbytes
+                                                                                                                       32))
+                                                                          (ttuple))
+                                                                        (bar (fref
+                                                                               ((%__compact_contract_C_bar.13))) #t ()
+                                                                          (tbytes
+                                                                            32)))])
+             (ttuple)
+          (let* ([[%__compact_local_res.14 (ttuple)]
+                  (contract-call foo
+                       (%__compact_local_c.12
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.10))) #f ((tbytes
+                                                                             32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.13))) #t ()
+                            (tbytes 32))))
+                    %x.11)])
+            (seq
+              (elt-call %kernel.2 claimContractCall %__compact_local_c.12
+                #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
+                     154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
+                (call (fref ((%transientCommit.3)))
+                  (tuple %x.11)
+                  (call (fref ((%createNonce.9))))))
+              %__compact_local_res.14)))
+        (circuit %__compact_contract_C_bar.13 ([%__compact_local_c.15 (tcontract C
+                                                                        (foo (fref
+                                                                               ((%__compact_contract_C_foo.10))) #f ((tbytes
+                                                                                                                       32))
+                                                                          (ttuple))
+                                                                        (bar (fref
+                                                                               ((%__compact_contract_C_bar.13))) #t ()
+                                                                          (tbytes
+                                                                            32)))])
+             (tbytes 32)
+          (let* ([[%__compact_local_res.16 (tbytes 32)]
+                  (contract-call bar
+                       (%__compact_local_c.15
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.10))) #f ((tbytes
+                                                                             32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.13))) #t ()
+                            (tbytes 32)))))])
+            (seq
+              (elt-call %kernel.2 claimContractCall %__compact_local_c.15
+                #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
+                     91 167 33 168 90 209 87 29 198 155 79 107 183 182 161 126
+                     44)
+                (call (fref ((%transientCommit.6)))
+                  (tuple)
+                  (call (fref ((%createNonce.9))))))
+              %__compact_local_res.16)))
         (public-ledger-declaration
           %contract_c.0
           (__compact_Cell
             (tcontract C
-              (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
-        (constructor ([%c.1 (tcontract C
-                              (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
-          (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
-        (circuit %hello.2 ()
+              (foo (fref ((%__compact_contract_C_foo.10))) #f ((tbytes
+                                                                 32))
+                (ttuple))
+              (bar (fref ((%__compact_contract_C_bar.13))) #t ()
+                (tbytes 32)))))
+        (constructor ([%c.17 (tcontract C
+                               (foo (fref ((%__compact_contract_C_foo.10))) #f ((tbytes
+                                                                                  32))
+                                 (ttuple))
+                               (bar (fref ((%__compact_contract_C_bar.13))) #t ()
+                                 (tbytes 32)))])
+          (seq (= %contract_c.0 (disclose %c.17)) (tuple)))
+        (circuit %hello.1 ()
              (ttuple)
           (elt-call %contract_c.0 foo (elt-call %contract_c.0 bar)))))
     )
@@ -10338,21 +10863,94 @@
       "export circuit hello(): [] { return $contract_c.foo($contract_c.bar()); }"
       )
     (returns
-      (program ((hello %hello.2))
-        (public-ledger-declaration %kernel.0 (Kernel))
+      (program ((hello %hello.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (external %transientCommit.2 ([%value.3 (ttuple
+                                                  (tbytes 32))]
+                                      [%rand.4 (tfield)])
+             (tfield))
+        (external %transientCommit.5 ([%value.6 (ttuple)]
+                                      [%rand.7 (tfield)])
+             (tfield))
+        (external %createNonce.8 () (tfield))
+        (circuit %__compact_contract_C_foo.9 ([%x.10 (tbytes 32)]
+                                              [%__compact_local_c.11 (tcontract C
+                                                                       (foo (fref
+                                                                              ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                                                     32))
+                                                                         (ttuple))
+                                                                       (bar (fref
+                                                                              ((%__compact_contract_C_bar.12))) #t ()
+                                                                         (tbytes
+                                                                           32)))])
+             (ttuple)
+          (let* ([[%__compact_local_res.13 (ttuple)]
+                  (contract-call foo
+                       (%__compact_local_c.11
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                            32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                            (tbytes 32))))
+                    %x.10)])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.11
+                #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
+                     154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
+                (call (fref ((%transientCommit.2)))
+                  (tuple %x.10)
+                  (call (fref ((%createNonce.8))))))
+              %__compact_local_res.13)))
+        (circuit %__compact_contract_C_bar.12 ([%__compact_local_c.14 (tcontract C
+                                                                        (foo (fref
+                                                                               ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                                                      32))
+                                                                          (ttuple))
+                                                                        (bar (fref
+                                                                               ((%__compact_contract_C_bar.12))) #t ()
+                                                                          (tbytes
+                                                                            32)))])
+             (tbytes 32)
+          (let* ([[%__compact_local_res.15 (tbytes 32)]
+                  (contract-call bar
+                       (%__compact_local_c.14
+                        (tcontract C
+                          (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                            32))
+                            (ttuple))
+                          (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                            (tbytes 32)))))])
+            (seq
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.14
+                #vu8(6 106 139 100 200 232 227 174 160 222 85 68 82 12 200
+                     91 167 33 168 90 209 87 29 198 155 79 107 183 182 161 126
+                     44)
+                (call (fref ((%transientCommit.5)))
+                  (tuple)
+                  (call (fref ((%createNonce.8))))))
+              %__compact_local_res.15)))
         (public-ledger-declaration
-          %contract_c.0
+          %contract_c.16
           (__compact_Cell
             (tcontract C
-              (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
-        (constructor ([%c.1 (tcontract C
-                              (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
-          (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
-        (circuit %hello.2 ()
+              (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes 32))
+                (ttuple))
+              (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                (tbytes 32)))))
+        (constructor ([%c.17 (tcontract C
+                               (foo (fref ((%__compact_contract_C_foo.9))) #f ((tbytes
+                                                                                 32))
+                                 (ttuple))
+                               (bar (fref ((%__compact_contract_C_bar.12))) #t ()
+                                 (tbytes 32)))])
+          (seq (= %contract_c.16 (disclose %c.17)) (tuple)))
+        (circuit %hello.0 ()
              (ttuple)
-          (elt-call %contract_c.0 foo (elt-call %contract_c.0 bar)))))
+          (elt-call
+            %contract_c.16
+            foo
+            (elt-call %contract_c.16 bar)))))
     )
 
   (test
@@ -12510,7 +13108,7 @@
       irritants: '("testfile.compact line 2 char 19" "identifier ~s might be referenced before it is assigned" (a)))
    )
 
-  (test ; FIXME/CHECH contracts shouldn't be arg to top level circuits and not circuits in modules
+  (test
     '(
       "export struct StructExample {"
       "  value: Field;"
@@ -12531,108 +13129,112 @@
       "}"
       )
     (returns
-      (program ((__compact_contract_AuthCell_get %__compact_contract_AuthCell_get.0)
-                (__compact_contract_AuthCell_set %__compact_contract_AuthCell_set.1)
-                (use_auth_cell %use_auth_cell.2))
+      (program ((use_auth_cell %use_auth_cell.0))
         (type-definition StructExample ()
           (tstruct StructExample (value (tfield))))
-        (public-ledger-declaration %kernel.3 (Kernel))
-        (external %transientCommit.4 ([%value.5 (ttuple)]
-                                      [%rand.6 (tfield)])
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (external %transientCommit.2 ([%value.3 (ttuple)]
+                                      [%rand.4 (tfield)])
              (tfield))
-        (external %transientCommit.7 ([%value.8 (ttuple
+        (external %transientCommit.5 ([%value.6 (ttuple
                                                   (tstruct StructExample
                                                     (value (tfield))))]
-                                      [%rand.9 (tfield)])
+                                      [%rand.7 (tfield)])
              (tfield))
-        (external %createNonce.10 () (tfield))
-        (circuit %__compact_contract_AuthCell_get.0 ([%__compact_local_c.11 (tcontract AuthCell
-                                                                              (get %__compact_contract_AuthCell_get.12 #f ()
+        (external %createNonce.8 () (tfield))
+        (circuit %__compact_contract_AuthCell_get.9 ([%__compact_local_c.10 (tcontract AuthCell
+                                                                              (get (fref
+                                                                                     ((%__compact_contract_AuthCell_get.9))) #f ()
                                                                                 (tstruct StructExample
                                                                                   (value (tfield))))
-                                                                              (set %__compact_contract_AuthCell_set.13 #f ((tstruct StructExample
-                                                                                                                             (value (tfield))))
+                                                                              (set (fref
+                                                                                     ((%__compact_contract_AuthCell_set.11))) #f ((tstruct StructExample
+                                                                                                                                    (value (tfield))))
                                                                                 (ttuple)))])
              (tstruct StructExample (value (tfield)))
-          (let* ([[%__compact_local_res.14 (tstruct StructExample
+          (let* ([[%__compact_local_res.12 (tstruct StructExample
                                              (value (tfield)))]
-                  (contract-call-temp get
-                       (%__compact_local_c.11
+                  (contract-call get
+                       (%__compact_local_c.10
                         (tcontract AuthCell
-                          (get %__compact_contract_AuthCell_get.15 #f ()
+                          (get (fref ((%__compact_contract_AuthCell_get.9))) #f ()
                             (tstruct StructExample (value (tfield))))
-                          (set %__compact_contract_AuthCell_set.16 #f ((tstruct StructExample
-                                                                         (value (tfield))))
+                          (set (fref ((%__compact_contract_AuthCell_set.11))) #f ((tstruct StructExample
+                                                                                    (value (tfield))))
                             (ttuple)))))])
             (seq
-              (elt-call %kernel.3 claimContractCall %__compact_local_c.11
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.10
                 #vu8(251 146 130 247 211 33 155 0 219 189 159 44 66 80 241
                      97 153 158 106 9 63 126 215 224 109 121 9 132 44 242 69
                      40)
-                (call (fref ((%transientCommit.4)))
+                (call (fref ((%transientCommit.2)))
                   (tuple)
-                  (call (fref ((%createNonce.10))))))
-              %__compact_local_res.14)))
-        (circuit %__compact_contract_AuthCell_set.1 ([%new_value.17 (tstruct StructExample
-                                                                      (value (tfield)))]
-                                                     [%__compact_local_c.18 (tcontract AuthCell
-                                                                              (get %__compact_contract_AuthCell_get.19 #f ()
-                                                                                (tstruct StructExample
-                                                                                  (value (tfield))))
-                                                                              (set %__compact_contract_AuthCell_set.20 #f ((tstruct StructExample
-                                                                                                                             (value (tfield))))
-                                                                                (ttuple)))])
+                  (call (fref ((%createNonce.8))))))
+              %__compact_local_res.12)))
+        (circuit %__compact_contract_AuthCell_set.11 ([%new_value.13 (tstruct StructExample
+                                                                       (value (tfield)))]
+                                                      [%__compact_local_c.14 (tcontract AuthCell
+                                                                               (get (fref
+                                                                                      ((%__compact_contract_AuthCell_get.9))) #f ()
+                                                                                 (tstruct StructExample
+                                                                                   (value (tfield))))
+                                                                               (set (fref
+                                                                                      ((%__compact_contract_AuthCell_set.11))) #f ((tstruct StructExample
+                                                                                                                                     (value (tfield))))
+                                                                                 (ttuple)))])
              (ttuple)
-          (let* ([[%__compact_local_res.21 (ttuple)]
-                  (contract-call-temp set
-                       (%__compact_local_c.18
+          (let* ([[%__compact_local_res.15 (ttuple)]
+                  (contract-call set
+                       (%__compact_local_c.14
                         (tcontract AuthCell
-                          (get %__compact_contract_AuthCell_get.22 #f ()
+                          (get (fref ((%__compact_contract_AuthCell_get.9))) #f ()
                             (tstruct StructExample (value (tfield))))
-                          (set %__compact_contract_AuthCell_set.23 #f ((tstruct StructExample
-                                                                         (value (tfield))))
+                          (set (fref ((%__compact_contract_AuthCell_set.11))) #f ((tstruct StructExample
+                                                                                    (value (tfield))))
                             (ttuple))))
-                    %new_value.17)])
+                    %new_value.13)])
             (seq
-              (elt-call %kernel.3 claimContractCall %__compact_local_c.18
+              (elt-call %kernel.1 claimContractCall %__compact_local_c.14
                 #vu8(35 28 150 19 141 247 164 165 64 131 35 83 155 34 189 15
                      248 10 244 173 125 198 158 93 86 33 130 210 202 181 88 40)
-                (call (fref ((%transientCommit.7)))
-                  (tuple %new_value.17)
-                  (call (fref ((%createNonce.10))))))
-              %__compact_local_res.21)))
+                (call (fref ((%transientCommit.5)))
+                  (tuple %new_value.13)
+                  (call (fref ((%createNonce.8))))))
+              %__compact_local_res.15)))
         (public-ledger-declaration
-          %auth_cell.24
+          %auth_cell.16
           (__compact_Cell
             (tcontract AuthCell
-              (get %__compact_contract_AuthCell_get.25 #f ()
+              (get (fref ((%__compact_contract_AuthCell_get.9))) #f ()
                 (tstruct StructExample (value (tfield))))
-              (set %__compact_contract_AuthCell_set.26 #f ((tstruct StructExample
-                                                             (value (tfield))))
+              (set (fref ((%__compact_contract_AuthCell_set.11))) #f ((tstruct StructExample
+                                                                        (value (tfield))))
                 (ttuple)))))
-        (constructor ([%auth_cell_param.27 (tcontract AuthCell
-                                             (get %__compact_contract_AuthCell_get.28 #f ()
+        (constructor ([%auth_cell_param.17 (tcontract AuthCell
+                                             (get (fref
+                                                    ((%__compact_contract_AuthCell_get.9))) #f ()
                                                (tstruct StructExample
                                                  (value (tfield))))
-                                             (set %__compact_contract_AuthCell_set.29 #f ((tstruct StructExample
-                                                                                            (value (tfield))))
+                                             (set (fref
+                                                    ((%__compact_contract_AuthCell_set.11))) #f ((tstruct StructExample
+                                                                                                   (value (tfield))))
                                                (ttuple)))])
           (seq
-            (= %auth_cell.24 (disclose %auth_cell_param.27))
+            (= %auth_cell.16 (disclose %auth_cell_param.17))
             (tuple)))
-        (circuit %use_auth_cell.2 ([%x.30 (tstruct StructExample
+        (circuit %use_auth_cell.0 ([%x.18 (tstruct StructExample
                                             (value (tfield)))])
              (tstruct StructExample (value (tfield)))
-          (let* ([[%v.31 (tundeclared)] (elt-call %auth_cell.24 get)])
+          (let* ([[%v.19 (tundeclared)] (elt-call %auth_cell.16 get)])
             (seq
               (elt-call
-                %auth_cell.24
+                %auth_cell.16
                 set
                 (new (tstruct StructExample (value (tfield)))
                   (value
-                    (+ (elt-ref %v.31 value)
-                       (disclose (elt-ref %x.30 value))))))
-              %v.31)))))
+                    (+ (elt-ref %v.19 value)
+                       (disclose (elt-ref %x.18 value))))))
+              %v.19)))))
      )
 )
 
@@ -22406,7 +23008,6 @@
    )
 )
 
-#!eof
 (run-tests combine-ledger-declarations
   (test
     '(
@@ -27788,7 +28389,6 @@
     '("import CompactStandardLibrary;"
       "export { sendImmediate }"
       )
-    ; TODO why has this changed. the second oops is the old one
     (oops
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
@@ -27798,10 +28398,6 @@
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
@@ -27813,7 +28409,12 @@
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value"))))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value"))))
+    ; TODO discuss with Kent. below is the old one
     #;(oops
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
@@ -27845,7 +28446,6 @@
     '("import CompactStandardLibrary;"
       "export { send }"
       )
-    ; TODO why has this changed. the second oops is the old one
     (oops
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
@@ -27855,10 +28455,6 @@
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
@@ -27870,7 +28466,12 @@
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value"))))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value"))))
+    ; TODO discuss with Kent. below is the old one
     #;(oops
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit send at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
@@ -32972,7 +33573,7 @@
      ))
 
   )
-#!eof
+
 (run-tests drop-ledger-runtime
   (test
     '(
@@ -46830,7 +47431,6 @@
     )
 
   (test-group
-      ; TODO: check/ask: does test-group take file paths for the actual code of a file or not
     ((create-file "C.compact"
        '(
          "export {get, set}"
