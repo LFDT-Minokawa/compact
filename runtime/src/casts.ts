@@ -59,7 +59,7 @@ export function convertBytesToUint(maxval: number, n: number, a: Uint8Array, src
   for (let i = n - 1; i >= 0; i -= 1) {
     x = x * 0x100n + BigInt(a[i]);
     if (x > maxval) {
-      const msg = `range error at ${src}: the integer value of ${a} is greater than the maximum value of Uint<0..${maxval}>`;
+      const msg = `range error at ${src}: the integer value of ${a} is greater than the maximum value of Uint<0..${maxval+1}>`;
       throw new CompactError(msg);
     }
   }

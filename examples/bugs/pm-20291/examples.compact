@@ -1,0 +1,156 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// test1: based on original ticket
+module M1 {
+  export circuit test1<#N>(bytes: Bytes<N>): Uint<8> { return bytes[N-1]; }
+  export circuit test1<#N>(bytes: Bytes<N>): Uint<8> { return bytes[N-1]; }
+  export circuit test1<#N, T>(n: Bytes<N>, t: T): Uint<8> { return default<Uint<8>>; }
+  export circuit call1(n: Uint<16>) : Uint<8> { return test1<8, Field>(default<Bytes<8>>, 1); }
+}
+
+import M1;
+export { call1 };
+
+// test2: based on original ticket
+module M2 {
+  export circuit test2<#N>(n: Uint<N>): Boolean { return false; }
+  export circuit test2<#N>(n: Uint<N>): Boolean { return false; }
+  export circuit test2<#N>(n: Bytes<N>): Boolean { return false; }
+  export circuit call2(n: Uint<16>): Boolean { return test2<8>(default<Bytes<8>>); }
+}
+
+import M2;
+export { call2 };
+
+// test3: different circuit params, same return value
+module M3 {
+  export circuit test3<#N, #P>(n: Vector<N, Vector<P, Field>>): Boolean { return true; }
+  export circuit test3<T>(n: T): Boolean { return true; }
+  export circuit test3<#N, #Z>(n: Vector<N, Vector<Z, Uint<8>>>): Boolean { return true; }
+  export circuit test3<#N, #Z>(n: Vector<N, Vector<Z, Uint<16>>>): Boolean { return true; }
+  export circuit test3<#N, #Z>(n: Vector<N, Vector<Z, Uint<32>>>): Boolean { return true; }
+  export circuit call3a(n: Uint<8>): Boolean { return test3<1, 1>(default<Vector<1, Vector<1, Field>>>); }
+  // export circuit call3b(n: Uint<8>): Boolean { return test3<1, 1>(default<Vector<1, Vector<1, Uint<1>>>>); }
+  export circuit call3c(n: Uint<8>): Boolean { return test3<1, 1>(default<Vector<1, Vector<1, Uint<128>>>>); }
+}
+
+import M3;
+export { call3a, call3c };
+
+// test4: generic type and "normal" signature
+module M4 {
+  export circuit test4(n: Field): Boolean { return true; }
+  export circuit test4<T>(n: T): Boolean { return false; }
+  export circuit call4a(): Boolean { return test4(1); }
+  export circuit call4b(): Boolean { return test4<Uint<8>>(1); }
+}
+
+import M4;
+export { call4a, call4b };
+
+// test5: vector fixed size vs generic size
+module M5 {
+  export circuit test5<#N>(v: Vector<N, Field>): Boolean { return true; }
+  export circuit test5(v: Vector<3, Field>): Boolean { return false; }
+  export circuit call5a(): Boolean { return test5(default<Vector<3, Field>>); }
+  export circuit call5b(): Boolean { return test5<5>(default<Vector<5, Field>>); }
+}
+
+import M5;
+export { call5a, call5b };
+
+// test6: Struct vs primitive overloading
+struct Data { value: Field }
+
+module M6 {
+  export circuit test6(n: Field): Uint<8> { return 1; }
+  export circuit test6(d: Data): Uint<8> { return 2; }
+  export circuit call6a(): Uint<8> { return test6(1); }
+  export circuit call6b(): Uint<8> { return test6(Data { value: 1 }); }
+}
+
+import M6;
+export { call6a, call6b };
+
+// test7: multiple vs single generic params
+module M7 {
+  export circuit test7<T, U>(a: T, b: U): Boolean { return true; }
+  export circuit test7<T>(a: T, b: T): Boolean { return false; }
+  export circuit call7a(): Boolean { return test7<Field, Uint<8>>(1, 2); }
+  export circuit call7b(): Boolean { return test7<Field>(1, 2); }
+}
+
+import M7;
+export { call7a, call7b };
+
+// test8: bytes width overloading
+module M8 {
+  export circuit test8<#N>(b: Bytes<N>): Boolean { return true; }
+  export circuit test8(b: Bytes<32>): Boolean { return false; }
+  export circuit call8a(): Boolean { return test8<16>(default<Bytes<16>>); }
+  export circuit call8b(): Boolean { return test8(default<Bytes<32>>); }
+}
+
+import M8;
+export { call8a, call8b };
+
+// test9: different Uint sizes
+module M9 {
+  export circuit test9<#N>(n: Uint<N>): Boolean { return true; }
+  export circuit test9(n: Uint<32>): Boolean { return false; }
+  export circuit call9a(): Boolean { return test9<16>(1 as Uint<16>); }
+  export circuit call9b(): Boolean { return test9(1 as Uint<32>); }
+}
+
+import M9;
+export { call9a, call9b };
+
+// test10: generic params
+module M10 {
+  export circuit test10<#N>(v: Vector<N, Field>): Boolean { return true; }
+  export circuit test10<T>(v: T): Boolean { return false; }
+  export circuit call10a(): Boolean { return test10<3>(default<Vector<3, Field>>); }
+  export circuit call10b(): Boolean { return test10<Field>(1); }
+}
+
+import M10;
+export { call10a, call10b };
+
+// test11: number of parameters - same types
+module M11 {
+  export circuit test11(a: Field): Boolean { return true; }
+  export circuit test11(a: Field, b: Field): Boolean { return false; }
+  export circuit test11(a: Field, b: Field, c: Field): Boolean { return true; }
+  export circuit call11a(): Boolean { return test11(1); }
+  export circuit call11b(): Boolean { return test11(1, 2); }
+  export circuit call11c(): Boolean { return test11(1, 2, 3); }
+}
+
+import M11;
+export { call11a, call11b, call11c };
+
+// test12: generic number of params
+module M12 {
+  export circuit test12<T>(a: T): Boolean { return true; }
+  export circuit test12<T, U>(a: T, b: U): Boolean { return false; }
+  export circuit test12<T, U, V>(a: T, b: U, c: V): Boolean { return true; }
+  export circuit call12a(): Boolean { return test12<Field>(1); }
+  export circuit call12b(): Boolean { return test12<Field, Uint<8>>(1, 2); }
+  export circuit call12c(): Boolean { return test12<Field, Uint<8>, Boolean>(1, 2, true); }
+}
+
+import M12;
+export { call12a, call12b, call12c };

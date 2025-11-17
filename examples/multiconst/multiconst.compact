@@ -59,7 +59,7 @@ export circuit test5(x: Field, y: Field): [] {
 // test6: anon circuit, short if, return
 export circuit test6(): Field {
   return () => {
-    const a = 1, b = 2, a_ = a + b > 5 ? 800 as Uint<8> : 2 as Uint<254>;
+    const a = 1, b = 2, a_ = a + b > 5 ? 800 as Uint<8> : 2 as Uint<248>;
     // only the last expr (a+a+a+a*1000*a*1000*b) - 0 is returned
     return a as Uint<1>, b, a + b, a + b, a * b, (a - b - (a - b)), (a+a+a+a*1000*a*1000*b) - 0;
   }();
@@ -67,7 +67,7 @@ export circuit test6(): Field {
 
 // test7: short if, 7 vars in one go
 export circuit test7(): [] {
-  const b = default<[]> == round.increment(1) ? default<Vector<0, Field>> : default<Vector<0, Uint<254>>>;
+  const b = default<[]> == round.increment(1) ? default<Vector<0, Field>> : default<Vector<0, Uint<248>>>;
   const a = 0, c = 0, f = b, e = 2, g = 3, z = 4, gg = 5, ggg = 6, gggg = 7;
 }
 

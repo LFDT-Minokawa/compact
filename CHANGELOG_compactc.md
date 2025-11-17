@@ -417,7 +417,7 @@
   - Changes names like `QualifiedCoinInfo` and `CoinInfo` to be `QualifiedShieldedCoinInfo` and `ShieldedCoinInfo` to
     match the names in the new on-chain runtime.
   - Renames standard library functions to distinguish between shielded and unshielded token utilities.
-  - Updates `@midnight-ntwrk/compact-runtime` to use the draft on-chain runtime API. Exports new functions and data types.
+  - Updates the repository to use ledger `0.5.0-alpha.1`. Exports new functions and data types.
   - Changes `analysis-passes.ss` and `typescript-passes.ss` to use the same type hashing logic for vectors of length `k`
     and tuples of length `k` of all the same element type, up to a hard-coded maximum length `k`.
 

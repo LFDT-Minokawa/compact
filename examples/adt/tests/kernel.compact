@@ -20,7 +20,7 @@ export circuit test(): [] {
   const k = kernel.self();
   const domain_sep = pad(32, "qa_token");
   const amount = 1;
-  kernel.mint(domain_sep, amount);
+  kernel.mintShielded(domain_sep, amount);
 
   // checkpoint
   kernel.checkpoint();

@@ -15,7 +15,7 @@
 
 import { describe, expect, test } from 'vitest';
 import * as compactRuntime from '../src/index.js';
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
 
 describe('createCoinCommitment', () => {
   test('Check for success', () => {
@@ -26,7 +26,8 @@ describe('createCoinCommitment', () => {
       undefined,
     );
     const coinInfo = {
-      type: ocrt.sampleTokenType(),
+      tag: 'shielded',
+      type: ocrt.sampleRawTokenType(),
       nonce: '2ab78b2272ec3489da60e6af54a87bfa53a7fa727602a040df782ebae7f5ab59',
       value: 572290297060094569n,
     };
@@ -35,7 +36,7 @@ describe('createCoinCommitment', () => {
       left: { bytes: new Uint8Array(32) },
       right: { bytes: ocrt.encodeContractAddress(ocrt.sampleContractAddress()) },
     };
-    compactRuntime.createZswapOutput(context, ocrt.encodeCoinInfo(coinInfo), recipient);
+    compactRuntime.createZswapOutput(context, ocrt.encodeShieldedCoinInfo(coinInfo), recipient);
     expect(context.currentZswapLocalState.outputs.length).toBe(1);
   });
 });

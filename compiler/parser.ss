@@ -382,9 +382,9 @@
            `(public-ledger-declaration ,src ,kwd-export? ,kwd-sealed? ,kwd ,id ,colon ,type ,semicolon)))])
     (Constructor (lconstructor)
       [ledger-constructor :: src (KEYWORD constructor) pattern-parameter-list block =>
-       (lambda (src kwd pattern-param-list stmt)
+       (lambda (src kwd pattern-param-list blck)
          (with-output-language (Lparser Ledger-Constructor)
-           `(constructor ,src ,kwd ,pattern-param-list ,stmt)))])
+           `(constructor ,src ,kwd ,pattern-param-list ,blck)))])
     (Circuit-definition (cdefn)
       [circuit-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD pure) #f) (KEYWORD circuit) function-name (OPT gparams #f) pattern-parameter-list #\: type block =>
        (lambda (src kwd-export? kwd-pure? kwd function-name generic-param-list? pattern-param-list colon type block)
@@ -508,7 +508,7 @@
     (Block (block)
       [block :: src #\{ (K* stmt) #\} =>
        (lambda (src lbrace stmt* rbrace)
-         (with-output-language (Lparser Statement)
+         (with-output-language (Lparser Block)
            `(block ,src ,lbrace ,stmt* ... ,rbrace)))])
     (Statement (stmt)
       [statement-expr :: src expr-seq #\; =>
@@ -751,9 +751,9 @@
       ; (struct allocation begins with the struct type) so there should be no ambiguity
       ; between the two forms of arrow expressions (block vs expr)
       [function-arrow-block :: src arrow-parameter-list (OPT return-type #f) "=>" block =>
-       (lambda (src pattern-param-list return-type? arrow stmt)
+       (lambda (src pattern-param-list return-type? arrow blck)
          (with-output-language (Lparser Function)
-           `(arrow-stmt ,src ,pattern-param-list ,return-type? ,arrow ,stmt)))]
+           `(arrow-block ,src ,pattern-param-list ,return-type? ,arrow ,blck)))]
       [function-arrow-expr :: src arrow-parameter-list (OPT return-type #f) "=>" expr =>
        (lambda (src pattern-param-list return-type? arrow expr)
          (with-output-language (Lparser Function)

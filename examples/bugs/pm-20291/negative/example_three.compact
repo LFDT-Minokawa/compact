@@ -1,0 +1,29 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// test19: same signature, mixed primitive return types
+module M19 {
+  export circuit test19(n: Uint<16>): Boolean { return true; }
+  export circuit test19(n: Uint<16>): Field { return 1; }
+  export circuit test19(n: Uint<16>): Uint<8> { return 1; }
+  export circuit test19(n: Uint<16>): Uint<32> { return 1; }
+  export circuit call19a(): Boolean { return test19(1); }
+  export circuit call19b(): Field { return test19(1); }
+  export circuit call19c(): Uint<8> { return test19(1); }
+  export circuit call19d(): Uint<32> { return test19(1); }
+}
+
+import M19;
+export { call19a, call19b, call19c, call19d };

@@ -17,7 +17,7 @@ import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
 
-describe('[Bugs] PM-7010 Merkle Tree and Historic Merkle Tree Bounds', () => {
+describe('[Bugs] [PM-7010] Merkle Tree and Historic Merkle Tree Bounds', () => {
     const CONTRACTS_ROOT = buildPathTo('/bugs/pm-7010/');
 
     describe('max and min merkle and historic merkle tree depth examples', () => {

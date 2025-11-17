@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
 import { MAX_FIELD } from './constants.js';
 import { CompactType, CompactTypeCurvePoint, CurvePoint } from './compact-types.js';
 import { CompactError } from './error.js';

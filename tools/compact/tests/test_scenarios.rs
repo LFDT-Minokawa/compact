@@ -447,7 +447,6 @@ fn test_sc6a_update_three_versions_clean_folder_check() {
     assert_eq!(directories.len(), 2);
 }
 
-// TODO: rework it later as 0.24.0 is last without fixup and format
 #[test]
 #[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
 fn test_sc7_update_previous_list_compile() {
@@ -459,13 +458,13 @@ fn test_sc7_update_previous_list_compile() {
             "--directory",
             &format!("{}", temp_path.display()),
             "update",
-            PREVIOUS_COMPACTC_VERSION,
+            VERSION_WITH_NO_FORMAT,
         ],
         None,
         Some("./output/update/std_update_other.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,
@@ -476,7 +475,7 @@ fn test_sc7_update_previous_list_compile() {
     run_command(
         &["--directory", &format!("{}", temp_path.display()), "list"],
         None,
-        Some("./output/list/std_previous_selected.txt"),
+        Some("./output/list/std_024_selected.txt"),
         None,
         &[
             ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
@@ -496,7 +495,7 @@ fn test_sc7_update_previous_list_compile() {
         None,
         Some("./output/compile/std_non_latest.txt"),
         None,
-        &[("[COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION)],
+        &[("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT)],
         None,
     );
 }
@@ -545,7 +544,7 @@ fn test_sc8_update_oldest_list_compile() {
             "--version",
         ],
         None,
-        Some("./output/compile/std_non_latest.txt"),
+        Some("./output/compile/std_oldest.txt"),
         None,
         &[("[COMPACTC_VERSION]", OLDEST_COMPACTC_VERSION)],
         None,

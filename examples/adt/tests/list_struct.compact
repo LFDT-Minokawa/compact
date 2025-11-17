@@ -21,21 +21,21 @@ export struct Complex {
   field: Field;
   uint: Uint<64>;
   vector: Vector<2, Field>;
-  coin: CoinInfo;
-  qcoin: QualifiedCoinInfo;
+  coin: ShieldedCoinInfo;
+  qcoin: QualifiedShieldedCoinInfo;
 }
 
 export ledger c: List<Complex>;
 
 circuit construct(bool: Boolean): Complex {
-  const coin_info = CoinInfo { pad(32, "nonce"), pad(32, "color"), 1 };
+  const coin_info = ShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1 };
   return Complex { boolean: bool,
                    bytes: pad(32, "some"),
                    field: 42 * 42 * 42,
                    uint: 1234567890,
                    vector: [8, 128 * 128],
                    coin: coin_info,
-                   qcoin: QualifiedCoinInfo { pad(32, "nonce"), pad(32, "color"), 9, 8 } };
+                   qcoin: QualifiedShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 9, 8 } };
 }
 
 export circuit test(): [] {

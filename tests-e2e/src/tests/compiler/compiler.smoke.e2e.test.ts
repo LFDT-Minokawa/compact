@@ -96,7 +96,7 @@ describe('[Smoke] Compiler', () => {
         const result: Result = await compile([Arguments.VSCODE, CONTRACT_WITH_ERRORS_FILE_PATH, outputDir]);
 
         expectCompilerResult(result).toBeFailure(
-            'Exception: multiSource.compact line 28 char 10: no compatible function named enabledPower is in scope at this call; one function is incompatible with the supplied argument types; supplied argument types: (Uint<0..0>, Field); declared argument types for function at line 19 char 1: (Boolean, Field)',
+            'Exception: multiSource.compact line 28 char 10: no compatible function named enabledPower is in scope at this call; one function is incompatible with the supplied argument types; supplied argument types: (Uint<0..1>, Field); declared argument types for function at line 19 char 1: (Boolean, Field)',
             compilerDefaultOutput(),
         );
         expectFiles(outputDir).thatNoFilesAreGenerated();
@@ -111,7 +111,7 @@ describe('[Smoke] Compiler', () => {
                 '  no compatible function named enabledPower is in scope at this call\n' +
                 '    one function is incompatible with the supplied argument types\n' +
                 '      supplied argument types:\n' +
-                '        (Uint<0..0>, Field)\n' +
+                '        (Uint<0..1>, Field)\n' +
                 '      declared argument types for function at line 19 char 1:\n' +
                 '        (Boolean, Field)',
             compilerDefaultOutput(),

@@ -17,7 +17,7 @@
 
 (library (langs)
   (export max-field field-bytes max-unsigned unsigned-bits field? datum? path-index?
-          max-bytes/vector-size len? max-merkle-tree-depth min-merkle-tree-depth
+          max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth
           maximum-ledger-segment-length 
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
@@ -59,9 +59,11 @@
   ; one smaller than the number of bytes required to represent the maximum field value
   (define (field-bytes) (quotient (field-bits) 8))
 
-  ; unsigned values are natural numbers that fit into the number of full bits representable by
-  ; a field, i.e., natural numbers bounded by the largest power of two representable by a field
-  (define (unsigned-bits) (field-bits))
+  ; unsigned values are natural numbers that fit into the number of full bytes representable
+  ; by a field.  larger unsigned values would fit in a field when (field-bits) is not an
+  ; even multiple of (field-bytes), but the lower limit allows the ledger to measure unsigned
+  ; alignments in bytes rather than bits
+  (define (unsigned-bits) (* (field-bytes) 8))
   (define (max-unsigned) (- (expt 2 (unsigned-bits)) 1))
 
   (define (maybe-bits? x)
@@ -78,17 +80,28 @@
   (define (datum? x)
     (or (boolean? x)
         (field? x)
-        (bytevector? x)))
+        (and (bytevector? x)
+             (<= (bytevector-length x) (max-bytes/vector-length)))))
 
-  (define max-bytes/vector-size (make-parameter (expt 2 24)))
+  (define max-bytes/vector-length (make-parameter (expt 2 24)))
 
   (define (len? x)
     (and (integer? x)
          (exact? x)
-         (<= 0 x (max-bytes/vector-size))))
+         (<= 0 x (max-bytes/vector-length))))
+
+  (define (kindex? x)
+    (and (integer? x)
+         (exact? x)
+         (<= 0 x (- (max-bytes/vector-length) 1))))
 
   (define (max-merkle-tree-depth) 32)
   (define (min-merkle-tree-depth) 2)
+
+  (define (zkir-field-rep? x)
+    (and (integer? x)
+         (exact? x)
+         (<= (- (max-field)) x (max-field))))
 
   (define-record-type vm-expr
     (nongenerative)
@@ -152,10 +165,10 @@
         (public-ledger-declaration exported? sealed? #f ledger-field-name #f type)
       )
     (Ledger-Constructor (lconstructor)
-      (constructor src (parg* ...) stmt) => (constructor (parg* 0 ...) #f stmt))
+      (constructor src (parg* ...) blck) => (constructor (parg* 0 ...) #f blck))
     (Circuit-Definition (cdefn)
-      (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type stmt) =>
-        (circuit exported? pure-dcl? function-name (type-param* ...) (parg* 0 ...) 4 type #f stmt)
+      (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type blck) =>
+        (circuit exported? pure-dcl? function-name (type-param* ...) (parg* 0 ...) 4 type #f blck)
       )
     (External-Declaration (edecl)
       (external src exported? function-name (type-param* ...) (arg* ...) type) =>
@@ -191,13 +204,16 @@
       )
     (Const-Binding (cbinding)
       (src pattern type expr) => (bracket pattern 0 type 0 expr))
+    (Block (blck)
+      (block src stmt* ...)              => (block #f stmt* ...)
+      )
     (Statement (stmt)
       (statement-expression src expr)    => expr
       (return src expr)                  => (return expr)
       (const src cbinding cbinding* ...) => (const (cbinding 0 cbinding* ...))
       (if src expr stmt1 stmt2)          => (if expr 3 stmt1 3 stmt2)
       (for src var-name expr stmt)       => (for var-name expr #f stmt)
-      (block src stmt* ...)              => (block #f stmt* ...)
+      blck
       )
     (Pattern (pattern)
       var-name
@@ -245,7 +261,7 @@
       ; form when targ* is empty
       (fref src function-name)               => function-name
       (fref src function-name (targ* ...))   => (fref function-name #f targ* ...)
-      (circuit src (parg* ...) type stmt)    => (circuit (parg* 0 ...) 4 type #f stmt)
+      (circuit src (parg* ...) type blck)    => (circuit (parg* 0 ...) 4 type #f blck)
       )
     (Tuple-Argument (tuple-arg bytes-arg)
       (single src expr)                      => expr
@@ -261,7 +277,7 @@
       (tboolean src)                         => (tboolean)
       (tfield src)                           => (tfield)
       (tunsigned src tsize)                  => (tunsigned tsize)        ; range from 0 to 2^{tsize}-1
-      (tunsigned src tsize tsize^)           => (tunsigned tsize tsize^) ; range from tsize to tsize^
+      (tunsigned src tsize tsize^)           => (tunsigned tsize tsize^) ; range from tsize (inclusive) to tsize^ (exclusive)
       (tbytes src tsize)                     => (tbytes tsize)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src tsize type)               => (tvector tsize type)
@@ -299,20 +315,20 @@
 
   (define-language/pretty Lnopattern (extends Lsingleconst)
     (Ledger-Constructor (lconstructor)
-      (- (constructor src (parg* ...) stmt))
-      (+ (constructor src (arg* ...) stmt) => (constructor (arg* ...) stmt)))
+      (- (constructor src (parg* ...) blck))
+      (+ (constructor src (arg* ...) blck) => (constructor (arg* ...) blck)))
     (Circuit-Definition (cdefn)
-      (- (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type stmt))
-      (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type stmt) =>
-           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f stmt)))
+      (- (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type blck))
+      (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type blck) =>
+           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f blck)))
     (Pattern-Argument (parg)
       (- (src pattern type)))
     (Statement (stmt)
       (- (const src pattern type expr))
       (+ (const src var-name type expr) => (const var-name type expr)))
     (Function (fun)
-      (- (circuit src (parg* ...) type stmt))
-      (+ (circuit src (arg* ...) type stmt) => (circuit (arg* 0 ...) 4 type #f stmt)))
+      (- (circuit src (parg* ...) type blck))
+      (+ (circuit src (arg* ...) type blck) => (circuit (arg* 0 ...) 4 type #f blck)))
     (Pattern (pattern)
       (- var-name)
       (- (tuple src (maybe pattern?*) ...))
@@ -321,22 +337,27 @@
     )
 
   (define-language/pretty Lhoisted (extends Lnopattern)
+    (Block (blck)
+      (- (block src stmt* ...))
+      (+ (block src (var-name* ...) stmt* ...)       => (block (var-name* ...) #f stmt* ...))
+      )
     (Statement (stmt)
-      (- (const src var-name type expr)
-         (block src stmt* ...))
-      (+ (= src var-name type expr)                  => (= var-name type expr)
-         (block src (var-name* ...) stmt* ...)       => (block (var-name* ...) #f stmt* ...)
-         )))
+      (- (const src var-name type expr))
+      (+ (= src var-name type expr)                  => (= var-name type expr))
+      )
+    )
 
   (define-language/pretty Lexpr (extends Lhoisted)
     (Ledger-Constructor (lconstructor)
-      (- (constructor src (arg* ...) stmt))
+      (- (constructor src (arg* ...) blck))
       (+ (constructor src (arg* ...) expr) => (constructor (arg* 0 ...) #f expr)))
     (Circuit-Definition (cdefn)
-      (- (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type stmt))
+      (- (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type blck))
       (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type expr) =>
            (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f expr)
       ))
+    (Block (blck)
+      (- (block src (var-name* ...) stmt* ...)))
     (Statement (stmt)
       (- (statement-expression src expr)
          (return src expr)
@@ -344,7 +365,7 @@
          (if src expr stmt1 stmt2)
          (for src var-name expr stmt)
          (seq src stmt* ...)
-         (block src (var-name* ...) stmt* ...)))
+         blck))
     (Expression (expr index)
       (+ (let* src ([arg* expr*] ...) expr)      => (let* ([bracket arg* 0 expr*] 0 ...) #f expr)
          (for src var-name expr1 expr2)          => (for var-name expr1 #f expr2)
@@ -352,7 +373,7 @@
          (return src expr)                       => expr
          ))
     (Function (fun)
-      (- (circuit src (arg* ...) type stmt))
+      (- (circuit src (arg* ...) type blck))
       (+ (circuit src (arg* ...) type expr) =>
            (circuit (arg* 0 ...) 4 type #f expr))))
 
@@ -447,7 +468,7 @@
 
   (define-language/pretty Lexpanded (extends Lpreexpand)
     (terminals
-      (+ (len (size len)))
+      (+ (len (len)))
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal))
          (boolean (exported sealed pure-dcl))
          (string (prefix mesg opaque-type file discloses)))
@@ -542,7 +563,7 @@
       (+ (ledger-ref src ledger-field-name) => ledger-field-name
          (new src type new-field* ...)      => (new type #f new-field* ...)
          (enum-ref src type elt-name)       => (enum-ref type elt-name)
-         (tuple-slice src expr index size)  => (tuple-slice #f expr #f index #f size)))
+         (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)))
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
@@ -560,7 +581,7 @@
          (tvector src tsize type)
          (tbytes src tsize))
       (+ tvar-name
-         (tunsigned src nat)    => (tunsigned nat)
+         (tunsigned src nat)    => (tunsigned nat) ; nat = max value
          (tvector src len type) => (tvector len type)
          (tbytes src len)       => (tbytes len)
          (tcontract src contract-name (elt-name* fun* pure-dcl* (type** ...) type*) ...) =>
@@ -581,8 +602,8 @@
 
   (define-language/pretty Ltypes (entry Program)
     (terminals
-      (field (nat))
-      (len (size len))
+      (field (nat kindex))
+      (len (len))
       (maybe-bits (mbits))
       (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal))
       (boolean (pure-dcl))
@@ -656,18 +677,18 @@
       ; for vector, the elements must all have the same type
       (vector src tuple-arg* ...)             => (vector tuple-arg* ...)
       ; for tuple-ref and tuple-slice, the index (nat) is constant, and expr's elements can have different, even unrelated types
-      (tuple-ref src expr nat)                => (tuple-ref #f expr #f nat)
-      (tuple-slice src type expr nat size)    => (tuple-slice #f expr #f nat #f size)
+      (tuple-ref src expr kindex)             => (tuple-ref #f expr #f kindex)
+      (tuple-slice src type expr kindex len)  => (tuple-slice #f expr #f kindex #f len)
       ; for vector-ref and vector-slice, index is an arbitrary expression and expr's elements must all have the same type
       ; NB: index must eventually reduce to a constant, but that manifests in a later language.  for now, it is constrained
       ; only to have some Uint type
       (vector-ref src type expr index)        => (vector-ref #f expr #f index)
-      (vector-slice src type expr index size) => (vector-slice #f expr #f index #f size)
+      (vector-slice src type expr index len)  => (vector-slice #f expr #f index #f len)
       ; for bytes-ref and bytes-slice, index is an arbitrary expression and expr must have a tbytes type
       ; NB: index must eventually reduce to a constant, but that manifests in a later language.  for now, it is constrained
       ; only to have some Uint type
       (bytes-ref src type expr index)         => (bytes-ref #f expr #f index)
-      (bytes-slice src type expr index size)  => (bytes-slice #f expr #f index #f size)
+      (bytes-slice src type expr index len)   => (bytes-slice #f expr #f index #f len)
       (+ src mbits expr1 expr2)               => (+ mbits expr1 expr2)
       (- src mbits expr1 expr2)               => (- mbits expr1 expr2)
       (* src mbits expr1 expr2)               => (* mbits expr1 expr2)
@@ -677,9 +698,9 @@
       (>= src mbits expr1 expr2)              => (>= expr1 3 expr2)
       (== src type expr1 expr2)               => (== expr1 3 expr2)
       (!= src type expr1 expr2)               => (!= expr1 3 expr2)
-      (map src nat fun map-arg map-arg* ...)  =>
+      (map src len fun map-arg map-arg* ...)  =>
         (map #f fun #f map-arg #f map-arg* ...)
-      (fold src nat fun (expr0 type0) map-arg map-arg* ...) =>
+      (fold src len fun (expr0 type0) map-arg map-arg* ...) =>
         (fold #f fun #f expr0 #f map-arg #f map-arg* ...)
       (call src fun expr* ...)                => (call fun #f expr* ...)
       (new src type expr* ...)                => (new type #f expr* ...)
@@ -900,8 +921,8 @@
 
   (define-language/pretty Lunrolled (extends Lnoenums)
     (Expression (expr index)
-      (- (map src nat fun map-arg map-arg* ...)
-         (fold src nat fun (expr0 type0) map-arg map-arg* ...))
+      (- (map src len fun map-arg map-arg* ...)
+         (fold src len fun (expr0 type0) map-arg map-arg* ...))
       (+ (flet src function-name (src^ (arg* ...) type expr^) expr) =>
            (flet [bracket function-name 0 (circuit (arg* 0 ...) 4 type #f expr^)] #f expr)))
     (Map-Argument (map-arg)
@@ -920,21 +941,19 @@
       (- (safe-cast src type type^ expr))))
 
   (define-language/pretty Lnovectorref (extends Lnosafecast)
-    (terminals
-      (- (len (size len)))
-      (+ (len (len))))
     (Expression (expr index)
       (- (bytes-ref src type expr index)
          (vector-ref src type expr index)
-         (tuple-slice src type expr nat size)
-         (bytes-slice src type expr index size)
-         (vector-slice src type expr index size))
-      (+ (bytes-ref src expr nat) => (bytes-ref expr nat))))
+         (tuple-slice src type expr kindex len)
+         (bytes-slice src type expr index len)
+         (vector-slice src type expr index len))
+      (+ (bytes-ref src expr kindex) => (bytes-ref expr kindex))))
 
   (define-language/pretty Lcircuit (entry Program)
     (terminals
       (field (nat))
       (len (len))
+      (kindex (kindex))
       (maybe-bits (mbits))
       (boolean (pure-dcl))
       (symbol (export-name struct-name contract-name elt-name ledger-op ledger-op-class adt-name adt-formal))
@@ -1147,38 +1166,47 @@
 
   (define-language/pretty Lzkir (entry Program)
     (terminals
-      (field (arg-count var imm nat))
+      (field (arg-count imm nat))
+      (zkir-field-rep (fr))
       (source-object (src))
-      (symbol (name)))
+      (id (var-name))
+      (symbol (name))
+      (Lflattened-Alignment (alignment)))
     (Program (p)
       (program src cdefn* ...) => (program #f cdefn* ...))
     (Circuit-Definition (cdefn)
-      (circuit src (name* ...) arg-count instr* ...) => (circuit (name* ...) arg-count #f instr* ...))
+      (circuit src (name* ...) (var-name* ...) instr* ...) =>
+        (circuit (name* ...) (var-name* ...) #f instr* ...))
     (Instruction (instr)
-      (add var0 var1)
-      (assert var)
-      (constrain_bits var0 imm)
-      (constrain_eq var0 var1)
-      (constrain_to_boolean var)
-      (copy var)
-      (declare_pub_input var)
-      (div_mod_power_of_two var imm)
-      (ec_add var0 var1 var2 var3)
-      (ec_mul var0 var1 var2)
-      (ec_mul_generator var)
-      (hash_to_curve var* ...)
-      (less_than var0 var1 imm)
-      (load_imm imm)
-      (mul var0 var1)
-      (neg var)
-      (output var)
-      (pi_skip var imm)
-      (private_input)
-      (private_input var)
-      (public_input)
-      (public_input var)
-      (reconstitute_field var0 var1 imm)
-      (select var0 var1 var2)
-      (test_eq var0 var1)
-      (transient_hash var* ...)))
+      (add outp inp0 inp1)
+      (assert inp)
+      (cond_select outp inp0 inp1 inp2)
+      (constrain_bits inp imm)
+      (constrain_eq inp0 inp1)
+      (constrain_to_boolean inp)
+      (copy outp inp)
+      (declare_pub_input inp)
+      (div_mod_power_of_two outp0 outp1 inp imm)  ;; outps=(quotient remainder)
+      (ec_add outp0 outp1 inp0 inp1 inp2 inp3)
+      (ec_mul outp0 outp1 inp0 inp1 inp2)
+      (ec_mul_generator outp0 outp1 inp)
+      (hash_to_curve outp0 outp1 inp* ...)
+      (less_than outp inp0 inp1 imm)
+      (load_imm outp fr)
+      (mul outp inp0 inp1)
+      (neg outp inp)
+      (output inp)
+      (persistent_hash outp0 outp1 (alignment* ...) inp* ...)
+      (pi_skip inp imm)
+      (private_input outp)
+      (private_input outp inp)
+      (public_input outp)
+      (public_input outp inp)
+      (reconstitute_field outp inp0 inp1 imm)
+      (test_eq outp inp0 inp1)
+      (transient_hash outp inp* ...))
+    (Input (inp)
+      var-name)
+    (Output (outp)
+      var-name))
 )

@@ -1,0 +1,30 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// test23: same signature, struct with enum fields
+enum State { Active, Inactive }
+
+struct Response1 { state: State, value: Field }
+struct Response2 { state: State, data: Bytes<8> }
+
+module M23 {
+  export circuit test23(n: Boolean): Response1 { return Response1 { state: State.Active, value: 1 }; }
+  export circuit test23(n: Boolean): Response2 { return Response2 { state: State.Active, data: default<Bytes<8>> }; }
+  export circuit call23a(): Response1 { return test23(true); }
+  export circuit call23b(): Response2 { return test23(true); }
+}
+
+import M23;
+export { call23a, call23b };

@@ -1,0 +1,582 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// Test1: module import/export (circuit)
+module Test {
+  export circuit test(var: Field): Field {
+    return var;
+  }
+}
+
+// import { test as t, t as test } from Test;
+import { test as t } from Test;
+import { test as t } from Test prefix T$;
+
+export { t, T$t };
+
+// usage
+export circuit test(): Field {
+  const result = t(0) + T$t(0);
+  assert(result == 0, "Result is 0");
+  return result;
+}
+
+// Test2: two modules import/export (circuit)
+module Test1a {
+  export circuit test1a(var1: Field): Field {
+    return var1;
+  }
+}
+
+module Test1b {
+  export circuit test1b(var1: Field): Field {
+    return var1;
+  }
+}
+
+// double export ?
+import { test1a as t1a } from Test1a;
+import { test1a as t1a } from Test1a;
+import { test1a as t1a, test1a as t1a } from Test1a;
+
+// can we use without export ?
+import { test1a as t1aa } from Test1a;
+import { test1b as t1b } from Test1b prefix T1$;
+
+export { t1a, T1$t1b };
+
+// usage
+export circuit test1(): Field {
+  const result1 = t1a(1) + T1$t1b(1) + t1aa(1);
+
+  assert(result1 == 3, "Result is 3");
+  return result1;
+}
+
+// Test3: two modules import/export (circuit + ledger var)
+module Test2a {
+  export ledger var_test2a: Boolean;
+
+  export circuit test2a(var2: Boolean): Boolean {
+    var_test2a = disclose(var2);
+    return var2;
+  }
+}
+
+module Test2b {
+  export ledger var_test2b: Boolean;
+
+  export circuit test2b(var2: Boolean): Boolean {
+    var_test2b = disclose(var2);
+    return var2;
+  }
+}
+
+import { var_test2a as vt2a, test2a as t2a } from Test2a;
+export { vt2a, t2a };
+
+import { var_test2b as vt2b, test2b as t2b } from Test2b;
+export { vt2b, t2b };
+
+// usage
+export circuit test2(): Boolean {
+  const result2a = vt2a || vt2b;
+  const result2b = t2a(true) || t2b(true);
+
+  assert(result2a == false, "Result2a is false");
+  assert(result2b == true, "Result2b is true");
+
+  return result2a && result2b;
+}
+
+// Test4: module in module import/export (circuit + ledger var)
+module Test3a {
+  export ledger var_test3a: Bytes<4>;
+
+  export circuit test3a(var3: Bytes<4>): Bytes<8> {
+    var_test3a = [...var3] as Bytes<4>;
+    return Bytes[1, 2, 3, 4, ...var3];
+  }
+}
+
+module Test3b {
+  import { var_test3a as vt3a, test3a as t3a } from Test3a;
+  export { vt3a, t3a };
+
+  export ledger var_test3b: Bytes<8>;
+
+  export circuit test3b(var3: Bytes<8>): Bytes<16> {
+    var_test3b = [...disclose(var3)] as Bytes<8>;
+    return Bytes[1,2,3,4,5,6,7,8, ...var3];
+  }
+
+  export circuit test3c(var3: Bytes<4>): Bytes<16> {
+    const var_test3c = vt3a;
+    const var_test3d = t3a(Bytes[1,2,3,4]);
+
+    return [...var_test3c, ...var3, ...var_test3d] as Bytes<16>;
+  }
+}
+
+import { test3b as t3b, test3c as t3c } from Test3b prefix _;
+export { _t3b, _t3c };
+
+// usage
+export circuit test3(): Bytes<16> {
+  const result3c = _t3c(Bytes[1,2,3,4]);
+
+  // var_test3c reads vt3a (initially [0,0,0,0])
+  // var_test3d = t3a([1,2,3,4]) returns [1,2,3,4,1,2,3,4]
+  // result = [0,0,0,0] + [1,2,3,4] + [1,2,3,4,1,2,3,4]
+  assert(result3c == [0,0,0,0,1,2,3,4,1,2,3,4,1,2,3,4] as Bytes<16>, "Result3c is correct");
+  return result3c;
+}
+
+// Test5: module export/import as weird names
+module Test4 {
+  export circuit test4(): Field {
+    return 1;
+  }
+}
+
+// import { test4 as CompactStandardLibrary } from Test4;
+// import CompactStandardLibrary;
+
+import { test4 as _ } from Test4;
+import { test4 as _ } from Test4 prefix _;
+export { _, __ };
+
+// usage
+export circuit test4(): Field {
+  // const [a, _ ] = [1, 2];
+  return _() + __();
+}
+
+// Test6: compact standard library
+module Test5 {
+  import { Maybe as module_maybe} from CompactStandardLibrary;
+  export { module_maybe };
+
+  export ledger var_test5: module_maybe<Field>;
+}
+
+import { Maybe as maybe } from CompactStandardLibrary;
+export { maybe };
+
+import { var_test5 as vt5, module_maybe } from Test5;
+export { vt5 };
+
+// usage
+export circuit test5(): module_maybe<Field> {
+  const p = default<maybe<Boolean>>;
+  const z = default<module_maybe<Boolean>>;
+
+  assert(p == z, "Same maybe");
+  return vt5;
+}
+
+// Test7: generic module
+module Test6a<T> {
+  export circuit test6a(var6: Bytes<1>): T {
+    return var6[0] as T;
+  }
+}
+
+module Test6b {
+  import { test6a as t6a } from Test6a<Field>;
+
+  export circuit test6b(): Field {
+    return t6a(Bytes[1]);
+  }
+}
+
+import { test6b as t6b } from Test6b;
+
+// usage
+export circuit test6(): Field {
+  return t6b();
+}
+
+// Test8: struct/enum exports from modules
+module Test7a {
+  export struct Point {
+    x: Field,
+    y: Field
+  }
+
+  export enum Direction {
+    North,
+    South,
+    East,
+    West
+  }
+
+  export circuit create_point(x: Field, y: Field): Point {
+    return Point { x, y };
+  }
+
+  export circuit get_direction(): Direction {
+    return Direction.North;
+  }
+}
+
+import { Point as Pt, Direction as Dir, create_point as cp, get_direction as gd } from Test7a;
+export { Pt, Dir, cp, gd };
+
+// usage
+export circuit test7(): Field {
+  const point = cp(5, 10);
+  const dir = gd();
+
+  assert(point.x == 5, "Point x is 5");
+  assert(point.y == 10, "Point y is 10");
+  assert(dir == Dir.North, "Direction is North");
+
+  return point.x + point.y;
+}
+
+// Test9: ADT in modules
+module Test8 {
+  export ledger counter: Counter;
+  export ledger numbers: Set<Field>;
+
+  export circuit increment_counter(amount: Uint<16>): Uint<64> {
+    counter.increment(disclose(amount));
+    return counter.read();
+  }
+
+  export circuit add_number(num: Field): Boolean {
+    numbers.insert(disclose(num));
+    return numbers.member(disclose(num));
+  }
+}
+
+import { counter as cnt, numbers as nums, increment_counter as ic, add_number as an } from Test8;
+export { cnt, nums, ic, an };
+
+// usage
+export circuit test8(): Uint<64> {
+  const count1 = ic(5 as Uint<16>);
+  const count2 = ic(3 as Uint<16>);
+
+  const added = an(42);
+  assert(added, "Number was added");
+  assert(nums.member(42), "Number exists in set");
+
+  return count2;
+}
+
+// Test10: cross-module type references
+module Test9a {
+  export struct Config {
+    threshold: Field,
+    enabled: Boolean
+  }
+
+  export enum Status {
+    Active,
+    Inactive
+  }
+
+  export ledger last_config: Config;
+}
+
+module Test9b {
+  import { Config as Cfg, Status as St, last_config as lc } from Test9a;
+  export { Cfg, St, lc };
+
+  export ledger last_status: St;
+
+  export circuit process_config(config: Cfg): Boolean {
+    lc = disclose(config);
+    return config.enabled;
+  }
+
+  export circuit check_status(status: St): Boolean {
+    last_status = disclose(status);
+    return status == St.Active;
+  }
+}
+
+import { Cfg, St, process_config as pc, check_status as cs, lc, last_status as ls } from Test9b;
+export { Cfg, St, pc, cs, lc, ls };
+
+// usage
+export circuit test9(): Boolean {
+  const config = Cfg { threshold: 100, enabled: true };
+  const status = St.Active;
+
+  const config_ok = pc(config);
+  const status_ok = cs(status);
+
+  assert(config_ok, "Config is enabled");
+  assert(status_ok, "Status is active");
+
+  // Verify ledger state
+  assert(lc.threshold == 100, "Last config threshold is 100");
+  assert(lc.enabled == true, "Last config enabled is true");
+  assert(ls == St.Active, "Last status is Active");
+
+  return config_ok && status_ok;
+}
+
+// Test10: witness functions in modules
+module Test10 {
+  witness get_secret(): Field;
+
+  export circuit use_secret(): Field {
+    const secret = disclose(get_secret());
+    return secret * 2;
+  }
+}
+
+import { use_secret as us } from Test10;
+export { us };
+
+// usage
+export circuit test10(): Field {
+  return us();
+}
+
+// Test11: deeper nesting (module in module in module - 3 levels)
+module Test11a {
+  export ledger base_result: Field;
+
+  export circuit base_func(x: Field): Field {
+    const result = x * 2;
+    base_result = result;
+    return result;
+  }
+}
+
+module Test11b {
+  import { base_func as bf, base_result as br } from Test11a;
+  export { br };
+
+  export ledger middle_result: Field;
+
+  export circuit middle_func(x: Field): Field {
+    const result = bf(disclose(x)) + 1;
+    middle_result = result;
+    return result;
+  }
+}
+
+module Test11c {
+  import { middle_func as mf, middle_result as mr, br } from Test11b;
+  export { mf, mr, br };
+
+  export ledger top_result: Field;
+
+  export circuit top_func(x: Field): Field {
+    const result = mf(x) * 3;
+    top_result = result;
+    return result;
+  }
+}
+
+import { top_func as tf, mf, top_result as tr, mr, br } from Test11c;
+export { tf, mf, tr, mr, br };
+
+// usage
+export circuit test11(): Field {
+  const result1 = tf(5);    // (5 * 2 + 1) * 3 = 33
+  const result2 = mf(5);    // 5 * 2 + 1 = 11
+
+  assert(result1 == 33, "Result1 is 33");
+  assert(result2 == 11, "Result2 is 11");
+  assert(tr == 33, "Top result stored");
+  assert(mr == 11, "Middle result stored");
+  assert(br == 10, "Base result stored");
+
+  return result1 + result2; // 44
+}
+
+// Test12: name collision - same export name from different modules
+module Test12a {
+  export circuit process(x: Field): Field {
+    return x + 10;
+  }
+}
+
+module Test12b {
+  export circuit process(x: Field): Field {
+    return x * 10;
+  }
+}
+
+import { process as process_a } from Test12a;
+import { process as process_b } from Test12b;
+export { process_a, process_b };
+
+// usage
+export circuit test12(): Field {
+  const result_a = process_a(5); // 5 + 10 = 15
+  const result_b = process_b(5); // 5 * 10 = 50
+
+  assert(result_a == 15, "Result_a is 15");
+  assert(result_b == 50, "Result_b is 50");
+
+  return result_a + result_b; // 65
+}
+
+// Test13: re-exporting with wrapper (module that wraps and re-exports)
+module Test13a {
+  export circuit original(x: Field): Field {
+    return x;
+  }
+}
+
+module Test13b {
+  import { original as orig } from Test13a;
+
+  export circuit wrapped(x: Field): Field {
+    // Wrap with validation
+    const result = orig(x);
+    assert((result as Uint<64>) < 100, "Value must be < 100");
+    return result;
+  }
+
+  // Re-export original too
+  export { orig };
+}
+
+import { wrapped as w, orig as o } from Test13b;
+export { w, o };
+
+// usage
+export circuit test13(): Field {
+  const result1 = w(50);  // Goes through wrapper with assertion
+  const result2 = o(50);  // Direct access to original
+
+  assert(result1 == result2, "Results are equal");
+  return result1 + result2; // 100
+}
+
+// Test14: importing same function multiple times with different aliases
+module Test14 {
+  export circuit compute(x: Field): Field {
+    return x * x;
+  }
+}
+
+import { compute as square } from Test14;
+import { compute as calc } from Test14 prefix Prefix$;
+import { compute as fn } from Test14 prefix Another$;
+
+export { square, Prefix$calc, Another$fn };
+
+// usage
+export circuit test14(): Field {
+  const a = square(5);        // 25
+  const b = Prefix$calc(5);   // 25
+  const c = Another$fn(5);    // 25
+
+  assert(a == b, "a equals b");
+  assert(b == c, "b equals c");
+
+  return a + b + c; // 75
+}
+
+// Test15: complex re-export chain with types
+module Test15a {
+  export struct Data {
+    value: Field
+  }
+
+  export ledger stored_data: Data;
+
+  export circuit create_data(val: Field): Data {
+    const data = Data { value: disclose(val) };
+    stored_data = data;
+    return data;
+  }
+}
+
+module Test15b {
+  import { Data as D, create_data as cd, stored_data as sd } from Test15a;
+  export { D, cd, sd };
+
+  export ledger doubled_data: D;
+
+  export circuit double_data(data: D): D {
+    const doubled = D { value: disclose(data.value) * 2 };
+    doubled_data = doubled;
+    return doubled;
+  }
+}
+
+module Test15c {
+  import { D, cd, double_data as dd, sd, doubled_data as dbd } from Test15b;
+  export { D, cd, dd, sd, dbd };
+
+  export ledger tripled_data: D;
+
+  export circuit triple_data(data: D): D {
+    const tripled = D { value: disclose(data.value) * 3 };
+    tripled_data = tripled;
+    return tripled;
+  }
+}
+
+import { D as MyData, cd, dd, triple_data as td, sd, dbd, tripled_data as trd } from Test15c;
+export { MyData, cd, dd, td, sd, dbd, trd };
+
+// usage
+export circuit test15(): Field {
+  const data1 = cd(5);      // Data { value: 5 }
+  const data2 = dd(data1);  // Data { value: 10 }
+  const data3 = td(data2);  // Data { value: 30 }
+
+  assert(data1.value == 5, "data1 is 5");
+  assert(data2.value == 10, "data2 is 10");
+  assert(data3.value == 30, "data3 is 30");
+
+  // Verify ledger state through re-exported variables
+  assert(sd.value == 5, "Stored data is 5");
+  assert(dbd.value == 10, "Doubled data is 10");
+  assert(trd.value == 30, "Tripled data is 30");
+
+  return data3.value; // 30
+}
+
+// Test16: import with same name (no aliasing)
+module Test16 {
+  export circuit bob(x: Field): Field {
+    return x + 1;
+  }
+
+  export circuit alice(x: Field): Field {
+    return x * 2;
+  }
+}
+
+import { bob as bob } from Test16;
+import { alice as alice } from Test16 prefix Same$;
+
+export { bob, Same$alice };
+
+// usage
+export circuit test16(): Field {
+  const result1 = bob(10);        // 10 + 1 = 11
+  const result2 = Same$alice(10); // 10 * 2 = 20
+
+  assert(result1 == 11, "Bob result is 11");
+  assert(result2 == 20, "Alice result is 20");
+
+  return result1 + result2; // 31
+}

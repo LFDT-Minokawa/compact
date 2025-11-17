@@ -669,7 +669,7 @@
                           ")"))]
                  [(VMcoin-commit coin recipient)
                   (make-Qconcat
-                    "__compactRuntime.coinCommitment("
+                    "__compactRuntime.runtimeCoinCommitment("
                     2 ((make-Qsep ",")
                         (construct-query-value coin #f)
                         (construct-query-value recipient #f))
@@ -1138,15 +1138,14 @@
               (print-constructor-declaration xpelt*)
               (display-string "}\n")
               (newline)
-              (display-string "export declare function ledger(state: __compactRuntime.StateValue): Ledger;\n")
+              (display-string "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;\n")
               (display-string "export declare const pureCircuits: PureCircuits;\n")
               ))))
 
       (module (print-contract.js)
         (define (print-contract-header)
           (display-string "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';\n")
-          (printf "const expectedRuntimeVersionString = '~a';\n" runtime-version-string)
-          (printf "__compactRuntime.checkRuntimeVersion(expectedRuntimeVersionString);\n")
+          (printf "__compactRuntime.checkRuntimeVersion('~a');\n" runtime-version-string)
           (display-string "\n"))
 
         (define (print-contract-descriptors src descriptor-id* type*)
@@ -1277,7 +1276,7 @@
             (let ([stateValue (format-internal-binding unique-local-name (make-temp-id src 'stateValue))])
               (initialize-array pl-array stateValue
                 (cons*
-                  2 (format "~a.data = ~a;" state stateValue)
+                  2 (format "~a.data = new __compactRuntime.ChargedState(~a);" state stateValue)
                   q*))))
 
           (define (ledger-reset-to-default src pl-array q*)
@@ -1330,7 +1329,7 @@
               (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
                 [(tboolean ,src) "Boolean"]
                 [(tfield ,src) "Field"]
-                [(tunsigned ,src ,nat) (format "Uint<0..~d>" nat)]
+                [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
                 [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
                 [(tunknown) "Unknown"]
                 [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -1540,7 +1539,7 @@
                                           (argument-type-checks src external-name 1 (map arg->id arg*) (map arg->type arg*)
                                             (list
                                               ; Shallow clone context to ensure no-one else has a reference to it
-                                              2 (format "const context = { ...~a };" contextOrig)
+                                              2 (format "const context = { ...~a, gasCost: __compactRuntime.emptyRunningCost() };" contextOrig)
                                               2 "const partialProofData = {"
                                               4 (make-Qconcat
                                                   "input: {"
@@ -1605,7 +1604,8 @@
                                               2 "return { "
                                                 "result: " result ", "
                                                 "context: " "context" ", "
-                                                "proofData: " "partialProofData"
+                                                "proofData: " "partialProofData" ", "
+                                                "gasCost: " "context.gasCost"
                                                 " };"
                                               0 "}"))))))
                                   external-name*)
@@ -1812,9 +1812,12 @@
                   [(XPelt-public-ledger pl-array lconstructor external-names)
                    (print-Q 0
                       (make-Qconcat
-                        "function ledger(state) {"
+                        "export function ledger(stateOrChargedState) {"
+                        2 "const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
+                        2 "const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
                         2 "const context = {"
-                        4 "currentQueryContext: new __compactRuntime.QueryContext(state, __compactRuntime.dummyContractAddress())"
+                        4 "currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()),"
+                        4 "costModel: __compactRuntime.CostModel.initialCostModel()"
                         2 "};"
                         2 "const partialProofData = {"
                         4 "input: { value: [], alignment: [] },"
@@ -1924,7 +1927,7 @@
                                              (ledger-initializers src state pl-array
                                                (set-operations state xpelt0*
                                                  (cons*
-                                                   2 (format "const context = __compactRuntime.createCircuitContext(__compactRuntime.DUMMY_ADDRESS, ~a.initialZswapLocalState.coinPublicKey, ~a.data, ~a.initialPrivateState)" constructorContext state constructorContext)
+                                                   2 (format "const context = __compactRuntime.createCircuitContext(__compactRuntime.dummyContractAddress(), ~a.initialZswapLocalState.coinPublicKey, ~a.data, ~a.initialPrivateState);" constructorContext state constructorContext)
                                                    2 "const partialProofData = {"
                                                    4 "input: { value: [], alignment: [] },"
                                                    4 "output: undefined,"
@@ -2084,7 +2087,7 @@
               (demand-unique-local-name! "context")
               (demand-unique-local-name! "partialProofData")
               (let-values ([(pure-name* impure-name*) (get-pure&impure-circuit-names xpelt*)])
-                (display-string "class Contract {\n")
+                (display-string "export class Contract {\n")
                 (display-string "  witnesses;\n")
                 (fluid-let ([helper* '()])
                   (print-contract-constructor xpelt* uname* impure-name*)
@@ -2107,7 +2110,7 @@
                 (newline)
                 (print-Q 0
                   (apply make-Qconcat
-                    "const pureCircuits = {"
+                    "export const pureCircuits = {"
                     (if (null? pure-name*)
                         (list "};")
                         (list 2 (build-exported-pure-circuits xpelt* uname*) 0 "};"))))
@@ -2122,7 +2125,7 @@
                    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                     (void)]
                    [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-                    (printf "var ~a;\n" export-name)
+                    (printf "export var ~a;\n" export-name)
                     (printf "(function (~a) {\n" export-name)
                     (let ([elt-name* (cons elt-name elt-name*)])
                       (for-each
@@ -2130,7 +2133,7 @@
                           (printf "  ~a[~:*~a['~a'] = ~d] = '~2:*~a';\n" export-name elt-name i))
                         elt-name*
                         (enumerate elt-name*)))
-                    (printf "})(~a = exports.~:*~a || (exports.~:*~a = {}));\n\n" export-name)]
+                    (printf "})(~a || (~:*~a = {}));\n\n" export-name)]
                    [else (assert cannot-happen)])]
                 [else (void)]))
             xpelt*))
@@ -2286,14 +2289,11 @@
               [(XPelt-public-ledger pl-array ledger-constructor external-names)
                (print-Q 0
                  (make-Qconcat
-                   "const contractReferenceLocations ="
+                   "export const contractReferenceLocations ="
                    2 (do-pl-array pl-array #t)
                    ";"))
                (newline)]
               [else (void)])))
-
-        (define (print-contract-exports)
-          (display-string "export { Contract, ledger, pureCircuits, contractReferenceLocations };\n"))
 
         (define (print-contract-footer)
           (display-string "//# sourceMappingURL=index.js.map\n"))
@@ -2307,7 +2307,6 @@
                 (print-contract-descriptors src descriptor-id* type*)
                 (print-contract-class src xpelt* uname*)
                 (for-each print-contract-reference-locations xpelt*)
-                (print-contract-exports)
                 (print-contract-footer)
                 (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
                 (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map)))))))
@@ -2762,9 +2761,9 @@
        (make-tuple tuple-arg*)]
       [(vector ,src ,tuple-arg* ...)
        (make-tuple tuple-arg*)]
-      [(tuple-ref ,src ,[Expr : expr (precedence vector-ref) outer-pure? -> * expr] ,nat)
+      [(tuple-ref ,src ,[Expr : expr (precedence vector-ref) outer-pure? -> * expr] ,kindex)
        (parenthesize level (precedence vector-ref)
-         (make-Qconcat expr (format "[~d]" nat)))]
+         (make-Qconcat expr (format "[~d]" kindex)))]
       [(bytes-ref ,src ,type ,[Expr : expr (precedence vector-ref) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index])
        ; NB: counting on check in optimize/resolve-indices to guarantee that the computed
        ; index cannot be out-of-range
@@ -2775,26 +2774,26 @@
        ; index cannot be out-of-range
        (parenthesize level (precedence vector-ref)
          (make-Qconcat expr "[" index "]"))]
-      [(tuple-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,nat ,size)
+      [(tuple-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,kindex ,len)
        (parenthesize level (precedence call)
          (make-Qconcat
-           (format "((e) => e.slice(~d, ~d))(" nat (+ nat size))
+           (format "((e) => e.slice(~d, ~d))(" kindex (+ kindex len))
            expr
            ")"))]
-      [(bytes-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index] ,size)
+      [(bytes-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index] ,len)
        ; NB: counting on check in optimize/resolve-indices to guarantee that the computed
-       ; index + size cannot be out-of-range
+       ; index + len cannot be out-of-range
        (parenthesize level (precedence call)
          (make-Qconcat
-           (format "((e, i) => e.slice(i, i+~d))(" size)
+           (format "((e, i) => e.slice(i, i+~d))(" len)
            ((make-Qsep ",") expr (make-Qconcat "Number(" index ")"))
            ")"))]
-      [(vector-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index] ,size)
+      [(vector-slice ,src ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,[Expr : index (precedence add1 comma) outer-pure? -> * index] ,len)
        ; NB: counting on check in optimize/resolve-indices to guarantee that the computed
-       ; index + size cannot be out-of-range
+       ; index + len cannot be out-of-range
        (parenthesize level (precedence call)
          (make-Qconcat
-           (format "((e, i) => e.slice(i, i+~d))(" size)
+           (format "((e, i) => e.slice(i, i+~d))(" len)
            ((make-Qsep ",") expr (make-Qconcat "Number(" index ")"))
            ")"))]
       [(+ ,src ,mbits ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
@@ -2891,7 +2890,7 @@
                   (Expr expr1 (precedence add1 comma) outer-pure?)
                   (Expr expr2 (precedence add1 comma) outer-pure?))
                  ")"))))]
-      [(map ,src ,nat ,[Function : fun0 outer-pure? -> * fun]
+      [(map ,src ,len ,[Function : fun0 outer-pure? -> * fun]
             ,[Map-Argument : map-arg (precedence add1 comma) outer-pure? -> * expr byte-ref?]
             ,[Map-Argument : map-arg* (precedence add1 comma) outer-pure? -> * expr* byte-ref?*]
             ...)
@@ -2906,7 +2905,7 @@
                  mapper-name
                  (not pure?)
                  (map (lambda (i) (format "a~s" i)) i+)
-                 nat
+                 len
                  (not pure?)
                  (map (lambda (i byte-ref?)
                         (let ([ref (format "a~d[i]" i)])
@@ -2929,7 +2928,7 @@
                  expr
                  expr*))
              ")")))]
-      [(fold ,src ,nat ,[Function : fun0 outer-pure? -> * fun]
+      [(fold ,src ,len ,[Function : fun0 outer-pure? -> * fun]
              (,[Expr : expr0 (precedence add1 comma) outer-pure? -> * expr0] ,type)
              ,[Map-Argument : map-arg (precedence add1 comma) outer-pure? -> * expr byte-ref?]
              ,[Map-Argument : map-arg* (precedence add1 comma) outer-pure? -> * expr* byte-ref?*]
@@ -2945,7 +2944,7 @@
                  folder-name
                  (not pure?)
                  (map (lambda (i) (format "a~s" i)) i+)
-                 nat
+                 len
                  (not pure?)
                  (map (lambda (i byte-ref?)
                         (let ([ref (format "a~d[i]" i)])
@@ -3059,10 +3058,11 @@
                 (make-Qconcat
                   "((t1) => {"
                   2 (format "if (t1 > ~d) {" nat)
-                  4 (format "throw new ~a('~a: cast from enum ~a to Uint<0..~d> failed: enum value ' + t1 + ' is greater than ~:*~d');"
+                  4 (format "throw new ~a('~a: cast from enum ~a to Uint<0..~d> failed: enum value ' + t1 + ' is greater than ~d');"
                       (compact-stdlib "CompactError")
                       (format-source-object src)
                       enum-name
+                      (+ nat 1)
                       nat)
                   2 "}"
                   2 "return BigInt(t1);"

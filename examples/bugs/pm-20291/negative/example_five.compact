@@ -1,0 +1,31 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// test18: same signature, enum return types
+enum Status { Success, Failure, Pending }
+enum Color { Red, Green, Blue }
+enum Direction { North, South, East, West }
+
+module M18 {
+  export circuit test18(n: Field): Status { return Status.Success; }
+  export circuit test18(n: Field): Color { return Color.Red; }
+  export circuit test18(n: Field): Direction { return Direction.North; }
+  export circuit call18a(): Status { return test18(1); }
+  export circuit call18b(): Color { return test18(1); }
+  export circuit call18c(): Direction { return test18(1); }
+}
+
+import M18;
+export { call18a, call18b, call18c };

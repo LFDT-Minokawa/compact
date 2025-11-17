@@ -38,7 +38,6 @@ export circuit test2(vector: Vector<8, Field>): Boolean {
 export circuit test3(): [] {
   const a = 0b11111111 + 0O77777777 + 0xAbCdEfaBcDeF0123456789;
   const b = a * 0xffff;
-  const c = (slice<0o0>([], 0) as Bytes<0> as Field) + (slice<0o0>([], 0) as Bytes<0> as Field);
   const d = (slice<0o1>(default<Vector<1, Uint<8>>>, 0) as Bytes<1> as Field) * (slice<0o1>(default<Vector<1, Uint<8>>>, 0) as Bytes<1> as Field);
   // const e = (0b1 - 0o7 - 0Xa * 1) * ([0b1, 1, 0x2][0]) - slice<1>([1, "a"], 0)[0];
   return slice<0o0>([], 0);

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
 import { CompactError } from './error.js';
 
 /**
@@ -422,7 +422,7 @@ export const Bytes32Descriptor = new CompactTypeBytes(32);
 
 export const MaxUint8Descriptor = new CompactTypeUnsignedInteger(18446744073709551615n, 8);
 
-export const CoinInfoDescriptor = {
+export const ShieldedCoinInfoDescriptor = {
   alignment(): ocrt.Alignment {
     return Bytes32Descriptor.alignment().concat(Bytes32Descriptor.alignment().concat(MaxUint8Descriptor.alignment()));
   },
@@ -468,7 +468,7 @@ export const ContractAddressDescriptor = {
   },
 };
 
-export const CoinRecipientDescriptor = {
+export const ShieldedCoinRecipientDescriptor = {
   alignment(): ocrt.Alignment {
     return CompactTypeBoolean.alignment().concat(
       ZswapCoinPublicKeyDescriptor.alignment().concat(ContractAddressDescriptor.alignment()),

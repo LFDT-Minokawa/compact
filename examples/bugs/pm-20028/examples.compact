@@ -1,0 +1,115 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// test1: cast to Uint<248>
+export ledger var_field1: Field;
+
+export circuit test1(): Uint<248> {
+  var_field1 = 1;
+  return 1;
+}
+
+// test2: save in ledger
+export ledger var_uint2: Uint<248>;
+
+export circuit test2(): Field {
+  var_uint2 = 1;
+  return 1;
+}
+
+// test3: use generic from module
+module N<#n> {
+  export ledger field: Field;
+
+  export circuit test3a(): Uint<n> {
+    field = 1;
+    return 1;
+  }
+}
+
+import N<248> prefix m$;
+
+export circuit test3(): Uint<248> {
+  return m$test3a();
+}
+
+export ledger var_test4a: Uint<248>;
+export ledger var_test4b: Uint<248>;
+
+// test 4: try adding the two Uint<248>
+export circuit test4(a: Uint<248>, b: Uint<248>): Field {
+  var_test4a = disclose(a);
+  var_test4b = disclose(b);
+
+  return (a as Field) + (b as Field);
+}
+
+// test 5: try casting up and down
+export ledger var_test5: Uint<248>;
+
+export circuit test5(): Uint<248> {
+    const max_width = 123456789 as Uint<248>;
+    const down128 = max_width as Uint<128>;
+    const down64 = down128 as Uint<64>;
+    const down32 = down64 as Uint<32>;
+    const up128 = down32 as Uint<128>;
+    const back254 = up128 as Uint<248>;
+
+    var_test5 = back254;
+    return var_test5;
+}
+
+// test 6: default Uint<248>
+export ledger var_test6: Uint<248>;
+
+export circuit test6(): Uint<248> {
+  var_test6 = default<Uint<248>>;
+  return var_test6;
+}
+
+// test 7: compare two different uints
+export ledger var_test7a: Uint<248>;
+export ledger var_test7b: Uint<64>;
+
+export circuit test_cast_comparison(): Boolean {
+    var_test7a = 1 as Uint<248>;
+    var_test7b = 1 as Uint<64>;
+
+    assert(var_test7a == var_test7b, "Equal !");
+    return var_test7a == var_test7b;
+}
+
+
+// test 8: add two Uint<247>
+export ledger var_test8a: Uint<247>;
+export ledger var_test8b: Uint<247>;
+
+export circuit test8(): Uint<248> {
+    var_test8a = default<Uint<247>>;
+    var_test8b = 1 as Uint<247>;
+    
+    return var_test8a + var_test8b;
+}
+
+// test 9: sub two Uint<248>
+export ledger var_test9a: Uint<248>;
+export ledger var_test9b: Uint<248>;
+
+export circuit test9(): Uint<248> {
+    var_test9a = default<Uint<248>>;
+    var_test9b = default<Uint<248>>;
+    
+    return var_test9a - var_test9b;
+}

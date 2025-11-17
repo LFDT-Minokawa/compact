@@ -1,0 +1,45 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+module Test3a {
+  export ledger var_test3a: Bytes<4>;
+
+  export circuit test3a(var3: Bytes<4>): Bytes<8> {
+    var_test3a = [...var3] as Bytes<4>;
+    return Bytes[1, 2, 3, 4, ...var3];
+  }
+}
+
+module Test3b {
+  import { var_test3a as vt3a, test3a as t3a } from Test3a;
+  export { vt3a };
+
+  export ledger var_test3b: Bytes<8>;
+
+  export circuit test3b(var3: Bytes<8>): Bytes<16> {
+    var_test3b = [...disclose(var3)] as Bytes<8>;
+    return Bytes[1,2,3,4,5,6,7,8, ...var3];
+  }
+
+  export circuit test3c(var3: Bytes<4>): Bytes<16> {
+    const var_test3c = vt3a;
+    const var_test3d = t3a(Bytes[1,2,3,4]);
+
+    return [...var_test3c, ...var3, ...var_test3d] as Bytes<16>;
+  }
+}
+
+import { test3b as t3b, test3c as t3c, vt3a } from Test3b prefix _;
+import { test3b as t3b, test3c as t3c, t3a } from Test3b prefix _;

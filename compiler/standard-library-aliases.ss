@@ -60,12 +60,17 @@
       (create_zswap_output . createZswapOutput)
       (create_nonce . createNonce)
       (token_type . tokenType)
-      (mint_token . mintToken)
+      (mint_token . mintShieldedToken)
       (evolve_nonce . evolveNonce)
-      (burn_address . burnAddress)
-      (send_immediate . sendImmediate)
+      (burn_address . shieldedBurnAddress)
+      (send_immediate . sendImmediateShielded)
       (merge_coin . mergeCoin)
-      (merge_coin_immediate . mergeCoinImmediate)))
+      (merge_coin_immediate . mergeCoinImmediate)
+      (mintToken . mintShieldedToken)
+      (burnAddress . shieldedBurnAddress)
+      (receive . receiveShielded)
+      (send . sendShielded)
+      (sendImmediate . sendImmediateShielded)))
 
   (define stdlib-struct-field-aliases
     '(
@@ -74,7 +79,7 @@
       ((Either . is_left) . isLeft)
       ((MerkleTreePathEntry . goes_left) . goesLeft)
       ((LeafPreimage . domain_sep) . domainSep)
-      ((QualifiedCoinInfo . mt_index) . mtIndex)
+      ((QualifiedShieldedCoinInfo . mt_index) . mtIndex)
       |#
       ))
 

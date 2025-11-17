@@ -101,7 +101,7 @@
                    stmt*
                    pattern*
                    elt-name*)))])))
-      (define (do-circuit src parg* stmt)
+      (define (do-circuit src parg* blck)
         (let-values ([(arg* stmt*) (let f ([parg* parg*])
                                      (if (null? parg*)
                                          (values '() '())
@@ -110,22 +110,22 @@
                                              (values (cons arg arg*) stmt*)))))])
           (values arg*
                   (if (null? stmt*)
-                      stmt
-                      (with-output-language (Lnopattern Statement)
-                        `(block ,src ,stmt* ... ,stmt))))))
+                      blck
+                      (with-output-language (Lnopattern Block)
+                        `(block ,src ,stmt* ... ,blck))))))
       )
     (Pattern-Argument : Pattern-Argument (ir stmt*) -> Argument (stmt*)
       [(,src ,pattern ,[type])
        (let-values ([(var-name stmt*) (do-pattern pattern stmt*)])
          (values `(,src ,var-name ,type) stmt*))])
     (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
-      [(constructor ,src (,parg* ...) ,[stmt])
-       (let-values ([(arg* stmt) (do-circuit src parg* stmt)])
-         `(constructor ,src (,arg* ...) ,stmt))])
+      [(constructor ,src (,parg* ...) ,[blck])
+       (let-values ([(arg* blck) (do-circuit src parg* blck)])
+         `(constructor ,src (,arg* ...) ,blck))])
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-      [(circuit ,src ,exported? ,pure-dcl? ,function-name (,[type-param*] ...) (,parg* ...) ,[type] ,[stmt])
-       (let-values ([(arg* stmt) (do-circuit src parg* stmt)])
-         `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,stmt))])
+      [(circuit ,src ,exported? ,pure-dcl? ,function-name (,[type-param*] ...) (,parg* ...) ,[type] ,[blck])
+       (let-values ([(arg* blck) (do-circuit src parg* blck)])
+         `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,blck))])
     (Statement : Statement (ir) -> Statement ()
       [(const ,src ,pattern ,[type] ,[expr])
        (let-values ([(var-name stmt*) (do-pattern pattern '())])
@@ -134,9 +134,9 @@
                stmt
               `(seq ,src ,stmt ,stmt* ...))))])
     (Function : Function (ir) -> Function ()
-      [(circuit ,src (,parg* ...) ,[type] ,[stmt])
-       (let-values ([(arg* stmt) (do-circuit src parg* stmt)])
-         `(circuit ,src (,arg* ...) ,type ,stmt))])
+      [(circuit ,src (,parg* ...) ,[type] ,[blck])
+       (let-values ([(arg* blck) (do-circuit src parg* blck)])
+         `(circuit ,src (,arg* ...) ,type ,blck))])
     )
 
   (define-pass report-unreachable : Lnopattern (ir) -> Lnopattern ()
@@ -149,11 +149,15 @@
        (for-each Program-Element pelt*)
        ir])
     (Program-Element : Program-Element (ir) -> * ()
-      [(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,stmt)
-       (Statement stmt #t)]
-      [(constructor ,src (,arg* ...) ,stmt)
-       (Statement stmt #t)]
+      [(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,blck)
+       (Block blck #t)]
+      [(constructor ,src (,arg* ...) ,blck)
+       (Block blck #t)]
       [else (void)])
+    (Block : Block (ir [reachable? #t]) -> * (reachable?)
+      [(block ,src ,stmt* ...)
+       (unless reachable? (unreachable src))
+       (fold-left (lambda (reachable? stmt) (Statement stmt reachable?)) #t stmt*)])
     (Statement : Statement (ir [reachable? #t]) -> * (reachable?)
       [(statement-expression ,src ,[expr])
        (unless reachable? (unreachable src))
@@ -171,13 +175,12 @@
        (unless reachable? (unreachable src))
        (or (Statement stmt1 #t) (Statement stmt2 #t))]
       [(seq ,src ,stmt* ...)
-       (fold-left (lambda (reachable? stmt) (Statement stmt reachable?)) #t stmt*)]
-      [(block ,src ,stmt* ...)
        (unless reachable? (unreachable src))
-       (fold-left (lambda (reachable? stmt) (Statement stmt reachable?)) #t stmt*)])
+       (fold-left (lambda (reachable? stmt) (Statement stmt reachable?)) #t stmt*)]
+      [,blck (Block blck reachable?)])
     (Function : Function (ir) -> Function ()
-      [(circuit ,src (,arg* ...) ,type ,stmt)
-       (Statement stmt #t)
+      [(circuit ,src (,arg* ...) ,type ,blck)
+       (Block blck #t)
        ir]
       [else ir]))
 
@@ -188,39 +191,43 @@
   ;; found in the same block or if a binding appears in a "single-statement"
   ;; context, i.e., one of the arms of an if statement.
   (define-pass hoist-local-variables : Lnopattern (ir) -> Lhoisted ()
-    (definitions
-      (define vars))
     (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
-      [(constructor ,src (,[arg*] ...) ,[SingleStatement : stmt])
-       `(constructor ,src (,arg* ...) ,stmt)])
+      [(constructor ,src (,[arg*] ...) ,[blck])
+       `(constructor ,src (,arg* ...) ,blck)])
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-      [(circuit ,src ,exported? ,pure-dcl? ,function-name (,[type-param*] ...) (,[arg*] ...) ,[type] ,[SingleStatement : stmt])
-       `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,stmt)])
-    (SingleStatement : Statement (ir) -> Statement ()
+      [(circuit ,src ,exported? ,pure-dcl? ,function-name (,[type-param*] ...) (,[arg*] ...) ,[type] ,[blck])
+       `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,blck)])
+    (Block : Block (ir) -> Block ()
+      [(block ,src ,stmt* ...)
+       (let ([vars (make-hashtable symbol-hash eq?)])
+         (let ([stmt* (maplr (lambda (stmt) (BlockStatement stmt vars)) stmt*)])
+           (define (symbol<? x y) (string<? (symbol->string x) (symbol->string y)))
+           (let ([var-name* (sort symbol<? (vector->list (hashtable-keys vars)))])
+             `(block ,src (,var-name* ...) ,stmt* ...))))])
+    (SingleStatement : Statement (ir vars) -> Statement ()
       [(const ,src ,var-name ,[type] ,[expr])
-       (source-errorf src "binding for ~s found in a single-statement context" var-name)]
-      [else (Statement ir)])
-    (BlockStatement : Statement (ir) -> Statement ()
+       (source-errorf src "const binding found in a single-statement context")]
+      [(seq ,src ,stmt* ...) `(seq ,src ,(maplr (lambda (stmt) (SingleStatement stmt vars)) stmt*) ...)]
+      [else (Statement ir vars)])
+    (BlockStatement : Statement (ir vars) -> Statement ()
       [(const ,src ,var-name ,[type] ,[expr])
        (let ([a (hashtable-cell vars var-name #f)])
          (when (cdr a)
            (source-errorf src "found multiple bindings for ~s in the same block" var-name))
          (set-cdr! a #t))
        `(= ,src ,var-name ,type ,expr)]
-      [else (Statement ir)])
-    (Statement : Statement (ir) -> Statement ()
-      [(if ,src ,[expr] ,[SingleStatement : stmt1] ,[SingleStatement : stmt2]) `(if ,src ,expr ,stmt1 ,stmt2)]
-      [(for ,src ,var-name ,[expr] ,[SingleStatement : stmt]) `(for ,src ,var-name ,expr ,stmt)]
-      [(seq ,src ,stmt* ...) `(seq ,src ,(map BlockStatement stmt*) ...)]
-      [(block ,src ,stmt* ...)
-       (fluid-let ([vars (make-hashtable symbol-hash eq?)])
-         (let ([stmt* (map BlockStatement stmt*)])
-           (define (symbol<? x y) (string<? (symbol->string x) (symbol->string y)))
-           (let ([var-name* (sort symbol<? (vector->list (hashtable-keys vars)))])
-             `(block ,src (,var-name* ...) ,stmt* ...))))])
+      [(seq ,src ,stmt* ...) `(seq ,src ,(maplr (lambda (stmt) (BlockStatement stmt vars)) stmt*) ...)]
+      [else (Statement ir vars)])
+    (Statement : Statement (ir vars) -> Statement ()
+      [(if ,src ,[expr] ,[SingleStatement : stmt1 vars -> stmt1] ,[SingleStatement : stmt2 vars -> stmt2]) `(if ,src ,expr ,stmt1 ,stmt2)]
+      [(for ,src ,var-name ,[expr] ,[SingleStatement : stmt vars -> stmt]) `(for ,src ,var-name ,expr ,stmt)]
+      [(statement-expression ,src ,[expr]) `(statement-expression ,src ,expr)]
+      [(return ,src ,[expr]) `(return ,src ,expr)]
+      [,blck (Block blck)]
+      [else (assert cannot-happen)])
     (Function : Function (ir) -> Function ()
-      [(circuit ,src (,[arg*] ...) ,[type] ,[SingleStatement : stmt])
-       `(circuit ,src (,arg* ...) ,type ,stmt)]))
+      [(circuit ,src (,[arg*] ...) ,[type] ,[blck])
+       `(circuit ,src (,arg* ...) ,type ,blck)]))
 
   (define-pass reject-duplicate-bindings : Lhoisted (ir) -> Lhoisted ()
     (definitions
@@ -257,7 +264,7 @@
        (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
        ir])
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-      [(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,[stmt])
+      [(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,[blck])
        (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
        (reject-duplicate! src "parameter name" (map arg->sym arg*))
        ir])
@@ -271,7 +278,7 @@
        (reject-duplicate! src "element name" (cons elt-name elt-name*))
        ir])
     (Function : Function (ir) -> Function ()
-      [(circuit ,src (,arg* ...) ,type ,[stmt])
+      [(circuit ,src (,arg* ...) ,type ,[blck])
        (reject-duplicate! src "parameter name" (map arg->sym arg*))
        ir]))
 
@@ -301,17 +308,17 @@
                  expr
                  (with-output-language (Lexpr Expression)
                    `(seq ,src ,expr* ... ,expr))))]))
-      (define block-ends '(dummy)))
+      (define (circuit-body src blck)
+        (let ([tail (list (with-output-language (Lexpr Expression) `(tuple ,src)))])
+          (make-seq src (Statement blck tail))))
+      (define block-ends '(dummy))
+      )
     (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
-      [(constructor ,src (,[arg*] ...) ,stmt)
-       (let ([tail (list (with-output-language (Lexpr Expression) `(tuple ,src)))])
-         (let ([tail (Statement stmt tail)])
-           `(constructor ,src (,arg* ...) ,(make-seq src tail))))])
+      [(constructor ,src (,[arg*] ...) ,blck)
+       `(constructor ,src (,arg* ...) ,(circuit-body src blck))])
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-      [(circuit ,src ,exported? ,pure-dcl? ,function-name (,[type-param*] ...) (,[arg*] ...) ,[type] ,stmt)
-       (let ([tail (list (with-output-language (Lexpr Expression) `(tuple ,src)))])
-         (let ([tail (Statement stmt tail)])
-           `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,(make-seq src tail))))])
+      [(circuit ,src ,exported? ,pure-dcl? ,function-name (,[type-param*] ...) (,[arg*] ...) ,[type] ,blck)
+       `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,(circuit-body src blck))])
     (Statement : Statement (ir tail) -> * (tail)
       [(statement-expression ,src ,expr) (cons (Expression expr) tail)]
       [(return ,src ,[expr])
@@ -373,10 +380,8 @@
     (Expression : Expression (ir) -> Expression ()
       [(seq ,src ,[expr*] ... ,[expr]) (make-seq src expr* expr)])
     (Function : Function (ir) -> Function ()
-      [(circuit ,src (,[arg*] ...) ,[type] ,stmt)
-       (let ([tail (list (with-output-language (Lexpr Expression) `(tuple ,src)))])
-         (let ([tail (Statement stmt tail)])
-           `(circuit ,src (,arg* ...) ,type ,(make-seq src tail))))]))
+      [(circuit ,src (,[arg*] ...) ,[type] ,blck)
+       `(circuit ,src (,arg* ...) ,type ,(circuit-body src blck))]))
 
   (define-pass eliminate-boolean-connectives : Lexpr (ir) -> Lnoandornot ()
     (Expression : Expression (ir) -> Expression ()

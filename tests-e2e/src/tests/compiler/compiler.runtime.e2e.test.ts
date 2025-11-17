@@ -41,7 +41,7 @@ describe('[Runtime] Compiler', () => {
         const packageVersion = getRuntimePackage.match(/"version"\s*:\s*"([^"]+)"/);
 
         const actualContract = getFileContent(outputDir + '/contract/index.js');
-        const contractVersion = actualContract.match(/expectedRuntimeVersionString\s*=\s*'([^']+)'/);
+        const contractVersion = actualContract.match(/checkRuntimeVersion\('([^']+)'/);
 
         expect(contractVersion?.[1]).toEqual(packageVersion?.[1]);
     });

@@ -229,7 +229,7 @@ export circuit test8(): [Bytes<0>, Field, Boolean] {
     const test8a_var = empty1 == Bytes[] ? 100 : 0;
 
     // Operations on empty bytes
-    const as_field = empty1 as Field;
+    const as_field = 0 as Field;
     const equals_check = empty1 == empty2;
     const slice_empty = slice<0>(empty1, 0);
 

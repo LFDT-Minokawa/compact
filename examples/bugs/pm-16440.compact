@@ -14,4 +14,4 @@
 // limitations under the License.
 
 import CompactStandardLibrary;
-export sealed ledger EsRdOЃ: MerkleTree<159390502094656647950333731871572319422, QualifiedCoinInfo>;
+export sealed ledger EsRdOЃ: MerkleTree<159390502094656647950333731871572319422, QualifiedShieldedCoinInfo>;

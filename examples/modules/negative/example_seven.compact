@@ -1,0 +1,51 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+module Test7a {
+  export struct Point {
+    x: Field,
+    y: Field
+  }
+
+  export enum Direction {
+    North,
+    South,
+    East,
+    West
+  }
+
+  export circuit create_point(x: Field, y: Field): Point {
+    return Point { x, y };
+  }
+
+  export circuit get_direction(): Direction {
+    return Direction.North;
+  }
+}
+
+import { Point as Pt, Direction as Dir, create_point as cp, get_direction as gd } from Test7a;
+export { Pt, Dir, cp, gd };
+
+// usage
+export circuit test7(): Field {
+  const point = cp(5, 10);
+  const dir = gd();
+
+  assert(point.x == 5, "Point x is 5");
+  assert(point.y == 10, "Point y is 10");
+  assert(dir == Direction.North, "Direction is North");
+
+  return point.x + point.y;
+}
