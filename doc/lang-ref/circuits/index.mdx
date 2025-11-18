@@ -1,0 +1,33 @@
+# Circuits
+The basic operational element in Compact is the `circuit`. This corresponds
+closely to a function in most languages but is compiled directly into a
+zero-knowledge circuit.
+
+<table className="lang-ref-table"><tbody><tr><td><em>prog</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;[<b><tt>export</tt></b>]&nbsp;&nbsp;[<b><tt>pure</tt></b>]&nbsp;&nbsp;<b><tt>circuit</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<em>gpars</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>}]&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;<em>block</em>&nbsp;&nbsp;</td></tr><tr><td><em>gpars</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;[<b><tt>\<</tt></b>&nbsp;&nbsp;[<em>gpar</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>gpar</em>}]&nbsp;&nbsp;<b><tt>></tt></b>]&nbsp;&nbsp;</td></tr><tr><td><em>gpar</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>#</tt></b><em>id</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>id</em></td></tr><tr><td><em>block</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>stmt</em>&nbsp;&nbsp;<b><tt>;</tt></b>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
+
+Circuits can optionally be exported.  [They can also optionally be declared as `pure`
+circuits.](./pure-and-impure-circuits) *Non-generic* circuit definitions have the form
+`circuit c(p: T, ...): R block` where `c` is the name of the circuit, `p: T, ...` is a
+sequence of zero or more comma-separated
+[parameter declarations with type annotations](../parameters-patterns-and-destructuring),
+`R` is the *return type* of the circuit:
+the circuit must return an expression of type `S` where `S` is a subtype of `R`, and
+`block` is a sequence of zero or more semicolon-delimited statements enclosed in
+curly braces (`{ }`) where
+each path through the block must end with a `return` statement, unless the return
+type is `[]`.
+
+Circuits can be generic. *Generic* circuit definitions have the form
+`circuit c<V, ...>(p: T, ...): R block` where `V, ...` is a sequence of zero or
+more generic parameters. These generic parameters are in scope in type annotations of parameter declarations `p: T, ...`,
+the return type `R`, and the circuit's `block`.
+If `V` is a generic size parameter it must be prefixed
+with `#`, however, when it is referenced in its [scope](../scope-and-binding#generic-parameter-references)
+the `#` prefix must be dropped. It is a static type error to export generic circuits.
+
+## Overview
+
+- [Pure and impure circuits](./pure-and-impure-circuits) - Understanding pure and impure circuits
+- [Statements](./statements) - Circuit statements including loops, conditionals, and bindings
+- [Expressions](./expressions) - Circuit expressions and their syntax
+

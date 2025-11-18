@@ -1,0 +1,166 @@
+# Declaring and maintaining public state
+
+Compact code can declare public state through `ledger` declarations.
+
+A ledger declaration defines one piece of information the contract
+stores in Midnight's public ledger.
+Multiple ledger declarations can appear in a program, or none.
+They can appear anywhere circuit definitions can appear,
+including within modules.
+
+A ledger declaration associates a ledger field name with one of a
+set of predefined [ledger ADT types](#ledger-state-types)
+For instance:
+
+```compact
+ledger val: Field;
+export ledger cnt: Counter;
+sealed ledger u8list: List<Uint<8>>;
+export sealed ledger mapping: Map<Boolean, Field>;
+```
+
+## Ledger state types
+
+In a `ledger` declaration, the following types are valid:
+
+- `T`, for any Compact type `T`
+- `Counter`
+- `Set<T>`, for any Compact type `T`
+- `Map<K, T>`, for any Compact types `K` and `T`
+- `Map<K, V>`, for any Compact type `K` and ledger state type `V` (see the following section)
+- `List<T>`, for any Compact type `T`
+- `MerkleTree<n, T>`, for a compile time integer `1 < n <= 32`, and any Compact
+  type `T`
+- `HistoricMerkleTree<n, T>`, for a compile time integer `1 < n <= 32`, and any
+  Compact type `T`
+
+Each ledger type supports a set of operations, which can be invoked with
+
+```compact
+<field name>.<operation>(<arguments ...>)
+```
+
+A ledger field that is declared with a Compact type `T` implicitly has the type
+`Cell<T>`. `Cell` has operations such as `read`, `write`, and `reset_to_default`.
+
+The `read` and `write` operations for the `Cell` type of any Compact type `T` have syntactic
+sugar. If `x` is a field in the ledger of any Compact type, then you may write
+
+```compact
+x       // expression equivalent to x.read()
+x = val // statement equivalent to x.write(val)
+```
+
+The `read`, `increment`, and `decrement` operations of type `Counter` type also
+have syntactic sugar.  If `c` is a `Counter` field in the ledger, then you may write
+
+```compact
+c        // expression equivalent to c.read()
+c += val // statement equivalent to c.increment(val)
+c -= val // statement equivalent to c.decrement(val)
+```
+
+A comprehensive list of operations can be found in
+the Compact [ledger data type documentation](../lang-ref.mdx#ledger-adt).
+
+
+## Nested state types in the `Map` type
+
+The only ledger state type in which values of other state types may be
+held is `Map`.  The key values in a `Map` must be non-state types
+(simple Compact types), but the mapped values may be counters, sets,
+lists, other maps, and so on.
+
+Here is a small example:
+
+```compact
+import CompactStandardLibrary;
+
+ledger fld: Map<Boolean, Map<Field, Counter>>;
+
+export circuit initNestedMap(b: Boolean): [] {
+  fld.insert(b, default<Map<Field, Counter>>);
+}
+
+export circuit initNestedCounter(b: Boolean, n: Field): [] {
+  fld.lookup(b).insert(n, default<Counter>);
+}
+
+export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {
+  fld.lookup(b).lookup(n).increment(k);
+}
+
+export circuit readNestedCounter1(b: Boolean, n: Field): Uint<64> {
+  return fld.lookup(b).lookup(n).read();
+}
+
+export circuit readNestedCounter2(b: Boolean, n: Field): Uint<64> {
+  return fld.lookup(b).lookup(n);
+}
+```
+
+In this example,
+- `fld` is bound to a `Map` from `Boolean` values to `Map`s from `Field` values to `Counter`s
+- `initNestedMap` can be used to create the inner `Map` for a particular outer-`Map` key
+- `initNestedCounter` can be used to create a `Counter` for a given outer-`Map` key and a given inner-`Map` key
+- `incrementNestedCounter` can be used to increment an existing `Counter` for a given outer-`Map` key and a given inner-`Map` key
+- either `readNestedCounter1` or `readNestedCounter2` can be used to read the value of an existing `Counter`
+  for a given outer-`Map` key and a given inner-`Map` key.
+
+Notes:
+
+1. Nesting is permitted only within `Map` values.  That is, nesting is not permitted in
+   `Map` keys or within any ledger state type other than `Map`.
+2. Nested values must be initialized before first use.  The syntax `default<T>`
+   is used to create default ledger state type values, just as it can be used to
+   create default Compact type values.
+3. Ledger state type values are not first-class objects, so when
+   accessing a nested value, the entire indirection chain must be
+   used.  For example, the following will result in a compiler error:
+   ```compact
+   export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {
+     fld.lookup(b); // ERROR: incomplete chain of indirects
+   }
+   ```
+4. When the last lookup is a read of a base type one can omit the
+   explicit `read()` indirect, as illustrated by the definitions of
+   `readNestedCounter1` and `readNestedCounter2` above, which have the
+   same behavior.
+5. For convenience, local variables can hold default ledger state type values,
+   so the following definition of `initNestedMap` is equivalent to the one
+   above.
+   ```compact
+   export circuit initNestedMap(b: Boolean): [] {
+     const t = default<Map<Field, Counter>>;
+     fld.insert(b, t);
+   }
+   ```
+
+## Sealed and unsealed ledger fields
+
+Any ledger field can be optionally marked *sealed* by prefixing the
+ledger field declaration with the keyword `sealed`.  A sealed field
+cannot be set except during contract initialization.  That is, its
+value can be modified only by the contract constructor (if any),
+either directly within the body of the constructor or via helper
+circuits called by the constructor. The `sealed` keyword must come after
+the `export` keyword (if present) and before the `ledger` keyword, as
+in the following example:
+
+```compact
+sealed ledger field1: Uint<32>;
+export sealed ledger field2: Uint<32>;
+
+circuit init(x: Uint<32>): [] {
+  field2 = x;
+}
+
+constructor(x: Uint<16>) {
+  field1 = 2 * x;
+  init(x);
+}
+```
+
+It is a static error if a sealed ledger field can be set by any
+code that is reachable from an exported circuit.
+

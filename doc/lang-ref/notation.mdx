@@ -1,0 +1,17 @@
+# Notation
+
+The syntax of Compact programs is given by an EBNF grammar.  We use the following
+notational conventions in the grammar:
+
+- Terminals are in <b><tt>bold monospaced</tt></b> font
+- Non-terminals are in <em>emphasized</em> font
+- Alternation is indicated by a vertical bar (`|`)
+- Repetition of zero or more items is indicated by enclosing them in curly
+  braces (`{` and `}`)
+- Optional items are indicated by enclosing them in square brackets (`[` and
+  `]`)
+
+A Compact program is *well-typed* if it does not contain any type error.  If
+a program element such as a type declaration, expression, or statement contains
+a type error, then the Compact compiler will not compile that program.
+

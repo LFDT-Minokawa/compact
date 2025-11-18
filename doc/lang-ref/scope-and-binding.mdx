@@ -1,0 +1,68 @@
+# Scope and binding
+
+In Compact, scope defines the visibility.  An identifier
+is a name that can refer to an *entity*: a variable, a constant, an expression,
+a type, a module, a parameter,
+a generic parameter, a circuit, a witness, or a ledger.
+
+Binding is the process of associating an identifier with an entity.
+The *scope* of an identifier is the region of code where the identifier
+is "bound" to its entity and can be referenced. An identifier can be
+referenced at program points that are in the scope of the identifier,
+otherwise it is a static error.
+ It is a static error if an identifier is bound more than once in a
+same scope.  However, the Compact compiler accepts multiple bindings of a same
+identifier for unexported circuits.
+
+Scopes can be nested, just like nested boxes.  The outermost box is the *global
+scope* of a program.  Identifiers declared here, such as types, modules,
+top-level circuits, or ledger fields, are visible throughout the entire contract.
+Within a global scope, zero or more local scopes can be defined, which are smaller,
+nested boxes.
+
+In Compact, the primary local scopes are defined in:
+- [structure types](../types/user-defined-types#structure-types): All generic parameters in a structure type declaration
+are visible only within its declaration.
+- [modules](../modules/modules-exports-imports): All identifiers defined inside a module are
+visible only within it unless they are explicitly exported.
+- [circuits](../lang-ref.mdx#circuits): The circuit's parameters, generic parameters, and any `const` bindings
+defined inside its body are local to that circuit.
+- [blocks](../circuits/statements#statements): All identifiers defined by a `const` binding inside a block are
+visible only within it.
+- [`for` loops](../circuits/statements#for-loop): All identifiers introduced in a `for` loop are visible only
+inside that `for` loop.
+- [anonymous circuits](../circuits/expressions#circuit-and-witness-calls): Parameters of an anonymous circuit are
+visible only in its body.
+- [constructor](../contract-constructor): The constructor's parameters and any `const` bindings
+defined inside its body are visible only within the constructor.
+
+A key principle of scoping is *shadowing*.  Shadowing occurs when an identifier in an
+inner scope has the same name as an identifier in an outer scope.  The inner identifier
+"shadows" the outer one: within the inner scope, the name refers to the local identifier,
+not the outer one. For example:
+
+```compact
+circuit c(): Field {
+  const answer = 42;
+  { // This is a nested block creating a new scope
+    const answer = 12; // This 'answer' shadows the outer one
+    assert answer != 42 "shadowing didn't work!"; // assertion passes
+  }
+  return answer; // returns 42 (the outer 'answer')
+}
+```
+
+## Generic parameter references
+
+Generic parameters are declared in generic [module declarations](../modules/modules-exports-imports),
+generic [structure type declarations](../types/user-defined-types#structure-types),
+generic [circuit definitions](../circuits/),
+and generic [witness declarations](../lang-ref.mdx#declaring-witnesses-for-private-state).
+
+For generic modules, they are in scope within the module.
+For generic structures, they are in scope for the structure's fields.
+For generic circuits, they are in scope in the circuit's
+parameters, its return type annotation, and its body.  In
+these scopes, a reference to a generic parameter (that is not otherwise shadowed by
+some other identifier binding) is either a type or a natural-number size.
+

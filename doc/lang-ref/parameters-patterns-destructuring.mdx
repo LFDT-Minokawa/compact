@@ -1,0 +1,52 @@
+## Parameters, patterns, and destructuring
+
+Each parameter of a circuit or a constructor can either be a single name (identifier) or a pattern.
+A pattern is a destruction of a tuple, a vector, or a structure value.
+Pattern parameters can appear in [circuit definitions](#circuits),
+[anonymous circuits](#circuit-and-witness-calls), and [constructors](#contract-constructor).
+Patterns can also apper in [`const` binding statements](#const-binding-statement).
+
+<table className="lang-ref-table"><tbody><tr><td><em>parg</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>p</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em></td></tr><tr><td><em>p</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<b>[</b>&nbsp;&nbsp;<tt>[</tt>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<tt>\{</tt><b>,</b>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<tt>}</tt>&nbsp;&nbsp;<tt>]</tt>&nbsp;&nbsp;<b>]</b></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<tt>[</tt>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<tt>[</tt><b><tt>:</tt></b>&nbsp;&nbsp;<em>p</em>]&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;[<b><tt>:</tt></b>&nbsp;&nbsp;<em>p</em>]}&nbsp;&nbsp;<tt>]</tt>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
+
+A *tuple pattern* destructures a tuple or a vector value and
+it has the form `[id, ...]` where `id, ...` is a sequence of zero or more comma-separated identifiers.
+A type annotation can be declared for a tuple pattern with the form `[id, ...] : T`
+where `T` is a Compact type or a generic type parameter in scope. It is a static type error if `T`
+is not a tuple or a vector type.  It is a static type error if the length of the sequence of identifiers (the
+number of elements in the sequence of identifiers) is larger than the
+length of the tuple or vector type.  Both the sequence of identifiers and tuple type can have a trailing comma.
+The sequence of identifiers can leave out some identifiers by dropping their identifiers to skip binding
+some indices of the tuple, for example, `[x, , , y] : [Boolean, Boolean, Boolean, Boolean]`
+binds only the first and last element of a tuple of four boolean values.  However, the tuple
+type must be fully specified.  The dropped identifiers count toward the length of the tuple pattern if there
+exists a named identifier after the dropped ones.  For example, `[x, , , y]`
+matches a tuple or vector with 4 or more elements, while
+`[x, y, , ]` matches a tuple or vector with 2 or more elements.
+
+A tuple pattern has a more general form `[p, ...]` where `p, ...` is a sequence of zero or
+more comma-separated patterns where a pattern can be an identifier, a tuple pattern, or a structure pattern.
+Where a type annotation exists for a tuple pattern it is a static type error if a pattern has
+the form of a tuple or a structure pattern but its corresponding type annotation
+does not have a tuple/vector or a structure type, respectively.  For example, `[x, [y, z]] : [Field, Boolean]`
+results in a static type error since the pattern `[y, z]` must have a tuple/vector type.
+
+A *structure pattern* desctructures a structure value and
+it has the form `{f, ...}` where `f, ...` is a sequence of zero or more comma-separated fields.
+A type annotation can be declared for a structure pattern with the form `{f, ...} : T`
+where `T` is a Compact type or a generic type parameter in scope.  It is a static type error if `T` is
+not a structure type.  It is a static type error if the sequence of fields contains fields that are not
+fields of `T`, however, the sequence of fields does not have to bind all the fields of `T`.  The sequence
+of fields can contain a trailing comma, and the order of fields in the sequence `f, ...` does not have
+to match the order of fields in the type declaration of `T`.
+
+A structure pattern can optionally bind a field to a new identifier by `{f: p, ...}` where `f: p, ...` is a
+sequence of zero or more comma-separated field `f` bound to pattern `p`.  If the pattern `p` is an identifier `x`,
+the value of the field `f` is accessible via the name `x` rather than by the name `f`.
+ It is a static type error to bind the same identifier
+more than once in a scope of destructions, for example, `{a: b, b} : S` is a static type error since `b`
+is bound to both fields of the structure type, `S` is defined as
+`struct S {a: Field, b: Boolean}`.
+If the pattern `p` is a tuple or structure desctruction it is a static type error if the
+field `f` does not have a tuple or structure type, respectively.  The optional expansion to patterns can be
+mixed and matched with no expansion, for example, `const {a: x, b} = S {a = 1, b = true}` is valid given the structure definition
+`struct S {a: Field, b: Boolean}`.  This constant binding binds `x` to `1` and `b` to `true`.

@@ -1,0 +1,97 @@
+# Statements
+
+A statement may be
+- a [`for` loop](#for-loop)
+- an [`if` statement](#if-statement)
+- a [`return` statement](#return-statement)
+- a block - a sequence of zeror or more statements in a nested scope, enclosed by curly braces
+- a [`const` binding statement](#const-binding-statement)
+- an [expression](../expressions/)
+
+#### `for` loop
+
+A `for` loop repeats for a fixed number of iterations, using one of the two
+syntaxes below:
+
+```compact
+for (const i of <vector>) <statement>
+
+for (const i of <lower>..<upper>) <statement>
+```
+
+#### `if` statement
+
+An `if` statement is of one of the following forms:
+
+```compact
+if (testexpr)
+  <statement>
+
+if (testexpr)
+  <statement>
+else
+  <statement>
+```
+
+#### `return` statement
+
+A `return` statement can appear only in a block.
+
+<table className="lang-ref-table"><tbody><tr><td><em>stmt</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;[<em>expr</em>]<b><tt>;</tt></b></td></tr></tbody></table>
+
+A `return` statement takes either the form `return;` or `return e;` where `e` is a Compact expression.
+For a `return` statement of form `return e;` it is a static type error if the static type of `e` is not
+a [subtype](../types/subtyping#subtyping-and-least-upper-bounds)
+of the declared return type `R` of a circuit (accounting for [anonymous circuits](../expressions#circuit-and-witness-calls)
+and [constructors](../contract-constructor)) if one exists.
+For a `return` statement of the form `return;`, it is a static type error if the return type `R` is
+not [].
+
+If the return type `R` is `[]` the `return` statement can be dropped.  However, for return types other than
+`[]` it is a static type error if there exists a path in a circuit block that does not have a `return`
+statement, for example,
+`export circuit foo(c: Boolean): Boolean { return ((x) : Boolean => { if (c) return x; })(c);}`
+causes a static type error since the `else` branch of the `if` statements has type `[]`.
+It is a static type error to have a statement after a `return` statement in a same block.
+
+#### `const` binding statement
+
+The syntaxt of a Compact constant binding is the same as a constant binding in TypeScript.
+
+<table className="lang-ref-table"><tbody><tr><td><em>stmt</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<tt>\{</tt>&nbsp;&nbsp;<em>parg</em>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>parg</em>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<em>expr</em>}&nbsp;&nbsp;<tt>}</tt></td></tr></tbody></table>
+
+A `const` binding brings a new identifier into scope and assigns it to the value of an expression.
+
+It can bring into scope a *single pattern* with `const p = e` where `p` is the new pattern and `e` is an expression.
+`p` can be an identifier, a tuple pattern, or a structure pattern:
+- If `p` is an identifier the static type of the identifier is the type of `e` and the identifier is bound to the value of `e`.
+
+- If `p` is a tuple pattern
+`e` must have a tuple or a vector type, otherwise it is a static type error.  It is a static type error
+if the number of identifiers are more than the length of tuple `[v, ...]` where `[v, ...]` is the result of evaluating `e`.
+However, it is not a static type error if the number of identifiers are less than the length of `[v, ...]`, in this case
+identifiers are bound from left-to-right to elements in `[v, ...]` until there is no more identifiers to bind to the next
+elements of `[v, ...]`.  The sequence of identifiers does not have to bind every element of a tuple, that is, it can drop
+some of the identifiers to skip binding them, for example, `const [a, , b] = [1, 2, 3]` binds `1` to `a` and `3` to `b`.
+These skipped identifiers are counted towards the length of the sequence of identifiers. For example, `[a, , b]`
+matches a tuple or vector with three or more elements.
+
+- If `p` is a structure pattern, `e` must have a structure type, otherwise it is a static type error.
+The fields of pattern `p` must be
+a subset of the structure type's fields, otherwise it is a static type error.  The order of fields does not matter.
+
+A `const` binding can bring into scope *multiple patterns* with `const p = e, ...` where `p = e` is a
+sequencce of one or more comma-separated single
+pattern constant bindings.  It is a static type error if the The static typing of rules described for a single pattern binding must hold
+of each identifier is the type of its assigned expression.
+Constant bindings are evaluate from left-to-right.  This means that an identifier can only be referenced after it is
+bound.  It is a static type error to bind an identifier more than once. It is a static type error to reference an
+identifier before binding it.
+
+A `const` binding can optionally declare the type for each binding with `const p: T = e`. It is a static type error if `e`
+does not have type `T`.  In `const` statements with multiple pattern/expression pairs,
+it is permissible to for some of the pairs to include types and some not to include types, that is,
+a binding such as `const x: Field = 2, y = true` is valid.
+
+Any identifier bound by `const` may not be reused within a block, and identifiers cannot be reassigned, although they can be [shadowed in
+a nested block](../scope-and-binding).  Constant initializer expressions are evaluated when the binding statement is executed.
