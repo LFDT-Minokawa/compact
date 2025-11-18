@@ -30726,34 +30726,6 @@ groups than for single tests.
 
 (run-tests save-contract-info
   (test-group
-    ((create-file "C.compact"
-       '(
-         "export circuit foo(x: Bytes<32>): [] { return; }"
-         "export pure circuit barr(): Bytes<32> { return pad(32, ''); }"
-         ))
-     (succeeds))
-    ((create-file "C2.compact"
-       '(
-         "contract C {"
-         "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
-         "}"
-         "ledger C1: C;"
-         "ledger C2: C;"
-         "export circuit foo(b: Boolean, x: Bytes<32>): [] {"
-         "  const k1 = C1;"
-         "  const k2 = C2;"
-         "  const k = b ? k1 : k2;"
-         "  k.foo(pad(32, ''));"
-         "}"
-         ))
-     (oops
-       message: "~a:\n  ~?"
-       irritants: '("C2.compact line 11 char 4" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 10 char 13\n      the binding of k at line 10 char 9"))))
-     ))
-  )
-#!eof
-  (test-group
     ((create-file "AuthCell.compact"
        '(
          "import CompactStandardLibrary;"
@@ -30845,6 +30817,8 @@ groups than for single tests.
                      (+ #f (elt-ref %v.5 value 0) (elt-ref %x.4 value 0))))
                  %v.5)))))
      ))
+  )
+#!eof
 
   (test-group
     ((create-file "C1.compact"

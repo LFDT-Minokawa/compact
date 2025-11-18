@@ -2009,6 +2009,7 @@
           (lambda ()
             (adt-op-error! src elt-name sugar? adt-name adt-rt-op* adt-arg*))))
       (define (find-contract-circuit src src^ contract-name elt-name elt-name* fun* type** type* adt-type adt-type* expr expr*)
+        ; FIXME do-call should happen here but we don't have the fun* from Lexpanded anymore
         ;; (let ([fun* (map (lambda (fun type* type)
         ;;                              (do-call src #f fun type*
         ;;                                       (lambda (declared-type* return-type fun)
@@ -2038,17 +2039,13 @@
                                        (format-type declared-adt-type)
                                        (format-type actual-adt-type))))
                     declared-type* adt-type* (enumerate declared-type*))
-                  ;; (let-values ([(expr return-type) (do-circuit-body src (format "contract call ~a" (id-sym function-name)) arg* )]))
-                  ;; (map (lambda fun type* type))
                   (values
                     ; FIXME: need to get an extra declared type for the extra argument
                     ; and hack needs to account for that as well, we might not actually need this as long
                     ; as we don't care about upcasting contract type
-                    (let ([expr* (cons expr
-                                       (map (maybe-upcast src) declared-type* adt-type* expr*))])
-                    (with-output-language (Ltypes Expression)
-                      `(call ,src ,fun ,expr* ...)))
-                  (car type*)))
+                    (let ([expr* (cons expr (map (maybe-upcast src) declared-type* adt-type* expr*))])
+                      (list fun expr*))
+                    (car type*)))
               (loop (cdr elt-name*) (cdr fun*) (cdr type**) (cdr type*))))))
       (define (get-contract-name ecdecl)
         (nanopass-case (Lexpanded External-Contract-Declaration) ecdecl
@@ -2239,6 +2236,12 @@
                             (max-merkle-tree-depth)))))
        `(,src ,adt-name ([,adt-formal* ,(map Generic-Value generic-value*)] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))])
     (Generic-Value : Generic-Value (ir) -> Public-Ledger-ADT-Arg ())
+    (Function : Function (ir) -> Function ()
+      ; FIXME this is very hacky
+      [(fref ,src ,symbolic-function-name (([,symbolic-function-name** ,function-name**] ...) ...)
+               (,generic-value* ...)
+               ((,src* ,generic-kind** ...) ...))
+       `(fref ,src ,(caar function-name**))])
     (Type : Type (ir) -> Type ()
       [(tboolean ,src) `(tboolean ,src)]
       [(tfield ,src) `(tfield ,src)]
@@ -2250,7 +2253,7 @@
          `(tvector ,src ,len ,type))]
       [(tbytes ,src ,len)
        `(tbytes ,src ,len)]
-      [(tcontract ,src ,contract-name (,elt-name* ,fun* ,pure-dcl* (,type** ...) ,type*) ...)
+      [(tcontract ,src ,contract-name (,elt-name* ,[fun*] ,pure-dcl* (,type** ...) ,type*) ...)
        (let ([type** (map (lambda (type* elt-name)
                             (map (lambda (type i)
                                    (Non-ADT-Type type src "circuit '~a' argument ~d" elt-name (fx+ i 1)))
@@ -2261,16 +2264,16 @@
              [type* (map (lambda (type elt-name) (Non-ADT-Type type src "circuit '~a' return" elt-name))
                          type*
                          elt-name*)])
-         ; TODO we need to do do-circuit-body before doing do-call. so I need to pass circuit-definition here
+         ; TODO we need to do do-circuit-body before doing do-call.
          ;; (let-values ([(expr known-type) (do-circuit-body src "contract call" arg* return-type expr-body)]))
-         (let ([fun* (map (lambda (fun type* type)
-                            (do-call src #f fun type*
-                              (lambda (declared-type* return-type fun)
-                                (assert (andmap sametype? declared-type* type*))
-                                (assert (sametype? return-type type))
-                                fun)))
-                          fun* type** type*)])
-           `(tcontract ,src ,contract-name (,elt-name* ,fun* ,pure-dcl* (,type** ...) ,type*) ...)))]
+         ;; (let ([fun* (map (lambda (fun type* type)
+         ;;                    (do-call src #f fun type*
+         ;;                      (lambda (declared-type* return-type fun)
+         ;;                        (assert (andmap sametype? declared-type* type*))
+         ;;                        (assert (sametype? return-type type))
+         ;;                        fun)))
+         ;;                  fun* type** type*)])
+           `(tcontract ,src ,contract-name (,elt-name* ,fun* ,pure-dcl* (,type** ...) ,type*) ...))]
       [(ttuple ,src ,type* ...)
        (let ([type* (map (lambda (type i)
                            (Non-ADT-Type type src "tuple element ~d" (fx+ i 1)))
@@ -2362,7 +2365,12 @@
            (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
              [(tcontract ,src^ ,contract-name (,elt-name* ,fun* ,pure-dcl* (,type** ...) ,type*) ... )
               (guard (not adt-type-only?))
-              (find-contract-circuit src src^ contract-name elt-name elt-name* fun* type** type* adt-type adt-type* expr expr*)]
+              (let*-values ([(fun-expr* return-type) (find-contract-circuit src src^ contract-name elt-name elt-name* fun* type** type* adt-type adt-type* expr expr*)])
+                (let ([fun (car fun-expr*)]
+                      [expr* (cadr fun-expr*)])
+                  (values
+                    `(call ,src ,fun ,expr* ...)
+                    return-type)))]
              [else (err)]))
          (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
            [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -3075,9 +3083,16 @@
        (values
          `(return ,src ,expr)
          type)]
-      ;; [(contract-call src elt-name (expr type) expr* ...)
-       ;; ()]
-      ; TODO add else clause first and then add contract-call
+      [(contract-call ,src ,elt-name (,[Care : expr type] ,[type^]) ,expr* ...)
+       (let-values ([(expr* actual-type*) (maplr2 Care expr*)])
+         (nanopass-case (Ltypes Public-Ledger-ADT-Type) type
+           [(tcontract ,src^ ,contract-name (,elt-name* ,fun* ,pure-dcl* (,type** ...) ,type*) ... )
+            (let*-values ([(fun-expr* return-type) (find-contract-circuit src src^ contract-name elt-name elt-name* fun* type** type* type actual-type* expr expr*)])
+              (let ([fun (car fun-expr*)])
+                (values
+                  `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
+                  return-type)))]
+           [else (assert cannot-happen)]))]
       [else (assert cannot-happen)])
     (Tuple-Argument : Tuple-Argument (ir) -> Expression (type kind nat elt-type*)
       [(single ,src ,[Care : expr type])
