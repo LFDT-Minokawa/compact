@@ -127,7 +127,7 @@
          (cons "type-name" "Vector")
          (cons "length" len)
          (cons "type" (Type type)))]
-      [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+      [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
        (list
          (cons "type-name" "Contract")
          (cons "name" (symbol->string contract-name))

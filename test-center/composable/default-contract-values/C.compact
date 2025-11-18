@@ -1,0 +1,35 @@
+import CompactStandardLibrary;
+
+contract A {
+    circuit foo(): Field;
+}
+
+contract B {
+    circuit bar(): Field;
+}
+
+export struct S {
+    a: Either<A, B>;
+    b: Either<A, B>;
+}
+
+export ledger a: A;
+export ledger b: B;
+export ledger s: S;
+
+constructor(a_param: A, b_param: B) {
+    a = disclose(a_param);
+    b = disclose(b_param);
+}
+
+export circuit sumS(): Field {
+    return s.a.left.foo() + s.b.right.bar();
+}
+
+export circuit setS(): [] {
+    s = S { a: left<A, B>(a), b: right<A, B>(b) };
+}
+
+export circuit sumAB(): Field {
+    return a.foo() + b.bar();
+}

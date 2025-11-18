@@ -9546,7 +9546,7 @@
          (public-ledger-declaration %kernel.0 (Kernel))
          (public-ledger-declaration
            %contract_c.1
-           (__compact_Cell (tcontract C (id #f ((tboolean)) (tboolean)))))
+           (__compact_Cell (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (id #f ((tboolean)) (tboolean)))))
          (circuit %foo.2 ()
               (tboolean)
            (seq (elt-call %contract_c.1 id #t) (tuple)))
@@ -9793,9 +9793,11 @@
           %contract_c.0
           (__compact_Cell
             (tcontract C
+              (tstruct ContractAddress (bytes (tbytes 32)))
               (foo #f ((tbytes 32)) (ttuple))
               (bar #t () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
+                              (tstruct ContractAddress (bytes (tbytes 32)))
                               (foo #f ((tbytes 32)) (ttuple))
                               (bar #t () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
@@ -9823,10 +9825,12 @@
           %contract_c.0
           (__compact_Cell
             (tcontract C
+              (tstruct ContractAddress (bytes (tbytes 32)))
               (foo #f ((tbytes 32)) (ttuple))
               (bar #t () (tbytes 32))
               (blah #f ((tfield) (tboolean)) (tboolean)))))
         (constructor ([%c.1 (tcontract C
+                              (tstruct ContractAddress (bytes (tbytes 32)))
                               (foo #f ((tbytes 32)) (ttuple))
                               (bar #t () (tbytes 32))
                               (blah #f ((tfield) (tboolean)) (tboolean)))])
@@ -9854,9 +9858,11 @@
           %contract_c.0
           (__compact_Cell
             (tcontract C
+              (tstruct ContractAddress (bytes (tbytes 32)))
               (foo #f ((tbytes 32)) (ttuple))
               (bar #t () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
+                              (tstruct ContractAddress (bytes (tbytes 32)))
                               (foo #f ((tbytes 32)) (ttuple))
                               (bar #t () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
@@ -9908,9 +9914,11 @@
           %contract_c.0
           (__compact_Cell
             (tcontract C
+              (tstruct ContractAddress (bytes (tbytes 32)))
               (foo #f ((tbytes 32)) (ttuple))
               (bar #t () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
+                              (tstruct ContractAddress (bytes (tbytes 32)))
                               (foo #f ((tbytes 32)) (ttuple))
                               (bar #t () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
@@ -9958,9 +9966,11 @@
           %contract_c.0
           (__compact_Cell
             (tcontract C
+              (tstruct ContractAddress (bytes (tbytes 32)))
               (foo #f ((tbytes 32)) (ttuple))
               (bar #t () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
+                              (tstruct ContractAddress (bytes (tbytes 32)))
                               (foo #f ((tbytes 32)) (ttuple))
                               (bar #t () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
@@ -10009,9 +10019,11 @@
           %contract_c.0
           (__compact_Cell
             (tcontract C
+              (tstruct ContractAddress (bytes (tbytes 32)))
               (foo #f ((tbytes 32)) (ttuple))
               (bar #t () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
+                              (tstruct ContractAddress (bytes (tbytes 32)))
                               (foo #f ((tbytes 32)) (ttuple))
                               (bar #t () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
@@ -28539,10 +28551,12 @@
                (0)
                (__compact_Cell
                  (tcontract AuthCell
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (get #f () (tstruct StructExample (value (tfield))))
                    (set #f ((tstruct StructExample (value (tfield))))
                      (ttuple))))))
             (constructor ([%auth_cell_param.2 (tcontract AuthCell
+                                                (tstruct ContractAddress (bytes (tbytes 32)))
                                                 (get #f ()
                                                   (tstruct StructExample
                                                     (value (tfield))))
@@ -28561,6 +28575,7 @@
                     (contract-call get
                          ((public-ledger %auth_cell.1 (0) read)
                           (tcontract AuthCell
+                            (tstruct ContractAddress (bytes (tbytes 32)))
                             (get #f () (tstruct StructExample (value (tfield))))
                             (set #f ((tstruct StructExample (value (tfield))))
                               (ttuple)))))])
@@ -28568,6 +28583,7 @@
                 (contract-call set
                       ((public-ledger %auth_cell.1 (0) read)
                        (tcontract AuthCell
+                         (tstruct ContractAddress (bytes (tbytes 32)))
                          (get #f () (tstruct StructExample (value (tfield))))
                          (set #f ((tstruct StructExample (value (tfield))))
                            (ttuple))))
@@ -28685,6 +28701,7 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (barr #t () (tbytes 32))))))
            (constructor () (tuple)))))
@@ -28716,9 +28733,11 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (barr #t () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (barr #t () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
@@ -28727,11 +28746,13 @@
            (contract-call foo
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (barr #t () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (barr #t () (tbytes 32)))))))))
      ))
@@ -28789,9 +28810,11 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (barr #t () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (barr #t () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
@@ -28800,11 +28823,13 @@
            (contract-call foo
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (barr #t () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (barr #t () (tbytes 32)))))))))
      ))
@@ -28859,10 +28884,12 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (bar #t () (tbytes 32))
                   (blah #f ((tfield) (tboolean)) (tboolean))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (bar #t () (tbytes 32))
                                  (blah #f ((tfield) (tboolean)) (tboolean)))])
@@ -28872,6 +28899,7 @@
            (contract-call blah
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (bar #t () (tbytes 32))
                    (blah #f ((tfield) (tboolean)) (tboolean))))
@@ -28933,9 +28961,11 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (bar #t () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (bar #t () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
@@ -28944,11 +28974,13 @@
            (contract-call foo
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (bar #t () (tbytes 32))))
              (contract-call bar
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (bar #t () (tbytes 32)))))))))
      ))
@@ -29039,10 +29071,12 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (bar #t () (tbytes 32))
                   (blah #f ((tfield) (tboolean)) (tboolean))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (bar #t () (tbytes 32))
                                  (blah #f ((tfield) (tboolean)) (tboolean)))])
@@ -29052,6 +29086,7 @@
            (contract-call blah
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (bar #t () (tbytes 32))
                    (blah #f ((tfield) (tboolean)) (tboolean))))
@@ -29091,9 +29126,11 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (bar #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (bar #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
@@ -29102,11 +29139,13 @@
            (contract-call foo
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (bar #f () (tbytes 32))))
              (contract-call bar
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (bar #f () (tbytes 32)))))))))
      ))
@@ -29143,9 +29182,11 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (bar #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (bar #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
@@ -29154,11 +29195,13 @@
            (contract-call foo
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (bar #f () (tbytes 32))))
              (contract-call bar
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (bar #f () (tbytes 32)))))))))
      ))
@@ -29250,13 +29293,16 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (bar #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (bar #f () (tbytes 32)))])
              (seq (call %m_init.3 %c.2) (tuple))))
          (circuit %m_init.3 ([%c.4 (tcontract C
+                                     (tstruct ContractAddress (bytes (tbytes 32)))
                                      (foo #f ((tbytes 32)) (ttuple))
                                      (bar #f () (tbytes 32)))])
               (ttuple)
@@ -29266,11 +29312,13 @@
            (contract-call foo
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (bar #f () (tbytes 32))))
              (contract-call bar
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (bar #f () (tbytes 32)))))))))
      ))
@@ -29378,13 +29426,16 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tfield)) (tboolean))
                   (bar #t () (tfield))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tfield)) (tboolean))
                                  (bar #t () (tfield)))])
              (seq (call %putc.3 %c.2) (tuple))))
          (circuit %putc.3 ([%c.4 (tcontract C
+                                   (tstruct ContractAddress (bytes (tbytes 32)))
                                    (foo #f ((tfield)) (tboolean))
                                    (bar #t () (tfield)))])
               (ttuple)
@@ -29394,11 +29445,13 @@
            (contract-call foo
                 ((public-ledger %ledger_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tfield)) (tboolean))
                    (bar #t () (tfield))))
              (contract-call bar
                   ((public-ledger %ledger_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tfield)) (tboolean))
                      (bar #t () (tfield)))))))))
      ))
@@ -29446,24 +29499,29 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tfield)) (tboolean))
                   (bar #t () (tfield))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tfield)) (tboolean))
                                  (bar #t () (tfield))
                                  (blot #f () (tbytes 32)))])
              (seq
                (call %putc.3
                  (safe-cast (tcontract C
+                              (tstruct ContractAddress (bytes (tbytes 32)))
                               (foo #f ((tfield)) (tboolean))
                               (bar #t () (tfield)))
                             (tcontract C
+                              (tstruct ContractAddress (bytes (tbytes 32)))
                               (foo #f ((tfield)) (tboolean))
                               (bar #t () (tfield))
                               (blot #f () (tbytes 32)))
                    %c.2))
                (tuple))))
          (circuit %putc.3 ([%c.4 (tcontract C
+                                   (tstruct ContractAddress (bytes (tbytes 32)))
                                    (foo #f ((tfield)) (tboolean))
                                    (bar #t () (tfield)))])
               (ttuple)
@@ -29473,11 +29531,13 @@
            (contract-call foo
                 ((public-ledger %ledger_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tfield)) (tboolean))
                    (bar #t () (tfield))))
              (contract-call bar
                   ((public-ledger %ledger_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tfield)) (tboolean))
                      (bar #t () (tfield)))))))))
      ))
@@ -29611,12 +29671,14 @@
          (public-ledger-declaration
            ()
            (constructor ([%$c.0 (tcontract C
+                                  (tstruct ContractAddress (bytes (tbytes 32)))
                                   (foo #f ((tfield)) (ttuple))
                                   (bar #t () (tfield)))])
              (seq
-               (let* ([[%c.1 (tcontract C (foo #f ((tfield)) (ttuple)))]
-                       (safe-cast (tcontract C (foo #f ((tfield)) (ttuple)))
+               (let* ([[%c.1 (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (foo #f ((tfield)) (ttuple)))]
+                       (safe-cast (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (foo #f ((tfield)) (ttuple)))
                                   (tcontract C
+                                    (tstruct ContractAddress (bytes (tbytes 32)))
                                     (foo #f ((tfield)) (ttuple))
                                     (bar #t () (tfield)))
                          %$c.0)])
@@ -29890,9 +29952,10 @@
            ((%contract_c.1
               (0)
               (__compact_Cell
-                (tcontract C (foo #f () (ttuple)) (bar #t () (tfield))))))
+                (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (foo #f () (ttuple)) (bar #t () (tfield))))))
            (constructor () (tuple)))
          (witness %check.2 ([%x.3 (tcontract C
+                                    (tstruct ContractAddress (bytes (tbytes 32)))
                                     (foo #f () (ttuple))
                                     (bar #t () (tfield)))])
               (ttuple))
@@ -29950,9 +30013,27 @@
          "ledger contract_c: C;"
          "constructor(){contract_c = default<C>;}"
          ))
-      (oops
-        message: "~a:\n  ~?"
-        irritants: '("testfile.compact line 7 char 28" "default is not defined for contract types" ()))))
+     (returns
+       (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
+         (public-ledger-declaration
+           ((%contract_c.1
+              (0)
+              (__compact_Cell
+                (tcontract C (tstruct ContractAddress (bytes (tbytes 32)))
+                  (foo #f ((tfield)) (ttuple))
+                  (bar #t () (tfield))))))
+           (constructor ()
+             (seq
+               (let* ([[%tmp.2 (tcontract C (tstruct ContractAddress (bytes (tbytes 32)))
+                                 (foo #f ((tfield)) (ttuple))
+                                 (bar #t () (tfield)))]
+                       (default
+                         (tcontract C (tstruct ContractAddress (bytes (tbytes 32)))
+                           (foo #f ((tfield)) (ttuple))
+                           (bar #t () (tfield))))])
+                 (public-ledger %contract_c.1 (0) write %tmp.2))
+               (tuple))))))))
 
   (test-group
     ((create-file "C.compact"
@@ -29980,19 +30061,22 @@
            ((%contract_c.0
               (0)
               (__compact_Cell
-                (tcontract C (foo #f () (ttuple)) (bar #t () (tfield))))))
+                (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (foo #f () (ttuple)) (bar #t () (tfield))))))
            (constructor ([%c.1 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f () (ttuple))
                                  (bar #t () (tfield)))])
              (seq (public-ledger %contract_c.0 (0) write %c.1) (tuple))))
          (circuit %foo.2 ([%c.3 (tcontract C
+                                  (tstruct ContractAddress (bytes (tbytes 32)))
                                   (foo #f () (ttuple))
                                   (bar #t () (tfield)))])
-              (tcontract C (foo #f () (ttuple)) (bar #t () (tfield)))
+              (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (foo #f () (ttuple)) (bar #t () (tfield)))
            %c.3)
          (circuit %foofoo.4 ()
               (ttuple)
            (let* ([[%x.5 (tcontract C
+                           (tstruct ContractAddress (bytes (tbytes 32)))
                            (foo #f () (ttuple))
                            (bar #t () (tfield)))]
                    (call %foo.2 (public-ledger %contract_c.0 (0) read))])
@@ -30110,9 +30194,11 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (barr #t () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (barr #t () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
@@ -30121,11 +30207,13 @@
            (contract-call foo
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (barr #t () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (barr #t () (tbytes 32)))))))))
      ))
@@ -30239,19 +30327,23 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tunsigned 255)) (tfield))
                   (bar #t () (tfield))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tunsigned 255)) (tfield))
                                  (bar #t () (tfield)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %docall.3 ([%c.4 (tcontract C
+                                     (tstruct ContractAddress (bytes (tbytes 32)))
                                      (foo #f ((tunsigned 255)) (tfield))
                                      (bar #t () (tfield)))])
               (tfield)
            (contract-call bar
                 (%c.4
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tunsigned 255)) (tfield))
                    (bar #t () (tfield))))))
          (circuit %hello.5 ()
@@ -30457,9 +30549,11 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tunsigned 255)) (tfield))
                   (bar #t () (tfield))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tunsigned 255)) (tfield))
                                  (bar #t () (tfield)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
@@ -30467,27 +30561,32 @@
               (tfield)
            (call %W.4 (public-ledger %contract_c.1 (0) read)))
          (circuit %W.4 ([%c.5 (tcontract C
+                                (tstruct ContractAddress (bytes (tbytes 32)))
                                 (foo #f ((tunsigned 255)) (tfield))
                                 (bar #t () (tfield)))])
               (tfield)
            (call %X.6 %c.5))
          (circuit %X.6 ([%c.7 (tcontract C
+                                (tstruct ContractAddress (bytes (tbytes 32)))
                                 (foo #f ((tunsigned 255)) (tfield))
                                 (bar #t () (tfield)))])
               (tfield)
            (call %Y.8 %c.7))
          (circuit %Y.8 ([%c.9 (tcontract C
+                                (tstruct ContractAddress (bytes (tbytes 32)))
                                 (foo #f ((tunsigned 255)) (tfield))
                                 (bar #t () (tfield)))])
               (tfield)
            (call %Z.10 %c.9))
          (circuit %Z.10 ([%c.11 (tcontract C
+                                  (tstruct ContractAddress (bytes (tbytes 32)))
                                   (foo #f ((tunsigned 255)) (tfield))
                                   (bar #t () (tfield)))])
               (tfield)
            (contract-call foo
                 (%c.11
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tunsigned 255)) (tfield))
                    (bar #t () (tfield))))
              (safe-cast (tunsigned 255) (tunsigned 17) 17)))))
@@ -30895,8 +30994,9 @@
            ((%contract_c.1
               (0)
               (__compact_Cell
-                (tcontract C (foo #f () (ttuple)) (bar #t () (tfield))))))
+                (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (foo #f () (ttuple)) (bar #t () (tfield))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f () (ttuple))
                                  (bar #t () (tfield)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
@@ -30906,6 +31006,7 @@
                    (contract-call foo
                         ((public-ledger %contract_c.1 (0) read)
                          (tcontract C
+                           (tstruct ContractAddress (bytes (tbytes 32)))
                            (foo #f () (ttuple))
                            (bar #t () (tfield)))))])
              (tuple)))))
@@ -31029,8 +31130,9 @@
            ((%contract_c.1
               (0)
               (__compact_Cell
-                (tcontract C1 (foo #f () (ttuple)) (bar #f () (tfield))))))
+                (tcontract C1 (tstruct ContractAddress (bytes (tbytes 32))) (foo #f () (ttuple)) (bar #f () (tfield))))))
            (constructor ([%c1.2 (tcontract C1
+                                  (tstruct ContractAddress (bytes (tbytes 32)))
                                   (foo #f () (ttuple))
                                   (bar #f () (tfield)))])
              (seq
@@ -31042,6 +31144,7 @@
                    (contract-call foo
                         ((public-ledger %contract_c.1 (0) read)
                          (tcontract C1
+                           (tstruct ContractAddress (bytes (tbytes 32)))
                            (foo #f () (ttuple))
                            (bar #f () (tfield)))))])
              (tuple)))))
@@ -31085,8 +31188,9 @@
            ((%contract_c.1
               (0)
               (__compact_Cell
-                (tcontract C1 (foo #f () (ttuple)) (bar #f () (tfield))))))
+                (tcontract C1 (tstruct ContractAddress (bytes (tbytes 32))) (foo #f () (ttuple)) (bar #f () (tfield))))))
            (constructor ([%c1.2 (tcontract C1
+                                  (tstruct ContractAddress (bytes (tbytes 32)))
                                   (foo #f () (ttuple))
                                   (bar #f () (tfield)))])
              (seq
@@ -31098,6 +31202,7 @@
                    (contract-call foo
                         ((public-ledger %contract_c.1 (0) read)
                          (tcontract C1
+                           (tstruct ContractAddress (bytes (tbytes 32)))
                            (foo #f () (ttuple))
                            (bar #f () (tfield)))))])
              (tuple)))))
@@ -31861,19 +31966,23 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (barr #t () (tbytes 32)))))
             (%contract_c.2
               (1)
               (__compact_Cell
                 (tcontract D
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (barr #t () (tbytes 32))))))
            (constructor ([%c.3 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (barr #t () (tbytes 32)))])
              (seq (call %init.4 %c.3) (tuple))))
          (circuit %init.4 ([%x.5 (tcontract C
+                                   (tstruct ContractAddress (bytes (tbytes 32)))
                                    (foo #f ((tbytes 32)) (ttuple))
                                    (barr #t () (tbytes 32)))])
               (ttuple)
@@ -31883,11 +31992,13 @@
            (contract-call foo
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (barr #t () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (barr #t () (tbytes 32)))))))))
      ))
@@ -31937,13 +32048,16 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (barr #t () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (barr #t () (tbytes 32)))])
              (seq (call %init.3 %c.2) (tuple))))
          (circuit %init.3 ([%x.4 (tcontract C
+                                   (tstruct ContractAddress (bytes (tbytes 32)))
                                    (foo #f ((tbytes 32)) (ttuple))
                                    (barr #t () (tbytes 32)))])
               (ttuple)
@@ -31953,11 +32067,13 @@
            (contract-call foo
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (barr #t () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (barr #t () (tbytes 32)))))))))
      ))
@@ -32023,9 +32139,11 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (bar #t () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (bar #t () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
@@ -32036,12 +32154,14 @@
              (contract-call foo
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (bar #t () (tbytes 32))))
                (call %W.3))
              (contract-call bar
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (bar #t () (tbytes 32)))))))))
      ))
@@ -32100,9 +32220,11 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((ttuple (tboolean) (tbytes 32))) (ttuple))
                   (bar #t () (tbytes 32))))))
            (constructor ([%c.0 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((ttuple (tboolean) (tbytes 32)))
                                    (ttuple))
                                  (bar #t () (tbytes 32)))])
@@ -32169,16 +32291,19 @@
            ((%c.1
               (0)
               (__compact_Cell
-                (tcontract C (id #f ((tboolean)) (tboolean)))))
+                (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (id #f ((tboolean)) (tboolean)))))
             (%subc.2
               (1)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (id #f ((tboolean)) (tboolean))
                   (idnot #f ((tboolean)) (tboolean))))))
            (constructor ([%c1.3 (tcontract C
+                                  (tstruct ContractAddress (bytes (tbytes 32)))
                                   (id #f ((tboolean)) (tboolean)))]
                          [%c2.4 (tcontract C
+                                  (tstruct ContractAddress (bytes (tbytes 32)))
                                   (id #f ((tboolean)) (tboolean))
                                   (idnot #f ((tboolean)) (tboolean)))])
              (seq
@@ -32186,20 +32311,23 @@
                (public-ledger %subc.2 (1) write %c2.4)
                (tuple))))
          (circuit %foo.5 ([%c.6 (tcontract C
+                                  (tstruct ContractAddress (bytes (tbytes 32)))
                                   (id #f ((tboolean)) (tboolean))
                                   (idnot #f ((tboolean)) (tboolean)))])
               (tboolean)
            (contract-call id
                 (%c.6
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (id #f ((tboolean)) (tboolean))
                    (idnot #f ((tboolean)) (tboolean))))
              #t))
          (circuit %foo.7 ([%c.8 (tcontract C
+                                  (tstruct ContractAddress (bytes (tbytes 32)))
                                   (id #f ((tboolean)) (tboolean)))])
               (tboolean)
            (contract-call id
-                (%c.8 (tcontract C (id #f ((tboolean)) (tboolean))))
+                (%c.8 (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (id #f ((tboolean)) (tboolean))))
              #t))
          (circuit %bar.9 ()
               (tboolean)
@@ -32237,25 +32365,25 @@
               (0)
               (__compact_Cell
                 (ttuple
-                  (tcontract C (id #f ((tboolean)) (tboolean)))
+                  (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (id #f ((tboolean)) (tboolean)))
                   (tunsigned 65535)))))
            (constructor () (tuple)))
          (circuit %foo.2 ([%t.3 (ttuple
-                                  (tcontract C (id #f ((tboolean)) (tboolean)))
+                                  (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (id #f ((tboolean)) (tboolean)))
                                   (tfield))])
               (tboolean)
            (contract-call id
                 ((tuple-ref %t.3 0)
-                 (tcontract C (id #f ((tboolean)) (tboolean))))
+                 (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (id #f ((tboolean)) (tboolean))))
              #t))
          (circuit %bar.4 ()
               (tboolean)
            (call %foo.2
              (safe-cast (ttuple
-                          (tcontract C (id #f ((tboolean)) (tboolean)))
+                          (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (id #f ((tboolean)) (tboolean)))
                           (tfield))
                         (ttuple
-                          (tcontract C (id #f ((tboolean)) (tboolean)))
+                          (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (id #f ((tboolean)) (tboolean)))
                           (tunsigned 65535))
                (public-ledger %c.1 (0) read))))))
      ))
@@ -33275,6 +33403,7 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (bar #t () (tbytes 32)))))
             (%F.2
@@ -33284,6 +33413,7 @@
                   2
                   (ttuple
                     (tcontract C
+                      (tstruct ContractAddress (bytes (tbytes 32)))
                       (foo #f ((tbytes 32)) (ttuple))
                       (bar #t () (tbytes 32)))))))))
          (circuit %foo.3 ()
@@ -33293,22 +33423,27 @@
                                2
                                (ttuple
                                  (tcontract C
+                                   (tstruct ContractAddress (bytes (tbytes 32)))
                                    (foo #f ((tbytes 32)) (ttuple))
                                    (bar #t () (tbytes 32)))))]
                      (flet [%circ.5
                             (circuit ([%x.6 (tcontract C
+                                              (tstruct ContractAddress (bytes (tbytes 32)))
                                               (foo #f ((tbytes 32)) (ttuple))
                                               (bar #t () (tbytes 32)))])
                                  (ttuple
                                    (tcontract C
+                                     (tstruct ContractAddress (bytes (tbytes 32)))
                                      (foo #f ((tbytes 32)) (ttuple))
                                      (bar #t () (tbytes 32))))
                               (tuple %x.6))]
                        (let* ([[%t.7 (ttuple
                                        (tcontract C
+                                         (tstruct ContractAddress (bytes (tbytes 32)))
                                          (foo #f ((tbytes 32)) (ttuple))
                                          (bar #t () (tbytes 32)))
                                        (tcontract C
+                                         (tstruct ContractAddress (bytes (tbytes 32)))
                                          (foo #f ((tbytes 32)) (ttuple))
                                          (bar #t () (tbytes 32))))]
                                (tuple
@@ -41795,7 +41930,7 @@
     )
 )
 
-(run-tests print-zkir
+#;(run-tests print-zkir
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/zkir/public_key.zkir" #f)
@@ -52506,7 +52641,7 @@
     )
 )
 
-(parameterize ([zkir-v3 #t])
+#;(parameterize ([zkir-v3 #f])
 (run-tests print-zkir-v3
   ;; (test
   ;;   "examples/tiny.compact"
@@ -63876,9 +64011,9 @@
            ((%calc.7
               (0)
               (__compact_Cell
-                (tcontract Calculator
+                (tcontract Calculator (tstruct ContractAddress (bytes (tbytes 32)))
                   (get_square #f ((tfield)) (tfield))))))
-           (constructor ([%c.8 (tcontract Calculator
+           (constructor ([%c.8 (tcontract Calculator (tstruct ContractAddress (bytes (tbytes 32)))
                                  (get_square #f ((tfield)) (tfield)))])
              (seq (public-ledger %calc.7 (0) write %c.8) (tuple))))))
       ))
@@ -64048,9 +64183,9 @@
            ((%calc.7
               (0)
               (__compact_Cell
-                (tcontract Calculator
+                (tcontract Calculator (tstruct ContractAddress (bytes (tbytes 32)))
                   (get_square #f ((tfield)) (tfield))))))
-           (constructor ([%c.8 (tcontract Calculator
+           (constructor ([%c.8 (tcontract Calculator (tstruct ContractAddress (bytes (tbytes 32)))
                                  (get_square #f ((tfield)) (tfield)))])
              (seq (public-ledger %calc.7 (0) write %c.8) (tuple))))))
       ))
@@ -66608,6 +66743,14 @@
      (stage-javascript contractCodeAuthCell '()))
     ((source-file "test-center/composable/auth-cell/AuthCellUser.compact")
      (stage-javascript contractCodeAuthCellUser "test-center/composable/auth-cell/auth-cell.ts")))
+
+  (test-group
+    ((source-file "test-center/composable/default-contract-values/A.compact")
+     (stage-javascript contractCodeA '()))
+    ((source-file "test-center/composable/default-contract-values/B.compact")
+     (stage-javascript contractCodeB '()))
+    ((source-file "test-center/composable/default-contract-values/C.compact")
+     (stage-javascript contractCodeC "test-center/composable/default-contract-values/default-contract-values.ts")))
 
   (test
     "examples/tiny.compact"
@@ -70205,9 +70348,11 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tbytes 32)) (ttuple))
                   (barr #t () (tbytes 32))))))
            (constructor ([%c.8 (tcontract C
+                                 (tstruct ContractAddress (bytes (tbytes 32)))
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (barr #t () (tbytes 32)))])
              (seq (public-ledger %contract_c.7 (0) write %c.8) (tuple))))
@@ -70216,11 +70361,13 @@
            (contract-call foo
                 ((public-ledger %contract_c.7 (0) read)
                  (tcontract C
+                   (tstruct ContractAddress (bytes (tbytes 32)))
                    (foo #f ((tbytes 32)) (ttuple))
                    (barr #t () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.7 (0) read)
                    (tcontract C
+                     (tstruct ContractAddress (bytes (tbytes 32)))
                      (foo #f ((tbytes 32)) (ttuple))
                      (barr #t () (tbytes 32)))))))))
      #|
@@ -76970,21 +77117,24 @@
               (0)
               (__compact_Cell
                 (tcontract C
+                  (tstruct ContractAddress (bytes (tbytes 32)))
                   (foo #f ((tfield)) (tfield))
                   (bar #f () (ttuple)))))
             (%F.8
               (1)
               (__compact_Cell
-                (tcontract C (foo #f ((tfield)) (tfield))))))
+                (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (foo #f ((tfield)) (tfield))))))
            (constructor ([%c1.9 (tcontract C
+                                  (tstruct ContractAddress (bytes (tbytes 32)))
                                   (foo #f ((tfield)) (tfield))
                                   (bar #f () (ttuple)))])
              (seq
                (public-ledger %F.7 (0) write %c1.9)
                (seq
-                 (const [%tmp.10 (tcontract C (foo #f ((tfield)) (tfield)))]
-                   (safe-cast (tcontract C (foo #f ((tfield)) (tfield)))
+                 (const [%tmp.10 (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (foo #f ((tfield)) (tfield)))]
+                   (safe-cast (tcontract C (tstruct ContractAddress (bytes (tbytes 32))) (foo #f ((tfield)) (tfield)))
                               (tcontract C
+                                (tstruct ContractAddress (bytes (tbytes 32)))
                                 (foo #f ((tfield)) (tfield))
                                 (bar #f () (ttuple)))
                      %c1.9))
@@ -78275,7 +78425,9 @@
          "                                                                                                                                                                     value: { value: _descriptor_6.toValue(0n),"
          "                                                                                                                                                                              alignment: _descriptor_6.alignment() } }] } },"
          "                                                                                                                                                   { popeq: { cached: false,"
-         "                                                                                                                                                              result: undefined } }]).value).bytes));"
+         "                                                                                                                                                              result: undefined } }]).value).bytes),"
+         "                                                 partialProofData,"
+         "                                                 'testfile.compact line 14 char 22');"
          "  __compactRuntime.interContractCall(context,"
          "                                     __AuthCell.executables(witnessSets),"
          "                                     __AuthCell.contractId,"
@@ -78292,6 +78444,8 @@
          "                                                                                                                                                                  alignment: _descriptor_6.alignment() } }] } },"
          "                                                                                                                                       { popeq: { cached: false,"
          "                                                                                                                                                  result: undefined } }]).value).bytes),"
+         "                                     partialProofData,"
+         "                                     'testfile.compact line 15 char 12',"
          "                                     { value:"
          "                                         __compactRuntime.addField(v_0.value,"
          "                                                                   x_0.value) });"

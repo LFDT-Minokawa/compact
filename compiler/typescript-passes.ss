@@ -46,7 +46,7 @@
              (nanopass-case (Ltypescript Public-Ledger-ADT-Type) ty clause ... [else #f])]))
         (define (subst-tcontract adt-type)
           (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
-            [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+            [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
              (with-output-language (Ltypescript Public-Ledger-ADT-Type)
                `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
             [else adt-type]))
@@ -72,7 +72,7 @@
                (lambda (hc type) (update hc (type-hash type)))
                37919937
                (list-head type* (min (length type*) max-tuple-elts-to-hash)))]
-            [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+            [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
              (type-hash (subst-tcontract type))]
             [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
              (fold-left
@@ -117,7 +117,7 @@
                     (and (= (length type1*) (length type2*))
                          (andmap type=? type1* type2*))])]
                [(tunknown) (T type2 [(tunknown) #t])]
-               [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+               [(tcontract ,src1 ,contract-name1 ,type^ (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
                 ; since we substitute out tcontract types, this is not exercised
                 (assert cannot-happen)]
                [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
@@ -148,7 +148,7 @@
                   (for-each register-descriptor! type*)]
                  [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                   (for-each register-descriptor! type*)]
-                 [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                 [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                   (assert cannot-happen)])
               (let ([a (hashtable-cell descriptor-table adt-type #f)])
                 (unless (cdr a)
@@ -294,7 +294,7 @@
           `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)])]
       [(contract-call ,src ,elt-name (,[expr] ,[type]) ,[expr*] ...)
        (nanopass-case (Ltypescript Type) type
-         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+         [(tcontract ,src^ ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
           `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)]
          [else (assert cannot-happen)])]
       [(return ,src ,expr) (Expr expr)])
@@ -841,7 +841,7 @@
 
       (define (subst-tcontract adt-type)
         (nanopass-case (Ltypescript Public-Ledger-ADT-Type) adt-type
-          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
            (with-output-language (Ltypescript Public-Ledger-ADT-Type)
              `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
           [else adt-type]))
@@ -1044,7 +1044,7 @@
                 [(XPelt-type-definition src type-name export-name tvar-name* type)
                  (newline)
                  (nanopass-case (Ltypescript Type) type
-                   [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                   [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                      (assert cannot-happen)]
                    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                     (print-Q 0
@@ -1360,7 +1360,7 @@
                    (format "new __compactRuntime.CompactTypeVector(~d, ~a)"
                            len
                            (type->descriptor-name type))]
-                  [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                  [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                    (assert cannot-happen)]
                   [(ttuple ,src ,type* ...)
                    (let ([tuple-name (format-internal-binding unique-global-name (make-temp-id src 'tuple))])
@@ -1434,7 +1434,7 @@
                   [(tvector ,src ,len ,type)
                    (format "Array.isArray(~a) && ~:*~a.length === ~d && ~2:*~a.every((t) => ~*~a)"
                            var len (typeof type "t"))]
-                  [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                  [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                    (assert cannot-happen)]
                   [(ttuple ,src ,type* ...)
                    (format "Array.isArray(~a) && ~:*~a.length === ~d ~{ && ~a~}"
@@ -1460,7 +1460,7 @@
                 [(tunknown) "Unknown"]
                 [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
                 [(tbytes ,src ,len) (format "Bytes<~s>" len)]
-                [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                  (format "contract ~a[~{~a~^, ~}]" contract-name
                    (map (lambda (elt-name pure-dcl type* type)
                           (if pure-dcl
@@ -2333,7 +2333,7 @@
         (module (print-contract-reference-locations print-contract-reference-locations-set)
           (define (do-type type)
             (nanopass-case (Ltypescript Type) type
-              [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+              [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                (make-Qconcat
                  "{"
                  1 (format "contractId: __~a.contractId," (print-contract-name contract-name))
@@ -3335,7 +3335,7 @@
           (let ([descriptor-name? (and (eq? op-class 'read) (type->maybe-descriptor-name adt-type))])
             (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)])
               (nanopass-case (Ltypescript Type) adt-type
-                [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                  (if descriptor-name?
                      (make-Qconcat
                        "__compactRuntime.decodeContractAddress("
@@ -3354,7 +3354,7 @@
                      q)])))])]
       [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
        (nanopass-case (Ltypescript Type) type
-         [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+         [(tcontract ,src^ ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
           (make-Qconcat
             "__compactRuntime.interContractCall("
             (apply (make-Qsep ",")
@@ -3363,6 +3363,8 @@
               (format "__~a.contractId" contract-name)
               (format "'~a'" elt-name)
               expr
+              "partialProofData"
+              (format "'~a'" (format-source-object src))
               expr*)
             ")")]
          [else (assert cannot-happen)])])
@@ -3416,9 +3418,9 @@
                       [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
                       [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
                       [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]
-                      [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+                      [(tcontract ,src1 ,contract-name1 ,type^ (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
                        (T type2
-                          [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                          [(tcontract ,src2 ,contract-name2 ,type^ (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                            (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
                              (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
                                        (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
@@ -3464,7 +3466,7 @@
          [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
       [(tvector ,src ,len ,[Type : type -> * type])
        (make-Qconcat type "[]")]
-      [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+      [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
        "{ bytes: Uint8Array }"]
       [(ttuple ,src ,type* ...)
        (make-Qconcat

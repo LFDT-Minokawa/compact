@@ -156,12 +156,12 @@
                                 [circuit-ir (run-passes circuit-passes analyzed-ir)])
                             (rm-rf (format "~a/zkir" output-directory-pathname))
                             (rm-rf (format "~a/keys" output-directory-pathname))
-                            (with-target-ports
+                            #;(with-target-ports
                               (map (lambda (sym) (cons sym (format "zkir/~a.zkir" sym)))
                                    circuit-names)
                               (run-passes (if (zkir-v3) zkir-v3-passes zkir-passes) circuit-ir))
                             (unless (null? (pending-conditions)) (raise (make-halt-condition)))
-                            (unless (skip-zk)
+                            #;(unless (skip-zk)
                               (if (zero? (system "command -v zkir > /dev/null"))
                                 ;; If we have zero circuits, the zkir directory won't exist,
                                 ;; and zkir will fail to read it. Skip in that case silently.

@@ -63,3 +63,12 @@ export function typeError(who: string, what: string, where: string, type: string
 export function expectedValueError(expected: string, actual: unknown): never {
   throw new CompactError(`Expected ${expected} but received ${JSON.stringify(actual)}`);
 }
+
+/**
+ * Compiler internal for when something attempts to call circuit on the default contract.
+ * @internal
+ */
+export function nullContractCallError(where: string, circuit: string): never {
+  const msg = `call error at ${where}; attempted to call circuit '${circuit}' but target is the default contract`
+  throw new CompactError(msg);
+}

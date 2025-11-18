@@ -556,8 +556,8 @@
          (tunsigned src nat)    => (tunsigned nat)
          (tvector src len type) => (tvector len type)
          (tbytes src len)       => (tbytes len)
-         (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
-           (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
+         (tcontract src contract-name type^ (elt-name* pure-dcl* (type** ...) type*) ...) =>
+           (tcontract contract-name type^ #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
          (tstruct src struct-name (elt-name* type*) ...) =>
            (tstruct struct-name #f (elt-name* type*) ...)
          (tenum src enum-name elt-name elt-name* ...) =>
@@ -714,8 +714,8 @@
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
-      (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
-        (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
+      (tcontract src contract-name type^ (elt-name* pure-dcl* (type** ...) type*) ...) =>
+        (tcontract contract-name type^ #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
       (tstruct src struct-name (elt-name* type*) ...) =>
         (tstruct struct-name #f (elt-name* type*) ...)
       (tenum src enum-name elt-name elt-name* ...) =>
@@ -1019,8 +1019,8 @@
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
-      (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
-        (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
+      (tcontract src contract-name type^ (elt-name* pure-dcl* (type** ...) type*) ...) =>
+        (tcontract contract-name type^ #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
       (tstruct src struct-name (elt-name* type*) ...) =>
         (tstruct struct-name #f (elt-name* type*) ...)
       (tunknown)))
@@ -1095,8 +1095,8 @@
          (bytes->vector triv)                    => (bytes->vector #f triv) ; triv holds one field's worth of bytes
          (public-ledger src test ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
            (public-ledger test ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
-         (contract-call src test elt-name (triv primitive-type) triv* ...) =>
-           (contract-call test elt-name 4 (triv primitive-type) #f triv* ...)))
+         (contract-call src test elt-name (triv*^ ...) primitive-type triv* ...) =>
+           (contract-call test elt-name 4 (triv*^ ...) primitive-type #f triv* ...)))
     (Triv (triv test)
       (- (quote datum)
          (default adt-type))
@@ -1122,7 +1122,7 @@
          (tvector src len type)
          (ttuple src type* ...)
          (tstruct src struct-name (elt-name* type*) ...)
-         (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...)
+         (tcontract src contract-name type^ (elt-name* pure-dcl* (type** ...) type*) ...)
          (tunknown))
       (+ (ty (alignment* ...) (primitive-type* ...))))
     (Primitive-Type (primitive-type)

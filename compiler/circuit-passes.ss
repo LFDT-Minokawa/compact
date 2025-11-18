@@ -141,9 +141,9 @@
                 (and (= (length type1*) (length type2*))
                      (andmap sametype? type1* type2*))])]
            [(tunknown) #t] ; tunknown originates from empty vectors
-           [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+           [(tcontract ,src1 ,contract-name1 ,type^ (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
             (T type2
-               [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+               [(tcontract ,src2 ,contract-name2 ,type^ (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                 (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
                   (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
                             (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
@@ -438,7 +438,7 @@
           [(tunknown) "Unknown"]
           [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
           [(tbytes ,src ,len) (format "Bytes<~s>" len)]
-          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
            (format "contract ~a[~{~a~^, ~}]" contract-name
              (map (lambda (elt-name pure-dcl type* type)
                     (if pure-dcl
@@ -493,9 +493,9 @@
                 (and (= (length type1*) (length type2*))
                      (andmap sametype? type1* type2*))])]
            [(tunknown) #t] ; tunknown originates from empty vectors
-           [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+           [(tcontract ,src1 ,contract-name1 ,type^ (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
             (T type2
-               [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+               [(tcontract ,src2 ,contract-name2 ,type^ (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                 (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
                   (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
                             (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
@@ -980,7 +980,7 @@
           adt-type])]
       [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (nanopass-case (Linlined Type) type
-         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
+         [(tcontract ,src^ ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
           (let ([adt-type* (map Care expr*)])
             (let loop ([elt-name* elt-name*] [type** type**] [type* type*])
               (if (null? elt-name*)
@@ -2193,9 +2193,8 @@
                  (let ([a^* (f type '())])
                    (do ([len len (- len 1)] [a* a* (append a^* a*)])
                        ((eqv? len 0) a*)))]
-                [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
-                 ; FIXME: acontract?
-                 (cons `(acontract) a*)]
+                [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
+                 (f type^ a*)]
                 [(ttuple ,src ,type* ...)
                  (fold-right f a* type*)]
                 [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
@@ -2287,6 +2286,9 @@
        (Wump-vector wump*)]
       [(tstruct ,src ,struct-name (,elt-name* ,[Type->Wump : type -> * wump*]) ...)
        (Wump-struct elt-name* wump*)]
+      [(tcontract ,src ,contract-name ,[Type->Wump : type^ -> * wump] (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+       ; Replace tcontract with its underlying ContractAddress type
+       wump]
       [(tunknown) (assert cannot-happen)]
       [else (Wump-single (Single-Type ir))])
     (Type : Public-Ledger-ADT-Type (ir) -> Type ()
@@ -2296,7 +2298,10 @@
       [(tfield ,src) `(tfield)]
       [(tunsigned ,src ,nat) `(tfield ,nat)]
       [(topaque ,src ,opaque-type) `(topaque ,opaque-type)]
-      [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[Type : type**] ...) ,[Type : type*]) ...)
+      [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,[Type : type**] ...) ,[Type : type*]) ...)
+       ; Keep tcontract as metadata for type checking contract-call
+       ; Method types are converted to Lflattened Types (with ty wrapper) for type->primitive-types
+       ; Contract VALUES are represented via Type->Wump as ContractAddress bytes
        `(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)]
       [,public-adt (Public-Ledger-ADT public-adt)])
     (Statement : Statement (ir) -> * (stmt*)
@@ -2482,24 +2487,27 @@
            (with-output-language (Lflattened Statement)
              (list `(= (,var-name* ...)
                        (public-ledger ,src ,test ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op^ ,triv* ...))))))]
-      [(contract-call ,src ,[Single-Triv : test] ,elt-name (,[Single-Triv : triv] ,type) ,[* wump*] ...)
-       (let-values ([(wump var-name*)
-                     (wump-fold-right
-                       (lambda (type var-name*)
-                         (let ([var-name (make-new-id var-name)])
-                           (values var-name (cons var-name var-name*))))
-                       '()
-                       (nanopass-case (Lcircuit Type) type
-                         [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                          (Type->Wump
-                            (cdr (assert (find
-                                           (lambda (x) (eq? (car x) elt-name))
-                                           (map cons elt-name* type*)))))]))])
-         (hashtable-set! var-ht var-name wump)
-         (let ([triv* (fold-right wump->elts '() wump*)])
-           (with-output-language (Lflattened Statement)
-             (list `(= (,var-name* ...)
-                       (contract-call ,src ,test ,elt-name (,triv ,(Single-Type type)) ,triv* ...))))))]
+      [(contract-call ,src ,[Single-Triv : test] ,elt-name (,triv^ ,type) ,[* wump*] ...)
+       ;; Process contract value through Triv to get multiple field elements
+       (let ([contract-wump (Triv triv^)])
+         (let-values ([(wump var-name*)
+                       (wump-fold-right
+                         (lambda (type var-name*)
+                           (let ([var-name (make-new-id var-name)])
+                             (values var-name (cons var-name var-name*))))
+                         '()
+                         (nanopass-case (Lcircuit Type) type
+                           [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                            (Type->Wump
+                              (cdr (assert (find
+                                             (lambda (x) (eq? (car x) elt-name))
+                                             (map cons elt-name* type*)))))]))])
+           (hashtable-set! var-ht var-name wump)
+           (let ([triv* (fold-right wump->elts '() wump*)]
+                 [contract-triv* (wump->elts contract-wump)])
+             (with-output-language (Lflattened Statement)
+               (list `(= (,var-name* ...)
+                         (contract-call ,src ,test ,elt-name (,contract-triv* ...) ,(Single-Type type) ,triv* ...)))))))]
       [(call ,src ,[Single-Triv : test] ,function-name ,[* wump*] ...)
        (let ([funwump (or (hashtable-ref fun-ht function-name #f)
                           (assert cannot-happen))])
@@ -2552,6 +2560,8 @@
             (Wump-vector (map dowump type*))]
            [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
             (Wump-struct elt-name* (map dowump type*))]
+           [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+            (dowump type^)]
            [,public-adt (Wump-single 0)]
            [else (assert cannot-happen)]))]
       [else (assert cannot-happen)])
@@ -2797,7 +2807,7 @@
       [else #f])
     (Multiple-Test : Multiple (ir) -> * (maybe-test)
       [(call ,src ,[FWD-Triv : test] ,function-name ,triv* ...) test]
-      [(contract-call ,src ,[FWD-Triv : test] ,elt-name (,triv ,primitive-type) ,triv* ...) test]
+      [(contract-call ,src ,[FWD-Triv : test] ,elt-name (,triv*^ ...) ,primitive-type ,triv* ...) test]
       [(field->bytes ,src ,[FWD-Triv : test] ,len ,triv) test]
       [(public-ledger ,src ,[FWD-Triv : test] ,ledger-field-name ,sugar? (,[FWD-Path-Element : path-elt*] ...) ,src^ ,adt-op ,triv* ...) test]
       [else #f])
@@ -2805,9 +2815,9 @@
       [(call ,src ,[FWD-Triv : test] ,function-name ,[FWD-Triv : triv*] ...)
        (with-output-language (Lflattened Statement)
          (cons `(= (,var-name* ...) (call ,src ,test ,function-name ,triv* ...)) rstmt*))]
-      [(contract-call ,src ,[FWD-Triv : test] ,elt-name (,triv ,primitive-type) ,[FWD-Triv : triv*] ...)
+      [(contract-call ,src ,[FWD-Triv : test] ,elt-name (,[FWD-Triv : triv*^] ...) ,primitive-type ,[FWD-Triv : triv*] ...)
        (with-output-language (Lflattened Statement)
-         (cons `(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...)) rstmt*))]
+         (cons `(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv*^ ...) ,primitive-type ,triv* ...)) rstmt*))]
       [(field->bytes ,src ,[FWD-Triv : test] ,len ,[FWD-Triv : triv])
        (assert (fx= (length var-name*) 2))
        (with-output-language (Lflattened Statement)
@@ -3064,8 +3074,8 @@
        (cons `(= ,var-name ,single) stmt*)]
       [(= (,var-name* ...) (call ,src ,[BWD-Triv : test] ,function-name ,[BWD-Triv : triv*] ...))
        (cons `(= (,var-name* ...) (call ,src ,test ,function-name ,triv* ...)) stmt*)]
-      [(= (,var-name* ...) (contract-call ,src ,[BWD-Triv : test] ,elt-name (,triv ,primitive-type) ,[BWD-Triv : triv*] ...))
-       (cons `(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...)) stmt*)]
+      [(= (,var-name* ...) (contract-call ,src ,[BWD-Triv : test] ,elt-name (,[BWD-Triv : type*^] ...) ,primitive-type ,[BWD-Triv : triv*] ...))
+       (cons `(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,type*^ ...) ,primitive-type ,triv* ...)) stmt*)]
       [(= (,var-name1 ,var-name2) (field->bytes ,src ,test ,len ,triv))
        (guard
          (>= len (field-bytes))
@@ -3149,18 +3159,25 @@
           (nanopass-case (Lflattened Public-Ledger-ADT-Arg) adt-arg
             [,nat (format "~d" nat)]
             [,type (format "(~{~a~^, ~})" (map format-type (type->primitive-types type)))]))
+        (define (format-method-type type)
+          ; Formatter for Lflattened Types in method signatures (for error messages)
+          (nanopass-case (Lflattened Type) type
+            [(ty (,alignment* ...) (,primitive-type* ...))
+             (format "(~{~a~^, ~})" (map format-type primitive-type*))]
+            [else (format "~s" type)]))
         (nanopass-case (Lflattened Primitive-Type) type
           [(tfield) "Field"]
           [(tfield ,nat) (format "Field[~s]" nat)]
           [(topaque ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-           (format "contract ~a<~{~a~^, ~}>" contract-name
+           ; Method types are Lflattened Types - format them for error messages
+           (format "contract ~a[~{~a~^, ~}]" contract-name
              (map (lambda (elt-name pure-dcl type* type)
                     (if pure-dcl
                         (format "pure ~a(~{~a~^, ~}): ~a" elt-name
-                                (map format-type type*) (format-type type))
+                                (map format-method-type type*) (format-method-type type))
                         (format "~a(~{~a~^, ~}): ~a" elt-name
-                                (map format-type type*) (format-type type))))
+                                (map format-method-type type*) (format-method-type type))))
                   elt-name* pure-dcl* type** type*))]
           [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
            (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]
@@ -3182,22 +3199,6 @@
             (T type2
                [(topaque ,opaque-type2)
                 (string=? opaque-type1 opaque-type2)])]
-           [(tcontract ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-            (T type2
-               [(tcontract ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
-                (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
-                  (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
-                            (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
-                                     (and (eq? elt-name1 elt-name2)
-                                          (eq? pure-dcl1 pure-dcl2)
-                                          (fx= (length type1*) (length type2*))
-                                          (andmap subtype? type1* type2*)
-                                          (subtype? type1 type2)))
-                                   elt-name1* pure-dcl1* type1** type1*))
-                          elt-name2* pure-dcl2* type2** type2*))
-                (and (eq? contract-name1 contract-name2)
-                     (fx= (length elt-name1*) (length elt-name2*))
-                     (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
            ; this should never presently happen, since no Triv has type public-adt
            [,public-adt1
             (T type2
@@ -3309,8 +3310,11 @@
            [else (source-errorf src "invalid context for reference to ~s (defined at ~a)"
                                 function-name
                                 (format-source-object (id-src function-name)))]))]
-      [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,[* type] ,primitive-type) ,[* type*] ...))
+      [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,[* contract-type*] ...) ,primitive-type ,[* type*] ...))
        (verify-test src test)
+       ;; Note: contract-type* are the types of the contract value trivs
+       ;; We don't need to validate them - we trust they came from a contract
+       ;; We only validate the method argument types (type*)
        (let ([actual-type* type*])
          (nanopass-case (Lflattened Primitive-Type) primitive-type
            [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)

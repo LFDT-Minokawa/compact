@@ -40,6 +40,9 @@
 
   (define-syntax standard-library-path (identifier-syntax "compiler/standard-library.compact"))
 
+  ; Cache for the resolved ContractAddress type, shared across passes
+  (define cached-contract-address-type #f)
+
   (define-pass expand-modules-and-types : Lpreexpand (ir) -> Lexpanded ()
     (definitions
       (define-syntax run-passes
@@ -96,7 +99,7 @@
                                 (if (fx<= (length type*) max-tuple-elts-to-hash)
                                     type*
                                     (list-head type* max-tuple-elts-to-hash)))))]
-            [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+            [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
              (+ 8 (combine (list (symbol-hash contract-name)
                                  ; contract elts are unordered, so just add their hashes
                                  (apply + (map symbol-hash elt-name*)))))]
@@ -191,6 +194,20 @@
       (define outer-module-rib (make-hashtable equal-hash equal?))
       (define outer-module-next-seqno '(0 -1))
       (define Cell-ADT-env #f)
+      (define ContractAddress-env #f)
+      (define (get-contract-address-type src)
+        (or cached-contract-address-type
+            (let ([type (let ([p (or ContractAddress-env
+                                     (let ([p (add-rib empty-env)])
+                                       (do-import src 'CompactStandardLibrary '() ""
+                                                  (list (with-output-language (Lpreexpand Import-Element)
+                                                          `(,src ContractAddress ContractAddress)))
+                                                  p)
+                                       (set! ContractAddress-env p)
+                                       p))])
+                          (handle-type-ref src 'ContractAddress '() (lookup p src 'ContractAddress)))])
+              (set! cached-contract-address-type type)
+              type)))
       (define (complain-about-shadowed-renamings! p src sym info)
         ; this should be removed when we retire the version of fixup-compactc that
         ; camelCases standard library circuit and ledger operators names.
@@ -333,9 +350,9 @@
                        (andmap sametype? type1* type2*))])]
              ; only one of the two arguments can be tundeclared, so (T ...) here might be unreachable
              [(tundeclared) (T type2 [(tundeclared) #t])]
-             [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+             [(tcontract ,src1 ,contract-name1 ,type^ (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
               (T type2
-                 [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                 [(tcontract ,src2 ,contract-name2 ,type^ (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                   (and (eq? contract-name1 contract-name2)
                        (fx= (length elt-name1*) (length elt-name2*))
                        (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
@@ -534,8 +551,9 @@
                  tvar-name]
                 [(Info-contract src contract-name ecdecl-circuit* p)
                  (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 (let ([Type (lambda (type) (Type type p))])
-                   `(tcontract ,src ,contract-name
+                 (let ([Type (lambda (type) (Type type p))]
+                       [type^ (get-contract-address-type src)])
+                   `(tcontract ,src ,contract-name ,type^
                       (,(map ecdecl-circuit-function-name ecdecl-circuit*)
                        ,(map ecdecl-circuit-pure? ecdecl-circuit*)
                        (,(map (lambda (type*) (map Type type*)) (map ecdecl-circuit-type* ecdecl-circuit*)) ...)
@@ -1269,7 +1287,7 @@
           [(tundeclared) "Undeclared"]
           [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
           [(tbytes ,src ,len) (format "Bytes<~s>" len)]
-          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
            (format "contract ~a<~{~a~^, ~}>" contract-name
              (map (lambda (elt-name pure-dcl type* type)
                     (if pure-dcl
@@ -1341,9 +1359,9 @@
                        (andmap sametype? type1* type2*))])]
              [(tunknown) (T type2 [(tunknown) #t])]
              [(tundeclared) (T type2 [(tundeclared) #t])]
-             [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+             [(tcontract ,src1 ,contract-name1 ,type^ (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
               (T type2
-                 [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                 [(tcontract ,src2 ,contract-name2 ,type^ (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                   (and (eq? contract-name1 contract-name2)
                        (fx= (length elt-name1*) (length elt-name2*))
                        (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
@@ -1400,9 +1418,9 @@
                            (andmap subtype? type1* type2*))])]
                  [(tunknown) #t] ; tunknown values originate from empty-vector constants.
                  [(tundeclared) (T type2 [(tundeclared) #t])]
-                 [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+                 [(tcontract ,src1 ,contract-name1 ,type^ (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
                   (T type2
-                     [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                     [(tcontract ,src2 ,contract-name2 ,type^ (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                       (and (eq? contract-name1 contract-name2)
                            (fx>= (length elt-name1*) (length elt-name2*))
                            (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
@@ -1449,7 +1467,7 @@
              type)]))
       (define (contains-contract? type)
         (T type
-           [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... ) #t]
+           [(tcontract ,src^ ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... ) #t]
            [(tvector ,src ,len ,type) (contains-contract? type)]
            [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) (ormap contains-contract? type*)]))
       (define check-contract
@@ -1499,6 +1517,7 @@
                        (let ([circuits (tolist (get-assoc "circuits" alist))])
                          `(tcontract ,src
                                      ,(tosym (get-assoc "name" alist))
+                                     ,cached-contract-address-type
                                      (,(map (lambda (alist) (tosym (get-assoc "name" alist))) circuits)
                                       ,(map (lambda (alist) (tobool (get-assoc "pure" alist))) circuits)
                                       (,(map (lambda (alist) (map totype (tolist (get-assoc "argument-types" alist)))) circuits) ...)
@@ -2209,7 +2228,8 @@
          `(tvector ,src ,len ,type))]
       [(tbytes ,src ,len)
        `(tbytes ,src ,len)]
-      [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+      [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+       ; Circuit types are validated but not transformed since they won't be used after this point
        (let ([type** (map (lambda (type* elt-name)
                             (map (lambda (type i)
                                    (Non-ADT-Type type src "circuit '~a' argument ~d" elt-name (fx+ i 1)))
@@ -2220,7 +2240,9 @@
              [type* (map (lambda (type elt-name) (Non-ADT-Type type src "circuit '~a' return" elt-name))
                          type*
                          elt-name*)])
-         `(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...))]
+         ; Keep tcontract during type checking - don't replace with ContractAddress yet
+         ; Process type^ through Type processor to convert from Lexpanded to Ltypes
+         `(tcontract ,src ,contract-name ,(Type type^) (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...))]
       [(ttuple ,src ,type* ...)
        (let ([type* (map (lambda (type i)
                            (Non-ADT-Type type src "tuple element ~d" (fx+ i 1)))
@@ -2284,7 +2306,7 @@
           (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
             [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
              (source-errorf src "expected a ledger field name at base of ledger access")]
-            [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
+            [(tcontract ,src^ ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
              (guard (not adt-type-only?))
              (values expr adt-type)]
             [else (elt-call-oops src adt-type)])))
@@ -2310,7 +2332,7 @@
        (let ()
          (define (handle-contract expr adt-type err)
            (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
-             [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
+             [(tcontract ,src^ ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
               (guard (not adt-type-only?))
               (find-contract-circuit src src^ contract-name elt-name elt-name* type** type* adt-type adt-type* expr expr*)]
              [else (err)]))
@@ -2372,8 +2394,7 @@
                            (id-sym ledger-field-name))]))]
       [(default ,src ,[adt-type])
        (nanopass-case (Ltypes Public-Ledger-ADT-Type) adt-type
-         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-          (source-errorf src "default is not defined for contract types")]
+         ; Note: tcontract error case removed - contracts are now replaced with ContractAddress in Type processor
          [(,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
           (guard (eq? adt-name 'Kernel))
           (source-errorf src "default is not defined for ADT type Kernel")]
@@ -3286,7 +3307,7 @@
           [(tunknown) "Unknown"]
           [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
           [(tbytes ,src ,len) (format "Bytes<~s>" len)]
-          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
            (format "contract ~a<~{~a~^, ~}>" contract-name
              (map (lambda (elt-name pure-dcl type* type)
                     (if pure-dcl
@@ -3344,9 +3365,9 @@
                 (and (= (length type1*) (length type2*))
                      (andmap sametype? type1* type2*))])]
            [(tunknown) (T type2 [(tunknown) #t])]
-           [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+           [(tcontract ,src1 ,contract-name1 ,type^ (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
             (T type2
-               [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+               [(tcontract ,src2 ,contract-name2 ,type^ (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                 (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
                   (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
                             (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
@@ -3970,7 +3991,7 @@
        (assert cannot-happen)]
       [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (nanopass-case (Lnodca Type) type
-         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
+         [(tcontract ,src^ ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
           (let ([adt-type* (map Care expr*)])
             (let loop ([elt-name* elt-name*] [type** type**] [type* type*])
               (if (null? elt-name*)
@@ -4163,7 +4184,7 @@
               (raise-continuable result)))))
       (define (name-of-contract type)
         (nanopass-case (Lnodca Type) type
-          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
             contract-name]
           [else (assert cannot-happen)]))
     )
@@ -4307,7 +4328,7 @@
        ir]
       [(contract-call ,src ,elt-name (,expr ,type) ,[expr*] ...)
        (nanopass-case (Lnodca Type) type
-         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+         [(tcontract ,src^ ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
           (let loop ([elt-name* elt-name*] [pure-dcl* pure-dcl*])
             (when (null? elt-name*) (assert cannot-happen))
             (if (eq? (car elt-name*) elt-name)
@@ -5205,7 +5226,7 @@
          (enumerate abs*))
        (default-value
          (nanopass-case (Lwithpaths Type) type
-           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+           [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
             (let loop ([elt-name* elt-name*]
                        [type* type*])
               (if (eq? (car elt-name*) elt-name)

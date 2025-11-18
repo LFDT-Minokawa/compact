@@ -1,0 +1,4 @@
+import CompactStandardLibrary;
+export circuit bar(): Field {
+    return 4;
+}
