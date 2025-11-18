@@ -1175,7 +1175,6 @@
       (ec_mul_generator outp0 outp1 inp)
       (hash_to_curve outp0 outp1 inp* ...)
       (less_than outp inp0 inp1 imm)
-      (load_imm outp fr)
       (mul outp inp0 inp1)
       (neg outp inp)
       (output inp)
@@ -1189,6 +1188,7 @@
       (test_eq outp inp0 inp1)
       (transient_hash outp inp* ...))
     (Input (inp)
+      fr
       var-name)
     (Output (outp)
       var-name))
