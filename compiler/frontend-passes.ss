@@ -473,7 +473,11 @@
                                         (seq ,src
                                              (elt-call ,src (var-ref ,src __compact_std_kernel)
                                                        claimContractCall
-                                                       ,(list `(var-ref ,src ,local-c) ; FIXME this has to have type bytes<32> and not tcontract
+                                                       ,(list `(elt-ref ,src (safe-cast ,src
+                                                                                        (type-ref ,src __compact_std_ContractAddress ,(list) ...)
+                                                                                        ,contract-type
+                                                                                        (var-ref ,src ,local-c))
+                                                                        bytes)
                                                               `(quote ,src ,circuit-hash)
                                                               tc-call) ...)
                                              (return ,src (var-ref ,src ,local-res))))))]

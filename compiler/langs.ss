@@ -390,7 +390,10 @@
            (pure-dcl elt-name function-name (arg* ...) type)))
     (Expression (expr index)
       (+ (contract-call src elt-name (expr type) expr* ...) =>
-           (contract-call elt-name 4 (expr 0 type) #f expr* ...))))
+           (contract-call elt-name 4 (expr 0 type) #f expr* ...)
+         ; safe-cast in this IR is used to cast a tcontract to a contract address
+         (safe-cast src type type^ expr) => (safe-cast type 10 type^ #f expr) ; type^ < type
+      )))
 
   (define-language/pretty Lpreexpand (extends Lexpandedcontractcall)
     (terminals
@@ -584,8 +587,8 @@
          (tunsigned src nat)    => (tunsigned nat) ; nat = max value
          (tvector src len type) => (tvector len type)
          (tbytes src len)       => (tbytes len)
-         (tcontract src contract-name (elt-name* fun* pure-dcl* (type** ...) type*) ...) =>
-           (tcontract contract-name #f (elt-name* fun* pure-dcl* (type** ...) #f type*) ...)
+         (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...) =>
+           (tcontract contract-name #f (elt-name* function-name* pure-dcl* (type** ...) #f type*) ...)
          (tstruct src struct-name (elt-name* type*) ...) =>
            (tstruct struct-name #f (elt-name* type*) ...)
          (tenum src enum-name elt-name elt-name* ...) =>
@@ -724,26 +727,26 @@
       )
     (Map-Argument (map-arg)
       ; type = expr's type; type^ = type to which each element of expr's value must be cast
-      (expr type type^)                  => expr
+      (expr type type^)                       => expr
       )
     (Tuple-Argument (tuple-arg)
-      (single src expr)                      => expr
-      (spread src nat expr)                  => (spread nat expr)
+      (single src expr)                       => expr
+      (spread src nat expr)                   => (spread nat expr)
       )
     (Function (fun)
-      (fref src function-name)               => function-name
-      (circuit src (arg* ...) type expr)     => (circuit (arg* 0 ...) 4 type #f expr))
+      (fref src function-name)                => function-name
+      (circuit src (arg* ...) type expr)      => (circuit (arg* 0 ...) 4 type #f expr))
     (Type (type)
       tvar-name
-      (tboolean src)                         => (tboolean)
-      (tfield src)                           => (tfield)
-      (tunsigned src nat)                    => (tunsigned nat)
-      (tbytes src len)                       => (tbytes len)
-      (topaque src opaque-type)              => (topaque opaque-type)
-      (tvector src len type)                 => (tvector len type)
-      (ttuple src type* ...)                 => (ttuple type* ...)
-      (tcontract src contract-name (elt-name* fun* pure-dcl* (type** ...) type*) ...) =>
-        (tcontract contract-name #f (elt-name* fun* pure-dcl* (type** ...) #f type*) ...)
+      (tboolean src)                          => (tboolean)
+      (tfield src)                            => (tfield)
+      (tunsigned src nat)                     => (tunsigned nat)
+      (tbytes src len)                        => (tbytes len)
+      (topaque src opaque-type)               => (topaque opaque-type)
+      (tvector src len type)                  => (tvector len type)
+      (ttuple src type* ...)                  => (ttuple type* ...)
+      (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...) =>
+        (tcontract contract-name #f (elt-name* function-name* pure-dcl* (type** ...) #f type*) ...)
       (tstruct src struct-name (elt-name* type*) ...) =>
         (tstruct struct-name #f (elt-name* type*) ...)
       (tenum src enum-name elt-name elt-name* ...) =>
@@ -753,7 +756,7 @@
 
   (define-language/pretty Lnofunintcontract (extends Ltypes)
     (Type (type)
-      (- (tcontract src contract-name (elt-name* fun* pure-dcl* (type** ...) type*) ...))
+      (- (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...))
       (+ (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...))))
 
   (define-language/pretty Lnotundeclared (extends Lnofunintcontract)
@@ -1050,7 +1053,7 @@
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
-      (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) => ; do I need the wrapper name here? TODO
+      (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
         (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
       (tstruct src struct-name (elt-name* type*) ...) =>
         (tstruct struct-name #f (elt-name* type*) ...)
