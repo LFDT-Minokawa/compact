@@ -69,6 +69,6 @@ export function expectedValueError(expected: string, actual: unknown): never {
  * @internal
  */
 export function nullContractCallError(where: string, circuit: string): never {
-  const msg = `call error at ${where}; attempted to call circuit '${circuit}' but target is the default contract`
+  const msg = `call error at ${where}; attempted to call circuit '${circuit}' but target is the default contract`;
   throw new CompactError(msg);
 }

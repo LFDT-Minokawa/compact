@@ -54,6 +54,6 @@ describe('Default contract values', () => {
         const context0 = util.createInitialContext('C', 'setS', env);
         const circuitResult0 = env.deployedContracts.C.exec.impureCircuits.setS(context0);
         const circuitResult1 = env.deployedContracts.C.exec.impureCircuits.sumAB(circuitResult0.context);
-        expect(circuitResult1.result).toEqual(7);
+        expect(circuitResult1.result).toEqual(7n);
     });
 });

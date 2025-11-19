@@ -25,9 +25,10 @@ import {
 } from './circuit-context.js';
 import { WitnessSets } from './witness.js';
 import { ConstructorContext, ConstructorResult } from './constructor-context.js';
-import {assertDefined, nullContractCallError} from './error.js';
+import { assertDefined, nullContractCallError } from './error.js';
 import { ContractReferenceLocations, ContractReferenceLocationsSet } from './contract-dependencies.js';
-import {assertIsContractAddress} from "./utils.js";
+import { assertIsContractAddress } from './utils.js';
+import { EncodedContractAddress } from './zswap.js';
 
 /**
  * The type of an impure circuit. An impure circuit is a function that accepts a circuit context and an arbitrary list of
@@ -137,8 +138,7 @@ export type Executables<PS = any> = {
  * @param executables The executables of the contract containing the circuit to be called.
  * @param contractId The ID of the contract to be called.
  * @param circuitId The ID of the circuit to be called in the contract to be called.
- * @param contractAddress The address of the contract to be called.
- * @param partialProofData The proof data of the currently executing contract.
+ * @param encodedContractAddress The address of the contract to be called.
  * @param where The source location of the circuit call.
  * @param args The arguments to the circuit to be called.
  */
@@ -147,20 +147,21 @@ export const interContractCall = (
   executables: Executables,
   contractId: ContractId,
   circuitId: CircuitId,
-  contractAddress: ocrt.ContractAddress,
+  encodedContractAddress: EncodedContractAddress,
   where: string,
   ...args: any[]
 ): any => {
+  const contractAddress = ocrt.decodeContractAddress(encodedContractAddress.bytes);
   assertIsContractAddress(contractAddress);
   assertIsContractAddress(contractAddress);
   if (contractAddress == ocrt.dummyContractAddress()) {
     nullContractCallError(where, circuitId);
   }
-  const impureCircuit = executables.impureCircuits[circuitId];
-  assertDefined(impureCircuit, `'${circuitId}' in '${contractId}'`);
+  const circuit = executables.circuits[circuitId];
+  assertDefined(circuit, `'${circuitId}' in '${contractId}'`);
   const callerStackFrame = copyStackFrame(callerContext);
   freshStackFrame(callerContext, contractId, circuitId, contractAddress);
-  const circuitResult = impureCircuit(callerContext, ...args);
+  const circuitResult = circuit(callerContext, ...args);
   restoreCircuitContext(callerContext, circuitResult.context, callerStackFrame);
   return circuitResult.result;
 };

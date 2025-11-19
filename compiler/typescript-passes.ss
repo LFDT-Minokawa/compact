@@ -3334,24 +3334,9 @@
           (when (Ltypescript-Public-Ledger-ADT? adt-type) (source-errorf src "incomplete reference to nested ADT"))
           (let ([descriptor-name? (and (eq? op-class 'read) (type->maybe-descriptor-name adt-type))])
             (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)])
-              (nanopass-case (Ltypescript Type) adt-type
-                [(tcontract ,src ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                 (if descriptor-name?
-                     (make-Qconcat
-                       "__compactRuntime.decodeContractAddress("
-                       descriptor-name?
-                       ".fromValue("
-                       q
-                       ".value).bytes)")
-                     q)]
-                [else
-                 (if descriptor-name?
-                     (make-Qconcat
-                       descriptor-name?
-                       ".fromValue("
-                       q
-                       ".value)")
-                     q)])))])]
+              (if descriptor-name?
+                  (make-Qconcat descriptor-name? ".fromValue(" q ".value)")
+                  q)))])]
       [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
        (nanopass-case (Ltypescript Type) type
          [(tcontract ,src^ ,contract-name ,type^ (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
@@ -3363,7 +3348,6 @@
               (format "__~a.contractId" contract-name)
               (format "'~a'" elt-name)
               expr
-              "partialProofData"
               (format "'~a'" (format-source-object src))
               expr*)
             ")")]
