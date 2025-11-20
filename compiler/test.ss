@@ -79529,6 +79529,27 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "new type U16 = Uint<16>;"
+      "ledger F: U16;"
+      "export circuit foo(): U16 {"
+      "  for (const i of 0..3) {"
+      "    F = F + ((a) => a * a)(i + 1 as U16);"
+      "  }"
+      ""
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(14n);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
