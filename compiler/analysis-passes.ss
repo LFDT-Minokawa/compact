@@ -564,7 +564,11 @@
                                      [(fref ,src ,symbolic-function-name (([,symbolic-function-name^ ,function-name])) () ())
                                       (assert (eq? symbolic-function-name symbolic-function-name^))
                                       function-name]
-                                     [else (assert cannot-happen)])))
+                                     [else
+                                      ; FIXME
+                                      (internal-errorf 'handle-type-ref "invalid function ~a" fun)
+                                      ;; (assert cannot-happen)
+                                      ])))
                                  ecdecl-circuit*)
                          ,(map ecdecl-circuit-pure? ecdecl-circuit*)
                          (,(map (lambda (type*) (map Type type*)) (map ecdecl-circuit-type* ecdecl-circuit*)) ...)
@@ -3072,7 +3076,7 @@
                   (loop (cdr elt-name*) (cdr function-name*) (cdr type**) (cdr type*))))]
            [else (assert cannot-happen)]))]
       [(safe-cast ,src ,[type] ,[type^] ,[Care : expr type^^])
-       (assert (nanopass-case (Ltypes Public-Ledger-ADT-Type) type^^
+       (assert (nanopass-case (Ltypes Type) type^^
                  [(tcontract ,src^ ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ... ) #t]
                  [else #f]))
        (values
@@ -3139,12 +3143,12 @@
                               (format-type type))])])
     )
 
-  (define-pass remove-fun-in-tcontract : Ltypes (ir) -> Lnofunintcontract ()
-    (Type : Type (ir) -> Type ()
-      [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,[type**] ...) ,[type*]) ...)
-       `(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[type**] ...) ,[type*]) ...)]))
+  ;; (trace-define-pass remove-fun-in-tcontract : Ltypes (ir) -> Lnofunintcontract ()
+  ;;   (Type : Type (ir) -> Type ()
+  ;;     [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,[type**] ...) ,[type*]) ...)
+  ;;      `(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[type**] ...) ,[type*]) ...)]))
 
-  (define-pass remove-tundeclared : Lnofunintcontract (ir) -> Lnotundeclared ())
+  (define-pass remove-tundeclared : Ltypes (ir) -> Lnotundeclared ())
 
   (define-pass combine-ledger-declarations : Lnotundeclared (ir) -> Loneledger ()
     (definitions
@@ -3377,7 +3381,7 @@
           [(tunknown) "Unknown"]
           [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
           [(tbytes ,src ,len) (format "Bytes<~s>" len)]
-          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...)
            (format "contract ~a<~{~a~^, ~}>" contract-name
              (map (lambda (elt-name pure-dcl type* type)
                     (if pure-dcl
@@ -3435,9 +3439,9 @@
                 (and (= (length type1*) (length type2*))
                      (andmap sametype? type1* type2*))])]
            [(tunknown) (T type2 [(tunknown) #t])]
-           [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+           [(tcontract ,src1 ,contract-name1 (,elt-name1* ,function-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
             (T type2
-               [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+               [(tcontract ,src2 ,contract-name2 (,elt-name2* ,function-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                 (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
                   (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
                             (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
@@ -4062,7 +4066,7 @@
        (assert cannot-happen)]
       [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (nanopass-case (Lnodca Type) type
-         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
+         [(tcontract ,src^ ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ... )
           (let ([adt-type* (map Care expr*)])
             (let loop ([elt-name* elt-name*] [type** type**] [type* type*])
               (if (null? elt-name*)
@@ -4255,7 +4259,7 @@
               (raise-continuable result)))))
       (define (name-of-contract type)
         (nanopass-case (Lnodca Type) type
-          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...)
             contract-name]
           [else (assert cannot-happen)]))
     )
@@ -4399,7 +4403,7 @@
        ir]
       [(contract-call ,src ,elt-name (,expr ,type) ,[expr*] ...)
        (nanopass-case (Lnodca Type) type
-         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+         [(tcontract ,src^ ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...)
           (let loop ([elt-name* elt-name*] [pure-dcl* pure-dcl*])
             (when (null? elt-name*) (assert cannot-happen))
             (if (eq? (car elt-name*) elt-name)
@@ -5091,6 +5095,12 @@
       [(elt-ref ,src ,[* abs] ,elt-name ,nat)
        (Abs-case abs
          [(Abs-multiple abs*) (list-ref abs* nat)]
+         [(Abs-atomic witness*)
+          ; FIXME
+          ; this happens from (tcontract->contract-address).bytes
+          (assert (or (null? witness*)
+                      (fx= (length witness*) 1)))
+          abs]
          [else (assert cannot-happen)])]
 
       [(tuple-ref ,src ,[* abs] ,kindex)
@@ -5306,7 +5316,7 @@
          (enumerate abs*))
        (default-value
          (nanopass-case (Lwithpaths Type) type
-           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+           [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...)
             (let loop ([elt-name* elt-name*]
                        [type* type*])
               (if (eq? (car elt-name*) elt-name)
@@ -5354,8 +5364,8 @@
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
     (infer-types                     Ltypes)
-    (remove-fun-in-tcontract         Lnofunintcontract)
-    (remove-tundeclared              Lnotundeclared)
+    ;; (remove-fun-in-tcontract         Lnofunintcontract)
+    (remove-tundeclared              Ltypes)
     (combine-ledger-declarations     Loneledger)
     (discard-unused-functions        Loneledger)
     (reject-recursive-circuits       Loneledger)

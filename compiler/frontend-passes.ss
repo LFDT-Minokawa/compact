@@ -432,8 +432,6 @@
         (nanopass-case (Lexpandedcontractcall Argument) arg
           [(,src ,var-name ,type)
            (list var-name type)]))
-      (define (cons-end obj obj*)
-        (reverse (cons obj (reverse obj*))))
       (define (compact-contract-name contract-name)
         (string->symbol (format "__compact_contract_~s" contract-name)))
       (define (make-circuit contract-name ecdecl-circuit)
@@ -481,7 +479,7 @@
                                                               `(quote ,src ,circuit-hash)
                                                               tc-call) ...)
                                              (return ,src (var-ref ,src ,local-res))))))]
-                  [arg* (cons-end contract-arg arg*)])
+                  [arg* (cons contract-arg arg*)])
              (with-output-language (Lexpandedcontractcall Circuit-Definition)
                `(circuit ,src #t #f ,function-name () (,arg* ...) ,type ,body)))]))
       ; if the contract isn't exported then the module with wrapper circuits also shouldn't be exported
@@ -499,11 +497,11 @@
       [(external-contract ,src ,exported? ,contract-name ,[External-Contract-Circuit : ecdecl-circuit* contract-name -> ecdecl-circuit*] ...)
        (let ([contract-module-name (compact-contract-name contract-name)])
          (cons*
+           (with-output-language (Lexpandedcontractcall External-Contract-Declaration)
+             `(external-contract ,src ,exported? ,contract-name ,ecdecl-circuit* ...))
            (make-contract-module src exported? contract-name ecdecl-circuit* contract-module-name)
            (with-output-language (Lexpandedcontractcall Import-Declaration)
              `(import ,src ,contract-module-name () ""))
-           (with-output-language (Lexpandedcontractcall External-Contract-Declaration)
-             `(external-contract ,src ,exported? ,contract-name ,ecdecl-circuit* ...))
            pelt*))]
       [else (cons (Program-Element ir) pelt*)])
     (Program-Element : Program-Element (ir) -> Program-Element ())

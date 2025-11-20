@@ -127,7 +127,8 @@
          (cons "type-name" "Vector")
          (cons "length" len)
          (cons "type" (Type type)))]
-      [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+      ; TODO add wrapper to info contract?
+      [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...)
        (list
          (cons "type-name" "Contract")
          (cons "name" (symbol->string contract-name))

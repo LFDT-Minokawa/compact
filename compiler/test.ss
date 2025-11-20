@@ -125,7 +125,7 @@ groups than for single tests.
   (define contractCode*)
   (define test-root*)
 
-  (define show-last-successes (make-parameter 2))
+  (define show-last-successes (make-parameter 0))
   (define show-successes (make-parameter #f))
   (define show-all-passes (make-parameter #f))
   (define show-stack-backtrace (make-parameter #t))
@@ -8209,6 +8209,24 @@ groups than for single tests.
 (run-tests wrap-contract-circuits
   (test
     '(
+      "module m{"
+         "  export contract C {"
+         "    circuit foo(x: Field, y: Field): [];"
+         "    pure circuit bar(): Field;"
+         "}}"
+         "contract C {"
+         "  circuit foo(x: Field): [];"
+         "  pure circuit bar(): Field;"
+         "}"
+         "import m prefix $;"
+         "constructor($c: $C) {"
+         "  const c : C = $c;"
+         "}"
+      )
+    (returns what))
+
+  (test
+    '(
       "export struct StructExample {"
       "  value: Field;"
       "}"
@@ -8252,8 +8270,8 @@ groups than for single tests.
                       (tuple)
                       (call __compact_std_createNonce)))
                   __compact_local_res))))
-          (circuit #t #f __compact_contract_AuthCell_set () ([new_value (type-ref StructExample)]
-                                                             [__compact_local_c (type-ref AuthCell)])
+          (circuit #t #f __compact_contract_AuthCell_set () ([__compact_local_c (type-ref AuthCell)]
+                                                             [new_value (type-ref StructExample)])
                (ttuple)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (ttuple)]
@@ -8377,8 +8395,8 @@ groups than for single tests.
       (program
         (module #f __compact_contract_C ()
           (import CompactStandardLibrary () "__compact_std_")
-          (circuit #t #f __compact_contract_C_foo () ([x (tbytes 32)]
-                                                      [__compact_local_c (type-ref C)])
+          (circuit #t #f __compact_contract_C_foo () ([__compact_local_c (type-ref C)]
+                                                      [x (tbytes 32)])
                (ttuple)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (ttuple)]
@@ -8448,8 +8466,8 @@ groups than for single tests.
       (program
         (module #t __compact_contract_C ()
           (import CompactStandardLibrary () "__compact_std_")
-          (circuit #t #f __compact_contract_C_foo () ([x (tbytes 32)]
-                                                      [__compact_local_c (type-ref C)])
+          (circuit #t #f __compact_contract_C_foo () ([__compact_local_c (type-ref C)]
+                                                      [x (tbytes 32)])
                (ttuple)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (ttuple)]
@@ -8522,8 +8540,8 @@ groups than for single tests.
         (module #f M ()
           (module #t __compact_contract_C ()
             (import CompactStandardLibrary () "__compact_std_")
-            (circuit #t #f __compact_contract_C_foo () ([x (tbytes 32)]
-                                                        [__compact_local_c (type-ref C)])
+            (circuit #t #f __compact_contract_C_foo () ([__compact_local_c (type-ref C)]
+                                                        [x (tbytes 32)])
                  (ttuple)
               (block (__compact_local_res)
                 (let* ([[__compact_local_res (ttuple)]
@@ -8597,8 +8615,8 @@ groups than for single tests.
         (module #f m (A)
           (module #t __compact_contract_C ()
             (import CompactStandardLibrary () "__compact_std_")
-            (circuit #t #f __compact_contract_C_foo () ([x (type-ref A)]
-                                                        [__compact_local_c (type-ref C)])
+            (circuit #t #f __compact_contract_C_foo () ([__compact_local_c (type-ref C)]
+                                                        [x (type-ref A)])
                  (ttuple)
               (block (__compact_local_res)
                 (let* ([[__compact_local_res (ttuple)]
@@ -8665,8 +8683,8 @@ groups than for single tests.
       (program
         (module #f __compact_contract_C1 ()
           (import CompactStandardLibrary () "__compact_std_")
-          (circuit #t #f __compact_contract_C1_foo () ([x (type-ref C2)]
-                                                       [__compact_local_c (type-ref C1)])
+          (circuit #t #f __compact_contract_C1_foo () ([__compact_local_c (type-ref C1)]
+                                                       [x (type-ref C2)])
                (ttuple)
             (block (__compact_local_res)
               (let* ([[__compact_local_res (ttuple)]
@@ -10336,18 +10354,18 @@ groups than for single tests.
                                        [%rand.4 (tfield)])
               (tfield))
          (external %createNonce.5 () (tfield))
-         (circuit %__compact_contract_C_id.6 ([%x.7 (tboolean)]
-                                              [%__compact_local_c.8 (tcontract C
+         (circuit %__compact_contract_C_id.6 ([%__compact_local_c.7 (tcontract C
                                                                       (id %__compact_contract_C_id.6 #f ((tboolean))
-                                                                        (tboolean)))])
+                                                                        (tboolean)))]
+                                              [%x.8 (tboolean)])
               (tboolean)
            (let* ([[%__compact_local_res.9 (tboolean)]
                    (contract-call id
-                        (%__compact_local_c.8
+                        (%__compact_local_c.7
                          (tcontract C
                            (id %__compact_contract_C_id.6 #f ((tboolean))
                              (tboolean))))
-                     %x.7)])
+                     %x.8)])
              (seq
                (elt-call %kernel.1 claimContractCall
                  (elt-ref
@@ -10355,13 +10373,13 @@ groups than for single tests.
                               (tcontract C
                                 (id %__compact_contract_C_id.6 #f ((tboolean))
                                   (tboolean)))
-                     %__compact_local_c.8)
+                     %__compact_local_c.7)
                    bytes)
                  #vu8(184 55 177 158 136 123 214 13 235 67 82 105 244 91 71
                       48 0 161 168 188 63 255 150 102 58 175 67 193 167 155 73
                       148)
                  (call (fref ((%transientCommit.2)))
-                   (tuple %x.7)
+                   (tuple %x.8)
                    (call (fref ((%createNonce.5))))))
                %__compact_local_res.9)))
          (public-ledger-declaration
@@ -10620,24 +10638,24 @@ groups than for single tests.
                                       [%rand.7 (tfield)])
              (tfield))
         (external %createNonce.8 () (tfield))
-        (circuit %__compact_contract_C_foo.9 ([%x.10 (tbytes 32)]
-                                              [%__compact_local_c.11 (tcontract C
+        (circuit %__compact_contract_C_foo.9 ([%__compact_local_c.10 (tcontract C
                                                                        (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                                                               32))
                                                                          (ttuple))
-                                                                       (bar %__compact_contract_C_bar.12 #t ()
+                                                                       (bar %__compact_contract_C_bar.11 #t ()
                                                                          (tbytes
-                                                                           32)))])
+                                                                           32)))]
+                                              [%x.12 (tbytes 32)])
              (ttuple)
           (let* ([[%__compact_local_res.13 (ttuple)]
                   (contract-call foo
-                       (%__compact_local_c.11
+                       (%__compact_local_c.10
                         (tcontract C
                           (foo %__compact_contract_C_foo.9 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.12 #t ()
+                          (bar %__compact_contract_C_bar.11 #t ()
                             (tbytes 32))))
-                    %x.10)])
+                    %x.12)])
             (seq
               (elt-call %kernel.1 claimContractCall
                 (elt-ref
@@ -10646,21 +10664,21 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))
-                    %__compact_local_c.11)
+                    %__compact_local_c.10)
                   bytes)
                 #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
                      154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
                 (call (fref ((%transientCommit.2)))
-                  (tuple %x.10)
+                  (tuple %x.12)
                   (call (fref ((%createNonce.8))))))
               %__compact_local_res.13)))
-        (circuit %__compact_contract_C_bar.12 ([%__compact_local_c.14 (tcontract C
+        (circuit %__compact_contract_C_bar.11 ([%__compact_local_c.14 (tcontract C
                                                                         (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                                                                32))
                                                                           (ttuple))
-                                                                        (bar %__compact_contract_C_bar.12 #t ()
+                                                                        (bar %__compact_contract_C_bar.11 #t ()
                                                                           (tbytes
                                                                             32)))])
              (tbytes 32)
@@ -10670,7 +10688,7 @@ groups than for single tests.
                         (tcontract C
                           (foo %__compact_contract_C_foo.9 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.12 #t ()
+                          (bar %__compact_contract_C_bar.11 #t ()
                             (tbytes 32)))))])
             (seq
               (elt-call %kernel.1 claimContractCall
@@ -10680,7 +10698,7 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))
                     %__compact_local_c.14)
                   bytes)
@@ -10696,12 +10714,12 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo %__compact_contract_C_foo.9 #f ((tbytes 32)) (ttuple))
-              (bar %__compact_contract_C_bar.12 #t () (tbytes 32)))))
+              (bar %__compact_contract_C_bar.11 #t () (tbytes 32)))))
         (constructor ([%c.17 (tcontract C
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))])
           (seq (= %contract_c.16 (disclose %c.17)) (tuple)))
         (circuit %hello.0 ()
@@ -10740,27 +10758,27 @@ groups than for single tests.
                                       [%rand.10 (tfield)])
              (tfield))
         (external %createNonce.11 () (tfield))
-        (circuit %__compact_contract_C_foo.12 ([%x.13 (tbytes 32)]
-                                               [%__compact_local_c.14 (tcontract C
+        (circuit %__compact_contract_C_foo.12 ([%__compact_local_c.13 (tcontract C
                                                                         (foo %__compact_contract_C_foo.12 #f ((tbytes
                                                                                                                 32))
                                                                           (ttuple))
-                                                                        (bar %__compact_contract_C_bar.15 #t ()
+                                                                        (bar %__compact_contract_C_bar.14 #t ()
                                                                           (tbytes
                                                                             32))
-                                                                        (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
-                                                                          (tboolean)))])
+                                                                        (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
+                                                                          (tboolean)))]
+                                               [%x.16 (tbytes 32)])
              (ttuple)
           (let* ([[%__compact_local_res.17 (ttuple)]
                   (contract-call foo
-                       (%__compact_local_c.14
+                       (%__compact_local_c.13
                         (tcontract C
                           (foo %__compact_contract_C_foo.12 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.15 #t () (tbytes 32))
-                          (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
+                          (bar %__compact_contract_C_bar.14 #t () (tbytes 32))
+                          (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
                             (tboolean))))
-                    %x.13)])
+                    %x.16)])
             (seq
               (elt-call %kernel.1 claimContractCall
                 (elt-ref
@@ -10769,26 +10787,26 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.12 #f ((tbytes
                                                                        32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.15 #t ()
+                               (bar %__compact_contract_C_bar.14 #t ()
                                  (tbytes 32))
-                               (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
+                               (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
                                  (tboolean)))
-                    %__compact_local_c.14)
+                    %__compact_local_c.13)
                   bytes)
                 #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
                      154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
                 (call (fref ((%transientCommit.5)))
-                  (tuple %x.13)
+                  (tuple %x.16)
                   (call (fref ((%createNonce.11))))))
               %__compact_local_res.17)))
-        (circuit %__compact_contract_C_bar.15 ([%__compact_local_c.18 (tcontract C
+        (circuit %__compact_contract_C_bar.14 ([%__compact_local_c.18 (tcontract C
                                                                         (foo %__compact_contract_C_foo.12 #f ((tbytes
                                                                                                                 32))
                                                                           (ttuple))
-                                                                        (bar %__compact_contract_C_bar.15 #t ()
+                                                                        (bar %__compact_contract_C_bar.14 #t ()
                                                                           (tbytes
                                                                             32))
-                                                                        (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
+                                                                        (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
                                                                           (tboolean)))])
              (tbytes 32)
           (let* ([[%__compact_local_res.19 (tbytes 32)]
@@ -10797,8 +10815,8 @@ groups than for single tests.
                         (tcontract C
                           (foo %__compact_contract_C_foo.12 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.15 #t () (tbytes 32))
-                          (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
+                          (bar %__compact_contract_C_bar.14 #t () (tbytes 32))
+                          (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
                             (tboolean)))))])
             (seq
               (elt-call %kernel.1 claimContractCall
@@ -10808,9 +10826,9 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.12 #f ((tbytes
                                                                        32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.15 #t ()
+                               (bar %__compact_contract_C_bar.14 #t ()
                                  (tbytes 32))
-                               (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
+                               (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
                                  (tboolean)))
                     %__compact_local_c.18)
                   bytes)
@@ -10821,29 +10839,29 @@ groups than for single tests.
                   (tuple)
                   (call (fref ((%createNonce.11))))))
               %__compact_local_res.19)))
-        (circuit %__compact_contract_C_blah.16 ([%x.20 (tfield)]
-                                                [%y.21 (tboolean)]
-                                                [%__compact_local_c.22 (tcontract C
+        (circuit %__compact_contract_C_blah.15 ([%__compact_local_c.20 (tcontract C
                                                                          (foo %__compact_contract_C_foo.12 #f ((tbytes
                                                                                                                  32))
                                                                            (ttuple))
-                                                                         (bar %__compact_contract_C_bar.15 #t ()
+                                                                         (bar %__compact_contract_C_bar.14 #t ()
                                                                            (tbytes
                                                                              32))
-                                                                         (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
-                                                                           (tboolean)))])
+                                                                         (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
+                                                                           (tboolean)))]
+                                                [%x.21 (tfield)]
+                                                [%y.22 (tboolean)])
              (tboolean)
           (let* ([[%__compact_local_res.23 (tboolean)]
                   (contract-call blah
-                       (%__compact_local_c.22
+                       (%__compact_local_c.20
                         (tcontract C
                           (foo %__compact_contract_C_foo.12 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.15 #t () (tbytes 32))
-                          (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
+                          (bar %__compact_contract_C_bar.14 #t () (tbytes 32))
+                          (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
                             (tboolean))))
-                    %x.20
-                    %y.21)])
+                    %x.21
+                    %y.22)])
             (seq
               (elt-call %kernel.1 claimContractCall
                 (elt-ref
@@ -10852,17 +10870,17 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.12 #f ((tbytes
                                                                        32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.15 #t ()
+                               (bar %__compact_contract_C_bar.14 #t ()
                                  (tbytes 32))
-                               (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
+                               (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
                                  (tboolean)))
-                    %__compact_local_c.22)
+                    %__compact_local_c.20)
                   bytes)
                 #vu8(231 211 105 87 70 53 227 239 41 167 116 130 83 13 125
                      44 110 146 58 206 47 122 212 34 98 124 70 103 33 179 220
                      156)
                 (call (fref ((%transientCommit.2)))
-                  (tuple %x.20 %y.21)
+                  (tuple %x.21 %y.22)
                   (call (fref ((%createNonce.11))))))
               %__compact_local_res.23)))
         (public-ledger-declaration
@@ -10870,16 +10888,16 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo %__compact_contract_C_foo.12 #f ((tbytes 32)) (ttuple))
-              (bar %__compact_contract_C_bar.15 #t () (tbytes 32))
-              (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
+              (bar %__compact_contract_C_bar.14 #t () (tbytes 32))
+              (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
                 (tboolean)))))
         (constructor ([%c.25 (tcontract C
                                (foo %__compact_contract_C_foo.12 #f ((tbytes
                                                                        32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.15 #t ()
+                               (bar %__compact_contract_C_bar.14 #t ()
                                  (tbytes 32))
-                               (blah %__compact_contract_C_blah.16 #f ((tfield) (tboolean))
+                               (blah %__compact_contract_C_blah.15 #f ((tfield) (tboolean))
                                  (tboolean)))])
           (seq (= %contract_c.24 (disclose %c.25)) (tuple)))
         (circuit %hello.0 ([%x.26 (tfield)] [%y.27 (tboolean)])
@@ -10913,24 +10931,24 @@ groups than for single tests.
                                       [%rand.7 (tfield)])
              (tfield))
         (external %createNonce.8 () (tfield))
-        (circuit %__compact_contract_C_foo.9 ([%x.10 (tbytes 32)]
-                                              [%__compact_local_c.11 (tcontract C
+        (circuit %__compact_contract_C_foo.9 ([%__compact_local_c.10 (tcontract C
                                                                        (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                                                               32))
                                                                          (ttuple))
-                                                                       (bar %__compact_contract_C_bar.12 #t ()
+                                                                       (bar %__compact_contract_C_bar.11 #t ()
                                                                          (tbytes
-                                                                           32)))])
+                                                                           32)))]
+                                              [%x.12 (tbytes 32)])
              (ttuple)
           (let* ([[%__compact_local_res.13 (ttuple)]
                   (contract-call foo
-                       (%__compact_local_c.11
+                       (%__compact_local_c.10
                         (tcontract C
                           (foo %__compact_contract_C_foo.9 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.12 #t ()
+                          (bar %__compact_contract_C_bar.11 #t ()
                             (tbytes 32))))
-                    %x.10)])
+                    %x.12)])
             (seq
               (elt-call %kernel.1 claimContractCall
                 (elt-ref
@@ -10939,21 +10957,21 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))
-                    %__compact_local_c.11)
+                    %__compact_local_c.10)
                   bytes)
                 #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
                      154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
                 (call (fref ((%transientCommit.2)))
-                  (tuple %x.10)
+                  (tuple %x.12)
                   (call (fref ((%createNonce.8))))))
               %__compact_local_res.13)))
-        (circuit %__compact_contract_C_bar.12 ([%__compact_local_c.14 (tcontract C
+        (circuit %__compact_contract_C_bar.11 ([%__compact_local_c.14 (tcontract C
                                                                         (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                                                                32))
                                                                           (ttuple))
-                                                                        (bar %__compact_contract_C_bar.12 #t ()
+                                                                        (bar %__compact_contract_C_bar.11 #t ()
                                                                           (tbytes
                                                                             32)))])
              (tbytes 32)
@@ -10963,7 +10981,7 @@ groups than for single tests.
                         (tcontract C
                           (foo %__compact_contract_C_foo.9 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.12 #t ()
+                          (bar %__compact_contract_C_bar.11 #t ()
                             (tbytes 32)))))])
             (seq
               (elt-call %kernel.1 claimContractCall
@@ -10973,7 +10991,7 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))
                     %__compact_local_c.14)
                   bytes)
@@ -10989,12 +11007,12 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo %__compact_contract_C_foo.9 #f ((tbytes 32)) (ttuple))
-              (bar %__compact_contract_C_bar.12 #t () (tbytes 32)))))
+              (bar %__compact_contract_C_bar.11 #t () (tbytes 32)))))
         (constructor ([%c.17 (tcontract C
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))])
           (seq (= %contract_c.16 (disclose %c.17)) (tuple)))
         (circuit %hello.0 ()
@@ -11049,24 +11067,24 @@ groups than for single tests.
                                       [%rand.7 (tfield)])
              (tfield))
         (external %createNonce.8 () (tfield))
-        (circuit %__compact_contract_C_foo.9 ([%x.10 (tbytes 32)]
-                                              [%__compact_local_c.11 (tcontract C
+        (circuit %__compact_contract_C_foo.9 ([%__compact_local_c.10 (tcontract C
                                                                        (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                                                               32))
                                                                          (ttuple))
-                                                                       (bar %__compact_contract_C_bar.12 #t ()
+                                                                       (bar %__compact_contract_C_bar.11 #t ()
                                                                          (tbytes
-                                                                           32)))])
+                                                                           32)))]
+                                              [%x.12 (tbytes 32)])
              (ttuple)
           (let* ([[%__compact_local_res.13 (ttuple)]
                   (contract-call foo
-                       (%__compact_local_c.11
+                       (%__compact_local_c.10
                         (tcontract C
                           (foo %__compact_contract_C_foo.9 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.12 #t ()
+                          (bar %__compact_contract_C_bar.11 #t ()
                             (tbytes 32))))
-                    %x.10)])
+                    %x.12)])
             (seq
               (elt-call %kernel.1 claimContractCall
                 (elt-ref
@@ -11075,21 +11093,21 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))
-                    %__compact_local_c.11)
+                    %__compact_local_c.10)
                   bytes)
                 #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
                      154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
                 (call (fref ((%transientCommit.2)))
-                  (tuple %x.10)
+                  (tuple %x.12)
                   (call (fref ((%createNonce.8))))))
               %__compact_local_res.13)))
-        (circuit %__compact_contract_C_bar.12 ([%__compact_local_c.14 (tcontract C
+        (circuit %__compact_contract_C_bar.11 ([%__compact_local_c.14 (tcontract C
                                                                         (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                                                                32))
                                                                           (ttuple))
-                                                                        (bar %__compact_contract_C_bar.12 #t ()
+                                                                        (bar %__compact_contract_C_bar.11 #t ()
                                                                           (tbytes
                                                                             32)))])
              (tbytes 32)
@@ -11099,7 +11117,7 @@ groups than for single tests.
                         (tcontract C
                           (foo %__compact_contract_C_foo.9 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.12 #t ()
+                          (bar %__compact_contract_C_bar.11 #t ()
                             (tbytes 32)))))])
             (seq
               (elt-call %kernel.1 claimContractCall
@@ -11109,7 +11127,7 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))
                     %__compact_local_c.14)
                   bytes)
@@ -11125,12 +11143,12 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo %__compact_contract_C_foo.9 #f ((tbytes 32)) (ttuple))
-              (bar %__compact_contract_C_bar.12 #t () (tbytes 32)))))
+              (bar %__compact_contract_C_bar.11 #t () (tbytes 32)))))
         (constructor ([%c.17 (tcontract C
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))])
           (seq (= %contract_c.16 (disclose %c.17)) (tuple)))
         (circuit %hello.0 ()
@@ -11184,24 +11202,24 @@ groups than for single tests.
                                       [%rand.8 (tfield)])
              (tfield))
         (external %createNonce.9 () (tfield))
-        (circuit %__compact_contract_C_foo.10 ([%x.11 (tbytes 32)]
-                                               [%__compact_local_c.12 (tcontract C
+        (circuit %__compact_contract_C_foo.10 ([%__compact_local_c.11 (tcontract C
                                                                         (foo %__compact_contract_C_foo.10 #f ((tbytes
                                                                                                                 32))
                                                                           (ttuple))
-                                                                        (bar %__compact_contract_C_bar.13 #t ()
+                                                                        (bar %__compact_contract_C_bar.12 #t ()
                                                                           (tbytes
-                                                                            32)))])
+                                                                            32)))]
+                                               [%x.13 (tbytes 32)])
              (ttuple)
           (let* ([[%__compact_local_res.14 (ttuple)]
                   (contract-call foo
-                       (%__compact_local_c.12
+                       (%__compact_local_c.11
                         (tcontract C
                           (foo %__compact_contract_C_foo.10 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.13 #t ()
+                          (bar %__compact_contract_C_bar.12 #t ()
                             (tbytes 32))))
-                    %x.11)])
+                    %x.13)])
             (seq
               (elt-call %kernel.2 claimContractCall
                 (elt-ref
@@ -11210,21 +11228,21 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.10 #f ((tbytes
                                                                        32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.13 #t ()
+                               (bar %__compact_contract_C_bar.12 #t ()
                                  (tbytes 32)))
-                    %__compact_local_c.12)
+                    %__compact_local_c.11)
                   bytes)
                 #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
                      154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
                 (call (fref ((%transientCommit.3)))
-                  (tuple %x.11)
+                  (tuple %x.13)
                   (call (fref ((%createNonce.9))))))
               %__compact_local_res.14)))
-        (circuit %__compact_contract_C_bar.13 ([%__compact_local_c.15 (tcontract C
+        (circuit %__compact_contract_C_bar.12 ([%__compact_local_c.15 (tcontract C
                                                                         (foo %__compact_contract_C_foo.10 #f ((tbytes
                                                                                                                 32))
                                                                           (ttuple))
-                                                                        (bar %__compact_contract_C_bar.13 #t ()
+                                                                        (bar %__compact_contract_C_bar.12 #t ()
                                                                           (tbytes
                                                                             32)))])
              (tbytes 32)
@@ -11234,7 +11252,7 @@ groups than for single tests.
                         (tcontract C
                           (foo %__compact_contract_C_foo.10 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.13 #t ()
+                          (bar %__compact_contract_C_bar.12 #t ()
                             (tbytes 32)))))])
             (seq
               (elt-call %kernel.2 claimContractCall
@@ -11244,7 +11262,7 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.10 #f ((tbytes
                                                                        32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.13 #t ()
+                               (bar %__compact_contract_C_bar.12 #t ()
                                  (tbytes 32)))
                     %__compact_local_c.15)
                   bytes)
@@ -11260,12 +11278,12 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo %__compact_contract_C_foo.10 #f ((tbytes 32)) (ttuple))
-              (bar %__compact_contract_C_bar.13 #t () (tbytes 32)))))
+              (bar %__compact_contract_C_bar.12 #t () (tbytes 32)))))
         (constructor ([%c.17 (tcontract C
                                (foo %__compact_contract_C_foo.10 #f ((tbytes
                                                                        32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.13 #t ()
+                               (bar %__compact_contract_C_bar.12 #t ()
                                  (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.17)) (tuple)))
         (circuit %hello.1 ()
@@ -11317,24 +11335,24 @@ groups than for single tests.
                                       [%rand.7 (tfield)])
              (tfield))
         (external %createNonce.8 () (tfield))
-        (circuit %__compact_contract_C_foo.9 ([%x.10 (tbytes 32)]
-                                              [%__compact_local_c.11 (tcontract C
+        (circuit %__compact_contract_C_foo.9 ([%__compact_local_c.10 (tcontract C
                                                                        (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                                                               32))
                                                                          (ttuple))
-                                                                       (bar %__compact_contract_C_bar.12 #t ()
+                                                                       (bar %__compact_contract_C_bar.11 #t ()
                                                                          (tbytes
-                                                                           32)))])
+                                                                           32)))]
+                                              [%x.12 (tbytes 32)])
              (ttuple)
           (let* ([[%__compact_local_res.13 (ttuple)]
                   (contract-call foo
-                       (%__compact_local_c.11
+                       (%__compact_local_c.10
                         (tcontract C
                           (foo %__compact_contract_C_foo.9 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.12 #t ()
+                          (bar %__compact_contract_C_bar.11 #t ()
                             (tbytes 32))))
-                    %x.10)])
+                    %x.12)])
             (seq
               (elt-call %kernel.1 claimContractCall
                 (elt-ref
@@ -11343,21 +11361,21 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))
-                    %__compact_local_c.11)
+                    %__compact_local_c.10)
                   bytes)
                 #vu8(193 248 54 72 29 136 53 99 9 27 17 243 2 197 67 143 77
                      154 224 100 209 63 230 245 22 70 70 186 190 96 158 222)
                 (call (fref ((%transientCommit.2)))
-                  (tuple %x.10)
+                  (tuple %x.12)
                   (call (fref ((%createNonce.8))))))
               %__compact_local_res.13)))
-        (circuit %__compact_contract_C_bar.12 ([%__compact_local_c.14 (tcontract C
+        (circuit %__compact_contract_C_bar.11 ([%__compact_local_c.14 (tcontract C
                                                                         (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                                                                32))
                                                                           (ttuple))
-                                                                        (bar %__compact_contract_C_bar.12 #t ()
+                                                                        (bar %__compact_contract_C_bar.11 #t ()
                                                                           (tbytes
                                                                             32)))])
              (tbytes 32)
@@ -11367,7 +11385,7 @@ groups than for single tests.
                         (tcontract C
                           (foo %__compact_contract_C_foo.9 #f ((tbytes 32))
                             (ttuple))
-                          (bar %__compact_contract_C_bar.12 #t ()
+                          (bar %__compact_contract_C_bar.11 #t ()
                             (tbytes 32)))))])
             (seq
               (elt-call %kernel.1 claimContractCall
@@ -11377,7 +11395,7 @@ groups than for single tests.
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))
                     %__compact_local_c.14)
                   bytes)
@@ -11393,12 +11411,12 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo %__compact_contract_C_foo.9 #f ((tbytes 32)) (ttuple))
-              (bar %__compact_contract_C_bar.12 #t () (tbytes 32)))))
+              (bar %__compact_contract_C_bar.11 #t () (tbytes 32)))))
         (constructor ([%c.17 (tcontract C
                                (foo %__compact_contract_C_foo.9 #f ((tbytes
                                                                       32))
                                  (ttuple))
-                               (bar %__compact_contract_C_bar.12 #t ()
+                               (bar %__compact_contract_C_bar.11 #t ()
                                  (tbytes 32)))])
           (seq (= %contract_c.16 (disclose %c.17)) (tuple)))
         (circuit %hello.0 ()
@@ -13670,26 +13688,26 @@ groups than for single tests.
                   (tuple)
                   (call (fref ((%createNonce.8))))))
               %__compact_local_res.12)))
-        (circuit %__compact_contract_AuthCell_set.11 ([%new_value.13 (tstruct StructExample
-                                                                       (value (tfield)))]
-                                                      [%__compact_local_c.14 (tcontract AuthCell
+        (circuit %__compact_contract_AuthCell_set.11 ([%__compact_local_c.13 (tcontract AuthCell
                                                                                (get %__compact_contract_AuthCell_get.9 #f ()
                                                                                  (tstruct StructExample
                                                                                    (value (tfield))))
                                                                                (set %__compact_contract_AuthCell_set.11 #f ((tstruct StructExample
                                                                                                                               (value (tfield))))
-                                                                                 (ttuple)))])
+                                                                                 (ttuple)))]
+                                                      [%new_value.14 (tstruct StructExample
+                                                                       (value (tfield)))])
              (ttuple)
           (let* ([[%__compact_local_res.15 (ttuple)]
                   (contract-call set
-                       (%__compact_local_c.14
+                       (%__compact_local_c.13
                         (tcontract AuthCell
                           (get %__compact_contract_AuthCell_get.9 #f ()
                             (tstruct StructExample (value (tfield))))
                           (set %__compact_contract_AuthCell_set.11 #f ((tstruct StructExample
                                                                          (value (tfield))))
                             (ttuple))))
-                    %new_value.13)])
+                    %new_value.14)])
             (seq
               (elt-call %kernel.1 claimContractCall
                 (elt-ref
@@ -13700,12 +13718,12 @@ groups than for single tests.
                                (set %__compact_contract_AuthCell_set.11 #f ((tstruct StructExample
                                                                               (value (tfield))))
                                  (ttuple)))
-                    %__compact_local_c.14)
+                    %__compact_local_c.13)
                   bytes)
                 #vu8(35 28 150 19 141 247 164 165 64 131 35 83 155 34 189 15
                      248 10 244 173 125 198 158 93 86 33 130 210 202 181 88 40)
                 (call (fref ((%transientCommit.5)))
-                  (tuple %new_value.13)
+                  (tuple %new_value.14)
                   (call (fref ((%createNonce.8))))))
               %__compact_local_res.15)))
         (public-ledger-declaration
@@ -30973,8 +30991,6 @@ groups than for single tests.
                      (+ #f (elt-ref %v.5 value 0) (elt-ref %x.4 value 0))))
                  %v.5)))))
      ))
-  )
-#!eof
 
   (test-group
     ((create-file "C1.compact"
@@ -32111,6 +32127,7 @@ groups than for single tests.
        irritants: '("testfile.compact line 3 char 5" "contract declaration claims circuit ~s has ~s argument~:*~p, but in the actual contract definition it has ~s" (foo 1 2)))
      ))
 
+  ; FIXME
   (test-group
     ((create-file "C.compact"
        '(
@@ -32139,6 +32156,7 @@ groups than for single tests.
        irritants: '("testfile.compact line 7 char 3" "contract declaration claims circuit ~s has ~s argument~:*~p, but in the actual contract definition it has ~s" (foo 1 2)))
      ))
 
+  ; FIXME
   (test-group
     ((create-file "C.compact"
        '(
@@ -32893,6 +32911,7 @@ groups than for single tests.
              (safe-cast (tunsigned 255) (tunsigned 17) 17)))))
      ))
 
+  ; FIXME
   (test-group
     ((create-file "C.compact"
        '(
@@ -33756,6 +33775,7 @@ groups than for single tests.
        irritants: '("testfile.compact line 7 char 1" "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a" (baz "calls circuit bar from external contract C1" "line 9 char 47")))
       ))
 
+  ; FIXME
   (test-group
     ((create-file "C1.compact"
        '(
@@ -34827,6 +34847,7 @@ groups than for single tests.
        irritants: '("C2.compact line 8 char 38" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 8 char 3"))))
      ))
 
+  ; FIXME
   (test-group
     ((create-file "C.compact"
        '(

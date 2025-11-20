@@ -32,7 +32,7 @@
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats Ltypes-Public-Ledger-ADT?
-          Lnofunintcontract unparse-Lnofunintcontract Lnofunintcontract-pretty-formats
+          ;; Lnofunintcontract unparse-Lnofunintcontract Lnofunintcontract-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Type? Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats Loneledger-Ledger-Declaration?
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
@@ -391,7 +391,7 @@
     (Expression (expr index)
       (+ (contract-call src elt-name (expr type) expr* ...) =>
            (contract-call elt-name 4 (expr 0 type) #f expr* ...)
-         ; safe-cast in this IR is used to cast a tcontract to a contract address
+         ; this is used to cast a tcontract to a contract address
          (safe-cast src type type^ expr) => (safe-cast type 10 type^ #f expr) ; type^ < type
       )))
 
@@ -754,12 +754,12 @@
       (tundeclared)
       (tunknown)))
 
-  (define-language/pretty Lnofunintcontract (extends Ltypes)
-    (Type (type)
-      (- (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...))
-      (+ (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...))))
+  ;; (define-language/pretty Lnofunintcontract (extends Ltypes)
+  ;;   (Type (type)
+  ;;     (- (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...))
+  ;;     (+ (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...))))
 
-  (define-language/pretty Lnotundeclared (extends Lnofunintcontract)
+  (define-language/pretty Lnotundeclared (extends Ltypes)
     (Type (type)
       (- (tundeclared))))
 
