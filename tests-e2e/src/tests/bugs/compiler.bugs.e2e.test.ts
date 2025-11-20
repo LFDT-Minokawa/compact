@@ -307,7 +307,7 @@ describe('[Bugs] Compiler', () => {
                 testcase: 'should return proper error when constructor have multiple return statements (including for loop)',
                 file: 'multiple_constructor_returns.compact',
                 output: {
-                    stderr: 'Exception: multiple_constructor_returns.compact line 20 char 7:\n  unreachable statement',
+                    stderr: 'Exception: multiple_constructor_returns.compact line 24 char 5:\n  return is not supported within for loops',
                     stdout: compilerDefaultOutput(),
                     exitCode: ExitCodes.Failure,
                 },
