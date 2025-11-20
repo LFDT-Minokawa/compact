@@ -139,6 +139,15 @@
          `(circuit ,src (,arg* ...) ,type ,blck))])
     )
 
+  (define-pass reject-for-return : Lnopattern (ir) -> Lnopattern ()
+    (Block : Block (ir [in-for? #f]) -> Block ()
+      [(block ,src ,[stmt*] ...) ir])
+    (Statement : Statement (ir [in-for? #f]) -> Statement ()
+      [(for ,src ,var-name ,[expr] ,[stmt #t -> stmt]) ir]
+      [(return ,src ,[expr])
+       (when in-for? (source-errorf src "return is not supported within for loops"))
+       ir]))
+
   (define-pass report-unreachable : Lnopattern (ir) -> Lnopattern ()
     (definitions
       (define (unreachable src)
@@ -399,6 +408,7 @@
     (resolve-includes                Lnoinclude)
     (expand-const                    Lsingleconst)
     (expand-patterns                 Lnopattern)
+    (reject-for-return               Lnopattern)
     (report-unreachable              Lnopattern)
     (hoist-local-variables           Lhoisted)
     (reject-duplicate-bindings       Lhoisted)

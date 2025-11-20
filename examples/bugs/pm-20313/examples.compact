@@ -1,0 +1,105 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Test1: nested not-imported modules
+module Test1 {
+  module Test1 {
+    module Test1 {
+      export circuit test(): Boolean {
+        return true;
+      }
+    }
+  }
+}
+
+// Test2: different generic methods in module
+module Test2 {
+  module Test2<T> {
+    export circuit test(var: Bytes<1>): T {
+      return var[0] as T;
+    }
+
+    export circuit test(var: Uint<1>): T {
+      return var[0] as T;
+    }
+
+    // should it not raise error ?
+    export circuit test(var: Boolean): T {
+      return var[0] as T;
+      return var[0] as T;
+    }
+
+    export circuit test(var: Boolean): T {
+      return var[0] as [T];
+      return var[0] as [T];
+    }
+  }
+}
+
+// Test3: different return values in circuits
+module Test3 {
+  module Test3 {
+    export circuit test1(var: []): [] {
+      return var;
+    }
+
+    export circuit test2(): [] {
+      return test1([]);
+    }
+  }
+}
+
+// Test4: generic numbers with types
+module Test4<#N> {
+  module Test4<#N> {
+    export circuit test1(var: []): Bytes<N> {
+      return var;
+    }
+
+    export circuit test2(): Uint<N> {
+      return test1([]);
+    }
+  }
+}
+
+// Test5: return invalid circuit
+module Test5<#N> {
+  module Test5<#N> {
+    export circuit test1(var: []): Uint<1000> {
+      return var;
+    }
+
+    export circuit test2(): Uint<1000> {
+      return test1([]);
+    }
+  }
+}
+
+// Test6: return invalid return value
+module Test6<#T> {
+  module Test6<#T> {
+    export circuit test1(var: Bytes<20>): Boolean {
+      return var;
+    }
+
+    export circuit test2(): [] {
+      return "string";
+    }
+
+    export circuit test3(var: Bytes<0xfffffffffffffffffffffffffffff>): Field {
+      return true;
+    }
+  }
+}

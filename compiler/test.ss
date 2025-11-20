@@ -6966,6 +6966,79 @@ groups than for single tests.
    )
   )
 
+(run-tests reject-for-return
+  (test
+    '(
+      "export circuit test(): Uint<16> {"
+      "  for (const i of 0..3) return i;"
+      ""
+      "  return 7;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 25" "return is not supported within for loops" ()))
+    )
+
+  (test
+    '(
+      "export circuit test(): Uint<16> {"
+      "  for (const i of 0..3) return i;"
+      ""
+      "  return 7;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 25" "return is not supported within for loops" ()))
+    )
+
+  (test
+    '(
+      "export circuit test(): Uint<16> {"
+      "  for (const i of 3..3) {"
+      "    { const q = i; return i; }"
+      "  }"
+      ""
+      "  return 7;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 20" "return is not supported within for loops" ()))
+    )
+
+  (test
+    '(
+      "export circuit test(): Uint<16> {"
+      "  for (const i of 0..3) {"
+      "    if (i > 1) return i;"
+      "  }"
+      ""
+      "  return 7;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "return is not supported within for loops" ()))
+    )
+
+  (test
+    '(
+      "export circuit test(): Uint<16> {"
+      "  for (const i of 0..3) {"
+      "    if (i > 100) return i;"
+      "  }"
+      ""
+      "  return 7;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 18" "return is not supported within for loops" ()))
+    )
+)
+
 (run-tests report-unreachable
   (test
     '(
@@ -7170,7 +7243,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 7" "unreachable statement" ()))
+      irritants: '("testfile.compact line 9 char 5" "return is not supported within for loops" ()))
     )
 
   ; pm-16183

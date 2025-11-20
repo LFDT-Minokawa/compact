@@ -75,7 +75,7 @@ export circuit test5(var1: Uint<0..17>): [] {
     const a: Uint<0..15689910391039020> = 0;
   }
 
-  for (const i of 3..3) return i;
+  // for (const i of 3..3) return i;
 }
 
 // Test7: casting with generics
