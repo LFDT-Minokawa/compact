@@ -68,7 +68,7 @@ The following are the primitive types of Compact:
   be rewritten to one that uses only bounded integer types.
 
 - `Field` is the type of elements in the scalar prime field of the
-  zero-knowledge proving system.
+  BLS12-381 curve. Concretely, the set of integers modulo `52435875175126190479447740508185965837690552500527637822603658699938581184513`.
 
 - `[T, ...]`, where `T, ...` are zero or more comma-separated types is the type
   of *tuple* values with element types `T, ...`.  Note that tuples are
