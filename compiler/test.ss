@@ -305,10 +305,41 @@ groups than for single tests.
                                       (warning-conditions (cons c (warning-conditions)))
                                       (raise-continuable c)))
                                 (lambda ()
-                                  (generate-everything source-fn target-fn
-                                    pass-name
-                                    (lambda (pass-name unparser pretty-formats x)
-                                      (set! successes (cons (make-success pass-name unparser pretty-formats x) successes))))))))])
+                                  (let ([do-dual-generation? (and (string-prefix? "compiler/testdir" target-fn)
+                                                                  (not (zkir-v3))
+                                                                  (not (memq pass-name '(print-zkir print-zkir-v3))))])
+                                    (let-values ([(result pretty-formats)
+                                                  (generate-everything source-fn target-fn
+                                                    pass-name
+                                                    (lambda (pass-name unparser pretty-formats x)
+                                                      (set! successes (cons (make-success pass-name unparser pretty-formats x) successes))))])
+                                      (when do-dual-generation?
+                                        (let ([zkir-v2-dir (format "~a/zkir-v2" target-fn)]
+                                              [zkir-v3-dir (format "~a/zkir-v3" target-fn)]
+                                              [zkir-dir (format "~a/zkir" target-fn)]
+                                              [contract-v2-dir (format "~a/contract-v2" target-fn)]
+                                              [contract-dir (format "~a/contract" target-fn)]
+                                              [saved-pathnames (registered-source-pathnames)]
+                                              [saved-warnings (warning-conditions)])
+                                          (when (file-directory? zkir-dir)
+                                            (rename-file zkir-dir zkir-v2-dir))
+                                          (when (file-directory? contract-dir)
+                                            (rename-file contract-dir contract-v2-dir))
+                                          (parameterize ([zkir-v3 #t])
+                                            (generate-everything source-fn target-fn
+                                              pass-name
+                                              (lambda (pass-name unparser pretty-formats x)
+                                                (void))))  ; don't need to capture successes again
+                                          (unregister-pathnames!)
+                                          (for-each register-source-pathname! saved-pathnames)
+                                          (warning-conditions saved-warnings)
+                                          (when (file-directory? zkir-dir)
+                                            (rename-file zkir-dir zkir-v3-dir))
+                                          (when (file-directory? contract-dir)
+                                            (rm-rf contract-dir))
+                                          (when (file-directory? contract-v2-dir)
+                                            (rename-file contract-v2-dir contract-dir))))
+                                      (values result pretty-formats)))))))])
               (let* ([okay? (not (memq #f (maplr (lambda (okay?) (okay? pass-name pretty-formats result)) okay?*)))]
                      [okay? (if (null? (warning-conditions)) okay? (warnings-okay?))])
                 (when (and okay? (show-successes))
@@ -698,6 +729,15 @@ groups than for single tests.
                                    [else (assert #f)])])
                   (mkdir-p test-root)
                   (let* ([source-path* (registered-source-pathnames)]
+                         [source-path* (let ([ht (make-hashtable string-hash string=?)]
+                                             [result '()])
+                                         (for-each
+                                           (lambda (path)
+                                             (unless (hashtable-contains? ht path)
+                                               (hashtable-set! ht path #t)
+                                               (set! result (cons path result))))
+                                           source-path*)
+                                         (reverse result))]
                          [source-dir*
                            (map (lambda (s)
                                   (let ([s (path-parent s)])
@@ -712,7 +752,16 @@ groups than for single tests.
                       source-dir* source-path*))
                   (let ([contract-dir (format "~a/contract" test-root)])
                     (mkdir contract-dir)
-                    (copy-dir (format "~a/zkir" target-file-name) (format "~a/zkir" test-root))
+                    (let ([zkir-v2-src (format "~a/zkir-v2" target-file-name)]
+                          [zkir-v3-src (format "~a/zkir-v3" target-file-name)]
+                          [zkir-src (format "~a/zkir" target-file-name)])
+                      (cond
+                        [(file-directory? zkir-v2-src)
+                         (copy-dir zkir-v2-src (format "~a/zkir" test-root))
+                         (when (file-directory? zkir-v3-src)
+                           (copy-dir zkir-v3-src (format "~a/zkir-v3" test-root)))]
+                        [(file-directory? zkir-src)
+                         (copy-dir zkir-src (format "~a/zkir" test-root))]))
                     (for-each
                       (lambda (ext)
                         (let ([fn (format "index.~a" ext)])
