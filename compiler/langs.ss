@@ -18,6 +18,7 @@
 (library (langs)
   (export max-field field-bytes max-unsigned unsigned-bits field? datum? path-index?
           max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth
+          zkir-field-rep?
           maximum-ledger-segment-length 
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
@@ -1168,18 +1169,17 @@
       (constrain_eq inp0 inp1)
       (constrain_to_boolean inp)
       (copy outp inp)
-      (declare_pub_input inp)
       (div_mod_power_of_two outp0 outp1 inp imm)  ;; outps=(quotient remainder)
       (ec_add outp0 outp1 inp0 inp1 inp2 inp3)
       (ec_mul outp0 outp1 inp0 inp1 inp2)
       (ec_mul_generator outp0 outp1 inp)
       (hash_to_curve outp0 outp1 inp* ...)
+      (impact inp inp* ...)
       (less_than outp inp0 inp1 imm)
       (mul outp inp0 inp1)
       (neg outp inp)
       (output inp)
       (persistent_hash outp0 outp1 (alignment* ...) inp* ...)
-      (pi_skip inp imm)
       (private_input outp)
       (private_input outp inp)
       (public_input outp)
