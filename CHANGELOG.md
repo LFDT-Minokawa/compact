@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.27.101, language version 0.19.0]
+
+### Changed
+
+- The ZKIR v3 format (behind the feature flag --zkir-v3) is changed to coalesce
+  an Impact instructions encoding into a guarded array.  Previously they were
+  multiple unguarded instructions followed by a guarded "skip" instruction.
+
 ## [Unreleased compiler version 0.27.100, language version 0.19.0]
 
 ### Fixed
