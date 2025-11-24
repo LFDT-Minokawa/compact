@@ -766,7 +766,21 @@
           [else (assert cannot-happen)]))
       (define (alignment->vector alignment*)
         (list->vector (map alignment-atom->alist alignment*)))
-      (define (var->string var) (format "~s" var))
+      (module (with-var-table var->string)
+        (define ht)
+        (define counter)
+        (define-syntax with-var-table
+          (syntax-rules ()
+            [(_ b1 b2 ...)
+             (fluid-let ([ht (make-eq-hashtable)] [counter 0])
+               b1 b2 ...)]))
+        (define (var->string var)
+          (let ([a (eq-hashtable-cell ht var #f)])
+            (or (cdr a)
+                (let ([str (format "%~s.~d" (id-sym var) counter)])
+                  (set! counter (fx+ counter 1))
+                  (set-cdr! a str)
+                  str)))))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ,cdefn* ...)
@@ -776,10 +790,13 @@
       [(circuit ,src (,name* ...) (,var-name* ...) ,instr* ...)
        (define (print-circuit op)
          (print-json-compact op
-           `((version . ((major . 3) (minor . 0)))
-             (do_communications_commitment . ,(not (no-communications-commitment)))
-             (inputs . ,(list->vector (maplr var->string var-name*)))
-             (instructions . ,(list->vector (maplr Instruction instr*))))))
+           (with-var-table
+             (let* ([inputs (list->vector (maplr var->string var-name*))]
+                    [instructions (list->vector (maplr Instruction instr*))])
+               `((version . ((major . 3) (minor . 0)))
+                 (do_communications_commitment . ,(not (no-communications-commitment)))
+                 (inputs . ,inputs)
+                 (instructions . ,instructions))))))
        (let ([output-port*
                (fold-left (lambda (output-port* name)
                             (let ([target (assq name (target-ports))])
@@ -788,7 +805,7 @@
                                   output-port*)))
                  '() name*)])
          ;; Exported pure circuits are in the IR but don't have any corresponding target ports.
-         (when (not (null? output-port*))
+         (unless (null? output-port*)
            (if (null? (cdr output-port*))
                ;; Directly print it to the port.
                (print-circuit (car output-port*))
