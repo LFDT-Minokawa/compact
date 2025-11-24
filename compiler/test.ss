@@ -51739,9 +51739,10 @@ groups than for single tests.
   ;; constrained to be Uint with a size that wasn't a power of two.
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<0..5>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x == 0, \"failed\");"
       "}"
       )
@@ -51765,9 +51766,10 @@ groups than for single tests.
 
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<0..5>, y: Uint<0..6>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x == y, \"failed\");"
       "}"
       )
@@ -51793,9 +51795,10 @@ groups than for single tests.
 
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<0..5>, y: Uint<0..6>, z: Uint<0..7>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x + y == z, \"failed\");"
       "}"
       )
@@ -51826,9 +51829,10 @@ groups than for single tests.
   ;; Mix powers of two with non-powers of two.
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<0..5>, y: Uint<4>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x == y, \"failed\");"
       "}"
       )
@@ -51852,9 +51856,10 @@ groups than for single tests.
 
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<4>, y: Uint<0..5>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x == y, \"failed\");"
       "}"
       )
@@ -51878,9 +51883,10 @@ groups than for single tests.
 
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<4>, y: Uint<4>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x == y, \"failed\");"
       "}"
       )
@@ -55286,8 +55292,11 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "witness spam(): Bytes<32>;"
       "export circuit foo(): Field {"
+      "  forceProof();"
       "  return disclose(spam()) as Field;"
       "}"
      )
@@ -55617,9 +55626,12 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "struct S { x: Field; y: Field; }"
       "witness W(x: S): S;"
       "export circuit foo(x : S): S {"
+      "  forceProof();"
       "  return disclose(W(x));"
       "}"
      )
@@ -55643,9 +55655,12 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "struct S { x: Field; y: Field; }"
       "witness state(x: S): S;"
       "export circuit foo(x : S): S {"
+      "  forceProof();"
       "  return disclose(state(x));"
       "}"
      )
@@ -61787,15 +61802,18 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "witness W(): Field;"
       "module A<#n, t> {"
       "  export circuit foo(v : Vector<n, t>, b : Bytes<n>): Field {"
+      "    forceProof();"
       "    return disclose(W()) + 17;"
       "  }"
       "}"
       "module B {"
-      "  circuit foo(x : Field): Field { return x + disclose(W()); }"
-      "  circuit bar(x : Field): Field { return x - disclose(W()); }"
+      "  circuit foo(x : Field): Field { forceProof(); return x + disclose(W()); }"
+      "  circuit bar(x : Field): Field { forceProof(); return x - disclose(W()); }"
       "  import A<7, Field> prefix AA;"
       "  import A<30, Boolean> prefix AAA;"
       "  export {foo, AAfoo, AAAfoo, bar}"
@@ -62086,9 +62104,10 @@ groups than for single tests.
   ;; constrained to be Uint with a size that wasn't a power of two.
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<0..5>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x == 0, \"failed\");"
       "}"
       )
@@ -62103,6 +62122,20 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.2\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.2\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x10\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x00\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x11\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"-0x02\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x07\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x91\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 1 },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.1\" }"
         "  ]"
@@ -62111,9 +62144,10 @@ groups than for single tests.
 
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<0..5>, y: Uint<0..6>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x == y, \"failed\");"
       "}"
       )
@@ -62131,6 +62165,20 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%tmp.3\" },"
         "    { \"op\": \"less_than\", \"output\": \"%tmp.4\", \"a\": \"%y.1\", \"b\": \"0x06\", \"bits\": 4 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.4\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x10\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x00\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x11\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"-0x02\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x07\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x91\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 1 },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.2\" }"
         "  ]"
@@ -62139,9 +62187,10 @@ groups than for single tests.
 
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<0..5>, y: Uint<0..6>, z: Uint<0..7>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x + y == z, \"failed\");"
       "}"
       )
@@ -62162,6 +62211,20 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%tmp.6\" },"
         "    { \"op\": \"less_than\", \"output\": \"%tmp.7\", \"a\": \"%z.3\", \"b\": \"0x07\", \"bits\": 4 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.7\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x10\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x00\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x11\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"-0x02\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x07\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x91\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 1 },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%t.2\", \"b\": \"%z.3\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.4\" }"
@@ -62172,9 +62235,10 @@ groups than for single tests.
   ;; Mix powers of two with non-powers of two.
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<0..5>, y: Uint<4>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x == y, \"failed\");"
       "}"
       )
@@ -62191,6 +62255,20 @@ groups than for single tests.
         "    { \"op\": \"less_than\", \"output\": \"%tmp.3\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.3\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.1\", \"bits\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x10\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x00\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x11\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"-0x02\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x07\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x91\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 1 },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.2\" }"
         "  ]"
@@ -62199,9 +62277,10 @@ groups than for single tests.
 
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<4>, y: Uint<0..5>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x == y, \"failed\");"
       "}"
       )
@@ -62218,6 +62297,20 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 4 },"
         "    { \"op\": \"less_than\", \"output\": \"%tmp.3\", \"a\": \"%y.1\", \"b\": \"0x05\", \"bits\": 4 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.3\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x10\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x00\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x11\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"-0x02\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x07\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x91\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 1 },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.2\" }"
         "  ]"
@@ -62226,9 +62319,10 @@ groups than for single tests.
 
   (test
     '(
-      "witness forceImpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test(x: Uint<4>, y: Uint<4>): [] {"
-      "  forceImpure();"
+      "  forceProof();"
       "  assert(x == y, \"failed\");"
       "}"
       )
@@ -62244,6 +62338,20 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 4 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.1\", \"bits\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x10\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x00\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x11\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x01\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"-0x02\" },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x07\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"val\": \"0x91\" },"
+        "    { \"op\": \"pi_skip\", \"guard\": \"0x01\", \"count\": 1 },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.2\" }"
         "  ]"
@@ -62293,9 +62401,51 @@ groups than for single tests.
       "  return bar(v, 3);"
       "}"
       )
+    (returns (program))
+    )
+
+  (test
+    '(
+      "ledger F: Field;"
+      "circuit bar(v: Vector<5, Field>, i: Uint<0..5>): Field {"
+      "  F = disclose(v[i]);"
+      "  return F;"
+      "}"
+      "export circuit foo(v: Vector<5, Field>): Field {"
+      "  return bar(v, 3);"
+      "}"
+      )
     (returns
       (program
-        (circuit (foo) (%v.0 %v.1 %v.2 %v.3 %v.4) (output %v.3))))
+        (circuit (foo) (%v.0 %v.1 %v.2 %v.3 %v.4)
+          (declare_pub_input 16)
+          (declare_pub_input 1)
+          (declare_pub_input 1)
+          (declare_pub_input 1)
+          (declare_pub_input 0)
+          (pi_skip 1 5)
+          (declare_pub_input 17)
+          (declare_pub_input 1)
+          (declare_pub_input 1)
+          (declare_pub_input -2)
+          (declare_pub_input %v.3)
+          (pi_skip 1 5)
+          (declare_pub_input 145)
+          (pi_skip 1 1)
+          (declare_pub_input 48)
+          (pi_skip 1 1)
+          (declare_pub_input 80)
+          (declare_pub_input 1)
+          (declare_pub_input 1)
+          (declare_pub_input 0)
+          (pi_skip 1 4)
+          (public_input %t.5)
+          (declare_pub_input 12)
+          (declare_pub_input 1)
+          (declare_pub_input -2)
+          (declare_pub_input %t.5)
+          (pi_skip 1 4)
+          (output %t.5))))
     )
 
   (test
