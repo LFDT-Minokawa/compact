@@ -777,7 +777,7 @@
         (define (var->string var)
           (let ([a (eq-hashtable-cell ht var #f)])
             (or (cdr a)
-                (let ([str (format "$~s.~d" (id-sym var) counter)])
+                (let ([str (format "%~s.~d" (id-sym var) counter)])
                   (set! counter (fx+ counter 1))
                   (set-cdr! a str)
                   str)))))
