@@ -78,6 +78,7 @@
     include
     ledger
     map
+    new
     of
     pad
     pragma
@@ -87,6 +88,7 @@
     sealed
     slice
     struct
+    type
     witness))
   (define keywordDataTypes '(
     Bytes
@@ -217,7 +219,7 @@
       (end-of-file (eof)
         (DESCRIPTION
           ("end of file")))
-      (identifier (id module-name function-name struct-name enum-name contract-name tvar-name)
+      (identifier (id module-name function-name struct-name enum-name contract-name tvar-name type-name)
         (DESCRIPTION
           ("identifiers have the same syntax as Typescript identifiers")))
       (field-literal (nat)
@@ -247,7 +249,8 @@
       [program-element-witness-declaration :: wdecl => values]
       [program-element-contract-declaration :: ecdecl => values]
       [program-element-struct-declaration :: struct => values]
-      [program-element-enum-declaration :: enumdef => values])
+      [program-element-enum-declaration :: enumdef => values]
+      [program-element-type-declaration :: tdefn => values])
     (Pragma (pragma)
       [pragma :: src (KEYWORD pragma) id version-expr #\; =>
        (lambda (src kwd id ve semicolon)
@@ -434,6 +437,12 @@
          (with-output-language (Lparser Enum-Definition)
            (let-values ([(elt-name+ sep*) (split-sep elt-name-sep+)])
              `(enum ,src ,kwd-export? ,kwd ,enum-name ,lbrace (,(car elt-name+) ,(cdr elt-name+) ...) (,sep* ...) ,rbrace ,semicolon?))))])
+    (Type-definition (tdefn)
+      ; FIXME: consider eliminating struct syntax and supporting { x: type, ... } as a type
+      [type-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD new) #f) (KEYWORD type) type-name (OPT gparams #f) #\= type #\; =>
+       (lambda (src kwd-export? kwd-new? kwd type-name generic-param-list? op type semicolon)
+         (with-output-language (Lparser Type-Definition)
+           `(typedef ,src ,kwd-export? ,kwd-new? ,kwd ,type-name ,generic-param-list? ,op ,type ,semicolon)))])
     (Typed-identifier (typed-identifier)
       [typed-identifier :: src id #\: type =>
        (lambda (src id colon type)

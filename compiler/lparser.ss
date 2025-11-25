@@ -41,11 +41,11 @@
     (terminals
       (source-object (src))
       (field-token (nat start end))
-      (id-token (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name prefix))
+      (id-token (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name prefix type-name))
       (string-token (str mesg opaque-type file))
       (version-token (version))
       (eof-token (eof))
-      (keyword-token (kwd kwd-else kwd-const kwd-of kwd-export kwd-sealed kwd-pure kwd-prefix kwd-from kwd-as))
+      (keyword-token (kwd kwd-else kwd-const kwd-of kwd-export kwd-sealed kwd-pure kwd-prefix kwd-from kwd-as kwd-new))
       (op-token (op langle rangle))
       (punctuation-token (dot dotdot dotdotdot comma semicolon colon hook lparen rparen lbracket rbracket lbrace rbrace arrow sep hashmark bang))
       )
@@ -66,6 +66,7 @@
       ecdecl
       structdef
       enumdef
+      tdefn
       )
     (Pragma (pdecl)
       (pragma src kwd name version-expr semicolon) => (pragma name version-expr)
@@ -147,6 +148,10 @@
     (Enum-Definition (enumdef)
       (enum src (maybe kwd-export?) kwd enum-name lbrace (elt-name elt-name* ...) (sep* ...) rbrace (maybe semicolon?)) =>
         (enum kwd-export? kwd enum-name #f elt-name #f elt-name* ...)
+      )
+    (Type-Definition (tdefn)
+      (typedef src (maybe kwd-export?) (maybe kwd-new) kwd type-name (maybe generic-param-list?) op type semicolon) =>
+        (typedef kwd-export? kwd-new? type-name generic-param-list? type)
       )
     (Generic-Param (generic-param)
       (nat-valued src hashmark tvar-name) => (nat-valued tvar-name)

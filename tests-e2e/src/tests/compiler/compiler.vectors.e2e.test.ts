@@ -65,7 +65,7 @@ describe('[Vectors] PM-13684/PM-17201/PM-18328 - Vector slice & spread', () => {
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: non_constant_index.compact line 17 char 30: tuple slice with a non-constant index should be a vector but has a tuple type [Boolean, Boolean, Field] that cannot be converted to a vector because its element types are unrelated',
+                'Exception: non_constant_index.compact line 19 char 10: tuple slice with a non-constant index should be a vector but has a tuple type [Boolean, Boolean, Field] that cannot be converted to a vector because its element types are unrelated',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();

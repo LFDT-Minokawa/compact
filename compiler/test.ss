@@ -111,7 +111,7 @@ groups than for single tests.
                (vector->list keys) (vector->list vals)))))))
 |#
 
-(module (run-tests test-group test oops warning returns succeeds custom-check >output-file output-file stage-javascript run-javascript
+(module (run-tests test-group test oops warning returns pass-returns succeeds custom-check >output-file output-file stage-javascript run-javascript
          testdir show-last-successes show-successes show-all-passes show-stack-backtrace with-compact-path)
 
   (define-record-type feedback
@@ -125,6 +125,7 @@ groups than for single tests.
 
   (define n)
   (define nfail)
+  (define successes)
   (define positive-feedback*)
   (define negative-feedback*)
   (define warning-conditions (make-parameter '()))
@@ -137,6 +138,10 @@ groups than for single tests.
   (define show-successes (make-parameter #f))
   (define show-all-passes (make-parameter #f))
   (define show-stack-backtrace (make-parameter #t))
+
+  (define-record-type success
+    (nongenerative)
+    (fields pass-name unparser pretty-formats ir))
 
   (define-syntax testdir (identifier-syntax "compiler/testdir"))
   (define (recreate-testdir)
@@ -161,6 +166,13 @@ groups than for single tests.
         (cons 'returns '(returns #f e))
         pretty-formats)
       (list 'returns result)))
+
+  (define (print-pass-result pass-name pretty-formats result)
+    (pretty-print/formats
+      (cons 
+        (cons 'pass-returns '(pass-returns pass-name #f e))
+        pretty-formats)
+      (list 'pass-returns pass-name result)))
 
   (define (indent in s) ; prefixes each line by "in" and aligns tabbed text
     (define (end-col rcol* rchar*)
@@ -296,14 +308,15 @@ groups than for single tests.
 
   (define ($test result-indent sourceRoot . groupie*)
     (lambda (pass-name maybe-src)
-      (define-record-type success
-        (nongenerative)
-        (fields pass-name unparser pretty-formats ir))
       (define (print-code code)
         (printf "  test code:\n")
         (if (string? code)
             (printf "    ~a\n" code)
             (for-each (lambda (line) (printf "    ~a\n" line)) code)))
+      (define (print-success s)
+        (parameterize ([pretty-initial-indent result-indent] [print-gensym #f])
+          (printf (make-string result-indent #\space))
+          (print-pass-result (success-pass-name s) (success-pretty-formats s) ((success-unparser s) (success-ir s)))))
       (define (print-pass-output success)
         (let ([result ((success-unparser success) (success-ir success))])
           (printf "  pass ~s produced:\n" (success-pass-name success))
@@ -321,8 +334,7 @@ groups than for single tests.
               (display-string str)))
           (reverse feedback*)))
       (define (go source-fn target-fn okay?* code)
-        (define successes '())
-        (fluid-let ([positive-feedback* '()] [negative-feedback* '()] [condition-recorded? #f])
+        (fluid-let ([successes '()] [positive-feedback* '()] [negative-feedback* '()] [condition-recorded? #f])
           (parameterize ([id-counter 0] [warning-conditions '()])
             (let-values ([(result pretty-formats)
                           (parameterize ([pending-conditions '()])
@@ -349,7 +361,7 @@ groups than for single tests.
                   (print-code code)
                   (print-feedback positive-feedback* #f)
                   (when (show-all-passes)
-                    (for-each print-pass-output (reverse successes))))
+                    (for-each print-success (reverse successes))))
                 (unless okay?
                   (set! nfail (+ nfail 1))
                   (let () (import (go)) (failed #t))
@@ -358,7 +370,7 @@ groups than for single tests.
                   (print-feedback negative-feedback* #t)
                   (let ([n (show-last-successes)])
                     (for-each
-                      print-pass-output
+                      print-success
                       (if (fx<= n (length successes)) (list-head successes n) successes))))
                 okay?)))))
       (recreate-testdir)
@@ -417,16 +429,23 @@ groups than for single tests.
    ; a procedure in the second input is used as predicate for the first
     (lambda (pretty-formats x y)
       (and (not (condition? x))
-        (let ([syms (make-hashtable symbol-hash eq?)] [oops? #f])
+        (let ([syms (make-hashtable symbol-hash eq?)]
+              [ids/gensyms (make-eq-hashtable)]
+              [oops? #f])
           (let e? ([x x] [y y])
             (or (cond
                   [(pair? y) (and (pair? x) (e? (car x) (car y)) (e? (cdr x) (cdr y)))]
                   [(symbol? y)
-                   (let ([a (hashtable-cell syms y #f)])
-                     (if (cdr a)
-                         (eq? x (cdr a))
-                         (and (or (eq? x y) (id? x) (gensym? x))
-                              (begin (set-cdr! a x) #t))))]
+                   (or (eq? x y)
+                       (and (or (id? x) (gensym? x))
+                            (let ([a (hashtable-cell syms y #f)]
+                                  [b (hashtable-cell ids/gensyms x #f)])
+                              (or (and (eq? (cdr a) x) (eq? (cdr b) y))
+                                  (and (and (not (cdr a)) (not (cdr b)))
+                                       (begin
+                                         (set-cdr! a x)
+                                         (set-cdr! b y)
+                                         #t))))))]
                   [(eqv? x y) #t]
                   [(string? x) (and (string? y) (string=? x y))]
                   [(bytevector? x) (and (bytevector? y) (bytevector=? x y))]
@@ -468,7 +487,7 @@ groups than for single tests.
           (set! negative-feedback* (cons (warning-feedback #f #f) negative-feedback*))
           #f)))
 
-  (module (make-others-condition returns condition-recorded? oops warning succeeds custom-check >output-file output-file stage-javascript run-javascript)
+  (module (make-others-condition returns pass-returns condition-recorded? oops warning succeeds custom-check >output-file output-file stage-javascript run-javascript)
     (define-condition-type &others-condition &condition
       make-others-condition others-condition?
       (others condition-others))
@@ -534,6 +553,38 @@ groups than for single tests.
             [(_ k) #`($returns #,bfp #,efp `k)]))))
 
     (indirect-export returns $returns)
+
+    (define ($pass-returns bfp efp pass-name k)
+      (lambda (ignore-pass-name pretty-formats x)
+        (if (condition? x)
+            (condition! x)
+            (let* ([s (find (lambda (s) (eq? (success-pass-name s) pass-name)) successes)]
+                   [x (and s ((success-unparser s) (success-ir s)))]
+                   [printed-result (with-output-to-string
+                                     (lambda ()
+                                       (if x
+                                           (print-pass-result pass-name (success-pretty-formats s) x)
+                                           (pretty-print `(pass-returns ,pass-name #f)))))]
+                   [feedback (make-feedback bfp efp (lambda () (display-string printed-result)))])
+              (let-values ([(op get-output) (open-string-output-port)])
+                (if (parameterize ([current-output-port op])
+                      (test-equal? pretty-formats x k))
+                    (begin
+                      (set! positive-feedback* (cons feedback positive-feedback*))
+                      #t)
+                    (let ([msg (get-output)])
+                      (set! negative-feedback* (cons* (make-feedback (lambda () (display-string msg))) negative-feedback*))
+                      (set! negative-feedback* (cons feedback negative-feedback*))
+                      #f)))))))
+
+    (define-syntax pass-returns
+      (lambda (x)
+        (let-values ([(bfp efp) (source-position x)])
+          (syntax-case x ()
+            [(_ pass-name k)
+             #`($pass-returns #,bfp #,efp 'pass-name `k)]))))
+
+    (indirect-export pass-returns $pass-returns)
 
     (define ($oops bfp efp ls)
       (let ([feedback (make-feedback bfp efp
@@ -1449,6 +1500,7 @@ groups than for single tests.
     (returns
       (program
         (include "empty")
+        (typedef #f #t Frob () (tunsigned 16))
         (import CompactStandardLibrary () "")
         (import CompactStandardLibrary () "" ())
         (module #f M ((nat-valued a) b)
@@ -3306,6 +3358,7 @@ groups than for single tests.
     (returns
       (program
         (include "empty")
+        (typedef #f #t Frob () (tunsigned 16))
         (import CompactStandardLibrary () "")
         (import CompactStandardLibrary () "" ())
         (module #f M ((nat-valued a) b)
@@ -7336,6 +7389,7 @@ groups than for single tests.
     "test-center/compact/test.compact"
     (returns
       (program
+        (typedef #f #t Frob () (tunsigned 16))
         (import CompactStandardLibrary () "")
         (import CompactStandardLibrary () "" ())
         (module #f M ((nat-valued a) b)
@@ -7898,6 +7952,7 @@ groups than for single tests.
     "test-center/compact/test.compact"
     (returns
       (program
+        (typedef #f #t Frob () (tunsigned 16))
         (import CompactStandardLibrary () "")
         (import CompactStandardLibrary () "" ())
         (module #f M ((nat-valued a) b)
@@ -8156,6 +8211,7 @@ groups than for single tests.
     "test-center/compact/test.compact"
     (returns
       (program
+        (typedef #f #t Frob () (tunsigned 16))
         (import CompactStandardLibrary () "")
         (import CompactStandardLibrary () "" ())
         (module #f M ((nat-valued a) b)
@@ -8397,7 +8453,7 @@ groups than for single tests.
       "export circuit bar(m: Field): Field { return foo(m); }"
       )
     (returns
-      (program ((bar %bar.0))
+      (program ((bar %bar.2))
         (circuit %foo.0 ([%n.1 (tfield)]) (tfield) %n.1)
         (circuit %bar.2 ([%m.3 (tfield)])
              (tfield)
@@ -9545,7 +9601,7 @@ groups than for single tests.
       )
     (returns
       (program ()
-        (type-definition S (X Y) (tstruct S (x X) (y Y)))))
+        (export-typedef S (X Y) (tstruct S (x X) (y Y)))))
     )
 
   (test
@@ -9580,7 +9636,7 @@ groups than for single tests.
       )
     (returns
       (program ()
-        (type-definition names ()
+        (export-typedef names ()
           (tenum names bill sally fred george))))
     )
 
@@ -10149,7 +10205,7 @@ groups than for single tests.
        )
     (returns
       (program ()
-        (type-definition Names ()
+        (export-typedef Names ()
           (tenum Names bill sally fred george))
         (public-ledger-declaration %kernel.0 (Kernel)))))
 
@@ -10161,7 +10217,7 @@ groups than for single tests.
        )
     (returns
       (program ()
-        (type-definition Names ()
+        (export-typedef Names ()
           (tenum Names bill sally fred george))
         (public-ledger-declaration %kernel.0 (Kernel)))))
 
@@ -10464,7 +10520,7 @@ groups than for single tests.
       )
     (returns
       (program ((foo %foo.0))
-        (type-definition S (T) (tstruct S (x T)))
+        (export-typedef S (T) (tstruct S (x T)))
         (circuit %foo.0 ([%s.1 (tstruct S
                                  (x (tstruct S (x (tfield)))))])
              (tstruct S (x (tfield)))
@@ -11032,12 +11088,12 @@ groups than for single tests.
       )
     (returns
       (program ((foo %foo.0))
-        (type-definition A (T)
+        (export-typedef A (T)
           (tstruct A
             (x (tstruct B (x (tstruct C (x (tvector 3 T))))))))
-        (type-definition B (T)
+        (export-typedef B (T)
           (tstruct B (x (tstruct C (x (tvector 3 T))))))
-        (type-definition C (T) (tstruct C (x (tvector 0 T))))
+        (export-typedef C (T) (tstruct C (x (tvector 0 T))))
         (circuit %foo.0 ([%x.1 (tstruct C
                                  (x (tvector
                                       3
@@ -11277,7 +11333,7 @@ groups than for single tests.
       )
     (returns
       (program ((foo %foo.0))
-        (type-definition S (T) (tstruct S (x (tfield))))
+        (export-typedef S (T) (tstruct S (x (tfield))))
         (circuit %foo.0 ([%s.1 (tstruct S (x (tfield)))])
              (tfield)
           (elt-ref %s.1 x))))
@@ -12284,9 +12340,9 @@ groups than for single tests.
       )
     (returns
       (program ()
-        (type-definition S ()
+        (export-typedef S ()
           (tstruct S (x (tfield)) (y (tboolean))))
-        (type-definition E () (tenum E gad arly xtra))))
+        (export-typedef E () (tenum E gad arly xtra))))
     )
 
   (test
@@ -13102,9 +13158,7 @@ groups than for single tests.
                              (tunsigned 7)
                     (seq
                       (assert
-                        (if (< %x.2 (safe-cast (tunsigned 7) (tunsigned 1) 1))
-                            #f
-                            #t)
+                        (>= %x.2 (safe-cast (tunsigned 7) (tunsigned 1) 1))
                         "result of subtraction would be negative")
                       (- 3 %x.2 (safe-cast (tunsigned 7) (tunsigned 1) 1))))))))))
     )
@@ -15847,9 +15901,7 @@ groups than for single tests.
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
-                  (if (< (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
-                      #f
-                      #t)
+                  (>= (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
                   "result of subtraction would be negative")
                 (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 17) 17))))
             %v2.3))))
@@ -17427,7 +17479,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 18" "parse error: found ~a looking for~?" ("\"S\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\";\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\"" "\"(\"" "\"{\"" "a generic argument list"))))
+      irritants: '("testfile.compact line 3 char 14" "parse error: found ~a looking for~?" ("\"new\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression"))))
     )
 
   (test
@@ -17469,9 +17521,7 @@ groups than for single tests.
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
-                  (if (< (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
-                      #f
-                      #t)
+                  (>= (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
                   "result of subtraction would be negative")
                 (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 17) 17))))
             %v2.3))))
@@ -17516,9 +17566,7 @@ groups than for single tests.
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
-                  (if (< (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
-                      #f
-                      #t)
+                  (>= (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
                   "result of subtraction would be negative")
                 (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 17) 17))))
             %v2.3))))
@@ -17563,9 +17611,7 @@ groups than for single tests.
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
-                  (if (< (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
-                      #f
-                      #t)
+                  (>= (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
                   "result of subtraction would be negative")
                 (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 17) 17))))
             %v2.3))))
@@ -19454,7 +19500,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 23" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("map second argument" "[Uint<8>, Boolean]")))
+      irritants: '("testfile.compact line 2 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("map second argument" "[Uint<8>, Boolean]")))
     )
 
   (test
@@ -19465,7 +19511,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 23" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("fold third argument" "[Uint<8>, Boolean]")))
+      irritants: '("testfile.compact line 2 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("fold third argument" "[Uint<8>, Boolean]")))
     )
 
   (test
@@ -19703,7 +19749,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 36" "invalid context for a ledger ADT type" ()))
+      irritants: '("testfile.compact line 5 char 19" "cannot cast from type ~a to type ~a" ("Uint<64>" "Map<Field, Field>")))
     )
 
   (test
@@ -19717,7 +19763,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 13" "invalid context for a ledger ADT type" ()))
+      irritants: '("testfile.compact line 4 char 13" "expected structure type, received ~a" ("Counter")))
     )
 
   (test
@@ -20200,7 +20246,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "expected a tuple, Vector, or Bytes type, received ~a" ("Boolean")))
+      irritants: '("testfile.compact line 2 char 10" "expected first slice argument to be a tuple, Vector, or Bytes type, received ~a" ("Boolean")))
     )
 
   (test
@@ -20211,7 +20257,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "slice length ~d exceeds the length ~d of the input vector" (4 3)))
+      irritants: '("testfile.compact line 2 char 10" "slice length ~d exceeds the length ~d of the input tuple, vector, or Bytes value" (4 3)))
     )
 
   (test
@@ -20222,7 +20268,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "slice length ~d exceeds the length ~d of the input vector" (4 3)))
+      irritants: '("testfile.compact line 2 char 10" "slice length ~d exceeds the length ~d of the input tuple, vector, or Bytes value" (4 3)))
     )
 
   (test
@@ -21477,8 +21523,8 @@ groups than for single tests.
       "}"
       )
     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 4 char 23" "index ~d is out-of-bounds for a ~a of length ~d" (3 "tuple" 3)))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 23" "index ~d is out-of-bounds for a ~a of length ~d" (3 "tuple" 3)))
     )
 
   (test
@@ -21495,9 +21541,9 @@ groups than for single tests.
   (test
     '(
       "export circuit do_sth(): Field {"
-       "  return fold((x: Field, [a, b]: [Field, Field]): Field => a + b + x, 0, [[1, 2], [2, 3], [3, 4]]);"
-       "}"
-       )
+      "  return fold((x: Field, [a, b]: [Field, Field]): Field => a + b + x, 0, [[1, 2], [2, 3], [3, 4]]);"
+      "}"
+      )
     (succeeds))
 
   ; tests for writing lang ref of return
@@ -21518,8 +21564,8 @@ groups than for single tests.
       "export circuit foo(): Boolean {}"
       )
     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
     )
 
   (test
@@ -21527,8 +21573,8 @@ groups than for single tests.
       "export circuit foo(c: Boolean): Boolean { if (c) true;}"
       )
     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
     )
 
   (test
@@ -21536,8 +21582,8 @@ groups than for single tests.
       "export circuit foo(c: Boolean): Boolean { if (true) {return c;} }"
       )
     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 43" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 43" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
     )
 
   (test
@@ -21545,8 +21591,8 @@ groups than for single tests.
       "export circuit foo(c: Boolean): Boolean { if (c) {return true; return 1;} else return false; }"
       )
     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 64" "unreachable statement" ()))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 64" "unreachable statement" ()))
     )
 
   (test
@@ -21554,8 +21600,8 @@ groups than for single tests.
       "export circuit foo(c: Boolean): Boolean { if (c) {return true; const a = 1;} else return false; }"
       )
     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 70" "unreachable statement" ()))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 70" "unreachable statement" ()))
     )
 
   (test
@@ -21563,8 +21609,8 @@ groups than for single tests.
       "export circuit foo(c: Boolean): Boolean { if (c) {return true; return +1;} else return false; }"
       )
     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 71" "parse error: found ~a looking for~?" ("\"+\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression sequence" "\";\""))))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 71" "parse error: found ~a looking for~?" ("\"+\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression sequence" "\";\""))))
     )
 
   (test
@@ -21572,8 +21618,8 @@ groups than for single tests.
       "export circuit foo(): Boolean { return true, 1; }"
       )
     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 33" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<1>" "Boolean" "circuit foo")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 33" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<1>" "Boolean" "circuit foo")))
     )
 
   (test
@@ -21581,7 +21627,7 @@ groups than for single tests.
       "export circuit foo(): Boolean { return 1, true; }"
       )
     (returns
-       (program (circuit %foo.0 () (tboolean) (seq 1 #t))))
+      (program (circuit %foo.0 () (tboolean) (seq 1 #t))))
     )
 
   (test
@@ -21589,12 +21635,12 @@ groups than for single tests.
       "export circuit foo(): [] { ((x) => {return;})(true); }"
       )
     (returns
-       (program
-         (circuit %foo.0 ()
-              (ttuple)
-           (seq
-             (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t)
-             (tuple)))))
+      (program
+        (circuit %foo.0 ()
+             (ttuple)
+          (seq
+            (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t)
+            (tuple)))))
     )
 
   (test
@@ -21602,10 +21648,10 @@ groups than for single tests.
       "export circuit foo(): [] { return ((x) => {return;})(true); }"
       )
     (returns
-       (program
-         (circuit %foo.0 ()
-              (ttuple)
-           (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t))))
+      (program
+        (circuit %foo.0 ()
+             (ttuple)
+          (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t))))
     )
 
   (test
@@ -21620,8 +21666,8 @@ groups than for single tests.
       "constructor () { return true; }"
       )
     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 18" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Boolean" "[]" "ledger constructor")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 18" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Boolean" "[]" "ledger constructor")))
     )
 
   (test
@@ -21636,13 +21682,13 @@ groups than for single tests.
       "}"
       )
     (returns
-       (program
-         (circuit %foo.0 ([%c.1 (tboolean)])
-              (tboolean)
-           (call (circuit ([%x.2 (tboolean)])
-                      (tboolean)
-                   (if %c.1 %x.2 (if %x.2 #f #t)))
-             %c.1))))
+      (program
+        (circuit %foo.0 ([%c.1 (tboolean)])
+             (tboolean)
+          (call (circuit ([%x.2 (tboolean)])
+                     (tboolean)
+                  (if %c.1 %x.2 (if %x.2 #f #t)))
+            %c.1))))
     )
 
   (test
@@ -21655,8 +21701,8 @@ groups than for single tests.
       "}"
       )
     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 3 char 5" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 5" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
     )
 
   ; test for bounds of merkle trees
@@ -21765,12 +21811,12 @@ groups than for single tests.
       "export circuit foo(): [] { ((x) => {return;})(true); }"
       )
     (returns
-       (program
-         (circuit %foo.0 ()
-              (ttuple)
-           (seq
-             (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t)
-             (tuple)))))
+      (program
+        (circuit %foo.0 ()
+             (ttuple)
+          (seq
+            (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t)
+            (tuple)))))
    )
 
   (test
@@ -21778,11 +21824,11 @@ groups than for single tests.
       "export circuit foo(): [] { return ((x) => {return;})(true); }"
       )
     (returns
-       (program
-         (circuit %foo.0 ()
-              (ttuple)
-           (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t))))
-    )
+      (program
+        (circuit %foo.0 ()
+             (ttuple)
+          (call (circuit ([%x.1 (tboolean)]) (ttuple) (tuple)) #t))))
+   )
 
   (test
     '(
@@ -21944,6 +21990,24 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 54" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 8, type Field>\n      declared generics for function at line 2 char 3:\n        <size>" #f #f)))
     )
 
+  ; pm 19636
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type U32 = Uint<32>;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  return x;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%x.2 (talias #f U32
+                                 (tunsigned 4294967295))])
+             (tunsigned 4294967295)
+          %x.2)))
+    )
+
   (test
     '(
       "module M {"
@@ -22080,6 +22144,313 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 9" "cannot cast from type ~a to type ~a" ("Bytes<0>" "Field")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type U32 = Uint<32>;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  return x;"
+      "}"
+      )
+    (returns
+      (program
+        (export-typedef U32 ()
+          (talias #f U32 (tunsigned 4294967295)))
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%x.2 (talias #f U32
+                                 (tunsigned 4294967295))])
+             (tunsigned 4294967295)
+          %x.2)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type U32 = Uint<32>;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  return x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("U32=Uint<32>" "Uint<32>" "circuit foo")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type U32 = Uint<32>;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  return x as Uint<32>;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%x.2 (talias #t U32
+                                 (tunsigned 4294967295))])
+             (tunsigned 4294967295)
+          (safe-cast (tunsigned 4294967295)
+                     (talias #t U32 (tunsigned 4294967295))
+            %x.2))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type Unsigned32 = Uint<32>;"
+      "new type U32 = Unsigned32;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  return x as Uint<32>;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%x.2 (talias #t U32
+                                 (talias #t Unsigned32
+                                   (tunsigned 4294967295)))])
+             (tunsigned 4294967295)
+          (safe-cast (tunsigned 4294967295)
+                     (talias #t U32
+                       (talias #t Unsigned32 (tunsigned 4294967295)))
+            %x.2))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type U32 = U32;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  return x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 12" "cycle involving ~a~?" ("type" "~#[~; ~a~;s ~a and ~a~:;s~@{~#[~; and~] ~a~^,~}~]" (U32))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type U32 = u32;"
+      "type u32 = U32;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  return x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 12" "cycle involving ~a~?" ("type" "~#[~; ~a~;s ~a and ~a~:;s~@{~#[~; and~] ~a~^,~}~]" (u32 U32))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct S { x: T };"
+      "type T = Uint<32>;"
+      "export circuit foo(x: S): S {"
+      "  return x;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%x.2 (tstruct S
+                                 (x (talias #f T (tunsigned 4294967295))))])
+             (tstruct S (x (talias #f T (tunsigned 4294967295))))
+          %x.2)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type T = S;"
+      "struct S { x: Uint<32> };"
+      "export circuit foo(x: T): T {"
+      "  return x;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%x.2 (talias #f T
+                                 (tstruct S (x (tunsigned 4294967295))))])
+             (talias #f T (tstruct S (x (tunsigned 4294967295))))
+          %x.2)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct S { x: T };"
+      "type T = S;"
+      "export circuit foo(x: T): T {"
+      "  return x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 15" "cycle involving ~a~?" ("type" "~#[~; ~a~;s ~a and ~a~:;s~@{~#[~; and~] ~a~^,~}~]" (S T))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type VU16<#N> = Vector<N, Uint<16>>;"
+      "type V3U16 = VU16<3>;"
+      "export circuit foo(v: V3U16): Uint<16> {"
+      "  return v[1];"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ([%v.2 (talias #f V3U16
+                                 (talias #f VU16
+                                   (tvector 3 (tunsigned 65535))))])
+             (tunsigned 65535)
+          (tuple-ref %v.2 1))))
+    )
+
+  (test
+    '(
+      "new type T = Uint<32>;"
+      "export circuit foo(t: T, x: Uint<32>): Uint<33> {"
+      "  return t + x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~s" ("T=Uint<32>" "Uint<32>" +)))
+    )
+
+  (test
+    '(
+      "new type T1 = Uint<32>;"
+      "new type T2 = Uint<32>;"
+      "export circuit foo(t1: T1, t2: T2): Field {"
+      "  return t1 == t2;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "incompatible types ~a and ~a for equality operator" ("T1=Uint<32>" "T2=Uint<32>")))
+    )
+
+  (test
+    '(
+      "new type T1 = Uint<32>;"
+      "new type T2 = Uint<32>;"
+      "export circuit foo(t1: T1, t2: T2): Field {"
+      "  return t1 < t2;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "incompatible combination of types ~a and ~a for relational operator" ("T1=Uint<32>" "T2=Uint<32>")))
+    )
+
+  (test
+    '(
+      "new type T1 = Uint<32>;"
+      "new type T2 = Uint<32>;"
+      "export circuit foo(t1: T1, t2: T2): Field {"
+      "  return t1 * t2;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~s" ("T1=Uint<32>" "T2=Uint<32>" *)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type X = Map<Field, Field>;"
+      "export ledger x: X;"
+      "export circuit foo(y: Field): Field {"
+      "  x.insert(disclose(y), disclose(y) + 1);"
+      "  return x.lookup(disclose(y));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "cannot export alias for ADT types from the top level" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type X = Map<Field, Field>;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "cannot export alias for ADT types from the top level" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type X = Map<Field, Field>;"
+      "export ledger x: X;"
+      "export circuit foo(y: Field): Field {"
+      "  x.insert(disclose(y), disclose(y) + 1);"
+      "  return x.lookup(disclose(y));"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (public-ledger-declaration
+          %x.1
+          (talias #t X (Map (tfield) (tfield))))
+        (circuit %foo.2 ([%y.3 (tfield)])
+             (tfield)
+          (seq
+            (ledger-call insert
+              %x.1
+              (disclose %y.3)
+              (+ #f (disclose %y.3) (safe-cast (tfield) (tunsigned 1) 1)))
+            (ledger-call lookup %x.1 (disclose %y.3))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type X = Map<Field, Field>;"
+      )
+    (returns
+      (program (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct S { x: Blue };"
+      )
+    (returns
+      (program (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type T1 = Map<Field, Field>;"
+      "new type T2 = Map<Field, T1>;"
+      "ledger F: T2;"
+      "export circuit foo(in: Field): Field {"
+      "  const n = disclose(in);"
+      "  F.insert(n, default<Map<Field, Field>>);"
+      "  F.lookup(n).insert(n + 2, n + 4);"
+      "  return F.lookup(n).lookup(n + 2);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 4" "expected ~:r argument of ~s to have type ~a but received ~a" (2 insert "T1=Map<Field, Field>" "Map<Field, Field>")))
     )
 )
 
@@ -22294,7 +22665,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a ~a slicing" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+      irritants: '("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a slice" (150 149)))
     )
 
   (test
@@ -22310,7 +22681,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a ~a slicing" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "tuple")))
+      irritants: '("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a slice" (150 149)))
     )
 
   (test
@@ -22326,7 +22697,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 12" "index ~d exceeds maximum allowed index ~d for a ~a reference" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "tuple")))
+      irritants: '("testfile.compact line 2 char 12" "index ~d exceeds maximum allowed index ~d for a tuple or vector reference" (150 149)))
     )
 
   (test
@@ -22363,7 +22734,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a ~a slicing" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+      irritants: '("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a slice" (150 149)))
     )
 
   (test
@@ -22374,7 +22745,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a ~a slicing" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+      irritants: '("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a slice" (150 149)))
     )
 
   (test
@@ -22390,7 +22761,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a ~a slicing" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "tuple")))
+      irritants: '("testfile.compact line 2 char 22" "index ~d exceeds maximum index allowed ~d for a slice" (150 149)))
     )
 
   (test
@@ -22790,7 +23161,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 61" "index ~d exceeds maximum allowed index ~d for a ~a reference" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+      irritants: '("testfile.compact line 2 char 61" "index ~d exceeds maximum allowed index ~d for a tuple or vector reference" (150 149)))
     )
 
   (test ; this is caught in resolve-indices/simplify
@@ -22818,7 +23189,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 61" "index ~d exceeds maximum allowed index ~d for a ~a reference" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+      irritants: '("testfile.compact line 1 char 61" "index ~d exceeds maximum allowed index ~d for a tuple or vector reference" (150 149)))
     )
 
   (test ; this is caught in resolve-indices/simplify
@@ -22841,25 +23212,25 @@ groups than for single tests.
     `(
       "import CompactStandardLibrary;"
       "constructor(){"
-      ,(format "  for (const bob of slice<0>(default<Field>, ~d)) {" (max-bytes/vector-length))
+      ,(format "  for (const bob of slice<0>(default<Field>, ~d)) {" 0)
       "  }"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 46" "expected a tuple, Vector, or Bytes type, received ~a" ("Field")))
+      irritants: '("testfile.compact line 3 char 21" "expected first slice argument to be a tuple, Vector, or Bytes type, received ~a" ("Field")))
     )
 
   (test
     `(
       "import CompactStandardLibrary;"
       "constructor(){"
-      ,(format "  const x = default<Field>[~d];" (max-bytes/vector-length))
+      ,(format "  const x = default<Field>[~d];" 0)
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 28" "expected a tuple, Vector, or Bytes type, received ~a" ("Field")))
+      irritants: '("testfile.compact line 3 char 13" "expected a tuple, Vector, or Bytes type, received ~a" ("Field")))
     )
 
 )
@@ -22869,7 +23240,7 @@ groups than for single tests.
     `(
       "import CompactStandardLibrary;"
       "constructor(){"
-      ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" (+ (max-bytes/vector-length) 1))
+      ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" 32)
       "  }"
       "}"
       )
@@ -22879,35 +23250,33 @@ groups than for single tests.
         (public-ledger-declaration ())))
     )
 
-  ; FIXME PM-20295
   (test
     `(
       "import CompactStandardLibrary;"
       "ledger x: Counter;"
       "constructor(){"
       "  x.resetToDefault();"
-      ,(format "  for (const bob of slice<2>(default<Bytes<32>>, ~d)) {" (+ (max-bytes/vector-length) 1))
+      ,(format "  for (const bob of slice<2>(default<Bytes<32>>, ~d)) {" 32)
       "    x += bob;"
       "  }"
       "}"
       )
-    (returns
-      (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
-        (public-ledger-declaration ((%x.1 (0) (Counter))))))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 21" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (32 2 "Bytes value" 32)))
     )
 
   (test
     `(
       "import CompactStandardLibrary;"
       "export circuit foo(): []{"
-      ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" (+ (max-bytes/vector-length) 1))
+      ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" 33)
       "  }"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 3 char 21" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (,(+ (max-bytes/vector-length) 1) 0 32)))
+      irritants: '("testfile.compact line 3 char 21" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (33 0 "Bytes value" 32)))
     )
 
   (test
@@ -22929,7 +23298,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 61" "index ~d exceeds maximum allowed index ~d for a ~a reference" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+      irritants: '("testfile.compact line 1 char 61" "index ~d exceeds maximum allowed index ~d for a tuple or vector reference" (150 149)))
     )
 
   (test
@@ -22942,7 +23311,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 61" "index ~d exceeds maximum allowed index ~d for a ~a reference" (,(max-bytes/vector-length) ,(- (max-bytes/vector-length) 1) "vector")))
+      irritants: '("testfile.compact line 2 char 61" "index ~d exceeds maximum allowed index ~d for a tuple or vector reference" (150 149)))
     )
 
   (test
@@ -22975,7 +23344,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 38" "invalid Bytes index ~d for a Bytes value of length ~d" (,(- (max-bytes/vector-length) 1) ,(- (max-bytes/vector-length) 1))))
+      irritants: '("testfile.compact line 1 char 38" "index ~d is out-of-bounds for a ~a of length ~d" (149 "Bytes value" 149)))
     )
 
   (test
@@ -22986,7 +23355,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 38" "invalid Bytes index ~d for a Bytes value of length ~d" (,(max-bytes/vector-length) ,(max-bytes/vector-length))))
+      irritants: '("testfile.compact line 1 char 53" "index ~d exceeds maximum allowed index ~d for a tuple or vector reference" (150 149)))
     )
 
   (test
@@ -22997,7 +23366,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 1 char 38" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (,(max-bytes/vector-length) 1 ,(max-bytes/vector-length))))
+      irritants: '("testfile.compact line 1 char 63" "index ~d exceeds maximum index allowed ~d for a slice" (150 149)))
     )
 
   (test
@@ -23028,7 +23397,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (10 1 10)))
+      irritants: '("testfile.compact line 2 char 10" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (10 1 "Bytes value" 10)))
     )
 
   (test
@@ -23039,7 +23408,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (3 3 3)))
+      irritants: '("testfile.compact line 2 char 10" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (3 3 "Bytes value" 3)))
     )
 
   (test
@@ -23068,7 +23437,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 12" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (2 1 1)))
+      irritants: '("testfile.compact line 3 char 12" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (2 1 "Bytes value" 1)))
     )
 ))
 
@@ -24082,9 +24451,7 @@ groups than for single tests.
                              (tunsigned 7)
                     (seq
                       (assert
-                        (if (< %x.2 (safe-cast (tunsigned 7) (tunsigned 1) 1))
-                            #f
-                            #t)
+                        (>= %x.2 (safe-cast (tunsigned 7) (tunsigned 1) 1))
                         "result of subtraction would be negative")
                       (- 3 %x.2 (safe-cast (tunsigned 7) (tunsigned 1) 1))))))))))
     )
@@ -25509,7 +25876,7 @@ groups than for single tests.
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
-                  (if (< %n.1 (safe-cast (tunsigned 7) (tunsigned 1) 1)) #f #t)
+                  (>= %n.1 (safe-cast (tunsigned 7) (tunsigned 1) 1))
                   "result of subtraction would be negative")
                 (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 1) 1))))
             %v2.3))))
@@ -25629,7 +25996,7 @@ groups than for single tests.
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
-                  (if (< %n.1 (safe-cast (tunsigned 7) (tunsigned 1) 1)) #f #t)
+                  (>= %n.1 (safe-cast (tunsigned 7) (tunsigned 1) 1))
                   "result of subtraction would be negative")
                 (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 1) 1))))
             %v2.3))))
@@ -26681,7 +27048,7 @@ groups than for single tests.
                   (public-ledger %state.4
                     (write (enum-ref (tenum STATE unset set) set)))))
               (tuple))))
-        (type-definition Maybe (T)
+        (export-typedef Maybe (T)
           (tstruct Maybe (is_some (tboolean)) (value T)))
         (circuit %some.8 ([%value.9 (tfield)])
              (tstruct Maybe (is_some (tboolean)) (value (tfield)))
@@ -27189,7 +27556,7 @@ groups than for single tests.
           ((%x.1 (0) (Map (tfield) (tboolean)))
            (%y.2 (1) (Map (tunsigned 65535) (tenum E a b c))))
           (constructor () (tuple)))
-        (type-definition E () (tenum E a b c))
+        (export-typedef E () (tenum E a b c))
         (witness %flip.3 () (tboolean))
         (witness %flop.4 () (tfield))
         (witness %clip.5 () (tenum E a b c))
@@ -28205,7 +28572,7 @@ groups than for single tests.
                     (call %bar.2 (if %b.7 %v2.9 %v1.8))])
               (seq
                 (assert
-                  (if (< %t.10 %t.11) #f #t)
+                  (>= %t.10 %t.11)
                   "result of subtraction would be negative")
                 (- 32 %t.10 %t.11)))))))
     )
@@ -29813,7 +30180,7 @@ groups than for single tests.
               (seq
                 (public-ledger %auth_cell.1 (0) write %auth_cell_param.2)
                 (tuple))))
-          (type-definition StructExample ()
+          (export-typedef StructExample ()
             (tstruct StructExample (value (tfield))))
           (circuit %use_auth_cell.3 ([%x.4 (tstruct StructExample
                                              (value (tfield)))])
@@ -33311,7 +33678,7 @@ groups than for single tests.
                                    (ttuple))
                                  (bar #t () (tbytes 32)))])
              (seq
-               (public-ledger %contract_c.2 (0) write %c.0)
+               (public-ledger %contract_c.1 (0) write %c.0)
                (tuple))))))
      ))
 
@@ -33713,7 +34080,173 @@ groups than for single tests.
        message: "~a:\n  ~?"
        irritants: '("C2.compact line 11 char 4" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 10 char 13\n      the binding of k at line 10 char 9"))))
      ))
-  )
+
+  ; pm 19636
+  (test-group
+    ((create-file "M.compact"
+       '(
+         "module M {"
+         "  export new type B32 = Bytes<32>;"
+         "}"
+         ))
+     (succeeds))
+    ((create-file "C.compact"
+       '(
+         "import M;"
+         "export circuit foo(x: B32): [] { return; }"
+         "export pure circuit bar(): B32 { return pad(32, '') as B32; }"
+         ))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "import M;"
+         "contract C {"
+         "  circuit foo(x: B32): [];"
+         "  pure circuit bar(): B32;"
+         "}"
+         "ledger contract_c: C;"
+         ))
+     (returns
+       (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
+         (public-ledger-declaration
+           ((%contract_c.1
+              (0)
+              (__compact_Cell
+                (tcontract C
+                  (foo #f ((talias #t B32 (tbytes 32))) (ttuple))
+                  (bar #t () (talias #t B32 (tbytes 32)))))))
+           (constructor () (tuple)))))
+     ))
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export pure circuit bar(): Bytes<32> { return pad(32, ''); }"
+         ))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract C {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit bar(): Bytes<32>;"
+         "}"
+         "type C1 = C;"
+         "witness W(): C1;"
+         "ledger contract_c: C;"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for witness ~a return value:\n  witness return values cannot include contract values" ("contract C<foo(Bytes<32>): [], pure bar(): Bytes<32>>" W)))
+     ))
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export pure circuit bar(): Bytes<32> { return pad(32, ''); }"
+         ))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract C {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit bar(): Bytes<32>;"
+         "}"
+         "new type C1 = C;"
+         "witness W(): C1;"
+         "ledger contract_c: C;"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for witness ~a return value:\n  witness return values cannot include contract values" ("C1=contract C<foo(Bytes<32>): [], pure bar(): Bytes<32>>" W)))
+     ))
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export pure circuit bar(): Bytes<32> { return pad(32, ''); }"
+         ))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract C {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit bar(): Bytes<32>;"
+         "}"
+         "type C1 = C;"
+         "export circuit foo(): C1 { return default<C1>; }"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for circuit ~a return value:\n  exported circuit return values cannot include contract values" ("contract C<foo(Bytes<32>): [], pure bar(): Bytes<32>>" foo)))
+     ))
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export pure circuit bar(): Bytes<32> { return pad(32, ''); }"
+         ))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract C {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit bar(): Bytes<32>;"
+         "}"
+         "new type C1 = C;"
+         "export circuit foo(b: Boolean, c: C1): [] { }"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("C1=contract C<foo(Bytes<32>): [], pure bar(): Bytes<32>>" foo 2)))
+     ))
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export pure circuit bar(): Bytes<32> { return pad(32, ''); }"
+         ))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract C {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit bar(): Bytes<32>;"
+         "}"
+         "new type C1 = C;"
+         "export circuit foo(b: Boolean, c: [ C1, Uint<32> ]): [] { }"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("[C1=contract C<foo(Bytes<32>): [], pure bar(): Bytes<32>>, Uint<32>]" foo 2)))
+     ))
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export pure circuit bar(): Bytes<32> { return pad(32, ''); }"
+         ))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract C {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit bar(): Bytes<32>;"
+         "}"
+         "new type C1 = C;"
+         "ledger F: C1;"
+         "constructor (c: C) { F = disclose(c) as C1; }"
+         "export circuit foo(bv: Bytes<32>): [] { F.foo(disclose(bv)); }"
+         ))
+     (succeeds)
+     ))
+)
 
 (run-tests drop-ledger-runtime
   (test
@@ -36951,7 +37484,7 @@ groups than for single tests.
                                 (%i.5)
                                 (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.6) (public-ledger 1 %field1.0 (0) lookup %ni.5))
+          (= (%t.6) (public-ledger 1 %field1.0 (0) lookup %i.5))
           (%t.6))))
     )
 
@@ -42612,7 +43145,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "expected a non-empty vector or tuple type, received ~a" ("Vector<0, Field>")))
+      irritants: '("testfile.compact line 3 char 10" "expected a non-empty tuple, vector, or Bytes type, received ~a" ("Vector<0, Field>")))
     )
 
   (test
@@ -42624,7 +43157,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "expected a non-empty vector or tuple type, received ~a" ("[]")))
+      irritants: '("testfile.compact line 3 char 10" "expected a non-empty tuple, vector, or Bytes type, received ~a" ("[]")))
     )
 
   (test
@@ -60197,13 +60730,13 @@ groups than for single tests.
              (tboolean)
           (seq
             (const [%x.12 (tboolean)]
-              (!= %n.11 (safe-cast (tfield) (tunsigned 1) 1)))
+              (!= %n.12 (safe-cast (tfield) (tunsigned 1) 1)))
             (seq
               (const [%x.13 (tboolean)] (not %x.12))
-              (and %x.13 (== %n.11 (safe-cast (tfield) (tunsigned 0) 0))))))
+              (and %x.13 (== %n.12 (safe-cast (tfield) (tunsigned 0) 0))))))
         (circuit %bar.14 ([%n.15 (tfield)])
              (tfield)
-          (if (call %foo.10 (+ #f %n.15 (safe-cast (tfield) (tunsigned 1) 1)))
+          (if (call %foo.11 (+ #f %n.15 (safe-cast (tfield) (tunsigned 1) 1)))
               (- #f %n.15 (safe-cast (tfield) (tunsigned 1) 1))
               (+ #f %n.15 (safe-cast (tfield) (tunsigned 1) 1))))))
     (output-file "compiler/testdir/contract/index.d.ts"
@@ -60274,26 +60807,26 @@ groups than for single tests.
              (tboolean)
           (seq
             (const [%x.19 (tboolean)]
-              (<= %n.18 (safe-cast (tunsigned 64) (tunsigned 1) 1)))
+              (<= %n.19 (safe-cast (tunsigned 64) (tunsigned 1) 1)))
             (seq
               (const [%x.20 (tboolean)] (not %x.19))
-              (and %x.20 (<= %n.18 (safe-cast (tunsigned 64) (tunsigned 0) 0))))))
+              (and %x.20 (<= %n.19 (safe-cast (tunsigned 64) (tunsigned 0) 0))))))
         (circuit %bar.21 ([%n.22 (tunsigned 64)])
              (tunsigned 64)
           (if (call %foo.18
                 (seq
                   (assert
-                    (not (< %n.22 (safe-cast (tunsigned 64) (tunsigned 1) 1)))
+                    (>= %n.22 (safe-cast (tunsigned 64) (tunsigned 1) 1))
                     "result of subtraction would be negative")
                   (- 7 %n.22 (safe-cast (tunsigned 64) (tunsigned 1) 1))))
               (seq
                 (assert
-                  (not (< %n.22 (safe-cast (tunsigned 64) (tunsigned 1) 1)))
+                  (>= %n.22 (safe-cast (tunsigned 64) (tunsigned 1) 1))
                   "result of subtraction would be negative")
                 (- 7 %n.22 (safe-cast (tunsigned 64) (tunsigned 1) 1)))
               (seq
                 (assert
-                  (not (< %n.22 (safe-cast (tunsigned 64) (tunsigned 2) 2)))
+                  (>= %n.22 (safe-cast (tunsigned 64) (tunsigned 2) 2))
                   "result of subtraction would be negative")
                 (- 7 %n.22 (safe-cast (tunsigned 64) (tunsigned 2) 2)))))))
     (output-file "compiler/testdir/contract/index.d.ts"
@@ -60359,7 +60892,7 @@ groups than for single tests.
           (%descriptor.13 (tunsigned
                             340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.17 ([%n.18 (tunsigned 18446744073709551615)])
+        (circuit %foo.17 ([%n.17 (tunsigned 18446744073709551615)])
              (tboolean)
           (seq
             (const [%x.18 (tboolean)]
@@ -60373,17 +60906,17 @@ groups than for single tests.
           (if (call %foo.17
                 (seq
                   (assert
-                    (not (< %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1)))
+                    (>= %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1))
                     "result of subtraction would be negative")
                   (- 64 %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1))))
               (seq
                 (assert
-                  (not (< %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1)))
+                  (>= %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1))
                   "result of subtraction would be negative")
                 (- 64 %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1)))
               (seq
                 (assert
-                  (not (< %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 2) 2)))
+                  (>= %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 2) 2))
                   "result of subtraction would be negative")
                 (- 64 %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 2) 2)))))))
     (output-file "compiler/testdir/contract/index.d.ts"
@@ -61915,7 +62448,7 @@ groups than for single tests.
              (tfield)
           (safe-cast (tfield)
                      (tunsigned 18446744073709551615)
-            (public-ledger %field1.8 (0) read)))))
+            (public-ledger %field1.9 (0) read)))))
     (stage-javascript
       `(
         "test('check 1', () => {"
@@ -62039,8 +62572,8 @@ groups than for single tests.
           (safe-cast (tfield)
                      (tunsigned 18446744073709551615)
             (seq
-              (public-ledger %kernel.8 () claimZswapNullifier %x.12)
-              (public-ledger %field1.9 (0) read))))))
+              (public-ledger %kernel.9 () claimZswapNullifier %x.13)
+              (public-ledger %field1.10 (0) read))))))
     (stage-javascript
       `(
         "test('check 1', () => {"
@@ -66536,8 +67069,8 @@ groups than for single tests.
         (circuit %bar.13 ([%x.14 (tfield)])
              (tfield)
           (seq
-            (assert (!= %x.9 (safe-cast (tfield) (tunsigned 2) 2)) "oops")
-            %x.9))
+            (assert (!= %x.14 (safe-cast (tfield) (tunsigned 2) 2)) "oops")
+            %x.14))
         (circuit %foo.14 ([%x.15 (tfield)])
              (tfield)
           (seq
@@ -66582,9 +67115,9 @@ groups than for single tests.
         (circuit %foo.7 ([%x.8 (tfield)])
              (tfield)
           (seq
-            (call %bar.4 %x.7)
-            (call %bar.4 (- #f %x.7 (safe-cast (tfield) (tunsigned 1) 1)))
-            (call %bar.4 (- #f %x.7 (safe-cast (tfield) (tunsigned 2) 2)))))))
+            (call %bar.5 %x.8)
+            (call %bar.5 (- #f %x.8 (safe-cast (tfield) (tunsigned 1) 1)))
+            (call %bar.5 (- #f %x.8 (safe-cast (tfield) (tunsigned 2) 2)))))))
     (stage-javascript
       `(
         "test('check 1', () => {"
@@ -66620,9 +67153,9 @@ groups than for single tests.
              (ttuple)
           (seq
             (seq
-              (call %bar.4 %x.7)
-              (call %bar.4 (- #f %x.7 (safe-cast (tfield) (tunsigned 1) 1)))
-              (call %bar.4 (- #f %x.7 (safe-cast (tfield) (tunsigned 2) 2))))
+              (call %bar.5 %x.8)
+              (call %bar.5 (- #f %x.8 (safe-cast (tfield) (tunsigned 1) 1)))
+              (call %bar.5 (- #f %x.8 (safe-cast (tfield) (tunsigned 2) 2))))
             (tuple)))))
     (stage-javascript
       '(
@@ -66733,9 +67266,9 @@ groups than for single tests.
             (circuit ([%x.13 (tfield)])
                  (tfield)
               (seq
-                (assert (!= %x.18 (safe-cast (tfield) (tunsigned 2) 2)) "oops")
-                %x.18))
-            %v.17))))
+                (assert (!= %x.13 (safe-cast (tfield) (tunsigned 2) 2)) "oops")
+                %x.13))
+            %v.12))))
     (stage-javascript
       '(
         "test('check 1', () => {"
@@ -67672,10 +68205,10 @@ groups than for single tests.
               (call %bar.13 %x.17 %y.18))
             (seq
               (const [%b.19 (tboolean)]
-                (elt-ref %__compact_pattern_tmp1.18 b 1))
+                (elt-ref %__compact_pattern_tmp1.19 b 1))
               (if %b.19
-                  %y.17
-                  (* #f (safe-cast (tfield) (tunsigned 2) 2) %y.17)))))))
+                  %y.18
+                  (* #f (safe-cast (tfield) (tunsigned 2) 2) %y.18)))))))
     )
 
   (test
@@ -68626,7 +69159,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "expected a non-empty vector or tuple type, received ~a" ("Vector<0, Field>")))
+      irritants: '("testfile.compact line 3 char 10" "expected a non-empty tuple, vector, or Bytes type, received ~a" ("Vector<0, Field>")))
     )
 
   (test
@@ -68670,7 +69203,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 23" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("tuple slice with a non-constant index" "[Field, Boolean, Uint<16>]")))
+      irritants: '("testfile.compact line 3 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("tuple slice with a non-constant index" "[Field, Boolean, Uint<16>]")))
     )
 
   (test
@@ -69069,7 +69602,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 18" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("tuple slice with a non-constant index" "[struct T<x: Bytes<3>>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct T<x: Bytes<3>>]")))
+      irritants: '("testfile.compact line 9 char 10" "~a should be a vector but has a tuple type ~a that cannot be converted to a vector because its element types are unrelated" ("tuple slice with a non-constant index" "[struct T<x: Bytes<3>>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct S<a: Uint<64>, b: Boolean>, struct T<x: Bytes<3>>]")))
     )
 
   (test
@@ -71638,7 +72171,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 13" "invalid Bytes index ~d for a Bytes value of length ~d" (10 10)))
+      irritants: '("testfile.compact line 5 char 13" "index ~d is out-of-bounds for a ~a of length ~d" (10 "Bytes value" 10)))
     )
 
   (test
@@ -71723,7 +72256,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 13" "invalid Bytes index ~d for a Bytes value of length ~d" (10 10)))
+      irritants: '("testfile.compact line 5 char 13" "index ~d is out-of-bounds for a ~a of length ~d" (10 "Bytes value" 10)))
     )
 
   (test
@@ -72060,7 +72593,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 27" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (11 10 20)))
+      irritants: '("testfile.compact line 4 char 27" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (11 10 "Bytes value" 20)))
     )
 
   (test
@@ -72102,7 +72635,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 18" "slice length ~d exceeds the length ~d of the input Bytes" (21 20)))
+      irritants: '("testfile.compact line 4 char 18" "slice length ~d exceeds the length ~d of the input tuple, vector, or Bytes value" (21 20)))
     )
 
   (test
@@ -72116,7 +72649,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 27" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (11 10 20)))
+      irritants: '("testfile.compact line 4 char 27" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (11 10 "Bytes value" 20)))
     )
 
   (test
@@ -72158,7 +72691,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 18" "slice length ~d exceeds the length ~d of the input Bytes" (21 20)))
+      irritants: '("testfile.compact line 4 char 18" "slice length ~d exceeds the length ~d of the input tuple, vector, or Bytes value" (21 20)))
     )
 
   (test
@@ -73620,6 +74153,1307 @@ groups than for single tests.
         "});"
         ))
     ))
+
+  ; pm 19636
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type U32 = Uint<32>;"
+      "ledger F: U32;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  F = disclose(x);"
+      "  return F;"
+      "}"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 101n).result).toEqual(101n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type U32 = Uint<32>;"
+      "export ledger F: U32;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  F = disclose(x);"
+      "  return F;"
+      "}"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type U32 = bigint;"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
+        "export type Ledger = {"
+        "  readonly F: U32;"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 101n).result).toEqual(101n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export new type U32 = Uint<32>;"
+      "export ledger F: U32;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  F = disclose(x);"
+      "  return F as Uint<32>;"
+      "}"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type U32 = bigint;"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
+        "export type Ledger = {"
+        "  readonly F: U32;"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 101n).result).toEqual(101n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type Unsigned32 = Uint<32>;"
+      "export new type U32 = Unsigned32;"
+      "export circuit foo(x: U32): Uint<32> {"
+      "  return x as Uint<32>;"
+      "}"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type U32 = bigint;"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "  foo(x_0: U32): bigint;"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 101n).result).toEqual(101n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export struct S { x: T };"
+      "export type T = Uint<32>;"
+      "export ledger F: S;"
+      "export circuit foo(x: S): S {"
+      "  F = disclose(x);"
+      "  return F;"
+      "}"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type S = { x: T };"
+        ""
+        "export type T = bigint;"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): __compactRuntime.CircuitResults<PS, S>;"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): __compactRuntime.CircuitResults<PS, S>;"
+        "}"
+        ""
+        "export type Ledger = {"
+        "  readonly F: S;"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, { x: 101n }).result).toEqual({ x: 101n });"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type T = S;"
+      "struct S { x: Uint<32> };"
+      "export ledger F: T;"
+      "export circuit foo(x: T): T {"
+      "  F = disclose(x);"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, { x: 101n }).result).toEqual({ x: 101n });"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type U16 = Uint<16>;"
+      "export type VU16<#N> = Vector<N, U16>;"
+      "export type V3U16 = VU16<3>;"
+      "export ledger F: V3U16;"
+      "export circuit foo(v: V3U16): Uint<16> {"
+      "  F = disclose(v);"
+      "  return F[1];"
+      "}"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type U16 = bigint;"
+        ""
+        "export type VU16 = U16[];"
+        ""
+        "export type V3U16 = VU16;"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
+        "export type Ledger = {"
+        "  readonly F: V3U16;"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [101n, 103n, 107n]).result).toEqual(103n);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "type Q = Field;"
+      "ledger F: Q;"
+      "export circuit foo(): Q {"
+      ,(format "  F = ~d as Q;" (max-field))
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        ,(format "  expect(C.circuits.foo(Ctxt).result).toEqual(~dn);" (max-field))
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "new type Q = Field;"
+      "ledger F: Q;"
+      "export circuit foo(): Q {"
+      ,(format "  F = ~d as Q;" (max-field))
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        ,(format "  expect(C.circuits.foo(Ctxt).result).toEqual(~dn);" (max-field))
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "new type Q = Uint<8>;"
+      "ledger F: Q;"
+      "export circuit foo(x: Q, y: Q): [Q, Q, Q, Boolean, Boolean] {"
+      "  return [x + y, x - y, x * y, x < y, y == x];"
+      "}"
+      )
+    (pass-returns infer-types
+      (program
+        (public-ledger-declaration %kernel.7 (Kernel))
+        (public-ledger-declaration
+          %F.8
+          (__compact_Cell (talias #t Q (tunsigned 255))))
+        (circuit %foo.9 ([%x.10 (talias #t Q (tunsigned 255))]
+                         [%y.11 (talias #t Q (tunsigned 255))])
+             (ttuple (talias #t Q (tunsigned 255)) (talias #t Q (tunsigned 255))
+               (talias #t Q (tunsigned 255)) (tboolean) (tboolean))
+          (tuple
+            (downcast-unsigned 255
+              (+ 9
+                 (safe-cast (tunsigned 510)
+                            (talias #t Q (tunsigned 255))
+                   %x.10)
+                 (safe-cast (tunsigned 510)
+                            (talias #t Q (tunsigned 255))
+                   %y.11)))
+            (seq
+              (assert
+                (>= %x.10 %y.11)
+                "result of subtraction would be negative")
+              (- 8 %x.10 %y.11))
+            (downcast-unsigned 255
+              (* 16
+                 (safe-cast (tunsigned 65025)
+                            (talias #t Q (tunsigned 255))
+                   %x.10)
+                 (safe-cast (tunsigned 65025)
+                            (talias #t Q (tunsigned 255))
+                   %y.11)))
+            (< %x.10 %y.11) (== %y.11 %x.10)))))
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 17n, 11n).result).toEqual([28n, 6n, 187n, false, false]);"
+        "  expect(C.circuits.foo(Ctxt, 11n, 11n).result).toEqual([22n, 0n, 121n, false, true]);"
+        "  expect(() => C.circuits.foo(Ctxt, 17n, 19n)).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(Ctxt, 19n, 17n)).toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "new type Q = Field;"
+      "ledger F: Q;"
+      "export circuit foo(x: Q, y: Q): [Q, Q, Q] {"
+      "  return [x + y, x - y, x * y];"
+      "}"
+      )
+    (pass-returns infer-types
+      (program
+        (public-ledger-declaration %kernel.2 (Kernel))
+        (public-ledger-declaration
+          %F.3
+          (__compact_Cell (talias #t Q (tfield))))
+        (circuit %foo.4 ([%x.5 (talias #t Q (tfield))]
+                         [%y.6 (talias #t Q (tfield))])
+             (ttuple
+               (talias #t Q (tfield))
+               (talias #t Q (tfield))
+               (talias #t Q (tfield)))
+          (tuple
+            (safe-cast (talias #t Q (tfield))
+                       (tfield)
+              (+ #f
+                 (safe-cast (tfield) (talias #t Q (tfield)) %x.5)
+                 (safe-cast (tfield) (talias #t Q (tfield)) %y.6)))
+            (safe-cast (talias #t Q (tfield))
+                       (tfield)
+              (- #f
+                 (safe-cast (tfield) (talias #t Q (tfield)) %x.5)
+                 (safe-cast (tfield) (talias #t Q (tfield)) %y.6)))
+            (safe-cast (talias #t Q (tfield))
+                       (tfield)
+              (* #f
+                 (safe-cast (tfield) (talias #t Q (tfield)) %x.5)
+                 (safe-cast (tfield) (talias #t Q (tfield)) %y.6)))))))
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 17n, 11n).result).toEqual([28n, 6n, 187n]);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "export type Bool = Boolean;"
+      "ledger F: Bool;"
+      "export circuit foo(fb: Boolean, b: Boolean): Field {"
+      "  F = disclose(fb) as Bool;"
+      "  if (F) {"
+      "    return b ? 7 : 11;"
+      "  } else {"
+      "    return b ? 13 : 17;"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, false, false).result).toEqual(17n);"
+        "  expect(C.circuits.foo(Ctxt, false, true).result).toEqual(13n);"
+        "  expect(C.circuits.foo(Ctxt, true, false).result).toEqual(11n);"
+        "  expect(C.circuits.foo(Ctxt, true, true).result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "export new type Bool = Boolean;"
+      "ledger F: Bool;"
+      "export circuit foo(fb: Boolean, b: Boolean): Field {"
+      "  F = disclose(fb) as Bool;"
+      "  if (F) {"
+      "    return b ? 7 : 11;"
+      "  } else {"
+      "    return b ? 13 : 17;"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, false, false).result).toEqual(17n);"
+        "  expect(C.circuits.foo(Ctxt, false, true).result).toEqual(13n);"
+        "  expect(C.circuits.foo(Ctxt, true, false).result).toEqual(11n);"
+        "  expect(C.circuits.foo(Ctxt, true, true).result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "struct S { x: Field };"
+      "type T = S;"
+      "export circuit foo(t: T): Field {"
+      "  return t.x + 2;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, {x: 17n}).result).toEqual(19n);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "struct S { x: Field };"
+      "new type T = S;"
+      "export circuit foo(t: T): Field {"
+      "  return t.x + 2;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, {x: 17n}).result).toEqual(19n);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "export enum E { x, y, z };"
+      "export new type T = E;"
+      "export circuit foo(t: T): [T, T, T, T] {"
+      "  return [t, T.x, T.y, T.z];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 1).result).toEqual([1, 0, 1, 2]);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "enum E { x, y, z };"
+      "new type T<#n> = E;"
+      "export circuit foo(t: T<3>): [Field, Field, Field, Field] {"
+      "  return [t, T<3>.x, T<3>.y, T<3>.z];"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 18" "parse error: found ~a looking for~?" ("\".\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"(\"" "\"{\""))))
+    )
+
+  (test
+    '(
+      "export type T1 = [ Boolean, Uint<16> ];"
+      "export type T2 = Vector<3, Field>;"
+      "export type T3 = Bytes<4>;"
+      "export type T4 = Uint<8>;"
+      "ledger F: T1;"
+      "export circuit foo(x1: T1, x2: T2, x3: T3): [Boolean, Field, Uint<8>] {"
+      "  F = disclose(x1);"
+      "  return [x1[0 as T4], x2[1 as T4], x3[2 as T4]];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9])).result).toEqual([true, 7n, 4n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export new type T1 = [ Boolean, Uint<16> ];"
+      "export new type T2 = Vector<3, Field>;"
+      "export new type T3 = Bytes<4>;"
+      "export new type T4 = Uint<8>;"
+      "ledger F: T1;"
+      "export circuit foo(x1: T1, x2: T2, x3: T3): [Boolean, Field, Uint<8>] {"
+      "  F = disclose(x1);"
+      "  return [x1[0 as T4], x2[1 as T4], x3[2 as T4]];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9])).result).toEqual([true, 7n, 4n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export type T1 = [ Boolean, Boolean ];"
+      "export type T2 = Vector<3, Field>;"
+      "export type T3 = Bytes<4>;"
+      "export type T4 = Uint<8>;"
+      "ledger F: T1;"
+      "export circuit foo(x1: T1, x2: T2, x3: T3): [Boolean, Field, Uint<8>] {"
+      "  F = disclose(x1);"
+      "  const k1 = 0 as T4, k2 = 1 as T4, k3 = 2 as T4;"
+      "  return [x1[k1], x2[k2], x3[k3]];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9])).result).toEqual([true, 7n, 4n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export new type T1 = [ Boolean, Boolean ];"
+      "export new type T2 = Vector<3, Field>;"
+      "export new type T3 = Bytes<4>;"
+      "export new type T4 = Uint<8>;"
+      "ledger F: T1;"
+      "export circuit foo(x1: T1, x2: T2, x3: T3): [Boolean, Field, Uint<8>] {"
+      "  F = disclose(x1);"
+      "  const k1 = 0 as T4, k2 = 1 as T4, k3 = 2 as T4;"
+      "  return [x1[k1], x2[k2], x3[k3]];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9])).result).toEqual([true, 7n, 4n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export type T1 = [ Boolean, Uint<16> ];"
+      "export type T2 = Vector<3, Field>;"
+      "export type T3 = Bytes<4>;"
+      "export type T4 = Uint<8>;"
+      "ledger F: T1;"
+      "export circuit foo(x1: T1, x2: T2, x3: T3): [[Boolean], [Field], Bytes<1>] {"
+      "  F = disclose(x1);"
+      "  return [slice<1>(x1, 0 as T4), slice<1>(x2, 1 as T4), slice<1>(x3, 2 as T4)];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9])).result).toEqual([[true], [7n], new Uint8Array([4])]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export new type T1 = [ Boolean, Uint<16> ];"
+      "export new type T2 = Vector<3, Field>;"
+      "export new type T3 = Bytes<4>;"
+      "export new type T4 = Uint<8>;"
+      "ledger F: T1;"
+      "export circuit foo(x1: T1, x2: T2, x3: T3): [[Boolean], [Field], Bytes<1>] {"
+      "  F = disclose(x1);"
+      "  return [slice<1>(x1, 0 as T4), slice<1>(x2, 1 as T4), slice<1>(x3, 2 as T4)];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9])).result).toEqual([[true], [7n], new Uint8Array([4])]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export type T1 = [ Boolean, Boolean ];"
+      "export type T2 = Vector<3, Field>;"
+      "export type T3 = Bytes<4>;"
+      "export type T4 = Uint<8>;"
+      "ledger F: T1;"
+      "export circuit foo(x1: T1, x2: T2, x3: T3): [[Boolean], [Field], Bytes<1>] {"
+      "  F = disclose(x1);"
+      "  const k1 = 0 as T4, k2 = 1 as T4, k3 = 2 as T4;"
+      "  return [slice<1>(x1, k1), slice<1>(x2, k2), slice<1>(x3, k3)];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9])).result).toEqual([[true], [7n], new Uint8Array([4])]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export new type T1 = [ Boolean, Boolean ];"
+      "export new type T2 = Vector<3, Field>;"
+      "export new type T3 = Bytes<4>;"
+      "export new type T4 = Uint<8>;"
+      "ledger F: T1;"
+      "export circuit foo(x1: T1, x2: T2, x3: T3): [[Boolean], [Field], Bytes<1>] {"
+      "  F = disclose(x1);"
+      "  const k1 = 0 as T4, k2 = 1 as T4, k3 = 2 as T4;"
+      "  return [slice<1>(x1, k1), slice<1>(x2, k2), slice<1>(x3, k3)];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9])).result).toEqual([[true], [7n], new Uint8Array([4])]);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "type U16 = Uint<16>;"
+      "type T = S;"
+      "struct S { x: U16 }"
+      "ledger F: T;"
+      "export circuit foo(x: Field): T {"
+      "  F = T { disclose(x) as U16 };"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0x1234n).result).toEqual({ x: 0x1234n });"
+        "  expect(() => C.circuits.foo(Ctxt, 0x12345678n)).toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "new type U16 = Uint<16>;"
+      "new type T = S;"
+      "struct S { x: U16 }"
+      "ledger F: T;"
+      "export circuit foo(x: Field): T {"
+      "  F = T { disclose(x) as U16 };"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0x1234n).result).toEqual({ x: 0x1234n });"
+        "  expect(() => C.circuits.foo(Ctxt, 0x12345678n)).toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    `(
+      "export new type Bool = Boolean;"
+      "ledger F: Bool;"
+      "export circuit foo(x: Field): [] {"
+      "  F = disclose(x as Bool);"
+      "  assert(F, 'oops');"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 0n)).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(Ctxt, 0n)).toThrow('failed assert: oops');"
+        "  expect(C.circuits.foo(Ctxt, 1n).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "type VU16<#N> = Vector<N, Uint<16>>;"
+      "type V3U16 = VU16<3>;"
+      "export circuit foo(v: V3U16): VU16<6> {"
+      "  return [...v, ...v];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [3n, 5n, 7n]).result).toEqual([3n, 5n, 7n, 3n, 5n, 7n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "type T3 = [Uint<16>, Boolean, Bytes<3>];"
+      "type T6 = [Uint<16>, Boolean, Bytes<3>, Uint<16>, Boolean, Bytes<3>];";"
+      "export circuit foo(v: T3): T6 {"
+      "  return [...v, ...v];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [3n, true, new Uint8Array([1, 2, 3])]).result).toEqual([3n, true, new Uint8Array([1, 2, 3]), 3n, true, new Uint8Array([1, 2, 3])]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type VU16<#N> = Vector<N, Uint<16>>;"
+      "new type V3U16 = VU16<3>;"
+      "export circuit foo(v: V3U16): VU16<6> {"
+      "  return [...v, ...v] as VU16<6>;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [3n, 5n, 7n]).result).toEqual([3n, 5n, 7n, 3n, 5n, 7n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type T3 = [Uint<16>, Boolean, Bytes<3>];"
+      "new type T6 = [Uint<16>, Boolean, Bytes<3>, Uint<16>, Boolean, Bytes<3>];";"
+      "export circuit foo(v: T3): T6 {"
+      "  return [...v, ...v] as T6;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [3n, true, new Uint8Array([1, 2, 3])]).result).toEqual([3n, true, new Uint8Array([1, 2, 3]), 3n, true, new Uint8Array([1, 2, 3])]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "type U8 = Uint<8>;"
+      "type V3 = Vector<3, U8>;"
+      "type B4 = Bytes<4>;"
+      "type B7 = Bytes<7>;"
+      "export circuit foo(v: B7): B7 {"
+      "  const b3 = slice<3>(v, 4) as V3;"
+      "  const b4 = slice<4>(v, 0) as B4;"
+      "  return Bytes [...b3, ...b4];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([1, 2, 3, 4, 5, 6, 7])).result).toEqual(new Uint8Array([5, 6, 7, 1, 2, 3, 4]));"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type U8 = Uint<8>;"
+      "new type V3 = Vector<3, U8>;"
+      "new type B4 = Bytes<4>;"
+      "new type B7 = Bytes<7>;"
+      "export circuit foo(v: B7): B7 {"
+      "  const b3 = slice<3>(v, 4) as V3;"
+      "  const b4 = slice<4>(v, 0) as B4;"
+      "  return Bytes [...b3, ...b4] as B7;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([1, 2, 3, 4, 5, 6, 7])).result).toEqual(new Uint8Array([5, 6, 7, 1, 2, 3, 4]));"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "enum E { a, b, c };"
+      "type T = E;"
+      "type FIELD = Field;"
+      "type U16 = Uint<16>;"
+      "ledger F: [T, T];"
+      "export circuit foo(x: FIELD, y: U16): [T, T] {"
+      "  F = disclose([x as T, y as T]);"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 1n, 0n).result).toEqual([1, 0]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger F: Boolean;"
+      "export ledger MT: V3U16;"
+      "export type U16 = Uint<16>;"
+      "export type VU16<#N> = Vector<N, U16>;"
+      "export type V3U16 = VU16<3>;"
+      "export circuit foo(v1: V3U16, v2: V3U16): Boolean {"
+      "  F = disclose(v1 == v2);"
+      "  return F;"
+      "}"
+      "export circuit mt(): V3U16 {"
+      "  MT = default<V3U16>;"
+      "  return MT;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 103n, 107n]).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 104n, 107n]).result).toEqual(false);"
+        "  expect(C.circuits.mt(Ctxt).result).toEqual([0n, 0n, 0n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger F: Boolean;"
+      "export ledger MT: V3U16;"
+      "export new type U16 = Uint<16>;"
+      "export new type VU16<#N> = Vector<N, U16>;"
+      "export new type V3U16 = VU16<3>;"
+      "export circuit foo(v1: V3U16, v2: V3U16): Boolean {"
+      "  F = disclose(v1 == v2);"
+      "  return F;"
+      "}"
+      "export circuit mt(): V3U16 {"
+      "  MT = default<V3U16>;"
+      "  return MT;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 103n, 107n]).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 104n, 107n]).result).toEqual(false);"
+        "  expect(C.circuits.mt(Ctxt).result).toEqual([0n, 0n, 0n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger F: Boolean;"
+      "export ledger MT: T;"
+      "export type T = S;"
+      "export struct S { x: V3U16, b: Boolean };"
+      "export type V3U16 = VU16<3>;"
+      "export type VU16<#N> = Vector<N, U16>;"
+      "export type U16 = Uint<16>;"
+      "export circuit foo(t1: T, t2: T): Boolean {"
+      "  F = disclose(t1 == t2);"
+      "  return F;"
+      "}"
+      "export circuit mt(): T {"
+      "  MT = default<T>;"
+      "  return MT;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: true }).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: false }).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 108n], b: true }).result).toEqual(false);"
+        "  expect(C.circuits.mt(Ctxt).result).toEqual({ x: [0n, 0n, 0n], b: false });"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger F: Boolean;"
+      "export ledger MT: T;"
+      "export new type T = S;"
+      "export struct S { x: V3U16, b: Boolean };"
+      "export new type V3U16 = VU16<3>;"
+      "export new type VU16<#N> = Vector<N, U16>;"
+      "export new type U16 = Uint<16>;"
+      "export circuit foo(t1: T, t2: T): Boolean {"
+      "  F = disclose(t1 == t2);"
+      "  return F;"
+      "}"
+      "export circuit mt(): T {"
+      "  MT = default<T>;"
+      "  return MT;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: true }).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: false }).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 108n], b: true }).result).toEqual(false);"
+        "  expect(C.circuits.mt(Ctxt).result).toEqual({ x: [0n, 0n, 0n], b: false });"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger V: V3U16;"
+      "export type V3U16 = VU16<3>;"
+      "export type VU16<#N> = Vector<N, U16>;"
+      "export type U16 = Uint<16>;"
+      "export circuit foo(v: V3U16): V3U16 {"
+      "  V = map((x) => x + x as U16, disclose(v));"
+      "  return V;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [101n, 103n, 107n]).result).toEqual([202n, 206n, 214n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger V: V3U16;"
+      "export new type V3U16 = VU16<3>;"
+      "export new type VU16<#N> = Vector<N, U16>;"
+      "export new type U16 = Uint<16>;"
+      "export circuit foo(v: V3U16): V3U16 {"
+      "  V = map((x) => x + x, disclose(v)) as V3U16;"
+      "  return V;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [101n, 103n, 107n]).result).toEqual([202n, 206n, 214n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger V: U16;"
+      "export type V3U16 = VU16<3>;"
+      "export type VU16<#N> = Vector<N, U16>;"
+      "export type U16 = Uint<16>;"
+      "export circuit foo(v: V3U16): U16 {"
+      "  V = fold((a: U16, x) => a + x as U16, 4, disclose(v));"
+      "  return V;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [7n, 11n, 13n]).result).toEqual(35n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger V: U16;"
+      "export new type V3U16 = VU16<3>;"
+      "export new type VU16<#N> = Vector<N, U16>;"
+      "export new type U16 = Uint<16>;"
+      "export circuit foo(v: V3U16): U16 {"
+      "  V = fold((a: U16, x) => a + x as U16, 4 as U16, disclose(v));"
+      "  return V;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [7n, 11n, 13n]).result).toEqual(35n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type X = Map<Field, Field>;"
+      "export ledger x: X;"
+      "export circuit foo(y: Field): Field {"
+      "  x.insert(disclose(y), disclose(y) + 1);"
+      "  return x.lookup(disclose(y));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 17n).result).toEqual(18n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type T1 = Map<Field, Field>;"
+      "type T2 = Map<Field, T1>;"
+      "ledger F: T2;"
+      "export circuit foo(in: Field): Field {"
+      "  const n = disclose(in);"
+      "  F.insert(n, default<T1> as T1);"
+      "  F.lookup(n).insert(n + 2, n + 4);"
+      "  return F.lookup(n).lookup(n + 2);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 3n).result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type T1 = Map<Field, Field>;"
+      "new type T2 = Map<Field, T1>;"
+      "ledger F: T2;"
+      "export circuit foo(in: Field): Field {"
+      "  const n = disclose(in);"
+      "  F.insert(n, default<T1> as T1);"
+      "  F.lookup(n).insert(n + 2, n + 4);"
+      "  return F.lookup(n).lookup(n + 2);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 3n).result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type T1 = Map<Field, Field>;"
+      "new type T2 = Map<Field, T1>;"
+      "ledger F: T2;"
+      "export circuit foo(in: Field): Field {"
+      "  const n = disclose(in);"
+      "  F.insert(n, default<Map<Field, Field>> as T1);"
+      "  F.lookup(n).insert(n + 2, n + 4);"
+      "  return F.lookup(n).lookup(n + 2);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 3n).result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "enum E { a, b, c};"
+      "type ET = E;"
+      "type Q<A> = A;"
+      "circuit foo<A, B>(): [E, E, E] {"
+      "  return [ET.a, A.b, B.c];"
+      "}"
+      "export circuit bar(): [E, E, E] {"
+      "  return foo<E, ET>();"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.bar(Ctxt).result).toEqual([0, 1, 2]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type U16 = Uint<16>;"
+      "ledger F: U16;"
+      "export circuit foo(): U16 {"
+      "  for (const i of 0..3) {"
+      "    F = F + ((a) => a * a)(i + 1 as U16);"
+      "  }"
+      ""
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(14n);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)

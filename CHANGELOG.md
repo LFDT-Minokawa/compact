@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.27.103 language version 0.19.100]
+
+### Added
+
+- Compact now supports the definition of type aliases:
+  Structually typed aliases:
+    `type Name = Type;` defines `Name` to be an alias for `Type`.  For example,
+    `type U32 = Uint<32>` defines `U32` to be the equivalent of and interchangeable
+    with `Uint<32>`.
+
+  Nominally typed aliases:
+    `new type Name = Type;` is similar, but `Name` is defined as a distinct type
+    compatible with `Type` but neither a subtype of nor a supertype of `Type` or
+    any other type.  It is compatible in the senses that (a) values of type `Name`
+    can be used by primitive operations that require a value of type `Type`, and
+    (b) values of type `Name` can be explicitly cast to and from type `Type`.
+    For example, within the scope of `type V3U16 = Vector<3, Uint<16>>`, a value
+    of type `V3U16` can be referenced or sliced just like a vector of type
+    `Vector<3, Uint<16>>`, but it cannot, for example, be passed to a function
+    that expects a value of type `Vector<3, Uint<16>>` without an explicit cast.
+
+    When one operand of an arithmetic operations (e.g., `+`) receives a value
+    of some nominally typed alias T, the other operand must also be of type T,
+    and the result is cast to type T, which might cause a run-time error if the
+    result cannot be represented by type T.
+
+    Values of some nominally typed alias T cannot be directly compared (using,
+    e.g., `<`, or `==`) with values of any other type without an explicit cast.
+
+  Both types of aliases can take type parameters, e.g.:
+  `type V3<T> = Vector<3, T>`
+  `new type VField<#N> = Vector<N, Field>`
+
+  This is a breaking change due to the reservation of the `new` and `type` keywords.
+
+### Changed
+
+- Out-of-range constant Bytes value indices are now detected earlier in the
+  compiler, which means that additional such errors might be caught, specifically
+  those in code that is later discarded.  This is a breaking change.
+
+- Upward casts no longer prevent tuple references and slices from recognizing
+  constant indices, which allows more programs with references to non-vector tuple
+  types to pass type checking.
+
+### Fixed
+
+- A bug that caused a misleading source location to be reported for some type
+  errors, e.g., for invalid arguments to some calls to `map` and `fold`.
+
+### Internal notes
+
+- The Public-ledger ADT (`public-adt`) form, which describes the type of a
+  public-ledger ADT, has been replaced by a new Type `tadt` throughout the compiler.
+  This simplifies and regularizes the representation of types and allows type
+  aliases to be used for ADT types as well as for non-ADT types.
+
+- Equality testing in the unit-test framework has been tightened up to avoid
+  false positives when the expected output uses different symbols to represent
+  what turns out to be the same id or gensym in the actual output.  This can
+  occur when the expected output is wrong or the compiler actually generates
+  code that uses the same id or gensym for different purposes.  Several instances
+  of the first have been fixed in the unit tests.
+
+- A new checker, `pass-returns`, as been added to the unit-test framework.  It
+  is like `returns` but checks the output of a specific pass.  This is intended
+  to allow us to move toward having a single occurrence with checks for multiple
+  passes rather than having to put multiple copies of the same test in different
+  test groups.
+
+- A new form `(assertf expr format-string arg ...)` has been added to utils.ss.
+  Like `(assert expr)`, it returns the value of `expr` if `expr` evaluates to a
+  true value and raises an exception if `expr` evaluates to #f.  Its error message
+  includes the source location of the `assertf` form, as with `assert`, and also
+  the result of applying `format` to `format-string` and `arg ...`.  `assertf`
+  is useful in preference to `assert` when the assertion expression does not
+  already indicate the problem and the problem is not otherwise obvious from the
+  context.
+
+- internal-errorf now also includes the source location in the error message.
+
 ## [Unreleased compiler version 0.27.102, language version 0.19.0]
 
 ### Changed

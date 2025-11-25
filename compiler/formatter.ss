@@ -777,7 +777,21 @@
                        nl 2 (make-Qtoken (car elt-name*))
                        (if (null? comma*)
                            q*
-                           (add-punctuation (car comma*) (f (cdr elt-name*) (cdr comma*))))))))))])
+                           (add-punctuation (car comma*) (f (cdr elt-name*) (cdr comma*))))))))))]
+      [(typedef ,src ,kwd-export? ,kwd-new? ,kwd ,type-name ,generic-param-list? ,op ,type ,semicolon)
+       (// src
+           (apply make-Qconcat
+             (add-modifier kwd-export?
+               (add-modifier kwd-new?
+                 (cons*
+                   (make-Qtoken kwd)
+                   nbsp (make-Qtoken type-name)
+                   (maybe-add Generic-Param-List generic-param-list?
+                     (cons*
+                       nbsp (make-Qtoken op)
+                       nbsp (Type type)
+                       (add-punctuation semicolon '()))))))))]
+      )
     (Version-Expression : Version-Expression (ir) -> * (q)
       [,version-atom (Version-Atom version-atom)]
       [(not ,bang ,version-atom)

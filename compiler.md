@@ -223,8 +223,12 @@ earlier languages.  In particular:
 
 * module, import, and export declarations are no longer present
 * type parameters are no longer present, and
-* structure definitions, enum-definitions, contract declarations, and ledger-adt
-  definitions are no longer present as defining forms but instead exist as types.
+* some defining forms are no longer present but instead exist as types:
+  type definitions (as talias),
+  structure definitions (tstruct),
+  enum-definitions (tenum),
+  contract declarations (tcontract),
+  and ledger-adt definitions (tadt).
 
 On the other hand, the function position of an Lexpanded function call, `map`
 expression, or `fold` expression that does not contain an anonymous `circuit` form
@@ -254,17 +258,68 @@ contains a single identifier representing a specific function.
 The vector arguments to `map` and `fold` are annotated with the types of these
 arguments.
 The cast expressions appearing in earlier languages are replaced in Ltypes by
-more specific casting expressions such as `upcast`, `downcast-unsigned` and `field->bytes`.
+more specific casting expressions such as `safe-cast`, `downcast-unsigned` and `field->bytes`.
 The `elt-call` syntax of earlier languages is gone and in its place are the
 more specific `ledger-call` and `contract-call` forms.
 
-For most types, the notion of type equivalence is obvious and straightforward.
-The one exception is that each vector type has an equivalent tuple-type
-counterpart.
+Equivalence of types is defined exclusively by the following rules:
+
+* A Boolean type is equivalent to another Boolean type.
+
+* A Field type is equivalent to another Field type.
+
+* A Uint type is equivalent to another Uint type if they have the same maximum value.
+
+* A Bytes type is equivalent to another Bytes type with the same length.
+
+* A vector type is equivalent to another vector type with the same length and element type.
+
+* A tuple type is equivalent to another tuple type with the same number of elements
+  and equivalent element types, taken in order.
+
+* A vector type A is equivalent to a tuple type B if A has the same length
+  as B has elements and A's element type is equivalent to each of B's element
+  types.
+
+* A struct type A is equivalent to another struct type B if A and B have the same name,
+  A and B have and same number of elements, each element of A has the same
+  name as the corresponding element of B, taken in order, and the type of
+  each element of A is equivalent to the type of the correpsonding element of
+  B, again taken in order.
+
+* An enum type A is equivalent to another enum type B if A and B have the same name,
+  A and B have the same number of elements, and each element of A has the same name
+  as the corresponding element of B, taken in order.
+
+* An ADT type A is equivalent to another ADT type B if A and B have the same name
+  and if each generic argument of A is the same as the corresponding generic
+  argument of B, taken in order.  A generic argument is the same as another generic
+  argument if they are same natural number or if they are equivalent types.
+
+* A contract A is equivalent to another contract B if A and B have the same name,
+  A and B have the same number of circuits, and each circuit of A has a counterpart
+  in B and vice versa, taken in any order.  A circuit is a counterpart for another
+  if it has the same name, equivalent purity, equivalent argument types, and
+  equivalent return types. Two circuits have equivalent purity if both are marked
+  pure or neither is marked pure.
+
+* An opaque type A is equivalent to another opaque type B if the two have the
+  same name.
+
+* Any non-nominal type alias is transparent with respect to type equivalence.
+  That is, if type name A is a non-nominal alias for type T, A is treated as
+  if it were T.
+
+Any nominal type alias A for type T is equivalent only to another nominal
+type same nominal type alias or
+to another nominal type alias where both have the same name and are aliases for
+equivalent types.
+
+Note from the foregoing that each vector type has an equivalent tuple-type counterpart.
 Specifically, a vector type with declared length `N` and element type `T` is
 equivalent not only to any other vector type with declared length `N` and
-element type `T` but also to any tuple type with `N` fields, each of which has
-type `T`.
+element type equivalent to `T` but also to any tuple type with `N` fields, each of
+which has a type equivalent to `T`.
 For example, if expression `e` has type `Uint<16>`, `[e, e, e]` has tuple type
 `[Uint<16>, Uint<16>, Uint<16>]`, and this is equivalent to vector type
 `Vector<3, Uint<16>>`
@@ -321,8 +376,8 @@ In particular, it:
 ### Lposttypescript
 
 Lposttypescript is similar to Lwithpaths but omits various items not needed for
-circuit construction: the ledger constructor, type definition forms, ADT runtime
-ops, and elt-ref indices.
+circuit construction: the ledger constructor, external type definition forms, ADT runtime
+ops, type aliases, and elt-ref indices.
 
 ### Lnoenums
 
@@ -344,13 +399,13 @@ The Lunrolled language differs from Lnoenums in that:
 The Linlined language is like Lunrolled except that Linlined does
 not include `flet`.
 
-### Lnoupcast
+### Lnosafecast
 
-This language differs from Linlined in that it does not have `upcast` expressions.
+This language differs from Linlined in that it does not have `safe-cast` expressions.
 
 ### Lnovectorref
 
-This language differs from Lnoupcast in that it does not have `vector-ref`
+This language differs from Lnosafecast in that it does not have `vector-ref`
 `tuple-slice`, `bytes-slice`, and `vector-slice` expressions.
 
 ### Lcircuit
@@ -706,11 +761,12 @@ is not present in Lnoandornot.
 
 ### expand-modules-and-types (Lpreexpand -> Lexpanded)
 
-This pass is responsible for handling module and imports, expanding
+This pass is responsible for handling modules and imports, expanding
 type-parameterized elements into ones with explicit types, connecting
 identifier references to their bindings, verifying a number of
 properties related to these tasks, and reporting errors when such
-verification fails.
+verification fails.  This is quite a lot of responsibility for one pass,
+but the tasks are interdependent.
 
 Some of its specific tasks are illustrated below:
 * resolving identifier bindings, e.g.:
@@ -982,8 +1038,9 @@ top to bottom (left to right) and handles each kind of program element as follow
     names of two bindings have the same symbolic name in the same or
     different scopes,
 
-  - creates an info-fun record containing the id, the unprocessesed function
-    definition, and the current environment,
+  - creates an info-fun record containing unprocessesed function
+    definition, the current environment, and other information (such as
+    type-parameter names) required to consume the defined function.
 
   - looks for an existing binding for `F` in topmost level of the current
     environment, and
@@ -1086,7 +1143,7 @@ described below:
 * For a call to a named function `F`, the compiler must determine the set of
   candidate functions in support of function overloading.  Determining which
   of the candidates should be the actual target of a call requires type inference,
-  which is done by the next pass, `infer-types`.
+  which is done by a subsequent pass, `infer-types`.
 
   Determining the set of candidate function definitions at a function call to F
   involves searching the entire environment, from innermost to outermost levels of
@@ -1240,31 +1297,61 @@ circuit foo(a : Field) : Boolean { return w(a); }
 * to verify the types of parameters or/and return type of anonymous circuits
   when they have been.
 
-The subtype relationship is straightforward:
-* any type is considered a subtype of itself,
-* a constant empty tuple is a subtype of any declared type of
-  empty vector,
-```text
-circuit bar() : Vector<0, Field> { return []; }
-```
-```scheme
-(circuit %bar.0 () (tvector 0 (tfield))
-  '#())
-```
-* a contract `T1` is a subtype of another contract `T2` if they have the same
-  name, each circuit
-  in `T2` also exists in `T1` and the circuit in `T1` is a subtype of the 
-  circuit in `T2`. A circuit declaration `circuit pure1 name1 arg-types1 type1`
-  is a subtype of circuit declaration `circuit pure2 name2 arg-types2 type2`
-  if `name1 = name2`, `pure1 = pure2`, and argument types and return type
-  are the same type in both circuits,
-* an opaque type is subtype of another opaque type if they have the same 
-  name,
-* a struct `T1` type is a subtype of another struct `T2` type if they have 
-  the same name and their elements have the same names and the types of elements
-  in `T1` are subtype of types of elements in `T2`.
-* an enum `T1` type is a subtype of another enum `T2` type if they have
-  the same name and their elements have the same names in the same order.
+Equivalence of types is discussed in the description of Ltypes.
+Subtyping is defined exclusively by the following rules.
+
+* Any type is a subtype of an equivalent type.
+
+* A Uint type with maximum value k1 is a subtype of another Uint type with
+  maximum value k2 if k1 <= k2.
+
+* Any Uint type is a subtype of Field.
+
+* A vector type A is a subtype of another vector type B if A and B have the smae
+  length and A's element type is a subtype B's element type.
+
+* A tuple type A is a subtype of another tuple type B if A and B have the same
+  number of elements and the type of each element of A is a subtype of each element
+  of B, taken in order.
+
+* A vector type A is a subtype of a tuple type B if A has the same length
+  as B has elements and A's element type is a subtype of each of B's element
+  types.
+
+* A tuple type A is a subtype of a vector type B if B has the same length as A has
+  elements and each of A's element types is a subtype of B's element type.
+
+* A contract A is a subtype of another contract B if A and B have the same name
+  and each circuit of B has a counterpart in A (but not necessarily vice versa),
+  taken in any order.  A circuit is a counterpart for another if it has the
+  same name, equivalent purity, equivalent argument types, and equivalent return
+  types. Two circuits have equivalent purity if both are marked pure or neither
+  is marked pure.
+
+A couple of implicit consequences of the rules for equivalence and subtyping
+are worth making explicit:
+
+* A nominal type alias A for type T is not a subtype of any other type, including T,
+  and no other type is a subtype of A.
+
+* Struct and enum types are also nominally typed, so a struct or enum
+  type is not a subtype of any other type, and no other type is a subtype
+  of it.
+
+* Note, however, that since a non-nominal type alias A for a type T is treated
+  as if it were T, A is always a subtype of T and vice versa, even if T is a
+  nominal type alias, struct, or enum.
+
+Restrictions on nominal type aliases are enforced by infer types and checked by
+the check-types/Lnodca.
+Most other passes "de-alias" types before inspecting them so that the aliases
+do not prevent operations requiring a specific type to be handled properly when
+provided with a type alias for that type.
+
+The pass `print-typescript` replaces aliases created by type definitions exported
+from the contract top level with the alias name in the generated TypeScript
+type-definition file.  If it weren't for this, type aliases could be dropped from the
+intermediate representation of types after `infer-types`.
 
 This pass's handling of expressions is rather involved because
 it must produce for each expression both a new expression and the new
@@ -1329,6 +1416,31 @@ and the latter is called when the value of the expression is not
 used.
 The former requires that the type of at least one branch of an `if`
 be a subtype of the other, while the latter does not.
+
+The handling of unsigned-integer arithmetic is also slightly complicated.
+When two unsigned integers of types `Uint<m>` and `Uint<n>` are combined,
+the result type is determined according to the following table:
+
+| operation | result type |
+|-----------|-------------|
+| `+`       | `Uint<m+n>` |
+| `-`       | `Uint<m>`   |
+| `*`       | `Uint<m*n>` |
+
+For `-`, `infer-types` also injects an assertion the second operand is
+not greater than the first.
+
+When one of the input types is a nominal type alias for `Uint<m>`, the other must
+be the same nominal type alias, and for `+` and `*`, `infer-types` injects an
+(unsafe) cast of the result to `Uint<m>`.
+For `-`, `infer-types` also injects an assertion the second operand is
+not greater than the first.
+
+When one operand of of an arithmetic operation has Uint type and the other a
+Field type, `infer-types` injects a casts of the Uint to Field and and otherwise
+injects no other checks or casts.
+(Field arithmetic wraps at run time, so there is never a need for `infer-types`
+to insert checks on the inputs or casts for the result.)
 
 The handling of external contract declarations relies on having
 access to an implementation of the declared contract.
@@ -1599,18 +1711,24 @@ recursively subjected to these checks.  As a result, repeatedly crossing
 the boundary between JavaScript and Compact is expensive for large Arrays
 or deeply nested structures.
 
-The Compact compiler also generates TypeScript headers that allow for some
+The Compact compiler also generates a TypeScript type definition (dts) file
+with TypeScript headers that allow for some
 checks to be performed at compile time when the external code interacting
 with the generated code is written in TypeScript rather than JavaScript.
 Even with the external code written in TypeScript, however, TypeScript
 types cannot be used to declare fixed lengths for Arrays and Uint8Arrays
 and are in any case easy to circumvent with unsafe casts.
 
+Structure types, enum types, and type aliases created by declarations
+exported from the top level of a contract are replaced by the corrsponding
+struct, enum, or type name in the generated type-definition file.
+
 ### drop-ledger-runtime (Lnodisclose -> Lposttypescript)
 
 This pass is a simple one that discards things that are no longer needed after
 we have emitted JavaScript code.  It discards (1) type definitions, (2) the
-ledger constructor, and (3) JS runtime-only ledger operations.
+ledger constructor, and (3) JS runtime-only ledger operations.  It also
+discards type aliases from the representation of the intermediate-language types.
 
 This pass also translates `!=`, `<=`, `>`, and `>=` expressions to equivalent
 `<` and `==` expressions:
@@ -1647,7 +1765,7 @@ export circuit foo(x: Name): Boolean {
 **Lnoeunums output:**
 ```scheme
 (circuit %foo.0 ((%x.1 (tunsigned 3))) (tboolean)
-  (== %x.1 (upcast-unsigned 3 0)))
+  (== %x.1 (safe-cast (tunsigned 3) (tunsigned 0) %x.1)))
 ```
 
 This allows downstream passes to verify that what were formerly enum
@@ -1818,12 +1936,12 @@ This pass can be removed for production releases of the compiler
 if desired, since it serves no purpose if the other passes are
 working correctly.
 
-### drop-upcast (Linlined -> Lnoupcast)
+### drop-safe-casts (Linlined -> Lnosafecast)
 
-This pass simply removes `upcast` forms from the language, replacing each
-`upcast` form with the encapsulated expression.
+This pass simply removes `safe-cast` forms from the language, replacing each
+`safe-cast` form with the encapsulated expression.
 
-### resolve-indices/simplify (Lnoupcast -> Lnovectorref)
+### resolve-indices/simplify (Lnosafecast -> Lnovectorref)
 
 This pass performs copy propagation and constant folding with the primary goal
 of reducing non-constant vector-ref and vector-slice indices to constants and an

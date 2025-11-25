@@ -21,6 +21,7 @@
 pragma language_version >= 0.12.1;
 
 include 'empty'; // cheer up CI tests by using the include keyword
+new type Frob = Uint<16>; // cheer up CI tests by using the new and type keywords
 import CompactStandardLibrary;
 import {} from CompactStandardLibrary; // cheer up CI tests by using the from keyword
 
