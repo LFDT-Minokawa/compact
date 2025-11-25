@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     compatible with `Type` but neither a subtype of nor a supertype of `Type` or
     any other type.  It is compatible in the senses that (a) values of type `Name`
     can be used by primitive operations that require a value of type `Type`, and
-    (b) values of type `Name` can be expclitly cast to and from type `Type`.
+    (b) values of type `Name` can be explicitly cast to and from type `Type`.
     For example, within the scope of `type V3U16 = Vector<3, Uint<16>>`, a value
     of type `V3U16` can be referenced or sliced just like a vector of type
     `Vector<3, Uint<16>>`, but it cannot, for example, be passed to a function
