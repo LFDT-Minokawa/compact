@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   compiler, which means that additional such errors might be caught, specifically
   those in code that is later discarded.  This is a breaking change.
 
-- Upward casts no longer prevent tuple references and slices from from recognizing
+- Upward casts no longer prevent tuple references and slices from recognizing
   constant indices, which allows more programs with references to non-vector tuple
   types to pass type checking.
 
