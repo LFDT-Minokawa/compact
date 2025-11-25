@@ -15,7 +15,7 @@
 
 (library (utils)
   (export not-implemented cannot-happen
-          compact-input-transcoder compact-path relative-path find-source-pathname
+          compact-input-transcoder compact-path relative-path find-source-pathname source-position
           register-source-root! registered-source-root
           register-target-pathname! registered-target-pathname
           register-source-pathname! registered-source-pathnames
@@ -114,6 +114,10 @@
                      (cons (relative-path) (compact-path))
                      (compact-path))))
           (err pathname))))
+
+  (define (source-position x)
+    (let ([src (annotation-source (assert (syntax->annotation x)))])
+      (values (source-object-bfp src) (source-object-efp src))))
 
   (define (source-object<? src1 src2)
     (let ([path1 (source-file-descriptor-path (source-object-sfd src1))]

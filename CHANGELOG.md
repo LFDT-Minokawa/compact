@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased compiler version 0.27.101 language version 0.19.100]
+## [Unreleased compiler version 0.27.103 language version 0.19.100]
 
 ### Added
 
@@ -85,6 +85,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   context.
 
 - internal-errorf now also includes the source location in the error message.
+
+## [Unreleased compiler version 0.27.102, language version 0.19.0]
+
+### Changed
+
+- The unique variable names in the ZKIR v3 output are now produced in such a way
+  that they are stable in the face of changes in the order or set of circuits
+  generated.  That is, if the generated zkir for a circuit doesn't otherwise
+  change, the variable names should also be identical.
+
+### Internal notes
+
+- Running the unit tests in test.ss now produces the file replacement-results.ss
+  containing one entry for each result that differs from the expected result,
+  e.g., each returns form when the returned result is different, each oops
+  form when the condition is different, each output-file result with the
+  output is different, etc.  No entry is included for unexpected exceptions,
+  e.g., no entry is included for a return form if an exception occurs instead.
+  If replacement-results.ss would be empty, it is deleted and not created.
+  The new program compiler/update-test.ss takes as input the pathname of the
+  test file (usually compiler/test.ss), the pathname of the replacements file
+  (usually replacement-results.ss), and the pathname of an output file (e.g.,
+  /tmp/test.ss).  Bad things will happen if the output pathname identifies that
+  same file as the input pathname.  update-test.ss applies the replacements in
+  the replacements file to the input file and puts the result in the output file.
+  The output file can then be manually copied over the input file.  This is useful
+  primarily when making cosmetic changes that affect a large number of tests and
+  only after spot-checking to make sure that the cosmetic change is doing no harm.
+
+## [Unreleased compiler version 0.27.101, language version 0.19.0]
+
+### Changed
+
+- The ZKIR v3 format (behind the feature flag --zkir-v3) is changed to coalesce
+  an Impact instructions encoding into a guarded array.  Previously they were
+  multiple unguarded instructions followed by a guarded "skip" instruction.
 
 ## [Unreleased compiler version 0.27.100, language version 0.19.0]
 
