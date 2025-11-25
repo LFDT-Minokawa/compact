@@ -127,7 +127,7 @@ describe('[Bugs] Compiler', () => {
             testcase: '[PM-16999] should return an error if exported circuit name is same, just in different letter cases',
             file: 'pm-16999.compact',
             output: {
-                stderr: 'Exception: pm-16999.compact line 33 char 1: the exported impure circuit name iNcrement is identical to the exported circuit name "increment" at line 25 char 1 modulo case; please rename to avoid zkir and prover-key filename clashes on case-insensitive filesystems',
+                stderr: 'Exception: pm-16999.compact line 33 char 1: the exported impure circuit name iNcrement is identical to the exported circuit name "INcrement" at line 29 char 1 modulo case; please rename to avoid zkir and prover-key filename clashes on case-insensitive filesystems',
                 stdout: compilerDefaultOutput(),
                 exitCode: ExitCodes.Failure,
             },
