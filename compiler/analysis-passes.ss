@@ -2041,11 +2041,14 @@
                                        (format-type actual-adt-type))))
                     declared-type* adt-type* (enumerate declared-type*))
                   ; do i need to check the type of the first expr being consed here? TODO
-                  (values
-                    (let ([expr* (cons expr (map (maybe-upcast src) declared-type* adt-type* expr*))])
+                  (let ([expr* (cons expr (map (maybe-upcast src) declared-type* adt-type* expr*))]
+                        [return-type (car type*)])
+                    (values
                       (with-output-language (Ltypes Expression)
-                        `(call ,src (fref ,src ,function-name) ,expr* ...)))
-                    (car type*)))
+                        ;; `(contract-call-placeholder ,src ,function-name ,return-type ,expr* ...)
+                        `(call ,src (fref ,src ,function-name) ,expr* ...)
+                        )
+                      return-type)))
               (loop (cdr elt-name*) (cdr function-name*) (cdr type**) (cdr type*))))))
       (define (get-contract-name ecdecl)
         (nanopass-case (Lexpanded External-Contract-Declaration) ecdecl
@@ -4064,6 +4067,8 @@
       ; FIXME: syntax post-desugar should require at least one accessor
       [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...)
        (assert cannot-happen)]
+      ;; [(contract-call-placeholder ,src ,function-name ,type ,expr* ...)
+      ;;  type]
       [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (nanopass-case (Lnodca Type) type
          [(tcontract ,src^ ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ... )
@@ -5095,12 +5100,6 @@
       [(elt-ref ,src ,[* abs] ,elt-name ,nat)
        (Abs-case abs
          [(Abs-multiple abs*) (list-ref abs* nat)]
-         [(Abs-atomic witness*)
-          ; FIXME
-          ; this happens from (tcontract->contract-address).bytes
-          (assert (or (null? witness*)
-                      (fx= (length witness*) 1)))
-          abs]
          [else (assert cannot-happen)])]
 
       [(tuple-ref ,src ,[* abs] ,kindex)
@@ -5280,6 +5279,8 @@
       [(bytes->vector ,src ,len ,[* abs]) (Abs-single (Abs-atomic (abs->witnesses abs)))]
       [(vector->bytes ,src ,len ,[* abs]) (Abs-atomic (abs->witnesses abs))]
       [(downcast-unsigned ,src ,nat ,[* abs]) abs]
+      ; TODO with new changes do we come here?
+      [(safe-cast ,src ,type (tcontract ,src^ ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...) ,[* abs]) (Abs-multiple (list abs))]
       [(safe-cast ,src ,type ,type^ ,[* abs]) abs]
 
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[* abs*] ...)
@@ -5303,6 +5304,8 @@
             discloses?*
             (if (= (length abs*) 1) '(#f) (enumerate abs*)))
           (default-value adt-type)])]
+      ;; [(contract-call-placeholder ,src ,function-name ,type ,[* abs*] ...)
+      ;;  (Abs-multiple abs*)]
       [(contract-call ,src ,elt-name (,[* abs] ,[type]) ,[* abs*] ...)
        (unless (null? control-witness*)
          (record-leak! src "making this contract call" control-witness*))
@@ -5353,6 +5356,11 @@
        (assert (= (length var-name*) (length abs*)))
        (Expression expr (extend-env p var-name* abs*) control-witness* #f)]))
 
+  ;; (define-pass remove-cc-placeholder : Lwithpaths (ir) -> Lnoccplaceholder ()
+  ;;   (Expression : Expression (ir) -> Expression ()
+  ;;     [(contract-call-placeholder ,src ,function-name ,type ,[expr*] ...)
+  ;;      `(call ,src ,function-name ,expr* ...)]))
+
   (define-pass remove-disclose : Lwithpaths (ir) -> Lnodisclose ()
     (ADT-Op : ADT-Op (ir) -> ADT-Op ()
       [(,ledger-op ,[op-class] (,adt-name (,adt-formal* ,[adt-arg*]) ...) ((,var-name* ,[adt-type*] ,discloses?*) ...) ,[adt-type] ,vm-code)
@@ -5376,6 +5384,7 @@
     (determine-ledger-paths          Lwithpaths0)
     (propagate-ledger-paths          Lwithpaths)
     (track-witness-data              Lwithpaths)
+    ;; (remove-cc-placeholder           Lnoccplaceholder)
     (remove-disclose                 Lnodisclose))
 
   (define-passes fixup-analysis-passes

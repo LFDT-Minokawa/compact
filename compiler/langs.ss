@@ -39,6 +39,7 @@
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
           Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats Lwithpaths-Public-Ledger-ADT? Lwithpaths-Type?
           Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats Lnodisclose-Type-Definition?
+          ;; Lnoccplaceholder unparse-Lnoccplaceholder Lnoccplaceholder-pretty-formats
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-Public-Ledger-ADT? Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op? Ltypescript-Type?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
@@ -721,6 +722,11 @@
       (disclose src expr)                     => (disclose expr)
       (ledger-call src ledger-op (maybe sugar) expr expr* ...) =>
         (ledger-call ledger-op #f expr #f expr* ...)
+      ; contract-call-placeholder wraps around the actual call to a wrapper for
+      ; calling cross contract call to avoid bleeding generated code through errors
+      ; in multiple passes. type is the return type of the contract call
+      ;; (contract-call-placeholder src function-name type expr* ...) =>
+      ;;   (contract-call-placeholder function-name type expr)
       (contract-call src elt-name (expr type) expr* ...) =>
         (contract-call elt-name 4 (expr 0 type) #f expr* ...)
       (return src expr)                       => expr
@@ -829,6 +835,10 @@
     (Path-Element (path-elt)
       (+ path-index
          (src type expr) => (type expr))))
+
+  ;; (define-language/pretty Lnoccplaceholder (extends Lwithpaths)
+  ;;   (Expression (expr index)
+  ;;     (- (contract-call-placeholder src function-name type expr* ...))))
 
   (define-language/pretty Lnodisclose (extends Lwithpaths)
     (ADT-Op (adt-op)

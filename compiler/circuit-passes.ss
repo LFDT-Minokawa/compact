@@ -2115,7 +2115,9 @@
                (k (with-output-language (Lcircuit Rhs)
                    `(contract-call ,src ,test ,elt-name (,triv ,type) ,triv* ...)))))))]
       [else (internal-errorf 'Rhs "unexpected ir ~s" ir)])
-    (Type : Type (ir) -> Type ())
+    (Type : Type (ir) -> Type ()
+      [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,[type**] ...) ,[type*]) ...)
+       `(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)])
     )
 
   (define-pass flatten-datatypes : Lcircuit (ir) -> Lflattened ()
