@@ -29,7 +29,7 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           Lexpandedcontractcall unparse-Lexpandedcontractcall Lexpandedcontractcall-pretty-formats
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
-          id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
+          id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-temp?-set! id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats Ltypes-Public-Ledger-ADT?
           ;; Lnofunintcontract unparse-Lnofunintcontract Lnofunintcontract-pretty-formats
@@ -390,9 +390,7 @@
       (+ (src pure-dcl elt-name function-name (arg* ...) type) =>
            (pure-dcl elt-name function-name (arg* ...) type)))
     (Expression (expr index)
-      (+ (contract-call src elt-name (expr type) expr* ...) =>
-           (contract-call elt-name 4 (expr 0 type) #f expr* ...)
-         ; this is used to cast a tcontract to a contract address
+      (+ ; this is used to cast a tcontract to a contract address
          (safe-cast src type type^ expr) => (safe-cast type 10 type^ #f expr) ; type^ < type
       )))
 
@@ -429,7 +427,7 @@
       (+ (circuit-alias function-name^ function-name)))
     )
 
-  (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
+  (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-temp?-set! id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
     (define id-prefix (make-parameter "%"))
     (define id-counter (make-parameter 0))
     (define-record-type id
@@ -722,11 +720,6 @@
       (disclose src expr)                     => (disclose expr)
       (ledger-call src ledger-op (maybe sugar) expr expr* ...) =>
         (ledger-call ledger-op #f expr #f expr* ...)
-      ; contract-call-placeholder wraps around the actual call to a wrapper for
-      ; calling cross contract call to avoid bleeding generated code through errors
-      ; in multiple passes. type is the return type of the contract call
-      ;; (contract-call-placeholder src function-name type expr* ...) =>
-      ;;   (contract-call-placeholder function-name type expr)
       (contract-call src elt-name (expr type) expr* ...) =>
         (contract-call elt-name 4 (expr 0 type) #f expr* ...)
       (return src expr)                       => expr
@@ -835,10 +828,6 @@
     (Path-Element (path-elt)
       (+ path-index
          (src type expr) => (type expr))))
-
-  ;; (define-language/pretty Lnoccplaceholder (extends Lwithpaths)
-  ;;   (Expression (expr index)
-  ;;     (- (contract-call-placeholder src function-name type expr* ...))))
 
   (define-language/pretty Lnodisclose (extends Lwithpaths)
     (ADT-Op (adt-op)

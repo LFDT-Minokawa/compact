@@ -563,6 +563,7 @@
                                      ; wrapper functions cannot be generic
                                      [(fref ,src ,symbolic-function-name (([,symbolic-function-name^ ,function-name])) () ())
                                       (assert (eq? symbolic-function-name symbolic-function-name^))
+                                      (id-temp?-set! function-name #t)
                                       function-name]
                                      [else
                                       ; FIXME
@@ -4863,11 +4864,13 @@
                      (set-cdr! a (Call-inprocess))
                      (let ([abs (let ([abs* (if src?
                                                 (map (lambda (abs i?)
-                                                       (add-path-point
-                                                         src?
-                                                         (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) (id-sym function-name))
-                                                         #f
-                                                         abs))
+                                                       (if (id-temp? function-name)
+                                                           abs
+                                                           (add-path-point
+                                                             src?
+                                                             (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) (id-sym function-name))
+                                                             #f
+                                                             abs)))
                                                      abs*
                                                      (if (= (length abs*) 1) '(#f) (enumerate abs*)))
                                                 abs*)])
