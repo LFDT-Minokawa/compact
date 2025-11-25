@@ -133,7 +133,7 @@ groups than for single tests.
   (define contractCode*)
   (define test-root*)
 
-  (define show-last-successes (make-parameter 10))
+  (define show-last-successes (make-parameter 0))
   (define show-successes (make-parameter #f))
   (define show-all-passes (make-parameter #f))
   (define show-stack-backtrace (make-parameter #t))
@@ -35765,7 +35765,10 @@ groups than for single tests.
 (run-tests reduce-to-circuit
   (test
     `(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
+      "  forceProof();"
       "  return true;"
       "}"
       )
@@ -35779,7 +35782,10 @@ groups than for single tests.
 
   (test
     `(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
+      "  forceProof();"
       "  assert(x == 3, 'oops 1');"
       "  return b;"
       "}"
@@ -35798,7 +35804,10 @@ groups than for single tests.
 
   (test
     `(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(b: Boolean, x: Uint<16>): Boolean {"
+      "  forceProof();"
       "  assert(x < 3, 'oops 1');"
       "  return b;"
       "}"
@@ -35817,7 +35826,10 @@ groups than for single tests.
 
   (test
     `(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
+      "  forceProof();"
       "  if (b)"
       "     assert(b, 'oops 1');"
       "  else"
@@ -35846,7 +35858,10 @@ groups than for single tests.
 
   (test
     `(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo() : Vector<3, Vector<2, Field>> {"
+      "  forceProof();"
       "  return [[1, 2], [3, 4], [5, 6]];"
       "}"
       )
@@ -35864,7 +35879,9 @@ groups than for single tests.
 
   (test
     '(
-       "export circuit baz(arg: Bytes<20>) : Field { return arg as Field; }"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
+      "export circuit baz(arg: Bytes<20>) : Field { forceProof(); return arg as Field; }"
      )
     (returns
       (program
@@ -35876,7 +35893,9 @@ groups than for single tests.
 
   (test
     '(
-       "export circuit foo(arg: Field) : Bytes<20> { return arg as Bytes<20>; }"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
+      "export circuit foo(arg: Field) : Bytes<20> { forceProof(); return arg as Bytes<20>; }"
      )
     (returns
       (program
@@ -35888,14 +35907,17 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "module A<#n, t> {"
       "  export circuit foo(v : Vector<n, t>, b : Bytes<n>): Field {"
+      "    forceProof();"
       "    return 17;"
       "  }"
       "}"
       "module B {"
-      "  circuit foo(x : Field): Field { return x + 1; }"
-      "  circuit bar(x : Field): Field { return x - 1; }"
+      "  circuit foo(x : Field): Field { forceProof(); return x + 1; }"
+      "  circuit bar(x : Field): Field { forceProof(); return x - 1; }"
       "  import A<7, Field> prefix AA;"
       "  import A<30, Boolean> prefix AAA;"
       "  export {foo, AAfoo, AAAfoo, bar}"
@@ -36194,11 +36216,15 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "import CompactStandardLibrary;"
       "export circuit foo(x: Field): Uint<16> {"
+      "  forceProof();"
       "  return x as Uint<16>;"
       "}"
       "export circuit bar(x: Uint<32>): Uint<16> {"
+      "  forceProof();"
       "  return x as Uint<16>;"
       "}"
       )
@@ -36401,7 +36427,10 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(x: Boolean, y: Boolean): [] {"
+      "  forceProof();"
       "  if (x) if (!y) 3;"
       "}"
       )
@@ -36429,19 +36458,18 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.4 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%a.3 (0) (__compact_Cell (tfield)))))
-        (circuit %foo.5 ([%x0.0 (tboolean)])
-             (ttuple)
-          (= %t.6 (tuple))
-          %t.6)))
+          ((%a.1 (0) (__compact_Cell (tfield)))))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "circuit bar(b: Boolean): [] {"
+      "  forceProof();"
       "  assert(b, 'oops');"
       "}"
       "export circuit foo(x: Boolean): [] {"
@@ -36463,8 +36491,11 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "witness W(): Uint<16>;"
       "export circuit foo(): Uint<16> {"
+      "  forceProof();"
       "  return disclose(W());"
       "}"
       )
@@ -36657,6 +36688,7 @@ groups than for single tests.
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
           ((%ledger_counter.1 (0) (Counter))))
+    ; FIXME: forceProof
         (circuit %minimal_error_circuit.2 () (ty () ()) ())))
     )
 
@@ -37111,6 +37143,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%b.2)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -37122,6 +37155,7 @@ groups than for single tests.
           (= %t.6 (select 1 %t.0 1))
           (assert %t.6 "oops 1")
           (%b.2))
+    ; FIXME: forceProof
         (circuit %call_foo.7 ((argument
                                 (%b.8)
                                 (ty ((abytes 1)) ((tfield 1))))
@@ -37144,6 +37178,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%b.1)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -37162,6 +37197,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%b.2)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -37185,6 +37221,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%b.2)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -37212,6 +37249,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%b.1)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -37242,6 +37280,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield) (afield) (afield) (afield) (afield) (afield))
                  ((tfield) (tfield) (tfield) (tfield) (tfield) (tfield)))
@@ -37264,6 +37303,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %baz.0 ((argument
                            (%arg.1)
                            (ty ((abytes 20))
@@ -37296,6 +37336,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %baz.1 ((argument
                            (%arg.2 %arg.0)
                            (ty ((abytes 32))
@@ -37332,6 +37373,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %baz.1 ((argument
                            (%arg.2 %arg.3 %arg.0)
                            (ty ((abytes 80))
@@ -37364,6 +37406,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%arg.1)
                            (ty ((afield)) ((tfield)))))
@@ -37381,6 +37424,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%arg.1)
                            (ty ((afield)) ((tfield)))))
@@ -37399,6 +37443,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%arg.1)
                            (ty ((afield)) ((tfield)))))
@@ -37419,6 +37464,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %baz.0 ((argument
                            (%arg.1)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -37451,6 +37497,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %baz.0 ((argument
                            (%arg.1)
                            (ty ((afield)) ((tfield)))))
@@ -37486,6 +37533,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.23 ((argument
                             (%v.24 %v.25 %v.26 %v.27 %v.28 %v.29 %v.30)
                             (ty ((afield) (afield) (afield) (afield) (afield)
@@ -37497,6 +37545,7 @@ groups than for single tests.
                             (ty ((abytes 7)) ((tfield 72057594037927935)))))
              (ty ((afield)) ((tfield)))
           (17))
+    ; FIXME: forceProof
         (circuit %foo.32 ((argument
                             (%v.33 %v.34 %v.35 %v.36 %v.37 %v.38 %v.39 %v.0
                              %v.1 %v.2 %v.3 %v.4 %v.5 %v.6 %v.7 %v.8 %v.9 %v.10
@@ -37525,6 +37574,7 @@ groups than for single tests.
                                    1766847064778384329583297500742918515827483896875618958121606201292619775)))))
              (ty ((afield)) ((tfield)))
           (17))
+    ; FIXME: forceProof
         (circuit %foo.41 ((argument
                             (%x.42)
                             (ty ((afield)) ((tfield)))))
@@ -37548,6 +37598,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%x.1 %x.2 %x.3)
                            (ty ((afield) (afield) (afield))
@@ -37572,6 +37623,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument () (ty ((abytes 0)) ())))
              (ty ((abytes 0)) ())
           ())))
@@ -37586,6 +37638,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 () (ty () ()) ())))
     )
 
@@ -37598,6 +37651,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%b.1)
                            (ty ((abytes 31))
@@ -37618,6 +37672,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((abytes 31))
                  ((tfield
@@ -37634,6 +37689,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%a.2)
                            (ty ((abytes 30))
@@ -37673,6 +37729,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((abytes 40))
                  ((tfield 4722366482869645213695)
@@ -37699,6 +37756,7 @@ groups than for single tests.
                                  (tfield
                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ()))
+    ; FIXME: forceProof
         (circuit %foo.3 ()
              (ty () ())
           (= () (call 1 %bar.1 0 36762444129640))
@@ -37720,6 +37778,7 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
+    ; FIXME: forceProof
         (circuit %foo.1 ()
              (ty ((abytes 50))
                  ((tfield 5708990770823839524233143877797980545530986495)
@@ -37738,6 +37797,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%b.1)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -37767,6 +37827,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((abytes 50))
                  ((tfield 5708990770823839524233143877797980545530986495)
@@ -37792,6 +37853,7 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
+    ; FIXME: forceProof
         (circuit %foo.2 ()
              (ty ((abytes 50))
                  ((tfield 5708990770823839524233143877797980545530986495)
@@ -37825,6 +37887,7 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
+    ; FIXME: forceProof
         (circuit %foo.2 ()
              (ty ((abytes 50))
                  ((tfield 5708990770823839524233143877797980545530986495)
@@ -37855,6 +37918,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ()
              (ty ((abytes 80) (abytes 80))
                  ((tfield 22300745198530623141535718272648361505980415)
@@ -37926,6 +37990,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%n.1)
                            (ty ((afield)) ((tfield)))))
@@ -37946,6 +38011,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%n.1)
                            (ty ((afield)) ((tfield)))))
@@ -37970,6 +38036,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %bar.0 () (ty ((abytes 1)) ((tfield 3))) (1))))
     )
 
@@ -38056,6 +38123,7 @@ groups than for single tests.
                            (%x.1)
                            (ty ((abytes 1)) ((tfield 31)))))
              (ty () ()))
+    ; FIXME: forceProof
         (circuit %bar.2 ((argument
                            (%a.3)
                            (ty ((abytes 1)) ((tfield 15))))
@@ -38080,6 +38148,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%f.1)
                            (ty ((afield)) ((tfield))))
@@ -38107,6 +38176,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%f.1)
                            (ty ((afield)) ((tfield))))
@@ -38134,6 +38204,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%f.1)
                            (ty ((afield)) ((tfield))))
@@ -38161,6 +38232,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%x.1)
                            (ty ((abytes 1)) ((tfield 255)))))
@@ -38194,6 +38266,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%x.1)
                            (ty ((afield)) ((tfield)))))
@@ -38214,6 +38287,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%x.1)
                            (ty ((afield)) ((tfield)))))
@@ -38245,6 +38319,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%x.1)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -38262,6 +38337,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%x.1)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -38297,6 +38373,7 @@ groups than for single tests.
         (kernel-declaration (%kernel.4 () (Kernel)))
         (public-ledger-declaration
           ((%a.3 (0) (__compact_Cell (ty ((afield)) ((tfield)))))))
+    ; FIXME: forceProof
         (circuit %foo.5 ((argument
                            (%x0.6)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -38318,6 +38395,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 () (ty ((abytes 1)) ((tfield 1))) (1))))
     )
 
@@ -38335,6 +38413,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.1 () (Kernel)))
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.2 ((argument
                            (%x.0)
                            (ty ((afield)) ((tfield)))))
@@ -38414,6 +38493,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%b.1)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -38432,6 +38512,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.2 ((argument
                            (%b.3)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -38452,6 +38533,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.3 ((argument
                            (%b.4)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -38473,6 +38555,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%b.1)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -38493,6 +38576,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.2 ((argument
                            (%x.0)
                            (ty ((abytes 2)) ((tfield 65535)))))
@@ -38511,6 +38595,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -38527,6 +38612,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -38544,6 +38630,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -38561,6 +38648,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -38578,6 +38666,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -38598,6 +38687,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.4 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -38619,6 +38709,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield) (afield) (afield) (afield) (afield) (afield))
                  ((tfield) (tfield) (tfield) (tfield) (tfield) (tfield)))
@@ -38637,6 +38728,7 @@ groups than for single tests.
       (program
         (public-ledger-declaration ())
         (witness %W.0 () (ty ((afield)) ((tfield))))
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%b.2)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -38655,6 +38747,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 () (ty () ()) ())))
     )
 
@@ -38682,6 +38775,7 @@ groups than for single tests.
                    (afield))
                  ((tfield 1) (tfield) (tfield 1) (tfield) (tfield 1)
                    (tfield))))
+    ; FIXME: forceProof
         (circuit %foo.8 ((argument
                            (%b.9)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -38718,6 +38812,7 @@ groups than for single tests.
                    (afield))
                  ((tfield 1) (tfield) (tfield 1) (tfield) (tfield 1)
                    (tfield))))
+    ; FIXME: forceProof
         (circuit %foo.12 ((argument
                             (%b.2)
                             (ty ((abytes 1)) ((tfield 1))))
@@ -38764,6 +38859,7 @@ groups than for single tests.
                    (afield))
                  ((tfield 1) (tfield) (tfield 1) (tfield) (tfield 1)
                    (tfield))))
+    ; FIXME: forceProof
         (circuit %foo.23 ((argument
                             (%b.0)
                             (ty ((abytes 1)) ((tfield 1))))
@@ -38804,15 +38900,18 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.2) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1))))
+    ; FIXME: forceProof
         (circuit %X$C.3 ((argument () (ty () ())))
              (ty ((abytes 1)) ((tfield 1)))
           (1))
+    ; FIXME: forceProof
         (circuit %Y$C.4 ((argument
                            (%v.5)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
           (= (%t.6) (call 1 %foo.0 1 %v.5))
           (%t.6))
+    ; FIXME: forceProof
         (circuit %Z$C.7 ((argument
                            (%v.8 %v.9)
                            (ty ((afield) (afield)) ((tfield) (tfield)))))
@@ -38843,6 +38942,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %bar1.0 ()
              (ty () ())
           (assert 0 "oops 1")
@@ -38871,6 +38971,7 @@ groups than for single tests.
                            (%n.5)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1))))
+    ; FIXME: forceProof
         (circuit %bar.6 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -38899,6 +39000,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %C.1 ((argument (%v.2) (ty ((afield)) ((tfield))))
                        (argument (%b.0) (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 1)) ((tfield 1)))
@@ -38920,6 +39022,7 @@ groups than for single tests.
                            (%n.8)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1))))
+    ; FIXME: forceProof
         (circuit %C.9 ((argument
                          (%v.1 %v.3 %v.5)
                          (ty ((afield) (afield) (afield))
@@ -38959,6 +39062,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %bar.7 ((argument () (ty () ()))
                          (argument (%v1.0) (ty ((afield)) ((tfield))))
                          (argument
@@ -38986,6 +39090,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %F.5 ((argument
                          (%b.1)
                          (ty ((abytes 1)) ((tfield 1))))
@@ -39013,6 +39118,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %C.0 () (ty ((afield)) ((tfield))) (32))))
     )
 
@@ -39027,6 +39133,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %C.6 ((argument
                          (%u.1 %u.4)
                          (ty ((afield) (afield)) ((tfield) (tfield))))
@@ -39059,6 +39166,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %D.0 () (ty () ()) (assert 0 "oops 1") ())))
     )
 
@@ -39075,6 +39183,7 @@ groups than for single tests.
         (public-ledger-declaration ())
         (witness %foo.0 ()
              (ty ((abytes 1) (afield)) ((tfield 1) (tfield))))
+    ; FIXME: forceProof
         (circuit %C.1 ()
              (ty ((afield)) ((tfield)))
           (= (%t.2 %t.3) (call 1 %foo.0))
@@ -39091,6 +39200,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %C.0 ((argument
                          (%p.1 %p.2)
                          (ty ((abytes 1) (afield)) ((tfield 1) (tfield)))))
@@ -39112,6 +39222,7 @@ groups than for single tests.
         (public-ledger-declaration ())
         (witness %foo.0 ()
              (ty ((abytes 1) (afield)) ((tfield 1) (tfield))))
+    ; FIXME: forceProof
         (circuit %C.1 ()
              (ty ((afield)) ((tfield)))
           (= (%p.2 %p.3) (call 1 %foo.0))
@@ -39130,6 +39241,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %C.3 ((argument (%n.0) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
           (= %t.1 (== %n.0 0))
@@ -39148,11 +39260,13 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%n.1)
                            (ty ((afield)) ((tfield)))))
              (ty () ())
           ())
+    ; FIXME: forceProof
         (circuit %C.2 ((argument
                          (%v.3 %v.4 %v.5)
                          (ty ((afield) (afield) (afield))
@@ -39171,10 +39285,12 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument () (ty () ()))
                          (argument (%n.1) (ty ((afield)) ((tfield)))))
              (ty () ())
           ())
+    ; FIXME: forceProof
         (circuit %C.2 ((argument
                          (%v.3 %v.4 %v.5)
                          (ty ((afield) (afield) (afield))
@@ -39194,6 +39310,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %C.1 ((argument
                          (%b.0)
                          (ty ((abytes 1)) ((tfield 1))))
@@ -39228,6 +39345,7 @@ groups than for single tests.
                            (%n.1)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1))))
+    ; FIXME: forceProof
         (circuit %bar.2 ()
              (ty ((abytes 1) (abytes 1)) ((tfield 1) (tfield 1)))
           (= (%t.3) (call 1 %foo.0 4))
@@ -39257,6 +39375,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.33 ((argument
                             (%v.34 %v.35 %v.36 %v.37 %v.38 %v.39 %v.40)
                             (ty ((afield) (afield) (afield) (afield) (afield)
@@ -39268,6 +39387,7 @@ groups than for single tests.
                             (ty ((abytes 7)) ((tfield 72057594037927935)))))
              (ty ((afield)) ((tfield)))
           (17))
+    ; FIXME: forceProof
         (circuit %foo.42 ((argument
                             (%v.2 %v.3 %v.4 %v.5 %v.6 %v.7 %v.8 %v.9 %v.10
                              %v.11 %v.12 %v.13 %v.14 %v.15 %v.16 %v.17 %v.18
@@ -39296,12 +39416,14 @@ groups than for single tests.
                                    1766847064778384329583297500742918515827483896875618958121606201292619775)))))
              (ty ((afield)) ((tfield)))
           (17))
+    ; FIXME: forceProof
         (circuit %foo.43 ((argument
                             (%x.1)
                             (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
           (= %t.44 (+ #f %x.1 1))
           (%t.44))
+    ; FIXME: forceProof
         (circuit %bar.45 ((argument
                             (%x.0)
                             (ty ((afield)) ((tfield)))))
@@ -39320,6 +39442,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %bar.3 ((argument
                            (%x.0)
                            (ty ((afield)) ((tfield)))))
@@ -39349,6 +39472,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %bar.13 ((argument
                             (%x.0)
                             (ty ((afield)) ((tfield)))))
@@ -39383,6 +39507,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.5 ((argument
                            (%x.0)
                            (ty ((afield)) ((tfield))))
@@ -39408,6 +39533,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.5 ((argument
                            (%x.1)
                            (ty ((afield)) ((tfield))))
@@ -39432,6 +39558,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.3 ((argument
                            (%a.1)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -39449,6 +39576,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%a.2)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -39471,6 +39599,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.5 ((argument
                            (%a.0)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -39492,6 +39621,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.7 ((argument
                            (%x.0 %x.1 %x.4)
                            (ty ((afield) (afield) (afield))
@@ -39525,6 +39655,7 @@ groups than for single tests.
         (public-ledger-declaration ())
         (witness %W.0 ((argument (%x.1) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1))))
+    ; FIXME: forceProof
         (circuit %foo1.2 ((argument
                             (%x.3)
                             (ty ((afield)) ((tfield)))))
@@ -39553,6 +39684,7 @@ groups than for single tests.
         (public-ledger-declaration ())
         (witness %W.0 ((argument (%x.1) (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield))))
+    ; FIXME: forceProof
         (circuit %foo2.2 ((argument
                             (%x.3)
                             (ty ((afield)) ((tfield)))))
@@ -39583,6 +39715,7 @@ groups than for single tests.
                          (%x.1)
                          (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 1)) ((tfield 1))))
+    ; FIXME: forceProof
         (circuit %foo3.2 ((argument
                             (%x.3)
                             (ty ((abytes 1)) ((tfield 1)))))
@@ -39613,6 +39746,7 @@ groups than for single tests.
                          (%x.1)
                          (ty ((abytes 1)) ((tfield 1)))))
              (ty ((afield)) ((tfield))))
+    ; FIXME: forceProof
         (circuit %foo4.2 ((argument
                             (%x.3)
                             (ty ((abytes 1)) ((tfield 1)))))
@@ -39634,6 +39768,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.2 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -39664,6 +39799,7 @@ groups than for single tests.
                            (ty ((abytes 10))
                                ((tfield 1208925819614629174706175)))))
              (ty ((abytes 1)) ((tfield 1))))
+    ; FIXME: forceProof
         (circuit %foo.5 ((argument
                            (%b.6)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -39694,6 +39830,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.5 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -39720,6 +39857,7 @@ groups than for single tests.
       (program
         (public-ledger-declaration ())
         (witness %bar.0 () (ty () ()))
+    ; FIXME: forceProof
         (circuit %foo.1 () (ty () ()) ())))
     )
 
@@ -39738,6 +39876,7 @@ groups than for single tests.
         (witness %bar.0 ()
              (ty ((afield) (afield) (afield))
                  ((tfield) (tfield) (tfield))))
+    ; FIXME: forceProof
         (circuit %foo.1 () (ty () ()) ())))
     )
 
@@ -39750,6 +39889,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((abytes 40))
                  ((tfield 4722366482869645213695)
@@ -39776,6 +39916,7 @@ groups than for single tests.
                                  (tfield
                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ()))
+    ; FIXME: forceProof
         (circuit %foo.3 ()
              (ty () ())
           (= () (call 1 %bar.1 0 36762444129640))
@@ -39797,6 +39938,7 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
+    ; FIXME: forceProof
         (circuit %foo.1 ()
              (ty ((abytes 50))
                  ((tfield 5708990770823839524233143877797980545530986495)
@@ -39815,6 +39957,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -39843,6 +39986,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((abytes 80) (abytes 80))
                  ((tfield 22300745198530623141535718272648361505980415)
@@ -39871,6 +40015,7 @@ groups than for single tests.
       )
     (returns
       (program
+    ; FIXME: forceProof
         (public-ledger-declaration ()) (circuit %foo.0 ()
              (ty ((abytes 50))
                  ((tfield 5708990770823839524233143877797980545530986495)
@@ -39891,6 +40036,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((abytes 50))
                  ((tfield 5708990770823839524233143877797980545530986495)
@@ -39911,6 +40057,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((abytes 50))
                  ((tfield 5708990770823839524233143877797980545530986495)
@@ -39929,6 +40076,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.7 ((argument
                            (%b.1)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -39951,6 +40099,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.7 ((argument
                            (%b.1)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -40002,6 +40151,7 @@ groups than for single tests.
                      452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
+    ; FIXME: forceProof
         (circuit %foo.8 ((argument
                            (%arg.0)
                            (ty ((afield)) ((tfield)))))
@@ -40030,6 +40180,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %baz.5 ((argument
                            (%arg.0 %arg.3 %arg.2)
                            (ty ((abytes 80))
@@ -40054,6 +40205,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %baz.1 ((argument
                            (%arg.0)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -40069,6 +40221,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %baz.0 ((argument
                            (%arg.1)
                            (ty ((abytes 1)) ((tfield 2)))))
@@ -40083,6 +40236,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %baz.2 ((argument
                            (%arg.0)
                            (ty ((afield)) ((tfield)))))
@@ -40277,6 +40431,7 @@ groups than for single tests.
                (1 14)
                (__compact_Cell
                  (ty ((acompress)) ((topaque "Uint8Array"))))))))
+    ; FIXME: forceProof
         (circuit %foo.32 ((argument
                             (%a.33)
                             (ty ((abytes 1)) ((tfield 1))))
@@ -40300,6 +40455,7 @@ groups than for single tests.
           (assert %t.12 "oops")
           (= (%t.36) (public-ledger 1 %x0.14 (0 0) read))
           (%t.36))
+    ; FIXME: forceProof
         (circuit %baz.37 ((argument
                             (%b.0)
                             (ty ((abytes 1)) ((tfield 1)))))
@@ -40394,6 +40550,7 @@ groups than for single tests.
           (= () (public-ledger 1 %value.16 (1) write 0))
           (= () (public-ledger 1 %state.17 (2) write 0))
           ())
+    ; FIXME: forceProof
         (circuit %public_key.35 ((argument
                                    (%sk.36 %sk.37)
                                    (ty ((abytes 32))
@@ -40442,6 +40599,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 () (ty ((abytes 1)) ((tfield 1))) (1))))
     )
 
@@ -40456,6 +40614,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.5 () (Kernel)))
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.6 ((argument
                            (%x.0)
                            (ty ((abytes 1)) ((tfield 255)))))
@@ -40478,6 +40637,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.4 ((argument
                            (%x.1)
                            (ty ((abytes 1)) ((tfield 255))))
@@ -40500,6 +40660,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.5 () (Kernel)))
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.6 ((argument
                            (%x.0)
                            (ty ((abytes 1)) ((tfield 255)))))
@@ -40524,6 +40685,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 () (ty ((abytes 1)) ((tfield 255))) (0))))
     )
 
@@ -40538,6 +40700,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.1 () (Kernel)))
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.2 ()
              (ty ((abytes 1)) ((tfield 255)))
           (assert 0 "result of subtraction would be negative")
@@ -40654,6 +40817,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40675,6 +40839,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40696,6 +40861,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40734,6 +40900,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40755,6 +40922,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40776,6 +40944,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40797,6 +40966,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40819,6 +40989,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40840,6 +41011,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40861,6 +41033,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40883,6 +41056,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
           (= %t4.1
@@ -40904,6 +41078,7 @@ groups than for single tests.
       "}"
       )
     (returns
+    ; FIXME: forceProof
       (program
         (public-ledger-declaration ())
         (circuit %foo.1 ()
@@ -40924,6 +41099,7 @@ groups than for single tests.
       "}"
       )
     (returns
+    ; FIXME: forceProof
       (program
         (public-ledger-declaration ())
         (circuit %foo.0 ()
@@ -40946,6 +41122,7 @@ groups than for single tests.
       "}"
       )
     (returns
+    ; FIXME: forceProof
       (program
         (public-ledger-declaration ())
         (circuit %foo.0 ()
@@ -40966,6 +41143,7 @@ groups than for single tests.
       "}"
       )
     (returns
+    ; FIXME: forceProof
       (program
         (public-ledger-declaration ())
         (circuit %foo.0 ()
@@ -40983,6 +41161,7 @@ groups than for single tests.
       "}"
       )
     (returns
+    ; FIXME: forceProof
       (program
         (public-ledger-declaration ())
         (circuit %foo.1 ()
@@ -41469,6 +41648,7 @@ groups than for single tests.
         (kernel-declaration (%kernel.2 () (Kernel)))
         (public-ledger-declaration ())
         (witness %W.3 () (ty ((afield)) ((tfield))))
+    ; FIXME: forceProof
         (circuit %bar.4 ((argument
                            (%x.0)
                            (ty ((afield)) ((tfield)))))
@@ -41491,6 +41671,7 @@ groups than for single tests.
       "}"
       )
     (returns
+    ; FIXME: forceProof
       (program
         (public-ledger-declaration ())
         (circuit %foo.4 ((argument
@@ -41514,6 +41695,7 @@ groups than for single tests.
       (program
         (public-ledger-declaration ())
         (witness %W.4 () (ty ((abytes 1)) ((tfield 255))))
+    ; FIXME: forceProof
         (circuit %foo.5 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -41534,6 +41716,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.2 ((argument
                            (%x.0)
                            (ty ((abytes 1)) ((tfield 1))))
@@ -41556,6 +41739,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.1 () (ty ((abytes 1)) ((tfield 1))) (1))))
     )
 
@@ -41570,6 +41754,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.1 () (Kernel)))
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.2 ((argument
                            (%x.0)
                            (ty ((acompress)) ((topaque "string")))))
@@ -41592,6 +41777,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.1 () (Kernel)))
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.2 ((argument
                            (%x.0)
                            (ty ((abytes 1)) ((tfield 1)))))
@@ -41609,6 +41795,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %foo.0 ((argument
                            (%x.1)
                            (ty ((afield)) ((tfield)))))
@@ -41628,6 +41815,7 @@ groups than for single tests.
       "}"
       )
     (returns
+    ; FIXME: forceProof
       (program
         (public-ledger-declaration ())
         (circuit %foo.4 ((argument
@@ -41763,6 +41951,7 @@ groups than for single tests.
       "}"
       )
     (returns
+    ; FIXME: forceProof
       (program
         (public-ledger-declaration ())
         (circuit %foo.8 ((argument
@@ -41789,6 +41978,7 @@ groups than for single tests.
                          (%n.1)
                          (ty ((abytes 1)) ((tfield 255)))))
              (ty () ()))
+    ; FIXME: forceProof
         (circuit %foo.2 ()
              (ty () ())
           (= () (call 1 %w.0 4))
@@ -41820,6 +42010,7 @@ groups than for single tests.
                          (%n.1)
                          (ty ((abytes 1)) ((tfield 255)))))
              (ty () ()))
+    ; FIXME: forceProof
         (circuit %foo.2 () (ty () ()) (= () (call 1 %w.0 0)) ())))
     )
 
@@ -41837,6 +42028,7 @@ groups than for single tests.
                          (%n.1)
                          (ty ((abytes 1)) ((tfield 255)))))
              (ty () ()))
+    ; FIXME: forceProof
         (circuit %foo.2 () (ty () ()) (= () (call 1 %w.0 6)) ())))
     )
 
@@ -41850,6 +42042,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %test6.0 () (ty () ()) ())))
     )
 
@@ -41864,6 +42057,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
+    ; FIXME: forceProof
         (circuit %test8.1 ((argument
                              (%param1.0)
                              (ty ((abytes 10))
@@ -41878,6 +42072,7 @@ groups than for single tests.
       "  return param1 as Vector<5, Uint<8>> as Bytes<5> as Vector<5, Uint<8>>;"
       "}"
       )
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -41992,6 +42187,7 @@ groups than for single tests.
            n)
         "}"
         ))
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42077,6 +42273,7 @@ groups than for single tests.
         ,(format "  return param1 as Vector<~d, Uint<8>> as Bytes<~:*~d> as Vector<~:*~d, Uint<8>>;" n)
         "}"
         ))
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42134,6 +42331,7 @@ groups than for single tests.
         ,(format "  return fold((a: Field, x: Uint<8>): Field => a + x as Field, 0 as Uint<8>, param1 as Vector<~d, Uint<8>>);" n)
         "}"
         ))
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42194,6 +42392,7 @@ groups than for single tests.
       "  return param1 == 0 ? param2 : default<Bytes<0>> as Vector<0, Uint<8>>;"
       "}"
       )
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42211,6 +42410,7 @@ groups than for single tests.
       "  return [1 as Uint<8>,2 as Uint<8>,3 as Uint<8>,4 as Uint<8>,5 as Uint<8>] as Bytes<5>;"
       "}"
       )
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42228,6 +42428,7 @@ groups than for single tests.
            n)
         "}"
         ))
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42248,6 +42449,7 @@ groups than for single tests.
         ,(format "  return [~{~d~^, ~}] as Bytes<~d>;" (iota n) n)
         "}"
         ))
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42272,6 +42474,7 @@ groups than for single tests.
            n)
         "}"
         ))
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42295,6 +42498,7 @@ groups than for single tests.
            (+ n 3))
         "}"
         ))
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42318,6 +42522,7 @@ groups than for single tests.
            (+ n 3))
         "}"
         ))
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42346,6 +42551,7 @@ groups than for single tests.
                    (string-append s (f (- n sn)))))))
         "}"
         ))
+    ; FIXME: forceProof
     (returns
       (program
         (public-ledger-declaration ())
@@ -42361,7 +42567,10 @@ groups than for single tests.
   (test
     (let ([n (+ (field-bytes) 5)])
       `(
+        "ledger F: Field;"
+        "circuit forceProof(): [] { F = 7; }"
         ,(format "export circuit foo(): Vector<~d, Uint<8>> {" n)
+        "  forceProof();"
         ,(format "  return '~a' as Vector<~d, Uint<8>>;"
            (let* ([s "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"]
                   [sn (string-length s)])
@@ -42400,7 +42609,10 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test24(): Bytes<5> {"
+      "  forceProof();"
       "  return '12345';"
       "}"
       )
@@ -42414,7 +42626,10 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test24(): Bytes<5> {"
+      "  forceProof();"
       "  return [ 0x31, 0x32, 0x33, 0x34, 0x35 ] as Bytes<5>;"
       "}"
       )
@@ -42428,7 +42643,10 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test24(): Bytes<5> {"
+      "  forceProof();"
       "  return [ 0x35, 0x34, 0x33, 0x32, 0x31 ] as Bytes<5>;"
       "}"
       )
@@ -42442,7 +42660,10 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit test24(): Vector<5, Uint<8>> {"
+      "  forceProof();"
       "  return '12345' as [Uint<8>, Uint<8>, Uint<8>, Uint<8>, Uint<8>];"
       "}"
       )
@@ -42581,7 +42802,10 @@ groups than for single tests.
   ; ... but if bar is not exported, i does reduce to a constant at the only place where bar is called
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "circuit bar(v: Vector<5, Field>, i: Uint<0..6>): Field {"
+      "  forceProof();"
       "  return v[i];"
       "}"
       "export circuit foo(v: Vector<5, Field>): Field {"
@@ -42629,7 +42853,10 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(v: Vector<0, Field>): Vector<0, Field> {"
+      "  forceProof();"
       "  const k = 0;"
       "  return slice<0>(v, k);"
       "}"
@@ -42642,7 +42869,10 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(v: []): [] {"
+      "  forceProof();"
       "  const k = 0;"
       "  return slice<0>(v, k);"
       "}"
@@ -42851,7 +43081,10 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(x: Uint<16>): [] {"
+      "  forceProof();"
       "  if (x == 0) assert(x == 0, 'oops');"
       "}"
       )
@@ -42867,7 +43100,10 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(x: Uint<16>): [] {"
+      "  forceProof();"
       "  if (x + 7 != x + 7) {"
       "    assert(x == 0, 'oops');"
       "  }"
@@ -43027,10 +43263,11 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
       "module M {"
-      "  export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a == 0; }"
+      "  export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a == 0; }"
       "}"
       ""
       "import M prefix A;"
@@ -43045,9 +43282,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
-      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a == 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a == 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -43059,8 +43297,27 @@ groups than for single tests.
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"constrain_eq\", \"a\": 0, \"b\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
         "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"output\", \"var\": 3 }"
+        "    { \"op\": \"output\", \"var\": 8 }"
         "  ]"
         "}"))
     )
@@ -43069,9 +43326,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
-      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a != 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a != 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -43083,9 +43341,28 @@ groups than for single tests.
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"constrain_eq\", \"a\": 0, \"b\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
         "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 3, \"a\": 1, \"b\": 2 },"
-        "    { \"op\": \"output\", \"var\": 4 }"
+        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 1, \"b\": 2 },"
+        "    { \"op\": \"output\", \"var\": 9 }"
         "  ]"
         "}"))
     )
@@ -43094,9 +43371,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
-      "export circuit foo(a : Uint<16>): Boolean { forcenonpure(); return a < 5; }"
+      "export circuit foo(a : Uint<16>): Boolean { forceProof(); return a < 5; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -43107,9 +43385,29 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 16 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 2, \"bits\": 16 },"
-        "    { \"op\": \"output\", \"var\": 3 }"
+        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 8, \"bits\": 16 },"
+        "    { \"op\": \"output\", \"var\": 9 }"
         "  ]"
         "}"))
     )
@@ -43118,9 +43416,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
-      "export circuit foo(a : Uint<16>): Boolean { forcenonpure(); return a < a + 5; }"
+      "export circuit foo(a : Uint<16>): Boolean { forceProof(); return a < a + 5; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -43131,10 +43430,30 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 16 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 2 },"
-        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 3, \"bits\": 17 },"
-        "    { \"op\": \"output\", \"var\": 4 }"
+        "    { \"op\": \"add\", \"a\": 0, \"b\": 8 },"
+        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 9, \"bits\": 17 },"
+        "    { \"op\": \"output\", \"var\": 10 }"
         "  ]"
         "}"))
     )
@@ -43143,9 +43462,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
-      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a <= 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a <= 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -43157,9 +43477,28 @@ groups than for single tests.
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"constrain_eq\", \"a\": 0, \"b\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
         "    { \"op\": \"less_than\", \"a\": 1, \"b\": 0, \"bits\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 3, \"a\": 1, \"b\": 2 },"
-        "    { \"op\": \"output\", \"var\": 4 }"
+        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 1, \"b\": 2 },"
+        "    { \"op\": \"output\", \"var\": 9 }"
         "  ]"
         "}"))
     )
@@ -43184,10 +43523,11 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
       "export circuit foo(a : Boolean): Boolean {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return a;
       }"
       ""
@@ -43204,6 +43544,26 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"output\", \"var\": 0 }"
         "  ]"
         "}"))
@@ -43216,6 +43576,26 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"output\", \"var\": 0 }"
         "  ]"
         "}"))
@@ -43225,14 +43605,15 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
       "export circuit foo(a : Boolean): Boolean {"
       "  return a;"
       "}"
       ""
       "export circuit bar(a: Boolean): Boolean {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return foo(a);"
       "}"
       )
@@ -43246,6 +43627,26 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"output\", \"var\": 0 }"
         "  ]"
         "}"))
@@ -43254,7 +43655,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
       "struct Foo {"
       "  a: Field;"
@@ -43267,11 +43669,11 @@ groups than for single tests.
       "  d: Opaque<'string'>;"
       "}"
       "export circuit foo(): Bar {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return default<Bar>;"
       "}"
       "export circuit bar(x: Opaque<'string'>): Bar {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return Bar{ a: [Foo{ a: 0, b: false }, Foo{ a: 0, b: false }], b: '', c: 0, d: x };"
       "}"
       )
@@ -43283,13 +43685,32 @@ groups than for single tests.
         "  \"num_inputs\": 0,"
         "  \"instructions\": ["
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"output\", \"var\": 1 },"
-        "    { \"op\": \"output\", \"var\": 1 },"
-        "    { \"op\": \"output\", \"var\": 1 },"
-        "    { \"op\": \"output\", \"var\": 1 },"
-        "    { \"op\": \"output\", \"var\": 1 },"
-        "    { \"op\": \"output\", \"var\": 1 }"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
+        "    { \"op\": \"output\", \"var\": 3 },"
+        "    { \"op\": \"output\", \"var\": 3 },"
+        "    { \"op\": \"output\", \"var\": 3 },"
+        "    { \"op\": \"output\", \"var\": 3 },"
+        "    { \"op\": \"output\", \"var\": 3 },"
+        "    { \"op\": \"output\", \"var\": 3 }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/bar.zkir"
@@ -43300,12 +43721,31 @@ groups than for single tests.
         "  \"num_inputs\": 1,"
         "  \"instructions\": ["
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"output\", \"var\": 4 },"
+        "    { \"op\": \"output\", \"var\": 4 },"
+        "    { \"op\": \"output\", \"var\": 4 },"
+        "    { \"op\": \"output\", \"var\": 4 },"
+        "    { \"op\": \"output\", \"var\": 4 },"
         "    { \"op\": \"output\", \"var\": 0 }"
         "  ]"
         "}"))
@@ -43314,10 +43754,11 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
       "export circuit bar(x: Bytes<32>, y: Uint<32>, z: Uint<16>): Field {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  const q = x as Field;"
       "  return q + y * z - q * (y - z);"
       "}"
@@ -43334,19 +43775,38 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 32 },"
         "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 16 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
         "    { \"op\": \"reconstitute_field\", \"divisor\": 0, \"modulus\": 1, \"bits\": 248 },"
         "    { \"op\": \"mul\", \"a\": 2, \"b\": 3 },"
-        "    { \"op\": \"add\", \"a\": 5, \"b\": 6 },"
+        "    { \"op\": \"add\", \"a\": 11, \"b\": 12 },"
         "    { \"op\": \"less_than\", \"a\": 2, \"b\": 3, \"bits\": 32 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 9, \"b\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 10 },"
+        "    { \"op\": \"cond_select\", \"bit\": 14, \"a\": 7, \"b\": 4 },"
+        "    { \"op\": \"assert\", \"cond\": 15 },"
         "    { \"op\": \"neg\", \"a\": 3 },"
-        "    { \"op\": \"add\", \"a\": 2, \"b\": 11 },"
-        "    { \"op\": \"mul\", \"a\": 5, \"b\": 12 },"
-        "    { \"op\": \"neg\", \"a\": 13 },"
-        "    { \"op\": \"add\", \"a\": 7, \"b\": 14 },"
-        "    { \"op\": \"output\", \"var\": 15 }"
+        "    { \"op\": \"add\", \"a\": 2, \"b\": 16 },"
+        "    { \"op\": \"mul\", \"a\": 11, \"b\": 17 },"
+        "    { \"op\": \"neg\", \"a\": 18 },"
+        "    { \"op\": \"add\", \"a\": 13, \"b\": 19 },"
+        "    { \"op\": \"output\", \"var\": 20 }"
         "  ]"
         "}"))
     )
@@ -43354,13 +43814,14 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(x: Field): Uint<16> {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return x as Uint<16>;"
       "}"
       "export circuit bar(x: Uint<32>): Uint<16> {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return x as Uint<16>;"
       "}"
       )
@@ -43372,9 +43833,29 @@ groups than for single tests.
         "  \"num_inputs\": 1,"
         "  \"instructions\": ["
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 16 },"
         "    { \"op\": \"copy\", \"var\": 0 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
+        "    { \"op\": \"output\", \"var\": 8 }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/bar.zkir"
@@ -43386,9 +43867,29 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 32 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 16 },"
         "    { \"op\": \"copy\", \"var\": 0 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
+        "    { \"op\": \"output\", \"var\": 8 }"
         "  ]"
         "}"))
     )
@@ -44574,8 +45075,11 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "witness spam(): Bytes<32>;"
       "export circuit foo(): Field {"
+      "  forceProof();"
       "  return disclose(spam()) as Field;"
       "}"
      )
@@ -44913,9 +45417,12 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "struct S { x: Field; y: Field; }"
       "witness W(x: S): S;"
       "export circuit foo(x : S): S {"
+      "  forceProof();"
       "  return disclose(W(x));"
       "}"
      )
@@ -44937,9 +45444,12 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "struct S { x: Field; y: Field; }"
       "witness state(x: S): S;"
       "export circuit foo(x : S): S {"
+      "  forceProof();"
       "  return disclose(state(x));"
       "}"
      )
@@ -51472,6 +51982,8 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "module M1 {"
       "  import CompactStandardLibrary;"
       "  export { QualifiedShieldedCoinInfo, ShieldedCoinInfo, ZswapCoinPublicKey, ContractAddress };"
@@ -51479,12 +51991,14 @@ groups than for single tests.
       "}"
       "import M1 prefix std$;"
       "circuit foo(qcoin: std$QualifiedShieldedCoinInfo, coin: std$ShieldedCoinInfo): [] {"
+      "  forceProof();"
       "  std$createZswapInput(qcoin);"
       "  std$createZswapOutput(coin, std$left<std$ZswapCoinPublicKey, std$ContractAddress>(std$ownPublicKey()));"
       "}"
       "module M2 {"
       "  import CompactStandardLibrary;"
       "  export circuit bar(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
+      "    forceProof();"
       "    createZswapInput(qcoin);"
       "    createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "  }"
@@ -51519,7 +52033,6 @@ groups than for single tests.
         "    { \"op\": \"load_imm\", \"imm\": \"00\" }"
         "  ]"
         "}"))
-
     (output-file "compiler/testdir/zkir/bar.zkir"
                  "compiler/testdir/zkir/foo.zkir")
     (output-file "compiler/testdir/zkir/M2$bar.zkir"
@@ -51528,15 +52041,18 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "witness W(): Field;"
       "module A<#n, t> {"
       "  export circuit foo(v : Vector<n, t>, b : Bytes<n>): Field {"
+      "    forceProof();"
       "    return disclose(W()) + 17;"
       "  }"
       "}"
       "module B {"
-      "  circuit foo(x : Field): Field { return x + disclose(W()); }"
-      "  circuit bar(x : Field): Field { return x - disclose(W()); }"
+      "  circuit foo(x : Field): Field { forceProof(); return x + disclose(W()); }"
+      "  circuit bar(x : Field): Field { forceProof(); return x - disclose(W()); }"
       "  import A<7, Field> prefix AA;"
       "  import A<30, Boolean> prefix AAA;"
       "  export {foo, AAfoo, AAAfoo, bar}"
@@ -51563,7 +52079,10 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
+      "  forceProof();"
       "  createZswapInput(qcoin);"
       "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "}"
@@ -52113,10 +52632,13 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "circuit bar(v: Vector<5, Field>, i: Uint<0..5>): Field {"
       "  return v[i];"
       "}"
       "export circuit foo(v: Vector<5, Field>): Field {"
+      "  forceProof();"
       "  return bar(v, 3);"
       "}"
       )
@@ -53863,10 +54385,11 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
       "module M {"
-      "  export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a == 0; }"
+      "  export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a == 0; }"
       "}"
       ""
       "import M prefix A;"
@@ -53881,9 +54404,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
-      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a == 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a == 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -53895,6 +54419,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -53905,9 +54430,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
-      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a != 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a != 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -53919,6 +54445,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
@@ -53930,9 +54457,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
-      "export circuit foo(a : Uint<16>): Boolean { forcenonpure(); return a < 5; }"
+      "export circuit foo(a : Uint<16>): Boolean { forceProof(); return a < 5; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -53944,6 +54472,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 16 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"less_than\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x05\", \"bits\": 16 },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -53954,9 +54483,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
-      "export circuit foo(a : Uint<16>): Boolean { forcenonpure(); return a < a + 5; }"
+      "export circuit foo(a : Uint<16>): Boolean { forceProof(); return a < a + 5; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -53968,6 +54498,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 16 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x05\" },"
         "    { \"op\": \"less_than\", \"output\": \"%t.2\", \"a\": \"%a.0\", \"b\": \"%t.1\", \"bits\": 17 },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
@@ -53979,9 +54510,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
-      "export circuit foo(a : Uint<0..1>): Boolean { forcenonpure(); return a <= 0; }"
+      "export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a <= 0; }"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
@@ -53993,6 +54525,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"less_than\", \"output\": \"%t.1\", \"a\": \"0x00\", \"b\": \"%a.0\", \"bits\": 1 },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
@@ -54020,10 +54553,11 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
       "export circuit foo(a : Boolean): Boolean {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return a;"
       "}"
       ""
@@ -54041,6 +54575,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"output\", \"val\": \"%a.0\" }"
         "  ]"
         "}"))
@@ -54054,6 +54589,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"output\", \"val\": \"%a.0\" }"
         "  ]"
         "}"))
@@ -54063,14 +54599,15 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
       "export circuit foo(a : Boolean): Boolean {"
       "  return a;"
       "}"
       ""
       "export circuit bar(a: Boolean): Boolean {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return foo(a);"
       "}"
       )
@@ -54085,6 +54622,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"output\", \"val\": \"%a.0\" }"
         "  ]"
         "}"))
@@ -54093,7 +54631,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
       "struct Foo {"
       "  a: Field;"
@@ -54106,11 +54645,11 @@ groups than for single tests.
       "  d: Opaque<'string'>;"
       "}"
       "export circuit foo(): Bar {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return default<Bar>;"
       "}"
       "export circuit bar(x: Opaque<'string'>): Bar {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return Bar{ a: [Foo{ a: 0, b: false }, Foo{ a: 0, b: false }], b: '', c: 0, d: x };"
       "}"
       )
@@ -54122,6 +54661,7 @@ groups than for single tests.
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"output\", \"val\": \"0x00\" },"
         "    { \"op\": \"output\", \"val\": \"0x00\" },"
         "    { \"op\": \"output\", \"val\": \"0x00\" },"
@@ -54139,6 +54679,7 @@ groups than for single tests.
         "    \"%x.0\""
         "  ],"
         "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"output\", \"val\": \"0x00\" },"
         "    { \"op\": \"output\", \"val\": \"0x00\" },"
         "    { \"op\": \"output\", \"val\": \"0x00\" },"
@@ -54152,10 +54693,11 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       ""
       "export circuit bar(x: Bytes<32>, y: Uint<32>, z: Uint<16>): Field {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  const q = x as Field;"
       "  return q + y * z - q * (y - z);"
       "}"
@@ -54176,6 +54718,7 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.2\", \"bits\": 32 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%z.3\", \"bits\": 16 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%q.4\", \"divisor\": \"%x.0\", \"modulus\": \"%x.1\", \"bits\": 248 },"
         "    { \"op\": \"mul\", \"output\": \"%t.5\", \"a\": \"%y.2\", \"b\": \"%z.3\" },"
         "    { \"op\": \"add\", \"output\": \"%t.6\", \"a\": \"%q.4\", \"b\": \"%t.5\" },"
@@ -54195,13 +54738,14 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness forcenonpure(): [];"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "export circuit foo(x: Field): Uint<16> {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return x as Uint<16>;"
       "}"
       "export circuit bar(x: Uint<32>): Uint<16> {"
-      "  forcenonpure();"
+      "  forceProof();"
       "  return x as Uint<16>;"
       "}"
       )
@@ -54214,6 +54758,7 @@ groups than for single tests.
         "    \"%x.0\""
         "  ],"
         "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 16 },"
         "    { \"op\": \"copy\", \"output\": \"%t.1\", \"val\": \"%x.0\" },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
@@ -54229,6 +54774,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 32 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 16 },"
         "    { \"op\": \"copy\", \"output\": \"%t.1\", \"val\": \"%x.0\" },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
@@ -58469,6 +59015,8 @@ groups than for single tests.
 
   (test
     '(
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
       "module M1 {"
       "  import CompactStandardLibrary;"
       "  export { QualifiedShieldedCoinInfo, ShieldedCoinInfo, ZswapCoinPublicKey, ContractAddress };"
@@ -58476,12 +59024,14 @@ groups than for single tests.
       "}"
       "import M1 prefix std$;"
       "circuit foo(qcoin: std$QualifiedShieldedCoinInfo, coin: std$ShieldedCoinInfo): [] {"
+      "  forceProof();"
       "  std$createZswapInput(qcoin);"
       "  std$createZswapOutput(coin, std$left<std$ZswapCoinPublicKey, std$ContractAddress>(std$ownPublicKey()));"
       "}"
       "module M2 {"
       "  import CompactStandardLibrary;"
       "  export circuit bar(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
+      "    forceProof();"
       "    createZswapInput(qcoin);"
       "    createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "  }"
@@ -58520,6 +59070,7 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.8\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.10\", \"bits\": 128 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"private_input\", \"output\": \"%value.11\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
         "    { \"op\": \"private_input\", \"output\": \"%value.12\", \"guard\": null },"
@@ -58577,6 +59128,20 @@ groups than for single tests.
       "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "}"
       )
+    (output-file "compiler/testdir/zkir/foo.zkir" #f)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Field;"
+      "circuit forceProof(): [] { F = 7; }"
+      "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
+      "  forceProof();"
+      "  createZswapInput(qcoin);"
+      "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
+      "}"
+      )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
@@ -58607,6 +59172,7 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.8\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.10\", \"bits\": 128 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"private_input\", \"output\": \"%value.11\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
         "    { \"op\": \"private_input\", \"output\": \"%value.12\", \"guard\": null },"
@@ -73791,4 +74357,5 @@ groups than for single tests.
     ))
 )
 
+fudge
 (run-javascript)
