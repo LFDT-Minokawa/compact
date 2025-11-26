@@ -38,9 +38,6 @@
           ...)])
     (Program-Element : Program-Element (ir) -> Program-Element ()
       [,export-tdefn (assert cannot-happen)])
-    (Ledger-Declaration : Ledger-Declaration (ir) -> Ledger-Declaration ()
-      [(public-ledger-declaration ,[pl-array] ,lconstructor)
-       `(public-ledger-declaration ,pl-array)])
     (Expression : Expression (ir) -> Expression ()
       (definitions
         (define (do-not src expr)
@@ -563,7 +560,7 @@
        (build-function 'circuit function-name arg* type)]
       [(witness ,src ,function-name (,arg* ...) ,type)
        (build-function 'witness function-name arg* type)]
-      [(public-ledger-declaration ,pl-array) (void)]
+      [(public-ledger-declaration ,pl-array ,lconstructor) (void)]
       [(kernel-declaration ,public-binding) (void)]
       )
     (Program-Element : Program-Element (ir) -> * (void)
@@ -1206,19 +1203,27 @@
                   (values
                     (build-expr expr1 expr2)
                     (CTV-unknown no-var-name))))))
+      (define (do-circuit-body var-name* expr)
+        (for-each
+          (lambda (var-name) (set-binding! var-name (CTV-unknown var-name)))
+          var-name*)
+        (let-values ([(expr ctv) (Expression expr)])
+          (for-each remove-binding! var-name*)
+          expr))
       )
+    (Ledger-Declaration : Ledger-Declaration (ir) -> Ledger-Declaration ()
+      [(public-ledger-declaration ,[pl-array] ,lconstructor)
+       (nanopass-case (Lnosafecast Ledger-Constructor) lconstructor
+         [(constructor ,src ((,var-name* ,type*) ...) ,expr)
+          (do-circuit-body var-name* expr)])
+       `(public-ledger-declaration ,pl-array)])
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
       [(circuit ,src ,function-name (,[arg*] ...) ,[type] ,expr)
        (define (arg->var-name arg)
          (nanopass-case (Lnovectorref Argument) arg
            [(,var-name ,type) var-name]))
-       (let ([var-name* (map arg->var-name arg*)])
-         (for-each
-           (lambda (var-name) (set-binding! var-name (CTV-unknown var-name)))
-           var-name*)
-         (let-values ([(expr ctv) (Expression expr)])
-           (for-each remove-binding! var-name*)
-           `(circuit ,src ,function-name (,arg* ...) ,type ,expr)))])
+       (let ([expr (do-circuit-body (map arg->var-name arg*) expr)])
+         `(circuit ,src ,function-name (,arg* ...) ,type ,expr))])
     (Path-Element : Path-Element (ir) -> Path-Element ()
       [,path-index path-index]
       [(,src ,[type] ,[expr ctv]) `(,src ,type ,expr)])

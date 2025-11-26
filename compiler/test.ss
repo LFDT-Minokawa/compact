@@ -609,7 +609,7 @@ groups than for single tests.
                     (set! negative-feedback* (cons feedback negative-feedback*))
                     (condition! x)))
               (begin
-                (set! negative-feedback* (cons feedback* negative-feedback*))
+                (set! negative-feedback* (cons feedback negative-feedback*))
                 (set! negative-feedback* (cons (make-feedback (lambda () (print-result pretty-formats x))) negative-feedback*))
                 #f)))))
 
@@ -23239,36 +23239,6 @@ groups than for single tests.
   (test
     `(
       "import CompactStandardLibrary;"
-      "constructor(){"
-      ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" 32)
-      "  }"
-      "}"
-      )
-    (returns
-      (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
-        (public-ledger-declaration ())))
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "ledger x: Counter;"
-      "constructor(){"
-      "  x.resetToDefault();"
-      ,(format "  for (const bob of slice<2>(default<Bytes<32>>, ~d)) {" 32)
-      "    x += bob;"
-      "  }"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 21" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (32 2 "Bytes value" 32)))
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
       "export circuit foo(): []{"
       ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" 33)
       "  }"
@@ -23438,6 +23408,84 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 12" "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d" (2 1 "Bytes value" 1)))
+    )
+
+  ; pm-20295
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Field;"
+      "constructor(b: Boolean, v: Vector<3, Field>) {"
+      "  const k = 3;"
+      "  const x = v[k];"
+      "  if (disclose(b)) F = disclose(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 13" "invalid vector index ~d for vector of length ~d" (3 3)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Field;"
+      "constructor(v: Vector<3, Field>) {"
+      "  const k = 3;"
+      "  F = disclose(v)[k];"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 7" "invalid vector index ~d for vector of length ~d" (3 3)))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "constructor(){"
+      ,(format "  for (const bob of slice<0>(default<Bytes<32>>, ~d)) {" (max-bytes/vector-length))
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 50" "index ~d exceeds maximum index allowed ~d for a slice" (150 149)))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "ledger x: Counter;"
+      "constructor(){"
+      "  x.resetToDefault();"
+      "  const k = 30;"
+      "  for (const bob of slice<2>(default<Bytes<32>>, k)) {"
+      "    x += bob;"
+      "  }"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration ((%x.1 (0) (Counter))))))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "ledger x: Counter;"
+      "constructor(){"
+      "  x.resetToDefault();"
+      "  const k = 31;"
+      "  for (const bob of slice<2>(default<Bytes<32>>, k)) {"
+      "    x += bob;"
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 21" "invalid slice index ~d and length ~d for a Bytes value of length ~d" (31 2 32)))
     )
 ))
 
@@ -34270,19 +34318,31 @@ groups than for single tests.
           ((%fld.1
              (0)
              (__compact_Cell
-               (tstruct S (a (tunsigned 255)) (b (tboolean)))))))
-        (circuit %bar.2 ([%__compact_pattern_tmp1.3 (tstruct S
+               (tstruct S (a (tunsigned 255)) (b (tboolean))))))
+          (constructor ([%a.2 (tunsigned 255)] [%b.3 (tboolean)])
+            (seq
+              (let* ([[%tmp.4 (tstruct S
+                                (a (tunsigned 255))
+                                (b (tboolean)))]
+                      (new (tstruct S (a (tunsigned 255)) (b (tboolean)))
+                        %a.2
+                        %b.3)])
+                (public-ledger %fld.1 (0) write %tmp.4))
+              (tuple))))
+        (circuit %bar.5 ([%__compact_pattern_tmp1.6 (tstruct S
                                                       (a (tunsigned 255))
                                                       (b (tboolean)))])
              (tunsigned 255)
-          (let* ([[%a.4 (tunsigned 255)]
-                  (elt-ref %__compact_pattern_tmp1.3 a)])
-            (let* ([[%b.5 (tboolean)]
-                    (elt-ref %__compact_pattern_tmp1.3 b)])
-              (if %b.5 %a.4 (safe-cast (tunsigned 255) (tunsigned 0) 0)))))
-        (circuit %foo.6 ()
+          (let* ([[%a.7 (tunsigned 255)]
+                  (elt-ref %__compact_pattern_tmp1.6 a)])
+            (let* ([[%b.8 (tboolean)]
+                    (elt-ref %__compact_pattern_tmp1.6 b)])
+              (if %b.8
+                  %a.7
+                  (safe-cast (tunsigned 255) (tunsigned 0) 0)))))
+        (circuit %foo.9 ()
              (tunsigned 255)
-          (call %bar.2 (public-ledger %fld.1 (0) read)))))
+          (call %bar.5 (public-ledger %fld.1 (0) read)))))
     )
 
   (test
@@ -34291,7 +34351,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.0 ([%b.1 (tboolean)])
              (tboolean)
           (if (== %b.1 #t) #f #t))))
@@ -34303,7 +34363,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.0 ([%x.1 (tunsigned 65535)])
              (tboolean)
           (if (if (if (< (safe-cast (tunsigned 65535) (tunsigned 30) 30) %x.1) #f #t)
@@ -34319,7 +34379,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.0 ([%x.1 (tunsigned 65535)])
              (ttuple)
           (seq
@@ -34350,7 +34410,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.0 ([%x.1 (tunsigned 3)])
              (tboolean)
           (== %x.1 (safe-cast (tunsigned 3) (tunsigned 0) 0)))
@@ -34387,7 +34447,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.0 () (tunsigned 3) (safe-cast (tunsigned 3) (tunsigned 0) 0))
         (circuit %bar.1 () (tunsigned 3) (call %foo.0))))
     )
@@ -34399,7 +34459,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %baz.0 ([%arg.1 (tunsigned 2)])
              (tfield)
           (safe-cast (tfield) (tunsigned 2) %arg.1))))
@@ -34422,7 +34482,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.0 ([%b.1 (tboolean)] [%x.2 (tfield)])
              (tboolean)
           #t)
@@ -34455,7 +34515,7 @@ groups than for single tests.
        )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %C.0 ([%v.1 (tvector 2 (tfield))])
              (tboolean)
           (flet [%circ.2
@@ -34484,7 +34544,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %X$C.0 ([%v.1 (tvector 0 (tfield))])
              (tboolean)
           (flet [%circ.2
@@ -34525,7 +34585,7 @@ groups than for single tests.
      )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%n.1 (tfield)]) (tboolean))
         (circuit %C.2 ([%v.3 (tvector 2 (tfield))])
              (tvector 2 (tboolean))
@@ -34552,7 +34612,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%n.1 (tfield)]) (tboolean))
         (circuit %C.2 ([%v.3 (tvector 0 (tfield))])
              (tvector 0 (tboolean))
@@ -34596,7 +34656,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%n.1 (tfield)]) (tboolean))
         (circuit %X$C.2 ([%v.3 (tvector 0 (tfield))])
              (tvector 0 (tboolean))
@@ -34654,7 +34714,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%b.1 (tboolean)]
                          [%n.2 (tfield)]
                          [%s.3 (tbytes 20)])
@@ -34724,7 +34784,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%n.1 (tfield)] [%s.2 (tbytes 20)])
              (tboolean))
         (circuit %C.3 ([%v.4 (tvector 0 (tfield))]
@@ -34814,7 +34874,8 @@ groups than for single tests.
                      (x (tfield))
                      (y (tboolean))
                      (z (tbytes 8))
-                     (w (topaque "string")))))))))
+                     (w (topaque "string"))))))))
+          (constructor () (tuple)))
         (circuit %foo.6 ([%v.7 (tvector
                                  2
                                  (ttuple (tunsigned 18446744073709551615)))])
@@ -35022,26 +35083,30 @@ groups than for single tests.
                   (ttuple
                     (tcontract C
                       (foo #f ((tbytes 32)) (ttuple))
-                      (bar #t () (tbytes 32)))))))))
-         (circuit %foo.3 ()
+                      (bar #t () (tbytes 32))))))))
+           (constructor ([%c.3 (tcontract C
+                                 (foo #f ((tbytes 32)) (ttuple))
+                                 (bar #t () (tbytes 32)))])
+             (seq (public-ledger %contract_c.1 (0) write %c.3) (tuple))))
+         (circuit %foo.4 ()
               (ttuple)
            (seq
-             (let* ([[%tmp.4 (tvector
+             (let* ([[%tmp.5 (tvector
                                2
                                (ttuple
                                  (tcontract C
                                    (foo #f ((tbytes 32)) (ttuple))
                                    (bar #t () (tbytes 32)))))]
-                     (flet [%circ.5
-                            (circuit ([%x.6 (tcontract C
+                     (flet [%circ.6
+                            (circuit ([%x.7 (tcontract C
                                               (foo #f ((tbytes 32)) (ttuple))
                                               (bar #t () (tbytes 32)))])
                                  (ttuple
                                    (tcontract C
                                      (foo #f ((tbytes 32)) (ttuple))
                                      (bar #t () (tbytes 32))))
-                              (tuple %x.6))]
-                       (let* ([[%t.7 (ttuple
+                              (tuple %x.7))]
+                       (let* ([[%t.8 (ttuple
                                        (tcontract C
                                          (foo #f ((tbytes 32)) (ttuple))
                                          (bar #t () (tbytes 32)))
@@ -35052,9 +35117,9 @@ groups than for single tests.
                                  (public-ledger %contract_c.1 (0) read)
                                  (public-ledger %contract_c.1 (0) read))])
                          (tuple
-                           (call %circ.5 (tuple-ref %t.7 0))
-                           (call %circ.5 (tuple-ref %t.7 1)))))])
-               (public-ledger %F.2 (1) write %tmp.4))
+                           (call %circ.6 (tuple-ref %t.8 0))
+                           (call %circ.6 (tuple-ref %t.8 1)))))])
+               (public-ledger %F.2 (1) write %tmp.5))
              (tuple)))))
      ))
 )
@@ -35069,7 +35134,7 @@ groups than for single tests.
        )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %C.0 ([%v.1 (tvector 2 (tfield))])
              (tboolean)
           (let* ([[%t.2 (tboolean)] #t]
@@ -35091,7 +35156,7 @@ groups than for single tests.
        )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %C.0 ([%v.1 (tvector 2 (tunsigned 65535))])
              (tboolean)
           (let* ([[%t.2 (tboolean)] #t]
@@ -35122,7 +35187,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%b.1 (tboolean)] [%x.2 (tfield)])
              (tboolean))
         (circuit %C.3 ([%v.4 (tvector 0 (tfield))])
@@ -35168,7 +35233,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %bar.0 ([%v0.1 (tvector 0 (tfield))]
                          [%v1.2 (tvector 1 (tfield))]
                          [%v2.3 (tvector 2 (tfield))])
@@ -35226,7 +35291,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %bar1.0 ()
              (ttuple)
           (seq
@@ -35284,7 +35349,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%n.1 (tfield)]) (tboolean))
         (circuit %bar.2 ([%b.3 (tboolean)] [%n.4 (tfield)])
              (tvector 2 (tboolean))
@@ -35322,7 +35387,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%n.1 (tfield)]) (tboolean))
         (circuit %bar.2 ()
              (tvector 2 (tboolean))
@@ -35358,7 +35423,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%b.1 (tboolean)]
                          [%n.2 (tfield)]
                          [%s.3 (tbytes 20)])
@@ -35411,7 +35476,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%n.1 (tfield)] [%s.2 (tbytes 20)])
              (tboolean))
         (circuit %C.3 ([%v.4 (tvector 0 (tfield))]
@@ -35453,7 +35518,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%n.1 (tfield)]) (tboolean))
         (circuit %C.2 ([%v.3 (tvector 3 (tfield))]
                        [%b.4 (tboolean)])
@@ -35487,7 +35552,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %W.0 ([%x.1 (tfield)]) (tboolean))
         (circuit %foo1.2 ([%x.3 (tfield)])
              (tboolean)
@@ -35512,7 +35577,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %W.0 ([%x.1 (tfield)]) (tfield))
         (circuit %foo2.2 ([%x.3 (tfield)])
              (tfield)
@@ -35537,7 +35602,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %W.0 ([%x.1 (tboolean)]) (tboolean))
         (circuit %foo3.2 ([%x.3 (tboolean)])
              (tboolean)
@@ -35562,7 +35627,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (witness %W.0 ([%x.1 (tboolean)]) (tfield))
         (circuit %foo4.2 ([%x.3 (tboolean)])
              (tfield)
@@ -35576,7 +35641,7 @@ groups than for single tests.
     )
     (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo2.0 ([%arg.1 (tbytes 20)])
              (tfield)
           (bytes->field 20 %arg.1)))))
@@ -35587,7 +35652,7 @@ groups than for single tests.
      )
      (returns
       (program
-        (public-ledger-declaration ())
+        (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.0 ([%arg.1 (tfield)])
              (tbytes 20)
           (field->bytes 20 %arg.1))))
@@ -35607,7 +35672,8 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.1 (0) (Map (tfield) (Map (tfield) (tboolean))))))
+          ((%field1.1 (0) (Map (tfield) (Map (tfield) (tboolean)))))
+          (constructor () (tuple)))
         (circuit %foo.2 ([%n.3 (tfield)])
              (tboolean)
           (let* ([[%tmp.4 (tfield)] (safe-cast (tfield) (tunsigned 2) 2)])
@@ -77164,6 +77230,29 @@ groups than for single tests.
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  expect(C.circuits.foo(Ctxt).result).toEqual(14n);"
+        "});"
+        ))
+    )
+
+  ; pm-20295
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export ledger x: Counter;"
+      "constructor(){"
+      "  x.resetToDefault();"
+      "  const k = 30;"
+      "  for (const bob of slice<2>(Bytes[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32], k)) {"
+      "    x += bob;"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  let L = contractCode.ledger(Ctxt.currentQueryContext.state);"
+        "  expect(L.x).toEqual(63n);"
         "});"
         ))
     )

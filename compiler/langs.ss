@@ -873,12 +873,6 @@
       (- export-tdefn))
     (Export-Type-Definition (export-tdefn)
       (- (export-typedef src type-name (tvar-name* ...) type)))
-    (Ledger-Declaration (ldecl)
-      (- (public-ledger-declaration pl-array lconstructor))
-      (+ (public-ledger-declaration pl-array) =>
-           (public-ledger-declaration #f pl-array)))
-    (Ledger-Constructor (lconstructor)
-      (- (constructor src (arg* ...) expr)))
     (ADT-Runtime-Op (adt-rt-op)
       (- (ledger-op (arg* ...) result-type runtime-code)))
     (Expression (expr index)
@@ -931,6 +925,12 @@
       (- (safe-cast src type type^ expr))))
 
   (define-language/pretty Lnovectorref (extends Lnosafecast)
+    (Ledger-Declaration (ldecl)
+      (- (public-ledger-declaration pl-array lconstructor))
+      (+ (public-ledger-declaration pl-array) =>
+           (public-ledger-declaration #f pl-array)))
+    (Ledger-Constructor (lconstructor)
+      (- (constructor src (arg* ...) expr)))
     (Expression (expr index)
       (- (bytes-ref src type expr index)
          (vector-ref src type expr index)
