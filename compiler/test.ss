@@ -861,174 +861,6 @@ groups than for single tests.
     )
 )
 
-(run-tests print-typescript
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "export ledger set_coin_fake: Set<QualifiedShieldedCoinInfo>;"
-      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
-      "  set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      "}"
-      )
-    (succeeds)
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "type FakeQualifiedShieldedCoinInfo = QualifiedShieldedCoinInfo;"
-      "export ledger set_coin_fake: Set<FakeQualifiedShieldedCoinInfo>;"
-      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
-      "  set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      "}"
-      )
-    (succeeds)
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "new type FakeQualifiedShieldedCoinInfo = QualifiedShieldedCoinInfo;"
-      "export ledger set_coin_fake: Set<FakeQualifiedShieldedCoinInfo>;"
-      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
-      "  set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 16" "operation ~a undefined for ledger field type ~a" (insertCoin "Set<FakeQualifiedShieldedCoinInfo=struct QualifiedShieldedCoinInfo<nonce: Bytes<32>, color: Bytes<32>, value: Uint<128>, mt_index: Uint<64>>>")))
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "new type Fld = Field;"
-      "export ledger F: Fld;"
-      "export circuit foo(x: Fld): [] {"
-      "  F = disclose(x);"
-      "}"
-      )
-    (succeeds)
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "type Fld = Field;"
-      "export ledger F: Fld;"
-      "export circuit foo(x: Field): [] {"
-      "  F = disclose(x);"
-      "}"
-      )
-    (succeeds)
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "new type Fld = Field;"
-      "export ledger F: Fld;"
-      "export circuit foo(x: Field): [] {"
-      "  F = disclose(x);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "expected right-hand side of ~a to have type ~a but received ~a" ("=" "Fld=Field" "Field")))
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "type Ctr = Counter;"
-      "export ledger C: Ctr;"
-      "export circuit foo(): [] {"
-      "  C += 1;"
-      "}"
-      )
-    (succeeds)
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "new type Ctr = Counter;"
-      "export ledger C: Ctr;"
-      "export circuit foo(): [] {"
-      "  C += 1;"
-      "}"
-      )
-    (succeeds)
-    )
-
-  #|
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      ""
-      "type vector_of_sci = Vector<10, ShieldedCoinInfo>;"
-      "export ledger t11_set: Set<vector_of_sci>;"
-      "export ledger t11_set_coin: Set<QualifiedShieldedCoinInfo>;"
-      "export ledger t11_set_coin_fake: Set<QualifiedShieldedCoinInfo>;"
-      ""
-      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
-      "  const a = default<vector_of_sci>;"
-      "  t11_set.insert(a);"
-      ""
-      "  t11_set_coin.insertCoin(disclose(vara), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      "  t11_set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      "}"
-      )
-    (succeeds)
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "type FakeShieldedCoinInfo = ShieldedCoinInfo;"
-      "type FakeQualifiedShieldedCoinInfo = QualifiedShieldedCoinInfo;"
-      ""
-      "type vector_of_sci = Vector<10, FakeQualifiedShieldedCoinInfo>;"
-      "export ledger t11_set: Set<vector_of_sci>;"
-      "export ledger t11_set_coin: Set<QualifiedShieldedCoinInfo>;"
-      "export ledger t11_set_coin_fake: Set<FakeQualifiedShieldedCoinInfo>;"
-      ""
-      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
-      "  const a = default<vector_of_sci>;"
-      "  t11_set.insert(a);"
-      ""
-      "  t11_set_coin.insertCoin(disclose(vara), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      ; "  t11_set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      "}"
-      )
-    (succeeds)
-    )
-
-  (test
-    `(
-      "import CompactStandardLibrary;"
-      "type FakeShieldedCoinInfo = ShieldedCoinInfo;"
-      "type FakeQualifiedShieldedCoinInfo = QualifiedShieldedCoinInfo;"
-      ""
-      "type vector_of_sci = Vector<10, FakeShieldedCoinInfo>;"
-      "export ledger t11_set: Set<vector_of_sci>;"
-      "export ledger t11_set_coin: Set<QualifiedShieldedCoinInfo>;"
-      "export ledger t11_set_coin_fake: Set<FakeQualifiedShieldedCoinInfo>;"
-      ""
-      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
-      "  const a = default<vector_of_sci>;"
-      "  t11_set.insert(a);"
-      ""
-      ; "  t11_set_coin.insertCoin(disclose(vara), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      "  t11_set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      "}"
-      )
-    (succeeds)
-    )
-  |#
-)
-#!eof
-
 (run-tests parse-file/format/reparse
   (test
     '(
@@ -22619,6 +22451,192 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 7 char 4" "expected ~:r argument of ~s to have type ~a but received ~a" (2 insert "T1=Map<Field, Field>" "Map<Field, Field>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type QSCI = QualifiedShieldedCoinInfo;"
+      "export ledger F: Set<QSCI>;"
+      "export circuit bar(): ShieldedCoinInfo { return default<ShieldedCoinInfo>; }"
+      "export circuit foo(x: ShieldedCoinInfo): Boolean {"
+      "  F.insertCoin(disclose(x), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "  return F.member(default<QSCI>);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (public-ledger-declaration
+          %F.1
+          (Set (talias #f QSCI
+                 (tstruct QualifiedShieldedCoinInfo
+                   (nonce (tbytes 32))
+                   (color (tbytes 32))
+                   (value (tunsigned 340282366920938463463374607431768211455))
+                   (mt_index (tunsigned 18446744073709551615))))))
+        (circuit %bar.2 ()
+             (tstruct ShieldedCoinInfo
+               (nonce (tbytes 32))
+               (color (tbytes 32))
+               (value (tunsigned 340282366920938463463374607431768211455)))
+          (default
+            (tstruct ShieldedCoinInfo
+              (nonce (tbytes 32))
+              (color (tbytes 32))
+              (value (tunsigned
+                       340282366920938463463374607431768211455)))))
+        (circuit %foo.3 ([%x.4 (tstruct ShieldedCoinInfo
+                                 (nonce (tbytes 32))
+                                 (color (tbytes 32))
+                                 (value (tunsigned
+                                          340282366920938463463374607431768211455)))])
+             (tboolean)
+          (seq
+            (ledger-call insertCoin
+              %F.1
+              (disclose %x.4)
+              (default
+                (tstruct Either
+                  (is_left (tboolean))
+                  (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                  (right (tstruct ContractAddress (bytes (tbytes 32)))))))
+            (ledger-call member
+              %F.1
+              (default
+                (talias #f QSCI
+                  (tstruct QualifiedShieldedCoinInfo
+                    (nonce (tbytes 32))
+                    (color (tbytes 32))
+                    (value (tunsigned 340282366920938463463374607431768211455))
+                    (mt_index (tunsigned 18446744073709551615))))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type QSCI = QualifiedShieldedCoinInfo;"
+      "export ledger F: Set<QSCI>;"
+      "export circuit bar(): ShieldedCoinInfo { return default<ShieldedCoinInfo>; }"
+      "export circuit foo(x: ShieldedCoinInfo): Boolean {"
+      "  F.insertCoin(disclose(x), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "  return F.member(default<QSCI>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 4" "operation ~a undefined for ledger field type ~a" (insertCoin "Set<QSCI=struct QualifiedShieldedCoinInfo<nonce: Bytes<32>, color: Bytes<32>, value: Uint<128>, mt_index: Uint<64>>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type Ctr = Counter;"
+      "export ledger C: Ctr;"
+      "export circuit foo(): [] {"
+      "  C += 1;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (public-ledger-declaration %C.1 (talias #f Ctr (Counter)))
+        (circuit %foo.2 ()
+             (ttuple)
+          (seq
+            (ledger-call increment
+              %C.1
+              (safe-cast (tunsigned 65535) (tunsigned 1) 1))
+            (tuple)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type Ctr = Counter;"
+      "export ledger C: Ctr;"
+      "export circuit foo(): [] {"
+      "  C += 1;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (public-ledger-declaration %C.1 (talias #t Ctr (Counter)))
+        (circuit %foo.2 ()
+             (ttuple)
+          (seq
+            (ledger-call increment
+              %C.1
+              (safe-cast (tunsigned 65535) (tunsigned 1) 1))
+            (tuple)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type U32 = Uint<32>;"
+      "type U33 = Uint<33>;"
+      "circuit bar<A>(): A {"
+      "  return 3 as A;"
+      "}"
+      "export circuit foo(): U33 {"
+      "  const x = bar<Uint<32>>();"
+      "  return x + bar<U32>();"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %bar.1 ()
+             (tunsigned 4294967295)
+          (safe-cast (tunsigned 4294967295) (tunsigned 3) 3))
+        (circuit %foo.2 ()
+             (talias #f U33 (tunsigned 8589934591))
+          (safe-cast (talias #f U33 (tunsigned 8589934591))
+                     (tunsigned 8589934590)
+            (let* ([[%x.3 (tunsigned 4294967295)] (call %bar.1)])
+              (+ 33
+                 (safe-cast (tunsigned 8589934590)
+                            (tunsigned 4294967295)
+                   %x.3)
+                 (safe-cast (tunsigned 8589934590)
+                            (tunsigned 4294967295)
+                   (call %bar.1))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type U32 = Uint<32>;"
+      "type U33 = Uint<33>;"
+      "circuit bar<A>(): A {"
+      "  return 3 as A;"
+      "}"
+      "export circuit foo(): U33 {"
+      "  const x = bar<U32>();"
+      "  return bar<Uint<32>>() + x;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %bar.1 ()
+             (talias #f U32 (tunsigned 4294967295))
+          (safe-cast (tunsigned 4294967295) (tunsigned 3) 3))
+        (circuit %foo.2 ()
+             (talias #f U33 (tunsigned 8589934591))
+          (safe-cast (talias #f U33 (tunsigned 8589934591))
+                     (tunsigned 8589934590)
+            (let* ([[%x.3 (talias #f U32 (tunsigned 4294967295))]
+                    (call %bar.1)])
+              (+ 33
+                 (safe-cast (tunsigned 8589934590)
+                            (talias #f U32 (tunsigned 4294967295))
+                   (call %bar.1))
+                 (safe-cast (tunsigned 8589934590)
+                            (talias #f U32 (tunsigned 4294967295))
+                   %x.3)))))))
     )
 )
 
