@@ -861,6 +861,174 @@ groups than for single tests.
     )
 )
 
+(run-tests print-typescript
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export ledger set_coin_fake: Set<QualifiedShieldedCoinInfo>;"
+      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
+      "  set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "type FakeQualifiedShieldedCoinInfo = QualifiedShieldedCoinInfo;"
+      "export ledger set_coin_fake: Set<FakeQualifiedShieldedCoinInfo>;"
+      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
+      "  set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "new type FakeQualifiedShieldedCoinInfo = QualifiedShieldedCoinInfo;"
+      "export ledger set_coin_fake: Set<FakeQualifiedShieldedCoinInfo>;"
+      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
+      "  set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 16" "operation ~a undefined for ledger field type ~a" (insertCoin "Set<FakeQualifiedShieldedCoinInfo=struct QualifiedShieldedCoinInfo<nonce: Bytes<32>, color: Bytes<32>, value: Uint<128>, mt_index: Uint<64>>>")))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "new type Fld = Field;"
+      "export ledger F: Fld;"
+      "export circuit foo(x: Fld): [] {"
+      "  F = disclose(x);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "type Fld = Field;"
+      "export ledger F: Fld;"
+      "export circuit foo(x: Field): [] {"
+      "  F = disclose(x);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "new type Fld = Field;"
+      "export ledger F: Fld;"
+      "export circuit foo(x: Field): [] {"
+      "  F = disclose(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 5" "expected right-hand side of ~a to have type ~a but received ~a" ("=" "Fld=Field" "Field")))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "type Ctr = Counter;"
+      "export ledger C: Ctr;"
+      "export circuit foo(): [] {"
+      "  C += 1;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "new type Ctr = Counter;"
+      "export ledger C: Ctr;"
+      "export circuit foo(): [] {"
+      "  C += 1;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  #|
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ""
+      "type vector_of_sci = Vector<10, ShieldedCoinInfo>;"
+      "export ledger t11_set: Set<vector_of_sci>;"
+      "export ledger t11_set_coin: Set<QualifiedShieldedCoinInfo>;"
+      "export ledger t11_set_coin_fake: Set<QualifiedShieldedCoinInfo>;"
+      ""
+      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
+      "  const a = default<vector_of_sci>;"
+      "  t11_set.insert(a);"
+      ""
+      "  t11_set_coin.insertCoin(disclose(vara), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "  t11_set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "type FakeShieldedCoinInfo = ShieldedCoinInfo;"
+      "type FakeQualifiedShieldedCoinInfo = QualifiedShieldedCoinInfo;"
+      ""
+      "type vector_of_sci = Vector<10, FakeQualifiedShieldedCoinInfo>;"
+      "export ledger t11_set: Set<vector_of_sci>;"
+      "export ledger t11_set_coin: Set<QualifiedShieldedCoinInfo>;"
+      "export ledger t11_set_coin_fake: Set<FakeQualifiedShieldedCoinInfo>;"
+      ""
+      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
+      "  const a = default<vector_of_sci>;"
+      "  t11_set.insert(a);"
+      ""
+      "  t11_set_coin.insertCoin(disclose(vara), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      ; "  t11_set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "type FakeShieldedCoinInfo = ShieldedCoinInfo;"
+      "type FakeQualifiedShieldedCoinInfo = QualifiedShieldedCoinInfo;"
+      ""
+      "type vector_of_sci = Vector<10, FakeShieldedCoinInfo>;"
+      "export ledger t11_set: Set<vector_of_sci>;"
+      "export ledger t11_set_coin: Set<QualifiedShieldedCoinInfo>;"
+      "export ledger t11_set_coin_fake: Set<FakeQualifiedShieldedCoinInfo>;"
+      ""
+      "export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {"
+      "  const a = default<vector_of_sci>;"
+      "  t11_set.insert(a);"
+      ""
+      ; "  t11_set_coin.insertCoin(disclose(vara), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "  t11_set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
+      "}"
+      )
+    (succeeds)
+    )
+  |#
+)
+#!eof
+
 (run-tests parse-file/format/reparse
   (test
     '(
