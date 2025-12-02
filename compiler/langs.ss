@@ -32,14 +32,12 @@
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-temp?-set! id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats Ltypes-Public-Ledger-ADT?
-          ;; Lnofunintcontract unparse-Lnofunintcontract Lnofunintcontract-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Type? Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats Loneledger-Ledger-Declaration?
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
           Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats Lwithpaths-Public-Ledger-ADT? Lwithpaths-Type?
           Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats Lnodisclose-Type-Definition?
-          ;; Lnoccplaceholder unparse-Lnoccplaceholder Lnoccplaceholder-pretty-formats
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-Public-Ledger-ADT? Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op? Ltypescript-Type?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
@@ -513,7 +511,7 @@
       (+ (external-contract src contract-name ecdecl-circuit* ...) =>
            (external-contract contract-name ecdecl-circuit* ...)))
     (External-Contract-Circuit (ecdecl-circuit)
-      ; function-name is inserted as fun in tcontract and can be dropped here
+      ; function-name is inserted in tcontract and can be dropped here
       (- (src pure-dcl elt-name function-name (arg* ...) type))
       (+ (src pure-dcl elt-name (arg* ...) type) =>
            (pure-dcl elt-name (arg* ...) type)))
@@ -752,11 +750,6 @@
         (tenum enum-name #f elt-name #f elt-name* ...)
       (tundeclared)
       (tunknown)))
-
-  ;; (define-language/pretty Lnofunintcontract (extends Ltypes)
-  ;;   (Type (type)
-  ;;     (- (tcontract src contract-name (elt-name* function-name* pure-dcl* (type** ...) type*) ...))
-  ;;     (+ (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...))))
 
   (define-language/pretty Lnotundeclared (extends Ltypes)
     (Type (type)

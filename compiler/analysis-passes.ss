@@ -565,11 +565,7 @@
                                       (assert (eq? symbolic-function-name symbolic-function-name^))
                                       (id-temp?-set! function-name #t)
                                       function-name]
-                                     [else
-                                      ; FIXME
-                                      (internal-errorf 'handle-type-ref "invalid function ~a" fun)
-                                      ;; (assert cannot-happen)
-                                      ])))
+                                     [else (assert cannot-happen)])))
                                  ecdecl-circuit*)
                          ,(map ecdecl-circuit-pure? ecdecl-circuit*)
                          (,(map (lambda (type*) (map Type type*)) (map ecdecl-circuit-type* ecdecl-circuit*)) ...)
@@ -2042,12 +2038,17 @@
                                        (format-type actual-adt-type))))
                     declared-type* adt-type* (enumerate declared-type*))
                   ; do i need to check the type of the first expr being consed here? TODO
-                  (let ([expr* (cons expr (map (maybe-upcast src) declared-type* adt-type* expr*))]
-                        [return-type (car type*)])
+                  (let* ([return-type (car type*)]
+                         [local-res (make-temp-id src '__compact_local_result)]
+                         [local (with-output-language (Ltypes Local)
+                                 `(,local-res ,return-type))]
+                         [call-expr* (reverse (cons (with-output-language (Ltypes Expression)
+                                                      `(var-ref ,src ,local-res))
+                                                    (reverse (cons expr (map (maybe-upcast src) declared-type* adt-type* expr*)))))])
                     (values
                       (with-output-language (Ltypes Expression)
-                        ;; `(contract-call-placeholder ,src ,function-name ,return-type ,expr* ...)
-                        `(call ,src (fref ,src ,function-name) ,expr* ...)
+                        `(let* ,src ([,local (contract-call ,src ,elt-name (,expr ,adt-type) ,expr* ... )])
+                               (call ,src (fref ,src ,function-name) ,call-expr* ...))
                         )
                       return-type)))
               (loop (cdr elt-name*) (cdr function-name*) (cdr type**) (cdr type*))))))
@@ -3067,7 +3068,8 @@
        (values
          `(return ,src ,expr)
          type)]
-      [(contract-call ,src ,elt-name (,[Care : expr type] ,[type^]) ,expr* ...)
+      ; FIXME drop me
+      #;[(contract-call ,src ,elt-name (,[Care : expr type] ,[type^]) ,expr* ...)
        (let-values ([(expr* actual-type*) (maplr2 Care expr*)])
          (assert (sametype? type type^))
          (nanopass-case (Ltypes Type) type
@@ -3146,11 +3148,6 @@
          [else (source-errorf src "expected type of Bytes spread to be a Bytes value or a Tuple or Vector of Uint<8> subtypes but received ~a"
                               (format-type type))])])
     )
-
-  ;; (trace-define-pass remove-fun-in-tcontract : Ltypes (ir) -> Lnofunintcontract ()
-  ;;   (Type : Type (ir) -> Type ()
-  ;;     [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,[type**] ...) ,[type*]) ...)
-  ;;      `(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[type**] ...) ,[type*]) ...)]))
 
   (define-pass remove-tundeclared : Ltypes (ir) -> Lnotundeclared ())
 
@@ -4068,8 +4065,6 @@
       ; FIXME: syntax post-desugar should require at least one accessor
       [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...)
        (assert cannot-happen)]
-      ;; [(contract-call-placeholder ,src ,function-name ,type ,expr* ...)
-      ;;  type]
       [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (nanopass-case (Lnodca Type) type
          [(tcontract ,src^ ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ... )
@@ -5307,8 +5302,6 @@
             discloses?*
             (if (= (length abs*) 1) '(#f) (enumerate abs*)))
           (default-value adt-type)])]
-      ;; [(contract-call-placeholder ,src ,function-name ,type ,[* abs*] ...)
-      ;;  (Abs-multiple abs*)]
       [(contract-call ,src ,elt-name (,[* abs] ,[type]) ,[* abs*] ...)
        (unless (null? control-witness*)
          (record-leak! src "making this contract call" control-witness*))
@@ -5359,11 +5352,6 @@
        (assert (= (length var-name*) (length abs*)))
        (Expression expr (extend-env p var-name* abs*) control-witness* #f)]))
 
-  ;; (define-pass remove-cc-placeholder : Lwithpaths (ir) -> Lnoccplaceholder ()
-  ;;   (Expression : Expression (ir) -> Expression ()
-  ;;     [(contract-call-placeholder ,src ,function-name ,type ,[expr*] ...)
-  ;;      `(call ,src ,function-name ,expr* ...)]))
-
   (define-pass remove-disclose : Lwithpaths (ir) -> Lnodisclose ()
     (ADT-Op : ADT-Op (ir) -> ADT-Op ()
       [(,ledger-op ,[op-class] (,adt-name (,adt-formal* ,[adt-arg*]) ...) ((,var-name* ,[adt-type*] ,discloses?*) ...) ,[adt-type] ,vm-code)
@@ -5375,7 +5363,6 @@
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
     (infer-types                     Ltypes)
-    ;; (remove-fun-in-tcontract         Lnofunintcontract)
     (remove-tundeclared              Ltypes)
     (combine-ledger-declarations     Loneledger)
     (discard-unused-functions        Loneledger)
@@ -5387,7 +5374,6 @@
     (determine-ledger-paths          Lwithpaths0)
     (propagate-ledger-paths          Lwithpaths)
     (track-witness-data              Lwithpaths)
-    ;; (remove-cc-placeholder           Lnoccplaceholder)
     (remove-disclose                 Lnodisclose))
 
   (define-passes fixup-analysis-passes

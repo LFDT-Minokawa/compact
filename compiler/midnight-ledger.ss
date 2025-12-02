@@ -192,7 +192,7 @@
      (push [storage #f] [value (state-value 'null)])
      (ins [cached #t] [n 2])
      (swap [n 0])))
-  (function update claimContractCall
+  (function update claimContractCall ; FIXME add disclose for entry point
             ([addr Bytes32 (discloses "the address of a contract being called given by")]
              [entry_point Bytes32 (discloses "the hash of the contract's circuit being called given by")]
              [comm Field (discloses nothing)])

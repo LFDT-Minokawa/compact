@@ -125,7 +125,7 @@ groups than for single tests.
   (define contractCode*)
   (define test-root*)
 
-  (define show-last-successes (make-parameter 0))
+  (define show-last-successes (make-parameter 1))
   (define show-successes (make-parameter #f))
   (define show-all-passes (make-parameter #f))
   (define show-stack-backtrace (make-parameter #t))
@@ -36615,6 +36615,21 @@ groups than for single tests.
          "  if (b) C1.foo(pad(32, '')); else C2.foo(pad(32, ''));"
          "}"
          ))
+     ; Kent:
+     ; the new output.
+     ; issue at the declaration of circuits for contracts it says
+     ; performing this ledger operation might disclose the boolean value of the witness value
+     #;(oops
+       message: "~a:\n  ~?"
+       irritants: '("C2.compact line 2 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 8 char 3")))
+       message: "~a:\n  ~?"
+       irritants: '("C2.compact line 8 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      making this contract call might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 8 char 3")))
+       message: "~a:\n  ~?"
+       irritants: '("C2.compact line 8 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 8 char 3")))
+       message: "~a:\n  ~?"
+       irritants: '("C2.compact line 8 char 38" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      making this contract call might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 8 char 3")))
+       message: "~a:\n  ~?"
+       irritants: '("C2.compact line 8 char 38" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 8 char 3"))))
      (oops
        message: "~a:\n  ~?"
        irritants: '("C2.compact line 8 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      making this contract call might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 8 char 3")))
