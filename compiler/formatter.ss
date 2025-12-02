@@ -874,7 +874,7 @@
          (make-Qconcat
            qparg
            nbsp (make-Qtoken op)
-           (if (> (Q-size qparg) 7) 8 nbsp) (Expression expr)))])
+           (if (> (Q-size qparg) 3) 2 nbsp) (Expression expr)))])
     (Pattern-Argument-List : Pattern-Argument-List (ir indent?) -> * (q)
       [(,lparen (,parg* ...) (,comma* ...) ,rparen)
        (apply make-Qconcat
@@ -1166,24 +1166,24 @@
            (make-Qconcat (make-Qtoken bang) (Expression expr)))]
       [(map ,src ,kwd ,lparen ,fun ,comma (,expr ,expr* ...) (,comma* ...) ,rparen)
        (// src
-           (apply make-Qconcat
+           (make-Qconcat
              (make-Qtoken kwd)
              (make-Qtoken lparen)
-             (Function fun)
-             (add-punctuation comma
-               (cons*
-                 nbsp (make-Qsep comma* (map Expression (cons expr expr*)) #f rparen)
-                 '()))))]
+             (make-Qsep
+               (cons comma comma*)
+               (cons (Function fun) (map Expression (cons* expr expr*)))
+               #f
+               rparen)))]
       [(fold ,src ,kwd ,lparen ,fun ,comma (,expr0 ,expr ,expr* ...) (,comma* ...) ,rparen)
        (// src
-           (apply make-Qconcat
+           (make-Qconcat
              (make-Qtoken kwd)
              (make-Qtoken lparen)
-             (Function fun)
-             (add-punctuation comma
-               (cons*
-                 nbsp (make-Qsep comma* (map Expression (cons* expr0 expr expr*)) #f rparen)
-                 '()))))]
+             (make-Qsep
+               (cons comma comma*)
+               (cons (Function fun) (map Expression (cons* expr0 expr expr*)))
+               #f
+               rparen)))]
       [(call ,src ,fun ,lparen (,expr* ...) (,comma* ...) ,rparen)
        (// src
            (let ([qfun (Function fun)])
@@ -1250,9 +1250,10 @@
            (apply make-Qconcat
              (Pattern-Argument-List parg-list #f)
              (maybe-add Return-Type return-type?
-               (list
-                 0 (make-Qtoken arrow)
-                 nbsp (Block blck)))))]
+               (let ([qblock (Block blck)])
+                 (list
+                   (if (Q-multiline? qblock) nl 0) (make-Qtoken arrow)
+                   nbsp qblock)))))]
       [(arrow-expr ,src ,parg-list ,return-type? ,arrow ,expr)
        (// src
            (apply make-Qconcat
