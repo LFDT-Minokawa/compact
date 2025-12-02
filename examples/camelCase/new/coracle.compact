@@ -187,7 +187,7 @@ export circuit is_player_alive(local_board: Committable<Board>, guess: Field): B
 export circuit start(pos: Field, wager: ShieldedCoinInfo, deposit: ShieldedCoinInfo): Player {
   assert(state == State.no_game || state == State.red_started, "The game already has two players");
   if (state == State.red_started) {
-    assert(wager.value == pot.value && wager.color == pot.color, "Blue must match Reds wager");
+     assert(wager.value == pot.value && wager.color == pot.color, "Blue must match Reds wager");
   }
   assert(deposit.value == 100000 && deposit.color == nativeToken(), "Invalid deposit");
   const b = Board { pos };
@@ -208,10 +208,11 @@ export circuit start(pos: Field, wager: ShieldedCoinInfo, deposit: ShieldedCoinI
      state = State.red_started;
      local_set_board(cb);
      return Player.red;
-  }
-  else {
+  } else {
      pot.writeCoin(
-       mergeCoinImmediate(pot, wager), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+       mergeCoinImmediate(pot, wager),
+       right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+       );
      blue_deposit.writeCoin(deposit, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
      blue = blue_pk(sk);
      blue_board = commit<Board>(cb);
@@ -293,7 +294,8 @@ circuit red_concede(): ShieldedCoinInfo {
   return sendShielded(
            red_deposit,
            left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
-           red_deposit.value).sent;
+           red_deposit.value
+           ).sent;
 }
 
 // Blue is defeated and finishes the game
@@ -314,7 +316,8 @@ circuit blue_concede(): ShieldedCoinInfo {
   return sendShielded(
            blue_deposit,
            left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
-           blue_deposit.value).sent;
+           blue_deposit.value
+           ).sent;
 }
 
 struct WithdrawnCoins {
@@ -337,11 +340,15 @@ circuit red_withdraw(): WithdrawnCoins {
   assert(state == State.red_wins, "Red hasn't won");
 
   const wager = sendShielded(
-                  pot, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()), pot.value).sent;
+                  pot,
+                  left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+                  pot.value
+                  ).sent;
   const deposit = sendShielded(
                     red_deposit,
                     left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
-                    red_deposit.value).sent;
+                    red_deposit.value
+                    ).sent;
   return WithdrawnCoins { wager, deposit };
 }
 
@@ -352,10 +359,14 @@ circuit blue_withdraw(): WithdrawnCoins {
   assert(state == State.blue_wins, "Blue hasn't won");
 
   const wager = sendShielded(
-                  pot, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()), pot.value).sent;
+                  pot,
+                  left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+                  pot.value
+                  ).sent;
   const deposit = sendShielded(
                     blue_deposit,
                     left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
-                    blue_deposit.value).sent;
+                    blue_deposit.value
+                    ).sent;
   return WithdrawnCoins { wager, deposit };
 }

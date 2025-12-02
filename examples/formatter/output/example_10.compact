@@ -37,7 +37,7 @@ export circuit read(): Uint<64> {
   if (1 == 2) 
 
               {
-    return c.read();
+     return c.read();
   }
   return c.read();
 }

@@ -20,21 +20,21 @@ export circuit method_3(): [] {
   const z = 2;
 
   if (p > z) {
-    assert(1 > 2, "troll");
-    if (p > z) {
-      assert(1 > 2, "troll");
-      if (p > z) {
+     assert(1 > 2, "troll");
+     if (p > z) {
         assert(1 > 2, "troll");
         if (p > z) {
-          assert(1 > 2, "troll");
-          if (p > z) {
-            assert(1 > 2, "troll");
-            if (p > z) {
+           assert(1 > 2, "troll");
+           if (p > z) {
               assert(1 > 2, "troll");
-            }
-          }
+              if (p > z) {
+                 assert(1 > 2, "troll");
+                 if (p > z) {
+                    assert(1 > 2, "troll");
+                 }
+              }
+           }
         }
-      }
-    }
+     }
   }
 }

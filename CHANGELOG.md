@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.27.113, language version 0.19.103]
+
+### Changed
+
+- The formatter's handling of several forms has been improved:
+  - When the signature of a function needs to be broken up into multiple lines,
+    the parameter list is also broken up into multiple lines (even if it would itself
+    fit on one line), and the return-type declaration appears on a line following
+    the last parameter declaration. This change applies to circuit definitions,
+    external declarations, witness declarations, the constructor, and anonymous
+    circuit definitions.
+  - When a call expression needs to be broken up into multiple lines, the argument
+    list is also broken up into multiple lines (even if it would itself
+    fit on one line), and the closing parenthesis of the call appears on a line
+    following the last argument expression.
+  - When an anonymous circuit needs to be broken up into multiple lines, the body
+    of the circuit is indented a few spaces in from the start of the parameter
+    list rather than all the way out beyond the circuit's signature.
+  - When the "else" expression of an "if" expression is itself an "if" expression,
+    the inner "if" expression begins on the same line as the "else" and appears at
+    at the same level of indentation as the outer "if" expression, in a case-like
+    structure.  This special treatment is inhibited by end-of-line comments between
+    the outer "else" keyword and the inner "if" keyword.
+
+### Internal notes
+
+- Configuration parameters have been collected into a single new library, (config-params)
+- The formatter line length is now a configuration parameter, set to 100 by default.
+- copiler/go now catches keyboard interrupts while running the tests and aborts the tests.
+- compier.md now more accurately describes the composition of the token stream.
+- The formatter improvements are supported by the following changes:
+  - add-block (appropriately renamed make-Qblock, since it returns a block)
+    has been simplified to take a header rather than a proc that produces a header
+  - make-Qsep has been split into two routines, one that expects a closer and one
+    that doesn't.
+  - make-Qsep and make-Qconcat now take an inherit-break? flag whose value is
+    recorded in the resulting Qconcat record.  Processing a Qconcat with this
+    flag set in the context in which lines are being broken causes the contents
+    of the Qconcat itself to be broken into multiple lines.  The contents of a
+    Qconcat q with this flag set are still indented relative to q.
+  - The code for handling function signatures is now commonized into a single
+    constructor make-Qsignature.
+
 ## [Unreleased compiler version 0.27.112, language version 0.19.103]
 
 ### Changed

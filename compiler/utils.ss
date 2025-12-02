@@ -15,7 +15,7 @@
 
 (library (utils)
   (export not-implemented cannot-happen
-          compact-input-transcoder compact-path relative-path find-source-pathname source-position
+          compact-input-transcoder relative-path source-position
           register-source-root! registered-source-root
           register-target-pathname! registered-target-pathname
           register-source-pathname! registered-source-pathnames
@@ -66,19 +66,6 @@
   ; of converting crlf (and other less common line endings) into lf.
   (define compact-input-transcoder (make-transcoder (utf-8-codec) (eol-style lf)))
 
-  (define compact-path
-    (make-parameter
-      (let ()
-        (define (split-search-path str)
-          (let ([n (string-length str)])
-            (let f ([i 0] [j 0])
-              (if (fx= j n)
-                  (if (fx= i j) '() (list (substring str i j)))
-                  (if (char=? (string-ref str j) (if (directory-separator? #\\) #\; #\:))
-                      (cons (substring str i j) (f (fx+ j 1) (fx+ j 1)))
-                      (f i (fx+ j 1)))))))
-        (split-search-path (or (getenv "COMPACT_PATH") "")))))
-
   (module (register-source-root! registered-source-root
            register-target-pathname! registered-target-pathname
            register-source-pathname! registered-source-pathnames
@@ -101,19 +88,6 @@
       (set! source-pathname* '())))
 
   (define relative-path (make-parameter #f))
-
-  (define (find-source-pathname src pathname err)
-    (let ([pathname (format "~a.compact" pathname)])
-      (or (and (file-exists? pathname) pathname)
-          (and (not (path-absolute? pathname))
-               (ormap
-                 (lambda (dir)
-                   (let ([pathname (format "~a/~a" dir pathname)])
-                     (and (file-exists? pathname) pathname)))
-                 (if (relative-path)
-                     (cons (relative-path) (compact-path))
-                     (compact-path))))
-          (err pathname))))
 
   (define (source-position x)
     (let ([src (annotation-source (assert (syntax->annotation x)))])

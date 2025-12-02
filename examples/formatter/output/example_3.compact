@@ -30,8 +30,12 @@ export circuit method_4(): [] {
         for (const i of 1..10) {
 
           assert(1 > 2, "troll");
+
         }
+
       }
+
     }
+
   }
 }
