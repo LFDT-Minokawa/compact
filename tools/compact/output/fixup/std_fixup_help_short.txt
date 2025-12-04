@@ -1,0 +1,16 @@
+Apply fixup transformations to compact files
+
+Usage: compact fixup [OPTIONS] [FILES]...
+
+Arguments:
+  [FILES]...  Files or directories to fixup [default: .]
+
+Options:
+      --update-Uint-ranges     Adjust Uint range endpoints
+      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
+                               [default: [COMPACT_DIR]]
+      --vscode                 Format error messages as single line (for VS Code extension)
+  -v, --verbose                Print verbose output
+  -i, --in-place               Apply changes in-place (default is to output to stdout)
+  -h, --help                   Print help (see more with '--help')
+  -V, --version                Print version

@@ -66,7 +66,7 @@ fn test_sc10_update_two_versions_compile_contract_with_previous() {
         Some("./output/update/std_update_other.txt"),
         None,
         &[
-            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
+            ("[COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
             ("[SYSTEM_VERSION]", get_version()),
         ],
         None,
