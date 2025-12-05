@@ -28,8 +28,8 @@ pub mod utils;
 
 pub use self::{
     command_line_arguments::{
-        CleanCommand, Command, CommandLineArguments, CompactUpdateConfig, FixupCommand,
-        FormatCommand, ListCommand, SSelf, Target, UpdateCommand,
+        CheckCommand, CleanCommand, Command, CommandLineArguments, CompactUpdateConfig,
+        FixupCommand, FormatCommand, ListCommand, SSelf, Target, UpdateCommand,
     },
     compact_directory::CompactDirectory,
     compiler::Compiler,

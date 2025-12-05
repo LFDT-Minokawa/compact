@@ -9,8 +9,8 @@ Arguments:
           [default: .]
 
 Options:
-      --update-Uint-ranges
-          Adjust Uint range endpoints
+  -c, --check
+          Check if inputs need fixup without changing them
 
       --directory <DIRECTORY>
           Set the compact artifact directory
@@ -22,17 +22,20 @@ Options:
           [env: COMPACT_DIRECTORY=]
           [default: [COMPACT_DIR]]
 
+      --update-Uint-ranges
+          Adjust Uint range endpoints
+
       --vscode
           Format error messages as single line (for VS Code extension)
 
   -v, --verbose
           Print verbose output
 
-  -i, --in-place
-          Apply changes in-place (default is to output to stdout)
+  -V, --version
+          Print the toolchain version
+
+      --language-version
+          Print the language version
 
   -h, --help
           Print help (see a summary with '-h')
-
-  -V, --version
-          Print version

@@ -25,8 +25,11 @@ Options:
   -v, --verbose
           Print each file seen by the formatter
 
+  -V, --version
+          Print the toolchain version
+
+      --language-version
+          Print the language version
+
   -h, --help
           Print help (see a summary with '-h')
-
-  -V, --version
-          Print version

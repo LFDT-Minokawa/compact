@@ -10,5 +10,6 @@ Options:
       --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
                                [default: [USER_DIR]/.compact]
   -v, --verbose                Print each file seen by the formatter
+  -V, --version                Print the toolchain version
+      --language-version       Print the language version
   -h, --help                   Print help (see more with '--help')
-  -V, --version                Print version
