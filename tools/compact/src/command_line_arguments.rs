@@ -39,7 +39,6 @@ Usage examples:
 /// contract development.
 #[derive(Debug, Clone, Parser)]
 #[clap(version)]
-#[clap(propagate_version = true)]
 #[command(after_help = ADDITIONAL_HELP)]
 pub struct CommandLineArguments {
     /// Set the target
@@ -80,7 +79,7 @@ pub struct CompactUpdateConfig {}
 #[derive(Debug, Clone, Subcommand)]
 pub enum Command {
     /// Check for updates with the remote server
-    Check,
+    Check(CheckCommand),
 
     /// Update to the latest or a specific version of the Compact toolchain
     ///
@@ -107,7 +106,13 @@ pub enum Command {
     ExternalCommand(Vec<String>),
 }
 
+/// Check for updates with the remote server
 #[derive(Debug, Clone, Args)]
+#[command(version)]
+pub struct CheckCommand {}
+
+#[derive(Debug, Clone, Args)]
+#[command(version)]
 pub struct UpdateCommand {
     /// Set the version to install
     #[arg(id = "COMPACT_VERSION")]
@@ -135,6 +140,14 @@ pub struct FormatCommand {
     /// Print each file seen by the formatter
     #[clap(short, long)]
     pub verbose: bool,
+
+    /// Print the toolchain version
+    #[clap(short = 'V', long)]
+    pub version: bool,
+
+    /// Print the language version
+    #[clap(long)]
+    pub language_version: bool,
 }
 
 /// Apply fixup transformations to compact files
@@ -143,6 +156,10 @@ pub struct FixupCommand {
     /// Files or directories to fixup
     #[clap(default_value = ".")]
     pub files: Vec<String>,
+
+    /// Check if inputs need fixup without changing them
+    #[clap(short, long)]
+    pub check: bool,
 
     /// Adjust Uint range endpoints
     #[clap(long = "update-Uint-ranges")]
@@ -156,13 +173,18 @@ pub struct FixupCommand {
     #[clap(short, long)]
     pub verbose: bool,
 
-    /// Apply changes in-place (default is to output to stdout)
-    #[clap(short, long)]
-    pub in_place: bool,
+    /// Print the toolchain version
+    #[clap(short = 'V', long)]
+    pub version: bool,
+
+    /// Print the language version
+    #[clap(long)]
+    pub language_version: bool,
 }
 
 /// List available compact versions
 #[derive(Debug, Clone, Args)]
+#[command(version)]
 pub struct ListCommand {
     /// Show installed versions
     #[arg(long, short, default_value_t = false)]
@@ -171,6 +193,7 @@ pub struct ListCommand {
 
 /// Remove all compact versions
 #[derive(Debug, Clone, Args)]
+#[command(version)]
 pub struct CleanCommand {
     /// Keep the version currently in use
     #[arg(long, short, default_value_t = false)]
@@ -183,6 +206,7 @@ pub struct CleanCommand {
 
 /// Commands for managing the compact tool itself
 #[derive(Debug, Clone, Subcommand)]
+#[command(version)]
 pub enum SSelf {
     /// Check for updates to the compact tool itself
     Check,

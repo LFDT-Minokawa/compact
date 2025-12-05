@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
     let cli = CommandLineArguments::parse();
 
     match &cli.command {
-        Command::Check => check(&cli)
+        Command::Check(_) => check(&cli)
             .await
             .context("Failed to check for new versions.")?,
         Command::Update(update_command) => update(&cli, update_command)
@@ -290,7 +290,31 @@ async fn format(cfg: &CommandLineArguments, command: &FormatCommand) -> Result<(
     let bin = cfg.directory.bin_dir().join("format-compact");
 
     if !bin.exists() {
-        bail!("formatter not available")
+        bail!(
+            "formatter not available - please install a compiler version that includes format-compact"
+        )
+    }
+
+    if command.version || command.language_version {
+        let flag = if command.version {
+            "--version"
+        } else {
+            "--language-version"
+        };
+
+        let output = tokio::process::Command::new(&bin)
+            .arg(flag)
+            .output()
+            .await
+            .context("Failed to invoke format-compact")?;
+
+        if output.status.success() {
+            print!("{}", String::from_utf8_lossy(&output.stdout));
+        } else {
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+            bail!("format-compact {} failed", flag);
+        }
+        return Ok(());
     }
 
     let mut join_set = JoinSet::new();
@@ -378,37 +402,49 @@ async fn fixup(cfg: &CommandLineArguments, command: &FixupCommand) -> Result<()>
         )
     }
 
-    if !command.in_place && command.files.len() > 1 {
-        eprintln!(
-            "{}: Multiple files specified without --in-place flag. Output will be concatenated to stdout.",
-            cfg.style.warn("Warning")
-        );
+    if command.version || command.language_version {
+        let flag = if command.version {
+            "--version"
+        } else {
+            "--language-version"
+        };
+
+        let output = tokio::process::Command::new(&bin)
+            .arg(flag)
+            .output()
+            .await
+            .context("Failed to invoke fixup-compact")?;
+
+        if output.status.success() {
+            print!("{}", String::from_utf8_lossy(&output.stdout));
+        } else {
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+            bail!("fixup-compact {} failed", flag);
+        }
+        return Ok(());
     }
 
     let mut join_set = JoinSet::new();
 
     let bin = Arc::new(bin);
+    let check_mode = command.check;
     let update_uint_ranges = command.update_uint_ranges;
     let vscode = command.vscode;
-    let in_place = command.in_place;
 
     for file_path in &command.files {
         let path = PathBuf::from_str(file_path).unwrap();
 
         if path.is_dir() {
-            if !in_place {
-                bail!("Directory processing requires --in-place flag");
-            }
             for path in fixup::compact_files_excluding_gitignore(&path) {
                 let bin = Arc::clone(&bin);
                 join_set.spawn(async move {
-                    fixup_file(&bin, path, update_uint_ranges, vscode, in_place).await
+                    fixup_file(&bin, check_mode, path, update_uint_ranges, vscode).await
                 });
             }
         } else {
             let bin = Arc::clone(&bin);
             join_set.spawn(async move {
-                fixup_file(&bin, path, update_uint_ranges, vscode, in_place).await
+                fixup_file(&bin, check_mode, path, update_uint_ranges, vscode).await
             });
         }
     }
@@ -449,8 +485,10 @@ async fn fixup(cfg: &CommandLineArguments, command: &FixupCommand) -> Result<()>
                     cfg.style.warn(message)
                 );
             }
-            FixupStatus::Output(content) => {
-                print!("{}", content);
+            FixupStatus::Diff(diff) => {
+                eprintln!("{}:", cfg.style.version_raw(path.display()));
+                eprintln!("{diff}");
+                something_failed = true;
             }
             _ => (),
         }
