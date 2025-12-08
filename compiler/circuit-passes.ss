@@ -266,6 +266,60 @@
     (Argument : Argument (ir) -> Argument ())
     (Type : Type (ir) -> Type ()))
 
+  ; FIXME/dropme discuss with kent
+  (define-pass tcontract-to-contractaddress : Lunrolled (ir) -> Lunrolled ()
+    (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
+      [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
+       (if (id-temp? function-name)
+           (let-values ([(expr cast-type) (do-expr expr 'none)])
+             (let ([arg* (map (lambda (arg)
+                                (nanopass-case (Lunrolled Argument) arg
+                                  [(,var-name ,type)
+                                   (with-output-language (Lunrolled Argument)
+                                     (let ([type (do-type type cast-type)])
+                                       `(,var-name ,type)))]
+                                     [else (assert cannot-happen)]))
+                              arg*)])
+               `(circuit ,src ,function-name (,arg* ...) ,type ,expr)))
+           `(circuit ,src ,function-name (,arg* ...) ,type ,expr))])
+    (do-type : Type (ir cast-type) -> Type ()
+      [(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...)
+       (if (eq? cast-type 'none)
+           `(tcontract ,src ,contract-name (,elt-name* ,function-name* ,pure-dcl* (,type** ...) ,type*) ...)
+           cast-type)]
+      [else ir])
+    (do-expr : Expression (ir cast-type) -> Expression (cast-type)
+      [(safe-cast ,src^
+                  (tstruct ,src^^ ,struct-name (,elt-name* ,type*) ...)
+                  (tcontract ,src^^^ ,contract-name (,elt-name*^ ,function-name* ,pure-dcl* (,type** ...) ,type*^) ...)
+                  ,expr)
+       (let ([new-type (with-output-language (Lunrolled Type)
+                         `(tstruct ,src^^ ,struct-name (,elt-name* ,type*) ...))])
+         (let-values ([(expr new-cast-type) (do-expr expr new-type)])
+           (values `(safe-cast ,src^
+                               (tstruct ,src^^ ,struct-name (,elt-name* ,type*) ...)
+                               (tcontract ,src^^^ ,contract-name (,elt-name*^ ,function-name* ,pure-dcl* (,type** ...) ,type*^) ...)
+                               ,expr)
+                   new-type)))]
+      [(seq ,src ,expr* ... ,expr)
+       (let loop ([expr* expr*] [cast-type cast-type] [original-expr* expr*])
+            (if (null? expr*)
+                       (let-values ([(expr cast-type) (do-expr expr cast-type)])
+                  (values `(seq ,src ,original-expr* ... ,expr) cast-type))
+                       (let-values ([(expr cast-type) (do-expr (car expr*) cast-type)])
+                  (loop (cdr expr*) cast-type original-expr*))))]
+      [(let* ,src ([,local* ,expr*] ...) ,expr)
+       (let loop ([expr* expr*] [cast-type cast-type] [original-expr* expr*])
+            (if (null? expr*)
+                       (let-values ([(expr cast-type) (do-expr expr cast-type)])
+                  (values `(let* ,src ([,local* ,original-expr*] ...) ,expr) cast-type))
+                       (let-values ([(expr cast-type) (do-expr (car expr*) cast-type)])
+                  (loop (cdr expr*) cast-type original-expr*))))]
+      [(elt-ref ,src ,expr ,elt-name)
+       (let-values ([(expr cast-type) (do-expr expr cast-type)])
+         (values `(elt-ref ,src ,expr ,elt-name) cast-type))]
+      [else (values ir cast-type)]))
+
   (define-pass inline-circuits : Lunrolled (ir) -> Linlined ()
     (definitions
       (define circuit-ht (make-eq-hashtable))
@@ -2469,6 +2523,11 @@
               (if (eq? (car elt-name*) elt-name)
                   (car wump*)
                   (loop (cdr elt-name*) (cdr wump*))))]
+           ; FIXME discuss with Kent
+           [(Wump-single elt)
+            (if (eq? elt-name 'bytes)
+                (Wump-single elt)
+                (assert cannot-happen))]
            [else (assert cannot-happen)]))
        '()]
       [(public-ledger ,src ,[Single-Triv : test] ,ledger-field-name ,sugar? (,[path-elt*] ...) ,src^ ,[adt-op -> adt-op^] ,[* actual-wump*] ...)
@@ -3482,6 +3541,7 @@
     (drop-ledger-runtime             Lposttypescript)
     (replace-enums                   Lnoenums)
     (unroll-loops                    Lunrolled)
+    ;; (tcontract-to-contractaddress    Lunrolled)
     (inline-circuits                 Linlined)
     (drop-safe-casts                 Lnosafecast)
     (resolve-indices/simplify        Lnovectorref)

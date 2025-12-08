@@ -470,25 +470,18 @@
                   [contract-arg (with-output-language (Lexpandedcontractcall Argument)
                                   `(,src ,local-c ,contract-type))]
                   [body (with-output-language (Lexpandedcontractcall Expression)
-                          `(block ,src () ; FIXME msg Kent: do we need block? I remember sth about forcing some IR to always be in blocks
-                            ;; (,(list local-res) ...)
-                                  ;; (let* ,src ([,res-arg (contract-call ,src ,elt-name ((var-ref ,src ,local-c) ,contract-type) ,(map ref-var arg*) ...)])
-                                        (seq ,src
-                                             (elt-call ,src (var-ref ,src __compact_std_kernel)
-                                                       claimContractCall
-                                                       ; Kent disclose is added because claimcontractcall doesn't disclose the first arg
-                                                       ,(list `(disclose ,src
-                                                                (elt-ref ,src (safe-cast ,src
-                                                                                         (type-ref ,src __compact_std_ContractAddress ,(list) ...)
-                                                                                         ,contract-type
-                                                                                         (var-ref ,src ,local-c))
-                                                                         bytes))
-                                                              `(quote ,src ,circuit-hash)
-                                                              tc-call) ...)
-                                             (return ,src (var-ref ,src ,local-res))))
-                        )
-                        ;; )
-                  ]
+                          `(seq ,src
+                                (elt-call ,src (var-ref ,src __compact_std_kernel)
+                                          claimContractCall
+                                          ,(list `(disclose ,src
+                                                   (elt-ref ,src (safe-cast ,src
+                                                                            (type-ref ,src __compact_std_ContractAddress ,(list) ...)
+                                                                            ,contract-type
+                                                                            (var-ref ,src ,local-c))
+                                                            bytes))
+                                                 `(disclose ,src (quote ,src ,circuit-hash))
+                                                 tc-call) ...)
+                                (return ,src (var-ref ,src ,local-res))))]
                   [arg* (reverse (cons res-arg (reverse (cons contract-arg arg*))))])
              (with-output-language (Lexpandedcontractcall Circuit-Definition)
                `(circuit ,src #t #f ,function-name () (,arg* ...) ,type ,body)))]))
