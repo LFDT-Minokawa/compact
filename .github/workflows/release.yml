@@ -184,7 +184,7 @@ jobs:
       tag: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.branch }}
       artifact: macos-release-x86_64
-      platform: macos-13
+      platform: macos-15-intel
       architecture: ${{ needs.setup.outputs.macos_x86 }}
       buildCommand: nix build .\#compactc-binary -L
       skipCache: true
@@ -222,7 +222,7 @@ jobs:
       tag: ${{ needs.setup.outputs.clean_tag }}
       branch: ${{ needs.setup.outputs.branch }}
       artifact: macos-release-x86_64
-      platform: macos-13
+      platform: macos-15-intel
       architecture: ${{ needs.setup.outputs.macos_x86 }}
 
   make-release:
