@@ -258,7 +258,7 @@
 
       ; basic Q support
       (module (nbsp nl nl2 nl! make-Qstring make-Qconcat
-               Q-size Q-multiline?
+               Q-size>? Q-multiline?
                print-Q)
         (define nbsp
           (let ()
@@ -292,6 +292,8 @@
           (define-record-type Qstring
             (nongenerative)
             (sealed #t)
+            ; size is the length of the last line
+            ; multiline?: spans more than one line
             (fields string size multiline?)
             (protocol
               (lambda (new)
@@ -307,39 +309,46 @@
             (lambda (x p wr) (wr (Qstring-string x) p)))
           )
 
-        (module (make-Qconcat Qconcat? Qconcat-q* Qconcat-size Qconcat-multiline?)
+        (module (make-Qconcat Qconcat? Qconcat-q* Qconcat-size Qconcat-eol? Qconcat-multiline?)
           (define-record-type Qconcat
             (nongenerative)
             (sealed #t)
-            (fields q* size multiline?)
+            ; eol?: ends in a newline (does not imply multiline?)
+            ; multiline?: spans more than one line (does not imply eol?)
+            ; !eol? && !multiline?: partial line
+            ; size is the length of the last line
+            (fields q* size eol? multiline?)
             (protocol
               (lambda (new)
                 (lambda q*
-                  ; weed out zero-length q's and fixnums that aren't followed by non-zero-length q's
-                  (let loop ([rq* (reverse q*)] [last-size 0] [q* '()])
+                  ; weed out zero-length q's and nbsps/fixnums that aren't followed by empty q's
+                  (let weed ([rq* (reverse q*)] [last-empty? #f] [q* '()])
                     (if (null? rq*)
-                        (let ([ret-q* q*])
-                          (let loop ([q* q*] [size 0] [max-size 0] [ml? #f])
-                            (if (null? q*)
-                                (new ret-q* (fxmax max-size size) ml?)
+                        (if (null? q*)
+                            (new '() 0 #f #f)
+                            (let ([ret-q* q*])
+                              (let analyze ([q* q*] [size 0] [ml? #f])
                                 (let ([q (car q*)] [q* (cdr q*)])
-                                  (if (Q-multiline? q)
-                                      (loop q* 0 (fxmax max-size (fx+ size (Q-size q))) #t)
-                                      (loop q* (fx+ size (Q-size q)) max-size ml?))))))
+                                  (let ([size (if (or (Q-eol? q) (Q-multiline? q))
+                                                  (Q-size q)
+                                                  (fx+ size (Q-size q)))])
+                                    (if (null? q*)
+                                        (new ret-q* size (Q-eol? q) (or ml? (Q-multiline? q)))
+                                        (analyze q* size (or (Q-eol? q) (or ml? (Q-eol? q) (Q-multiline? q))))))))))
                         (let ([q (car rq*)] [rq* (cdr rq*)])
                           (cond
-                            [(or (eq? q nl) (eq? q nl2) (eq? q nl!)) (loop rq* 1 (cons q q*))]
+                            [(or (eq? q nl) (eq? q nl2) (eq? q nl!)) (weed rq* #f (cons q q*))]
                             [(eq? q nbsp)
-                             (if (fx= last-size 0)
-                                 (loop rq* 0 q*)
-                                 (loop rq* 1 (cons q q*)))]
+                             (if last-empty?
+                                 (weed rq* #t q*)
+                                 (weed rq* #f (cons q q*)))]
                             [(fixnum? q)
-                             (if (fx= last-size 0)
-                                 (loop rq* 0 q*)
-                                 (loop rq* (if (fx< q 0) 0 1) (cons q q*)))]
+                             (if last-empty?
+                                 (weed rq* #t q*)
+                                 (weed rq* (fx< q 0) (cons q q*)))]
                             [else
-                             (let ([size (Q-size q)])
-                               (loop rq* size (if (fx= size 0) q* (cons q q*))))]))))))))
+                             (let ([empty? (not (Q-size>? q 0))])
+                               (weed rq* empty? (if empty? q* (cons q q*))))]))))))))
           (record-writer (record-type-descriptor Qconcat) ; for debugging
             (lambda (x p wr) (wr (Qconcat-q* x) p))))
 
@@ -352,14 +361,28 @@
             [(or (eq? x nl) (eq? x nl2) (eq? x nl!)) 0]
             [else (internal-errorf 'Q-size "unrecognized Q ~s" x)]))
 
+        (define (Q-size>? x n)
+          (or (Q-eol? x)
+              (Q-multiline? x)
+              (> (Q-size x) n)))
+
+        (define (Q-eol? x)
+          (cond
+            [(Qstring? x) #f]
+            [(Qconcat? x) (Qconcat-eol? x)]
+            [(fixnum? x) #f]
+            [(eq? x nbsp) #f]
+            [(or (eq? x nl) (eq? x nl2) (eq? x nl!)) #t]
+            [else (internal-errorf 'Q-eol? "unrecognized Q ~s" x)]))
+
         (define (Q-multiline? x)
           (cond
             [(Qstring? x) (Qstring-multiline? x)]
             [(Qconcat? x) (Qconcat-multiline? x)]
             [(fixnum? x) #f]
             [(eq? x nbsp) #f]
-            [(or (eq? x nl) (eq? x nl2) (eq? x nl!)) #t]
-            [else (internal-errorf 'Q-multiline "unrecognized Q ~s" x)]))
+            [(or (eq? x nl) (eq? x nl2) (eq? x nl!)) #f]
+            [else (internal-errorf 'Q-multiline? "unrecognized Q ~s" x)]))
 
         (define (print-Q op target-line-length q)
           (let f ([q* (list q)] [col 0] [reset-col 0] [break? #f] [nl? 0] [sp? #f] [ml? #f])
@@ -399,7 +422,7 @@
                                (f q* (fx+ col 1) reset-col break? 1 #f #t)
                                (f q* (fx+ col (Q-size q)) reset-col break? #f #f #f))))]
                     [(Qconcat? q)
-                     (let-values ([(col nl? sp? ml?) (f (Qconcat-q* q) col col (fx> (fx+ col (Q-size q)) target-line-length) nl? sp? ml?)])
+                     (let-values ([(col nl? sp? ml?) (f (Qconcat-q* q) col col (or (Qconcat-multiline? q) (fx> (fx+ col (Q-size q)) target-line-length)) nl? sp? ml?)])
                      (f q* col reset-col break? nl? sp? ml?))]
                     [else (internal-errorf 'print-Q "unrecognized Q ~s" q)]))))
           (newline op)))
@@ -568,13 +591,14 @@
             (if closer?
                 (apply make-Qconcat (add-closer #f m closer? '()))
                 (make-Qstring ""))
-            (apply make-Qconcat
-              (car q*)
-              (let f ([q* (cdr q*)] [sep* sep*])
-                (if (null? q*)
-                    (let ([q* (if closer? (add-closer 0 m closer? '()) '())])
-                      (if (null? sep*) q* (add-punctuation (car sep*) q*)))
-                    (add-punctuation (car sep*) (cons* 0 (car q*) (f (cdr q*) (cdr sep*)))))))))
+            (let ([space (if (ormap (lambda (q) (Q-size>? q 32)) q*) nl 0)])
+              (apply make-Qconcat
+                (car q*)
+                (let f ([q* (cdr q*)] [sep* sep*])
+                  (if (null? q*)
+                      (let ([q* (if closer? (add-closer 0 m closer? '()) '())])
+                        (if (null? sep*) q* (add-punctuation (car sep*) q*)))
+                      (add-punctuation (car sep*) (cons* space (car q*) (f (cdr q*) (cdr sep*))))))))))
       )
     (Program : Program (ir) -> * ()
       [(program ,src ,pelt* ... ,eof)
@@ -690,20 +714,15 @@
                                         (maybe-add Generic-Param-List generic-param-list? '()))])
                             (nanopass-case (Lparser Pattern-Argument-List) parg-list
                               [(,lparen (,parg* ...) (,comma* ...) ,rparen)
-                               (if (null? parg*)
-                                   (apply make-Qconcat
-                                     qfun
-                                     (make-Qtoken lparen)
-                                     (add-closer #f #f rparen '()))
-                                   (let ([n (Q-size qfun)])
-                                     (apply make-Qconcat
-                                       qfun
-                                       (make-Qtoken lparen)
-                                       (add-indent (and (fx> n 8) -3)
-                                         (list
-                                           (apply make-Qconcat
-                                             (make-Qsep comma* (map Pattern-Argument parg*) #f #f)
-                                             (add-closer 0 -1 rparen '())))))))]))
+                               (apply make-Qconcat
+                                 qfun
+                                 (make-Qtoken lparen)
+                                 (if (null? parg*)
+                                     (add-closer #f #f rparen '())
+                                     (add-indent (and (Q-size>? qfun 8) -3)
+                                       (list
+                                         (make-Qsep comma* (map Pattern-Argument parg*) #f #f)
+                                         (if (Q-size>? qfun 8) -3 -1) (make-Qtoken rparen)))))]))
                      (Return-Type return-type)
                      q*))))))]
       [(external ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,return-type ,semicolon)
@@ -874,7 +893,7 @@
          (make-Qconcat
            qparg
            nbsp (make-Qtoken op)
-           (if (> (Q-size qparg) 3) 2 nbsp) (Expression expr)))])
+           (if (Q-size>? qparg 3) 2 nbsp) (Expression expr)))])
     (Pattern-Argument-List : Pattern-Argument-List (ir indent?) -> * (q)
       [(,lparen (,parg* ...) (,comma* ...) ,rparen)
        (apply make-Qconcat
@@ -1083,7 +1102,7 @@
              (apply make-Qconcat
                qfun
                (make-Qtoken lparen)
-               (add-indent (and (> (Q-size qfun) 7) -3)
+               (add-indent (and (Q-size>? qfun 7) -3)
                  (list (make-Qsep comma* (map Expression expr*) #f rparen))))))]
       [(tuple ,src ,lbracket (,tuple-arg* ...) (,comma* ...) ,rbracket)
        (// src
@@ -1190,7 +1209,7 @@
              (apply make-Qconcat
                qfun
                (make-Qtoken lparen)
-               (add-indent (and (> (Q-size qfun) 7) -3)
+               (add-indent (and (Q-size>? qfun 7) -3)
                  (list (make-Qsep comma* (map Expression expr*) #f rparen))))))]
       [(new ,src ,tref ,lbrace (,new-field* ...) (,comma* ...) ,rbrace)
        (// src
@@ -1206,7 +1225,7 @@
              #f #f))]
       [(cast ,src ,type ,kwd ,expr)
        (// src
-           (make-Qconcat (Expression expr) 0 (make-Qtoken kwd) 0 (Type type)))]
+           (make-Qconcat (Expression expr) 0 (make-Qtoken kwd) nbsp (Type type)))]
       [(disclose ,src ,kwd ,lparen ,expr ,rparen)
        (// src
            (make-Qconcat
@@ -1250,10 +1269,9 @@
            (apply make-Qconcat
              (Pattern-Argument-List parg-list #f)
              (maybe-add Return-Type return-type?
-               (let ([qblock (Block blck)])
-                 (list
-                   (if (Q-multiline? qblock) nl 0) (make-Qtoken arrow)
-                   nbsp qblock)))))]
+               (list
+                 0 (make-Qtoken arrow)
+                 nbsp (Block blck)))))]
       [(arrow-expr ,src ,parg-list ,return-type? ,arrow ,expr)
        (// src
            (apply make-Qconcat

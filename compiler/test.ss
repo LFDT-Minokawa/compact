@@ -2705,6 +2705,101 @@ groups than for single tests.
         "  return sum;"
         "}"))
     )
+
+  (test
+    '(
+      "export circuit sumVectorUntilZero(values: Vector<4, Field>, bools: Vector<4, Boolean>): Vector<4, Field> {"
+      "  resetForExamples();"
+      ""
+      "  const xyz = map((entry, b): [Field, Boolean] => /* hello */ {"
+      "                                                                    if (b)"
+      "                                                                       return entry * entry;"
+      "                                                                    else"
+      "                                                                       if (entry == 0)"
+      "                                                                          return 0;"
+      "                                                                       else"
+      "                                                                          return entry + entry;"
+      "                                                                      "
+      "                                                                  }, values);"
+      "  return xyz;"
+      "}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "export circuit sumVectorUntilZero(values: Vector<4, Field>): Field {"
+        "  resetForExamples();"
+        ""
+        "  const [sum, _] ="
+        "          fold(([sum, done], entry): [Field, Boolean]"
+        "               => {"
+        "                    if (done) {"
+        "                      return [sum, done];"
+        "                    } else if (entry == 0) {"
+        "                      return [sum, true];"
+        "                    } else {"
+        "                      return [sum + entry, false];"
+        "                    }"
+        "                  },"
+        "               [0, false],"
+        "               values);"
+        "  _vectorSum = disclose(sum);"
+        "  return sum;"
+        "}"))
+    )
+
+  (test
+    '(
+      "export circuit sumVectorUntilZero(values: Vector<4, Field>, bools: Vector<4, Boolean>): Vector<4, Field> {"
+      "  resetForExamples();"
+      ""
+      "  const xyz = map((entry, b): [Field, Boolean] => // hello"
+      "                                                  {"
+      "                                                                    if (b)"
+      "                                                                       return entry * entry;"
+      "                                                                    else"
+      "                                                                       if (entry == 0)"
+      "                                                                          return 0;"
+      "                                                                       else"
+      "                                                                          return entry + entry;"
+      "                                                                      "
+      "                                                                  }, values);"
+      "  return xyz;"
+      "}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "export circuit sumVectorUntilZero(values: Vector<4, Field>): Field {"
+        "  resetForExamples();"
+        ""
+        "  const [sum, _] ="
+        "          fold(([sum, done], entry): [Field, Boolean]"
+        "               => {"
+        "                    if (done) {"
+        "                      return [sum, done];"
+        "                    } else if (entry == 0) {"
+        "                      return [sum, true];"
+        "                    } else {"
+        "                      return [sum + entry, false];"
+        "                    }"
+        "                  },"
+        "               [0, false],"
+        "               values);"
+        "  _vectorSum = disclose(sum);"
+        "  return sum;"
+        "}"))
+    )
+
+  (test
+    '(
+      "circuit fairlylongcircuitname<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> {"
+      "  return ((vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> => vector1)(vector1, vector2);"
+      "}"
+      "circuit fairlylongnativename<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
+      "witness fairlylongwitnessname<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '())
+    )
 )
 
 (run-tests parse-file/fixup/format/reparse
