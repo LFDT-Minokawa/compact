@@ -2791,6 +2791,9 @@ groups than for single tests.
 
   (test
     '(
+      "constructor(arg1: Field, arg2: Field, arg3: Field, arg4: Field, arg5: Field, arg6: Field, arg7: Field, arg8: Field,) {"
+      "  return;"
+      "}"
       "circuit fairlylongcircuitname1<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> {"
       "  return ((vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> => vector1)(vector1, vector2);"
       "}"
