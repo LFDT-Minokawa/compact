@@ -1,0 +1,1 @@
+compact-fixup [COMPACT_VERSION]

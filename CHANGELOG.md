@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.27.106, language version 0.19.100]
+
+### Fixed
+
+- Bugs in unreleased code preventing proper behavior of type aliases for certain
+  uses of ADT types, including ledger operations that treat parameters of type
+  QualifiedCoinInfo differently and the += and -= operators for incrementing
+  Counters.
+
 ## [Unreleased compiler version 0.27.105, language version 0.19.100]
 
 ### Changed

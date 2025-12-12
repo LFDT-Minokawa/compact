@@ -94,6 +94,8 @@ pub enum Command {
 
     Format(FormatCommand),
 
+    Fixup(FixupCommand),
+
     List(ListCommand),
 
     Clean(CleanCommand),
@@ -133,6 +135,30 @@ pub struct FormatCommand {
     /// Print each file seen by the formatter
     #[clap(short, long)]
     pub verbose: bool,
+}
+
+/// Apply fixup transformations to compact files
+#[derive(Debug, Clone, Args)]
+pub struct FixupCommand {
+    /// Files or directories to fixup
+    #[clap(default_value = ".")]
+    pub files: Vec<String>,
+
+    /// Adjust Uint range endpoints
+    #[clap(long = "update-Uint-ranges")]
+    pub update_uint_ranges: bool,
+
+    /// Format error messages as single line (for VS Code extension)
+    #[clap(long)]
+    pub vscode: bool,
+
+    /// Print verbose output
+    #[clap(short, long)]
+    pub verbose: bool,
+
+    /// Apply changes in-place (default is to output to stdout)
+    #[clap(short, long)]
+    pub in_place: bool,
 }
 
 /// List available compact versions
