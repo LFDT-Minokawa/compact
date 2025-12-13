@@ -695,6 +695,14 @@
           (add-header kwd lparen expr rparen
             (add-then stmt1
               (add-else kwd-else stmt2)))))
+      (define (make-Qcall qfun lparen expr* comma* rparen)
+        (apply make-Qconcat
+          qfun
+          (make-Qtoken lparen)
+          (let ([funbig? (Q-size>? qfun 7)])
+            (add-indent (and funbig? -3)
+              (add-sep comma* (map Expression expr*) (if funbig? 2 0)
+                (add-closer #f #f rparen '()))))))
       )
     (Program : Program (ir) -> * ()
       [(program ,src ,pelt* ... ,eof)
@@ -1156,11 +1164,7 @@
                          (Expression expr)
                          (make-Qtoken dot)
                          (make-Qtoken elt-name))])
-             (apply make-Qconcat
-               qfun
-               (make-Qtoken lparen)
-               (add-indent (and (Q-size>? qfun 7) -3)
-                 (list (make-Qsep/closer comma* (map Expression expr*) #f rparen))))))]
+             (make-Qcall qfun lparen expr* comma* rparen)))]
       [(tuple ,src ,lbracket (,tuple-arg* ...) (,comma* ...) ,rbracket)
        (// src
            (make-Qconcat
@@ -1262,13 +1266,7 @@
                rparen)))]
       [(call ,src ,fun ,lparen (,expr* ...) (,comma* ...) ,rparen)
        (// src
-           (let ([qfun (Function fun)])
-             (apply make-Qconcat
-               qfun
-               (make-Qtoken lparen)
-               (add-indent (and (Q-size>? qfun 7) -3)
-                 (add-sep comma* (map Expression expr*) (if (Q-size>? qfun 7) 2 0)
-                   (add-closer #f #f rparen '()))))))]
+           (make-Qcall (Function fun) lparen expr* comma* rparen))]
       [(new ,src ,tref ,lbrace (,new-field* ...) (,comma* ...) ,rbrace)
        (// src
            (make-Qconcat

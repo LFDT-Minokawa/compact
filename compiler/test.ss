@@ -3159,6 +3159,27 @@ groups than for single tests.
         "        }"
         "}"))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger quitealongmapnameinfactasyoumightnotice: Map<Field, Field>;"
+      "circuit foo(farilylongvariablename1: Field, fairlylongvariablename2: Field): [] {"
+      "  quitealongmapnameinfactasyoumightnotice.insert(farilylongvariablename1, farilylongvariablename1);"
+      "}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "ledger quitealongmapnameinfactasyoumightnotice: Map<Field, Field>;"
+        ""
+        "circuit foo(farilylongvariablename1: Field, fairlylongvariablename2: Field): [] {"
+        "  quitealongmapnameinfactasyoumightnotice.insert("
+        "    farilylongvariablename1,"
+        "    farilylongvariablename1);"
+        "}"))
+    )
 )
 
 (run-tests parse-file/fixup/format/reparse
