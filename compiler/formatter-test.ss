@@ -47,7 +47,10 @@
                                                            token
                                                            (f (stream-cdr token-stream)))])))])
                       ; produce output with the modified token stream ...
+; why 80 and not the default line length?
                       (print-Lparser ir token-stream 80 op)
+#;(fprintf (console-output-port) "One\n")
+#;(print-Lparser ir token-stream 80 (console-output-port))
                       (flush-output-port op)
                       ; ... and see if it will parse
                       (parse-file formatter-pathname))]
@@ -56,6 +59,8 @@
                       (set-port-length! op 0)
                       ; produce output with the original token stream ...
                       (print-Lparser ir token-stream 80 op)
+#;(fprintf (console-output-port) "Two\n")
+#;(print-Lparser ir token-stream 80 (console-output-port))
                       (flush-output-port op)
                       ; ... and see if it will parse
                       (parse-file formatter-pathname))])

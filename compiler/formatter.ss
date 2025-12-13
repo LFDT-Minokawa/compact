@@ -350,7 +350,7 @@
                              (let ([empty? (not (Q-size>? q 0))])
                                (weed rq* empty? (if empty? q* (cons q q*))))]))))))))
           (record-writer (record-type-descriptor Qconcat) ; for debugging
-            (lambda (x p wr) (wr (Qconcat-q* x) p))))
+            (lambda (x p wr) (display "%Q" p) (wr (Qconcat-q* x) p))))
 
         (define (Q-size x)
           (cond
@@ -569,7 +569,7 @@
         (if what?
             (cons (process-what what?) q*)
             q*))
-      (define (add-block stmt proc)
+      (define (make-Qblock stmt proc)
         ; helper for creating Qs for forms with block bodies, e.g., circuit definitions and for loops
         (nanopass-case (Lparser Statement) stmt
           [(block ,src ,lbrace ,stmt* ... ,rbrace)
@@ -627,6 +627,73 @@
                   (list
                     (make-Qsep comma* qarg*
                       (add-closer 0 -1 rparen tail))))))))
+      (module (add-one-armed-if add-two-armed-if)
+        (define (add-header kwd lparen expr rparen q*)
+          (cons*
+            (make-Qtoken kwd) nbsp
+            (apply make-Qconcat
+              (make-Qtoken lparen)
+              (Expression expr)
+              (add-closer 1 #f rparen '()))
+            q*))
+        (define (add-block lbrace stmt* rbrace q*)
+          (cons*
+            nbsp (make-Qtoken lbrace)
+            nl
+            (fold-right
+              (lambda (stmt q*)
+                (cons* 3 (Statement stmt) nl q*))
+              (add-closer 3 nl rbrace q*)
+              stmt*)))
+        (define (add-other stmt q*)
+          (cons* 3 (Statement stmt) q*))
+        (define (add-one-armed-if kwd lparen expr rparen stmt)
+          (add-header kwd lparen expr rparen
+            (nanopass-case (Lparser Statement) stmt
+              [(block ,src ,lbrace ,stmt* ... ,rbrace)
+               (add-block lbrace stmt* rbrace '())]
+              [else (add-other stmt (cons nl '()))])))
+        (define (add-two-armed-if kwd lparen expr rparen stmt1 kwd-else stmt2)
+          (define (add-then stmt q*)
+            (nanopass-case (Lparser Statement) stmt
+              [(block ,src ,lbrace ,stmt* ... ,rbrace)
+               (add-block lbrace stmt* rbrace (cons nbsp q*))]
+              [else (cons nl (add-other stmt (cons nl q*)))]))
+          (define (add-else kwd-else stmt)
+            ; special-case blocks if expressions and blocks nested in the else part to get, e.g.,
+            ;   if (test)
+            ;      consequent
+            ;   else if (test)
+            ;      consequent
+            ;   else
+            ;      alternative
+            ; instead of
+            ;   if (test)
+            ;      consequent
+            ;   else
+            ;      if (test)
+            ;         consequent
+            ;      else
+            ;         alternative
+            ; check for else "right" comment before making the else Qtoken, because making the Qtoken clears the entry
+            (let ([else-alone? (null? (hashtable-ref comment-right-table (source-object-efp (token-src kwd-else)) '()))])
+              (cons
+                (make-Qtoken kwd-else)
+                ; punt on special treatment when there are comments in the way.  left comments should be okay.
+                (nanopass-case (Lparser Statement) stmt
+                  [(if ,src ,kwd ,lparen ,expr ,rparen ,stmt)
+                   (guard else-alone? (null? (hashtable-ref comment-up-table (source-object-bfp src) '())))
+                   (cons nbsp (add-one-armed-if kwd lparen expr rparen stmt))]
+                  [(if ,src ,kwd ,lparen ,expr ,rparen ,stmt1 ,kwd-else ,stmt2)
+                   (guard else-alone? (null? (hashtable-ref comment-up-table (source-object-bfp src) '())))
+                   (cons nbsp (add-two-armed-if kwd lparen expr rparen stmt1 kwd-else stmt2))]
+                  [(block ,src ,lbrace ,stmt* ... ,rbrace)
+                   (guard else-alone? (null? (hashtable-ref comment-up-table (source-object-bfp src) '())))
+                   (add-block lbrace stmt* rbrace '())]
+                  [else (cons nl (add-other stmt '()))]))))
+          (add-header kwd lparen expr rparen
+            (add-then stmt1
+              (add-else kwd-else stmt2)))))
       )
     (Program : Program (ir) -> * ()
       [(program ,src ,pelt* ... ,eof)
@@ -723,7 +790,7 @@
                        (add-punctuation semicolon '()))))))))]
       [(constructor ,src ,kwd ,parg-list ,blck)
        (// src
-           (add-block blck
+           (make-Qblock blck
              (lambda (q*)
                (cons*
                  (make-Qtoken kwd)
@@ -731,7 +798,7 @@
                  q*))))]
       [(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,parg-list ,return-type ,blck)
        (// src
-           (add-block blck
+           (make-Qblock blck
              (lambda (q*)
                (add-modifier kwd-export?
                  (add-modifier kwd-pure?
@@ -995,41 +1062,15 @@
              (add-punctuation semicolon '())))]
       [(if ,src ,kwd ,lparen ,expr ,rparen ,stmt)
        (// src
-           (add-block stmt
-             (lambda (q*)
-               (cons* (make-Qtoken kwd) nbsp
-                      (apply make-Qconcat
-                        (make-Qtoken lparen)
-                        (Expression expr)
-                        (add-closer 1 #f rparen '()))
-                      q*))))]
+           (apply make-Qconcat
+             (add-one-armed-if kwd lparen expr rparen stmt)))]
       [(if ,src ,kwd ,lparen ,expr ,rparen ,stmt1 ,kwd-else ,stmt2)
-       (define (add-branch stmt nl? q*)
-         (nanopass-case (Lparser Statement) stmt
-           [(block ,src ,lbrace ,stmt* ... ,rbrace)
-            (cons*
-              nbsp (make-Qtoken lbrace)
-              nl
-              (fold-right
-                (lambda (stmt q*)
-                  (cons* 3 (Statement stmt) nl q*))
-                (add-closer 3 nl rbrace q*)
-                stmt*))]
-           [else (cons* nl 3 (Statement stmt) (add-indent nl? q*))]))
        (// src
            (apply make-Qconcat
-             (make-Qtoken kwd) nbsp
-             (apply make-Qconcat
-               (make-Qtoken lparen)
-               (Expression expr)
-               (add-closer 1 #f rparen '()))
-             (add-branch stmt1 nl
-               (cons*
-                 0 (make-Qtoken kwd-else)
-                 (add-branch stmt2 #f '())))))]
+             (add-two-armed-if kwd lparen expr rparen stmt1 kwd-else stmt2)))]
       [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,nat1 ,dotdot ,nat2 ,rparen ,stmt)
        (// src
-           (add-block stmt
+           (make-Qblock stmt
              (lambda (q*)
                (cons*
                  (make-Qtoken kwd)
@@ -1046,7 +1087,7 @@
                  q*))))]
       [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,expr ,rparen ,stmt)
        (// src
-           (add-block stmt
+           (make-Qblock stmt
              (lambda (q*)
                (cons*
                  (make-Qtoken kwd)
@@ -1279,7 +1320,7 @@
            (apply make-Qconcat (make-Qtoken function-name) (maybe-add Generic-Arg-List generic-arg-list? '())))]
       [(arrow-block ,src ,parg-list ,return-type? ,arrow ,blck)
        (// src
-           (add-block blck
+           (make-Qblock blck
              (lambda (q*)
                (cons*
                  (Qsignature
