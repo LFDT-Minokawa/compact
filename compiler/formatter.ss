@@ -258,7 +258,7 @@
 
       ; basic Q support
       (module (nbsp nl nl2 nl! make-Qstring make-Qconcat
-               Q-size Q-size>? Q-multiline?
+               Q-size>? Q-multiline?
                print-Q)
         (define nbsp
           (let ()
@@ -316,7 +316,7 @@
             ; eol?: ends in a newline (does not imply multiline?)
             ; multiline?: spans more than one line (does not imply eol?)
             ; !eol? && !multiline?: partial line
-            ; size is the length of the last line
+            ; size is the length of the last line (ignoring trailing newlines)
             (fields q* size eol? multiline?)
             (protocol
               (lambda (new)
@@ -329,9 +329,10 @@
                             (let ([ret-q* q*])
                               (let analyze ([q* q*] [size 0] [ml? #f])
                                 (let ([q (car q*)] [q* (cdr q*)])
-                                  (let ([size (if (or (Q-eol? q) (Q-multiline? q))
-                                                  (Q-size q)
-                                                  (fx+ size (Q-size q)))])
+                                  (let ([size (cond
+                                                [(Q-multiline? q) (Q-size q)]
+                                                [(and (Q-eol? q) (not (null? q*))) 0]
+                                                [else (fx+ size (Q-size q))])])
                                     (if (null? q*)
                                         (new ret-q* size (Q-eol? q) (or ml? (Q-multiline? q)))
                                         (analyze q* size (or (Q-eol? q) (or ml? (Q-eol? q) (Q-multiline? q))))))))))

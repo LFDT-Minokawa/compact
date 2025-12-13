@@ -1763,7 +1763,7 @@ groups than for single tests.
         "  if (a) return b;"
         ""
         "  if (a) {"
-        "    return b;"
+        "     return b;"
         "  }"
         ""
         "  if (a)"
@@ -1789,11 +1789,11 @@ groups than for single tests.
         "  }"
         ""
         "  if (a < f(a))"
-        "    return mintShieldedToken("
-        "             dao_token_domain_separator(),"
-        "             amount,"
-        "             evolveNonce(0, coin.nonce),"
-        "             left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
+        "     return mintShieldedToken("
+        "              dao_token_domain_separator(),"
+        "              amount,"
+        "              evolveNonce(0, coin.nonce),"
+        "              left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
         "}"))
     )
 
