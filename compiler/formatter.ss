@@ -570,20 +570,20 @@
         (if what?
             (cons (process-what what?) q*)
             q*))
-      (define (make-Qblock stmt proc)
+      (define (make-Qblock header stmt)
         ; helper for creating Qs for forms with block bodies, e.g., circuit definitions and for loops
         (nanopass-case (Lparser Statement) stmt
           [(block ,src ,lbrace ,stmt* ... ,rbrace)
            (apply make-Qconcat
-             (apply make-Qconcat
-               (proc (list nbsp (make-Qtoken lbrace))))
+             header
+             nbsp (make-Qtoken lbrace)
              nl
              (fold-right
                (lambda (stmt q*)
                  (cons* 2 (Statement stmt) nl q*))
                (add-closer 2 nl rbrace '())
                stmt*))]
-          [else (make-Qconcat (apply make-Qconcat (proc '())) 2 (Statement stmt))]))
+          [else (make-Qconcat header 2 (Statement stmt))]))
       (define (add-sep sep* q* n tail)
         ; for comma- and semicolon-separated lists, grouped with a tail
         (let ([nq (length q*)] [nsep (length sep*)])
@@ -799,16 +799,15 @@
                        (add-punctuation semicolon '()))))))))]
       [(constructor ,src ,kwd ,parg-list ,blck)
        (// src
-           (make-Qblock blck
-             (lambda (q*)
-               (cons*
-                 (make-Qtoken kwd)
-                 (Pattern-Argument-List parg-list)
-                 q*))))]
+           (make-Qblock
+             (make-Qconcat
+               (make-Qtoken kwd)
+               (Pattern-Argument-List parg-list))
+             blck))]
       [(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,parg-list ,return-type ,blck)
        (// src
-           (make-Qblock blck
-             (lambda (q*)
+           (make-Qblock
+             (apply make-Qconcat
                (add-modifier kwd-export?
                  (add-modifier kwd-pure?
                    (cons*
@@ -817,7 +816,8 @@
                             (Qfun function-name generic-param-list?)
                             (parg-list-getter parg-list)
                             (list (Return-Type return-type)))
-                     q*))))))]
+                     '()))))
+             blck))]
       [(external ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,return-type ,semicolon)
        (// src
            (apply make-Qconcat
@@ -1079,8 +1079,8 @@
              (add-two-armed-if kwd lparen expr rparen stmt1 kwd-else stmt2)))]
       [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,nat1 ,dotdot ,nat2 ,rparen ,stmt)
        (// src
-           (make-Qblock stmt
-             (lambda (q*)
+           (make-Qblock
+             (apply make-Qconcat
                (cons*
                  (make-Qtoken kwd)
                  nbsp
@@ -1093,11 +1093,12 @@
                    (make-Qtoken dotdot)
                    (make-Qtoken nat2)
                    (add-closer 1 #f rparen '()))
-                 q*))))]
+                 '()))
+             stmt))]
       [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,expr ,rparen ,stmt)
        (// src
-           (make-Qblock stmt
-             (lambda (q*)
+           (make-Qblock
+             (apply make-Qconcat
                (cons*
                  (make-Qtoken kwd)
                  nbsp
@@ -1108,7 +1109,8 @@
                    nbsp (make-Qtoken kwd-of)
                    nbsp (Expression expr)
                    (add-closer 1 #f rparen '()))
-                 q*))))]
+                 '()))
+             stmt))]
       [,blck (Block blck)])
     (Expression : Expression (ir) -> * (q)
       [(true ,src ,kwd) (// src (make-Qtoken kwd))]
@@ -1319,15 +1321,14 @@
            (apply make-Qconcat (make-Qtoken function-name) (maybe-add Generic-Arg-List generic-arg-list? '())))]
       [(arrow-block ,src ,parg-list ,return-type? ,arrow ,blck)
        (// src
-           (make-Qblock blck
-             (lambda (q*)
-               (cons*
-                 (Qsignature
-                   (make-Qstring "")
-                   (parg-list-getter parg-list)
-                   (maybe-add Return-Type return-type? '()))
-                 nbsp (make-Qtoken arrow)
-                 q*))))]
+           (make-Qblock
+             (make-Qconcat
+               (Qsignature
+                 (make-Qstring "")
+                 (parg-list-getter parg-list)
+                 (maybe-add Return-Type return-type? '()))
+               nbsp (make-Qtoken arrow))
+             blck))]
       [(arrow-expr ,src ,parg-list ,return-type? ,arrow ,expr)
        (// src
            (make-Qconcat
