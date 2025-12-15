@@ -15,7 +15,7 @@
 
 (library (utils)
   (export not-implemented cannot-happen
-          compact-input-transcoder compact-path relative-path find-source-pathname source-position
+          compact-input-transcoder relative-path find-source-pathname source-position
           register-source-root! registered-source-root
           register-target-pathname! registered-target-pathname
           register-source-pathname! registered-source-pathnames
@@ -33,7 +33,8 @@
           stdlib-sfd stdlib-src?
           renaming-table record-alias!
           pretty-print/formats)
-  (import (except (chezscheme) errorf))
+  (import (except (chezscheme) errorf)
+          (config-params))
 
   ; when set, renaming-table maps src -> (old-name . new-name) and is used by the fixup tool to
   ; replace snake_case names with camelCase in the standard library and ledger ADTs
@@ -65,19 +66,6 @@
   ; up source positions in compact source files.  (eol-style lf) has the effect
   ; of converting crlf (and other less common line endings) into lf.
   (define compact-input-transcoder (make-transcoder (utf-8-codec) (eol-style lf)))
-
-  (define compact-path
-    (make-parameter
-      (let ()
-        (define (split-search-path str)
-          (let ([n (string-length str)])
-            (let f ([i 0] [j 0])
-              (if (fx= j n)
-                  (if (fx= i j) '() (list (substring str i j)))
-                  (if (char=? (string-ref str j) (if (directory-separator? #\\) #\; #\:))
-                      (cons (substring str i j) (f (fx+ j 1) (fx+ j 1)))
-                      (f i (fx+ j 1)))))))
-        (split-search-path (or (getenv "COMPACT_PATH") "")))))
 
   (module (register-source-root! registered-source-root
            register-target-pathname! registered-target-pathname

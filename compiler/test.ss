@@ -95,6 +95,7 @@ groups than for single tests.
         (parser)
         (passes)
         (sourcemaps)
+        (config-params)
         (utils)
         (json)
         (runtime-version)
@@ -1234,7 +1235,7 @@ groups than for single tests.
   (test
     '(
       "circuit foo(pos: Uint<32>): Uint<64> {"
-      "return pos + 1 + pos - 2 + pos - 3 + pos - 4 + pos - 5 + pos - 6 + pos - 7 + pos - 8 + pos - 9;"
+      "return pos + 1 + pos - 2 + pos - 3 + pos - 4 + pos - 5 + pos - 6 + pos - 7 + pos - 8 + pos - 9 + pos - 10 + pos - 11 + pos - 12 + pos - 13 + pos - 14 + pos - 15;"
       "}"
       )
     (output-file "compiler/testdir/formatter/testfile.compact"
@@ -1257,7 +1258,19 @@ groups than for single tests.
         "         pos -"
         "         8 +"
         "         pos -"
-        "         9;"
+        "         9 +"
+        "         pos -"
+        "         10 +"
+        "         pos -"
+        "         11 +"
+        "         pos -"
+        "         12 +"
+        "         pos -"
+        "         13 +"
+        "         pos -"
+        "         14 +"
+        "         pos -"
+        "         15;"
         "}"))
     )
 
@@ -1753,12 +1766,14 @@ groups than for single tests.
         ""
         "  pot.writeCoin("
         "    mergeCoinImmediate(pot, seedCoin),"
-        "    right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+        "    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())"
+        "    );"
         "  return mintShieldedToken("
         "           dao_token_domain_separator(),"
         "           amount,"
         "           evolveNonce(0, coin.nonce),"
-        "           left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
+        "           left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())"
+        "           );"
         ""
         "  if (a) return b;"
         ""
@@ -1793,7 +1808,8 @@ groups than for single tests.
         "              dao_token_domain_separator(),"
         "              amount,"
         "              evolveNonce(0, coin.nonce),"
-        "              left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
+        "              left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())"
+        "              );"
         "}"))
     )
 
@@ -2791,10 +2807,10 @@ groups than for single tests.
       "  return;"
       "}"
       "circuit fairlylongcircuitname1<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> {"
-      "  return ((vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> => vector1)(vector1, vector2);"
+      "  return ((vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>, vector3: Vector<sizeX, typeB>): Vector<sizeX, typeA> => vector1)(vector1, vector2, vector3);"
       "}"
       "circuit fairlylongcircuitname2<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> {"
-      "  return (vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> => { return vector1; }(vector1, vector2);"
+      "  return (vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>, vector3: Vector<sizeX, typeB>): Vector<sizeX, typeA> => { return vector1; }(vector1, vector2, vector3);"
       "}"
       "circuit fairlylongnativename<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
       "witness fairlylongwitnessname<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
@@ -2808,7 +2824,8 @@ groups than for single tests.
         "            arg5: Field,"
         "            arg6: Field,"
         "            arg7: Field,"
-        "            arg8: Field,) {"
+        "            arg8: Field,"
+        "            ) {"
         "  return;"
         "}"
         ""
@@ -2817,11 +2834,14 @@ groups than for single tests.
         "          vector2: Vector<sizeX, typeB>"
         "          ): Vector<sizeX, typeA> {"
         "  return ((vector1: Vector<sizeX, typeA>,"
-        "           vector2: Vector<sizeX, typeB>"
+        "           vector2: Vector<sizeX, typeB>,"
+        "           vector3: Vector<sizeX, typeB>"
         "           ): Vector<sizeX, typeA> =>"
         "          vector1)("
         "           vector1,"
-        "           vector2);"
+        "           vector2,"
+        "           vector3"
+        "           );"
         "}"
         ""
         "circuit fairlylongcircuitname2<typeA, typeB, sizeX>("
@@ -2829,12 +2849,15 @@ groups than for single tests.
         "          vector2: Vector<sizeX, typeB>"
         "          ): Vector<sizeX, typeA> {"
         "  return (vector1: Vector<sizeX, typeA>,"
-        "          vector2: Vector<sizeX, typeB>"
+        "          vector2: Vector<sizeX, typeB>,"
+        "          vector3: Vector<sizeX, typeB>"
         "          ): Vector<sizeX, typeA> => {"
         "           return vector1;"
         "         }("
         "           vector1,"
-        "           vector2);"
+        "           vector2,"
+        "           vector3"
+        "           );"
         "}"
         ""
         "circuit fairlylongnativename<typeA, typeB, sizeX>("
@@ -3164,8 +3187,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger quitealongmapnameinfactasyoumightnotice: Map<Field, Field>;"
-      "circuit foo(farilylongvariablename1: Field, fairlylongvariablename2: Field): [] {"
-      "  quitealongmapnameinfactasyoumightnotice.insert(farilylongvariablename1, farilylongvariablename1);"
+      "circuit foo(seeherequitealongvariablename1: Field, seeherequitealongvariablename2: Field): [] {"
+      "  quitealongmapnameinfactasyoumightnotice.insert(seeherequitealongvariablename1, seeherequitealongvariablename1);"
       "}"
       )
     (output-file "compiler/testdir/formatter/testfile.compact"
@@ -3174,10 +3197,11 @@ groups than for single tests.
         ""
         "ledger quitealongmapnameinfactasyoumightnotice: Map<Field, Field>;"
         ""
-        "circuit foo(farilylongvariablename1: Field, fairlylongvariablename2: Field): [] {"
+        "circuit foo(seeherequitealongvariablename1: Field, seeherequitealongvariablename2: Field): [] {"
         "  quitealongmapnameinfactasyoumightnotice.insert("
-        "    farilylongvariablename1,"
-        "    farilylongvariablename1);"
+        "    seeherequitealongvariablename1,"
+        "    seeherequitealongvariablename1"
+        "    );"
         "}"))
     )
 )

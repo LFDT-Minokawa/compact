@@ -18,6 +18,7 @@
 (library (formatter-test)
   (export formatter-testing-passes)
   (import (except (chezscheme) errorf)
+          (config-params)
           (utils)
           (pass-helpers)
           (streams)
@@ -47,10 +48,7 @@
                                                            token
                                                            (f (stream-cdr token-stream)))])))])
                       ; produce output with the modified token stream ...
-; why 80 and not the default line length?
-                      (print-Lparser ir token-stream 80 op)
-#;(fprintf (console-output-port) "One\n")
-#;(print-Lparser ir token-stream 80 (console-output-port))
+                      (print-Lparser ir token-stream (format-line-length) op)
                       (flush-output-port op)
                       ; ... and see if it will parse
                       (parse-file formatter-pathname))]
@@ -58,9 +56,7 @@
                       (set-port-position! op 0)
                       (set-port-length! op 0)
                       ; produce output with the original token stream ...
-                      (print-Lparser ir token-stream 80 op)
-#;(fprintf (console-output-port) "Two\n")
-#;(print-Lparser ir token-stream 80 (console-output-port))
+                      (print-Lparser ir token-stream (format-line-length) op)
                       (flush-output-port op)
                       ; ... and see if it will parse
                       (parse-file formatter-pathname))])

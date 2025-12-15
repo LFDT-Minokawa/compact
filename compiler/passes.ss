@@ -16,18 +16,13 @@
 ;;; limitations under the License.
 
 (library (passes)
-  (export trace-passes
-          skip-zk
-          no-communications-commitment
-          generate-everything
+  (export generate-everything
           pass-name-condition?
           condition-pass-name
-
-          ;; Feature flags:
-          zkir-v3
           )
   (import (except (chezscheme) errorf)
           (utils)
+          (config-params)
           (nanopass)
           (langs)
           (parser)
@@ -48,12 +43,6 @@
     (pass-name condition-pass-name))
 
   (define zkir-warning-issued (make-parameter #f))
-
-  (define trace-passes (make-parameter #f))
-
-  (define skip-zk (make-parameter #t))
-
-  (define zkir-v3 (make-parameter #f))
 
   (define generate-everything
     (case-lambda

@@ -17,12 +17,11 @@
 ;;; limitations under the License.
 
 (import (except (chezscheme) errorf)
+        (config-params)
         (utils)
         (formatter)
         (command-line-parsing)
         (program-common))
-
-(define line-length 100)
 
 (define (print-help)
   (print-usage #f)
@@ -57,7 +56,7 @@ The following flags, if present, affect the formatter's behavior as follows:
      (check-pathname source-pathname)
      (when target-pathname (check-pathname target-pathname))
      (handle-exceptions ?--vscode
-       (let ([s (parse-file/format source-pathname line-length)])
+       (let ([s (parse-file/format source-pathname (format-line-length))])
          (if target-pathname
              (let ([op (guard (c [else (error-accessing-file c "creating output file")])
                          (open-output-file target-pathname 'replace))])

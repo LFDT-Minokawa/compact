@@ -17,6 +17,7 @@
 ;;; limitations under the License.
 
 (import (except (chezscheme) errorf)
+        (config-params)
         (utils)
         (fixup)
         (command-line-parsing)

@@ -258,6 +258,7 @@
 
       ; basic Q support
       (module (nbsp nl nl2 nl! make-Qstring make-Qconcat
+               inherit-break
                Q-size>? Q-multiline?
                print-Q)
         (define nbsp
@@ -309,7 +310,9 @@
             (lambda (x p wr) (wr (Qstring-string x) p)))
           )
 
-        (module (make-Qconcat Qconcat? Qconcat-q* Qconcat-size Qconcat-eol? Qconcat-multiline?)
+        (module (make-Qconcat Qconcat? Qconcat-q* Qconcat-size Qconcat-eol? Qconcat-multiline? Qconcat-inherit-break?
+                 inherit-break)
+          (define inherit-break (make-parameter #f))
           (define-record-type Qconcat
             (nongenerative)
             (sealed #t)
@@ -317,7 +320,7 @@
             ; multiline?: spans more than one line (does not imply eol?)
             ; !eol? && !multiline?: partial line
             ; size is the length of the last line (ignoring trailing newlines)
-            (fields q* size eol? multiline?)
+            (fields q* size eol? multiline? inherit-break?)
             (protocol
               (lambda (new)
                 (lambda q*
@@ -325,7 +328,7 @@
                   (let weed ([rq* (reverse q*)] [last-empty? #f] [q* '()])
                     (if (null? rq*)
                         (if (null? q*)
-                            (new '() 0 #f #f)
+                            (new '() 0 #f #f #f)
                             (let ([ret-q* q*])
                               (let analyze ([q* q*] [size 0] [ml? #f])
                                 (let ([q (car q*)] [q* (cdr q*)])
@@ -334,7 +337,7 @@
                                                 [(and (Q-eol? q) (not (null? q*))) 0]
                                                 [else (fx+ size (Q-size q))])])
                                     (if (null? q*)
-                                        (new ret-q* size (Q-eol? q) (or ml? (Q-multiline? q)))
+                                        (new ret-q* size (Q-eol? q) (or ml? (Q-multiline? q)) (inherit-break))
                                         (analyze q* size (or (Q-eol? q) (or ml? (Q-eol? q) (Q-multiline? q))))))))))
                         (let ([q (car rq*)] [rq* (cdr rq*)])
                           (cond
@@ -423,7 +426,12 @@
                                (f q* (fx+ col 1) reset-col break? 1 #f #t)
                                (f q* (fx+ col (Q-size q)) reset-col break? #f #f #f))))]
                     [(Qconcat? q)
-                     (let-values ([(col nl? sp? ml?) (f (Qconcat-q* q) col col (or (Qconcat-multiline? q) (fx> (fx+ col (Q-size q)) target-line-length)) nl? sp? ml?)])
+                     (let-values ([(col nl? sp? ml?)
+                                   (f (Qconcat-q* q) col col
+                                      (or (and break? (Qconcat-inherit-break? q))
+                                          (Qconcat-multiline? q)
+                                          (fx> (fx+ col (Q-size q)) target-line-length))
+                                      nl? sp? ml?)])
                      (f q* col reset-col break? nl? sp? ml?))]
                     [else (internal-errorf 'print-Q "unrecognized Q ~s" q)]))))
           (newline op)))
@@ -584,22 +592,22 @@
                (add-closer 2 nl rbrace '())
                stmt*))]
           [else (make-Qconcat header 2 (Statement stmt))]))
-      (define (add-sep sep* q* n tail)
-        ; for comma- and semicolon-separated lists, grouped with a tail
-        (let ([nq (length q*)] [nsep (length sep*)])
-          (assert (or (fx= nsep nq) (and (not (fx= nq 0)) (fx= (fx+ nsep 1) nq)))))
-        (if (null? q*)
-            tail
-            (cons*
-              (car q*)
-              (let f ([q* (cdr q*)] [sep* sep*])
-                (if (null? q*)
-                    (if (null? sep*) tail (add-punctuation (car sep*) tail))
-                    (add-punctuation (car sep*) (cons* n (car q*) (f (cdr q*) (cdr sep*)))))))))
       (define make-Qsep
+        ; for comma- and semicolon-separated lists, grouped with a tail
         (case-lambda
           [(sep* q*) (make-Qsep sep* q* '())]
-          [(sep* q* tail) (apply make-Qconcat (add-sep sep* q* 0 tail))]))
+          [(sep* q* tail)
+           (let ([nq (length q*)] [nsep (length sep*)])
+             (assert (or (fx= nsep nq) (and (not (fx= nq 0)) (fx= (fx+ nsep 1) nq)))))
+           (apply make-Qconcat
+            (if (null? q*)
+                tail
+                (cons*
+                  (car q*)
+                  (let f ([q* (cdr q*)] [sep* sep*])
+                    (if (null? q*)
+                        (if (null? sep*) tail (add-punctuation (car sep*) tail))
+                        (add-punctuation (car sep*) (cons* 0 (car q*) (f (cdr q*) (cdr sep*)))))))))]))
       (define (make-Qsep/closer sep* q* m closer)
         ; for comma- and semicolon-separated lists, possibly grouped with a closer
         (make-Qsep sep* q* (add-closer #f m closer '())))
@@ -617,7 +625,7 @@
           (nanopass-case (Lparser Pattern-Argument-List) parg-list
             [(,lparen (,parg* ...) (,comma* ...) ,rparen)
              (values lparen (map Pattern-Argument parg*) comma* rparen)])))
-      (define (Qsignature qfun get-args tail)
+      (define (make-Qsignature qfun get-args tail)
         (let-values ([(lparen qarg* comma* rparen) (get-args)])
           (apply make-Qconcat
             qfun
@@ -625,9 +633,10 @@
             (if (null? qarg*)
                 (add-closer #f #f rparen tail)
                 (add-indent (and (Q-size>? qfun 7) -3)
-                  (list
-                    (make-Qsep comma* qarg*
-                      (add-closer 0 -1 rparen tail))))))))
+                  (cons*
+                    (parameterize ([inherit-break #t])
+                      (make-Qsep/closer comma* qarg* -1 rparen))
+                    tail))))))
       (module (add-one-armed-if add-two-armed-if)
         (define (add-header kwd lparen expr rparen q*)
           (cons*
@@ -696,13 +705,15 @@
             (add-then stmt1
               (add-else kwd-else stmt2)))))
       (define (make-Qcall qfun lparen expr* comma* rparen)
-        (apply make-Qconcat
-          qfun
-          (make-Qtoken lparen)
-          (let ([funbig? (Q-size>? qfun 7)])
+        (let ([funbig? (Q-size>? qfun 7)]
+              [qexpr* (map Expression expr*)])
+          (apply make-Qconcat
+            qfun
+            (make-Qtoken lparen)
             (add-indent (and funbig? -3)
-              (add-sep comma* (map Expression expr*) (if funbig? 2 0)
-                (add-closer #f #f rparen '()))))))
+              (list
+                (parameterize ([inherit-break #t])
+                  (make-Qsep/closer comma* qexpr* -1 rparen)))))))
       )
     (Program : Program (ir) -> * ()
       [(program ,src ,pelt* ... ,eof)
@@ -802,7 +813,10 @@
            (make-Qblock
              (make-Qconcat
                (make-Qtoken kwd)
-               (Pattern-Argument-List parg-list))
+               (make-Qsignature
+                 (make-Qstring "")
+                 (parg-list-getter parg-list)
+                 '()))
              blck))]
       [(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,parg-list ,return-type ,blck)
        (// src
@@ -812,7 +826,7 @@
                  (add-modifier kwd-pure?
                    (cons*
                      (make-Qtoken kwd)
-                     nbsp (Qsignature
+                     nbsp (make-Qsignature
                             (Qfun function-name generic-param-list?)
                             (parg-list-getter parg-list)
                             (list (Return-Type return-type)))
@@ -824,7 +838,7 @@
              (add-modifier kwd-export?
                (cons*
                  (make-Qtoken kwd)
-                 nbsp (Qsignature
+                 nbsp (make-Qsignature
                         (Qfun function-name generic-param-list?)
                         (arg-list-getter arg-list)
                         (cons
@@ -837,7 +851,7 @@
              (add-modifier kwd-export?
                (cons*
                  (make-Qtoken kwd)
-                 nbsp (Qsignature
+                 nbsp (make-Qsignature
                         (Qfun function-name generic-param-list?)
                         (arg-list-getter arg-list)
                         (cons
@@ -967,11 +981,6 @@
              (make-Qtoken var-name)
              (add-punctuation colon
                (cons* nbsp (Type type) '()))))])
-    (Argument-List : Argument-List (ir) -> * (q)
-      [(,lparen (,arg* ...) (,comma* ...) ,rparen)
-       (make-Qconcat
-         (make-Qtoken lparen)
-         (make-Qsep/closer comma* (map Argument arg*) #f rparen))])
     (Pattern-Argument : Pattern-Argument (ir) -> * (q)
       [(,src ,pattern)
        (// src
@@ -989,11 +998,6 @@
            qparg
            nbsp (make-Qtoken op)
            (if (Q-size>? qparg 7) 2 nbsp) (Expression expr)))])
-    (Pattern-Argument-List : Pattern-Argument-List (ir) -> * (q)
-      [(,lparen (,parg* ...) (,comma* ...) ,rparen)
-       (make-Qconcat
-         (make-Qtoken lparen)
-         (make-Qsep/closer comma* (map Pattern-Argument parg*) #f rparen))])
     (Pattern : Pattern (ir) -> * (q)
       [,var-name (make-Qtoken var-name)]
       [(tuple ,src ,lbracket (,pattern?* ...) (,comma* ...) ,rbracket)
@@ -1024,11 +1028,15 @@
        (// src
            (apply make-Qconcat
              (add-modifier kwd-pure?
-               (list
+               (cons*
                  (make-Qtoken kwd)
-                 nbsp (make-Qtoken function-name)
-                 (Argument-List arg-list)
-                 (Return-Type return-type)))))])
+                 nbsp (make-Qsignature
+                        (Qfun function-name #f)
+                        (arg-list-getter arg-list)
+                        (cons
+                          (Return-Type return-type)
+                          '()))
+                 '()))))])
     (Import-Element : Import-Element (ir) -> * (q)
       [(,src ,name) (make-Qtoken name)]
       [(,src ,name ,kwd-as ,name^)
@@ -1323,7 +1331,7 @@
        (// src
            (make-Qblock
              (make-Qconcat
-               (Qsignature
+               (make-Qsignature
                  (make-Qstring "")
                  (parg-list-getter parg-list)
                  (maybe-add Return-Type return-type? '()))
@@ -1332,7 +1340,7 @@
       [(arrow-expr ,src ,parg-list ,return-type? ,arrow ,expr)
        (// src
            (make-Qconcat
-             (Qsignature
+             (make-Qsignature
                (make-Qstring "")
                (parg-list-getter parg-list)
                (maybe-add Return-Type return-type? '()))
