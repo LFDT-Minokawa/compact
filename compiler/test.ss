@@ -3436,7 +3436,7 @@ groups than for single tests.
   (test
     '(
       "circuit foo(pos: Uint<32>): Uint<64> {"
-      "return pos + 1 + pos - 2 + pos - 3 + pos - 4 + pos - 5 + pos - 6 + pos - 7 + pos - 8 + pos - 9;"
+      "return pos + 1 + pos - 2 + pos - 3 + pos - 4 + pos - 5 + pos - 6 + pos - 7 + pos - 8 + pos - 9 + pos - 10 + pos - 11 + pos - 12 + pos - 13 + pos - 14 + pos - 15;"
       "}"
       )
     (output-file "compiler/testdir/fixup/testfile.compact"
@@ -3459,7 +3459,19 @@ groups than for single tests.
         "         pos -"
         "         8 +"
         "         pos -"
-        "         9;"
+        "         9 +"
+        "         pos -"
+        "         10 +"
+        "         pos -"
+        "         11 +"
+        "         pos -"
+        "         12 +"
+        "         pos -"
+        "         13 +"
+        "         pos -"
+        "         14 +"
+        "         pos -"
+        "         15;"
         "}"))
     )
 

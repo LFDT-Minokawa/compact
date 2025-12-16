@@ -18,6 +18,7 @@
 (library (formatter)
   (export print-Lparser parse-file/format)
   (import (except (chezscheme) errorf)
+          (config-params)
           (utils)
           (streams)
           (nanopass)
@@ -174,8 +175,9 @@
          causes a space to be added when the line isn't broken.
   |#
 
-  (define-pass print-Lparser : Lparser (ir token-stream target-line-length op) -> * ()
+  (define-pass print-Lparser : Lparser (ir token-stream op) -> * ()
     (definitions
+      (define target-line-length (format-line-length))
       (define bl ; represents a blank line
         (let ()
           (define-record-type bl)
