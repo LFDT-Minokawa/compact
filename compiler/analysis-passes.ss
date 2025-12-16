@@ -5038,13 +5038,13 @@
     (Program-Element : Program-Element (ir) -> * ()
       [(circuit ,src ,function-name ((,var-name* ,type*) ...) ,type ,expr)
        (unless (id-temp? function-name)
-       (when (id-exported? function-name)
-         (let ([witness** (maplr (lambda (var-name)
-                                   (list (make-witness (id-src var-name) (next-witness-uid)
-                                           (Circuit-Argument function-name var-name)
-                                           (Path-null))))
-                                 var-name*)])
-           (handle-call #f function-name (map default-value type* witness**) '() #t))))]
+         (when (id-exported? function-name)
+           (let ([witness** (maplr (lambda (var-name)
+                                     (list (make-witness (id-src var-name) (next-witness-uid)
+                                             (Circuit-Argument function-name var-name)
+                                             (Path-null))))
+                                   var-name*)])
+             (handle-call #f function-name (map default-value type* witness**) '() #t))))]
       [(public-ledger-declaration ,pl-array (constructor ,src ((,var-name* ,type*) ...) ,expr))
        (Expression
          expr

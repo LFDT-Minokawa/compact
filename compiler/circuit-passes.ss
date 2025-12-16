@@ -509,7 +509,8 @@
                     (format "~a: ~a" elt-name (format-type type)))
                   elt-name* type*))]
           [(,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
-           (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]))
+           (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]
+          [else (internal-errorf 'format-type "unexpected primitive type ~s" type)]))
       (define (sametype? type1 type2)
         (define (same-adt-arg? adt-arg1 adt-arg2)
           (nanopass-case (Linlined Public-Ledger-ADT-Arg) adt-arg1
