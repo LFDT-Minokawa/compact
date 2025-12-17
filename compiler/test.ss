@@ -42681,101 +42681,101 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.3 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
-        (external %transientHash.4 ((argument
-                                       (%value.5 %value.6)
-                                       (ty ((afield) (afield))
-                                           ((tfield) (tfield)))))
+        (external %transientHash.1 ((argument
+                                      (%value.2 %value.3)
+                                      (ty ((afield) (afield))
+                                          ((tfield) (tfield)))))
              (ty ((afield)) ((tfield))))
-        (external %persistentHash<.7 ((argument
-                                        (%value.8 %value.9 %value.10 %value.11
-                                          %value.12 %value.13 %value.0 %value.1
-                                          %value.2)
-                                        (ty ((abytes 32) (abytes 32) (abytes 16)
-                                              (abytes 1) (abytes 32)
-                                              (abytes 6))
-                                            ((tfield 255)
-                                              (tfield
-                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                              (tfield 255)
-                                              (tfield
-                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                              (tfield
-                                                340282366920938463463374607431768211455)
-                                              (tfield 1) (tfield 255)
-                                              (tfield
-                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                              (tfield 281474976710655)))))
+        (external %persistentHash.4 ((argument
+                                       (%value.5 %value.6 %value.7 %value.8 %value.9
+                                         %value.10 %value.11 %value.12
+                                         %value.13)
+                                       (ty ((abytes 21) (abytes 32) (abytes 32)
+                                             (abytes 16) (abytes 1)
+                                             (abytes 32))
+                                           ((tfield
+                                              374144419156711147060143317175368453031918731001855) (tfield 255)
+                                             (tfield
+                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                             (tfield 255)
+                                             (tfield
+                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                             (tfield
+                                               340282366920938463463374607431768211455)
+                                             (tfield 1) (tfield 255)
+                                             (tfield
+                                               452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
         (external %degradeToTransient.14 ((argument
-                                              (%x.15 %x.16)
-                                              (ty ((abytes 32))
-                                                  ((tfield 255)
-                                                    (tfield
-                                                      452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+                                            (%x.15 %x.16)
+                                            (ty ((abytes 32))
+                                                ((tfield 255)
+                                                  (tfield
+                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield))))
         (external %upgradeFromTransient.17 ((argument
-                                                (%x.18)
-                                                (ty ((afield)) ((tfield)))))
+                                              (%x.18)
+                                              (ty ((afield)) ((tfield)))))
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
         (external %createZswapInput.19 ((argument
-                                            (%coin.20 %coin.21 %coin.22
-                                              %coin.23 %coin.24 %coin.25)
-                                            (ty ((abytes 32)
-                                                  (abytes 32)
-                                                  (abytes 16)
-                                                  (abytes 8))
-                                                ((tfield 255)
-                                                  (tfield
-                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                  (tfield 255)
-                                                  (tfield
-                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                  (tfield
-                                                    340282366920938463463374607431768211455)
-                                                  (tfield
-                                                    18446744073709551615)))))
+                                          (%coin.20 %coin.21 %coin.22 %coin.23
+                                            %coin.24 %coin.25)
+                                          (ty ((abytes 32)
+                                                (abytes 32)
+                                                (abytes 16)
+                                                (abytes 8))
+                                              ((tfield 255)
+                                                (tfield
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                (tfield 255)
+                                                (tfield
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                (tfield
+                                                  340282366920938463463374607431768211455)
+                                                (tfield
+                                                  18446744073709551615)))))
              (ty () ()))
         (external %createZswapOutput.26 ((argument
-                                             (%coin.27
-                                               %coin.28
-                                               %coin.29
-                                               %coin.30
-                                               %coin.31)
-                                             (ty ((abytes 32)
-                                                   (abytes 32)
-                                                   (abytes 16))
-                                                 ((tfield 255)
-                                                   (tfield
-                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                   (tfield 255)
-                                                   (tfield
-                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                   (tfield
-                                                     340282366920938463463374607431768211455))))
-                                           (argument
-                                             (%recipient.32
-                                               %recipient.33
-                                               %recipient.34
-                                               %recipient.35
-                                               %recipient.36)
-                                             (ty ((abytes 1)
-                                                   (abytes 32)
-                                                   (abytes 32))
-                                                 ((tfield 1)
-                                                   (tfield 255)
-                                                   (tfield
-                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                   (tfield 255)
-                                                   (tfield
-                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+                                           (%coin.27
+                                             %coin.28
+                                             %coin.29
+                                             %coin.30
+                                             %coin.31)
+                                           (ty ((abytes 32)
+                                                 (abytes 32)
+                                                 (abytes 16))
+                                               ((tfield 255)
+                                                 (tfield
+                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                 (tfield 255)
+                                                 (tfield
+                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                 (tfield
+                                                   340282366920938463463374607431768211455))))
+                                         (argument
+                                           (%recipient.32
+                                             %recipient.33
+                                             %recipient.34
+                                             %recipient.35
+                                             %recipient.36)
+                                           (ty ((abytes 1)
+                                                 (abytes 32)
+                                                 (abytes 32))
+                                               ((tfield 1)
+                                                 (tfield 255)
+                                                 (tfield
+                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                 (tfield 255)
+                                                 (tfield
+                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ()))
         (circuit %relay.37 ((argument
                               (%coin.38 %coin.39 %coin.40 %coin.41 %coin.42)
@@ -42796,7 +42796,7 @@ groups than for single tests.
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ())
           (= (%value.45 %value.46)
-             (public-ledger 1 %kernel.3 () self))
+             (public-ledger 1 %kernel.0 () self))
           (= ()
              (call 1 %createZswapOutput.26
                %coin.38
@@ -42810,7 +42810,8 @@ groups than for single tests.
                %value.45
                %value.46))
           (= (%tmp.47 %tmp.48)
-             (call 1 %persistentHash<.7
+             (call 1 %persistentHash.4
+               136202032268515569762809483864408030127489942841709
                %coin.38
                %coin.39
                %coin.40
@@ -42818,15 +42819,13 @@ groups than for single tests.
                %coin.42
                0
                %value.45
-               %value.46
-               109277833225325))
+               %value.46))
           (= ()
-             (public-ledger 1 %kernel.3 ()
-               claimZswapCoinReceive
+             (public-ledger 1 %kernel.0 () claimZswapCoinReceive
                %tmp.47
                %tmp.48))
           (= (%selfAddr.49 %selfAddr.50)
-             (public-ledger 1 %kernel.3 () self))
+             (public-ledger 1 %kernel.0 () self))
           (= ()
              (call 1 %createZswapInput.19
                %coin.38
@@ -42836,7 +42835,8 @@ groups than for single tests.
                %coin.42
                0))
           (= (%tmp.51 %tmp.52)
-             (call 1 %persistentHash<.7
+             (call 1 %persistentHash.4
+               136202032272258675798939806962505150809239393167725
                %coin.38
                %coin.39
                %coin.40
@@ -42844,17 +42844,15 @@ groups than for single tests.
                %coin.42
                0
                %selfAddr.49
-               %selfAddr.50
-               121372461130861))
+               %selfAddr.50))
           (= ()
-             (public-ledger 1 %kernel.3 ()
-               claimZswapNullifier
+             (public-ledger 1 %kernel.0 () claimZswapNullifier
                %tmp.51
                %tmp.52))
           (= (%t.53)
              (call 1 %degradeToTransient.14 %coin.38 %coin.39))
           (= (%t.54)
-             (call 1 %transientHash.4
+             (call 1 %transientHash.1
                10685258091935385184760267925849721347998787314052891846880509847917
                %t.53))
           (= (%t.55 %t.56) (call 1 %upgradeFromTransient.17 %t.54))
@@ -42871,7 +42869,8 @@ groups than for single tests.
                %target.43
                %target.44))
           (= (%tmp.57 %tmp.58)
-             (call 1 %persistentHash<.7
+             (call 1 %persistentHash.4
+               136202032268515569762809483864408030127489942841709
                %t.55
                %t.56
                %coin.40
@@ -42879,11 +42878,9 @@ groups than for single tests.
                %coin.42
                0
                %target.43
-               %target.44
-               109277833225325))
+               %target.44))
           (= ()
-             (public-ledger 1 %kernel.3 ()
-               claimZswapCoinSpend
+             (public-ledger 1 %kernel.0 () claimZswapCoinSpend
                %tmp.57
                %tmp.58))
           ())))
@@ -42900,101 +42897,101 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.3 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
-        (external %transientHash.4 ((argument
-                                       (%value.5 %value.6)
-                                       (ty ((afield) (afield))
-                                           ((tfield) (tfield)))))
+        (external %transientHash.1 ((argument
+                                      (%value.2 %value.3)
+                                      (ty ((afield) (afield))
+                                          ((tfield) (tfield)))))
              (ty ((afield)) ((tfield))))
-        (external %persistentHash<.7 ((argument
-                                        (%value.8 %value.9 %value.10 %value.11
-                                          %value.12 %value.13 %value.0 %value.1
-                                          %value.2)
-                                        (ty ((abytes 32) (abytes 32) (abytes 16)
-                                              (abytes 1) (abytes 32)
-                                              (abytes 6))
-                                            ((tfield 255)
-                                              (tfield
-                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                              (tfield 255)
-                                              (tfield
-                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                              (tfield
-                                                340282366920938463463374607431768211455)
-                                              (tfield 1) (tfield 255)
-                                              (tfield
-                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                              (tfield 281474976710655)))))
+        (external %persistentHash.4 ((argument
+                                       (%value.5 %value.6 %value.7 %value.8 %value.9
+                                         %value.10 %value.11 %value.12
+                                         %value.13)
+                                       (ty ((abytes 21) (abytes 32) (abytes 32)
+                                             (abytes 16) (abytes 1)
+                                             (abytes 32))
+                                           ((tfield
+                                              374144419156711147060143317175368453031918731001855) (tfield 255)
+                                             (tfield
+                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                             (tfield 255)
+                                             (tfield
+                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                             (tfield
+                                               340282366920938463463374607431768211455)
+                                             (tfield 1) (tfield 255)
+                                             (tfield
+                                               452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
         (external %degradeToTransient.14 ((argument
-                                              (%x.15 %x.16)
-                                              (ty ((abytes 32))
-                                                  ((tfield 255)
-                                                    (tfield
-                                                      452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+                                            (%x.15 %x.16)
+                                            (ty ((abytes 32))
+                                                ((tfield 255)
+                                                  (tfield
+                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield))))
         (external %upgradeFromTransient.17 ((argument
-                                                (%x.18)
-                                                (ty ((afield)) ((tfield)))))
+                                              (%x.18)
+                                              (ty ((afield)) ((tfield)))))
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
         (external %createZswapInput.19 ((argument
-                                            (%coin.20 %coin.21 %coin.22
-                                              %coin.23 %coin.24 %coin.25)
-                                            (ty ((abytes 32)
-                                                  (abytes 32)
-                                                  (abytes 16)
-                                                  (abytes 8))
-                                                ((tfield 255)
-                                                  (tfield
-                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                  (tfield 255)
-                                                  (tfield
-                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                  (tfield
-                                                    340282366920938463463374607431768211455)
-                                                  (tfield
-                                                    18446744073709551615)))))
+                                          (%coin.20 %coin.21 %coin.22 %coin.23
+                                            %coin.24 %coin.25)
+                                          (ty ((abytes 32)
+                                                (abytes 32)
+                                                (abytes 16)
+                                                (abytes 8))
+                                              ((tfield 255)
+                                                (tfield
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                (tfield 255)
+                                                (tfield
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                (tfield
+                                                  340282366920938463463374607431768211455)
+                                                (tfield
+                                                  18446744073709551615)))))
              (ty () ()))
         (external %createZswapOutput.26 ((argument
-                                             (%coin.27
-                                               %coin.28
-                                               %coin.29
-                                               %coin.30
-                                               %coin.31)
-                                             (ty ((abytes 32)
-                                                   (abytes 32)
-                                                   (abytes 16))
-                                                 ((tfield 255)
-                                                   (tfield
-                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                   (tfield 255)
-                                                   (tfield
-                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                   (tfield
-                                                     340282366920938463463374607431768211455))))
-                                           (argument
-                                             (%recipient.32
-                                               %recipient.33
-                                               %recipient.34
-                                               %recipient.35
-                                               %recipient.36)
-                                             (ty ((abytes 1)
-                                                   (abytes 32)
-                                                   (abytes 32))
-                                                 ((tfield 1)
-                                                   (tfield 255)
-                                                   (tfield
-                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                   (tfield 255)
-                                                   (tfield
-                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+                                           (%coin.27
+                                             %coin.28
+                                             %coin.29
+                                             %coin.30
+                                             %coin.31)
+                                           (ty ((abytes 32)
+                                                 (abytes 32)
+                                                 (abytes 16))
+                                               ((tfield 255)
+                                                 (tfield
+                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                 (tfield 255)
+                                                 (tfield
+                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                 (tfield
+                                                   340282366920938463463374607431768211455))))
+                                         (argument
+                                           (%recipient.32
+                                             %recipient.33
+                                             %recipient.34
+                                             %recipient.35
+                                             %recipient.36)
+                                           (ty ((abytes 1)
+                                                 (abytes 32)
+                                                 (abytes 32))
+                                               ((tfield 1)
+                                                 (tfield 255)
+                                                 (tfield
+                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                 (tfield 255)
+                                                 (tfield
+                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ()))
         (circuit %relay.37 ((argument
                               (%coin.38 %coin.39 %coin.40 %coin.41 %coin.42)
@@ -43030,7 +43027,7 @@ groups than for single tests.
                      452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tfield 340282366920938463463374607431768211455)))
           (= (%value.45 %value.46)
-             (public-ledger 1 %kernel.3 () self))
+             (public-ledger 1 %kernel.0 () self))
           (= ()
              (call 1 %createZswapOutput.26
                %coin.38
@@ -43044,7 +43041,8 @@ groups than for single tests.
                %value.45
                %value.46))
           (= (%tmp.47 %tmp.48)
-             (call 1 %persistentHash<.7
+             (call 1 %persistentHash.4
+               136202032268515569762809483864408030127489942841709
                %coin.38
                %coin.39
                %coin.40
@@ -43052,15 +43050,13 @@ groups than for single tests.
                %coin.42
                0
                %value.45
-               %value.46
-               109277833225325))
+               %value.46))
           (= ()
-             (public-ledger 1 %kernel.3 ()
-               claimZswapCoinReceive
+             (public-ledger 1 %kernel.0 () claimZswapCoinReceive
                %tmp.47
                %tmp.48))
           (= (%selfAddr.49 %selfAddr.50)
-             (public-ledger 1 %kernel.3 () self))
+             (public-ledger 1 %kernel.0 () self))
           (= ()
              (call 1 %createZswapInput.19
                %coin.38
@@ -43070,7 +43066,8 @@ groups than for single tests.
                %coin.42
                0))
           (= (%tmp.51 %tmp.52)
-             (call 1 %persistentHash<.7
+             (call 1 %persistentHash.4
+               136202032272258675798939806962505150809239393167725
                %coin.38
                %coin.39
                %coin.40
@@ -43078,17 +43075,15 @@ groups than for single tests.
                %coin.42
                0
                %selfAddr.49
-               %selfAddr.50
-               121372461130861))
+               %selfAddr.50))
           (= ()
-             (public-ledger 1 %kernel.3 ()
-               claimZswapNullifier
+             (public-ledger 1 %kernel.0 () claimZswapNullifier
                %tmp.51
                %tmp.52))
           (= (%t.53)
              (call 1 %degradeToTransient.14 %coin.38 %coin.39))
           (= (%t.54)
-             (call 1 %transientHash.4
+             (call 1 %transientHash.1
                10685258091935385184760267925849721347998787314052891846880509847917
                %t.53))
           (= (%t.55 %t.56) (call 1 %upgradeFromTransient.17 %t.54))
@@ -43105,7 +43100,8 @@ groups than for single tests.
                %target.43
                %target.44))
           (= (%tmp.57 %tmp.58)
-             (call 1 %persistentHash<.7
+             (call 1 %persistentHash.4
+               136202032268515569762809483864408030127489942841709
                %t.55
                %t.56
                %coin.40
@@ -43113,11 +43109,9 @@ groups than for single tests.
                %coin.42
                0
                %target.43
-               %target.44
-               109277833225325))
+               %target.44))
           (= ()
-             (public-ledger 1 %kernel.3 ()
-               claimZswapCoinSpend
+             (public-ledger 1 %kernel.0 () claimZswapCoinSpend
                %tmp.57
                %tmp.58))
           (0 0 0 0 0 0 %t.55 %t.56 %coin.40 %coin.41 %coin.42))))
@@ -50364,8 +50358,8 @@ groups than for single tests.
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
         "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 64 },"
         "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 65 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"6D646E3A6363\" },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }], \"inputs\": [10, 11, 12, 13, 14, 17, 67, 68, 69] },"
+        "    { \"op\": \"load_imm\", \"imm\": \"6D69646E696768743A7A737761702D63635B76315D\" },"
+        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [69, 10, 11, 12, 13, 14, 17, 67, 68] },"
         "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
@@ -50439,13 +50433,14 @@ groups than for single tests.
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
         "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 77 },"
         "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 78 },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }], \"inputs\": [10, 11, 12, 13, 14, 17, 80, 81, 69] },"
+        "    { \"op\": \"load_imm\", \"imm\": \"6D69646E696768743A7A737761702D63635B76315D\" },"
+        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [82, 10, 11, 12, 13, 14, 17, 80, 81] },"
         "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 82 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 83 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 84 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 6 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
@@ -50482,7 +50477,7 @@ groups than for single tests.
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 84 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 85 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
@@ -50501,13 +50496,13 @@ groups than for single tests.
         "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 85 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 86 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 87 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 84 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 85 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
@@ -50516,17 +50511,18 @@ groups than for single tests.
         "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"35\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 87 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 88 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 85 },"
         "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 86 },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }], \"inputs\": [10, 11, 12, 13, 14, 17, 88, 89, 69] },"
+        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 87 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"6D69646E696768743A7A737761702D63635B76315D\" },"
+        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [91, 10, 11, 12, 13, 14, 17, 89, 90] },"
         "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 90 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 91 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 92 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 93 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 6 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
@@ -50584,8 +50580,8 @@ groups than for single tests.
         "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 92 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 93 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 94 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 95 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
@@ -50615,17 +50611,18 @@ groups than for single tests.
         "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"37\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 94 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 96 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 92 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 93 },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }], \"inputs\": [10, 11, 12, 13, 14, 17, 95, 96, 69] },"
+        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 94 },"
+        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 95 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"6D69646E696768743A7A737761702D63635B76315D\" },"
+        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [99, 10, 11, 12, 13, 14, 17, 97, 98] },"
         "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 97 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 98 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 100 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 101 },"
         "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 6 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"

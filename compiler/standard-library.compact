@@ -254,10 +254,11 @@ circuit upcastQualifiedCoin(coin: ShieldedCoinInfo): QualifiedShieldedCoinInfo {
 }
 
 struct CoinPreimage {
+  // `midnight:zswap-cc[v1]` / `midnight:zswap-cn[v1]`
+  domain_sep: Bytes<21>,
   info: ShieldedCoinInfo,
   dataType: Boolean,
   data: Bytes<32>,
-  domain_sep: Bytes<6>,
 }
 
 circuit coinCommitment(
@@ -266,10 +267,10 @@ circuit coinCommitment(
 ): Bytes<32> {
   return persistentHash<CoinPreimage>(
     CoinPreimage{
+      domain_sep: "midnight:zswap-cc[v1]",
       info: coin,
       dataType: recipient.is_left,
       data: recipient.is_left ? recipient.left.bytes : recipient.right.bytes,
-      domain_sep: "mdn:cc"
     });
 }
 
@@ -279,10 +280,10 @@ circuit coinNullifier(
 ): Bytes<32> {
   return persistentHash<CoinPreimage>(
     CoinPreimage{
+      domain_sep: "midnight:zswap-cn[v1]",
       info: coin,
       dataType: false, // The hypothetical is_left of Either<ZSwapCoinSecretKey, ContractAddress>
       data: addr.bytes,
-      domain_sep: "mdn:cn"
     });
 }
 

@@ -25,24 +25,24 @@
   inputs = {
     zkir = {
       # dependency for compact-runtime release
-      # this is using a commit hash to pull in the correct zkir version from ledger-6.0.0-alpha.3 release
+      # this is using a commit hash to pull in the correct zkir version from ledger-6.2.0-rc.1 release
       # if for releasing the runtime, running nix flake update causes errors for autherization of cargo, use
       # the commit hash instead of the tag for this.
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-6.1.0-alpha.5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-6.2.0-rc.2";
       inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v1 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/ledger-6.1.0-alpha.5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-6.2.0-rc.2";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-6.1.0-alpha.5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-6.2.0-rc.2";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -209,7 +209,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.27.106"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.27.107"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./test-center
               ./compiler
