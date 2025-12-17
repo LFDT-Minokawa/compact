@@ -322,7 +322,11 @@
                 cp "obj/compiler/$exe" $out/bin
                 chmod +x "$out/bin/$exe"
               done
-            '';
+            '' + (if isDarwin then ''
+              for exe in compactc format-compact fixup-compact; do
+                install_name_tool -change ${pkgs.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/bin/$exe"
+              done
+            '' else "");
           };
 
           packages.compactc-binaryWrapperScript-nixos = pkgs.writeShellScriptBin "run-compactc" ''
@@ -357,11 +361,7 @@
                 cp "bin/$exe" $out/bin
                 chmod +x "$out/bin/$exe"
               done
-            '' + (if isDarwin then ''
-              for exe in compactc.bin format-compact fixup-compact; do
-                install_name_tool -change ${pkgs.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/bin/$exe"
-              done
-            '' else "");
+            '';
 
             dontFixup = true;
           };
