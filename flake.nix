@@ -326,7 +326,6 @@
               for exe in compactc format-compact fixup-compact; do
                 install_name_tool -change ${pkgs.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/bin/$exe"
               done
-              install_name_tool -change ${inputs.zkir.inputs.nixpkgs.legacyPackages.${system}.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/lib/zkir"
             '' else "");
           };
 
@@ -362,7 +361,9 @@
                 cp "bin/$exe" $out/bin
                 chmod +x "$out/bin/$exe"
               done
-            '';
+            '' + (if isDarwin then ''
+              install_name_tool -change ${inputs.zkir.inputs.nixpkgs.legacyPackages.${system}.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/lib/zkir"
+            '' else "");
 
             dontFixup = true;
           };
