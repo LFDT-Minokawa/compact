@@ -362,7 +362,9 @@
                 cp "bin/$exe" $out/bin
                 chmod +x "$out/bin/$exe"
               done
-            '';
+            '' + (if isDarwin then ''
+              install_name_tool -change ${inputs.zkir.inputs.nixpkgs.legacyPackages.${system}.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/lib/zkir"
+            '' else "");
 
             dontFixup = true;
           };
