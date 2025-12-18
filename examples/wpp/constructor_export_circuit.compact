@@ -41,7 +41,7 @@ circuit andy(a: Field, b: Field) : [Field, Field] {
   return [x, x];
 }
 
-export circuit switch(a: Boolean): [] {
+export circuit myswitch(a: Boolean): [] {
   for (const i of [disclose(a), disclose(a), disclose(a),]) {
     y = i;
   }

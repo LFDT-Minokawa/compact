@@ -3627,7 +3627,7 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 7" "parse error: found ~a looking for~?" ("\"export\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"circuit\""))))
+      irritants: '("testfile.compact line 1 char 7" "parse error: found ~a looking for~?" ("keyword \"export\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"circuit\""))))
     )
 
   (test
@@ -4330,7 +4330,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 14" "parse error: found ~a looking for~?" ("\"circuit\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a function"))))
+      irritants: '("testfile.compact line 4 char 14" "parse error: found ~a looking for~?" ("keyword \"circuit\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a function"))))
     )
 
   (test ; tests that anonymous circuit requires => syntax
@@ -5138,7 +5138,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "parse error: found ~a looking for~?" ("\"export\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"ledger\""))))
+      irritants: '("testfile.compact line 2 char 10" "parse error: found ~a looking for~?" ("keyword \"export\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\"ledger\""))))
     )
 
   (test
@@ -5150,7 +5150,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 39" "parse error: found ~a looking for~?" ("\"ledger\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a statement" "\"}\""))))
+      irritants: '("testfile.compact line 3 char 39" "parse error: found ~a looking for~?" ("keyword \"ledger\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a statement" "\"}\""))))
     )
 
   (test
@@ -5169,7 +5169,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 11" "parse error: found ~a looking for~?" ("\"ledger\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a tuple argument" "\"]\""))))
+      irritants: '("testfile.compact line 10 char 11" "parse error: found ~a looking for~?" ("keyword \"ledger\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a tuple argument" "\"]\""))))
     )
 
   (test
@@ -5204,7 +5204,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 3" "parse error: found ~a looking for~?" ("\"export\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an external contract circuit" "\"}\""))))
+      irritants: '("testfile.compact line 2 char 3" "parse error: found ~a looking for~?" ("keyword \"export\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an external contract circuit" "\"}\""))))
     )
 
   (test
@@ -6071,6 +6071,15 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 33" "unexpected ~a" ("character '๓'")))
+    )
+
+  (test
+    '(
+      "circuit in(): [];"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"in\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
     )
 )
 
@@ -7594,7 +7603,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 42" "parse error: found ~a looking for~?" ("\"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "\";\""))))
+      irritants: '("testfile.compact line 1 char 42" "parse error: found ~a looking for~?" ("keyword \"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "\";\""))))
     )
 
   (test
@@ -7606,7 +7615,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "parse error: found ~a looking for~?" ("\"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "an expression"))))
+      irritants: '("testfile.compact line 2 char 10" "parse error: found ~a looking for~?" ("keyword \"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "an expression"))))
     )
 )
 
@@ -11631,18 +11640,18 @@ groups than for single tests.
           (call (fref ()) %x.1))))
     )
 
-    (test
+  (test
     '(
       "import CompactStandardLibrary;"
       "export ledger field1: QualifiedShieldedCoinInfo;"
       "export circuit foo(b: Boolean): [] {"
       "  if (b) {"
-      "    field1 = null(QualifiedShieldedCoinInfo);"
+      "    field1 = nul(QualifiedShieldedCoinInfo);"
       "  }"
       "}")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 14" "unbound identifier ~s" (null))))
+      irritants: '("testfile.compact line 5 char 14" "unbound identifier ~s" (nul))))
 
   (test
     '(
@@ -11677,12 +11686,12 @@ groups than for single tests.
       "export ledger field1: Field;"
       "export circuit foo(b: Boolean): [] {"
       "  if (b) {"
-      "    field1 = null(Field);"
+      "    field1 = nul(Field);"
       "  }"
       "}")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 19" "parse error: found ~a looking for~?" ("\"Field\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression" "\")\""))))
+      irritants: '("testfile.compact line 5 char 18" "parse error: found ~a looking for~?" ("keyword \"Field\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression" "\")\""))))
     )
 
   (test
@@ -12636,8 +12645,8 @@ groups than for single tests.
   (test
     '(
       "module Test {"
-      "  export circuit test(var: Field): Field {"
-      "    return var;"
+      "  export circuit test(v: Field): Field {"
+      "    return v;"
       "  }"
       "}"
       ""
@@ -17479,7 +17488,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 14" "parse error: found ~a looking for~?" ("\"new\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression"))))
+      irritants: '("testfile.compact line 3 char 14" "parse error: found ~a looking for~?" ("keyword \"new\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression"))))
     )
 
   (test
@@ -22441,8 +22450,8 @@ groups than for single tests.
       "new type T1 = Map<Field, Field>;"
       "new type T2 = Map<Field, T1>;"
       "ledger F: T2;"
-      "export circuit foo(in: Field): Field {"
-      "  const n = disclose(in);"
+      "export circuit foo(input: Field): Field {"
+      "  const n = disclose(input);"
       "  F.insert(n, default<Map<Field, Field>>);"
       "  F.lookup(n).insert(n + 2, n + 4);"
       "  return F.lookup(n).lookup(n + 2);"
@@ -29826,7 +29835,7 @@ groups than for single tests.
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 14" "parse error: found ~a looking for~?" ("\"disclose\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a function"))))
+      irritants: '("testfile.compact line 3 char 14" "parse error: found ~a looking for~?" ("keyword \"disclose\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a function"))))
     )
 
   (test
@@ -29903,7 +29912,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 26" "parse error: found ~a looking for~?" ("\"return\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression"))))
+      irritants: '("testfile.compact line 7 char 26" "parse error: found ~a looking for~?" ("keyword \"return\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an expression"))))
     )
 
   (test
@@ -30095,7 +30104,7 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 9" "parse error: found ~a looking for~?" ("\"disclose\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier" "\"}\""))))
+      irritants: '("testfile.compact line 8 char 9" "parse error: found ~a looking for~?" ("keyword \"disclose\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier" "\"}\""))))
     )
 
   (test
@@ -69549,9 +69558,9 @@ groups than for single tests.
   (test
     '(
       "struct S { x: [], y: Field };"
-      "circuit void(): []{}"
+      "circuit myvoid(): []{}"
       "circuit foo(n: Field): S {"
-      "  return S { x: void(), y: n };"
+      "  return S { x: myvoid(), y: n };"
       "}"
       "export circuit bar(n1: Field, n2: Field): Boolean {"
       "  return foo(n1) == foo(n2);"
@@ -69570,11 +69579,11 @@ groups than for single tests.
   (test
     '(
       "struct S { x: [], y: Field };"
-      "export circuit foo(void: [], n: Field): S {"
-      "  return S { x: void, y: n };"
+      "export circuit foo(v: [], n: Field): S {"
+      "  return S { x: v, y: n };"
       "}"
-      "export circuit bar(void: [], n1: Field, n2: Field): Boolean {"
-      "  return foo(void, n1) == foo(void, n2);"
+      "export circuit bar(v: [], n1: Field, n2: Field): Boolean {"
+      "  return foo(v, n1) == foo(v, n2);"
       "}"
       )
     (stage-javascript
@@ -77315,8 +77324,8 @@ groups than for single tests.
       "type T1 = Map<Field, Field>;"
       "type T2 = Map<Field, T1>;"
       "ledger F: T2;"
-      "export circuit foo(in: Field): Field {"
-      "  const n = disclose(in);"
+      "export circuit foo(input: Field): Field {"
+      "  const n = disclose(input);"
       "  F.insert(n, default<T1> as T1);"
       "  F.lookup(n).insert(n + 2, n + 4);"
       "  return F.lookup(n).lookup(n + 2);"
@@ -77337,8 +77346,8 @@ groups than for single tests.
       "new type T1 = Map<Field, Field>;"
       "new type T2 = Map<Field, T1>;"
       "ledger F: T2;"
-      "export circuit foo(in: Field): Field {"
-      "  const n = disclose(in);"
+      "export circuit foo(input: Field): Field {"
+      "  const n = disclose(input);"
       "  F.insert(n, default<T1> as T1);"
       "  F.lookup(n).insert(n + 2, n + 4);"
       "  return F.lookup(n).lookup(n + 2);"
@@ -77359,8 +77368,8 @@ groups than for single tests.
       "new type T1 = Map<Field, Field>;"
       "new type T2 = Map<Field, T1>;"
       "ledger F: T2;"
-      "export circuit foo(in: Field): Field {"
-      "  const n = disclose(in);"
+      "export circuit foo(input: Field): Field {"
+      "  const n = disclose(input);"
       "  F.insert(n, default<Map<Field, Field>> as T1);"
       "  F.lookup(n).insert(n + 2, n + 4);"
       "  return F.lookup(n).lookup(n + 2);"

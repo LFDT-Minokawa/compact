@@ -39,7 +39,7 @@ describe('[Types] [PM-19636] Define type aliases and new disjoint types for exis
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_one.compact line 16 char 6: parse error: found "Field" looking for an identifier',
+                'Exception: example_one.compact line 16 char 6: parse error: found keyword "Field" looking for an identifier',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();

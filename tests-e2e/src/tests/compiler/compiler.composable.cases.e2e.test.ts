@@ -100,7 +100,7 @@ describe('[Composable contracts] Compiler', () => {
 
             const returnValue = await compileWithContractName('main', contractsDir);
             expectCompilerResult(returnValue).toBeFailure(
-                `Exception: main.compact line 22 char 3:\n  parse error: found "contract" looking for a statement or "}"`,
+                `Exception: main.compact line 22 char 3:\n  parse error: found keyword "contract" looking for a statement or "}"`,
                 compilerDefaultOutput(),
             );
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
@@ -124,7 +124,7 @@ describe('[Composable contracts] Compiler', () => {
 
             const returnValue = await compileWithContractName('main', contractsDir);
             expectCompilerResult(returnValue).toBeFailure(
-                `Exception: main.compact line 21 char 3:\n  parse error: found "export" looking for an external contract circuit or "}"`,
+                `Exception: main.compact line 21 char 3:\n  parse error: found keyword "export" looking for an external contract circuit or "}"`,
                 compilerDefaultOutput(),
             );
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();

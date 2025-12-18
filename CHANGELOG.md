@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.27.108, language version 0.19.101]
+
+### Added
+
+- The reserved words from TypeScript and JavaScript are now included in our
+  future reserved words.
+
 ## [Unreleased compiler version 0.27.107, language version 0.19.100]
 
 ### Changed
