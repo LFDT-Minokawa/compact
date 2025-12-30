@@ -170,11 +170,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1761716996,
+        "lastModified": 1766388657,
         "narHash": "sha256-vdOuy2pid2/DasUgb08lDOswdPJkN5qjXfBYItVy/R4=",
         "owner": "nlewo",
         "repo": "nix2container",
-        "rev": "e5496ab66e9de9e3f67dc06f692dfbc471b6316e",
+        "rev": "93aa7880805df3c8d3b9008923c4c3b47e2bd70b",
         "type": "github"
       },
       "original": {
@@ -215,11 +215,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1765425892,
-        "narHash": "sha256-jlQpSkg2sK6IJVzTQBDyRxQZgKADC2HKMRfGCSgNMHo=",
+        "lastModified": 1766996594,
+        "narHash": "sha256-SosfgQSqVmOkqVgNYJnxW5FvoIQX4grOcpIKNrIwz4o=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "5d6bdbddb4695a62f0d00a3620b37a15275a5093",
+        "rev": "0744ef1b047f07d31d9962d757ffe38ec14a4d41",
         "type": "github"
       },
       "original": {
@@ -341,7 +341,7 @@
         "type": "github"
       }
     },
-    "onchain-runtime-v1": {
+    "onchain-runtime-v2": {
       "inputs": {
         "fenix": "fenix",
         "inclusive": "inclusive_2",
@@ -352,16 +352,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1765218918,
-        "narHash": "sha256-7EBOf410H/c0QbCoDQY1V5Fd5SD+GfJREVBBKwlMe7E=",
+        "lastModified": 1766436867,
+        "narHash": "sha256-Zm3mn/JM5QjgDC4MzcS/J59V3j/rQWsRDIFW/ErJ/aI=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "9caeb31bc495a40c452cb8ee5f582f49bcb5d077",
+        "rev": "f286bab87276136b2142932a4759ede03b800b03",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-6.2.0-rc.2",
+        "ref": "ledger-7.0.0-alpha.1",
         "repo": "midnight-ledger",
         "type": "github"
       }
@@ -374,7 +374,7 @@
         "n2c": "n2c",
         "nixpkgs": "nixpkgs_3",
         "npmlock2nix": "npmlock2nix",
-        "onchain-runtime-v1": "onchain-runtime-v1",
+        "onchain-runtime-v2": "onchain-runtime-v2",
         "utils": "utils_3",
         "zkir": "zkir",
         "zkir-wasm": "zkir-wasm"
@@ -667,16 +667,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1765218918,
-        "narHash": "sha256-7EBOf410H/c0QbCoDQY1V5Fd5SD+GfJREVBBKwlMe7E=",
+        "lastModified": 1766436867,
+        "narHash": "sha256-Zm3mn/JM5QjgDC4MzcS/J59V3j/rQWsRDIFW/ErJ/aI=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "9caeb31bc495a40c452cb8ee5f582f49bcb5d077",
+        "rev": "f286bab87276136b2142932a4759ede03b800b03",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-6.2.0-rc.2",
+        "ref": "ledger-7.0.0-alpha.1",
         "repo": "midnight-ledger",
         "type": "github"
       }
@@ -692,16 +692,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1765218918,
-        "narHash": "sha256-7EBOf410H/c0QbCoDQY1V5Fd5SD+GfJREVBBKwlMe7E=",
+        "lastModified": 1766436867,
+        "narHash": "sha256-Zm3mn/JM5QjgDC4MzcS/J59V3j/rQWsRDIFW/ErJ/aI=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "9caeb31bc495a40c452cb8ee5f582f49bcb5d077",
+        "rev": "f286bab87276136b2142932a4759ede03b800b03",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-6.2.0-rc.2",
+        "ref": "ledger-7.0.0-alpha.1",
         "repo": "midnight-ledger",
         "type": "github"
       }
