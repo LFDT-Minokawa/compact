@@ -207,11 +207,12 @@ export const decodeZswapLocalState = (state: EncodedZswapLocalState): ZswapLocal
 export function createZswapInput(
   circuitContext: CircuitContext,
   qualifiedShieldedCoinInfo: EncodedQualifiedShieldedCoinInfo,
-): void {
+): [] {
   circuitContext.currentZswapLocalState = {
     ...circuitContext.currentZswapLocalState,
     inputs: circuitContext.currentZswapLocalState.inputs.concat(qualifiedShieldedCoinInfo),
   };
+  return [];
 }
 
 /**
@@ -247,7 +248,7 @@ export function createZswapOutput(
   circuitContext: CircuitContext<unknown>,
   coinInfo: EncodedShieldedCoinInfo,
   recipient: EncodedRecipient,
-): void {
+): [] {
   circuitContext.currentQueryContext = circuitContext.currentQueryContext.insertCommitment(
     Buffer.from(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)).toString('hex'),
     circuitContext.currentZswapLocalState.currentIndex,
@@ -260,6 +261,7 @@ export function createZswapOutput(
       recipient,
     }),
   };
+  return [];
 }
 
 /**
