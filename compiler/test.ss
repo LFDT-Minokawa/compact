@@ -77448,6 +77448,26 @@ groups than for single tests.
         "});"
         ))
     )
+
+  ; pm-19299
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger emptyVector: Vector<0, Field>;"
+      ""
+      "export circuit foo(): [] {"
+      "  const coin1 = ShieldedCoinInfo {pad(32, 'coinNonce1'), pad(32, 'coinColor1'), 300};"
+      "  createZswapOutput(coin1, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual([]);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
