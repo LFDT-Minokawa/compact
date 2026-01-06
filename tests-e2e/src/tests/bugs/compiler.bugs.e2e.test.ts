@@ -146,7 +146,7 @@ describe('[Bugs] Compiler', () => {
             file: 'pm-19287.compact',
             output: {
                 stderr: 'Compiling 11 circuits:',
-                stdout: "WARNING: The dominant factor in your circuit's size is the number of public inputs, which causes the verifier to perform linear work.\nWARNING: The dominant factor in your circuit's size is the number of public inputs, which causes the verifier to perform linear work.",
+                stdout: '',
                 exitCode: ExitCodes.Success,
             },
         },

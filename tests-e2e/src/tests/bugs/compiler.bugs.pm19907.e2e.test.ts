@@ -129,7 +129,7 @@ describe('[Bug] [PM-19907] Consts in single statements', () => {
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_eight.compact line 18 char 27: parse error: found "const" looking for an expression',
+                'Exception: example_eight.compact line 18 char 27: parse error: found keyword "const" looking for an expression',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
@@ -142,7 +142,7 @@ describe('[Bug] [PM-19907] Consts in single statements', () => {
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_nine.compact line 18 char 24: parse error: found "const" looking for a block or an expression',
+                'Exception: example_nine.compact line 18 char 24: parse error: found keyword "const" looking for a block or an expression',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();

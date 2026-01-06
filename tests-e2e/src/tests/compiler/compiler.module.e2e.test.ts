@@ -116,7 +116,7 @@ describe('[Module] PM-13947 - Selective import module exports', () => {
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_six.compact line 19 char 3: parse error: found "import" looking for a statement or "}"',
+                'Exception: example_six.compact line 19 char 3: parse error: found keyword "import" looking for a statement or "}"',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();

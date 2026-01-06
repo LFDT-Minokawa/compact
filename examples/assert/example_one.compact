@@ -49,7 +49,7 @@ constructor(b : Boolean) {
   abel();
   mandolin(false);
   maria(1,2);
-  const f = switch(5, 4, true);
+  const f = myswitch(5, 4, true);
   
   assert(pad(50, 'a') == pad(50, 'b'), 'greg 1');
   assert([1] == [1], 'greg 2');
@@ -102,7 +102,7 @@ export circuit ellen(x: bobson): [] {
   assert(kris.lookup(1).a[0] as Boolean == stan.lookup(1).a[0] as Boolean, "stan and kris");
 }
 
-export circuit switch(x: Field, y: Field, b: Boolean): Field {
+export circuit myswitch(x: Field, y: Field, b: Boolean): Field {
   if(disclose(b)) {
     assert(x != y, "same");
     assert(round.increment(disclose(x) as Uint<16>) == round.increment(disclose(y) as Uint<16>), "counter");

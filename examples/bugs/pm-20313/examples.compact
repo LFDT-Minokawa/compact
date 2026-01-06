@@ -27,23 +27,23 @@ module Test1 {
 // Test2: different generic methods in module
 module Test2 {
   module Test2<T> {
-    export circuit test(var: Bytes<1>): T {
-      return var[0] as T;
+    export circuit test(v: Bytes<1>): T {
+      return v[0] as T;
     }
 
-    export circuit test(var: Uint<1>): T {
-      return var[0] as T;
+    export circuit test(v: Uint<1>): T {
+      return v[0] as T;
     }
 
     // should it not raise error ?
-    export circuit test(var: Boolean): T {
-      return var[0] as T;
-      return var[0] as T;
+    export circuit test(v: Boolean): T {
+      return v[0] as T;
+      return v[0] as T;
     }
 
-    export circuit test(var: Boolean): T {
-      return var[0] as [T];
-      return var[0] as [T];
+    export circuit test(v: Boolean): T {
+      return v[0] as [T];
+      return v[0] as [T];
     }
   }
 }
@@ -51,8 +51,8 @@ module Test2 {
 // Test3: different return values in circuits
 module Test3 {
   module Test3 {
-    export circuit test1(var: []): [] {
-      return var;
+    export circuit test1(v: []): [] {
+      return v;
     }
 
     export circuit test2(): [] {
@@ -64,8 +64,8 @@ module Test3 {
 // Test4: generic numbers with types
 module Test4<#N> {
   module Test4<#N> {
-    export circuit test1(var: []): Bytes<N> {
-      return var;
+    export circuit test1(v: []): Bytes<N> {
+      return v;
     }
 
     export circuit test2(): Uint<N> {
@@ -77,8 +77,8 @@ module Test4<#N> {
 // Test5: return invalid circuit
 module Test5<#N> {
   module Test5<#N> {
-    export circuit test1(var: []): Uint<1000> {
-      return var;
+    export circuit test1(v: []): Uint<1000> {
+      return v;
     }
 
     export circuit test2(): Uint<1000> {
@@ -90,15 +90,15 @@ module Test5<#N> {
 // Test6: return invalid return value
 module Test6<#T> {
   module Test6<#T> {
-    export circuit test1(var: Bytes<20>): Boolean {
-      return var;
+    export circuit test1(v: Bytes<20>): Boolean {
+      return v;
     }
 
     export circuit test2(): [] {
       return "string";
     }
 
-    export circuit test3(var: Bytes<0xfffffffffffffffffffffffffffff>): Field {
+    export circuit test3(v: Bytes<0xfffffffffffffffffffffffffffff>): Field {
       return true;
     }
   }

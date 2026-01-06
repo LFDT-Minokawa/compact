@@ -54,19 +54,19 @@
 
   ; NB: check this list regularly.  ideally, we would generate it automatically.
   (define keywordBoolean '(
-    true
-    false))
+    false
+    true))
   (define keywordImport '(
     export
-    import
     from
+    import
     module))
   (define keywordControl '(
     as
     assert
     circuit
-    constructor
     const
+    constructor
     contract
     default
     disclose
@@ -91,15 +91,47 @@
     type
     witness))
   (define keywordDataTypes '(
-    Bytes
     Boolean
+    Bytes
     Field
     Opaque
     Uint
     Vector))
   (define-syntax keywordReservedForFutureUse (identifier-syntax '(
+    await
+    break
+    case
+    catch
+    class
+    continue
+    debugger
+    delete
+    do
+    extends
+    finally
+    function
+    implements
+    in
+    instanceof
+    interface
+    let
+    null
+    package
+    private
+    protected
+    public
+    static
+    super
+    switch
     this ; use as an identifier can cause problems with generated Javascript code, so we reserve
-    )))
+    throw
+    try
+    typeof
+    var
+    void
+    while
+    with
+    yield)))
   (define (parser-keywords)
     `((keywordBoolean ,keywordBoolean)
       (keywordImport ,keywordImport)
@@ -109,7 +141,12 @@
 
   (define keyword?
     (let ([ht (make-hashtable symbol-hash eq?)])
-      (for-each (lambda (x) (hashtable-set! ht x #t)) all-keywords)
+      (for-each
+        (lambda (x)
+          (let ([a (hashtable-cell ht x #f)])
+            (assertf (not (cdr a)) "duplicate keyword ~s" x)
+            (set-cdr! a #t)))
+        all-keywords)
       (lambda (x) (hashtable-contains? ht x))))
 
   (define (unreserved? x)
@@ -812,9 +849,15 @@
             '()
             failure+))
         (define (format-input-token token)
-          (if (eq? (token-type token) 'eof)
-              "end of file"
-              (format "~s" (token-string token))))
+          (cond
+            [(eq? (token-type token) 'eof) "end of file"]
+            [(and (eq? (token-type token) 'id)
+                  (memq (token-value token) keywordReservedForFutureUse))
+             (format "keyword ~s (which is reserved for future use)" (token-string token))]
+            [(and (eq? (token-type token) 'id)
+                  (memq (token-value token) all-keywords))
+             (format "keyword ~s" (token-string token))]
+            [else (format "~s" (token-string token))]))
         (define (format-failure failure)
           (define (format-nonterminal-name nt)
             (format "~a ~a"

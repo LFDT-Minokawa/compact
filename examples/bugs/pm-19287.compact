@@ -57,9 +57,9 @@ circuit generate_tuple_data(): [Field, Uint<32>, Boolean, Field] {
 // Circuit that returns nested vector
 circuit create_matrix(): Vector<3, Vector<2, Field>> {
     return [
-        [1, 2],
-        [3, 4],
-        [5, 6]
+        [1, 5],
+        [2, 6],
+        [3, 7]
     ];
 }
 

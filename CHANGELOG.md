@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.27.110, language version 0.19.101]
+
+### Changed
+
+- Fixes PM-19299 by having `createZswapInput` and `createZswapOutput` return
+  an empty array to represent the `[]` type in Compact.
+
+## [Unreleased compiler version 0.27.109, language version 0.19.101]
+
+### Changed
+
+- The compiler now targets ledger version 7.0 instead of 6.2.  There are no API
+  changes between 6.2 and 7.0 so it is only necessary to pull in a new
+  implementation of the on-chain runtime and bump version numbers.  This is
+  **not** a breaking change.
+
+## [Unreleased compiler version 0.27.108, language version 0.19.101]
+
+### Added
+
+- The reserved words from TypeScript and JavaScript are now included in our
+  future reserved words.
+
+## [Unreleased compiler version 0.27.107, language version 0.19.100]
+
+### Changed
+
+- The compiler now targets ledger version 6.2 instead of 6.1.  This ledger
+  version has changes to Zswap hashing made in response to ledger audit
+  feedback.
+
+- There are standard library changes to **non-exported** structs and circuits,
+  so this is **not** a breaking change.
+
 ## [Unreleased compiler version 0.27.106, language version 0.19.100]
 
 ### Fixed

@@ -17,8 +17,8 @@ import CompactStandardLibrary;
 
 // Test1: module import/export (circuit)
 module Test {
-  export circuit test(var: Field): Field {
-    return var;
+  export circuit test(v: Field): Field {
+    return v;
   }
 }
 

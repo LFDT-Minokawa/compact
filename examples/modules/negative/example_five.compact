@@ -31,4 +31,4 @@ module Test2b {
   }
 }
 
-import { var as sth } from NonExistingModule;
+import { v as sth } from NonExistingModule;

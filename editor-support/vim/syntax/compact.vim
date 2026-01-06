@@ -23,6 +23,7 @@ syn keyword compactType Boolean Bytes Opaque Field Vector Uint
 syn keyword compactType Kernel Counter Set Map List MerkleTree HistoricMerkleTree
 syn keyword compactConditional if else 
 syn keyword compactStorageClass const
+syn keyword compactFutureReservedWord this await break case catch class continue debugger delete do extends finally function in instanceof null super switch throw try typeof var void while with yield implements interface package private protected public let static
 syn match compactOperator "="
 syn match compactOperator "+="
 syn match compactOperator "-="
