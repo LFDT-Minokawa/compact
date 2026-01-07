@@ -16170,41 +16170,36 @@ groups than for single tests.
 
   (test
     '(
-      "export struct NativePoint {"
-      "  x: Field;"
-      "  y: Field;"
-      "}"
+      "import {NativePoint} from CompactStandardLibrary;"
       "circuit ecAdd(x: Bytes<32>, y: NativePoint): NativePoint;"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Bytes<32>" "Struct<Field, Field>" 1 ecAdd #f)))
+      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Bytes<32>" "NativePoint" 1 ecAdd #f)))
     )
 
   (test
     '(
-      "export struct NativePoint {"
+      "import {NativePoint} from CompactStandardLibrary;"
+      "export struct NonNativePoint {"
       "  x: Field;"
       "  y: Field;"
       "}"
-      "circuit ecAdd(x: NativePoint, y: Boolean): NativePoint;"
+      "circuit ecAdd(x: NonNativePoint, y: NativePoint): NativePoint;"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Boolean" "Struct<Field, Field>" 2 ecAdd #f)))
+      irritants: '("testfile.compact line 6 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("struct NonNativePoint<x: Field, y: Field>" "NativePoint" 1 ecAdd #f)))
     )
 
   (test
     '(
-      "export struct NativePoint {"
-      "  x: Field;"
-      "  y: Field;"
-      "}"
+      "import {NativePoint} from CompactStandardLibrary;"
       "circuit ecAdd(x: NativePoint, y: NativePoint): Field;"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "Struct<Field, Field>" ecAdd #f)))
+      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "NativePoint" ecAdd #f)))
     )
 
   #|
@@ -16251,22 +16246,35 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (external %ecAdd.1 ([%a.2 (tstruct NativePoint
-                                     (x (tfield))
-                                     (y (tfield)))]
-                             [%b.3 (tstruct NativePoint
-                                     (x (tfield))
-                                     (y (tfield)))])
-             (tstruct NativePoint (x (tfield)) (y (tfield))))
-        (external %ecMul.4 ([%a.5 (tstruct NativePoint
-                                     (x (tfield))
-                                     (y (tfield)))]
+        (external %ecAdd.1 ([%a.2 (talias #t NativePoint
+                                    (tstruct SimplePoint
+                                      (x (tfield))
+                                      (y (tfield))))]
+                             [%b.3 (talias #t NativePoint
+                                    (tstruct SimplePoint
+                                      (x (tfield))
+                                      (y (tfield))))])
+             (talias #t NativePoint
+               (tstruct SimplePoint
+                 (x (tfield))
+                 (y (tfield)))))
+        (external %ecMul.4 ([%a.5 (talias #t NativePoint
+                                    (tstruct SimplePoint
+                                      (x (tfield))
+                                      (y (tfield))))]
                              [%b.6 (tfield)])
-             (tstruct NativePoint (x (tfield)) (y (tfield))))
-        (circuit %foo.7 ([%c.8 (tstruct NativePoint
-                                 (x (tfield))
-                                 (y (tfield)))])
-             (tstruct NativePoint (x (tfield)) (y (tfield)))
+             (talias #t NativePoint
+               (tstruct SimplePoint
+                 (x (tfield))
+                 (y (tfield)))))
+        (circuit %foo.7 ([%c.8 (talias #t NativePoint
+                                  (tstruct SimplePoint
+                                    (x (tfield))
+                                    (y (tfield))))])
+             (talias #t NativePoint
+               (tstruct SimplePoint
+                 (x (tfield))
+                 (y (tfield))))
           (call %ecAdd.1
             %c.8
             (call %ecMul.4 %c.8 (safe-cast (tfield) (tunsigned 3) 3))))))
@@ -22184,7 +22192,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("U32=Uint<32>" "Uint<32>" "circuit foo")))
+      irritants: '("testfile.compact line 4 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("U32" "Uint<32>" "circuit foo")))
     )
 
   (test
@@ -22333,7 +22341,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~s" ("T=Uint<32>" "Uint<32>" +)))
+      irritants: '("testfile.compact line 3 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~s" ("T" "Uint<32>" +)))
     )
 
   (test
@@ -22346,7 +22354,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "incompatible types ~a and ~a for equality operator" ("T1=Uint<32>" "T2=Uint<32>")))
+      irritants: '("testfile.compact line 4 char 10" "incompatible types ~a and ~a for equality operator" ("T1" "T2")))
     )
 
   (test
@@ -22359,7 +22367,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "incompatible combination of types ~a and ~a for relational operator" ("T1=Uint<32>" "T2=Uint<32>")))
+      irritants: '("testfile.compact line 4 char 10" "incompatible combination of types ~a and ~a for relational operator" ("T1" "T2")))
     )
 
   (test
@@ -22372,7 +22380,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~s" ("T1=Uint<32>" "T2=Uint<32>" *)))
+      irritants: '("testfile.compact line 4 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~s" ("T1" "T2" *)))
     )
 
   (test
@@ -22459,7 +22467,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 4" "expected ~:r argument of ~s to have type ~a but received ~a" (2 insert "T1=Map<Field, Field>" "Map<Field, Field>")))
+      irritants: '("testfile.compact line 7 char 4" "expected ~:r argument of ~s to have type ~a but received ~a" (2 insert "T1" "Map<Field, Field>")))
     )
 
   (test
@@ -22534,7 +22542,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 4" "operation ~a undefined for ledger field type ~a" (insertCoin "Set<QSCI=struct QualifiedShieldedCoinInfo<nonce: Bytes<32>, color: Bytes<32>, value: Uint<128>, mt_index: Uint<64>>>")))
+      irritants: '("testfile.compact line 6 char 4" "operation ~a undefined for ledger field type ~a" (insertCoin "Set<QSCI>")))
     )
 
   (test
@@ -34403,7 +34411,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for witness ~a return value:\n  witness return values cannot include contract values" ("C1=contract C<foo(Bytes<32>): [], pure bar(): Bytes<32>>" W)))
+       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for witness ~a return value:\n  witness return values cannot include contract values" ("C1" W)))
      ))
 
   (test-group
@@ -34445,7 +34453,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("C1=contract C<foo(Bytes<32>): [], pure bar(): Bytes<32>>" foo 2)))
+       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("C1" foo 2)))
      ))
 
   (test-group
@@ -34466,7 +34474,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("[C1=contract C<foo(Bytes<32>): [], pure bar(): Bytes<32>>, Uint<32>]" foo 2)))
+       irritants: '("testfile.compact line 6 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("[C1, Uint<32>]" foo 2)))
      ))
 
   (test-group
@@ -77465,6 +77473,27 @@ groups than for single tests.
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  expect(C.circuits.foo(Ctxt).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: NativePoint;"
+      ""
+      "export circuit foo(np: NativePoint): [Field, Field] {"
+      "  F = disclose(np);"
+      "  const q = F;"
+      "  return [NativePointY(q), NativePointX(q)];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  // NB: assumes the representation of NativePoint current as of the creation of this test"
+        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual([7n, 3n]);"
         "});"
         ))
     )

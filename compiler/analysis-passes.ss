@@ -1358,10 +1358,9 @@
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
            (format "Enum<~a, ~s~{, ~s~}>" enum-name elt-name elt-name*)]
           [(talias ,src ,nominal? ,type-name ,type)
-           (let ([s (format-type type)])
-             (if nominal?
-                 (format "~a=~a" type-name s)
-                 s))]
+           (if nominal?
+               (format "~a" type-name)
+               (format-type type))]
           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
            (format-public-adt adt-name adt-arg*)]
           [else (internal-errorf 'format-type "unrecognized type ~a" type)]))
@@ -2172,6 +2171,7 @@
             (format "Vector<~a, ~a>" (format-native-nat native-nat) (format-native-type native-type))]
            [(native-type-struct native-type*)
             (format "Struct<~{~a~^, ~}>" (map format-native-type native-type*))]
+           [(native-type-alias name) (format "~a" name)]
            ; this can be tested by uncommenting the justfortesting in test.ss and midnight-natives.ss
            [(native-type-param name) (format "~a" name)]
            [(native-type-void) "[]"]))
@@ -2219,6 +2219,10 @@
                 [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
                  (and (= (length type*) (length native-type*))
                       (andmap verify-native-type native-type* type*))]
+                [else #f])]
+             [(native-type-alias name)
+              (nanopass-case (Ltypes Type) type
+                [(talias ,src^ ,nominal? ,type-name ,type) (eq? type-name name)]
                 [else #f])]
              [(native-type-param name)
               (let ([a (hashtable-cell param-ht name #f)])
