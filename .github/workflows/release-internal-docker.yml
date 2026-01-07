@@ -42,8 +42,11 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
-          #github_access_token: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
           nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
+            extra-substituters = https://cache.iog.io
+            accept-flake-config = true
 
       - name: Cache Nix
         uses: input-output-hk/actions/attic@latest
