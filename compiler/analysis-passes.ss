@@ -4827,15 +4827,6 @@
               (and (same-path? pathA1 pathB1) (same-path? pathA2 pathB2))]
              [else #f])]))
 
-      (define (sort-witnesses witness*)
-        (let f ([n (length witness*)] [witness* witness*])
-          (if (fx<? n 2)
-              witness*
-              (let ([n/2 (fxsrl n 1)])
-                (merge-witnesses
-                  (f n/2 (list-head witness* n/2))
-                  (f (fx- n n/2) (list-tail witness* n/2)))))))
-
       (define (merge-witnesses witness1* witness2*)
         ; invariant: witness1* and witness2* are sorted and have no duplicates
         (cond
@@ -5058,12 +5049,15 @@
         (define leak-table (make-hashtable (lambda (x) (+ (source-object-hash (car x)) (string-hash (cdr x)))) equal?))
         (define (record-leak! src what witness*)
           (hashtable-update! leak-table (cons src what)
-            (lambda (witness0*) (append witness* witness0*))
+            (lambda (witness0*) (merge-witnesses witness* witness0*))
             '()))
         (define (get-leaks)
           (let-values ([(vkey vval) (hashtable-entries leak-table)])
             (vector-sort
-              (lambda (key1 key2) (source-object<? (car key1) (car key2)))
+              (lambda (key1 key2)
+                (or (source-object<? (car key1) (car key2))
+                    (and (not (source-object<? (car key2) (car key1)))
+                         (string<? (cadr key1) (cadr key2)))))
               (vector-map (lambda (key val) (list (car key) (cdr key) val)) vkey vval)))))
 
       (define (complain src what witness*)
@@ -5121,7 +5115,10 @@
                              (and (not (null? desc*))
                                   (reverse desc*)))))
                        via*))))
-            (sort-witnesses witness*))))
+            ; witnesses are sorted by uid.  resort by source position for the error message.
+            (sort
+              (lambda (w1 w2) (source-object<? (witness-src w1) (witness-src w2)))
+              witness*))))
       (define (de-alias type)
         (nanopass-case (Lwithpaths Type) type
           [(talias ,src ,nominal? ,type-name ,type)

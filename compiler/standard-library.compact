@@ -52,15 +52,15 @@ export circuit degradeToTransient(x: Bytes<32>) : Field;
 export circuit upgradeFromTransient(x: Field): Bytes<32>;
 
 // Elliptic Curves
-export struct CurvePoint {
+export struct NativePoint {
   x: Field;
   y: Field;
 }
 
-export circuit ecAdd(a: CurvePoint, b: CurvePoint): CurvePoint;
-export circuit ecMul(a: CurvePoint, b: Field): CurvePoint;
-export circuit ecMulGenerator(b: Field): CurvePoint;
-export circuit hashToCurve<T>(value: T): CurvePoint;
+export circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;
+export circuit ecMul(a: NativePoint, b: Field): NativePoint;
+export circuit ecMulGenerator(b: Field): NativePoint;
+export circuit hashToCurve<T>(value: T): NativePoint;
 
 // Merkle trees
 export struct MerkleTreeDigest { field: Field; }

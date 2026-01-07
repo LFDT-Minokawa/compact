@@ -12434,7 +12434,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit ecAdd(a: CurvePoint, b: CurvePoint): CurvePoint;"
+      "export circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;"
       )
     (oops
       message: "~a:\n  ~?"
@@ -16170,11 +16170,11 @@ groups than for single tests.
 
   (test
     '(
-      "export struct CurvePoint {"
+      "export struct NativePoint {"
       "  x: Field;"
       "  y: Field;"
       "}"
-      "circuit ecAdd(x: Bytes<32>, y: CurvePoint): CurvePoint;"
+      "circuit ecAdd(x: Bytes<32>, y: NativePoint): NativePoint;"
       )
     (oops
       message: "~a:\n  ~?"
@@ -16183,11 +16183,11 @@ groups than for single tests.
 
   (test
     '(
-      "export struct CurvePoint {"
+      "export struct NativePoint {"
       "  x: Field;"
       "  y: Field;"
       "}"
-      "circuit ecAdd(x: CurvePoint, y: Boolean): CurvePoint;"
+      "circuit ecAdd(x: NativePoint, y: Boolean): NativePoint;"
       )
     (oops
       message: "~a:\n  ~?"
@@ -16196,11 +16196,11 @@ groups than for single tests.
 
   (test
     '(
-      "export struct CurvePoint {"
+      "export struct NativePoint {"
       "  x: Field;"
       "  y: Field;"
       "}"
-      "circuit ecAdd(x: CurvePoint, y: CurvePoint): Field;"
+      "circuit ecAdd(x: NativePoint, y: NativePoint): Field;"
       )
     (oops
       message: "~a:\n  ~?"
@@ -16244,29 +16244,29 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(c: CurvePoint): CurvePoint {"
+      "export circuit foo(c: NativePoint): NativePoint {"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
       )
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (external %ecAdd.1 ([%a.2 (tstruct CurvePoint
+        (external %ecAdd.1 ([%a.2 (tstruct NativePoint
                                      (x (tfield))
                                      (y (tfield)))]
-                             [%b.3 (tstruct CurvePoint
+                             [%b.3 (tstruct NativePoint
                                      (x (tfield))
                                      (y (tfield)))])
-             (tstruct CurvePoint (x (tfield)) (y (tfield))))
-        (external %ecMul.4 ([%a.5 (tstruct CurvePoint
+             (tstruct NativePoint (x (tfield)) (y (tfield))))
+        (external %ecMul.4 ([%a.5 (tstruct NativePoint
                                      (x (tfield))
                                      (y (tfield)))]
                              [%b.6 (tfield)])
-             (tstruct CurvePoint (x (tfield)) (y (tfield))))
-        (circuit %foo.7 ([%c.8 (tstruct CurvePoint
+             (tstruct NativePoint (x (tfield)) (y (tfield))))
+        (circuit %foo.7 ([%c.8 (tstruct NativePoint
                                  (x (tfield))
                                  (y (tfield)))])
-             (tstruct CurvePoint (x (tfield)) (y (tfield)))
+             (tstruct NativePoint (x (tfield)) (y (tfield)))
           (call %ecAdd.1
             %c.8
             (call %ecMul.4 %c.8 (safe-cast (tfield) (tunsigned 3) 3))))))
@@ -29083,8 +29083,8 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
-    ))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value"))))
+    )
 
   (test
     '("import CompactStandardLibrary;"
@@ -29114,8 +29114,8 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
-    ))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value"))))
+    )
 
   (test
     '("import CompactStandardLibrary;"
@@ -30331,7 +30331,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness W(): Boolean;"
-      "export circuit foo(): CurvePoint {"
+      "export circuit foo(): NativePoint {"
       "  return hashToCurve<Boolean>(W());"
       "}"
       )
@@ -30344,7 +30344,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness W(): Boolean;"
-      "export circuit foo(): CurvePoint {"
+      "export circuit foo(): NativePoint {"
       "  return disclose(hashToCurve<Boolean>(W()));"
       "}"
       )
@@ -45596,7 +45596,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(p1: CurvePoint, p2: CurvePoint): CurvePoint {"
+      "export circuit foo(p1: NativePoint, p2: NativePoint): NativePoint {"
       "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([p1.x, p2.x])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
@@ -50691,7 +50691,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(c: CurvePoint): CurvePoint {"
+      "export circuit foo(c: NativePoint): NativePoint {"
       "  impure = true;"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
@@ -51524,7 +51524,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(x: Boolean): CurvePoint {"
+      "export circuit foo(x: Boolean): NativePoint {"
       "  impure = true;"
       "  return hashToCurve<Boolean>(x);"
       "}"
@@ -56566,7 +56566,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(p1: CurvePoint, p2: CurvePoint): CurvePoint {"
+      "export circuit foo(p1: NativePoint, p2: NativePoint): NativePoint {"
       "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([p1.x, p2.x])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
@@ -59213,7 +59213,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(c: CurvePoint): CurvePoint {"
+      "export circuit foo(c: NativePoint): NativePoint {"
       "  impure = true;"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
@@ -59798,7 +59798,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(x: Boolean): CurvePoint {"
+      "export circuit foo(x: Boolean): NativePoint {"
       "  impure = true;"
       "  return hashToCurve<Boolean>(x);"
       "}"
@@ -65719,10 +65719,10 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(c: CurvePoint): CurvePoint {"
+      "export circuit foo(c: NativePoint): NativePoint {"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
-      "export circuit bar(x: Field): CurvePoint {"
+      "export circuit bar(x: Field): NativePoint {"
       "  return ecMulGenerator(x);"
       "}"
       )
@@ -66345,7 +66345,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(x: Boolean): CurvePoint {"
+      "export circuit foo(x: Boolean): NativePoint {"
       "  return hashToCurve<Boolean>(x);"
       "}"
       )
@@ -69347,9 +69347,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3")))
-      message: "~a:\n  ~?"
       irritants: '("testfile.compact line 6 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter vals of exported circuit foo at line 12 char 50" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 13 char 36\n      the computation at line 6 char 13\n      the right-hand side of = at line 6 char 11")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 6 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3")))
       message: "~a:\n  ~?"

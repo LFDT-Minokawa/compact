@@ -28,9 +28,9 @@ constructor() {
   const test_19 = persistent_commit<Field>(1, default<Bytes<32>>);
   const test_20 = degrade_to_transient(default<Bytes<32>>);
   const test_21 = upgrade_from_transient(1);
-  const test_22 = default<CurvePoint>;
-  const test_23 = ec_add(default<CurvePoint>, default<CurvePoint>);
-  const test_24 = ec_mul(default<CurvePoint>, 5);
+  const test_22 = default<NativePoint>;
+  const test_23 = ec_add(default<NativePoint>, default<NativePoint>);
+  const test_24 = ec_mul(default<NativePoint>, 5);
   const test_25 = ec_mul_generator(5);
   const test_26 = hash_to_curve<Field>(1);
   const test_27 = default<MerkleTreeDigest>;
