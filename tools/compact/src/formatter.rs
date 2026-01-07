@@ -90,7 +90,7 @@ pub fn compact_files_excluding_gitignore(dir: &Path) -> impl Iterator<Item = Pat
         .filter(move |d| d.extension().map(|e| e == "compact").unwrap_or_default())
 }
 
-fn diff_file(original: &str, formatted: &str) -> String {
+pub fn diff_file(original: &str, formatted: &str) -> String {
     let diff = TextDiff::from_lines(original, formatted);
     let mut result = String::new();
 

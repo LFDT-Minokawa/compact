@@ -1,1 +1,0 @@
-Error: fixup tool not available - please install a compiler version that includes fixup-compact

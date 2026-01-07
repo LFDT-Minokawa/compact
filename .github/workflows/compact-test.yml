@@ -63,7 +63,7 @@ jobs:
         os:
           - ubuntu-latest
           # ubuntu-latest-arm64
-          - macos-13
+          - macos-15
           - macos-latest
     runs-on: ${{ matrix.os }}
 

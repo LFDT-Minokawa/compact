@@ -17,20 +17,22 @@ use anyhow::{Context as _, Result};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
+use crate::formatter::diff_file;
+
 #[derive(Debug)]
 pub enum FixupStatus {
     Error,
     Success,
     Unchanged,
-    Output(String),
+    Diff(String),
 }
 
 pub async fn fixup_file(
     bin: &Path,
+    check: bool,
     source: PathBuf,
     update_uint_ranges: bool,
     vscode: bool,
-    in_place: bool,
 ) -> Result<(PathBuf, &'static str, FixupStatus)> {
     let original_content = tokio::fs::read_to_string(&source)
         .await
@@ -45,12 +47,12 @@ pub async fn fixup_file(
         command.arg("--vscode");
     }
 
-    if in_place {
-        command.arg(&source);
-        command.arg(&source);
+    let args = if check {
+        vec![&source]
     } else {
-        command.arg(&source);
-    }
+        vec![&source, &source]
+    };
+    command.args(args);
 
     let output = command
         .stdout(Stdio::piped())
@@ -67,19 +69,23 @@ pub async fn fixup_file(
         return Ok((source, "failed", FixupStatus::Error));
     }
 
-    if in_place {
-        let new_content = tokio::fs::read_to_string(&source)
+    let fixed_output = if check {
+        String::from_utf8(output.stdout).context("reading fixup output")?
+    } else {
+        tokio::fs::read_to_string(&source)
             .await
-            .context("reading file after fixup")?;
+            .context("reading file after fixup")?
+    };
 
-        if new_content != original_content {
-            Ok((source, "fixed", FixupStatus::Success))
+    if fixed_output != original_content {
+        if check {
+            let comparison = diff_file(&original_content, &fixed_output);
+            Ok((source, "", FixupStatus::Diff(comparison)))
         } else {
-            Ok((source, "unchanged", FixupStatus::Unchanged))
+            Ok((source, "fixed", FixupStatus::Success))
         }
     } else {
-        let output_str = String::from_utf8_lossy(&output.stdout).to_string();
-        Ok((source, "", FixupStatus::Output(output_str)))
+        Ok((source, "unchanged", FixupStatus::Unchanged))
     }
 }
 

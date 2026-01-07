@@ -1,1 +1,1 @@
-Error: formatter not available
+Error: formatter not available - please install a compiler version that includes format-compact
