@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - compiler/go now catches keyboard interrupts while running the tests and aborts the tests.
 
-- compier.md now more accurately describes the composition of the token stream.
+- compiler.md now more accurately describes the composition of the token stream.
 
 - The formatter improvements are supported by the following changes:
   - add-block (appropriately renamed make-Qblock, since it returns a block)
