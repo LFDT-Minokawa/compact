@@ -96,20 +96,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ setup ]
     steps:
-      - name: Setup api.github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: api.github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
-      - name: Setup github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
       - name: Checkout compactc repository
         uses: actions/checkout@v4
         with:
@@ -230,18 +216,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ setup, test-linux, test-arm-macos, test-intel-macos ]
     steps:
-      - name: Setup api.github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: api.github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
-      - name: Checkout compactc repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.setup.outputs.branch }}
-
       - name: Create and push tag
         if: ${{ inputs.create_release && github.event_name != 'schedule' }}
         run: |
