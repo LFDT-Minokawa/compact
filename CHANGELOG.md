@@ -5,12 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler version 0.27.112, language version 0.19.103]
+
+### Changed
+
+- The Compact standard library structure type NativePoint (nee CurvePoint)
+  is now a nominal type alias for an unexported internal type.  The standard
+  library also now exports two new circuits, NativePointX and NativePointY,
+  that can be used to access the x and y coordinates of a native point as Fields.
+  This is a breaking change because the internal representation of NativePoint
+  is no longer exposed.
+
+- In type errors produced by the Compact compiler, Nominal type aliases are
+  now shown simply as TypeName rather than as TypeName=Type.
+
 ## [Unreleased compiler version 0.27.111, language version 0.19.102]
 
 ### Changed
 
 - Changes `CurvePoint` to `NativePoint`
-
 
 ## [Unreleased compiler version 0.27.110, language version 0.19.101]
 
