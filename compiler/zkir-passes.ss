@@ -18,6 +18,7 @@
 (library (zkir-passes)
   (export zkir-passes)
   (import (except (chezscheme) errorf)
+          (config-params)
           (utils)
           (datatype)
           (nanopass)

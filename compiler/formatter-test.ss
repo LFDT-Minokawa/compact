@@ -18,6 +18,7 @@
 (library (formatter-test)
   (export formatter-testing-passes)
   (import (except (chezscheme) errorf)
+          (config-params)
           (utils)
           (pass-helpers)
           (streams)
@@ -47,7 +48,7 @@
                                                            token
                                                            (f (stream-cdr token-stream)))])))])
                       ; produce output with the modified token stream ...
-                      (print-Lparser ir token-stream 80 op)
+                      (print-Lparser ir token-stream op)
                       (flush-output-port op)
                       ; ... and see if it will parse
                       (parse-file formatter-pathname))]
@@ -55,7 +56,7 @@
                       (set-port-position! op 0)
                       (set-port-length! op 0)
                       ; produce output with the original token stream ...
-                      (print-Lparser ir token-stream 80 op)
+                      (print-Lparser ir token-stream op)
                       (flush-output-port op)
                       ; ... and see if it will parse
                       (parse-file formatter-pathname))])

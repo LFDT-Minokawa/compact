@@ -52,6 +52,7 @@ mkdir coverage
 # except macro-generated forms.
 "$SCHEME" -q << END || exit
 (reset-handler abort)
+(keyboard-interrupt-handler (lambda () (reset)))
 (print-extended-identifiers #t)
 (library-directories
   ; redirect compiler object code to obj/profiled-compiler, leaving obj/compiler

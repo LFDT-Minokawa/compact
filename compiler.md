@@ -57,7 +57,7 @@ low-level TypeScript code and proving circuits.
 The initial pass (`parse-file`) converts the characters making up
 a Compact source file into an intermediate-language program that
 almost exactly reflects the source program.
-Each of the second and subsequent passes accepts a program in the
+Each of the second and most subsequent passes accepts a program in the
 intermediate language of the preceding pass and produces a program
 in the same or a different intermediate language that is somehow
 closer to TypeScript and/or proving circuits.
@@ -506,15 +506,16 @@ some final product of the compiler.
 It is responsible for reading the contents of a source file and
 converting it into an equivalent program in the `Lsrc` language.
 Like most language parsers, parse-file converts the sequence of
-characters in the source file into a sequence of tokens, then groups
-those tokens into the recursive structure implied by the nested
+characters in the source file into a *token stream* representing
+the sequence of tokens, comments, and whitespace found in the source
+file, then groups the tokens into the recursive structure implied by the nested
 source-language forms of the source program.
 
-The conversion of character sequences into token sequences is
+The conversion of character sequences into token streams is
 performed by a hand-coded lexical analyzer (lexer), defined in:
 [compiler/lexer.ss](./compiler/lexer.ss).
 
-The tokens produced by the lexer are atomic program elements such
+The tokens in the token stream represent atomic program elements such
 as identifiers, numbers, and punctuation.
 The forms produced by the parser from the tokens are structured
 program elements such as circuit definitions, operator applications,
@@ -532,7 +533,7 @@ the input, and token values either are used to further disambiguate
 the structure or become terminals in the Lsrc output program.
 Source objects are used to identify the span of characters occupied by each
 source-language form for compile-time error messages, run-time debugging,
-and profiling.
+formatting, and profiling.
 
 The parser is generated from a high-level specification via the
 [ez-grammar package](./compiler/ez-grammar.ss)
@@ -542,6 +543,7 @@ the `Lsrc` language via a helper pass `lsrc-to-lparser`.
 The [Compact formatter](./compiler/format-compact.ss) uses the
 alternative parser entry point `parse-file/token-stream` to obtain the
 `Lparser` output and token stream.
+Its operation is described in [formatter.ss](`./compiler/formatter.ss`).
 
 ### resolve-includes (Lsrc -> Lnoinclude)
 

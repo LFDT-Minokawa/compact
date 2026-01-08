@@ -15,3 +15,5 @@ The following flags, if present, affect the formatter's behavior as follows:
 
   --vscode causes error messages to be printed on a single line so they are
     rendered properly within the VS Code extension for Compact.
+
+  --line-length <n> sets the target line length to <n> (default 100)
