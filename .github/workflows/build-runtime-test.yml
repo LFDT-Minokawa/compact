@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest-8-core-x64
+    runs-on: ubuntu-latest
     steps:
       - name: Install Nix
         uses: cachix/install-nix-action@v31
