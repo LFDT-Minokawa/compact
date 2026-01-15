@@ -5,7 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased compiler version 0.28.0, language version 0.20.0]
+## [Unreleased compiler 0.28.100, language 0.20.100, runtime 0.14.100]
+
+### Added
+
+- There is a new builtin type `Opaque<'JubjubPoint'>`.  Unlike the other opaque
+  types, this is intended to be a crypto backend (ZKIR) native type (not a JS
+  type).  The standard library exports the type `JubjubPoint` which is a
+  (transparent) `type` alias for the opaque type.
+  
+### Changed
+
+- The standard library's (opaque) `new type` alias `NativePoint` now has
+  underlying type `Opaque<'JubjubPoint'>`.
+- The Compact runtime's types `CompactTypeNativePoint` and `NativePoint` are
+  renamed to `CompactTypeJubjubPoint` and `JubjubPoint`.
+- The runtime has TS (instead of Compact) implementations of the now-builtin
+  `NativePointX` and `NativePointY` circuits.
+- The feature flag `--zkir-v3` is changed to `--feature-zkir-v3` to fit a
+  proposed standard naming convention, and to make crystal clear that it is
+  still an experimental feature.
+  
+### Internal notes
+
+- When the flag `--feature-zkir-v3` is enabled, `Opaque<'JubjubPoint'>` is
+  represented natively in ZKIR v3.  Without the flag, it is still represented as
+  a pair of field elements in ZKIR v2.
+- This is implemented as a "pseudo"-alignment tag after flattening.  The tag
+  looks like `(anative "JubjubPoint")` and it's interpreted as a `midnight-zk`
+  JubjubPoint for ZKIR operations, converted to a pair of field values for
+  the Impact code embedded in the ZKIR circuit.
+- ZKIR v3 has new `encode` and `decode` gates for converting from ZKIR
+  representations to Impact representations and back.
+- ZKIR v3's `ec_add` has been eliminated; regular `add` is polymorphic,
+  operating on either a pair of scalars or a pair of Jubjub curve points.
+- ZKIR v3 has type annotations on circuit inputs and on `decode` instructions.
+- ZKIR v3 has two types: `Scalar<BLS12-381>` and `Point<Jubjub>`.
+- For both ZKIR v3 and ZKIR v2 modes, the JS representation of is still as a pair
+  of field elements.
+
+## [Compiler version 0.28.0, language version 0.20.0]
 
 This release includes all changes for compiler versions in the range 0.27.100
 (inclusive) and 0.28.0 (exclusive); and language versions in the range 0.19.100

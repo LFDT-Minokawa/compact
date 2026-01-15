@@ -43,6 +43,16 @@
   ([Field (discloses "a converted form of")])
   (Bytes 32))
 
+(declare-native-entry external NativePointX
+  "__compactRuntime.NativePointX"
+  ([(Alias NativePoint) (discloses "the X coordinate of")])
+  Field)
+
+(declare-native-entry external NativePointY
+  "__compactRuntime.NativePointY"
+  ([(Alias NativePoint) (discloses "the Y coordinate of")])
+  Field)
+
 (declare-native-entry external ecAdd
   "__compactRuntime.ecAdd"
   ([(Alias NativePoint) (discloses "an elliptic curve sum including")] [(Alias NativePoint) (discloses "an elliptic curve sum including")])

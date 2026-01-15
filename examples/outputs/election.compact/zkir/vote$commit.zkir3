@@ -2,7 +2,7 @@
   "version": { "major": 3, "minor": 0 },
   "do_communications_commitment": true,
   "inputs": [
-    "%ballot.0"
+    { "name": "%ballot.0", "type": "Scalar<BLS12-381>" }
   ],
   "instructions": [
     { "op": "constrain_to_boolean", "val": "%ballot.0" },
