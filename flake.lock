@@ -148,23 +148,6 @@
         "type": "github"
       }
     },
-    "midnight-contracts": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1754095698,
-        "narHash": "sha256-Wf1BID0AQ3ktZfBMV7hBRznRPshuRQ0o5nHXX8umMuU=",
-        "owner": "midnightntwrk",
-        "repo": "midnight-contracts",
-        "rev": "03f023ecd27d877b7835c114bb2319e0acdda0e5",
-        "type": "github"
-      },
-      "original": {
-        "owner": "midnightntwrk",
-        "ref": "unshielded-tokens",
-        "repo": "midnight-contracts",
-        "type": "github"
-      }
-    },
     "n2c": {
       "inputs": {
         "nixpkgs": "nixpkgs_2"
@@ -215,11 +198,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1767364772,
-        "narHash": "sha256-fFUnEYMla8b7UKjijLnMe+oVFOz6HjijGGNS1l7dYaQ=",
+        "lastModified": 1768395095,
+        "narHash": "sha256-ZhuYJbwbZT32QA95tSkXd9zXHcdZj90EzHpEXBMabaw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "16c7794d0a28b5a37904d55bcca36003b9109aaa",
+        "rev": "13868c071cc73a5e9f610c47d7bb08e5da64fdd5",
         "type": "github"
       },
       "original": {
@@ -370,7 +353,6 @@
       "inputs": {
         "chez-exe": "chez-exe",
         "inclusive": "inclusive",
-        "midnight-contracts": "midnight-contracts",
         "n2c": "n2c",
         "nixpkgs": "nixpkgs_3",
         "npmlock2nix": "npmlock2nix",
