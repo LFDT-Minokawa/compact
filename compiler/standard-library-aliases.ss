@@ -68,7 +68,9 @@
       (burnAddress . shieldedBurnAddress)
       (receive . receiveShielded)
       (send . sendShielded)
-      (sendImmediate . sendImmediateShielded)))
+      (sendImmediate . sendImmediateShielded)
+      (NativePointX . nativePointX)
+      (NativePointY . nativePointY)))
 
   (define stdlib-struct-field-aliases
     '(

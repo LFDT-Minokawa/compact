@@ -78123,7 +78123,7 @@ groups than for single tests.
       "export circuit foo(np: NativePoint): [Field, Field] {"
       "  F = disclose(np);"
       "  const q = F;"
-      "  return [NativePointY(q), NativePointX(q)];"
+      "  return [nativePointY(q), nativePointX(q)];"
       "}"
       )
     (stage-javascript
@@ -78132,6 +78132,27 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of NativePoint current as of the creation of this test"
         "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual([7n, 3n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: NativePoint;"
+      ""
+      "export circuit foo(np: NativePoint): NativePoint {"
+      "  F = disclose(np);"
+      "  const q = F;"
+      "  return constructNativePoint(nativePointY(q), nativePointX(q));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  // NB: assumes the representation of NativePoint current as of the creation of this test"
+        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual({x: 7n, y: 3n});"
         "});"
         ))
     )
