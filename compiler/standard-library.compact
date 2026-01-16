@@ -57,11 +57,14 @@ struct SimplePoint {
   y: Field;
 }
 export new type NativePoint = SimplePoint;
-export circuit NativePointX(np: NativePoint): Field {
+export circuit nativePointX(np: NativePoint): Field {
   return (np as SimplePoint).x;
 }
-export circuit NativePointY(np: NativePoint): Field {
+export circuit nativePointY(np: NativePoint): Field {
   return (np as SimplePoint).y;
+}
+export circuit constructNativePoint(x: Field, y: Field): NativePoint {
+  return NativePoint { x, y };
 }
 
 export circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;
