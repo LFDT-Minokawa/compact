@@ -2163,6 +2163,7 @@
            [(native-nat-param name) (format "~a" name)]))
        (define (format-native-type native-type)
          (native-type-case native-type
+           [(native-type-opaque str) (format "Opaque<'~a'>" str)]
            [(native-type-boolean) "Boolean"]
            [(native-type-field) "Field"]
            [(native-type-unsigned native-nat) (format "Uint<~a>" (format-native-nat native-nat))]
@@ -2237,6 +2238,10 @@
              [(native-type-void)
               (nanopass-case (Ltypes Type) type
                 [(ttuple ,src) #t]
+                [else #f])]
+             [(native-type-opaque string)
+              (nanopass-case (Ltypes Type) type
+                [(topaque ,src ,opaque-type) (string=? string opaque-type)]
                 [else #f])])))
        (for-each
          (lambda (native-type type argno)

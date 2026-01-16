@@ -2,7 +2,7 @@
   "version": { "major": 3, "minor": 0 },
   "do_communications_commitment": true,
   "inputs": [
-    "%t.0"
+    { "name": "%t.0", "type": "Scalar<BLS12-381>" }
   ],
   "instructions": [
     { "op": "private_input", "output": "%sk.1", "guard": null },

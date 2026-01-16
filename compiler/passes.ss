@@ -148,7 +148,7 @@
                             (with-target-ports
                               (map (lambda (sym) (cons sym (format "zkir/~a.zkir" sym)))
                                    circuit-names)
-                              (run-passes (if (zkir-v3) zkir-v3-passes zkir-passes) circuit-ir))
+                              (run-passes (if (feature-zkir-v3) zkir-v3-passes zkir-passes) circuit-ir))
                             (unless (null? (pending-conditions)) (raise (make-halt-condition)))
                             (unless (skip-zk)
                               (if (zero? (system "command -v zkir > /dev/null"))

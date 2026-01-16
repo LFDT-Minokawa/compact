@@ -74,7 +74,7 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--no-communications-commitment)]
              [(--sourceRoot) (string source-root)]
              [(--trace-passes)]
-             [(--zkir-v3)])
+             [(--feature-zkir-v3)])
       (string source-pathname)
       (string target-directory-pathname))
      (check-pathname source-pathname)
@@ -82,7 +82,7 @@ The following flags, if present, affect the compiler's behavior as follows:
      (parameterize ([trace-passes ?--trace-passes]
                     [skip-zk ?--skip-zk]
                     [no-communications-commitment ?--no-communications-commitment]
-                    [zkir-v3 ?--zkir-v3])
+                    [feature-zkir-v3 ?--feature-zkir-v3])
        (when source-root (register-source-root! source-root))
        (handle-exceptions ?--vscode
          (generate-everything source-pathname target-directory-pathname)))]

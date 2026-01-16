@@ -60,18 +60,27 @@
       ;; for witness-like callables and external natives.
       (define callable-ht (make-eq-hashtable))
 
-      (define (make-witness primitive-type*)
+      (define (make-witness alignment* primitive-type*)
         (lambda (var-name* src test triv* instr*)
           (with-output-language (Lzkir Instruction)
-            (fold-left
-              (lambda (instr* var-name primitive-type)
-                ;; The ZKIR v2 backend has this special case for literal true guards.
-                (emit-constraints-for var-name primitive-type
-                  (cons (if (eq? test 1)
-                            `(private_input ,var-name)
-                            `(private_input ,var-name ,test))
-                    instr*)))
-              instr* var-name* primitive-type*))))
+            (define (make-private-input var-name)
+              ;; The ZKIR v2 backend has this special case for literal true guards.
+              (if (eq? test 1)
+                  `(private_input ,var-name)
+                  `(private_input ,var-name ,test)))
+            (if (jubjub-point-alignment? alignment*)
+                (let* ([pt0 (make-temp-id src 'pt)] [pt1 (make-temp-id src 'pt)])
+                  (assert (= (length var-name*) 1))
+                  (cons*
+                    `(decode "Point<Jubjub>" ,(car var-name*) ,pt0 ,pt1)
+                    (make-private-input pt1)
+                    (make-private-input pt0)
+                    instr*))
+                (fold-left
+                  (lambda (instr* var-name primitive-type)
+                    (emit-constraints-for var-name primitive-type
+                      (cons (make-private-input var-name) instr*)))
+                  instr* var-name* primitive-type*)))))
 
       (define (make-native name arg*)
         ;; Get the list of alignment atoms for a 0-based arg index.
@@ -86,24 +95,23 @@
               [(degradeToTransient)
                (cons `(copy ,(car var-name*) ,(cadr triv*)) instr*)]
               [(ecAdd)
-               (assert (= (length var-name*) 2))
-               (cons (apply (lambda (ax ay bx by)
-                              `(ec_add ,(car var-name*) ,(cadr var-name*) ,ax ,ay ,bx ,by))
-                       triv*)
-                 instr*)]
+               (assert (= (length var-name*) 1))
+               (cons `(add ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
               [(ecMul)
-               (assert (= (length var-name*) 2))
-               (cons (apply (lambda (ax ay scalar)
-                              `(ec_mul ,(car var-name*) ,(cadr var-name*) ,ax ,ay ,scalar))
-                       triv*)
-                 instr*)]
+               (assert (= (length var-name*) 1))
+               (cons `(ec_mul ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
               [(ecMulGenerator)
-               (assert (= (length var-name*) 2))
-               (cons `(ec_mul_generator ,(car var-name*) ,(cadr var-name*) ,(car triv*))
-                 instr*)]
+               (assert (= (length var-name*) 1))
+               (cons `(ec_mul_generator ,(car var-name*) ,(car triv*)) instr*)]
               [(hashToCurve)
-               (assert (= (length var-name*) 2))
-               (cons `(hash_to_curve ,(car var-name*) ,(cadr var-name*) ,triv* ...) instr*)]
+               (assert (= (length var-name*) 1))
+               (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
+              [(NativePointX)
+               (assert (= (length var-name*) 1))
+               (cons `(encode ,(car var-name*) ,(make-temp-id src 'ingore) ,(car triv*)) instr*)]
+              [(NativePointY)
+               (assert (= (length var-name*) 1))
+               (cons `(encode ,(make-temp-id src 'ignore) ,(car var-name*) ,(car triv*)) instr*)]
               [(persistentCommit)
                (assert (= (length var-name*) 2))
                ;; The two source arguments are swapped for the persistent_hash gate.  We assume
@@ -146,13 +154,13 @@
           [(witness ,src ,function-name (,arg* ...) (ty (,alignment* ...)
                                                       (,primitive-type* ...)))
            (assert (not (hashtable-contains? callable-ht function-name))) 
-           (hashtable-set! callable-ht function-name (make-witness primitive-type*))]
+           (hashtable-set! callable-ht function-name (make-witness alignment* primitive-type*))]
           [(external ,src ,function-name ,native-entry (,arg* ...) (ty (,alignment* ...)
                                                                      (,primitive-type* ...)))
            (assert (not (hashtable-contains? callable-ht function-name)))
            (hashtable-set! callable-ht function-name
              (if (eq? (native-entry-class native-entry) 'witness)
-                 (make-witness primitive-type*)
+                 (make-witness alignment* primitive-type*)
                  (make-native (native-entry-name native-entry) arg*)))]
           [else (void)]))
 
@@ -171,6 +179,14 @@
         (fxlogor (fxsll hi 4) lo))
 
       (define zkir-instr* (make-parameter '()))
+
+      (define (jubjub-point-alignment? alignment*)
+        (and (= (length alignment*) 1)
+             (nanopass-case (Lflattened Alignment) (car alignment*)
+               [(anative ,opaque-type)
+                (assert (string=? opaque-type "JubjubPoint"))
+                #t]
+               [else #f])))
 
       ;; Encode a VM operand, collecting codes in reverse.
       (define (assemble-operand-acc code* rand)
@@ -327,7 +343,18 @@
                      (cons sep-val val*)
                      code*)))]
               [(VMstate-value-null) (cons 0 code*)]
-              [(VMstate-value-cell val) (assemble-operand-acc (cons 1 code*) val)]
+              [(VMstate-value-cell val)
+               ;; Special handling of ZKIR native types.
+               (if (and (zkir-val? val)
+                        (jubjub-point-alignment? (zkir-val-alignment* val)))
+                   (with-output-language (Lzkir Instruction)
+                     (let* ([pt0 (make-temp-id default-src 'pt)]
+                            [pt1 (make-temp-id default-src 'pt)])
+                       (zkir-instr*
+                         (cons `(encode ,pt0 ,pt1 ,(car (zkir-val-input* val)))
+                           (zkir-instr*)))
+                       (cons* pt1 pt0 -2 -2 2 1 code*)))
+                   (assemble-operand-acc (cons 1 code*) val))]
               [(VMstate-value-ADT val type)
                (or (nanopass-case (Lflattened Type) type
                      [(ty (,alignment* ...) ((tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))))
@@ -378,10 +405,14 @@
           [(acompress) -1]
           [(afield) -2]
           [(aadt) -3]
-          [(acontract) -4]))
+          [(acontract) -4]
+          [(anative ,opaque-type)
+           ;; These are handled specially because (1) they assemble into a sequence of alignment
+           ;; atoms and (2) they need ZKIR instructions to be emitted.
+           (assert cannot-happen)]))
 
       ;; Map an impact instruction to a list of ZKIR Impact operands.
-      (define (assemble1 impact-instr var-name* alignment*)
+      (define (assemble1 impact-instr test-val alignment* var-name*)
         (define (suppress? rand)
           (and (VMop? rand)
                (VMop-case rand [(VMsuppress) #t] [else #f])))
@@ -411,10 +442,35 @@
 
             ;; popeq  --> 0x0c result
             ;; popeqc --> 0x0d result
-            ;; This instruction occurs at most once in a program, so it's OK to allocate indexes for
-            ;; the variable names.
             [("popeq")
-             (let ([alignment (map assemble-alignment-atom alignment*)])
+             (let-values
+                 ([(alignment var-name*)
+                   (with-output-language (Lzkir Instruction)
+                     ;; Special handling of ZKIR native types.
+                     (if (jubjub-point-alignment? alignment*)
+                         (let* ([pt0 (make-temp-id default-src 'pt)]
+                                [pt1 (make-temp-id default-src 'pt)])
+                           (zkir-instr*
+                             (cons
+                               `(decode "Point<Jubjub>" ,(car var-name*) ,pt0 ,pt1)
+                               (if (eq? test-val 1)
+                                   (cons* `(public_input ,pt1) `(public_input ,pt0)
+                                     (zkir-instr*))
+                                   (cons* `(public_input ,pt1 ,test-val)
+                                     `(public_input ,pt0 ,test-val)
+                                     (zkir-instr*)))))
+                           (values (list -2 -2) (list pt0 pt1)))
+                         (begin
+                           (for-each (lambda (var-name)
+                                       (zkir-instr*
+                                         (cons
+                                           ;; A case duplicated from ZKIR v2.
+                                           (if (eq? test-val 1)
+                                               `(public_input ,var-name)
+                                               `(public_input ,var-name ,test-val))
+                                           (zkir-instr*))))
+                             var-name*)
+                           (values (map assemble-alignment-atom alignment*) var-name*))))])
                (cons*
                  (if (cdr (assoc "cached" rands)) #xd #xc)
                  (length alignment)
@@ -504,22 +560,9 @@
       (define (assemble test-val alignment* var-name* src path env vm-code instr*)
         (parameterize ([zkir-instr* instr*])
           (let* ([code (expand-vm-code src path #f env (vm-code-code vm-code))]
-                 [op** (map (lambda (c) (assemble1 c var-name* alignment*)) code)])
+                 [op** (map (lambda (c) (assemble1 c test-val alignment* var-name*)) code)])
             (with-output-language (Lzkir Instruction)
-              (cons `(impact ,test-val ,(apply append op**) ...)
-                (fold-left (lambda (instr* op*)
-                             (if (not (popeq? op*))
-                                 instr*
-                                 (fold-left
-                                   (lambda (instr* var-name)
-                                     (cons
-                                       ;; A weird case duplicated from ZKIR v2.
-                                       (if (eq? test-val 1)
-                                           `(public_input ,var-name)
-                                           `(public_input ,var-name ,test-val))
-                                       instr*))
-                                   instr* var-name*)))
-                  (zkir-instr*) op**))))))
+              (cons `(impact ,test-val ,(apply append op**) ...) (zkir-instr*))))))
 
       ;; ==== Per-circuit state ====
       (define default-src)
@@ -555,14 +598,22 @@
           [else (assert cannot-happen)]))
 
       ;; Turn an Lflattened argument list into a list of names and a parallel list of types.
-      (define unzip-arguments
-        (lambda (arg*)
-          (if (null? arg*)
-              (values '() '())
-              (let-values ([(name* type*) (unzip-arguments (cdr arg*))])
-                (nanopass-case (Lflattened Argument) (car arg*)
-                  [(argument (,var-name* ...) (ty (,alignment* ...) (,primitive-type* ...)))
-                   (values (append var-name* name*) (append primitive-type* type*))])))))
+      (define (unzip-arguments arg*)
+        (if (null? arg*)
+            (values '() '())
+            (let-values ([(name* type*) (unzip-arguments (cdr arg*))])
+              (nanopass-case (Lflattened Argument) (car arg*)
+                [(argument (,var-name* ...) (ty (,alignment* ...) (,primitive-type* ...)))
+                 (values (append var-name* name*) (append primitive-type* type*))]))))
+
+      (define (type->string primitive-type)
+        (nanopass-case (Lflattened Primitive-Type) primitive-type
+          [(tfield) "Scalar<BLS12-381>"]
+          [(tfield ,nat) "Scalar<BLS12-381>"]
+          [(topaque ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
+           "Point<Jubjub>"]
+          [(topaque ,opaque-type) "Scalar<BLS12-381>"]
+          [else (assert cannot-happen)]))
       )
 
     (Program : Program (ir) -> Program ()
@@ -609,7 +660,8 @@
                                  (with-output-language (Lzkir Instruction)
                                    (cons `(output ,triv) body)) )
                       instr* triv*)])
-             `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...) (,var-name* ...)
+             `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...)
+                ((,var-name* ,(map type->string type*)) ...)
                 ,(reverse body) ...))))])
 
     (Statement : Statement (ir instr*) -> * (instr*)
@@ -781,11 +833,14 @@
        (for-each Circuit-Definition cdefn*)
        ir])
     (Circuit-Definition : Circuit-Definition (ir) -> * ()
-      [(circuit ,src (,name* ...) (,var-name* ...) ,instr* ...)
+      [(circuit ,src (,name* ...) ((,var-name* ,zkir-type*) ...) ,instr* ...)
        (define (print-circuit op)
          (print-json-compact op
            (with-var-table
-             (let* ([inputs (list->vector (maplr var->string var-name*))]
+             (let* ([inputs (list->vector (maplr (lambda (var-name zkir-type)
+                                                   `((name . ,(var->string var-name))
+                                                     (type . ,zkir-type)))
+                                            var-name* zkir-type*))]
                     [instructions (list->vector (maplr Instruction instr*))])
                `((version . ((major . 3) (minor . 0)))
                  (do_communications_commitment . ,(not (no-communications-commitment)))
@@ -822,25 +877,21 @@
        `((op . "constrain_to_boolean") (val . ,inp))]
       [(copy ,[* outp] ,[* inp])
        `((op . "copy") (output . ,outp) (val . ,inp))]
+      [(decode ,zkir-type ,[* outp] ,[* inp*] ...)
+       `((op . "decode") (type . ,zkir-type) (output . ,outp) (inputs . ,(list->vector inp*)))]
       [(div_mod_power_of_two ,outp0 ,outp1 ,[* inp] ,imm)
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
          `((op . "div_mod_power_of_two") (outputs . ,(vector outp0 outp1)) (val . ,inp)
            (bits . ,imm)))]
-      [(ec_add ,outp0 ,outp1 ,[* inp0] ,[* inp1] ,[* inp2] ,[* inp3])
+      [(ec_mul ,[* outp] ,[* inp0] ,[* inp1])
+       `((op . "ec_mul") (output . ,outp) (a . ,inp0) (scalar . ,inp1))]
+      [(ec_mul_generator ,[* outp] ,[* inp])
+       `((op . "ec_mul_generator") (outputs . ,outp) (scalar . ,inp))]
+      [(encode ,outp0 ,outp1 ,[* inp])
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-         `((op . "ec_add") (outputs . ,(vector outp0 outp1)) (a_x . ,inp0) (a_y . ,inp1)
-           (b_x . ,inp2) (b_y . ,inp3)))]
-      [(ec_mul ,outp0 ,outp1 ,[* inp0] ,[* inp1] ,[* inp2])
-       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-         `((op . "ec_mul") (outputs . ,(vector outp0 outp1)) (a_x . ,inp0) (a_y . ,inp1)
-           (scalar . ,inp2)))]
-      [(ec_mul_generator ,outp0 ,outp1 ,[* inp])
-       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-         `((op . "ec_mul_generator") (outputs . ,(vector outp0 outp1)) (scalar . ,inp)))]
-      [(hash_to_curve ,outp0 ,outp1 ,[* inp*] ...)
-       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-         `((op . "hash_to_curve") (outputs . ,(vector outp0 outp1))
-           (inputs . ,(list->vector inp*))))]
+         `((op . "encode") (outputs . ,(vector outp0 outp1)) (val . ,inp)))]
+      [(hash_to_curve ,[* outp] ,[* inp*] ...)
+       `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
       [(less_than ,[* outp] ,[* inp0] ,[* inp1] ,imm)
        `((op . "less_than") (output . ,outp) (a . ,inp0) (b . ,inp1) (bits . ,imm))]
       [(mul ,[* outp] ,[* inp0] ,[* inp1])

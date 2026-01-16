@@ -15,6 +15,10 @@
 
 export ledger kernel: Kernel;
 
+// Type aliases.
+export type JubjubPoint = Opaque<'JubjubPoint'>;
+export new type NativePoint = Opaque<'JubjubPoint'>;
+
 // Generic Data
 export struct Maybe<T> {
   is_some: Boolean;
@@ -52,17 +56,8 @@ export circuit degradeToTransient(x: Bytes<32>) : Field;
 export circuit upgradeFromTransient(x: Field): Bytes<32>;
 
 // Elliptic Curves
-struct SimplePoint {
-  x: Field;
-  y: Field;
-}
-export new type NativePoint = SimplePoint;
-export circuit NativePointX(np: NativePoint): Field {
-  return (np as SimplePoint).x;
-}
-export circuit NativePointY(np: NativePoint): Field {
-  return (np as SimplePoint).y;
-}
+export circuit NativePointX(np: NativePoint): Field;
+export circuit NativePointY(np: NativePoint): Field;
 
 export circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;
 export circuit ecMul(a: NativePoint, b: Field): NativePoint;

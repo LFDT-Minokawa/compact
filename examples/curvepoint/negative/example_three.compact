@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) 2026 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,36 +15,13 @@
 
 import CompactStandardLibrary;
 
-constructor() {
-  const a = default<NativePoint>;
-  const b = NativePointX(a);
-}
-
-// Test1: usage of NativePoint
+// This should fail becuase NativePoint is opaque and not a struct type.
 export circuit test(): [] {
-  const a : NativePoint = default<NativePoint>;
-  const b : NativePoint = ecAdd(a, a);
-  const c : NativePoint = ecMul(a, 1);
-  const d : NativePoint = ecMulGenerator(1);
-  const e : NativePoint = hashToCurve<Field>(1);
-}
-
-// Test2: use getters
-export circuit test2(): [] {
   const a = default<NativePoint>;
   const b = default<NativePoint>;
 
-  const c = NativePointX(a) + NativePointY(a) + NativePointX(b) + NativePointY(b);
+  const c = a.x + a.y + b.x + b.y;
 
   const d = ecAdd(a, b);
-  const e = NativePointX(d) + NativePointY(d);
-}
-
-// Test3: Use getters in from circuit
-circuit test3a(): NativePoint {
-  return default<NativePoint>;
-}
-
-export circuit test3(): Field {
-  return NativePointX(test3a()) + NativePointY(test3a());
+  const e = d.x + d.y;
 }
