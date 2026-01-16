@@ -139,7 +139,7 @@
       [(statement-expression ,src ,[expr] ,semicolon)
        `(statement-expression ,src ,expr)]
       [(return ,src ,kwd ,semicolon)
-       `(return ,src (tuple ,src))]
+       `(return ,src)]
       [(return ,src ,kwd ,[expr] ,semicolon)
        `(return ,src ,expr)]
       [(const ,src ,kwd (,[cbinding] ,[cbinding*] ...) (,comma* ...) ,semicolon)

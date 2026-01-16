@@ -13905,7 +13905,8 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 32" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Field" "circuit bar"))))
+      irritants: '("testfile.compact line 1 char 32" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "Field")))
+    )
 
   (test
     '(
@@ -13913,7 +13914,8 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Field" "circuit bar"))))
+      irritants: '("testfile.compact line 1 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "Field")))
+    )
 
   (test
     '(
@@ -13921,7 +13923,8 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 60" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Field" "circuit bar"))))
+      irritants: '("testfile.compact line 1 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "Field")))
+    )
 
   (test
     '(
@@ -21488,13 +21491,13 @@ groups than for single tests.
    )
 
   (test
-   '(
-     "circuit foo<T>(x: T): T {return x;}"
-     "export circuit bar<>(x: Field): Field { foo<Field>(x); }"
-     )
-   (oops
+    '(
+      "circuit foo<T>(x: T): T {return x;}"
+      "export circuit bar<>(x: Field): Field { foo<Field>(x); }"
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Field" "circuit bar")))
+      irritants: '("testfile.compact line 2 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "Field")))
    )
 
   (test
@@ -22220,7 +22223,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
+      irritants: '("testfile.compact line 1 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit foo" "Boolean")))
     )
 
   (test
@@ -22229,7 +22232,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
+      irritants: '("testfile.compact line 1 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit foo" "Boolean")))
     )
 
   (test
@@ -22238,7 +22241,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 43" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+      irritants: '("testfile.compact line 1 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit foo" "Boolean")))
     )
 
   (test
@@ -22357,7 +22360,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 5" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+      irritants: '("testfile.compact line 2 char 11" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("anonymous circuit" "Boolean")))
     )
 
   ; test for bounds of merkle trees
@@ -22533,7 +22536,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 5" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+      irritants: '("testfile.compact line 2 char 11" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("anonymous circuit" "Boolean")))
     )
 
     ; test for bounds of merkle trees
@@ -23292,6 +23295,64 @@ groups than for single tests.
                  (safe-cast (tunsigned 8589934590)
                             (talias #f U32 (tunsigned 4294967295))
                    %x.3)))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(b: Boolean): Uint<32> {"
+      "  const k = 0;"
+      "  if (b) return k;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit foo" "Uint<32>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(b: Boolean): [] {"
+      "  const k = 0;"
+      "  if (b) return k;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "[]" "circuit foo")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit bar<T>(b: Boolean): T {"
+      "  const k = 0;"
+      "  if (b) return k;"
+      "}"
+      "export circuit foo(b: Boolean): [] {"
+      "  return bar<Uint<32>>(b);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "Uint<32>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit bar<T>(b: Boolean): T {"
+      "  const k = 0;"
+      "  if (b) return k;"
+      "}"
+      "export circuit foo(b: Boolean): [] {"
+      "  return bar<[]>(b);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "[]" "circuit bar")))
     )
 )
 

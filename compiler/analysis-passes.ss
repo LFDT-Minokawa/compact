@@ -3176,6 +3176,16 @@
        (values
          `(disclose ,src ,expr)
          type)]
+      [(return ,src)
+       (assert current-return-type)
+       (let ([type (with-output-language (Ltypes Type) `(ttuple ,src))])
+         (unless (subtype? type current-return-type)
+           (source-errorf src "~a is declared to return a value of type ~a, but its body can return without supplying a value"
+                          current-whose-body
+                          (format-type current-return-type)))
+         (values
+           `(return ,src (tuple ,src))
+           type))]
       [(return ,src ,[Care : expr type])
        (assert current-return-type)
        (unless (subtype? type current-return-type)

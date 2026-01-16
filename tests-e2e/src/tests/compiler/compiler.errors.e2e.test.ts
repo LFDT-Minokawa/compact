@@ -27,7 +27,7 @@ describe('[Errors] Compiler', () => {
         },
         {
             file: 'maybe.compact',
-            error: /Exception: maybe.compact line 19 char 3: mismatch between type struct Maybe<is_some: Boolean, value: Field> and type \[] of condition branches/,
+            error: /Exception: maybe.compact line 18 char 1: circuit nestedCall1 is declared to return a value of type struct Maybe<is_some: Boolean, value: Field>, but its body can return without supplying a value/,
         },
         {
             file: 'multiSource.compact',
