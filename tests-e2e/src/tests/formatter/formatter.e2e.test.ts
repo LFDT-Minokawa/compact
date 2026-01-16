@@ -15,7 +15,7 @@
 
 import { Result } from 'execa';
 import { describe, expect, test } from 'vitest';
-import { createTempFolder, expectCommandResult, format, getFileContent, buildPathTo } from '@';
+import { createTempFolder, expectCommandResult, format, getFileContent, buildPathTo, Arguments } from '@';
 import path from 'node:path';
 import fs from 'fs';
 
@@ -34,6 +34,16 @@ describe('[E2E] Example contract tests for formatter tool', () => {
             const formattedContract = `${outputDir}/formatted.compact}`;
 
             const result: Result = await format([filePath, formattedContract]);
+
+            expectCommandResult(result).toBeSuccess('', '');
+            expect(getFileContent(formattedContract)).toEqual(oracleContent);
+        });
+
+        test(`should properly format contract when using the lines length parameter: '${fileName}'`, async () => {
+            const outputDir = createTempFolder();
+            const formattedContract = `${outputDir}/formatted.compact}`;
+
+            const result: Result = await format([Arguments.LINES_LENGTH, '110', filePath, formattedContract]);
 
             expectCommandResult(result).toBeSuccess('', '');
             expect(getFileContent(formattedContract)).toEqual(oracleContent);

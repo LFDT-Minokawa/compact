@@ -55,11 +55,6 @@
       url = "github:nix-community/npmlock2nix";
       flake = false;
     };
-
-    midnight-contracts = {
-      url = "github:midnightntwrk/midnight-contracts/unshielded-tokens";
-      flake = false;
-    };
   };
 
   outputs = {
@@ -70,7 +65,6 @@
     nixpkgs,
     utils,
     inclusive,
-    midnight-contracts,
     chez-exe,
     npmlock2nix,
     ...
@@ -103,7 +97,6 @@
             cp -r ${self.packages.${system}.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime node_modules/@midnight-ntwrk/compact-runtime
             chown $USER -R node_modules
             chmod u+w -R node_modules
-            ln -sfn ${midnight-contracts} test-center/midnight-contracts
           '';
         test-center-shell-hook =
           ''
@@ -238,7 +231,6 @@
               sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/format-compact.ss > obj/compiler/format-compact.ss
               sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/fixup-compact.ss > obj/compiler/fixup-compact.ss
               patchShebangs --host .
-              ln -sfn ${midnight-contracts} test-center/midnight-contracts
 
               scheme -q << END
                 (reset-handler abort)

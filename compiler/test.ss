@@ -1643,23 +1643,23 @@ groups than for single tests.
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/dao/contract/src/micro-dao.compact"
+    "test-center/test-contracts/micro-dao.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/bboard/contract/src/bboard.compact"
+    "test-center/test-contracts/bboard.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/coracle/contract/src/coracle.compact"
+    "test-center/test-contracts/coracle.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/counter/contract/src/counter.compact"
+    "test-center/test-contracts/counter.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/welcome/contract/src/welcome.compact"
+    "test-center/test-contracts/welcome.compact"
     (succeeds))
 
   (test
@@ -3550,23 +3550,23 @@ groups than for single tests.
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/dao/contract/src/micro-dao.compact"
+    "test-center/test-contracts/micro-dao.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/bboard/contract/src/bboard.compact"
+    "test-center/test-contracts/bboard.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/coracle/contract/src/coracle.compact"
+    "test-center/test-contracts/coracle.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/counter/contract/src/counter.compact"
+    "test-center/test-contracts/counter.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/welcome/contract/src/welcome.compact"
+    "test-center/test-contracts/welcome.compact"
     (succeeds))
 
   (test
@@ -8167,23 +8167,23 @@ groups than for single tests.
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/dao/contract/src/micro-dao.compact"
+    "test-center/test-contracts/micro-dao.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/bboard/contract/src/bboard.compact"
+    "test-center/test-contracts/bboard.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/coracle/contract/src/coracle.compact"
+    "test-center/test-contracts/coracle.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/counter/contract/src/counter.compact"
+    "test-center/test-contracts/counter.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/welcome/contract/src/welcome.compact"
+    "test-center/test-contracts/welcome.compact"
     (succeeds))
 
   (test
@@ -8728,23 +8728,23 @@ groups than for single tests.
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/dao/contract/src/micro-dao.compact"
+    "test-center/test-contracts/micro-dao.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/bboard/contract/src/bboard.compact"
+    "test-center/test-contracts/bboard.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/coracle/contract/src/coracle.compact"
+    "test-center/test-contracts/coracle.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/counter/contract/src/counter.compact"
+    "test-center/test-contracts/counter.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/welcome/contract/src/welcome.compact"
+    "test-center/test-contracts/welcome.compact"
     (succeeds))
 
   (test
@@ -8990,23 +8990,23 @@ groups than for single tests.
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/dao/contract/src/micro-dao.compact"
+    "test-center/test-contracts/micro-dao.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/bboard/contract/src/bboard.compact"
+    "test-center/test-contracts/bboard.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/coracle/contract/src/coracle.compact"
+    "test-center/test-contracts/coracle.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/counter/contract/src/counter.compact"
+    "test-center/test-contracts/counter.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/welcome/contract/src/welcome.compact"
+    "test-center/test-contracts/welcome.compact"
     (succeeds))
 
   (test
@@ -9396,23 +9396,23 @@ groups than for single tests.
     (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/dao/contract/src/micro-dao.compact"
+   "test-center/test-contracts/micro-dao.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/bboard/contract/src/bboard.compact"
+   "test-center/test-contracts/bboard.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/coracle/contract/src/coracle.compact"
+   "test-center/test-contracts/coracle.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/counter/contract/src/counter.compact"
+    "test-center/test-contracts/counter.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/welcome/contract/src/welcome.compact"
+    "test-center/test-contracts/welcome.compact"
     (succeeds))
 
   (test
@@ -14427,23 +14427,23 @@ groups than for single tests.
     (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/dao/contract/src/micro-dao.compact"
+   "test-center/test-contracts/micro-dao.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/bboard/contract/src/bboard.compact"
+   "test-center/test-contracts/bboard.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/coracle/contract/src/coracle.compact"
+   "test-center/test-contracts/coracle.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/counter/contract/src/counter.compact"
+    "test-center/test-contracts/counter.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/welcome/contract/src/welcome.compact"
+    "test-center/test-contracts/welcome.compact"
     (succeeds))
 
   (test
@@ -25466,23 +25466,23 @@ groups than for single tests.
     (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/dao/contract/src/micro-dao.compact"
+   "test-center/test-contracts/micro-dao.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/bboard/contract/src/bboard.compact"
+   "test-center/test-contracts/bboard.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/coracle/contract/src/coracle.compact"
+   "test-center/test-contracts/coracle.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/counter/contract/src/counter.compact"
+    "test-center/test-contracts/counter.compact"
     (succeeds))
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/welcome/contract/src/welcome.compact"
+    "test-center/test-contracts/welcome.compact"
     (succeeds))
 
   (test
@@ -42598,15 +42598,15 @@ groups than for single tests.
     (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/bboard/contract/src/bboard.compact"
+   "test-center/test-contracts/bboard.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/coracle/contract/src/coracle.compact"
+   "test-center/test-contracts/coracle.compact"
    (succeeds))
 
   (test ; just see if it succeeds
-   "test-center/midnight-contracts/packages/dao/contract/src/micro-dao.compact"
+   "test-center/test-contracts/micro-dao.compact"
    (succeeds))
 
   (test
@@ -66280,7 +66280,7 @@ groups than for single tests.
     )
 
   (test
-   "test-center/midnight-contracts/packages/dao/contract/src/micro-dao.compact"
+   "test-center/test-contracts/micro-dao.compact"
    (stage-javascript
      `(
        "const witnesses = {"
@@ -66300,7 +66300,7 @@ groups than for single tests.
    )
 
   (test
-   "test-center/midnight-contracts/packages/bboard/contract/src/bboard.compact"
+   "test-center/test-contracts/bboard.compact"
    (stage-javascript
      `(
        "const witnesses = {"
@@ -66314,7 +66314,7 @@ groups than for single tests.
    )
 
   (test
-   "test-center/midnight-contracts/packages/coracle/contract/src/coracle.compact"
+   "test-center/test-contracts/coracle.compact"
    (stage-javascript
      `(
        "const witnesses = {"
@@ -66334,7 +66334,7 @@ groups than for single tests.
    )
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/counter/contract/src/counter.compact"
+    "test-center/test-contracts/counter.compact"
     (stage-javascript
      `(
        "const witnesses = { private_increment(): any { return; } };"
@@ -66346,7 +66346,7 @@ groups than for single tests.
     )
 
   (test ; just see if it succeeds
-    "test-center/midnight-contracts/packages/welcome/contract/src/welcome.compact"
+    "test-center/test-contracts/welcome.compact"
     (stage-javascript
      `(
        "const witnesses = {"

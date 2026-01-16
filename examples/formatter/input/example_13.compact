@@ -1,0 +1,95 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger total_operations: Counter;
+export ledger last_calculated_result: Field;
+export ledger operation_category_code: Uint<8>;
+export ledger result_value: Field;
+export ledger multiplier: Field;
+export ledger op_multiplier: Field;
+
+witness get_user_calculation_parameters_from_external_validation_source(user_identifier_hash: Field, initial_amount_value: Uint<64>, scaling_factor_multiplier: Uint<64>, offset_adjustment_value: Uint<64>): Uint<64>;
+
+witness retrieve_transaction_validation_context_and_authorization_flags(transaction_reference_id: Field, sender_account_identifier: Field, receiver_account_identifier: Field, operation_type_code: Uint<8>): [Boolean, Uint<64>];
+
+circuit perform_complex_arithmetic_calculation_with_multiple_inputs(base_calculation_value: Uint<64>, primary_scaling_factor: Uint<64>, secondary_offset_amount: Uint<64>, final_adjustment_modifier: Uint<64>): Uint<64> {
+    return ((base_calculation_value * primary_scaling_factor) + secondary_offset_amount) + final_adjustment_modifier;
+}
+
+export circuit execute_tiered_bonus_calculation_based_on_user_metrics(user_account_balance: Uint<64>, transaction_total_amount: Uint<64>, accumulated_loyalty_points: Uint<64>, account_age_in_months: Uint<64>): Uint<64> {
+    const base = transaction_total_amount * 10 as Uint<64>;
+    const loyalty = accumulated_loyalty_points * 2 as Uint<64>;
+    const age = account_age_in_months * 3 as Uint<64>;
+    return (base + loyalty) + age;
+}
+
+export circuit test_multiline_call_expressions(input_value: Uint<64>): Uint<64> {
+    const result_from_arithmetic = perform_complex_arithmetic_calculation_with_multiple_inputs(input_value, 10 as Uint<64>, 5 as Uint<64>, 2 as Uint<64>);
+    const bonus_calculation_result = execute_tiered_bonus_calculation_based_on_user_metrics(input_value * 2 as Uint<64>, input_value + 100 as Uint<64>, 50 as Uint<64>, 12 as Uint<64>);
+    return result_from_arithmetic + bonus_calculation_result;
+}
+
+export circuit test_anonymous_circuit_in_fold(values: Vector<4, Uint<64>>): Uint<64> {
+    const sum_result = fold((accumulator_running_total: Uint<64>, current_element_value: Uint<64>): Uint<64> => { const intermediate_calculation = accumulator_running_total + current_element_value; return intermediate_calculation; }, 0 as Uint<64>, values);
+    return sum_result;
+}
+
+export circuit test_complex_anonymous_circuit(input_vector: Vector<4, Uint<64>>): Uint<64> {
+    const transformed = fold((running_accumulator_total: Uint<64>, vector_element_value: Uint<64>): Uint<64> => { const doubled_value = vector_element_value * 2 as Uint<64>; const with_bonus_added = doubled_value + 10 as Uint<64>; return running_accumulator_total + with_bonus_added; }, 0 as Uint<64>, input_vector);
+    return transformed;
+}
+
+export circuit test_map_anonymous(input: Vector<4, Uint<64>>): Vector<4, Uint<64>> {
+    const result = map((element_value: Uint<64>): Uint<64> => { const step_one = element_value * 3 as Uint<64>; const step_two = step_one + 7 as Uint<64>; return step_two; }, input);
+    return result;
+}
+
+export circuit test_if_else_chain(operation_code: Uint<8>): Uint<64> {
+    result_value = 0 as Field;
+    if (operation_code == (0 as Uint<8>)) { result_value = 100 as Field; }
+    else if (operation_code == (1 as Uint<8>)) { result_value = 200 as Field; }
+    else if (operation_code == (2 as Uint<8>)) { result_value = 300 as Field; }
+    else if (operation_code == (3 as Uint<8>)) { result_value = 400 as Field; }
+    else if (operation_code == (4 as Uint<8>)) { result_value = 500 as Field; }
+    else { result_value = 0 as Field; }
+    return result_value as Uint<64>;
+}
+
+export circuit test_complex_if_else(category: Uint<8>, amount: Uint<64>): Uint<64> {
+    multiplier = 100 as Field;
+    if (category == (0 as Uint<8>)) { multiplier = 100 as Field; }
+    else if (category == (1 as Uint<8>)) { multiplier = 110 as Field; }
+    else if (category == (2 as Uint<8>)) { multiplier = 125 as Field; }
+    else if (category == (3 as Uint<8>)) { multiplier = 150 as Field; }
+    else if (category == (4 as Uint<8>)) { multiplier = 200 as Field; }
+    else { multiplier = 100 as Field; }
+    return (amount * (multiplier as Uint<64>));
+}
+
+export circuit test_all_scenarios_combined(op_type: Uint<8>, base_amount: Uint<64>, test_values: Vector<4, Uint<64>>): Uint<64> {
+    total_operations.increment(1 as Uint<16>);
+    const arithmetic_result = perform_complex_arithmetic_calculation_with_multiple_inputs(base_amount, 2 as Uint<64>, 10 as Uint<64>, 5 as Uint<64>);
+    const vector_sum = fold((acc: Uint<64>, val: Uint<64>): Uint<64> => { return acc + val; }, 0 as Uint<64>, test_values);
+    op_multiplier = 1 as Field;
+    if (op_type == (0 as Uint<8>)) { op_multiplier = 1 as Field; }
+    else if (op_type == (1 as Uint<8>)) { op_multiplier = 2 as Field; }
+    else if (op_type == (2 as Uint<8>)) { op_multiplier = 3 as Field; }
+    else { op_multiplier = 1 as Field; }
+    last_calculated_result = ((arithmetic_result + vector_sum) * (op_multiplier as Uint<64>)) as Field;
+    operation_category_code = op_type;
+    return last_calculated_result as Uint<64>;
+}

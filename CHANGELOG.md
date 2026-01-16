@@ -17,6 +17,20 @@ on-chain runtime 2.0.0-alpha.1.
 - A bug reported in issue [#34](https://github.com/LFDT-Minokawa/compact/issues/34) in which 
   `ChargedState` was not properly copied resulting in junk metadata being passed to contract deployments.
 
+### Changed
+
+- Instead of pulling test contracts from the separate (private) repository
+  `midnight-contracts`, they are added to this repository under
+  `test-center/test-contracts`.
+  
+### Changed
+
+- The informal parser rule that "else" clauses belong to the innermost "if"
+  expression is now explicit in the grammar.  Previously, we were relying on a
+  shaky assumption about how the parser generator treats grammar ambiguities.
+  This change is reflected in the formal grammar specification in doc/Compact.html
+  but has no impact on how programs are compiled.
+
 
 ## [Unreleased compiler version 0.27.113, language version 0.19.103]
 

@@ -557,6 +557,12 @@
          (with-output-language (Lparser Block)
            `(block ,src ,lbrace ,stmt* ... ,rbrace)))])
     (Statement (stmt)
+      [statement-one-armed-if :: src (KEYWORD if) #\( expr-seq #\) stmt =>
+       (lambda (src kwd lparen expr rparen stmt)
+         (with-output-language (Lparser Statement)
+           `(if ,src ,kwd ,lparen ,expr ,rparen ,stmt)))]
+      [#f :: stmt0 => values])
+    (Statement0 (stmt0)
       [statement-expr :: src expr-seq #\; =>
        (lambda (src expr semicolon)
          (with-output-language (Lparser Statement)
@@ -569,8 +575,7 @@
        (lambda (src kwd semicolon)
          (with-output-language (Lparser Statement)
            `(return ,src ,kwd ,semicolon)))]
-      ; see ez-grammar.ss left-factoring note related to the ordering of the "if" clauses
-      [statement-if :: src (KEYWORD if) #\( expr-seq #\) stmt (KEYWORD else) stmt =>
+      [statement-if :: src (KEYWORD if) #\( expr-seq #\) stmt0 (KEYWORD else) stmt =>
        (lambda (src kwd lparen expr rparen stmt1 kwd-else stmt2)
          (with-output-language (Lparser Statement)
            `(if ,src ,kwd ,lparen ,expr ,rparen ,stmt1 ,kwd-else ,stmt2)))]
