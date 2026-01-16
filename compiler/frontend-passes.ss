@@ -144,6 +144,9 @@
       [(block ,src ,[stmt*] ...) ir])
     (Statement : Statement (ir [in-for? #f]) -> Statement ()
       [(for ,src ,var-name ,[expr] ,[stmt #t -> stmt]) ir]
+      [(return ,src)
+       (when in-for? (source-errorf src "return is not supported within for loops"))
+       ir]
       [(return ,src ,[expr])
        (when in-for? (source-errorf src "return is not supported within for loops"))
        ir]))
@@ -178,6 +181,9 @@
        (unless reachable? (unreachable src))
        (Statement stmt #t)]
       [(return ,src ,[expr])
+       (unless reachable? (unreachable src))
+       #f]
+      [(return ,src)
        (unless reachable? (unreachable src))
        #f]
       [(if ,src ,[expr] ,stmt1 ,stmt2)
@@ -231,6 +237,7 @@
       [(if ,src ,[expr] ,[SingleStatement : stmt1 vars -> stmt1] ,[SingleStatement : stmt2 vars -> stmt2]) `(if ,src ,expr ,stmt1 ,stmt2)]
       [(for ,src ,var-name ,[expr] ,[SingleStatement : stmt vars -> stmt]) `(for ,src ,var-name ,expr ,stmt)]
       [(statement-expression ,src ,[expr]) `(statement-expression ,src ,expr)]
+      [(return ,src) `(return ,src)]
       [(return ,src ,[expr]) `(return ,src ,expr)]
       [,blck (Block blck)]
       [else (assert cannot-happen)])
@@ -322,7 +329,7 @@
                  (with-output-language (Lexpr Expression)
                    `(seq ,src ,expr* ... ,expr))))]))
       (define (circuit-body src blck)
-        (let ([tail (list (with-output-language (Lexpr Expression) `(tuple ,src)))])
+        (let ([tail (list (with-output-language (Lexpr Expression) `(return ,src)))])
           (make-seq src (Statement blck tail))))
       (define block-ends '(dummy))
       )
@@ -334,6 +341,9 @@
        `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,(circuit-body src blck))])
     (Statement : Statement (ir tail) -> * (tail)
       [(statement-expression ,src ,expr) (cons (Expression expr) tail)]
+      [(return ,src) 
+       (with-output-language (Lexpr Expression)
+         (list `(return ,src)))]
       [(return ,src ,[expr])
        (with-output-language (Lexpr Expression)
          (list `(return ,src ,expr)))]
