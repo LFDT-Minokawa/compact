@@ -31,20 +31,6 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Setup .npmrc
-        run: |
-          cd ./debug-test
-          echo "
-          //npm.pkg.github.com/:_authToken=${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-          @midnight-ntwrk:registry=https://npm.pkg.github.com/
-          " > .npmrc
-
-      - name: Configure yarn
-        run: |
-          cd ./debug-test
-          yarn config set 'npmScopes.midnight-ntwrk.npmAuthToken' "${{ secrets.MIDNIGHTCI_PACKAGES_READ }}"
-          echo 'checksumBehavior: update' >> ./.yarnrc.yml
-
       - name: Build lib
         run: |
           nix build .#runtime.forPublish
