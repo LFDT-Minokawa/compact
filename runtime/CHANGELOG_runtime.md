@@ -1,8 +1,5 @@
 # `@midnight-ntwrk/compact-runtime` Changelog
 
-**IMPORTANT:** We have discontinued using this changelog, in favor of using the
-top-level `CHANGELOG.md` file for runtime updates.
-
 # Runtime Version `0.14.0`
 - Changes `CompactTypeCurvePoint` to `CompactTypeNativePoint` and `CurvePoint` to `NativePoint`
 

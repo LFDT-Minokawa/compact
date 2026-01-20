@@ -1,8 +1,5 @@
 # `Compactc` Changelog
 
-**IMPORTANT:** We have discontinued using this changelog, in favor of using the
-file `CHANGELOG.md` file for compiler updates.
-
 # Compiler Version `0.26.105`, language Version `0.18.0`
 - Addresses 16090
   adds an upper bound for vector size, tuple size, and bytes length by the parameter
