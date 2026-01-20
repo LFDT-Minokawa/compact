@@ -60,3 +60,11 @@ circuit test3a(): NativePoint {
 export circuit test3(): Field {
   return nativePointX(test3a()) + nativePointY(test3a());
 }
+
+// use of constructor
+export circuit test4(): NativePoint {
+    const a = constructNativePoint(1, 1);
+    const b: NativePoint = constructNativePoint(default<Field>, default<Field>);
+    
+    return a;
+}
