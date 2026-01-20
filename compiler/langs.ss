@@ -214,6 +214,7 @@
     (Statement (stmt)
       (statement-expression src expr)    => expr
       (return src expr)                  => (return expr)
+      (return src)                       => (return (tuple))
       (const src cbinding cbinding* ...) => (const (cbinding 0 cbinding* ...))
       (if src expr stmt1 stmt2)          => (if expr 3 stmt1 3 stmt2)
       (for src var-name expr stmt)       => (for var-name expr #f stmt)
@@ -366,6 +367,7 @@
     (Statement (stmt)
       (- (statement-expression src expr)
          (return src expr)
+         (return src)
          (= src var-name type expr)
          (if src expr stmt1 stmt2)
          (for src var-name expr stmt)
@@ -376,6 +378,7 @@
          (for src var-name expr1 expr2)          => (for var-name expr1 #f expr2)
          (block src (var-name* ...) expr)        => (block (var-name* 0 ...) #f expr)
          (return src expr)                       => expr
+         (return src)                            => (tuple)
          ))
     (Function (fun)
       (- (circuit src (arg* ...) type blck))

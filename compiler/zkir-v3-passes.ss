@@ -314,12 +314,12 @@
                           ,(list-ref rvar* 1)
                           ,(list-ref rvar* 3))
                        (zkir-instr*)))
-                   (let-values ([(sep-val sep-length) (domain-separator "mdn:cc")])
+                   (let-values ([(sep-val sep-length) (domain-separator "midnight:zswap-cc[v1]")])
                      (persistent-hash
                        (with-output-language (Lflattened Alignment)
-                         (list `(abytes ,32) `(abytes ,32) `(abytes ,16) `(abytes ,1)
-                           `(abytes ,32) `(abytes ,sep-length)))
-                       (append (zkir-val-input* coin) (list (car rvar*) data0 data1 sep-val))
+                         (list `(abytes ,sep-length) `(abytes ,32) `(abytes ,32) `(abytes ,16)
+                           `(abytes ,1) `(abytes ,32)))
+                       (append (cons sep-val (zkir-val-input* coin)) (list (car rvar*) data0 data1))
                        code*))))]
               [(VMleaf-hash val)
                (let*-values

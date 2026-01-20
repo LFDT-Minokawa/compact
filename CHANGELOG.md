@@ -5,11 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler 0.28.103, language 0.20.100]
+
+### Fixed
+
+- A bug in the experimental `--zkir-v3` feature.  The on-chain representation of
+  coin commitments changed between ledger version 6.1 and 6.2.  The domain
+  separator string is changed, and the inputs to `persistentHash` are in a
+  different order.
+
+  This was already implemented for the default ZKIR v2, but the corresponding
+  change was not implemented in the ZKIR v3 compiler passes.
+
+## [Unreleased compiler 0.28.102, language 0.20.100]
+
+### Changed
+
+- For any circuit that returns something other than `[]` and for which some path through
+  the circuit does not end in `return` form or ends in a `return` form without
+  a return-value expression, the resulting error message now clearly states that
+  this is the problem.
+
+## [Unreleased compiler 0.28.101, language 0.20.100]
+
+### Added
+
+- Added a constructor, `constructNativePoint`, for `NativePoint` values
+
+### Changed
+
+- Renamed the existing accessors `NativePointX` and `NativePointY` to `nativePointX`
+  and `nativePointY` for consistency with our conventions for circuit names.
+
 ## [Unreleased compiler 0.28.100, language 0.20.0]
 
 There are no user-visible changes.
 
-### Changed
+### Internal notes
 
 - Instead of pulling test contracts from the separate (private) repository
   `midnight-contracts`, they are added to this repository under
