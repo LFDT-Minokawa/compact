@@ -17,7 +17,7 @@ import CompactStandardLibrary;
 
 constructor() {
   const a = default<NativePoint>;
-  const b = NativePointX(a);
+  const b = nativePointX(a);
 }
 
 // Test1: usage of NativePoint
@@ -29,22 +29,42 @@ export circuit test(): [] {
   const e : NativePoint = hashToCurve<Field>(1);
 }
 
-// Test2: use getters
+// Test2: direct access
+// this one should fail when NativePoint becomes opaque
+export circuit test1(): [] {
+  const a = default<NativePoint>;
+  const b = default<NativePoint>;
+
+  const c = a.x + a.y + b.x + b.y;
+
+  const d = ecAdd(a, b);
+  const e = d.x + d.y;
+}
+
+// Test3: use getters
 export circuit test2(): [] {
   const a = default<NativePoint>;
   const b = default<NativePoint>;
 
-  const c = NativePointX(a) + NativePointY(a) + NativePointX(b) + NativePointY(b);
+  const c = nativePointX(a) + nativePointY(a) + nativePointX(b) + nativePointY(b);
 
   const d = ecAdd(a, b);
-  const e = NativePointX(d) + NativePointY(d);
+  const e = nativePointX(d) + nativePointY(d);
 }
 
-// Test3: Use getters in from circuit
+// Test4: Use getters in from circuit
 circuit test3a(): NativePoint {
   return default<NativePoint>;
 }
 
 export circuit test3(): Field {
-  return NativePointX(test3a()) + NativePointY(test3a());
+  return nativePointX(test3a()) + nativePointY(test3a());
+}
+
+// use of constructor
+export circuit test4(): NativePoint {
+    const a = constructNativePoint(1, 1);
+    const b: NativePoint = constructNativePoint(default<Field>, default<Field>);
+    
+    return a;
 }

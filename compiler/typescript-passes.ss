@@ -1244,7 +1244,6 @@
                    (case opaque-type
                      [("string") (format "__compactRuntime.CompactTypeOpaqueString")]
                      [("Uint8Array") (format "__compactRuntime.CompactTypeOpaqueUint8Array")]
-                     [("JubjubPoint") (format "__compactRuntime.CompactTypeJubjubPoint")]
                      ; FIXME: what should happen with other opaque types?
                      [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                   [(tvector ,src ,len ,type)
@@ -2743,7 +2742,6 @@
                 (case opaque-type
                   [("string") "''"]
                   [("Uint8Array") "new Uint8Array(0)"]
-                  [("JubjubPoint") "({x: 0n, y: 1n})"]
                   ; FIXME: what should happen with other opaque types?
                   [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                [(tvector ,src ,len ,type)
@@ -3270,8 +3268,7 @@
       [(topaque ,src ,opaque-type)
        (case opaque-type
          [("string" "Uint8Array") opaque-type]
-         [("JubjubPoint") "__compactRuntime.JubjubPoint"]
-         ;; FIXME: what should happen with other opaque types?
+         ; FIXME: what should happen with other opaque types?
          [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
       [(tvector ,src ,len ,[Type : type -> * type])
        (make-Qconcat type "[]")]

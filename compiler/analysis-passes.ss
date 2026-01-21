@@ -2163,7 +2163,6 @@
            [(native-nat-param name) (format "~a" name)]))
        (define (format-native-type native-type)
          (native-type-case native-type
-           [(native-type-opaque str) (format "Opaque<'~a'>" str)]
            [(native-type-boolean) "Boolean"]
            [(native-type-field) "Field"]
            [(native-type-unsigned native-nat) (format "Uint<~a>" (format-native-nat native-nat))]
@@ -2238,10 +2237,6 @@
              [(native-type-void)
               (nanopass-case (Ltypes Type) type
                 [(ttuple ,src) #t]
-                [else #f])]
-             [(native-type-opaque string)
-              (nanopass-case (Ltypes Type) type
-                [(topaque ,src ,opaque-type) (string=? string opaque-type)]
                 [else #f])])))
        (for-each
          (lambda (native-type type argno)
@@ -3181,6 +3176,16 @@
        (values
          `(disclose ,src ,expr)
          type)]
+      [(return ,src)
+       (assert current-return-type)
+       (let ([type (with-output-language (Ltypes Type) `(ttuple ,src))])
+         (unless (subtype? type current-return-type)
+           (source-errorf src "~a is declared to return a value of type ~a, but its body can return without supplying a value"
+                          current-whose-body
+                          (format-type current-return-type)))
+         (values
+           `(return ,src (tuple ,src))
+           type))]
       [(return ,src ,[Care : expr type])
        (assert current-return-type)
        (unless (subtype? type current-return-type)
