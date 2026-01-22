@@ -88,8 +88,14 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          postPatch = oldAttrs.postPatch or "" + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            substituteInPlace Makefile --replace "-m64" ""
+          preBuild = oldAttrs.preBuild or "" + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            # Search all files for -m64 and remove it
+            find . -type f -exec sed -i 's/-m64//g' {} +
+          '' else "");
+
+          preInstall = oldAttrs.preInstall or "" + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            # Ensure it's gone before the install phase runs make again
+            find . -type f -exec sed -i 's/-m64//g' {} +
           '' else "");
         });
         runtime-shell-hook =
