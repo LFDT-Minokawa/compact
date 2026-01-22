@@ -88,14 +88,15 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # Use preHook to set up the environment globally
-          preHook = (oldAttrs.preHook or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            echo "Setting up ARM64 compiler shim..."
-            # Create the shim in a stable absolute location
-            SHIM_DIR="$NIX_BUILD_TOP/compiler-shim"
-            mkdir -p "$SHIM_DIR"
+          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            # Use absolute paths for tools to avoid any PATH issues
+            ${pkgs.findutils}/bin/find . -type f -exec ${pkgs.gnused}/bin/sed -i 's/-m64//g' {} +
+          '' else "");
 
-            cat <<EOF > "$SHIM_DIR/gcc"
+          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            echo "Setting up ARM64 compiler shim..."
+            mkdir -p .bin-shim
+            cat <<EOF > .bin-shim/gcc
 #!/bin/bash
 args=()
 for arg in "\$@"; do
@@ -103,18 +104,13 @@ for arg in "\$@"; do
 done
 exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}" -Wno-unused-command-line-argument -L${pkgs.musl}/lib
 EOF
-
-            chmod +x "$SHIM_DIR/gcc"
-            cp "$SHIM_DIR/gcc" "$SHIM_DIR/cc"
-
-            # Prepend the shim to PATH safely
-            export PATH="$SHIM_DIR:\$PATH"
-            export CC="$SHIM_DIR/gcc"
+            chmod +x .bin-shim/gcc
+            # Point CC directly to the shim absolute path
+            export CC="$(pwd)/.bin-shim/gcc"
           '' else "");
 
-          # Use a safer find command in postPatch that uses absolute paths
-          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            ${pkgs.findutils}/bin/find . -type f -exec ${pkgs.gnused}/bin/sed -i 's/-m64//g' {} +
+          preInstall = (oldAttrs.preInstall or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            export CC="$(pwd)/.bin-shim/gcc"
           '' else "");
         });
         runtime-shell-hook =
