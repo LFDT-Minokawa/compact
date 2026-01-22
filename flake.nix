@@ -88,15 +88,14 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            # Use absolute paths for tools to avoid any PATH issues
-            ${pkgs.findutils}/bin/find . -type f -exec ${pkgs.gnused}/bin/sed -i 's/-m64//g' {} +
-          '' else "");
+          # preHook is the only place that persists across all phases reliably
+          preHook = (oldAttrs.preHook or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            echo "Creating persistent ARM64 compiler shim..."
+            # Use TMPDIR to ensure the path is absolute and persists across phases
+            export SHIM_PATH="$TMPDIR/gcc-arm-shim"
+            mkdir -p "$SHIM_PATH"
 
-          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            echo "Setting up ARM64 compiler shim..."
-            mkdir -p .bin-shim
-            cat <<EOF > .bin-shim/gcc
+            cat <<EOF > "$SHIM_PATH/gcc"
 #!/bin/bash
 args=()
 for arg in "\$@"; do
@@ -104,13 +103,24 @@ for arg in "\$@"; do
 done
 exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}" -Wno-unused-command-line-argument -L${pkgs.musl}/lib
 EOF
-            chmod +x .bin-shim/gcc
-            # Point CC directly to the shim absolute path
-            export CC="$(pwd)/.bin-shim/gcc"
+            chmod +x "$SHIM_PATH/gcc"
+            cp "$SHIM_PATH/gcc" "$SHIM_PATH/cc"
+
+            # Export globally
+            export PATH="$SHIM_PATH:\$PATH"
+            export CC="$SHIM_PATH/gcc"
           '' else "");
 
-          preInstall = (oldAttrs.preInstall or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            export CC="$(pwd)/.bin-shim/gcc"
+          # Force the Makefile to use our CC and strip flags via makeFlags
+          makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
+            "CC=$SHIM_PATH/gcc"
+            "CFLAGS=-Wno-unused-command-line-argument"
+            "M64_FLAG="
+          ] else []);
+
+          # Static source cleanup as a backup
+          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            ${pkgs.findutils}/bin/find . -type f -exec ${pkgs.gnused}/bin/sed -i 's/-m64//g' {} +
           '' else "");
         });
         runtime-shell-hook =
