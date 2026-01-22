@@ -87,35 +87,7 @@
         runtime-version = (__fromJSON (__readFile ./runtime/package.json)).version;
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
-        chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            # Create the shim in the temporary directory
-            mkdir -p "''${TMPDIR}/bin"
-            cat <<EOF > "''${TMPDIR}/bin/gcc"
-#!/bin/bash
-args=()
-for arg in "\$@"; do
-  [[ "\$arg" != "-m64" ]] && args+=("\$arg")
-done
-exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}" -Wno-unused-command-line-argument -L${pkgs.musl}/lib
-EOF
-            chmod +x "''${TMPDIR}/bin/gcc"
-            ln -s "''${TMPDIR}/bin/gcc" "''${TMPDIR}/bin/cc"
-
-            # Clean up static files
-            ${pkgs.findutils}/bin/find . -type f -exec ${pkgs.gnused}/bin/sed -i 's/-m64//g' {} +
-          '' else "");
-
-          # We force the PATH update in these phases so the 'scheme'
-          # interpreter and 'make' both find our shim first.
-          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            export PATH="''${TMPDIR}/bin:\$PATH"
-          '' else "");
-
-          preInstall = (oldAttrs.preInstall or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            export PATH="''${TMPDIR}/bin:\$PATH"
-          '' else "");
-        });
+        chez-exe = inputs.chez-exe.packages.${system}.default;
         runtime-shell-hook =
           ''
             rm node_modules -rf
