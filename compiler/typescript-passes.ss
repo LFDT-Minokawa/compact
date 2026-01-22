@@ -1963,7 +1963,7 @@
                                                    (ledger-reset-to-default src pl-array
                                                      (list
                                                        2 (Stmt stmt #f #f)
-                                                       2 (format "~a.data = context.currentQueryContext.state;" state)
+                                                       2 (format "~a.data = new __compactRuntime.ChargedState(context.currentQueryContext.state.state);" state)
                                                        2 "return {"
                                                        4 (format "currentContractState: ~a," state)
                                                        4 "currentPrivateState: context.currentPrivateState,"
