@@ -19,10 +19,10 @@ use std::process::Command;
 use std::{fs, io};
 
 #[allow(dead_code)]
-pub const COMPACT_VERSION: &str = "0.3.0";
+pub const COMPACT_VERSION: &str = "0.4.0";
 
 #[allow(dead_code)]
-pub const PREVIOUS_COMPACT_VERSION: &str = "0.1.0";
+pub const PREVIOUS_COMPACT_VERSION: &str = "0.3.0";
 
 #[allow(dead_code)]
 pub const LATEST_COMPACTC_VERSION: &str = "0.26.0";
