@@ -88,35 +88,35 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # Ensure we have the tools needed for patching
-          nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [ pkgs.coreutils pkgs.findutils pkgs.gnused ];
-
-          # Use a more targeted patch that doesn't mess with the PATH globally
           postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            echo "Removing -m64 from source files..."
+            # Clean all static files first
             find . -type f -exec sed -i 's/-m64//g' {} +
           '' else "");
 
-          # Instead of a complex PATH shim, we inject the fix directly into the compiler call
-          # This is cleaner and won't break 'mkdir'
-          makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
-            "CC=${pkgs.stdenv.cc}/bin/gcc"
-            "CFLAGS=-Wno-unused-command-line-argument"
-            "M64_FLAG="
-          ] else []);
-
-          # Force the compiler to be clean during the build phase specifically
           preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            # Create a local symlink to gcc that strips -m64
             mkdir -p dev-bin
-            echo '#!${pkgs.bash}/bin/bash' > dev-bin/gcc
-            echo 'exec ${pkgs.stdenv.cc}/bin/gcc "''${@/-m64/}"' >> dev-bin/gcc
+            # Create a robust shim that strips -m64 from any position in the arguments
+            cat <<EOF > dev-bin/gcc
+            #!/bin/bash
+            args=()
+            for arg in "\$@"; do
+              [[ "\$arg" != "-m64" ]] && args+=("\$arg")
+            done
+            exec ${pkgs.stdenv.cc}/bin/gcc "\${args[@]}" -Wno-unused-command-line-argument
+            EOF
             chmod +x dev-bin/gcc
             cp dev-bin/gcc dev-bin/cc
 
-            # Prepend ONLY this specific directory to PATH
-            export PATH="$(pwd)/dev-bin:$PATH"
+            # Use absolute path to avoid PATH lookup issues
+            export PATH="$(pwd)/dev-bin:\$PATH"
+            export CC="$(pwd)/dev-bin/gcc"
           '' else "");
+
+          # Keep makeFlags as a fallback for the Makefile's direct calls
+          makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
+            "CFLAGS=-Wno-unused-command-line-argument"
+            "M64_FLAG="
+          ] else []);
         });
         runtime-shell-hook =
           ''
