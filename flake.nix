@@ -90,16 +90,14 @@
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
           # We use preBuild because it runs after any internal patch/configure
           # phases that might be regenerating the Makefile or scripts.
-          preBuild = oldAttrs.preBuild or "" + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             echo "Applying ARM64 patch: removing -m64 from all files..."
-            # Use 'grep -r' to confirm where the flags are, then 'sed' to strip them
-            # This handles Makefiles and Scheme source files simultaneously
             find . -type f -print0 | xargs -0 sed -i 's/-m64//g'
           '' else "");
 
           # We also add it to preInstall because your logs show 'make'
           # being called again during the installation phase.
-          preInstall = oldAttrs.preInstall or "" + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+          preInstall = (oldAttrs.preInstall or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             find . -type f -print0 | xargs -0 sed -i 's/-m64//g'
           '' else "");
         });
