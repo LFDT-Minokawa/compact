@@ -24,6 +24,11 @@ on:
         description: 'Linux x86 artifact name'
         required: true
         type: string
+      linux_arm:
+        description: 'Linux ARM artifact name'
+        required: true
+        type: string
+
   
   workflow_dispatch:
     inputs:
@@ -51,6 +56,12 @@ on:
         default: 'x86_64-unknown-linux-musl'
         required: true
         type: string
+      linux_arm:
+        description: 'Linux ARM artifact name'
+        default: 'aarch64-unknown-linux-musl'
+        required: true
+        type: string
+
 
 # some duplication in manual dispatch names
 # tag should be same as version
