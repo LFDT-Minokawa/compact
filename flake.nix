@@ -88,17 +88,21 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # We use preBuild because it runs after any internal patch/configure
-          # phases that might be regenerating the Makefile or scripts.
-          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            echo "Applying ARM64 patch: removing -m64 from all files..."
-            find . -type f -print0 | xargs -0 sed -i 's/-m64//g'
+          # Strip it from all source files (Makefiles and .ss scripts) before build starts
+          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            find . -type f -exec sed -i 's/-m64//g' {} +
           '' else "");
 
-          # We also add it to preInstall because your logs show 'make'
-          # being called again during the installation phase.
-          preInstall = (oldAttrs.preInstall or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            find . -type f -print0 | xargs -0 sed -i 's/-m64//g'
+          # Safety net: pass a flag to GCC to ignore unrecognized options
+          # and clear out common variable names for the flag
+          makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
+            "CFLAGS=-Wno-unused-command-line-argument"
+            "M64_FLAG="
+          ] else []);
+
+          # Last resort: Catch files generated during the build process
+          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            find . -type f -name "Makefile*" -exec sed -i 's/-m64//g' {} +
           '' else "");
         });
         runtime-shell-hook =
