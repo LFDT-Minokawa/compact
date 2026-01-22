@@ -89,12 +89,9 @@
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
           postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            # 1. Create a persistent absolute directory for our shim
-            SHIM_DIR="$TMPDIR/compiler-shim"
-            ${pkgs.coreutils}/bin/mkdir -p "$SHIM_DIR"
-
-            # 2. Create the shim that strips -m64
-            cat <<EOF > "$SHIM_DIR/gcc"
+            # Create the shim in the temporary directory
+            mkdir -p "''${TMPDIR}/bin"
+            cat <<EOF > "''${TMPDIR}/bin/gcc"
 #!/bin/bash
 args=()
 for arg in "\$@"; do
@@ -102,28 +99,22 @@ for arg in "\$@"; do
 done
 exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}" -Wno-unused-command-line-argument -L${pkgs.musl}/lib
 EOF
-            ${pkgs.coreutils}/bin/chmod +x "$SHIM_DIR/gcc"
-            ${pkgs.coreutils}/bin/cp "$SHIM_DIR/gcc" "$SHIM_DIR/cc"
+            chmod +x "''${TMPDIR}/bin/gcc"
+            ln -s "''${TMPDIR}/bin/gcc" "''${TMPDIR}/bin/cc"
 
-            # 3. Clean up static files
+            # Clean up static files
             ${pkgs.findutils}/bin/find . -type f -exec ${pkgs.gnused}/bin/sed -i 's/-m64//g' {} +
           '' else "");
 
-          # Use variables that build systems and Makefiles respect
-          # instead of manipulating PATH
+          # We force the PATH update in these phases so the 'scheme'
+          # interpreter and 'make' both find our shim first.
           preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            export CC="$TMPDIR/compiler-shim/gcc"
+            export PATH="''${TMPDIR}/bin:\$PATH"
           '' else "");
 
           preInstall = (oldAttrs.preInstall or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            export CC="$TMPDIR/compiler-shim/gcc"
+            export PATH="''${TMPDIR}/bin:\$PATH"
           '' else "");
-
-          # Force the Makefile to use our shim
-          makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
-             "CC=$TMPDIR/compiler-shim/gcc"
-             "M64_FLAG="
-          ] else []);
         });
         runtime-shell-hook =
           ''
