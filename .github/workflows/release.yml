@@ -205,7 +205,7 @@ jobs:
       platform: ubuntu-24.04-arm
       architecture: ${{ needs.setup.outputs.linux_arm }}
 
-   test-intel-linux:
+  test-intel-linux:
     name: Test compactc on Linux x86_64 (Intel)
     uses: ./.github/workflows/release-test.yml
     needs: [ setup, build-release-intel-linux ]
