@@ -88,31 +88,33 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            find . -type f -exec sed -i 's/-m64//g' {} +
-          '' else "");
+          # Use preHook to set up the environment globally for ALL phases (build and install)
+          preHook = (oldAttrs.preHook or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            echo "Setting up ARM64 compiler shim..."
+            mkdir -p .bin-shim
 
-          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            mkdir -p dev-bin
-            cat <<EOF > dev-bin/gcc
+            # Create a shim that filters out -m64 and adds Musl paths
+            cat <<EOF > .bin-shim/gcc
             #!/bin/bash
             args=()
             for arg in "\$@"; do
               [[ "\$arg" != "-m64" ]] && args+=("\$arg")
             done
-            exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}" -Wno-unused-command-line-argument
+            exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}" -Wno-unused-command-line-argument -L${pkgs.musl}/lib
             EOF
-            chmod +x dev-bin/gcc
-            cp dev-bin/gcc dev-bin/cc
 
-            export PATH="$(pwd)/dev-bin:\$PATH"
-            export CC="$(pwd)/dev-bin/gcc"
+            chmod +x .bin-shim/gcc
+            cp .bin-shim/gcc .bin-shim/cc
+
+            # Export so that even 'scheme' sub-processes find it
+            export PATH="$(pwd)/.bin-shim:\$PATH"
+            export CC="$(pwd)/.bin-shim/gcc"
           '' else "");
 
-          makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
-            "CFLAGS=-Wno-unused-command-line-argument"
-            "M64_FLAG="
-          ] else []);
+          # Still run sed as a backup to clean static source files
+          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            find . -type f -exec sed -i 's/-m64//g' {} +
+          '' else "");
         });
         runtime-shell-hook =
           ''
