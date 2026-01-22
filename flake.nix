@@ -88,7 +88,7 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # Use postUnpack to ensure shims exist before any other phase runs
+          # Keep the Shim logic to handle the -m64 removal
           postUnpack = (oldAttrs.postUnpack or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             mkdir -p .shim
             echo '#!${pkgs.bash}/bin/bash' > .shim/gcc
@@ -97,12 +97,14 @@
             echo 'exec ${pkgs.stdenv.cc}/bin/gcc "''${new_args[@]}"' >> .shim/gcc
             chmod +x .shim/gcc
             cp .shim/gcc .shim/cc
-
-            # Export to the global environment for all subsequent phases
             export PATH="$(pwd)/.shim:$PATH"
           '' else "");
 
-          # Ensure the PATH is maintained during the actual build and install calls
+          # NEW: Tell the linker exactly where to find the Musl C library
+          NIX_LDFLAGS = if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux)
+                        then "-L${pkgs.musl}/lib"
+                        else "";
+
           preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             export PATH="$(pwd)/.shim:$PATH"
           '' else "");
