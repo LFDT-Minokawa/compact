@@ -87,7 +87,11 @@
         runtime-version = (__fromJSON (__readFile ./runtime/package.json)).version;
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
-        chez-exe = inputs.chez-exe.packages.${system}.default;
+        chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
+          postPatch = oldAttrs.postPatch or "" + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            substituteInPlace Makefile --replace "-m64" ""
+          '' else "");
+        });
         runtime-shell-hook =
           ''
             rm node_modules -rf
