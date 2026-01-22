@@ -88,32 +88,33 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # Use preHook to set up the environment globally for ALL phases (build and install)
+          # Use preHook to set up the environment globally
           preHook = (oldAttrs.preHook or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             echo "Setting up ARM64 compiler shim..."
-            mkdir -p .bin-shim
+            # Create the shim in a stable absolute location
+            SHIM_DIR="$NIX_BUILD_TOP/compiler-shim"
+            mkdir -p "$SHIM_DIR"
 
-            # Create a shim that filters out -m64 and adds Musl paths
-            cat <<EOF > .bin-shim/gcc
-            #!/bin/bash
-            args=()
-            for arg in "\$@"; do
-              [[ "\$arg" != "-m64" ]] && args+=("\$arg")
-            done
-            exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}" -Wno-unused-command-line-argument -L${pkgs.musl}/lib
-            EOF
+            cat <<EOF > "$SHIM_DIR/gcc"
+#!/bin/bash
+args=()
+for arg in "\$@"; do
+  [[ "\$arg" != "-m64" ]] && args+=("\$arg")
+done
+exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}" -Wno-unused-command-line-argument -L${pkgs.musl}/lib
+EOF
 
-            chmod +x .bin-shim/gcc
-            cp .bin-shim/gcc .bin-shim/cc
+            chmod +x "$SHIM_DIR/gcc"
+            cp "$SHIM_DIR/gcc" "$SHIM_DIR/cc"
 
-            # Export so that even 'scheme' sub-processes find it
-            export PATH="$(pwd)/.bin-shim:\$PATH"
-            export CC="$(pwd)/.bin-shim/gcc"
+            # Prepend the shim to PATH safely
+            export PATH="$SHIM_DIR:\$PATH"
+            export CC="$SHIM_DIR/gcc"
           '' else "");
 
-          # Still run sed as a backup to clean static source files
+          # Use a safer find command in postPatch that uses absolute paths
           postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            find . -type f -exec sed -i 's/-m64//g' {} +
+            ${pkgs.findutils}/bin/find . -type f -exec ${pkgs.gnused}/bin/sed -i 's/-m64//g' {} +
           '' else "");
         });
         runtime-shell-hook =
