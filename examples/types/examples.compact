@@ -1,0 +1,529 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// Test: use custom types in constructor
+type t0_b = Boolean;
+new type t0_bool = Boolean;
+
+constructor(vara: t0_b, varb: t0_b, varc: t0_bool, vard: t0_bool) {
+  const a = (vara || varb);
+  assert(a == true, "Should be true");
+
+  const b = (varc as Boolean) && (vard as Boolean);
+  assert(b == false, "Should be false");
+}
+
+// Test1: basic types
+type t1_Bytes2 = Bytes<2>;
+type t1_f = Field;
+new type t1_Bytes2_a = Bytes<2>;
+
+export circuit test1(t1_f: t1_f): t1_f {
+  const a = slice<1>(default<t1_Bytes2>, 0);
+
+  assert(default<t1_Bytes2> == default<t1_Bytes2_a> as t1_Bytes2, "Comparison failure");
+  return 1;
+}
+
+// Test2: pass the data from circuit to circuit
+type t2_Bytes4 = Bytes<4>;
+new type t2_Bytes4_a = Bytes<4>;
+
+circuit test2a(vara: Bytes<4>): [] {
+  return [];
+}
+
+circuit test2b(varb: Bytes<4>): [] {
+  return [];
+}
+
+export circuit test2(vara: t2_Bytes4, varb: t2_Bytes4_a): t2_Bytes4 {
+  const a = test2a(vara);
+  const b = test2b(varb as Bytes<4>);
+  return default<t2_Bytes4>;
+}
+
+// Test3: add multiple types
+type t2_f = Field;
+export type t2_f2 = Field;
+new type t2_f1 = Field;
+
+type t2_u1 = Uint<1>;
+type t2_u247 = Uint<247>;
+
+export circuit test3a(vara: t2_u1, varb: t2_u247): Uint<248> {
+  return (vara + varb) as Uint<248>;
+}
+
+export circuit test3(vara: t2_f2, varb: t2_f): t2_f1 {
+  return ((vara as t2_f) + (varb + 1)) as t2_f1;
+}
+
+// Test4: custom types in struct
+struct T4 { a: t4_u32 }
+new type t4_u32 = Uint<32>;
+type t4_field = Field;
+
+new type t4_b32 = Bytes<32>;
+struct T4a { a: t4_b32 }
+
+export circuit test4a(vara: T4a, varb: T4a): T4a {
+  return T4a { a: slice<32>([...vara.a, ...varb.a], 0) as t4_b32 };
+}
+
+export circuit test4(vara: T4, varb: T4): [T4, t4_field] {
+  const a = T4 { a: vara.a + varb.a };
+  return [a, a.a as t4_field];
+}
+
+// Test5: cast as other type
+type t5_u64 = Uint<64>;
+type t5_u32 = Uint<32>;
+new type t5_64_a = t5_u64;
+new type t5_u32_a = t5_u32;
+
+export circuit test5(vara: t5_u64, varb: t5_u64): [t5_u32, t5_u32_a] {
+  const a: t5_u64 = 1;
+  const b: t5_u64 = 2;
+
+  return [(vara + varb) as t5_u32, (a + b) as t5_u32_a];
+}
+
+// Test6: chain types
+new type t6_boolean_a = Boolean;
+new type t6_boolean_b = t6_boolean_a;
+export type t6_boolean_c = t6_boolean_b;
+
+type f1 = Field;
+type f2 = f1;
+type f3 = f2;
+
+export circuit test6a(vara: f1, varb: f2): [f1, f2, f3] {
+  return [vara, varb, vara + varb];
+}
+
+export circuit test6(vara: t6_boolean_a, varb: t6_boolean_b): [t6_boolean_a, t6_boolean_b, t6_boolean_c] {
+  assert((vara as Boolean) == (varb as Boolean) == (vara as Boolean && varb as Boolean), "Should work");
+  return [vara, varb, (vara as Boolean || varb as Boolean) as t6_boolean_c];
+}
+
+// Test7: cast custom type
+type t7_u2 = Uint<2>;
+type t7_u4 = Uint<4>;
+type t7_u64 = Uint<64>;
+type t7_b2 = Bytes<2>;
+type t7_b2048 = Bytes<2048>;
+type t7_f = Field;
+new type t7_b2_a = Bytes<2>;
+
+export circuit test7(vara: t7_u2, varb: t7_u4, varc: t7_u64): Boolean {
+  const a = (vara as t7_u4 as Boolean) || (varb as t7_u64 as Boolean) || (varc as t7_u2 as Boolean);
+  const b = 1 as t7_f as t7_u64 as t7_u4 as t7_u2 as t7_b2048;
+  const c = default<t7_b2> as t7_b2_a == default<t7_b2_a> as Bytes<2> as t7_b2_a;
+  return a;
+}
+
+// Test8: use max uint
+new type t8_u247 = Uint<247>;
+type t8_u248 = Uint<248>;
+struct T8 { a: t8_u247 }
+
+export circuit test8(vara: T8, varb: T8): [t8_u248, t8_u248] {
+  return [(vara.a as t8_u247) + (1 as t8_u247) as t8_u248, (varb.a as t8_u247) + (2 as t8_u247) as Field as t8_u248];
+}
+
+// Test9: arithmetic operations on custom types
+new type t9_u16 = Uint<16>;
+new type t9_b = Boolean;
+type t9_b_a = t9_b;
+
+export circuit test9(vara: t9_u16, varb: t9_u16): Boolean {
+  const a = vara > varb;
+  const b = vara < varb;
+  const c = vara == varb;
+  const d = vara != varb;
+  const e = a || b && c || d;
+
+  const f = default<t9_b>;
+  const g = false as t9_b;
+
+  const h = (f as Boolean && g as Boolean) as t9_b_a;
+  const i = (g as Boolean || f as Boolean) as t9_b_a;
+  const j = (f as Boolean != g as Boolean) as t9_b_a;
+  const k = h ? i : j;
+
+  return e || k as Boolean;
+}
+
+// Test10: ledger with custom types
+new type f10 = Field;
+new type map_f10_f10 = Map<f10, f10>;
+export ledger t10_map_map: Map<f10, map_f10_f10>;
+
+new type vector_10_f10 = Vector<10, f10>;
+export ledger t10_map: Map<f10, vector_10_f10>;
+
+export circuit test10a(vara: f10): Boolean {
+  t10_map_map.insert(disclose(vara), disclose(default<map_f10_f10>));
+  return t10_map_map.member(disclose(vara));
+}
+
+export circuit test10(vara: f10, varb: vector_10_f10): Boolean {
+  t10_map.insert(disclose(vara), disclose(varb));
+  return t10_map.member(disclose(vara));
+}
+
+// Test11: default library
+new type FakeShieldedCoinInfo = ShieldedCoinInfo;
+type FakeQualifiedShieldedCoinInfo = QualifiedShieldedCoinInfo;
+
+type vector_of_sci = Vector<10, FakeShieldedCoinInfo>;
+export ledger t11_set: Set<vector_of_sci>;
+export ledger t11_set_coin: Set<QualifiedShieldedCoinInfo>;
+export ledger t11_set_coin_fake: Set<FakeQualifiedShieldedCoinInfo>;
+
+export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {
+  const a = default<vector_of_sci>;
+  t11_set.insert(a);
+
+  t11_set_coin.insertCoin(disclose(vara), default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  t11_set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);
+}
+
+// Test 12: vector of custom types and structs
+new type t12_a = Vector<10, Field>;
+type t12_aa = Vector<10, Field>;
+
+new type t12_b = Vector<10, t12_a>;
+struct T12 { a: t12_a, b: t12_b };
+new type t12_d = Map<Field, T12>;
+export ledger t12_map: Map<Field, t12_d>;
+
+export circuit test12(vara: Field): [t12_a, t12_b, T12] {
+  t12_map.insert(1, default<t12_d>);
+  const a = t12_map.lookup(disclose(vara)).lookup(disclose(vara));
+  const b = a.a[0];
+
+  const p = [default<Vector<10, Field>> == default<t12_aa>, default<t12_a> as Vector<10, Field> == default<t12_aa>];
+
+  return [default<t12_a>, default<t12_b>, default<T12>];
+}
+
+// Test 13: assign multi const in one line
+new type t13_a = Boolean;
+new type t13_b = Field;
+new type t13_c = Vector<3, t13_b>;
+new type t13_d = Bytes<32>;
+
+struct T13 {a: t13_a, b: t13_b, c: t13_c, d: t13_d };
+
+export circuit test13() : [t13_a, t13_b, t13_c, T13] {
+  const a: t13_a = true as t13_a, b: t13_b = 1 as t13_b, c: t13_c = [1 as t13_b, 2 as t13_b, 3 as t13_b] as t13_c , d: T13 = T13 { a: true as t13_a, b: 2 as t13_b, c: [0 as t13_b, 0 as t13_b, 0 as t13_b] as t13_c, d: pad(32,'') as t13_d };
+  return [a, b, c, d];
+}
+
+// Test 14: enum with values as types names
+new type t14_a = Field;
+new type t14_b = Boolean;
+new type t14_c = Vector<10, t14_b>;
+
+enum T14 { t14_a, t14_b, t14_c };
+enum T14a { t14_a, t14_b, t14_c };
+new type T14b<#N> = T14a;
+
+export circuit test14(vara: T14): [T14, T14] {
+  const a = T14.t14_a;
+  // const b = vara.t14_a;
+  const c = default<T14b<4>>;
+  // const d = c[1].t14_a;
+  // const e = default<T14b<4>>.t14_a;
+
+  return [default<T14>, vara];
+}
+
+// Test 15: slice and spread
+new type t15_empty = [];
+new type t15_b32 = Bytes<32>;
+new type t15_b0 = Bytes<0>;
+type t15_u64_b_b32 = [Uint<64>, Boolean, Bytes<32>];
+type t15_vb<#N> = Vector<N, Boolean>;
+type t15_vb_512 = t15_vb<512>;
+
+export circuit test15(): [] {
+
+  const a = slice<1>(default<t15_b32>, 1);
+  const b = slice<0>(default<t15_empty>, 0);
+  const c = [...default<t15_b32>, ...b, ...default<t15_b0>];
+  const d = [...a, ...b];
+  const e = [...default<t15_vb_512>];
+  const f: t15_u64_b_b32 = [...default<t15_u64_b_b32>];
+
+  return default<t15_empty> as [];
+}
+
+// Test 16: anonymous function
+new type t16_not_a_field = Field;
+new type t16_vector_of_fields = Vector<10, Field>;
+export ledger t16_sum_of_fields: Map<Field, t16_not_a_field>;
+
+export circuit test16(vara: t16_vector_of_fields): t16_not_a_field {
+  for (const a of disclose(vara)) {
+    const sum = (() => ((a as Field) + (a as Field) + (1 as Field)))();
+    t16_sum_of_fields.insert(a, sum as Field as t16_not_a_field);
+  }
+
+  return t16_sum_of_fields.lookup(0);
+}
+
+// Test 17: witness with custom param and return type
+new type t17_boolean = Boolean;
+type t17_field = Field;
+witness t17_witness(vara: t17_boolean): t17_field;
+
+export circuit test17(vara: t17_boolean): t17_field {
+  return disclose(t17_witness(disclose(vara)));
+}
+
+// Test 18: map and fold
+export new type t18_b<#N> = Bytes<N>;
+export new type t18_b_16 = t18_b<16>;
+
+export new type t18_u32 = Uint<32>;
+export new type t18_tuple = [t18_u32, t18_u32, t18_u32, t18_u32];
+
+type t18_v16_u8 = Vector<16, Uint<8>>;
+type t18_32 = t18_b<32>;
+
+export circuit test18(vara: t18_b_16) : t18_v16_u8 {
+  for(const a of default<t18_32>) {
+    const i = 1 + a;
+  }
+  
+  return map((a) => a - a, vara);
+}
+
+export circuit test18a(vara: t18_tuple) : t18_u32 {
+  return fold((a: t18_u32, x: t18_u32) => (a as t18_u32) + (x as t18_u32), 0 as t18_u32, vara);
+}
+
+// Test 19: pad some custom bytes
+type t19_b128 = Bytes<128>;
+
+export circuit test19(): t19_b128 {
+  return pad(128, "t19_b128");
+}
+
+// Test 20: module with exported types
+module M20 {
+  export new type t20_boolean = Boolean;
+  export type t20_field = Field;
+
+  export ledger vara: t20_field;
+
+  export circuit test(): t20_boolean {
+    return default<t20_boolean>;
+  }
+}
+
+import M20 prefix $;
+export { $test, $t20_boolean, $vara, $t20_field };
+
+export circuit test20(): $t20_boolean {
+  const a = $vara;
+  const b = a + a;
+  const c: $t20_field = a + a;
+
+  return $test();
+}
+
+// Test 21: Counter ADT as custom type
+new type t21_my_counter = Counter;
+export ledger t21_counter: t21_my_counter;
+
+export circuit test21(): Uint<64> {
+  t21_counter.increment(5 as Uint<16>);
+  return t21_counter.read();
+}
+
+// Test 22: Set ADT as custom type
+new type t22_element = Field;
+new type t22_my_set = Set<t22_element>;
+export ledger t22_set: t22_my_set;
+
+export circuit test22(v: t22_element): Boolean {
+  t22_set.insert(disclose(v));
+  return t22_set.member(disclose(v));
+}
+
+// Test 23: List ADT as custom type
+new type t23_item = Bytes<16>;
+new type t23_my_list = List<t23_item>;
+export ledger t23_list: t23_my_list;
+
+export circuit test23(v: t23_item): Maybe<t23_item> {
+  t23_list.pushFront(disclose(v));
+  return t23_list.head();
+}
+
+// Test 24: Map ADT as custom type
+new type t24_key = Field;
+new type t24_value = Bytes<32>;
+new type t24_my_map = Map<t24_key, t24_value>;
+export ledger t24_map: t24_my_map;
+
+export circuit test24(k: t24_key, v: t24_value): Boolean {
+  t24_map.insert(disclose(k), disclose(v));
+  return t24_map.member(disclose(k));
+}
+
+// Test 25: MerkleTree ADT as custom type
+new type t25_leaf = Field;
+new type t25_my_tree = MerkleTree<8, t25_leaf>;
+export ledger t25_tree: t25_my_tree;
+
+export circuit test25(v: t25_leaf): Boolean {
+  t25_tree.insert(disclose(v));
+  return t25_tree.isFull();
+}
+
+// Test 26: Kernel ADT as custom type
+new type t26_my_kernel = Kernel;
+export ledger t26_kernel: t26_my_kernel;
+
+export circuit test26(amount: Uint<64>): [] {
+  t26_kernel.mintUnshielded(pad(32, "token"), disclose(amount));
+}
+
+// Test 27: HistoricMerkleTree ADT as custom type
+new type t27_leaf = Field;
+new type t27_my_htree = HistoricMerkleTree<8, t27_leaf>;
+export ledger t27_tree: t27_my_htree;
+
+export circuit test27(v: t27_leaf): Boolean {
+  t27_tree.insert(disclose(v));
+  return t27_tree.isFull();
+}
+
+// Test 28: Custom type with Either
+new type t28_left = Uint<32>;
+new type t28_right = Bytes<8>;
+new type t28_either = Either<t28_left, t28_right>;
+
+export circuit test28(flag: Boolean): t28_either {
+  return flag ? left<t28_left, t28_right>(42 as t28_left) as t28_either : right<t28_left, t28_right>("hello123" as t28_right) as t28_either;
+}
+
+// Test 29: Custom type with Maybe
+new type t29_value = Field;
+new type t29_maybe = Maybe<t29_value>;
+
+export circuit test29(v: t29_value): t29_maybe {
+  return some<t29_value>(v) as t29_maybe;
+}
+
+// Test 30: Custom types in for loop
+new type t30_item = Uint<8>;
+new type t30_vec = Vector<5, t30_item>;
+export ledger t30_result: Field;
+
+export circuit test30(v: t30_vec): t30_item {
+  for (const item of disclose(v)) {
+    t30_result = t30_result + (item as Field);
+  }
+  return t30_result as t30_item;
+}
+
+// Test 31: Custom types with if/else return
+new type t31_result = Field;
+
+export circuit test31(flag: Boolean): t31_result {
+  if (flag) {
+    return 1 as t31_result;
+  }
+  return 0 as t31_result;
+}
+
+// Test 32: Custom tuple type
+new type t32_point = [Field, Field];
+new type t32_rect = [t32_point, t32_point];
+
+export circuit test32(): t32_rect {
+  const p1: t32_point = [0 as Field, 0 as Field] as t32_point;
+  const p2: t32_point = [10 as Field, 10 as Field] as t32_point;
+  return [p1, p2] as t32_rect;
+}
+
+// Test 33: Custom types with ternary
+new type t33_a = Uint<16>;
+new type t33_b = Uint<32>;
+
+export circuit test33(flag: Boolean, a: t33_a, b: t33_a): t33_b {
+  return (flag ? a : b) as t33_b;
+}
+
+// Test 34: Deeply chained new types (5+ levels)
+new type t34_a = Field;
+new type t34_b = t34_a;
+new type t34_c = t34_b;
+new type t34_d = t34_c;
+new type t34_e = t34_d;
+
+export circuit test34(v: t34_e): t34_a {
+  return v as t34_d as t34_c as t34_b as t34_a;
+}
+
+// Test 35: Generic custom type with multiple params
+type t35_pair<#A, #B> = [Vector<A, Field>, Bytes<B>];
+
+export circuit test35(): t35_pair<4, 8> {
+  return [default<Vector<4, Field>>, default<Bytes<8>>];
+}
+
+// Test 36: Nested ADT custom types (Map of custom List)
+new type t36_item = Field;
+new type t36_my_list = List<t36_item>;
+new type t36_my_map = Map<t36_item, t36_my_list>;
+export ledger t36_map: t36_my_map;
+
+export circuit test36(k: t36_item): [] {
+  t36_map.insert(disclose(k), default<t36_my_list>);
+}
+
+// Test 37: Custom type for ZswapCoinPublicKey
+new type t37_pubkey = ZswapCoinPublicKey;
+new type t37_address = ContractAddress;
+new type t37_either = Either<t37_pubkey, t37_address>;
+
+export circuit test37(): t37_either {
+  return left<t37_pubkey, t37_address>(ownPublicKey() as t37_pubkey) as t37_either;
+}
+
+// Test 38: Custom types with assert
+new type t38_value = Uint<64>;
+
+export circuit test38(a: t38_value, b: t38_value): t38_value {
+  assert((a as Uint<64>) >= (b as Uint<64>), "a must be >= b");
+  return (a as Uint<64>) - (b as Uint<64>) as t38_value;
+}
+
+// Test 39: Custom type aliasing standard library coin types
+new type t39_coin_info = ShieldedCoinInfo;
+new type t39_qualified = QualifiedShieldedCoinInfo;
+
+export circuit test39(): [t39_coin_info, t39_qualified] {
+  return [default<t39_coin_info>, default<t39_qualified>];
+}

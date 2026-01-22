@@ -54,19 +54,19 @@
 
   ; NB: check this list regularly.  ideally, we would generate it automatically.
   (define keywordBoolean '(
-    true
-    false))
+    false
+    true))
   (define keywordImport '(
     export
-    import
     from
+    import
     module))
   (define keywordControl '(
     as
     assert
     circuit
-    constructor
     const
+    constructor
     contract
     default
     disclose
@@ -78,6 +78,7 @@
     include
     ledger
     map
+    new
     of
     pad
     pragma
@@ -87,17 +88,50 @@
     sealed
     slice
     struct
+    type
     witness))
   (define keywordDataTypes '(
-    Bytes
     Boolean
+    Bytes
     Field
     Opaque
     Uint
     Vector))
   (define-syntax keywordReservedForFutureUse (identifier-syntax '(
+    await
+    break
+    case
+    catch
+    class
+    continue
+    debugger
+    delete
+    do
+    extends
+    finally
+    function
+    implements
+    in
+    instanceof
+    interface
+    let
+    null
+    package
+    private
+    protected
+    public
+    static
+    super
+    switch
     this ; use as an identifier can cause problems with generated Javascript code, so we reserve
-    )))
+    throw
+    try
+    typeof
+    var
+    void
+    while
+    with
+    yield)))
   (define (parser-keywords)
     `((keywordBoolean ,keywordBoolean)
       (keywordImport ,keywordImport)
@@ -107,7 +141,12 @@
 
   (define keyword?
     (let ([ht (make-hashtable symbol-hash eq?)])
-      (for-each (lambda (x) (hashtable-set! ht x #t)) all-keywords)
+      (for-each
+        (lambda (x)
+          (let ([a (hashtable-cell ht x #f)])
+            (assertf (not (cdr a)) "duplicate keyword ~s" x)
+            (set-cdr! a #t)))
+        all-keywords)
       (lambda (x) (hashtable-contains? ht x))))
 
   (define (unreserved? x)
@@ -217,7 +256,7 @@
       (end-of-file (eof)
         (DESCRIPTION
           ("end of file")))
-      (identifier (id module-name function-name struct-name enum-name contract-name tvar-name)
+      (identifier (id module-name function-name struct-name enum-name contract-name tvar-name type-name)
         (DESCRIPTION
           ("identifiers have the same syntax as Typescript identifiers")))
       (field-literal (nat)
@@ -247,7 +286,8 @@
       [program-element-witness-declaration :: wdecl => values]
       [program-element-contract-declaration :: ecdecl => values]
       [program-element-struct-declaration :: struct => values]
-      [program-element-enum-declaration :: enumdef => values])
+      [program-element-enum-declaration :: enumdef => values]
+      [program-element-type-declaration :: tdefn => values])
     (Pragma (pragma)
       [pragma :: src (KEYWORD pragma) id version-expr #\; =>
        (lambda (src kwd id ve semicolon)
@@ -434,6 +474,12 @@
          (with-output-language (Lparser Enum-Definition)
            (let-values ([(elt-name+ sep*) (split-sep elt-name-sep+)])
              `(enum ,src ,kwd-export? ,kwd ,enum-name ,lbrace (,(car elt-name+) ,(cdr elt-name+) ...) (,sep* ...) ,rbrace ,semicolon?))))])
+    (Type-definition (tdefn)
+      ; FIXME: consider eliminating struct syntax and supporting { x: type, ... } as a type
+      [type-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD new) #f) (KEYWORD type) type-name (OPT gparams #f) #\= type #\; =>
+       (lambda (src kwd-export? kwd-new? kwd type-name generic-param-list? op type semicolon)
+         (with-output-language (Lparser Type-Definition)
+           `(typedef ,src ,kwd-export? ,kwd-new? ,kwd ,type-name ,generic-param-list? ,op ,type ,semicolon)))])
     (Typed-identifier (typed-identifier)
       [typed-identifier :: src id #\: type =>
        (lambda (src id colon type)
@@ -803,9 +849,15 @@
             '()
             failure+))
         (define (format-input-token token)
-          (if (eq? (token-type token) 'eof)
-              "end of file"
-              (format "~s" (token-string token))))
+          (cond
+            [(eq? (token-type token) 'eof) "end of file"]
+            [(and (eq? (token-type token) 'id)
+                  (memq (token-value token) keywordReservedForFutureUse))
+             (format "keyword ~s (which is reserved for future use)" (token-string token))]
+            [(and (eq? (token-type token) 'id)
+                  (memq (token-value token) all-keywords))
+             (format "keyword ~s" (token-string token))]
+            [else (format "~s" (token-string token))]))
         (define (format-failure failure)
           (define (format-nonterminal-name nt)
             (format "~a ~a"

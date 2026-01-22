@@ -110,7 +110,7 @@ export function copyFile(testContract: string, contractsDir: string): void {
         copySync(testContract, destPath);
         logger.info(`${fileName} was copied to ${contractsDir}`);
     } catch (copyErr) {
-        logger.error(`Error copying ${fileName}:`, copyErr);
+        logger.error(copyErr, `Error copying ${fileName}:`);
     }
 }
 

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v2';
 import { CompactError } from './error.js';
 
 /**
@@ -43,7 +43,7 @@ export interface CompactType<A> {
  * A point in the embedded elliptic curve. TypeScript representation of the
  * Compact type of the same name
  */
-export interface CurvePoint {
+export interface NativePoint {
   readonly x: bigint;
   readonly y: bigint;
 }
@@ -93,20 +93,20 @@ export interface Recipient {
 }
 
 /**
- * Runtime type of {@link CurvePoint}
+ * Runtime type of {@link NativePoint}
  */
-export const CompactTypeCurvePoint: CompactType<CurvePoint> = {
+export const CompactTypeNativePoint: CompactType<NativePoint> = {
   alignment(): ocrt.Alignment {
     return [
       { tag: 'atom', value: { tag: 'field' } },
       { tag: 'atom', value: { tag: 'field' } },
     ];
   },
-  fromValue(value: ocrt.Value): CurvePoint {
+  fromValue(value: ocrt.Value): NativePoint {
     const x = value.shift();
     const y = value.shift();
     if (x == undefined || y == undefined) {
-      throw new CompactError('expected CurvePoint');
+      throw new CompactError('expected NativePoint');
     } else {
       return {
         x: ocrt.valueToBigInt([x]),
@@ -114,7 +114,7 @@ export const CompactTypeCurvePoint: CompactType<CurvePoint> = {
       };
     }
   },
-  toValue(value: CurvePoint): ocrt.Value {
+  toValue(value: NativePoint): ocrt.Value {
     return ocrt.bigIntToValue(value.x).concat(ocrt.bigIntToValue(value.y));
   },
 };

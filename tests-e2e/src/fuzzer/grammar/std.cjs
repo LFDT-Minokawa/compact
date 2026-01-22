@@ -427,7 +427,7 @@ const std_grammar = {
         ['Vector<', '20', ', ', 'statement_std_types', '>'],
         ['Maybe<', 'statement_std_types', '>'],
         ['Either<', 'statement_std_types', ',', 'statement_std_types', '>'],
-        ['CurvePoint'],
+        ['NativePoint'],
         ['MerkleTreeDigest'],
         ['MerkleTreePathEntry'],
         ['MerkleTreePath<', '20', ',', 'statement_std_types', '>'],

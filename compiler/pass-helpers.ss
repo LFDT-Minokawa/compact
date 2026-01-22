@@ -17,14 +17,13 @@
 
 (library (pass-helpers)
   (export target-ports get-target-port target-directory source-directory source-file-name
+          find-source-pathname
           contract-ht
           define-passes define-checker checkers
-          passrec-name passrec-pass passrec-unparse passrec-pretty-formats
-          no-communications-commitment)
+          passrec-name passrec-pass passrec-unparse passrec-pretty-formats)
   (import (except (chezscheme) errorf)
-          (utils))
-
-  (define no-communications-commitment (make-parameter #f))
+          (utils)
+          (config-params))
 
   (define target-ports (make-parameter '()))
   (define (get-target-port x)
@@ -36,6 +35,19 @@
   ; source-file-name is used for getting the contract name from the source file
   ; for the print-TS pass.
   (define source-file-name (make-parameter #f))
+
+  (define (find-source-pathname src pathname err)
+    (let ([pathname (format "~a.compact" pathname)])
+      (or (and (file-exists? pathname) pathname)
+          (and (not (path-absolute? pathname))
+               (ormap
+                 (lambda (dir)
+                   (let ([pathname (format "~a/~a" dir pathname)])
+                     (and (file-exists? pathname) pathname)))
+                 (if (relative-path)
+                     (cons (relative-path) (compact-path))
+                     (compact-path))))
+          (err pathname))))
 
   (define contract-ht (make-parameter #f))
 

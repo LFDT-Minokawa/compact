@@ -27,6 +27,7 @@
     native-type-bytes
     native-type-vector
     native-type-struct
+    native-type-alias
     native-type-void
     native-type-param
     native-entry?
@@ -54,6 +55,7 @@
     (native-type-bytes native-nat)
     (native-type-vector native-nat native-type)
     (native-type-struct native-type*)
+    (native-type-alias name)
     (native-type-void)
     (native-type-param name))
 
@@ -72,7 +74,7 @@
             [nat (field? (datum nat)) #'(native-nat-value nat)]
             [other (syntax-error #'other "invalid nat")]))
         (define (convert-native-type type)
-          (syntax-case type (Boolean Field Uint Bytes Vector Struct Void)
+          (syntax-case type (Boolean Field Uint Bytes Vector Struct Void Alias)
             [id
              (memq (datum id) (map syntax->datum type-param*))
              #'(native-type-param 'id)]
@@ -86,6 +88,7 @@
              #`(native-type-vector #,(convert-native-nat #'nat) #,(convert-native-type #'type))]
             [(Struct type ...)
              #`(native-type-struct (list #,@(map convert-native-type #'(type ...))))]
+            [(Alias name) #`(native-type-alias 'name)]
             [Void #`(native-type-void)]
             [other (syntax-error #'other "invalid native type")]))
         (define (parse-disclosure disclosure)

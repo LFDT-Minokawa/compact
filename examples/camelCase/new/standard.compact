@@ -28,9 +28,9 @@ constructor() {
   const test_19 = persistentCommit<Field>(1, default<Bytes<32>>);
   const test_20 = degradeToTransient(default<Bytes<32>>);
   const test_21 = upgradeFromTransient(1);
-  const test_22 = default<CurvePoint>;
-  const test_23 = ecAdd(default<CurvePoint>, default<CurvePoint>);
-  const test_24 = ecMul(default<CurvePoint>, 5);
+  const test_22 = default<NativePoint>;
+  const test_23 = ecAdd(default<NativePoint>, default<NativePoint>);
+  const test_24 = ecMul(default<NativePoint>, 5);
   const test_25 = ecMulGenerator(5);
   const test_26 = hashToCurve<Field>(1);
   const test_27 = default<MerkleTreeDigest>;
@@ -47,35 +47,42 @@ constructor() {
   const test_38 = ownPublicKey();
   const test_39 = createZswapInput(default<QualifiedShieldedCoinInfo>);
   const test_40 = createZswapOutput(
-                    default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+                    default<ShieldedCoinInfo>,
+                    default<Either<ZswapCoinPublicKey, ContractAddress>>
+                    );
   const test_41 = tokenType(default<Bytes<32>>, default<ContractAddress>);
   const test_42 = mintShieldedToken(
                     default<Bytes<32>>,
                     default<Uint<64>>,
                     default<Bytes<32>>,
-                    default<Either<ZswapCoinPublicKey, ContractAddress>>);
+                    default<Either<ZswapCoinPublicKey, ContractAddress>>
+                    );
   const test_43 = evolveNonce(default<Uint<128>>, default<Bytes<32>>);
   const test_44 = shieldedBurnAddress();
   const test_45 = receiveShielded(default<ShieldedCoinInfo>);
   const test_46 = sendShielded(
                     default<QualifiedShieldedCoinInfo>,
                     default<Either<ZswapCoinPublicKey, ContractAddress>>,
-                    default<Uint<128>>);
+                    default<Uint<128>>
+                    );
   const test_47 = sendImmediateShielded(
                     default<ShieldedCoinInfo>,
                     default<Either<ZswapCoinPublicKey, ContractAddress>>,
-                    default<Uint<128>>);
+                    default<Uint<128>>
+                    );
   const test_48 = mergeCoin(default<QualifiedShieldedCoinInfo>, default<QualifiedShieldedCoinInfo>);
   const test_49 = mergeCoinImmediate(default<QualifiedShieldedCoinInfo>, default<ShieldedCoinInfo>);
   const test_50 = default<UserAddress>;
   const test_51 = mintUnshieldedToken(
                     default<Bytes<32>>,
                     default<Uint<64>>,
-                    default<Either<ContractAddress, UserAddress>>);
+                    default<Either<ContractAddress, UserAddress>>
+                    );
   const test_52 = sendUnshielded(
                     default<Bytes<32>>,
                     default<Uint<128>>,
-                    default<Either<ContractAddress, UserAddress>>);
+                    default<Either<ContractAddress, UserAddress>>
+                    );
   const test_53 = receiveUnshielded(default<Bytes<32>>, default<Uint<128>>);
   const test_54 = unshieldedBalance(default<Bytes<32>>);
   const test_55 = unshieldedBalanceLt(default<Bytes<32>>, default<Uint<128>>);

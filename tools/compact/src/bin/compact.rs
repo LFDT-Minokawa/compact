@@ -20,9 +20,10 @@ use axoupdater::AxoUpdater;
 use clap::Parser;
 use compact::{
     COMPACT_NAME, COMPACT_VERSION, CleanCommand, Command, CommandLineArguments, Compiler,
-    FormatCommand, ListCommand, SSelf, UpdateCommand,
+    FixupCommand, FormatCommand, ListCommand, SSelf, UpdateCommand,
     fetch::{self, MidnightArtifacts},
     file,
+    fixup::{self, FixupStatus, fixup_file},
     formatter::{self, FormatStatus, format_file},
     http, progress,
     utils::{self, set_current_compiler},
@@ -35,13 +36,14 @@ async fn main() -> Result<()> {
     let cli = CommandLineArguments::parse();
 
     match &cli.command {
-        Command::Check => check(&cli)
+        Command::Check(_) => check(&cli)
             .await
             .context("Failed to check for new versions.")?,
         Command::Update(update_command) => update(&cli, update_command)
             .await
             .context("Failed to update")?,
         Command::Format(format_command) => format(&cli, format_command).await?,
+        Command::Fixup(fixup_command) => fixup(&cli, fixup_command).await?,
         Command::SSelf(sself) => match sself {
             SSelf::Check => self_check(&cli).await.context("Failed to self update")?,
             SSelf::Update => self_update(&cli).await.context("Failed to self update")?,
@@ -62,6 +64,11 @@ async fn main() -> Result<()> {
 
 async fn self_check(cfg: &CommandLineArguments) -> Result<()> {
     let mut updater = AxoUpdater::new_for(COMPACT_NAME);
+
+    // Set GitHub token if available to avoid rate limiting
+    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+        updater.set_github_token(&token);
+    }
 
     updater
         .load_receipt()
@@ -95,6 +102,11 @@ async fn self_check(cfg: &CommandLineArguments) -> Result<()> {
 
 async fn self_update(cfg: &CommandLineArguments) -> Result<()> {
     let mut updater = AxoUpdater::new_for(COMPACT_NAME);
+
+    // Set GitHub token if available to avoid rate limiting
+    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+        updater.set_github_token(&token);
+    }
 
     updater
         .load_receipt()
@@ -278,7 +290,31 @@ async fn format(cfg: &CommandLineArguments, command: &FormatCommand) -> Result<(
     let bin = cfg.directory.bin_dir().join("format-compact");
 
     if !bin.exists() {
-        bail!("formatter not available")
+        bail!(
+            "formatter not available - please install a compiler version that includes format-compact"
+        )
+    }
+
+    if command.version || command.language_version {
+        let flag = if command.version {
+            "--version"
+        } else {
+            "--language-version"
+        };
+
+        let output = tokio::process::Command::new(&bin)
+            .arg(flag)
+            .output()
+            .await
+            .context("Failed to invoke format-compact")?;
+
+        if output.status.success() {
+            print!("{}", String::from_utf8_lossy(&output.stdout));
+        } else {
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+            bail!("format-compact {} failed", flag);
+        }
+        return Ok(());
     }
 
     let mut join_set = JoinSet::new();
@@ -352,6 +388,114 @@ async fn format(cfg: &CommandLineArguments, command: &FormatCommand) -> Result<(
 
     if something_failed {
         bail!("formatting failed")
+    } else {
+        Ok(())
+    }
+}
+
+async fn fixup(cfg: &CommandLineArguments, command: &FixupCommand) -> Result<()> {
+    let bin = cfg.directory.bin_dir().join("fixup-compact");
+
+    if !bin.exists() {
+        bail!(
+            "fixup tool not available - please install a compiler version that includes fixup-compact"
+        )
+    }
+
+    if command.version || command.language_version {
+        let flag = if command.version {
+            "--version"
+        } else {
+            "--language-version"
+        };
+
+        let output = tokio::process::Command::new(&bin)
+            .arg(flag)
+            .output()
+            .await
+            .context("Failed to invoke fixup-compact")?;
+
+        if output.status.success() {
+            print!("{}", String::from_utf8_lossy(&output.stdout));
+        } else {
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+            bail!("fixup-compact {} failed", flag);
+        }
+        return Ok(());
+    }
+
+    let mut join_set = JoinSet::new();
+
+    let bin = Arc::new(bin);
+    let check_mode = command.check;
+    let update_uint_ranges = command.update_uint_ranges;
+    let vscode = command.vscode;
+
+    for file_path in &command.files {
+        let path = PathBuf::from_str(file_path).unwrap();
+
+        if path.is_dir() {
+            for path in fixup::compact_files_excluding_gitignore(&path) {
+                let bin = Arc::clone(&bin);
+                join_set.spawn(async move {
+                    fixup_file(&bin, check_mode, path, update_uint_ranges, vscode).await
+                });
+            }
+        } else {
+            let bin = Arc::clone(&bin);
+            join_set.spawn(async move {
+                fixup_file(&bin, check_mode, path, update_uint_ranges, vscode).await
+            });
+        }
+    }
+
+    let mut something_failed = false;
+
+    while let Some(result) = join_set.join_next().await {
+        let Ok(file_result) = result else {
+            something_failed = true;
+            continue;
+        };
+
+        let Ok((path, message, status)) = file_result else {
+            something_failed = true;
+            continue;
+        };
+
+        match status {
+            FixupStatus::Error => {
+                eprintln!(
+                    "{}: {}",
+                    cfg.style.version_raw(path.display()),
+                    cfg.style.error(message)
+                );
+                something_failed = true;
+            }
+            FixupStatus::Success if command.verbose => {
+                println!(
+                    "{}: {}",
+                    cfg.style.version_raw(path.display()),
+                    cfg.style.success(message)
+                );
+            }
+            FixupStatus::Unchanged if command.verbose => {
+                println!(
+                    "{}: {}",
+                    cfg.style.version_raw(path.display()),
+                    cfg.style.warn(message)
+                );
+            }
+            FixupStatus::Diff(diff) => {
+                eprintln!("{}:", cfg.style.version_raw(path.display()));
+                eprintln!("{diff}");
+                something_failed = true;
+            }
+            _ => (),
+        }
+    }
+
+    if something_failed {
+        bail!("fixup failed")
     } else {
         Ok(())
     }

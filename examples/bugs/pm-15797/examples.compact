@@ -16,9 +16,9 @@
 // Test1: check constructor
 export ledger sum: Field;
 
-constructor(var: Vector<10, Uint<0..10>>) {
+constructor(var0: Vector<10, Uint<0..10>>) {
 
-  for(const a of disclose(var)) {
+  for(const a of disclose(var0)) {
     sum = sum + a;
   }
 
@@ -75,7 +75,7 @@ export circuit test5(var1: Uint<0..17>): [] {
     const a: Uint<0..15689910391039020> = 0;
   }
 
-  for (const i of 3..3) return i;
+  // for (const i of 3..3) return i;
 }
 
 // Test7: casting with generics

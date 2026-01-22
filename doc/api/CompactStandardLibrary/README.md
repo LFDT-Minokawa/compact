@@ -8,7 +8,7 @@ Key parts of the API are:
 - Common data types:
   - [`Maybe`](exports.md#maybe)
   - [`Either`](exports.md#either)
-  - [`CurvePoint`](exports.md#curvepoint)
+  - [`NativePoint`](exports.md#nativepoint)
   - [`MerkleTreeDigest`](exports.md#merkletreedigest)
   - [`MerkleTreePathEntry`](exports.md#merkletreepathentry)
   - [`MerkleTreePath`](exports.md#merkletreepath)

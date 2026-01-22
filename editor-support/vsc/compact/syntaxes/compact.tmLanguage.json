@@ -31,15 +31,19 @@
 			"patterns": [
 				{
 					"name": "keyword.control.compact",
-					  "match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|enum|fold|for|if|include|ledger|map|of|pad|pragma|prefix|return|struct|witness|pure|sealed|slice)\\b"
-			    },
+					"match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|enum|fold|for|if|include|ledger|map|new|of|pad|pragma|prefix|return|struct|type|witness|pure|sealed|slice)\\b"
+				},
 				{
 					"name": "keyword.control.import.compact",
 					"match": "\\b(import|from|module|export)\\b"
 				},
 				{
-					"match": "\\b(true|false)\\b",
-					"name": "constant.language.boolean.compact"
+					"name": "constant.language.boolean.compact",
+					"match": "\\b(true|false)\\b"
+				},
+				{
+					"name": "keyword.reserved.compact",
+					"match": "\\b(this|await|break|case|catch|class|continue|debugger|delete|do|extends|finally|function|in|instanceof|null|super|switch|throw|try|typeof|var|void|while|with|yield|implements|interface|package|private|protected|public|let|static)\\b"
 				}
 			]
 		},

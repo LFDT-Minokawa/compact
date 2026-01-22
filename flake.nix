@@ -25,24 +25,24 @@
   inputs = {
     zkir = {
       # dependency for compact-runtime release
-      # this is using a commit hash to pull in the correct zkir version from ledger-6.0.0-alpha.3 release
-      # if for releasing the runtime, running nix flake update causes errors for autherization of cargo, use
+      # this is using a tag to pull in the correct zkir version from ledger-7.0.0-alpha.1 release
+      # if for releasing the runtime, running nix flake update causes errors for authorization of cargo, use
       # the commit hash instead of the tag for this.
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-6.1.0-alpha.5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0-alpha.1";
       inputs.zkir.follows = "zkir";
     };
-    onchain-runtime-v1 = {
+    onchain-runtime-v2 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/ledger-6.1.0-alpha.5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0-alpha.1";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-6.1.0-alpha.5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0-alpha.1";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -65,7 +65,7 @@
   outputs = {
     self,
     zkir,
-    onchain-runtime-v1,
+    onchain-runtime-v2,
     zkir-wasm,
     nixpkgs,
     utils,
@@ -171,11 +171,11 @@
             };
 
             nixDependenciesMap = {
-              "@midnight-ntwrk/onchain-runtime-v1" = let
-                pkg = onchain-runtime-v1.packages.${system}.onchain-runtime-wasm;
+              "@midnight-ntwrk/onchain-runtime-v2" = let
+                pkg = onchain-runtime-v2.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v1-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v1";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v2-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v2";
               };
             };
           };
@@ -209,7 +209,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.27.0"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.28.0"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./test-center
               ./compiler
@@ -322,7 +322,11 @@
                 cp "obj/compiler/$exe" $out/bin
                 chmod +x "$out/bin/$exe"
               done
-            '';
+            '' + (if isDarwin then ''
+              for exe in compactc format-compact fixup-compact; do
+                install_name_tool -change ${pkgs.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/bin/$exe"
+              done
+            '' else "");
           };
 
           packages.compactc-binaryWrapperScript-nixos = pkgs.writeShellScriptBin "run-compactc" ''
@@ -357,7 +361,9 @@
                 cp "bin/$exe" $out/bin
                 chmod +x "$out/bin/$exe"
               done
-            '';
+            '' + (if isDarwin then ''
+              install_name_tool -change ${inputs.zkir.inputs.nixpkgs.legacyPackages.${system}.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/lib/zkir"
+            '' else "");
 
             dontFixup = true;
           };

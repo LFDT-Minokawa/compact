@@ -195,7 +195,7 @@ const common = {
         ['Vector<', 'random_number', ', ', 'valid_std_types', '>'],
         ['Maybe<', 'valid_std_types', '>'],
         ['Either<', 'valid_std_types', ',', 'valid_std_types', '>'],
-        ['CurvePoint'],
+        ['NativePoint'],
         ['MerkleTreeDigest'],
         ['MerkleTreePathEntry'],
         ['MerkleTreePath<', 'random_number', ',', 'valid_std_types', '>'],

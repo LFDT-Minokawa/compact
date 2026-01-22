@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v2';
 import * as fs from 'node:fs';
 import {
   CircuitContext,
@@ -105,15 +105,15 @@ export const startContract = <
       // Execute the original circuit synchronously.
       const circuitResult = (circuit as any)(context, ...cArgs);
 
-      // Schedule async proof validation and register it globally.
-      const validation = (async () => {
-        if (!fs.existsSync(module.contractDir)) {
-          throw new Error(`Expected to find contract directory ${module.contractDir} but it does not exist.`);
-        }
-        await checkProofData(module.contractDir, circuitId, circuitResult.proofData);
-      })();
+      // For circuits subject to proving, schedule async proof validation and register it globally.
+      const zkirFile = `${module.contractDir}/zkir/${circuitId}.zkir`;
+      if (fs.existsSync(zkirFile)) {
+        const validation = (async () => {
+          await checkProofData(module.contractDir, circuitId, circuitResult.proofData);
+        })();
 
-      registerProofCheck(validation);
+        registerProofCheck(validation);
+      }
 
       return circuitResult;
     };

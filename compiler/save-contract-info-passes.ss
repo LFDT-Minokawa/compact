@@ -166,6 +166,13 @@
          (cons
            "elements"
            (list->vector (map symbol->string (cons elt-name elt-name*)))))]
+      [(talias ,src ,nominal? ,type-name ,type)
+       (if nominal?
+           (list
+             (cons "type-name" "Alias")
+             (cons "name" (symbol->string type-name))
+             (cons "type" (Type type)))
+           (Type type))]
       [else (assert cannot-happen)]))
 
   (define-passes save-contract-info-passes

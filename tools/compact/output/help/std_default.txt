@@ -6,6 +6,7 @@ Commands:
   check   Check for updates with the remote server
   update  Update to the latest or a specific version of the Compact toolchain
   format  Format compact files
+  fixup   Apply fixup transformations to compact files
   list    List available compact versions
   clean   Remove all compact versions
   self    Commands for managing the compact tool itself

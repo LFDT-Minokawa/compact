@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v2';
 import { MAX_FIELD } from './constants.js';
-import { CompactType, CompactTypeCurvePoint, CurvePoint } from './compact-types.js';
+import { CompactType, CompactTypeNativePoint, NativePoint } from './compact-types.js';
 import { CompactError } from './error.js';
 
 const FIELD_MODULUS: bigint = MAX_FIELD + 1n;
@@ -175,8 +175,8 @@ export function upgradeFromTransient(x: bigint): Uint8Array {
  * Inputs of different types may have the same output, if they have the same
  * field-aligned binary representation.
  */
-export function hashToCurve<A>(rtType: CompactType<A>, x: A): CurvePoint {
-  return CompactTypeCurvePoint.fromValue(ocrt.hashToCurve(rtType.alignment(), rtType.toValue(x)));
+export function hashToCurve<A>(rtType: CompactType<A>, x: A): NativePoint {
+  return CompactTypeNativePoint.fromValue(ocrt.hashToCurve(rtType.alignment(), rtType.toValue(x)));
 }
 
 /**
@@ -184,8 +184,8 @@ export function hashToCurve<A>(rtType: CompactType<A>, x: A): CurvePoint {
  *
  * This function add two elliptic curve points (in multiplicative notation)
  */
-export function ecAdd(a: CurvePoint, b: CurvePoint): CurvePoint {
-  return CompactTypeCurvePoint.fromValue(ocrt.ecAdd(CompactTypeCurvePoint.toValue(a), CompactTypeCurvePoint.toValue(b)));
+export function ecAdd(a: NativePoint, b: NativePoint): NativePoint {
+  return CompactTypeNativePoint.fromValue(ocrt.ecAdd(CompactTypeNativePoint.toValue(a), CompactTypeNativePoint.toValue(b)));
 }
 
 /**
@@ -194,8 +194,8 @@ export function ecAdd(a: CurvePoint, b: CurvePoint): CurvePoint {
  * This function multiplies an elliptic curve point by a scalar (in
  * multiplicative notation)
  */
-export function ecMul(a: CurvePoint, b: bigint): CurvePoint {
-  return CompactTypeCurvePoint.fromValue(ocrt.ecMul(CompactTypeCurvePoint.toValue(a), ocrt.bigIntToValue(b)));
+export function ecMul(a: NativePoint, b: bigint): NativePoint {
+  return CompactTypeNativePoint.fromValue(ocrt.ecMul(CompactTypeNativePoint.toValue(a), ocrt.bigIntToValue(b)));
 }
 
 /**
@@ -204,8 +204,8 @@ export function ecMul(a: CurvePoint, b: bigint): CurvePoint {
  * This function multiplies the primary group generator of the embedded curve
  * by a scalar (in multiplicative notation)
  */
-export function ecMulGenerator(b: bigint): CurvePoint {
-  return CompactTypeCurvePoint.fromValue(ocrt.ecMulGenerator(ocrt.bigIntToValue(b)));
+export function ecMulGenerator(b: bigint): NativePoint {
+  return CompactTypeNativePoint.fromValue(ocrt.ecMulGenerator(ocrt.bigIntToValue(b)));
 }
 
 /**

@@ -89,7 +89,7 @@ fn test_sc10_update_two_versions_compile_contract_with_previous() {
         Some("./output/compile/std_compiling.txt"),
         Some("./output/compile/err_compiling.txt"),
         &[
-            ("[COMPACTC_VERSION]", PREVIOUS_COMPACTC_VERSION),
+            ("[COMPACTC_VERSION]", VERSION_WITH_NO_FORMAT),
             ("[CONTRACT_DIR]", temp_output_path.to_str().unwrap()),
         ],
         None,

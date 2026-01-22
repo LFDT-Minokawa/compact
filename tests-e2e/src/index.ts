@@ -14,6 +14,7 @@
 // limitations under the License.
 
 export * from './result-assertions';
+export * from './circuit-assertions';
 export * from './binary-utils';
 export * from './files-assertions';
 export * from './file-utils';

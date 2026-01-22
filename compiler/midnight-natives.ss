@@ -45,23 +45,23 @@
 
 (declare-native-entry external ecAdd
   "__compactRuntime.ecAdd"
-  ([(Struct Field Field) (discloses "an elliptic curve sum including")] [(Struct Field Field) (discloses "an elliptic curve sum including")])
-  (Struct Field Field))
+  ([(Alias NativePoint) (discloses "an elliptic curve sum including")] [(Alias NativePoint) (discloses "an elliptic curve sum including")])
+  (Alias NativePoint))
 
 (declare-native-entry external ecMul
   "__compactRuntime.ecMul"
-  ([(Struct Field Field) (discloses "an elliptic curve product including")] [Field (discloses "an elliptic curve product including")])
-  (Struct Field Field))
+  ([(Alias NativePoint) (discloses "an elliptic curve product including")] [Field (discloses "an elliptic curve product including")])
+  (Alias NativePoint))
 
 (declare-native-entry external ecMulGenerator
   "__compactRuntime.ecMulGenerator"
   ([Field (discloses "the product of the embedded group generator with")])
-  (Struct Field Field))
+  (Alias NativePoint))
 
 (declare-native-entry external hashToCurve [A]
   "__compactRuntime.hashToCurve"
   ([A (discloses "a hash of")])
-  (Struct Field Field))
+  (Alias NativePoint))
 
 (declare-native-entry witness ownPublicKey
   "__compactRuntime.ownPublicKey"

@@ -1,5 +1,11 @@
 # `@midnight-ntwrk/compact-runtime` Changelog
 
+# Runtime Version `0.14.0`
+- Changes `CompactTypeCurvePoint` to `CompactTypeNativePoint` and `CurvePoint` to `NativePoint`
+
+# Runtime Version `0.13.0-alpha.0`
+- pulls in onchain-runtime-v2
+
 # Runtime Version `0.11.0`
 - addresses PM 19226
     * Upgrades to `@midnight-ntwrk/onchain-runtime-v1` version `1.0.0-alpha.3`. Note the addition of `-v1` at the end of

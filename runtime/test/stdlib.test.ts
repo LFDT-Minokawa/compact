@@ -15,7 +15,7 @@
 
 import { describe, expect, test } from 'vitest';
 import * as compactRuntime from '../src/index.js';
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v1';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v2';
 
 describe('createCoinCommitment', () => {
   test('Check for success', () => {

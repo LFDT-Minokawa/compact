@@ -17,6 +17,7 @@
 ;;; limitations under the License.
 
 (import (except (chezscheme) errorf)
+        (config-params)
         (utils)
         (fixup)
         (command-line-parsing)
@@ -62,7 +63,7 @@ The following flags, if present, affect the tool's behavior as follows:
      (when target-pathname (check-pathname target-pathname))
      (handle-exceptions ?--vscode
        (let ([s (parameterize ([update-Uint-ranges ?--update-Uint-ranges])
-                  (parse-file/fixup/format source-pathname line-length))])
+                  (parse-file/fixup/format source-pathname))])
          (if target-pathname
              (let ([op (guard (c [else (error-accessing-file c "creating output file")])
                          (open-output-file target-pathname 'replace))])

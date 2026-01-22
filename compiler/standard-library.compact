@@ -52,15 +52,22 @@ export circuit degradeToTransient(x: Bytes<32>) : Field;
 export circuit upgradeFromTransient(x: Field): Bytes<32>;
 
 // Elliptic Curves
-export struct CurvePoint {
+struct SimplePoint {
   x: Field;
   y: Field;
 }
+export new type NativePoint = SimplePoint;
+export circuit NativePointX(np: NativePoint): Field {
+  return (np as SimplePoint).x;
+}
+export circuit NativePointY(np: NativePoint): Field {
+  return (np as SimplePoint).y;
+}
 
-export circuit ecAdd(a: CurvePoint, b: CurvePoint): CurvePoint;
-export circuit ecMul(a: CurvePoint, b: Field): CurvePoint;
-export circuit ecMulGenerator(b: Field): CurvePoint;
-export circuit hashToCurve<T>(value: T): CurvePoint;
+export circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;
+export circuit ecMul(a: NativePoint, b: Field): NativePoint;
+export circuit ecMulGenerator(b: Field): NativePoint;
+export circuit hashToCurve<T>(value: T): NativePoint;
 
 // Merkle trees
 export struct MerkleTreeDigest { field: Field; }
@@ -254,10 +261,11 @@ circuit upcastQualifiedCoin(coin: ShieldedCoinInfo): QualifiedShieldedCoinInfo {
 }
 
 struct CoinPreimage {
+  // `midnight:zswap-cc[v1]` / `midnight:zswap-cn[v1]`
+  domain_sep: Bytes<21>,
   info: ShieldedCoinInfo,
   dataType: Boolean,
   data: Bytes<32>,
-  domain_sep: Bytes<6>,
 }
 
 circuit coinCommitment(
@@ -266,10 +274,10 @@ circuit coinCommitment(
 ): Bytes<32> {
   return persistentHash<CoinPreimage>(
     CoinPreimage{
+      domain_sep: "midnight:zswap-cc[v1]",
       info: coin,
       dataType: recipient.is_left,
       data: recipient.is_left ? recipient.left.bytes : recipient.right.bytes,
-      domain_sep: "mdn:cc"
     });
 }
 
@@ -279,10 +287,10 @@ circuit coinNullifier(
 ): Bytes<32> {
   return persistentHash<CoinPreimage>(
     CoinPreimage{
+      domain_sep: "midnight:zswap-cn[v1]",
       info: coin,
       dataType: false, // The hypothetical is_left of Either<ZSwapCoinSecretKey, ContractAddress>
       data: addr.bytes,
-      domain_sep: "mdn:cn"
     });
 }
 

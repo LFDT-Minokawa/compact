@@ -17,12 +17,11 @@
 ;;; limitations under the License.
 
 (import (except (chezscheme) errorf)
+        (config-params)
         (utils)
         (formatter)
         (command-line-parsing)
         (program-common))
-
-(define line-length 100)
 
 (define (print-help)
   (print-usage #f)
@@ -42,29 +41,39 @@ The following flags, if present, affect the formatter's behavior as follows:
 
   --vscode causes error messages to be printed on a single line so they are
     rendered properly within the VS Code extension for Compact.
-"))
+
+  --line-length <n> sets the target line length to <n> (default ~d)
+" (format-line-length)))
 
 (usage "<flag> ... <source-pathname> [ <target-pathname> ]")
+
+(define (string->line-length s)
+  (or (cond
+        [(string->number s) => (lambda (x) (and (fixnum? x) (fx>= x 0) x))]
+        [else #f])
+      (external-errorf "specified line length ~a is not a nonnegative integer" s)))
 
 (parameterize ([reset-handler abort])
   (command-line-case (command-line)
     [((flags [(--help) $ (begin (print-help) (exit))]
              [(--version) $ (begin (print-compiler-version) (exit))]
              [(--language-version) $ (begin (print-language-version) (exit))]
-             [(--vscode)])
+             [(--vscode)]
+             [(--line-length) (line-length line-length)])
       (string source-pathname)
       (optional string target-pathname #f))
      (check-pathname source-pathname)
      (when target-pathname (check-pathname target-pathname))
      (handle-exceptions ?--vscode
-       (let ([s (parse-file/format source-pathname line-length)])
-         (if target-pathname
-             (let ([op (guard (c [else (error-accessing-file c "creating output file")])
-                         (open-output-file target-pathname 'replace))])
-               (guard (c [else (error-accessing-file c "writing output file")])
-                 (put-string op s)
-                 (close-output-port op)))
-             (put-string (current-output-port) s))))]
+       (parameterize ([format-line-length (or line-length (format-line-length))])
+         (let ([s (parse-file/format source-pathname)])
+           (if target-pathname
+               (let ([op (guard (c [else (error-accessing-file c "creating output file")])
+                           (open-output-file target-pathname 'replace))])
+                 (guard (c [else (error-accessing-file c "writing output file")])
+                   (put-string op s)
+                   (close-output-port op)))
+               (put-string (current-output-port) s)))))]
     [((flags [(--help) $ (begin (print-help) (exit))]
              [(--version) $ (begin (print-compiler-version) (exit))]
              [(--language-version) $ (begin (print-language-version) (exit))])

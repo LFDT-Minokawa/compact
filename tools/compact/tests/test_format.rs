@@ -13,15 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::common::{COMPACT_VERSION, run_command};
+use crate::common::run_command;
 use std::env;
 
 mod common;
 
 #[test]
 fn test_compact_format_no_compiler_installed() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["format"],
+        &["--directory", &format!("{}", temp_path.display()), "format"],
         None,
         None,
         Some("./output/format/err_no_compiler.txt"),
@@ -68,24 +71,60 @@ fn test_compact_format_param_h() {
 
 #[test]
 fn test_compact_format_param_version() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["format", "--version"],
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "format",
+            "--version",
+        ],
         None,
-        Some("./output/format/std_default_version.txt"),
         None,
-        &[("[COMPACT_VERSION]", COMPACT_VERSION)],
-        Some(0),
+        Some("./output/format/err_no_compiler.txt"),
+        &[],
+        Some(1),
     );
 }
 
 #[test]
 fn test_compact_format_param_v() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["format", "-V"],
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "format",
+            "-V",
+        ],
         None,
-        Some("./output/format/std_default_version.txt"),
         None,
-        &[("[COMPACT_VERSION]", COMPACT_VERSION)],
-        Some(0),
+        Some("./output/format/err_no_compiler.txt"),
+        &[],
+        Some(1),
+    );
+}
+
+#[test]
+fn test_compact_format_param_language_version() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
+    run_command(
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "format",
+            "--language-version",
+        ],
+        None,
+        None,
+        Some("./output/format/err_no_compiler.txt"),
+        &[],
+        Some(1),
     );
 }
