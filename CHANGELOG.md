@@ -14,8 +14,8 @@ on-chain runtime 2.0.0-alpha.1.
 
 ### Fixed
 
-- A bug reported in PM-21375 in which `ChargedState` was not properly copied
-  resulting in junk metadata being passed to contract deployments.
+- A bug reported in issue [#34](https://github.com/LFDT-Minokawa/compact/issues/34) in which 
+  `ChargedState` was not properly copied resulting in junk metadata being passed to contract deployments.
 
 
 ## [Unreleased compiler version 0.27.113, language version 0.19.103]
