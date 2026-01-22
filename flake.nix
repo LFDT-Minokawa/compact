@@ -88,29 +88,41 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # Keep the Shim logic to handle the -m64 removal
-          postUnpack = (oldAttrs.postUnpack or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+          # 1. Add static musl to ensure libc.a is available
+          buildInputs = (oldAttrs.buildInputs or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
+            pkgs.musl.static
+          ] else []);
+
+          # 2. Global "Nuclear" Shim: Handles both -m64 and linker paths
+          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            echo "Applying ARM64/Musl fixes..."
+
+            # Create a shim for gcc and cc
             mkdir -p .shim
-            echo '#!${pkgs.bash}/bin/bash' > .shim/gcc
-            echo 'new_args=()' >> .shim/gcc
-            echo 'for arg in "$@"; do [[ "$arg" != "-m64" ]] && new_args+=("$arg"); done' >> .shim/gcc
-            echo 'exec ${pkgs.stdenv.cc}/bin/gcc "''${new_args[@]}"' >> .shim/gcc
+            cat <<EOF > .shim/gcc
+            #!/bin/bash
+            new_args=()
+            for arg in "\$@"; do
+              # Strip the invalid -m64 flag
+              [[ "\$arg" != "-m64" ]] && new_args+=("\$arg")
+            done
+            # Force the linker to find the Musl static library
+            exec ${pkgs.stdenv.cc}/bin/gcc "''${new_args[@]}" -L${pkgs.musl}/lib -L${pkgs.musl.static}/lib
+            EOF
             chmod +x .shim/gcc
             cp .shim/gcc .shim/cc
-            export PATH="$(pwd)/.shim:$PATH"
+
+            # Patch all files to remove hardcoded -m64
+            find . -type f -exec sed -i 's/-m64//g' {} +
           '' else "");
 
-          # NEW: Tell the linker exactly where to find the Musl C library
-          NIX_LDFLAGS = if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux)
-                        then "-L${pkgs.musl}/lib"
-                        else "";
-
+          # 3. Ensure the shim is at the front of the PATH
           preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            export PATH="$(pwd)/.shim:$PATH"
+            export PATH="$(pwd)/.shim:\$PATH"
           '' else "");
 
           preInstall = (oldAttrs.preInstall or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            export PATH="$(pwd)/.shim:$PATH"
+            export PATH="$(pwd)/.shim:\$PATH"
           '' else "");
         });
         runtime-shell-hook =
