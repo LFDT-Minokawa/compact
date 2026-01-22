@@ -88,12 +88,7 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # 1. We remove the pkgs.musl.static reference that caused the error.
-          # The necessary static files are usually in the default musl output
-          # or the toolchain's own search path.
-
-          # 2. Global Shim: Handles -m64 and forces static linking paths
-          postUnpack = (oldAttrs.postUnpack or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             mkdir -p .shim
             cat <<EOF > .shim/gcc
             #!/bin/bash
@@ -101,17 +96,14 @@
             for arg in "\$@"; do
               [[ "\$arg" != "-m64" ]] && new_args+=("\$arg")
             done
-            # We add -static and the standard musl lib path
             exec ${pkgs.stdenv.cc}/bin/gcc "''${new_args[@]}" -static -L${pkgs.musl}/lib
             EOF
             chmod +x .shim/gcc
             cp .shim/gcc .shim/cc
 
-            # Patch all files to remove hardcoded -m64
             find . -type f -exec sed -i 's/-m64//g' {} +
           '' else "");
 
-          # 3. Keep PATH exports
           preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             export PATH="$(pwd)/.shim:\$PATH"
           '' else "");
@@ -361,7 +353,7 @@
           packages.compactc-binary = pkgs.stdenv.mkDerivation {
             name = "compactc-binary-dist";
             version = "0.0.1";
-            srcs = packages.compactc-binary-nixos;
+            src = packages.compactc-binary-nixos;
 
             installPhase = ''
               mkdir -p $out/bin $out/lib
