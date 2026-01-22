@@ -5,12 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased compiler version 0.28.0, language version 0.20.0]
+## [Compiler version 0.28.0, language version 0.20.0] - Branched 2026-01-22
 
 This release includes all changes for compiler versions in the range 0.27.100
 (inclusive) and 0.28.0 (exclusive); and language versions in the range 0.19.100
 (inclusive) and 0.20.0.  It uses compact-runtime 0.14.0-rc.0 and 
 on-chain runtime 2.0.0-alpha.1.
+
+### Fixed
+
+- A bug reported in PM-21375 in which `ChargedState` was not properly copied
+  resulting in junk metadata being passed to contract deployments.
+
 
 ## [Unreleased compiler version 0.27.113, language version 0.19.103]
 
