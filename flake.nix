@@ -88,13 +88,11 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # We move the shim creation to preBuild to ensure we are in a stable working directory
-          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            echo "Setting up ARM64 compiler shim..."
-            mkdir -p .bin-shim
-
-            # Create the shim script
-            cat <<EOF > .bin-shim/gcc
+          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            # Create the shim in a global absolute location
+            export SHIM_DIR="$TMPDIR/compiler-shim"
+            mkdir -p "$SHIM_DIR"
+            cat <<EOF > "$SHIM_DIR/gcc"
 #!/bin/bash
 args=()
 for arg in "\$@"; do
@@ -102,24 +100,23 @@ for arg in "\$@"; do
 done
 exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}" -Wno-unused-command-line-argument -L${pkgs.musl}/lib
 EOF
-            chmod +x .bin-shim/gcc
-            cp .bin-shim/gcc .bin-shim/cc
+            chmod +x "$SHIM_DIR/gcc"
+            cp "$SHIM_DIR/gcc" "$SHIM_DIR/cc"
 
-            # Export CC to the absolute path of our shim
-            export CC="$(pwd)/.bin-shim/gcc"
-            # Add ONLY this directory to the path, using a safer Nix interpolation
-            export PATH="$(pwd)/.bin-shim:$PATH"
+            # 1. Clean up static Makefiles
+            ${pkgs.findutils}/bin/find . -type f -exec ${pkgs.gnused}/bin/sed -i 's/-m64//g' {} +
           '' else "");
 
-          # Force the Makefile to use our shim via makeFlags
-          makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
-            "CC=$(pwd)/.bin-shim/gcc"
-            "M64_FLAG="
-          ] else []);
+          # Use preBuild to ensure the environment is set for the Scheme interpreter
+          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            export PATH="$TMPDIR/compiler-shim:\$PATH"
+            export CC="$TMPDIR/compiler-shim/gcc"
+          '' else "");
 
-          # Use absolute paths for tools in postPatch to avoid any PATH issues
-          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            ${pkgs.findutils}/bin/find . -type f -exec ${pkgs.gnused}/bin/sed -i 's/-m64//g' {} +
+          # Use preInstall to ensure the environment stays for the install phase
+          preInstall = (oldAttrs.preInstall or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            export PATH="$TMPDIR/compiler-shim:\$PATH"
+            export CC="$TMPDIR/compiler-shim/gcc"
           '' else "");
         });
         runtime-shell-hook =
