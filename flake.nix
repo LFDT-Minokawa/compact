@@ -88,23 +88,19 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # We use a more aggressive regex in postPatch to ensure we catch
-          # strings inside Scheme code, like (format "-m64 ~a" ...)
-          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            echo "Aggressively stripping -m64 from Scheme source and Makefiles..."
-            # Replace "-m64" with "" globally in every file
-            find . -type f -exec sed -i 's/-m64//g' {} +
-            # Some scripts might use " -m64" or "-m64 "
-            find . -type f -exec sed -i 's/ -m64//g' {} +
-          '' else "");
-
-          # Instead of a PATH shim, we use the NIX_LDFLAGS and CFLAGS
-          # variables that Nix's stdenv wrapper always injects into GCC.
-          # This works even when 'scheme' calls 'gcc' directly.
+          # Use NIX_CFLAGS_COMPILE to ignore the bad flag if it gets through
           NIX_CFLAGS_COMPILE = if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux)
                                then "-Wno-unused-command-line-argument"
                                else "";
 
+          # Overriding CC at the 'make' level is the most effective way to
+          # force 'scheme' sub-processes to behave.
+          makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
+            # This bash snippet intercepts the call, removes -m64, and calls the real gcc
+            "CC=bash -c 'args=\"$*\"; exec gcc \''${args//-m64/}\'' '"
+          ] else []);
+
+          # Keep the NIX_LDFLAGS for the Musl linking fix
           NIX_LDFLAGS = if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux)
                         then "-L${pkgs.musl}/lib"
                         else "";
