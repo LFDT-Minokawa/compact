@@ -88,14 +88,13 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # preHook is the only place that persists across all phases reliably
-          preHook = (oldAttrs.preHook or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            echo "Creating persistent ARM64 compiler shim..."
-            # Use TMPDIR to ensure the path is absolute and persists across phases
-            export SHIM_PATH="$TMPDIR/gcc-arm-shim"
-            mkdir -p "$SHIM_PATH"
+          # We move the shim creation to preBuild to ensure we are in a stable working directory
+          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            echo "Setting up ARM64 compiler shim..."
+            mkdir -p .bin-shim
 
-            cat <<EOF > "$SHIM_PATH/gcc"
+            # Create the shim script
+            cat <<EOF > .bin-shim/gcc
 #!/bin/bash
 args=()
 for arg in "\$@"; do
@@ -103,22 +102,22 @@ for arg in "\$@"; do
 done
 exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}" -Wno-unused-command-line-argument -L${pkgs.musl}/lib
 EOF
-            chmod +x "$SHIM_PATH/gcc"
-            cp "$SHIM_PATH/gcc" "$SHIM_PATH/cc"
+            chmod +x .bin-shim/gcc
+            cp .bin-shim/gcc .bin-shim/cc
 
-            # Export globally
-            export PATH="$SHIM_PATH:\$PATH"
-            export CC="$SHIM_PATH/gcc"
+            # Export CC to the absolute path of our shim
+            export CC="$(pwd)/.bin-shim/gcc"
+            # Add ONLY this directory to the path, using a safer Nix interpolation
+            export PATH="$(pwd)/.bin-shim:$PATH"
           '' else "");
 
-          # Force the Makefile to use our CC and strip flags via makeFlags
+          # Force the Makefile to use our shim via makeFlags
           makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
-            "CC=$SHIM_PATH/gcc"
-            "CFLAGS=-Wno-unused-command-line-argument"
+            "CC=$(pwd)/.bin-shim/gcc"
             "M64_FLAG="
           ] else []);
 
-          # Static source cleanup as a backup
+          # Use absolute paths for tools in postPatch to avoid any PATH issues
           postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             ${pkgs.findutils}/bin/find . -type f -exec ${pkgs.gnused}/bin/sed -i 's/-m64//g' {} +
           '' else "");
