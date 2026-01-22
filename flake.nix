@@ -88,13 +88,9 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          preBuild = oldAttrs.preBuild or "" + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            # Search all files for -m64 and remove it
-            find . -type f -exec sed -i 's/-m64//g' {} +
-          '' else "");
-
-          preInstall = oldAttrs.preInstall or "" + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            # Ensure it's gone before the install phase runs make again
+          postPatch = oldAttrs.postPatch or "" + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            # Search all files (Makefiles and Scheme source) for -m64 and remove it
+            # This handles the flag in the Makefile and hardcoded in the .ss scripts
             find . -type f -exec sed -i 's/-m64//g' {} +
           '' else "");
         });
