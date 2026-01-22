@@ -88,30 +88,28 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # This shim catches EVERY call to gcc/cc and strips -m64 on the fly.
-          # It is the only way to catch flags generated dynamically by Scheme.
-          preHook = (oldAttrs.preHook or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            echo "Installing GCC shim to strip -m64..."
+          # Use postUnpack to ensure shims exist before any other phase runs
+          postUnpack = (oldAttrs.postUnpack or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             mkdir -p .shim
             echo '#!${pkgs.bash}/bin/bash' > .shim/gcc
-            echo 'args=("$@")' >> .shim/gcc
-            echo 'for i in "''${!args[@]}"; do [ "''${args[$i]}" == "-m64" ] && unset "args[$i]"; done' >> .shim/gcc
-            echo 'exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}"' >> .shim/gcc
+            echo 'new_args=()' >> .shim/gcc
+            echo 'for arg in "$@"; do [[ "$arg" != "-m64" ]] && new_args+=("$arg"); done' >> .shim/gcc
+            echo 'exec ${pkgs.stdenv.cc}/bin/gcc "''${new_args[@]}"' >> .shim/gcc
             chmod +x .shim/gcc
+            cp .shim/gcc .shim/cc
+
+            # Export to the global environment for all subsequent phases
             export PATH="$(pwd)/.shim:$PATH"
-            export CC="$(pwd)/.shim/gcc"
           '' else "");
 
-          # Keep postPatch to clean up static files
-          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            find . -type f -exec sed -i 's/-m64//g' {} +
+          # Ensure the PATH is maintained during the actual build and install calls
+          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            export PATH="$(pwd)/.shim:$PATH"
           '' else "");
 
-          # Keep makeFlags to help the Makefile phase
-          makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
-            "CFLAGS=-Wno-unused-command-line-argument"
-            "M64_FLAG="
-          ] else []);
+          preInstall = (oldAttrs.preInstall or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            export PATH="$(pwd)/.shim:$PATH"
+          '' else "");
         });
         runtime-shell-hook =
           ''
