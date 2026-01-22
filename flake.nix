@@ -88,26 +88,21 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # 1. Add static musl to ensure libc.a is available
-          buildInputs = (oldAttrs.buildInputs or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
-            pkgs.musl.static
-          ] else []);
+          # 1. We remove the pkgs.musl.static reference that caused the error.
+          # The necessary static files are usually in the default musl output
+          # or the toolchain's own search path.
 
-          # 2. Global "Nuclear" Shim: Handles both -m64 and linker paths
-          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            echo "Applying ARM64/Musl fixes..."
-
-            # Create a shim for gcc and cc
+          # 2. Global Shim: Handles -m64 and forces static linking paths
+          postUnpack = (oldAttrs.postUnpack or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             mkdir -p .shim
             cat <<EOF > .shim/gcc
             #!/bin/bash
             new_args=()
             for arg in "\$@"; do
-              # Strip the invalid -m64 flag
               [[ "\$arg" != "-m64" ]] && new_args+=("\$arg")
             done
-            # Force the linker to find the Musl static library
-            exec ${pkgs.stdenv.cc}/bin/gcc "''${new_args[@]}" -L${pkgs.musl}/lib -L${pkgs.musl.static}/lib
+            # We add -static and the standard musl lib path
+            exec ${pkgs.stdenv.cc}/bin/gcc "''${new_args[@]}" -static -L${pkgs.musl}/lib
             EOF
             chmod +x .shim/gcc
             cp .shim/gcc .shim/cc
@@ -116,7 +111,7 @@
             find . -type f -exec sed -i 's/-m64//g' {} +
           '' else "");
 
-          # 3. Ensure the shim is at the front of the PATH
+          # 3. Keep PATH exports
           preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             export PATH="$(pwd)/.shim:\$PATH"
           '' else "");
