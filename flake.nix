@@ -88,28 +88,34 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            mkdir -p .shim
-            cat <<EOF > .shim/gcc
-            #!/bin/bash
-            new_args=()
-            for arg in "\$@"; do
-              [[ "\$arg" != "-m64" ]] && new_args+=("\$arg")
-            done
-            exec ${pkgs.stdenv.cc}/bin/gcc "''${new_args[@]}" -static -L${pkgs.musl}/lib
-            EOF
-            chmod +x .shim/gcc
-            cp .shim/gcc .shim/cc
+          # Ensure we have the tools needed for patching
+          nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [ pkgs.coreutils pkgs.findutils pkgs.gnused ];
 
+          # Use a more targeted patch that doesn't mess with the PATH globally
+          postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            echo "Removing -m64 from source files..."
             find . -type f -exec sed -i 's/-m64//g' {} +
           '' else "");
 
-          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            export PATH="$(pwd)/.shim:\$PATH"
-          '' else "");
+          # Instead of a complex PATH shim, we inject the fix directly into the compiler call
+          # This is cleaner and won't break 'mkdir'
+          makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
+            "CC=${pkgs.stdenv.cc}/bin/gcc"
+            "CFLAGS=-Wno-unused-command-line-argument"
+            "M64_FLAG="
+          ] else []);
 
-          preInstall = (oldAttrs.preInstall or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            export PATH="$(pwd)/.shim:\$PATH"
+          # Force the compiler to be clean during the build phase specifically
+          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            # Create a local symlink to gcc that strips -m64
+            mkdir -p dev-bin
+            echo '#!${pkgs.bash}/bin/bash' > dev-bin/gcc
+            echo 'exec ${pkgs.stdenv.cc}/bin/gcc "''${@/-m64/}"' >> dev-bin/gcc
+            chmod +x dev-bin/gcc
+            cp dev-bin/gcc dev-bin/cc
+
+            # Prepend ONLY this specific directory to PATH
+            export PATH="$(pwd)/dev-bin:$PATH"
           '' else "");
         });
         runtime-shell-hook =
