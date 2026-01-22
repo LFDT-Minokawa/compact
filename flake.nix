@@ -88,22 +88,30 @@
         vscode-extension-version = (__fromJSON (__readFile ./editor-support/vsc/compact/package.json)).version;
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
-          # Strip it from all source files (Makefiles and .ss scripts) before build starts
+          # This shim catches EVERY call to gcc/cc and strips -m64 on the fly.
+          # It is the only way to catch flags generated dynamically by Scheme.
+          preHook = (oldAttrs.preHook or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
+            echo "Installing GCC shim to strip -m64..."
+            mkdir -p .shim
+            echo '#!${pkgs.bash}/bin/bash' > .shim/gcc
+            echo 'args=("$@")' >> .shim/gcc
+            echo 'for i in "''${!args[@]}"; do [ "''${args[$i]}" == "-m64" ] && unset "args[$i]"; done' >> .shim/gcc
+            echo 'exec ${pkgs.stdenv.cc}/bin/gcc "''${args[@]}"' >> .shim/gcc
+            chmod +x .shim/gcc
+            export PATH="$(pwd)/.shim:$PATH"
+            export CC="$(pwd)/.shim/gcc"
+          '' else "");
+
+          # Keep postPatch to clean up static files
           postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             find . -type f -exec sed -i 's/-m64//g' {} +
           '' else "");
 
-          # Safety net: pass a flag to GCC to ignore unrecognized options
-          # and clear out common variable names for the flag
+          # Keep makeFlags to help the Makefile phase
           makeFlags = (oldAttrs.makeFlags or []) ++ (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then [
             "CFLAGS=-Wno-unused-command-line-argument"
             "M64_FLAG="
           ] else []);
-
-          # Last resort: Catch files generated during the build process
-          preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            find . -type f -name "Makefile*" -exec sed -i 's/-m64//g' {} +
-          '' else "");
         });
         runtime-shell-hook =
           ''
