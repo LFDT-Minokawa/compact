@@ -89,13 +89,11 @@
         nix2container = inputs.n2c.packages.${system}.nix2container;
         chez-exe = inputs.chez-exe.packages.${system}.default.overrideAttrs (oldAttrs: {
           postPatch = (oldAttrs.postPatch or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
-            # Clean all static files first
             find . -type f -exec sed -i 's/-m64//g' {} +
           '' else "");
 
           preBuild = (oldAttrs.preBuild or "") + (if (pkgs.stdenv.isAarch64 && pkgs.stdenv.isLinux) then ''
             mkdir -p dev-bin
-            # Note the double single-quotes '' before ${ to escape it for Nix
             cat <<EOF > dev-bin/gcc
             #!/bin/bash
             args=()
