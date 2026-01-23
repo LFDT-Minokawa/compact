@@ -66070,7 +66070,7 @@ groups than for single tests.
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(1),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
         "                                       { ins: { cached: false, n: 1 } }]);"
-        "    state_0.data = context.currentQueryContext.state;"
+        "    state_0.data = new __compactRuntime.ChargedState(context.currentQueryContext.state.state);"
         "    return {"
         "      currentContractState: state_0,"
         "      currentPrivateState: context.currentPrivateState,"
