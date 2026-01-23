@@ -15,31 +15,9 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest-16-core-x64
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Setup api.github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: api.github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
-      - name: Setup github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
-      - name: Configure git rewrite
-        run: |
-          mkdir -p $HOME/.config/git
-          echo '[url "https://github.com/"]' >> $HOME/.config/git/config
-          echo '  insteadOf = "git@github.com:"' >> $HOME/.config/git/config
-          echo '  insteadOf = "git@github.com/"' >> $HOME/.config/git/config
-          echo '  insteadOf = "ssh://git@github.com/"' >> $HOME/.config/git/config
-
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
@@ -47,8 +25,6 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
 
           extra_nix_config: |
-            netrc-file = ~/.netrc
-            access-tokens = github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }} api.github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
             extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
             extra-substituters = https://cache.iog.io
             accept-flake-config = true
@@ -58,7 +34,7 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           endpoint: https://attic.ci.iog.io
-          cache: midnight
+          cache: midnight-public
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
       - name: Checkout compactc repository
@@ -101,4 +77,3 @@ jobs:
           update-comment: 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

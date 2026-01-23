@@ -74,7 +74,7 @@ jobs:
           files: |
             **/reports/test-report.xml
             !(node_modules)/**/test-report.xml
-            
+
       - name: Publish Test Summary - macOS
         uses: EnricoMi/publish-unit-test-result-action/macos@v2
         if: always() && contains(inputs.artifact, 'macos')

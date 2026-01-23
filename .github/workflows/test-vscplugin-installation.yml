@@ -12,28 +12,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup api.github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: api.github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
-      - name: Setup github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
-      - name: Configure git rewrite
-        run: |
-          mkdir -p $HOME/.config/git
-          echo '[url "https://github.com/"]' >> $HOME/.config/git/config
-          echo '  insteadOf = "git@github.com:"' >> $HOME/.config/git/config
-          echo '  insteadOf = "git@github.com/"' >> $HOME/.config/git/config
-          echo '  insteadOf = "ssh://git@github.com/"' >> $HOME/.config/git/config
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -59,11 +37,11 @@ jobs:
             echo "Failure"
             exit 1
           fi
-          
+
           echo "List extensions"
           code-server --list-extensions --show-versions | tee list_extensions.log
           EXT_ID=$(cat list_extensions.log | grep "compact" | cut -d '@' -f 1)
-          
+
           echo "Uninstall extension"
           code-server --uninstall-extension "$EXT_ID" | tee uninstallation.log 2>&1
           if ! cat uninstallation.log | grep -q -v "successfully uninstalled"

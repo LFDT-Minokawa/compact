@@ -10,37 +10,13 @@ concurrency:
 
 jobs:
   debug-build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     steps:
-      - name: Setup api.github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: api.github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
-      - name: Setup github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
-      - name: Configure git rewrite
-        run: |
-          mkdir -p $HOME/.config/git
-          echo '[url "https://github.com/"]' >> $HOME/.config/git/config
-          echo '  insteadOf = "git@github.com:"' >> $HOME/.config/git/config
-          echo '  insteadOf = "git@github.com/"' >> $HOME/.config/git/config
-          echo '  insteadOf = "ssh://git@github.com/"' >> $HOME/.config/git/config
-
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
-            netrc-file = ~/.netrc
-            access-tokens = github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }} api.github.com=${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
             extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
             extra-substituters = https://cache.iog.io
             accept-flake-config = true
@@ -50,24 +26,10 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           endpoint: https://attic.ci.iog.io
-          cache: midnight
+          cache: midnight-public
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
       - uses: actions/checkout@v4
-
-      - name: Setup .npmrc
-        run: |
-          cd ./debug-test
-          echo "
-          //npm.pkg.github.com/:_authToken=${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-          @midnight-ntwrk:registry=https://npm.pkg.github.com/
-          " > .npmrc
-
-      - name: Configure yarn
-        run: |
-          cd ./debug-test
-          yarn config set 'npmScopes.midnight-ntwrk.npmAuthToken' "${{ secrets.MIDNIGHTCI_PACKAGES_READ }}"
-          echo 'checksumBehavior: update' >> ./.yarnrc.yml
 
       - name: Build lib
         run: |

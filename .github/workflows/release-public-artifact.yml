@@ -64,7 +64,7 @@ jobs:
           # Set up Git credentials
           git config credential.helper "store --file=.git/credentials"
           echo "https://github.com:${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}@github.com" > .git/credentials
-          
+
           # create link files
           git checkout -b compactc_${{ inputs.tag }}-branch origin/gh-pages
           cd artifacts/compiler
@@ -73,23 +73,23 @@ jobs:
           echo "artifacts/compiler/compactc_${{ inputs.tag }}/compactc_${{ inputs.tag }}_${{ inputs.macos-x86 }}.zip" > compactc-intel-macos.link
           echo "artifacts/compiler/compactc_${{ inputs.tag }}/compactc_${{ inputs.tag }}_${{ inputs.macos-arm }}.zip" > compactc-arm-macos.link
           echo "artifacts/compiler/compactc_${{ inputs.tag }}/compactc_${{ inputs.tag }}_${{ inputs.linux-x86 }}.zip" > compactc-linux.link
-          
-          
+
+
           # Add changes to the new branch
           git add .
-          
+
           # Configure git user info
           git config user.name "MidnightCI"
           git config user.email "midnight-automation@iohk.io"
-          
+
           # Commit changes with a meaningful message
           git commit -m "Update from ref: $GITHUB_SHA"
-          
+
           # Push the changes to the external repository
           git push origin compactc_${{ inputs.tag }}-branch
-          
+
           # Set GH_TOKEN environment variable for Github CLI
           export GH_TOKEN="${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}"
-          
+
           # Create a pull request using GitHub CLI
           gh pr create --base gh-pages --head compactc_${{ inputs.tag }}-branch --title "Release compactc version compactc_${{ inputs.tag }}" --body "Approve this PR to release compactc_${{ inputs.tag }} to the public."

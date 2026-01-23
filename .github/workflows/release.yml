@@ -90,26 +90,12 @@ jobs:
       - name: Set linux x86 name
         id: macos_x86
         run: echo "name=x86_64-darwin" >> "$GITHUB_OUTPUT"
-  
+
   check-docs:
     name: Check if documentation is updated
     runs-on: ubuntu-latest
     needs: [ setup ]
     steps:
-      - name: Setup api.github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: api.github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
-      - name: Setup github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
       - name: Checkout compactc repository
         uses: actions/checkout@v4
         with:
@@ -120,31 +106,31 @@ jobs:
           # check compiler version
           COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
           DOCS_COMPILER=$(grep -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
-          
+
           echo "Compiler version: $COMPILER_VERSION"
           echo "Compiler version in docs: $DOCS_COMPILER"
-          
+
           if [ "$COMPILER_VERSION" != "$DOCS_COMPILER" ]; then
             echo "Compiler version mismatch, please update"
             exit 1
           fi
-          
+
           echo "Compiler versions match"
-          
+
           # check language version
           LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
           DOCS_LANGUAGE=$(grep -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
-          
+
           echo "Language version: $LANGUAGE_VERSION"
           echo "Language version in docs: $DOCS_LANGUAGE"
-          
+
           if [ "$LANGUAGE_VERSION" != "$DOCS_LANGUAGE" ]; then
             echo "Language versions mismatch, please update"
             exit 1
           fi
-          
+
           echo "Language versions match"
-  
+
   build-release-linux:
     # runs-on: ubuntu-24.04-arm # only available for public repos so we cannot have arm64 linux binary until going public
     name: Build compactc binary for Linux x86_64
@@ -173,7 +159,7 @@ jobs:
       architecture: ${{ needs.setup.outputs.macos_arm }}
       buildCommand: nix build .\#compactc-binary -L
       skipCache: false
-  
+
   build-release-intel-macos:
     name: Build compactc binary for macOS x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
@@ -200,7 +186,7 @@ jobs:
       artifact: linux-release-x86_64
       platform: ubuntu-latest
       architecture: ${{ needs.setup.outputs.linux_x86 }}
-  
+
   test-arm-macos:
     name: Test compactc on macOS aarch64 (Arm)
     uses: ./.github/workflows/release-test.yml
@@ -212,7 +198,7 @@ jobs:
       artifact: macos-release-aarch64
       platform: macos-latest-xlarge
       architecture: ${{ needs.setup.outputs.macos_arm }}
-  
+
   test-intel-macos:
     name: Test compactc on macOS x86_64 (Intel)
     uses: ./.github/workflows/release-test.yml
@@ -230,18 +216,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ setup, test-linux, test-arm-macos, test-intel-macos ]
     steps:
-      - name: Setup api.github.com credentials
-        uses: extractions/netrc@v2
-        with:
-          machine: api.github.com
-          username: MidnightCI
-          password: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-
-      - name: Checkout compactc repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.setup.outputs.branch }}
-
       - name: Create and push tag
         if: ${{ inputs.create_release && github.event_name != 'schedule' }}
         run: |

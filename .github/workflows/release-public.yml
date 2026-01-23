@@ -24,7 +24,7 @@ on:
         description: 'Linux x86 artifact name'
         required: true
         type: string
-  
+
   workflow_dispatch:
     inputs:
       version:
