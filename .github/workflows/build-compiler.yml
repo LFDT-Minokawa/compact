@@ -13,7 +13,7 @@ concurrency:
 jobs:
   licence-check:
     name: Check if all files got headers
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout compactc repo
         uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
 
   build:
     name: Build and test compiler
-    runs-on: ubuntu-latest-16-core-x64
+    runs-on: ubuntu-24.04-arm
     needs: licence-check
     # It takes 90+ minutes to build without Nix caching
     timeout-minutes: 120

@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest-8-core-x64
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Setup api.github.com credentials
         uses: extractions/netrc@v2
