@@ -26,4 +26,4 @@ jobs:
           cd ./editor-support/vsc/compact
           yarn install --frozen-lockfile
           yarn compile
-          yarn test-it -- --disable-gpu --no-sandbox
+          yarn test-it
