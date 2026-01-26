@@ -21,9 +21,8 @@ jobs:
           ELECTRON_DISABLE_GPU: '1'
           ELECTRON_ENABLE_LOGGING: '1'
           DBUS_SESSION_BUS_ADDRESS: '/dev/null'
-          NODE_OPTIONS: '--no-sandbox'
         run: |
           cd ./editor-support/vsc/compact
           yarn install --frozen-lockfile
           yarn compile
-          yarn test-it
+          yarn test-it -- --disable-gpu --no-sandbox
