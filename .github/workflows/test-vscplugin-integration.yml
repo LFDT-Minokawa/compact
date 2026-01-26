@@ -15,11 +15,15 @@ jobs:
         run: |
           /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
-      - name: Run tests
-        run: |
-          cd ./editor-support/vsc/compact
-          yarn install --frozen-lockfile 
-          yarn compile 
-          yarn test-it
+      - name: Run integration tests
         env:
           DISPLAY: ':99.0'
+          ELECTRON_DISABLE_GPU: '1'
+          ELECTRON_ENABLE_LOGGING: '1'
+          DBUS_SESSION_BUS_ADDRESS: '/dev/null'
+          NODE_OPTIONS: '--no-sandbox'
+        run: |
+          cd ./editor-support/vsc/compact
+          yarn install --frozen-lockfile
+          yarn compile
+          yarn test-it -- --disable-gpu --no-sandbox
