@@ -16,7 +16,7 @@
   "activationEvents": [
     "onCommand:extension.createCompactcProjectFromTemplate"
   ],
-  "main": "./out/extension",
+  "main": "./dist/extension",
   "contributes": {
     "languages": [
       {
