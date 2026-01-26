@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler 0.28.105, language 0.20.100]
+
+### Fixed
+
+- An issue that caused the compiler to take an excessive amount of time to compile
+  certain `for` loops, `fold` expression, and `map` expressions.
+
+- An bug that caused the compiler to miss some of certain repeated disclosures
+  of a witness value and to overstate the nature of certain other disclosures.
+
+### Changed
+
+- Messages about undeclared witness-value disclosures are now produced in an order
+  that attempts, for each disclosure point and witness value, to put the most severe
+  disclosures along the shortest paths first, since understanding these is easier
+  and properly declaring them often addresses the others.
+
+### Internal notes
+
+- The underlying issue was the representation and maintenance of paths in the
+  witness-protection program, and this has been replaced by a simpler mechanism
+  with some careful crafting of the code to reduce computational complexity and
+  generally make the compiler more efficient.
+
 ## [Unreleased compiler 0.28.104, language 0.20.100]
 
 ### Fixed

@@ -4748,7 +4748,132 @@
                               (find-adt-op adt-op*))])))]))])))]))
 
   (define-pass track-witness-data : Lwithpaths (ir) -> Lwithpaths ()
+    ; track-witness-data is the so-called "witness-protection program" or WPP for short
+    ; that enforces explicit disclosure of witness values, i.e., values that come into a
+    ; contract via the constructor, exported circuit arguments, or witness return values
+    ; and are possibly disclosed (leaked) into the public ledger or (in the case of
+    ; witness return values only) into the output of an exported circuit.
     (definitions
+      ; the WPP is implemented as an abstract interpreter, and instances of the Abs datatype
+      ; represent abstract values.
+      ; invariant: each witness* is sorted by uid with no duplicates.
+      ; struct and tuple fields are tracked individually; array elements are tracked in the aggregate
+      (define-datatype Abs
+        (Abs-atomic witness*)
+        (Abs-boolean true? witness*)
+        (Abs-multiple abs*)
+        (Abs-single abs))
+
+      ; witness record instances represent witness values
+      (define-record-type witness
+        (nongenerative)
+        ; src is the location where a witness value enters the contract
+        ; src already distinguishes witnesses; the uid serves as an inexpensive sorting key and hash value
+        ; info is instance of a Witness-Info datatype
+        ; a path is simply a list pp* of path points; path* is a sorted nonempty list of paths without duplicates
+        ; two witness records can have the same src, uid, and info but different path*
+        (fields src uid info path*)
+        (protocol
+          (lambda (new)
+            (case-lambda
+              [(src uid info) (new src uid info '(()))]
+              [(src uid info path*)
+               (assert (not (null? path*)))
+               ; maintain invariant: path* is always sorted according to path<? and has no duplicates
+               (let ([path* (let ([path* (sort path<? path*)])
+                              (let loop ([path (car path*)] [path* (cdr path*)])
+                                (if (null? path*)
+                                    (list path)
+                                    (let ([path^ (car path*)] [path* (cdr path*)])
+                                      (if (same-path? path^ path)
+                                          (loop path path*)
+                                          (cons path (loop path^ path*)))))))])
+                 (new src uid info path*))]))))
+
+      (define-datatype Witness-Info
+        (Witness-Return-Value function-name)
+        (Constructor-Argument argument-name)
+        (Circuit-Argument function-name argument-name))
+
+      ; path point represents some interesting point along a data-flow path through the contract
+      (define-record-type path-point
+        (nongenerative)
+        ; src is the location of the point
+        ; description is a string describing the point, e.g., "the argument of transientHash"
+        ; exposure is a string describing the conversion, if any, made at the point, e.g., "a hash of",
+        ; and is "" if the point simply passes the unmodified witness value along
+        (fields src description exposure))
+
+      ; instances of the Fun datatype represent the different kinds of functions
+      (define-datatype Fun
+        (Fun-circuit src name var-name* expr uid)
+        (Fun-witness abs)
+        (Fun-external disclosure?* type))
+
+      ; instances of the Cell datatype represent different stages in the processing of a function call
+      (define-datatype Call
+        (Call-unprocessed)
+        (Call-inprocess)
+        (Call-processed abs))
+
+      #|
+      ; printing of abstract values, witnesses, and paths for debugging
+      (module (print-abs)
+        (define (indent op i) (unless (fx= i 0) (fprintf op "~vs" (fx* i 2) i)))
+        (define (print-info op i info)
+          (indent op i)
+          (Witness-Info-case info
+            [(Witness-Return-Value function-name)
+             (fprintf op "Witness-Return-Value ~s\n" (id-sym function-name))]
+            [(Constructor-Argument argument-name)
+             (fprintf op "Constructor-Argument ~s\n" (id-sym argument-name))]
+            [(Circuit-Argument function-name argument-name)
+             (fprintf op "Circuit-Argument ~s ~s\n" (id-sym function-name) (id-sym argument-name))]))
+        (define (print-description op i description)
+          (indent op i)
+          (fprintf op "~a\n" description))
+        (define (print-exposure op i exposure)
+          (indent op i)
+          (fprintf op "~a\n" exposure))
+        (define (print-path-point op i pp)
+          (indent op i)
+          (fprintf op "path-point ~a:\n" (format-source-object (path-point-src pp)))
+          (print-description op (fx+ i 1) (path-point-description pp))
+          (print-exposure op (fx+ i 1) (path-point-exposure pp)))
+        (define (print-path op i pp*)
+          (for-each
+            (lambda (pp) (print-path-point op i pp))
+            pp*))
+        (define (print-paths op i path*)
+          (for-each
+            (lambda (pp* n)
+              (indent op i)
+              (fprintf op "path ~d (length ~d):\n" n (length pp*))
+              (print-path op (fx+ i 1) pp*))
+            path*
+            (enumerate path*)))
+        (define (print-witness op i witness)
+          (indent op i)
+          (fprintf op "witness ~d ~a:\n" (witness-uid witness) (format-source-object (witness-src witness)))
+          (print-info op (fx+ i 1) (witness-info witness))
+          (print-paths op (fx+ i 1) (witness-path* witness)))
+        (define (print-abs op i abs)
+          (indent op i)
+          (Abs-case abs
+            [(Abs-atomic witness*)
+             (fprintf op "Abs-atomic:\n")
+             (for-each (lambda (witness) (print-witness op (fx+ i 1) witness)) witness*)]
+            [(Abs-boolean true? witness*)
+             (fprintf op "Abs-boolean ~a:\n" true?)
+             (for-each (lambda (witness) (print-witness op (fx+ i 1) witness)) witness*)]
+            [(Abs-multiple abs*)
+             (fprintf op "Abs-multiple:\n")
+             (for-each (lambda (abs) (print-abs op (fx+ i 1) abs)) abs*)]
+            [(Abs-single abs)
+             (fprintf op "Abs-single:\n")
+             (print-abs op (fx+ i 1) abs)])))
+      |#
+
       (define (uid-generator)
         (let ([uid 0])
           (lambda ()
@@ -4758,88 +4883,113 @@
       (define next-circuit-uid (uid-generator))
       (define next-witness-uid (uid-generator))
 
-      (define-datatype Witness-Info
-        (Witness-Return-Value function-name)
-        (Constructor-Argument argument-name)
-        (Circuit-Argument function-name argument-name))
+      ; function-ht: function name => Fun record
+      (define function-ht (make-eq-hashtable))
 
-      (define-datatype Path
-        (Path-null)
-        (Path-point src description exposure? path)
-        (Path-join path1 path2))
+      ; for purposes of path points, all standard library routines are treated as if they have
+      ; the same source location
+      (define (same-ppsrc? src1 src2)
+        (or (eq? src1 src2)
+            (and (stdlib-src? src1) (stdlib-src? src2))))
 
-      (define (add-path-point src description exposure? abs)
-        (define (add-to-witness witness)
-          (let ([path (witness-path witness)])
-            (if (let path-member? ([path path])
-                  (Path-case path
-                    [(Path-null) #f]
-                    [(Path-point src^ description^ exposure?^ path)
-                     (or (and (eq? src^ src)
-                              (equal? description^ description)
-                              (equal? exposure?^ exposure?))
-                          (path-member? path))]
-                    [(Path-join path1 path2) (or (path-member? path1) (path-member? path2))]))
-                witness
+      (define (ppsrc<? src1 src2)
+        (and (not (eq? src1 src2))
+             (not (stdlib-src? src1))
+             (or (stdlib-src? src2)
+                 (source-object<? src1 src2))))
+
+      ; add-path-point returns a new abs created adding by a new path point to the
+      ; paths of every witness contained within abs.  if the new path point is the same
+      ; as one already in a path, it is not added to the path.  this leads to faster
+      ; convergence of abstract values to fixed points.  it also leads to simpler though
+      ; less accurate error messages like "a hash of" instead of "a hash of a hash of
+      ; a hash of ...".
+      (define (add-path-point src description exposure abs)
+        ; if a standard library program point doesn't expose anything, there's nothing interesting
+        ; to say about it, so we drop it.
+        (if (and (equal? exposure "") (stdlib-src? src))
+            abs
+            (let ()
+              (define add-to-path
+                (let ([new-pp (make-path-point src description exposure)])
+                  (lambda (pp*)
+                    (if (ormap (lambda (pp)
+                                 (and (same-ppsrc? (path-point-src pp) src)
+                                      (string=? (path-point-description pp) description)
+                                      (string=? (path-point-exposure pp) exposure)))
+                               pp*)
+                        pp*
+                        (cons new-pp pp*)))))
+              (define (add-to-witness witness)
                 (make-witness
                   (witness-src witness)
                   (witness-uid witness)
                   (witness-info witness)
-                  (Path-point src description exposure? path)))))
-          (let add-path-point ([abs abs])
-            (Abs-case abs
-              [(Abs-atomic witness*) (Abs-atomic (map add-to-witness witness*))]
-              [(Abs-boolean true? witness*) (Abs-boolean true? (map add-to-witness witness*))]
-              [(Abs-multiple abs*) (Abs-multiple (map add-path-point abs*))]
-              [(Abs-single abs) (Abs-single (add-path-point abs))])))
+                  (map add-to-path (witness-path* witness))))
+              (let add-path-point ([abs abs])
+                (Abs-case abs
+                  [(Abs-atomic witness*) (Abs-atomic (map add-to-witness witness*))]
+                  [(Abs-boolean true? witness*) (Abs-boolean true? (map add-to-witness witness*))]
+                  [(Abs-multiple abs*) (Abs-multiple (map add-path-point abs*))]
+                  [(Abs-single abs) (Abs-single (add-path-point abs))])))))
 
       (define (add-path-binding var-name abs)
         (if (id-temp? var-name)
             abs
-            (add-path-point (id-src var-name) (format "the binding of ~a" (id-sym var-name)) #f abs)))
+            (add-path-point (id-src var-name) (format "the binding of ~a" (id-sym var-name)) "" abs)))
 
-      (define-record-type witness
-        (nongenerative)
-        ; src already distinguishes witnesses; the uid serves as an inexpensive sorting key and hash value
-        ; two witness records can have the same src, uid, and info but different path
-        (fields src uid info path))
+      (define (same-path-point? pp1 pp2)
+        (and (same-ppsrc? (path-point-src pp1) (path-point-src pp2))
+             (string=? (path-point-description pp1) (path-point-description pp2))
+             (string=? (path-point-exposure pp1) (path-point-exposure pp2))))
 
-      ; abstract values.
-      ; invariant: each witness* is sorted by uid with no duplicates.
-      ; struct and tuple fields are tracked individually; array elements are tracked in the aggregate
-      (define-datatype Abs
-        (Abs-atomic witness*)
-        (Abs-boolean true? witness*)
-        (Abs-multiple abs*)
-        (Abs-single abs))
+      (define (same-path? pp1* pp2*)
+        (and (fx= (length pp1*) (length pp2*))
+             ; paths are ordered and so are equivalent only if pairwise equivalent
+             (andmap same-path-point? pp1* pp2*)))
 
-      ; function-ht: function name => Fun record
-      (define-datatype Fun
-        (Fun-circuit src name var-name* expr uid)
-        (Fun-witness abs)
-        (Fun-external disclosure* type))
+      (define (same-paths? path1* path2*)
+        (and (fx= (length path1*) (length path2*))
+             ; path lists are sorted and so are equivalent only if pairwise equivalent
+             (andmap same-path? path1* path2*)))
 
-      (define function-ht (make-eq-hashtable))
+      ; NB: list<? treats any shorter list as less than any longer list.  this is
+      ; useful for sorting paths and vias (with more direct problems first) and is more
+      ; efficient when the list lengths differ and the comparisons are expensive.
+      ;
+      ; elt-compare should take two arguments and return one of <, >, or = depending on
+      ; whether the first argument is <, >, or = to the second.  list<? could be written
+      ; to use a simple #t/#f less-than predicate, but it would have to call it twice
+      ; for every list element, which would be more expensive for expensive comparisons.
+      (define (list<? elt-compare x1* x2*)
+        (let ([n1 (length x1*)] [n2 (length x2*)])
+          (or (fx< n1 n2)
+              (and (fx= n1 n2)
+                   (let loop ([x1* x1*] [x2* x2*])
+                     (and (not (null? x1*))
+                          (let ([x1 (car x1*)] [x2 (car x2*)])
+                            (case (elt-compare (car x1*) (car x2*))
+                              [(<) #t]
+                              [(>) #f]
+                              [else (loop (cdr x1*) (cdr x2*))]))))))))
 
-      ; call-ht: circuit uid + abs* => Call record
-      (define-datatype Call
-        (Call-unprocessed)
-        (Call-inprocess)
-        (Call-processed abs))
+      (define (string-compare s1 s2)
+        (cond
+          [(string=? s1 s2) '=]
+          [(string<? s1 s2) '<]
+          [else '>]))
 
-      (define (same-path? pathA pathB)
-        (Path-case pathA
-          [(Path-null) (Path-case pathB [(Path-null) #t] [else #f])]
-          [(Path-point srcA descriptionA exposureA? pathA)
-           (Path-case pathB
-             [(Path-point srcB descriptionB exposureB? pathB)
-              (and (eq? srcA srcB) (string=? descriptionA descriptionB) (equal? exposureA? exposureB?) (same-path? pathA pathB))]
-             [else #f])]
-          [(Path-join pathA1 pathA2)
-           (Path-case pathB
-             [(Path-join pathB1 pathB2)
-              (and (same-path? pathA1 pathB1) (same-path? pathA2 pathB2))]
-             [else #f])]))
+      (define (path<? pp1* pp2*)
+        (define (pp-compare pp1 pp2)
+          (let ([src1 (path-point-src pp1)] [src2 (path-point-src pp2)])
+            (cond
+              [(ppsrc<? src1 src2) '<]
+              [(ppsrc<? src2 src1) '>]
+              [else (case (string-compare (path-point-exposure pp1) (path-point-exposure pp2))
+                      [(<) '<]
+                      [(>) '>]
+                      [else (string-compare (path-point-description pp1) (path-point-description pp2))])])))
+        (list<? pp-compare pp1* pp2*))
 
       (define (merge-witnesses witness1* witness2*)
         ; invariant: witness1* and witness2* are sorted and have no duplicates
@@ -4853,11 +5003,12 @@
                  (let ([uid1 (witness-uid witness1)] [uid2 (witness-uid witness2)]) 
                    (cond
                      [(fx= uid1 uid2)
-                      (cons (let ([path1 (witness-path witness1)] [path2 (witness-path witness2)])
-                              (if (same-path? path1 path2)
-                                  witness1
-                                  (make-witness (witness-src witness1) uid1 (witness-info witness1)
-                                    (Path-join path1 path2))))
+                      (cons (let ([path1* (witness-path* witness1)] [path2* (witness-path* witness2)])
+                              (make-witness
+                                (witness-src witness1)
+                                uid1
+                                (witness-info witness1)
+                                (append path1* path2*)))
                             (merge-witnesses (cdr witness1*) (cdr witness2*)))]
                      [(fx< uid1 uid2) (cons witness1 (merge-witnesses (cdr witness1*) witness2*))]
                      [else (cons witness2 (merge-witnesses witness1* (cdr witness2*)))]))))]))
@@ -4874,7 +5025,7 @@
              (andmap (lambda (witness1 witness2)
                        (or (eq? witness1 witness2)
                            (and (fx= (witness-uid witness1) (witness-uid witness2))
-                                (same-path? (witness-path witness1) (witness-path witness2))
+                                (same-paths? (witness-path* witness1) (witness-path* witness2))
                                 (same-witnesses? (cdr witness1*) (cdr witness2*)))))
                      witness1*
                      witness2*)))
@@ -4989,7 +5140,7 @@
                                                        (add-path-point
                                                          src?
                                                          (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) (id-sym function-name))
-                                                         #f
+                                                         ""
                                                          abs))
                                                      abs*
                                                      (if (= (length abs*) 1) '(#f) (enumerate abs*)))
@@ -5010,19 +5161,19 @@
                        (set-cdr! a (Call-processed abs))
                        abs))))]
             [(Fun-witness abs) abs]
-            [(Fun-external disclosure* type)
-             (assert (fx= (length disclosure*) (length abs*)))
+            [(Fun-external disclosure?* type)
+             (assert (fx= (length disclosure?*) (length abs*)))
              (default-value type
                (fold-left
-                 (lambda (witness* abs disclosure i?)
-                   (if disclosure
+                 (lambda (witness* abs disclosure? i?)
+                   (if disclosure?
                        (merge-witnesses
-                         (abs->witnesses (if src? (add-path-point src? (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) (id-sym function-name)) disclosure abs) abs))
+                         (abs->witnesses (if src? (add-path-point src? (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) (id-sym function-name)) disclosure? abs) abs))
                          witness*)
                        witness*))
                  '()
                  abs*
-                 disclosure*
+                 disclosure?*
                  (if (= (length abs*) 1) '(#f) (enumerate abs*))))])))
 
       (define default-value
@@ -5078,12 +5229,18 @@
         (define-record-type via
           (nongenerative)
           (fields desc* exposure))
-        (define (remove-duplicates via*)
-          (if (null? via*)
-              '()
-              (let ([via (car via*)] [via* (cdr via*)])
-                (define (same-exposure? x) (equal? (via-exposure x) (via-exposure via)))
-                (cons via (remove-duplicates (remp same-exposure? via*))))))
+        (define (via<? via1 via2)
+          (let ([n1 (string-length (via-exposure via1))]
+                [n2 (string-length (via-exposure via2))])
+            (or (fx< n1 n2)
+                (and (fx= n1 n2)
+                     (or (string<? (via-exposure via1) (via-exposure via2))
+                         (and (not (string<? (via-exposure via1) (via-exposure via2)))
+                              (let ([n1 (length (via-desc* via1))]
+                                    [n2 (length (via-desc* via2))])
+                                (or (fx< n1 n2)
+                                    (and (fx= n1 n2)
+                                         (list<? string-compare (via-desc* via1) (via-desc* via2)))))))))))
         (parameterize ([parent-src src])
           (for-each
             (lambda (witness)
@@ -5102,22 +5259,29 @@
                                           (id-sym argument-name)
                                           (id-sym function-name)
                                           where)]))]
-                    [via* (remove-duplicates
-                            (let f ([path (witness-path witness)])
-                              (Path-case path
-                                [(Path-null) (list (make-via '() "the witness value"))]
-                                [(Path-point src description exposure? path)
-                                 (map (lambda (via)
-                                        (make-via
-                                          (if (stdlib-src? src)
-                                              (via-desc* via)
-                                              (cons (format "~a at ~a" description (format-source-object src))
-                                                    (via-desc* via)))
-                                          (if exposure?
-                                              (format "~a ~a" exposure? (via-exposure via))
-                                              (via-exposure via))))
-                                      (f path))]
-                                [(Path-join path1 path2) (append (f path1) (f path2))])))])
+                    [via* (sort via<?
+                                (map (lambda (pp*)
+                                       (make-via
+                                         (fold-right
+                                           (lambda (pp desc*)
+                                             (let ([src (path-point-src pp)])
+                                               (if (stdlib-src? src)
+                                                   desc*
+                                                   (cons (format "~a at ~a"
+                                                           (path-point-description pp)
+                                                           (format-source-object src))
+                                                         desc*))))
+                                           '()
+                                           pp*)
+                                         (fold-right
+                                           (lambda (pp exposure)
+                                             (let ([exposure^ (path-point-exposure pp)])
+                                               (if (equal? exposure^ "")
+                                                   exposure
+                                                   (format "~a ~a" exposure^ exposure))))
+                                           "the witness value"
+                                           pp*)))
+                                     (witness-path* witness)))])
                 (pending-errorf src
                   "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}"
                   witness-value
@@ -5133,6 +5297,7 @@
             (sort
               (lambda (w1 w2) (source-object<? (witness-src w1) (witness-src w2)))
               witness*))))
+
       (define (de-alias type)
         (nanopass-case (Lwithpaths Type) type
           [(talias ,src ,nominal? ,type-name ,type)
@@ -5159,8 +5324,7 @@
          (Fun-witness
            (default-value type
              (list (make-witness src (next-witness-uid)
-                     (Witness-Return-Value function-name)
-                     (Path-null))))))]
+                     (Witness-Return-Value function-name))))))]
       [,kdecl (void)]
       [,ldecl (void)]
       [,export-tdefn (void)]
@@ -5170,8 +5334,7 @@
        (when (id-exported? function-name)
          (let ([witness** (maplr (lambda (var-name)
                                    (list (make-witness (id-src var-name) (next-witness-uid)
-                                           (Circuit-Argument function-name var-name)
-                                           (Path-null))))
+                                           (Circuit-Argument function-name var-name))))
                                  var-name*)])
            (handle-call #f function-name (map default-value type* witness**) '() #t)))]
       [(public-ledger-declaration ,pl-array (constructor ,src ((,var-name* ,type*) ...) ,expr))
@@ -5182,8 +5345,7 @@
                 type*
                 (map (lambda (var-name)
                        (list (make-witness (id-src var-name) (next-witness-uid)
-                               (Constructor-Argument var-name)
-                               (Path-null))))
+                               (Constructor-Argument var-name))))
                      var-name*)))
          '()
          #f)]
@@ -5429,7 +5591,7 @@
                                     (if sugar?
                                         (format "the right-hand side of ~a" sugar?)
                                         (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) ledger-op))
-                                    (and (not (string=? discloses? "")) discloses?)
+                                    discloses?
                                     abs))])
                   (unless (null? witness*)
                     (record-leak! src^ "ledger operation" witness*)))))
