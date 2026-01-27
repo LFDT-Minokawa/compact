@@ -360,6 +360,8 @@
                   (assert (hashtable-ref returntype-ht function-name #f))
                   var-name*)]
                [else (assert cannot-happen)]))]
+          [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...))
+           (source-errorf src "cross-contract calls are not yet supported")]
           [(= (,var-name* ...) (bytes->vector ,[* triv]))
            (assert (not (null? var-name*)))
            (let loop ([var-name* var-name*] [triv triv])

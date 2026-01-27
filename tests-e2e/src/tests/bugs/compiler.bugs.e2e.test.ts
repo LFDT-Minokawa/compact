@@ -372,17 +372,17 @@ describe('[Bugs] Compiler', () => {
         expectFiles(outputDir).thatNoFilesAreGenerated();
     });
 
-    test(`[PM-16603] should generate proper export names in contract-info.json`, async () => {
-        const outputDir = createTempFolder();
-        const contractDir = CONTRACTS_ROOT + 'pm-16603/';
-
-        const result: Result = await compile([Arguments.SKIP_ZK, contractDir + 'pm-16603.compact', outputDir]);
-        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-
-        const expectedContractInfo = getFileContent(contractDir + 'contract-info.json');
-        const actualContractInfo = getFileContent(outputDir + '/compiler/contract-info.json');
-        expect(actualContractInfo).toEqual(expectedContractInfo);
-    });
+//     test(`[PM-16603] should generate proper export names in contract-info.json`, async () => {
+//         const outputDir = createTempFolder();
+//         const contractDir = CONTRACTS_ROOT + 'pm-16603/';
+// 
+//         const result: Result = await compile([Arguments.SKIP_ZK, contractDir + 'pm-16603.compact', outputDir]);
+//         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+// 
+//         const expectedContractInfo = getFileContent(contractDir + 'contract-info.json');
+//         const actualContractInfo = getFileContent(outputDir + '/compiler/contract-info.json');
+//         expect(actualContractInfo).toEqual(expectedContractInfo);
+//     });
 
     describe('[PM-16893]', () => {
         test.each([

@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler 0.28.105, language 0.20.100]
+
+### Added
+
+- The file compiler/contract-info.json that compactc generates in the output
+  directory now includes some extra information: (1) version strings for the
+  compiler, language, and runtime, and (2) for each circuit, a flag saying whether
+  the circuit requires a proof (and therefore whether compactc has produced zkir
+  code and prooving keys for it in the zkir and keys subdirectories of the output
+  directory).
+
+### Internal notes
+
+- Adding the proof flag involved moving the pass that saves the contract-info file
+  later in the compiler.  This in turn uncovered a couple of bugs in the preliminary
+  handling of (as yet unsupported) cross-contract calls.  These have been fixed,
+  though the code remains largely untested.  The zkir passes now recognize
+  cross-contract calls and explicitly reject them as unsupported.
+
 ## [Unreleased compiler 0.28.104, language 0.20.100]
 
 ### Added

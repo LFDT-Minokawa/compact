@@ -617,6 +617,8 @@
        (let ([code-generator (hashtable-ref callable-ht function-name #f)])
          (assert code-generator)
          (code-generator var-name* src test triv* instr*))]
+      [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...))
+       (source-errorf src "cross-contract calls are not yet supported")]
       [(= (,var-name0 ,var-name1) (field->bytes ,src ,test ,len ,triv))
        ;; TODO(kmillikin): this needs to respect test because `constrain_bits` can fail.
        (with-output-language (Lzkir Instruction)

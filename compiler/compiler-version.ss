@@ -20,7 +20,7 @@
   (import (chezscheme) (version))
 
   ; NB: also update compactc version in ../flake.nix
-  (define compiler-version (make-version 'compiler 0 28 104))
+  (define compiler-version (make-version 'compiler 0 28 105))
 
   (define compiler-version-string (make-version-string compiler-version))
 
