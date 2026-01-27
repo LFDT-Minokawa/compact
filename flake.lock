@@ -6,11 +6,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1769481218,
-        "narHash": "sha256-QfMy5SLByae6QWoVtV8Sd3Yb3pmvJNY8ytIQ9SdVc9M=",
+        "lastModified": 1769481342,
+        "narHash": "sha256-xINYSh4mb+WnzbonOiPDe1Ici7NeMP15V5Hv0YEAoLI=",
         "owner": "pataei",
         "repo": "chez-exe",
-        "rev": "5b5ab07f0fd831323355b83f866d5a51823f653f",
+        "rev": "1f4a8674efd797a24d6f4e8df2923022e20fb35e",
         "type": "github"
       },
       "original": {
