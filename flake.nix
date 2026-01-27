@@ -46,7 +46,7 @@
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
-    chez-exe.url = "github:tkerber/chez-exe";
+    chez-exe.url = "github:pataei/chez-exe";
 
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     utils.url = "github:numtide/flake-utils";
