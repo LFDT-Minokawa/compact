@@ -6,11 +6,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1715852961,
-        "narHash": "sha256-UKdGXLBlhWgDy5jE/f66NuHpG8oAPeQ+sA/qbNje6bI=",
+        "lastModified": 1769510086,
+        "narHash": "sha256-xINYSh4mb+WnzbonOiPDe1Ici7NeMP15V5Hv0YEAoLI=",
         "owner": "tkerber",
         "repo": "chez-exe",
-        "rev": "93943cffc121914bd88b05a4bb3a05c67e586cf7",
+        "rev": "c461925100efc25ada0e3f3b0844bdf1ba337b51",
         "type": "github"
       },
       "original": {
@@ -198,11 +198,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1768395095,
-        "narHash": "sha256-ZhuYJbwbZT32QA95tSkXd9zXHcdZj90EzHpEXBMabaw=",
+        "lastModified": 1769433173,
+        "narHash": "sha256-Gf1dFYgD344WZ3q0LPlRoWaNdNQq8kSBDLEWulRQSEs=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "13868c071cc73a5e9f610c47d7bb08e5da64fdd5",
+        "rev": "13b0f9e6ac78abbbb736c635d87845c4f4bee51b",
         "type": "github"
       },
       "original": {

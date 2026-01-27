@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   code and prooving keys for it in the zkir and keys subdirectories of the output
   directory).
 
+- ARM Linux artifact is added.
+
 ### Internal notes
 
 - Adding the proof flag involved moving the pass that saves the contract-info file
