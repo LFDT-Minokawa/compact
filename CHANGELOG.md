@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased compiler 0.28.104, language 0.20.100]
 
+### Added
+
+- ARM Linux artifact is added.
+
 ### Fixed
 
 - A bug reported in issue [#34](https://github.com/LFDT-Minokawa/compact/issues/34) in which 
