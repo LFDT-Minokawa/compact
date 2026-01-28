@@ -25,24 +25,24 @@
   inputs = {
     zkir = {
       # dependency for compact-runtime release
-      # this is using a tag to pull in the correct zkir version from ledger-7.0.0-alpha.1 release
+      # this is using a tag to pull in the correct zkir version from ledger-7.0.0 release
       # if for releasing the runtime, running nix flake update causes errors for authorization of cargo, use
       # the commit hash instead of the tag for this.
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0-alpha.1";
+      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0";
       inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v2 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0-alpha.1";
+      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0-alpha.1";
+      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
