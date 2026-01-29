@@ -84,9 +84,14 @@ jobs:
           path: "midnight-docs"
           ref: ${{ inputs.docs_branch }}
 
-      - name: Prepare files
+      - name: Manual Git Push
         run: |
-          pwd
+          cd midnight-docs
+          git config user.name "midnight-ci"
+          git config user.email "ci@midnight.network"
+
+          git checkout -b compact-docs-update-${{ github.run_id }}
+
           cp ../doc/ledger-adt.mdx docs/_develop/_reference/compact
           cp ../doc/lang-ref.mdx docs/_develop/_reference/compact
           cp ../doc/api/CompactStandardLibrary/exports.md docs/_develop/_reference/compact/compact-std-library
@@ -97,15 +102,9 @@ jobs:
           cp -r ../doc/Compact.html ./static/language/compact.html
           cp -r ../doc/ledger-adt.mdx ./static/language/ledger-adt.mdx
 
-      - name: Create signed commit
-        uses: flex-development/gh-commit@1.0.0
-        with:
-          message: "Update compact documentation"
-          ref: "refs/heads/compact-docs-update-${{ github.run_id }}"
-          token: ${{ secrets.MIDNIGHTCI_REPO }}
-          repo: "midnight-docs"
-          owner: "midnightntwrk"
-          workspace: "midnight-docs"
+          git add .
+          git commit -m "Update compact documentation"
+          git push origin compact-docs-update-${{ github.run_id }}
 
       - name: Create PR
         env:
