@@ -84,8 +84,9 @@ jobs:
           path: "midnight-docs"
           ref: ${{ inputs.docs_branch }}
 
-      - name: Prepare files (Copying only)
+      - name: Prepare files
         run: |
+          pwd
           cp ../doc/ledger-adt.mdx docs/_develop/_reference/compact
           cp ../doc/lang-ref.mdx docs/_develop/_reference/compact
           cp ../doc/api/CompactStandardLibrary/exports.md docs/_develop/_reference/compact/compact-std-library
