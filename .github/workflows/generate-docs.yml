@@ -76,8 +76,6 @@ jobs:
         run: |
           nix develop --command bash -c "cd ./runtime ; npm run build ; npm run generate-docs"
 
-      # TODO: do we need that, it does not run on schedule so branch should come from input, but then we duplicate
-      # TODO: checkout in next step ?
       - name: Checkout docs repo
         uses: actions/checkout@v4
         with:
@@ -86,42 +84,35 @@ jobs:
           path: "midnight-docs"
           ref: ${{ inputs.docs_branch }}
 
-      - name: Prepare files for commit
+      - name: Manual Git Push
         run: |
           cd midnight-docs
-          git checkout -b compact-docs-update-${{ github.run_id }} origin/${{ inputs.docs_branch }}
-          cp ../doc/ledger-adt.mdx docs/develop/reference/compact
-          cp ../doc/lang-ref.mdx docs/develop/reference/compact
-          cp ../doc/api/CompactStandardLibrary/exports.md docs/develop/reference/compact/compact-std-library
-          cp ../doc/api/CompactStandardLibrary/README.md docs/develop/reference/compact/compact-std-library
-          cp ../doc/compiler-usage.md docs/develop/reference/tools/compiler-usage.mdx
-          cp -r ../doc/api/runtime/. ./docs/develop/reference/midnight-api/compact-runtime
-          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./docs/develop/reference/midnight-api/compact-runtime/README.md
+          git config user.name "midnight-ci"
+          git config user.email "ci@midnight.network"
+
+          git checkout -b compact-docs-update-${{ github.run_id }}
+
+          cp ../doc/ledger-adt.mdx docs/_develop/_reference/compact
+          cp ../doc/lang-ref.mdx docs/_develop/_reference/compact
+          cp ../doc/api/CompactStandardLibrary/exports.md docs/_develop/_reference/compact/compact-std-library
+          cp ../doc/api/CompactStandardLibrary/README.md docs/_develop/_reference/compact/compact-std-library
+          cp ../doc/compiler-usage.md docs/_develop/_reference/tools/compiler-usage.mdx
+          cp -r ../doc/api/runtime/. ./docs/_develop/_reference/midnight-api/compact-runtime
+          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./docs/_develop/_reference/midnight-api/compact-runtime/README.md
           cp -r ../doc/Compact.html ./static/language/compact.html
           cp -r ../doc/ledger-adt.mdx ./static/language/ledger-adt.mdx
-          git add docs/develop/reference/compact/ledger-adt.mdx
-          git add docs/develop/reference/compact/lang-ref.mdx
-          git add docs/develop/reference/compact/compact-std-library/exports.md
-          git add docs/develop/reference/compact/compact-std-library/README.md
-          git add docs/develop/reference/tools/compiler-usage.mdx
-          git add docs/develop/reference/midnight-api/compact-runtime
-          git add static/language/compact.html
-          git add static/language/ledger-adt.mdx
-          git push -u origin compact-docs-update-${{ github.run_id }}
 
-      - name: Create signed commit
-        uses: flex-development/gh-commit@1.0.0
-        with:
-          message: "Update compact documentation"
-          ref: "compact-docs-update-${{ github.run_id }}"
-          token: ${{ secrets.MIDNIGHTCI_REPO }}
-          repo: "midnight-docs"
-          workspace: "midnight-docs"
+          git add .
+          git commit -m "Update compact documentation"
+          git push origin compact-docs-update-${{ github.run_id }}
 
-      - name: Pull and create PR
+      - name: Create PR
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
         run: |
-          cd midnight-docs
-          git pull origin compact-docs-update-${{ github.run_id }}
-          gh pr create --base ${{ inputs.docs_branch }} --head compact-docs-update-${{ github.run_id }} --title "compact - ${{ inputs.pr_description }}" --body 'PR: ${{ inputs.pr_description }}'
+          gh pr create \
+            --repo midnightntwrk/midnight-docs \
+            --base ${{ inputs.docs_branch }} \
+            --head "compact-docs-update-${{ github.run_id }}" \
+            --title "compact - ${{ inputs.pr_description }}" \
+            --body 'PR: ${{ inputs.pr_description }}'
