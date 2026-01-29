@@ -88,23 +88,24 @@ jobs:
 
       - name: Prepare files for commit
         run: |
+          # this is hard dependency on the structure of the midnight-docs repo
           cd midnight-docs
           git checkout -b compact-docs-update-${{ github.run_id }} origin/${{ inputs.docs_branch }}
-          cp ../doc/ledger-adt.mdx docs/develop/reference/compact
-          cp ../doc/lang-ref.mdx docs/develop/reference/compact
-          cp ../doc/api/CompactStandardLibrary/exports.md docs/develop/reference/compact/compact-std-library
-          cp ../doc/api/CompactStandardLibrary/README.md docs/develop/reference/compact/compact-std-library
-          cp ../doc/compiler-usage.md docs/develop/reference/tools/compiler-usage.mdx
-          cp -r ../doc/api/runtime/. ./docs/develop/reference/midnight-api/compact-runtime
-          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./docs/develop/reference/midnight-api/compact-runtime/README.md
+          cp ../doc/ledger-adt.mdx docs/_develop/_reference/compact
+          cp ../doc/lang-ref.mdx docs/_develop/_reference/compact
+          cp ../doc/api/CompactStandardLibrary/exports.md docs/_develop/_reference/compact/compact-std-library
+          cp ../doc/api/CompactStandardLibrary/README.md docs/_develop/_reference/compact/compact-std-library
+          cp ../doc/compiler-usage.md docs/_develop/_reference/tools/compiler-usage.mdx
+          cp -r ../doc/api/runtime/. ./docs/_develop/_reference/midnight-api/compact-runtime
+          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./docs/_develop/_reference/midnight-api/compact-runtime/README.md
           cp -r ../doc/Compact.html ./static/language/compact.html
           cp -r ../doc/ledger-adt.mdx ./static/language/ledger-adt.mdx
-          git add docs/develop/reference/compact/ledger-adt.mdx
-          git add docs/develop/reference/compact/lang-ref.mdx
-          git add docs/develop/reference/compact/compact-std-library/exports.md
-          git add docs/develop/reference/compact/compact-std-library/README.md
-          git add docs/develop/reference/tools/compiler-usage.mdx
-          git add docs/develop/reference/midnight-api/compact-runtime
+          git add docs/_develop/_reference/compact/ledger-adt.mdx
+          git add docs/_develop/_reference/compact/lang-ref.mdx
+          git add docs/_develop/_reference/compact/compact-std-library/exports.md
+          git add docs/_develop/_reference/compact/compact-std-library/README.md
+          git add docs/_develop/_reference/tools/compiler-usage.mdx
+          git add docs/_develop/_reference/midnight-api/compact-runtime
           git add static/language/compact.html
           git add static/language/ledger-adt.mdx
           git push -u origin compact-docs-update-${{ github.run_id }}
