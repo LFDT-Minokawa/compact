@@ -25,10 +25,10 @@ pub const COMPACT_VERSION: &str = "0.4.0";
 pub const PREVIOUS_COMPACT_VERSION: &str = "0.3.0";
 
 #[allow(dead_code)]
-pub const LATEST_COMPACTC_VERSION: &str = "0.26.0";
+pub const LATEST_COMPACTC_VERSION: &str = "0.28.0";
 
 #[allow(dead_code)]
-pub const PREVIOUS_COMPACTC_VERSION: &str = "0.25.0";
+pub const PREVIOUS_COMPACTC_VERSION: &str = "0.26.0";
 
 #[allow(dead_code)]
 pub const OLDEST_COMPACTC_VERSION: &str = "0.22.0";
