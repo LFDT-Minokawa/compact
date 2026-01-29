@@ -44,7 +44,7 @@ jobs:
           repo: ${{ env.GITHUB_REPOSITORY }}
 
       - name: AWS - Configure credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::851725512700:role/MidnightS3UploaderRole
           aws-region: eu-west-1
