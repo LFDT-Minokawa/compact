@@ -117,6 +117,7 @@ jobs:
           ref: "compact-docs-update-${{ github.run_id }}"
           token: ${{ secrets.MIDNIGHTCI_REPO }}
           repo: "midnight-docs"
+          owner: "midnightntwrk"
           workspace: "midnight-docs"
 
       - name: Pull and create PR
