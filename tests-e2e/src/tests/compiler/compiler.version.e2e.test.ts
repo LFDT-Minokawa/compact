@@ -29,7 +29,7 @@ import {
 } from '@';
 
 describe('[PM-21414] Compiler and language versions added to contract-info.json', () => {
-    const CONTRACT_FILE_PATH = buildPathTo('/compact/test.compact', 'test-center');
+    const CONTRACT_FILE_PATH = buildPathTo('counter.compact');
 
     test('should match both compiler and language versions', async () => {
         const outputDir = createTempFolder();
