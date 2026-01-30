@@ -18,6 +18,7 @@ import { describe, expect, test } from 'vitest';
 import { Project } from 'ts-morph';
 import {
     Arguments,
+    AssertContract,
     buildPathTo,
     compile,
     compilerDefaultOutput,
@@ -372,17 +373,21 @@ describe('[Bugs] Compiler', () => {
         expectFiles(outputDir).thatNoFilesAreGenerated();
     });
 
-//     test(`[PM-16603] should generate proper export names in contract-info.json`, async () => {
-//         const outputDir = createTempFolder();
-//         const contractDir = CONTRACTS_ROOT + 'pm-16603/';
-// 
-//         const result: Result = await compile([Arguments.SKIP_ZK, contractDir + 'pm-16603.compact', outputDir]);
-//         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-// 
-//         const expectedContractInfo = getFileContent(contractDir + 'contract-info.json');
-//         const actualContractInfo = getFileContent(outputDir + '/compiler/contract-info.json');
-//         expect(actualContractInfo).toEqual(expectedContractInfo);
-//     });
+    test(`[PM-16603] should generate proper export names in contract-info.json`, async () => {
+        const outputDir = createTempFolder();
+        const contractDir = CONTRACTS_ROOT + 'pm-16603/';
+
+        const result: Result = await compile([Arguments.SKIP_ZK, contractDir + 'pm-16603.compact', outputDir]);
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+
+        const actualContract = new AssertContract().expect(outputDir);
+        const actualContractInfo = actualContract.getContractInfoCircuits();
+
+        const expectedContract = new AssertContract().expect(contractDir);
+        const expectedContractInfo = expectedContract.getContractInfoCircuits();
+
+        expect(actualContractInfo?.keys()).toEqual(expectedContractInfo?.keys());
+    });
 
     describe('[PM-16893]', () => {
         test.each([
