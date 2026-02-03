@@ -164,6 +164,10 @@ export circuit mintShieldedToken(
   createZswapOutput(coin, recipient);
   const cm = coinCommitment(coin, recipient);
   kernel.claimZswapCoinSpend(cm);
+  // Auto-receive when minting to self
+  if (!recipient.is_left && recipient.right.bytes == kernel.self().bytes) {
+    kernel.claimZswapCoinReceive(cm);
+  }
   return coin;
 }
 
@@ -192,8 +196,7 @@ export circuit sendShielded(
 ): ShieldedSendResult {
   const selfAddr = kernel.self();
   createZswapInput(input);
-  kernel.claimZswapNullifier(
-    coinNullifier(downcastQualifiedCoin(input), selfAddr));
+  kernel.claimZswapNullifier(coinNullifier(downcastQualifiedCoin(input), selfAddr));
   const change = input.value - value;
   const output = ShieldedCoinInfo{
                    nonce: upgradeFromTransient(transientHash<Vector<2, Field>>(["midnight:kernel:nonce_evolve" as Field, degradeToTransient(input.nonce)])),
@@ -202,7 +205,13 @@ export circuit sendShielded(
                  };
   createZswapOutput(output, recipient);
   kernel.claimZswapCoinSpend(coinCommitment(output, recipient));
-  if(change == 0) {
+
+  // Auto-receive when sending to self
+  if (!recipient.is_left && recipient.right.bytes == selfAddr.bytes) {
+    kernel.claimZswapCoinReceive(coinCommitment(output, recipient));
+  }
+
+  if (change == 0) {
     return ShieldedSendResult{ change: none<ShieldedCoinInfo>(), sent: output };
   } else {
     const changeCoin = ShieldedCoinInfo{
@@ -326,12 +335,20 @@ export circuit mintUnshieldedToken(
   kernel.mintUnshielded(domainSep, amount);
   const color = tokenType(domainSep, kernel.self());
   kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(color), recipient, amount);
+  // Auto-receive when minting to self
+  if (recipient.is_left && recipient.left.bytes == kernel.self().bytes) {
+    kernel.incUnshieldedInputs(left<Bytes<32>, Bytes<32>>(color), amount);
+  }
   return color;
 }
 
 export circuit sendUnshielded(color: Bytes<32>, amount: Uint<128>, recipient: Either<ContractAddress, UserAddress>): [] {
   kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), amount);
   kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(color), recipient, amount);
+  // Auto-receive when sending to self
+  if (recipient.is_left && recipient.left.bytes == kernel.self().bytes) {
+    kernel.incUnshieldedInputs(left<Bytes<32>, Bytes<32>>(color), amount);
+  }
 }
 
 export circuit receiveUnshielded(color: Bytes<32>, amount: Uint<128>): [] {
