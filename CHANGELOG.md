@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler 0.28.109, language 0.20.102]
+
+### Fixed
+
+- The fixup tool fixup-compact.ss failed to look for include files and modules
+  relative to the directory of the source pathname.
+
 ## [Unreleased compiler 0.28.108, language 0.20.102]
 
 ### Removed
