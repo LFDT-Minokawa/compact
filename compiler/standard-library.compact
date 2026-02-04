@@ -43,14 +43,6 @@ export circuit right<A, B>(value: B): Either<A, B> {
   return Either<A, B>{ is_left: false, left: default<A>, right: value };
 }
 
-// Hashing
-export circuit transientHash<T>(value: T): Field;
-export circuit transientCommit<T>(value: T, rand: Field): Field;
-export circuit persistentHash<T>(value: T): Bytes<32>;
-export circuit persistentCommit<T>(value: T, rand: Bytes<32>): Bytes<32>;
-export circuit degradeToTransient(x: Bytes<32>) : Field;
-export circuit upgradeFromTransient(x: Field): Bytes<32>;
-
 // Elliptic Curves
 struct SimplePoint {
   x: Field;
@@ -66,11 +58,6 @@ export circuit nativePointY(np: NativePoint): Field {
 export circuit constructNativePoint(x: Field, y: Field): NativePoint {
   return NativePoint { x, y };
 }
-
-export circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;
-export circuit ecMul(a: NativePoint, b: Field): NativePoint;
-export circuit ecMulGenerator(b: Field): NativePoint;
-export circuit hashToCurve<T>(value: T): NativePoint;
 
 // Merkle trees
 export struct MerkleTreeDigest { field: Field; }
@@ -142,11 +129,6 @@ export struct ShieldedSendResult {
 export circuit nativeToken(): Bytes<32> {
   return pad(32, "");
 }
-
-// TS: Get from wallet
-export circuit ownPublicKey(): ZswapCoinPublicKey;
-export circuit createZswapInput(coin: QualifiedShieldedCoinInfo): [];
-export circuit createZswapOutput(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [];
 
 // Midnight helper circuits
 export circuit tokenType(domain_sep: Bytes<32>, contractAddress: ContractAddress): Bytes<32> {

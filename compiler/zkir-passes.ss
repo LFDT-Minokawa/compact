@@ -164,8 +164,6 @@
           (define std-circuits
             (let ([ht (make-hashtable symbol-hash eq?)])
               (define (register-handler! name handler)
-                (unless (hashtable-contains? native-table name)
-                  (internal-errorf 'print-zkir "undeclared native name ~s" name))
                 (let ([a (hashtable-cell ht name #f)])
                   (when (cdr a) (internal-errorf 'print-zkir "duplicate circuit name ~s" name))
                   (set-cdr! a handler)))
@@ -306,7 +304,7 @@
              (for-each Statement stmt*)
              (for-each (lambda (triv) (print-gate "output" `[var ,(Triv triv)])) triv*)
              (printf "\n  ]\n"))]
-          [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+          [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
            (if (eq? (native-entry-class native-entry) 'witness)
                (begin
                  (set-calltype! function-name '(witness . #f))
@@ -314,7 +312,7 @@
                (set-calltype! function-name
                  (cons*
                    'builtin-circuit
-                   (native-entry-name native-entry)
+                   (id-sym function-name)
                    (list (map (lambda (arg)
                                 (nanopass-case (Lflattened Argument) arg
                                   [(argument (,var-name ...) (ty (,alignment* ...) (,primitive-type* ...)))

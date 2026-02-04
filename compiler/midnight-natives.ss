@@ -13,77 +13,72 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
-(declare-native-entry external transientHash [A]
+(declare-native-entry circuit transientHash [A]
   "__compactRuntime.transientHash"
-  ([A (discloses "a hash of")])
+  ([value A (discloses "a hash of")])
   Field)
 
-(declare-native-entry external transientCommit [A]
+(declare-native-entry circuit transientCommit [A]
   "__compactRuntime.transientCommit"
-  ([A (discloses nothing)] [Field (discloses nothing)])
+  ([value A (discloses nothing)]
+   [rand Field (discloses nothing)])
   Field)
 
-(declare-native-entry external persistentHash [A]
+(declare-native-entry circuit persistentHash [A]
   "__compactRuntime.persistentHash"
-  ([A (discloses "a hash of")])
+  ([value A (discloses "a hash of")])
   (Bytes 32))
 
-(declare-native-entry external persistentCommit [A]
+(declare-native-entry circuit persistentCommit [A]
   "__compactRuntime.persistentCommit"
-  ([A (discloses nothing)] [(Bytes 32) (discloses nothing)])
+  ([value A (discloses nothing)]
+   [rand (Bytes 32) (discloses nothing)])
   (Bytes 32))
 
-(declare-native-entry external degradeToTransient
+(declare-native-entry circuit degradeToTransient
   "__compactRuntime.degradeToTransient"
-  ([(Bytes 32) (discloses "a modulus of")])
+  ([x (Bytes 32) (discloses "a modulus of")])
   Field)
 
-(declare-native-entry external upgradeFromTransient
+(declare-native-entry circuit upgradeFromTransient
   "__compactRuntime.upgradeFromTransient"
-  ([Field (discloses "a converted form of")])
+  ([x Field (discloses "a converted form of")])
   (Bytes 32))
 
-(declare-native-entry external ecAdd
+(declare-native-entry circuit ecAdd
   "__compactRuntime.ecAdd"
-  ([(Alias NativePoint) (discloses "an elliptic curve sum including")] [(Alias NativePoint) (discloses "an elliptic curve sum including")])
-  (Alias NativePoint))
+  ([a (TypeRef NativePoint) (discloses "an elliptic curve sum including")]
+   [b (TypeRef NativePoint) (discloses "an elliptic curve sum including")])
+  (TypeRef NativePoint))
 
-(declare-native-entry external ecMul
+(declare-native-entry circuit ecMul
   "__compactRuntime.ecMul"
-  ([(Alias NativePoint) (discloses "an elliptic curve product including")] [Field (discloses "an elliptic curve product including")])
-  (Alias NativePoint))
+  ([a (TypeRef NativePoint) (discloses "an elliptic curve product including")]
+   [b Field (discloses "an elliptic curve product including")])
+  (TypeRef NativePoint))
 
-(declare-native-entry external ecMulGenerator
+(declare-native-entry circuit ecMulGenerator
   "__compactRuntime.ecMulGenerator"
-  ([Field (discloses "the product of the embedded group generator with")])
-  (Alias NativePoint))
+  ([b Field (discloses "the product of the embedded group generator with")])
+  (TypeRef NativePoint))
 
-(declare-native-entry external hashToCurve [A]
+(declare-native-entry circuit hashToCurve [A]
   "__compactRuntime.hashToCurve"
-  ([A (discloses "a hash of")])
-  (Alias NativePoint))
+  ([value A (discloses "a hash of")])
+  (TypeRef NativePoint))
 
 (declare-native-entry witness ownPublicKey
   "__compactRuntime.ownPublicKey"
   ()
-  (Struct (Bytes 32)))
+  (TypeRef ZswapCoinPublicKey))
 
 (declare-native-entry witness createZswapInput
   "__compactRuntime.createZswapInput"
-  ([(Struct (Bytes 32) (Bytes 32) (Uint 128) (Uint 64)) (discloses nothing)])
+  ([coin (TypeRef QualifiedShieldedCoinInfo) (discloses nothing)])
   Void)
 
 (declare-native-entry witness createZswapOutput
   "__compactRuntime.createZswapOutput"
-  ([(Struct (Bytes 32) (Bytes 32) (Uint 128)) (discloses nothing)]
-   [(Struct Boolean (Struct (Bytes 32)) (Struct (Bytes 32))) (discloses nothing)])
+  ([coin (TypeRef ShieldedCoinInfo) (discloses nothing)]
+   [recipient (TypeRef Either (TypeRef ZswapCoinPublicKey) (TypeRef ContractAddress)) (discloses nothing)])
   Void)
-
-#|
-; this should be uncommented when the justfortesting tests are uncommented in test.ss
-; used for testing type parametization unification errors
-(declare-native-entry justfortesting [A]
-  "__compactRuntime.transientHash"
-  (A A)
-  A)
-|#

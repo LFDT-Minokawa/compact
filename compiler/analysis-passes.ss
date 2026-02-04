@@ -613,6 +613,7 @@
                                     (let ([info (Info-module
                                                   '()
                                                   (append standard-library-pelt*
+                                                          (native-declarations)
                                                           (map (lambda (adt-defn)
                                                                   (nanopass-case (Lpreexpand ADT-Definition) adt-defn
                                                                     [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -772,8 +773,8 @@
                      (loop pelt* seqno* export* unresolved-export*)]
                     [(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg ...) ,type ,expr)
                      (handle-fun src 'circuit pelt exported? function-name type-param*)]
-                    [(external ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
-                     (handle-fun src 'external pelt exported? function-name type-param*)]
+                    [(native ,src ,exported? ,function-name ,native-entry (,type-param* ...) (,arg* ...) ,type)
+                     (handle-fun src 'native pelt exported? function-name type-param*)]
                     [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
                      (handle-fun src 'witness pelt exported? function-name type-param*)]
                     [(external-contract ,src ,exported? ,contract-name (,src* ,pure-dcl* ,function-name* ((,src** ,var-name** ,type**) ...) ,type*) ...)
@@ -902,23 +903,6 @@
                                  adt-rt-op*)])
             (with-output-language (Lexpanded Type)
               `(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))))))
-      (define (get-native-entry src external-name ndeclared)
-        (let ([external-name
-               (cond
-                 [(hashtable-ref native-aliases external-name #f) =>
-                  (lambda (new-external-name)
-                    (record-alias! src external-name new-external-name)
-                    new-external-name)]
-                 [else external-name])])
-          (let ([x (hashtable-ref native-table external-name #f)])
-            (unless x (source-errorf src "unrecognized native entry ~s" external-name))
-            (let ([nexpected (length (native-entry-argument-types x))])
-              (unless (= nexpected ndeclared)
-                (source-errorf src "mismatch between declared argument count ~s and expected argument count ~s for native ~s"
-                               ndeclared
-                               nexpected
-                               external-name)))
-            x)))
       (define (check-length! src what len)
         (unless (len? len)
           (source-errorf src "~a length\n  ~d\n  exceeds the maximum supported length ~d"
@@ -1075,9 +1059,8 @@
              var-id*)
            (when pure-dcl? (id-pure?-set! id #t)))
          `(circuit ,src ,id (,arg* ...) ,type ,(Expression expr p)))]
-      [(external ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type])
-       (let ([native-entry (get-native-entry src function-name (length arg*))])
-         `(external ,src ,id ,native-entry (,arg* ...) ,type))]
+      [(native ,src ,exported? ,function-name ,native-entry (,type-param* ...) (,[arg*] ...) ,[type])
+       `(native ,src ,id ,native-entry (,arg* ...) ,type)]
       [(witness ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type])
        `(witness ,src ,id (,arg* ...) ,type)]
       [(public-ledger-declaration ,src ,exported? ,sealed? ,ledger-field-name ,[type])
@@ -2154,109 +2137,7 @@
             (set-idtype! name (Idtype-Function kind var-name* type* type)))))
       [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
        (build-function 'circuit function-name arg* type)]
-      [(external ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
-       (define param-ht (make-hashtable symbol-hash eq?))
-       (define failed-unification #f)
-       (define (format-native-nat native-nat)
-         (native-nat-case native-nat
-           [(native-nat-value n) (format "~d" n)]
-           [(native-nat-param name) (format "~a" name)]))
-       (define (format-native-type native-type)
-         (native-type-case native-type
-           [(native-type-boolean) "Boolean"]
-           [(native-type-field) "Field"]
-           [(native-type-unsigned native-nat) (format "Uint<~a>" (format-native-nat native-nat))]
-           [(native-type-bytes native-nat) (format "Bytes<~a>" (format-native-nat native-nat))]
-           [(native-type-vector native-nat native-type)
-            (format "Vector<~a, ~a>" (format-native-nat native-nat) (format-native-type native-type))]
-           [(native-type-struct native-type*)
-            (format "Struct<~{~a~^, ~}>" (map format-native-type native-type*))]
-           [(native-type-alias name) (format "~a" name)]
-           ; this can be tested by uncommenting the justfortesting in test.ss and midnight-natives.ss
-           [(native-type-param name) (format "~a" name)]
-           [(native-type-void) "[]"]))
-       (define (verify-native-nat native-nat nat p2?)
-         (native-nat-case native-nat
-           [(native-nat-value n) (= (if p2? (sub1 (expt 2 n)) n) nat)]
-           [(native-nat-param name)
-            (let ([a (hashtable-cell param-ht name #f)])
-              (if (cdr a)
-                  (or (= (cdr a) nat)
-                      (begin
-                        (set! failed-unification (format "~a previously matched to ~a" name (cdr a)))
-                        #f))
-                  (begin
-                    (set-cdr! a nat)
-                    #t)))]))
-       (define (verify-native-type native-type type)
-         (let ([type (de-alias type #f)])
-           (native-type-case native-type
-             [(native-type-boolean)
-              (nanopass-case (Ltypes Type) type
-                [(tboolean ,src) #t]
-                [else #f])]
-             [(native-type-field)
-              (nanopass-case (Ltypes Type) type
-                [(tfield ,src) #t]
-                [else #f])]
-             [(native-type-unsigned native-nat)
-              (nanopass-case (Ltypes Type) type
-                [(tunsigned ,src ,nat) (verify-native-nat native-nat nat #t)]
-                [else #f])]
-             [(native-type-bytes native-nat)
-              (nanopass-case (Ltypes Type) type
-                [(tbytes ,src ,len)
-                 (verify-native-nat native-nat len #f)]
-                [else #f])]
-             [(native-type-vector native-nat native-type)
-              (nanopass-case (Ltypes Type) type
-                [(tvector ,src ,len ,type)
-                 (and (verify-native-nat native-nat len #f)
-                      (verify-native-type native-type type))]
-                [else #f])]
-             [(native-type-struct native-type*)
-              (nanopass-case (Ltypes Type) type
-                [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
-                 (and (= (length type*) (length native-type*))
-                      (andmap verify-native-type native-type* type*))]
-                [else #f])]
-             [(native-type-alias name)
-              (nanopass-case (Ltypes Type) type
-                [(talias ,src^ ,nominal? ,type-name ,type) (eq? type-name name)]
-                [else #f])]
-             [(native-type-param name)
-              (let ([a (hashtable-cell param-ht name #f)])
-                (if (cdr a)
-                    (or (sametype? type (cdr a))
-                        (begin
-                          (set! failed-unification (format "~a previously matched to ~a" name (format-type (cdr a))))
-                          #f))
-                    (begin
-                      (set-cdr! a type)
-                      #t)))]
-             [(native-type-void)
-              (nanopass-case (Ltypes Type) type
-                [(ttuple ,src) #t]
-                [else #f])])))
-       (for-each
-         (lambda (native-type type argno)
-           (unless (verify-native-type native-type type)
-             (source-errorf src "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]"
-                            (format-type type)
-                            (format-native-type native-type)
-                            (fx+ argno 1)
-                            (id-sym function-name)
-                            failed-unification)))
-         (native-entry-argument-types native-entry)
-         (map arg->type arg*)
-         (enumerate arg*))
-       (let ([native-type (native-entry-result-type native-entry)])
-         (unless (verify-native-type native-type type)
-           (source-errorf src "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]"
-                          (format-type type)
-                          (format-native-type native-type)
-                          (id-sym function-name)
-                          failed-unification)))
+      [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
        (build-function 'circuit function-name arg* type)]
       [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
        (when (contains-contract? type)
@@ -2304,9 +2185,9 @@
            (enumerate arg*)))
        (let-values ([(expr return-type) (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)])
          `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
-    (External-Declaration : External-Declaration (ir) -> External-Declaration ()
-      [(external ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
-       `(external ,src ,function-name ,native-entry (,arg* ...) ,type)])
+    (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
+      [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
+       `(native ,src ,function-name ,native-entry (,arg* ...) ,type)])
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
       [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
        `(witness ,src ,function-name (,arg* ...) ,type)])
@@ -3349,7 +3230,7 @@
       (define (ipelt->function-name ipelt)
         (nanopass-case (Loneledger Program-Element) (ipelt-pelt ipelt)
           [(circuit ,src ,function-name (,arg* ...) ,type ,expr) function-name]
-          [(external ,src ,function-name ,native-entry (,arg* ...) ,type) function-name]
+          [(native ,src ,function-name ,native-entry (,arg* ...) ,type) function-name]
           [(witness ,src ,function-name (,arg* ...) ,type) function-name]
           [else #f]))
       (define (exported? ipelt)
@@ -3736,7 +3617,7 @@
             (set-idtype! name (Idtype-Function kind var-name* type* type)))))
       [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
        (build-function 'circuit function-name arg* type)]
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (build-function 'circuit function-name arg* type)]
       [(witness ,src ,function-name (,arg* ...) ,type)
        (build-function 'witness function-name arg* type)]
@@ -4234,7 +4115,7 @@
   (define-pass check-sealed-fields : Lnodca (ir) -> Lnodca ()
     ; this pass complains if a sealed field can be modified by an exported circuit or any
     ; circuit that is reachable from an exported circuit.  we presently assume that no
-    ; witnesses or external circuits can modify any sealed fields.
+    ; witnesses or natives can modify any sealed fields.
     (definitions
       (define-condition-type &sealed-condition &condition
         make-sealed-condition sealed-condition?
@@ -4438,7 +4319,7 @@
   (define-pass identify-pure-circuits : Lnodca (ir) -> Lnodca ()
     ; impure circuits are those that might touch public state, call any witnesses, or
     ; call any other impure circuits.  pure circuits are those that are not impure.
-    ; we presently assume that all external circuits are pure.
+    ; we presently assume that all native circuits are pure.
     (definitions
       (define-condition-type &impure-condition &condition
         make-impure-condition impure-condition?
@@ -4469,9 +4350,9 @@
               [(eq? result 'witness)
                (raise (make-impure-condition calling-function-name src
                         (format "calls witness ~s" (id-sym function-name))))]
-              [(eq? result 'impure-external)
+              [(eq? result 'native-witness)
                (raise (make-impure-condition calling-function-name src
-                        (format "calls impure external ~s" (id-sym function-name))))]
+                        (format "calls native witness ~s" (id-sym function-name))))]
               [(impure-condition? result) (raise-continuable result)]
               [(eq? result 'inprocess-circuit) (assert cannot-happen)] ; should have been caught by reject-recursive-circuits
               [else (assert cannot-happen)]))))
@@ -4489,10 +4370,10 @@
     (record-function-kind! : Program-Element (ir) -> * (void)
       [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
        (eq-hashtable-set! function-ht function-name expr)]
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (eq-hashtable-set! function-ht function-name
          (if (eq? (native-entry-class native-entry) 'witness)
-             'impure-external
+             'native-witness
              (begin
                (id-pure?-set! function-name #t)
                'pure-circuit)))]
@@ -4808,7 +4689,7 @@
       (define-datatype Fun
         (Fun-circuit src name var-name* expr uid)
         (Fun-witness abs)
-        (Fun-external disclosure?* type))
+        (Fun-native disclosure?* type))
 
       ; instances of the Cell datatype represent different stages in the processing of a function call
       (define-datatype Call
@@ -5160,7 +5041,7 @@
                        (set-cdr! a (Call-processed abs))
                        abs))))]
             [(Fun-witness abs) abs]
-            [(Fun-external disclosure?* type)
+            [(Fun-native disclosure?* type)
              (assert (fx= (length disclosure?*) (length abs*)))
              (default-value type
                (fold-left
@@ -5302,9 +5183,9 @@
       [(circuit ,src ,function-name ((,var-name* ,type*) ...) ,type ,expr)
        (hashtable-set! function-ht function-name
          (Fun-circuit src function-name var-name* expr (next-circuit-uid)))]
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (hashtable-set! function-ht function-name
-         (Fun-external (native-entry-disclosures native-entry) type))]
+         (Fun-native (native-entry-disclosure* native-entry) type))]
       [(witness ,src ,function-name (,arg* ...) ,type)
        (hashtable-set! function-ht function-name
          (Fun-witness

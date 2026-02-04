@@ -338,7 +338,7 @@
                              ,(circuit-type circuit)
                              ,(circuit-expr circuit))
                           pelt*)))]
-                 [,edecl (cons (External-Declaration edecl) pelt*)]
+                 [,ndecl (cons (Native-Declaration ndecl) pelt*)]
                  [,wdecl (cons (Witness-Declaration wdecl) pelt*)]
                  [,kdecl (cons (Kernel-Declaration kdecl) pelt*)]
                  [,ldecl (cons (Ledger-Declaration ldecl) pelt*)]))
@@ -350,7 +350,7 @@
        (hashtable-set! circuit-ht function-name
          (make-circuit src function-name arg* type expr))]
       [else (void)])
-    (External-Declaration : External-Declaration (ir) -> External-Declaration ())
+    (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ())
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ())
     (Ledger-Declaration : Ledger-Declaration (ir) -> Ledger-Declaration ())
     (Kernel-Declaration : Kernel-Declaration (ir) -> Kernel-Declaration ())
@@ -556,7 +556,7 @@
             (set-idtype! name (Idtype-Function kind var-name* type* type)))))
       [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
        (build-function 'circuit function-name arg* type)]
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (build-function 'circuit function-name arg* type)]
       [(witness ,src ,function-name (,arg* ...) ,type)
        (build-function 'witness function-name arg* type)]
@@ -2249,17 +2249,17 @@
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
-       ; like map but arranges to process external declarations first
-       ; so that their fun-ht entries are available before processing
-       ; any circuits
        `(program ,src ((,export-name* ,name*) ...)
+          ; like map but arranges to process native and witness declarations first
+          ; so that their fun-ht entries are available before processing
+          ; any circuits
           ,(let f ([pelt* pelt*])
              (if (null? pelt*)
                '()
                (let ([pelt (car pelt*)] [pelt* (cdr pelt*)])
                  (cond
-                   [(Lcircuit-External-Declaration? pelt)
-                    (let ([pelt (External-Declaration pelt)])
+                   [(Lcircuit-Native-Declaration? pelt)
+                    (let ([pelt (Native-Declaration pelt)])
                       (cons pelt (f pelt*)))]
                    [(Lcircuit-Witness-Declaration? pelt)
                     (let ([pelt (Witness-Declaration pelt)])
@@ -2275,11 +2275,11 @@
                       (cons (Ledger-Declaration pelt) pelt*))]
                    [else (assert cannot-happen)]))))
           ...)])
-    (External-Declaration : External-Declaration (ir) -> External-Declaration ()
-      [(external ,src ,function-name ,native-entry ((,var-name* ,[Type->Wump : type* -> * wump*]) ...) ,[Type->Wump : type -> * wump])
+    (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
+      [(native ,src ,function-name ,native-entry ((,var-name* ,[Type->Wump : type* -> * wump*]) ...) ,[Type->Wump : type -> * wump])
        (let ([arg* (map do-argument var-name* type* wump*)] [primitive-type* (wump->elts wump)])
          (hashtable-set! fun-ht function-name wump)
-         `(external ,src ,function-name ,native-entry (,arg* ...) ,(build-type type primitive-type*)))])
+         `(native ,src ,function-name ,native-entry (,arg* ...) ,(build-type type primitive-type*)))])
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
       [(witness ,src ,function-name ((,var-name* ,[Type->Wump : type* -> * wump*]) ...) ,[Type->Wump : type -> * wump])
        (let ([arg* (map do-argument var-name* type* wump*)] [primitive-type* (wump->elts wump)])
@@ -3294,7 +3294,7 @@
            (for-each Program-Element pelt*)
            ir))])
     (Set-Program-Element-Type! : Program-Element (ir) -> * (void)
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (let ([var-name* (apply append (map arg->names arg*))]
              [arg-type* (apply append (map arg->types arg*))]
              [type* (type->primitive-types type)])

@@ -195,13 +195,13 @@
                 (type-descriptors ,descriptor-table (,descriptor-id* ,type*) ...)
                 ,pelt* ...))))])
     (Program-Element : Program-Element (ir) -> Program-Element ()
-      [(external ,src ,function-name ,native-entry (,[arg*] ...) ,[type])
+      [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[type])
        ;; TODO: We shouldn't actually need to register all these
        ;; descriptors, just the generic arguments.
        ;; But those aren't around anymore, so this is a safe stand-in.
        (for-each register-descriptor! (map arg->type arg*))
        (maybe-register-descriptor! type)
-       `(external ,src ,function-name ,native-entry (,arg* ...) ,type)]
+       `(native ,src ,function-name ,native-entry (,arg* ...) ,type)]
       [(witness ,src ,function-name (,[arg*] ...) ,[type])
        (maybe-register-descriptor! type)
        `(witness ,src ,function-name (,arg* ...) ,type)])
@@ -437,7 +437,7 @@
         (XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
         (XPelt-internal-circuit src internal-id arg* type stmt pure?)
         (XPelt-witness src internal-id arg* type external-name)
-        (XPelt-external-circuit src internal-id native-entry arg* type external-name pure?)
+        (Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
         (XPelt-type-definition src type-name export-name tvar-name* type)
         (XPelt-public-ledger pl-array lconstructor external-names)
         (XPelt-ledger-kernel))
@@ -449,7 +449,7 @@
            (format-internal-binding unique-global-name internal-id)]
           [(XPelt-witness src internal-id arg* type external-name)
            (format-internal-binding unique-global-name internal-id)]
-          [(XPelt-external-circuit src internal-id native-entry arg* type external-name pure?)
+          [(Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
            (format-internal-binding unique-global-name internal-id)]
           [(XPelt-type-definition src type-name export-name tvar-name* type) #f]
           [(XPelt-public-ledger pl-array lconstructor external-names) #f]
@@ -1995,7 +1995,7 @@
                (print-local-circuit src internal-id arg* stmt pure?)]
               [(XPelt-witness src internal-id arg* type external-name)
                (print-external-witness src internal-id uname arg* type external-name)]
-              [(XPelt-external-circuit src internal-id native-entry arg* type external-name pure?)
+              [(Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
                (print-external-circuit src internal-id native-entry uname arg* type external-name pure?)]
               [else (void)]))
 
@@ -2033,17 +2033,14 @@
                       (apply (make-Qsep ",")
                              (fold-right
                                (let ([ht (make-hashtable symbol-hash eq?)])
-                                 (lambda (native-type type q*)
-                                   (native-type-case native-type
-                                     [(native-type-param name)
-                                      (if (hashtable-contains? ht name)
-                                          q*
-                                          (begin
-                                            (hashtable-set! ht name #t)
-                                            (cons
-                                              (type->descriptor-name type)
-                                              q*)))]
-                                      [else q*])))
+                                 (lambda (maybe-type-param type q*)
+                                   (if (and maybe-type-param (not (hashtable-contains? ht maybe-type-param)))
+                                       (begin
+                                         (hashtable-set! ht maybe-type-param #t)
+                                         (cons
+                                           (type->descriptor-name type)
+                                           q*))
+                                       q*)))
                                (let ([arg-q* (map (lambda (arg)
                                                     (let ([var-name (arg->id arg)])
                                                       (make-Qconcat/src
@@ -2053,9 +2050,7 @@
                                  (if (eq? (native-entry-class native-entry) 'witness)
                                      (cons "context" arg-q*)
                                      arg-q*))
-                               (append
-                                 (native-entry-argument-types native-entry)
-                                 (list (native-entry-result-type native-entry)))
+                               (native-entry-maybe-type-param* native-entry)
                                (append
                                  (map arg->type arg*)
                                  (list type))))
@@ -2566,9 +2561,9 @@
       [(witness ,src ,function-name (,arg* ...) ,type)
        (let ([external-name (symbol->string (id-sym function-name))])
          (XPelt-witness src function-name arg* type external-name))]
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (let ([external-name (symbol->string (id-sym function-name))])
-         (XPelt-external-circuit src function-name native-entry arg* type external-name (id-pure? function-name)))]
+         (Xpelt-native-circuit src function-name native-entry arg* type external-name (id-pure? function-name)))]
       [(export-typedef ,src ,type-name (,tvar-name* ...) ,type)
        (let ([actual-type-name
               (nanopass-case (Ltypescript Type) type

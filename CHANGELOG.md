@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased compiler 0.28.108, language 0.20.102]
+
+### Removed
+
+- The syntax for external circuits, i.e., circuit definitions with no body,
+  has been removed.  This syntax was used exclusively for declaring built-in
+  natives and was not useful outside of the compiler.
+
+### Internal notes
+
+- The compiler now injects natives directly into the standard library module.
+  This is simpler and gives us a single source of truth for natives.
+
 ## [Unreleased compiler 0.28.107, language 0.20.101]
 
 ### Fixed

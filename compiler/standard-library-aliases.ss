@@ -14,7 +14,7 @@
 ;;; limitations under the License.
 
 (library (standard-library-aliases)
-  (export native-aliases stdlib-circuit-aliases stdlib-struct-field-aliases ledger-op-aliases)
+  (export stdlib-circuit-aliases stdlib-struct-field-aliases ledger-op-aliases)
   (import (chezscheme))
 
   (define (to-symbol-hashtable alist)
@@ -23,22 +23,6 @@
         (lambda (a) (hashtable-set! ht (car a) (cdr a)))
         alist)
       ht))
-
-  (define native-aliases
-    (to-symbol-hashtable
-      '((transient_hash . transientHash)
-        (transient_commit . transientCommit)
-        (persistent_hash . persistentHash)
-        (persistent_commit . persistentCommit)
-        (degrade_to_transient . degradeToTransient)
-        (upgrade_from_transient . upgradeFromTransient)
-        (ec_add . ecAdd)
-        (ec_mul . ecMul)
-        (ec_mul_generator . ecMulGenerator)
-        (hash_to_curve . hashToCurve)
-        (own_public_key . ownPublicKey)
-        (create_zswap_input . createZswapInput)
-        (create_zswap_output . createZswapOutput))))
 
   (define stdlib-circuit-aliases
     '((transient_hash . transientHash)

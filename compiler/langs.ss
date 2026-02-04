@@ -28,6 +28,7 @@
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
           Lexpr unparse-Lexpr Lexpr-pretty-formats
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
+          native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
@@ -45,11 +46,11 @@
           Linlined unparse-Linlined Linlined-pretty-formats
           Lnosafecast unparse-Lnosafecast Lnosafecast-pretty-formats
           Lnovectorref unparse-Lnovectorref Lnovectorref-pretty-formats
-          Lcircuit unparse-Lcircuit Lcircuit-pretty-formats Lcircuit-External-Declaration? Lcircuit-Witness-Declaration? Lcircuit-Circuit-Definition? Lcircuit-Kernel-Declaration? Lcircuit-Ledger-Declaration? Lcircuit-Triv?
+          Lcircuit unparse-Lcircuit Lcircuit-pretty-formats Lcircuit-Native-Declaration? Lcircuit-Witness-Declaration? Lcircuit-Circuit-Definition? Lcircuit-Kernel-Declaration? Lcircuit-Ledger-Declaration? Lcircuit-Triv?
           Lflattened unparse-Lflattened Lflattened-pretty-formats Lflattened-Triv? Lflattened-Circuit-Definition?
           Lzkir unparse-Lzkir Lzkir-pretty-formats
           )
-  (import (chezscheme) (nanopass) (nanopass-extension) (field) (natives))
+  (import (chezscheme) (nanopass) (nanopass-extension) (field))
 
   ; field-bits is the number of full bits that can be represented by a field value and is
   ; necessarily smaller than the number of bits required to represent the maximum field value
@@ -130,7 +131,6 @@
       ldecl
       lconstructor
       cdefn
-      edecl
       wdecl
       ecdecl
       structdef
@@ -169,10 +169,6 @@
     (Circuit-Definition (cdefn)
       (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type blck) =>
         (circuit exported? pure-dcl? function-name (type-param* ...) (parg* 0 ...) 4 type #f blck)
-      )
-    (External-Declaration (edecl)
-      (external src exported? function-name (type-param* ...) (arg* ...) type) =>
-        (external exported? function-name (type-param* ...) (arg* 0 ...) 4 type)
       )
     (Witness-Declaration (wdecl)
       (witness src exported? function-name (type-param* ...) (arg* ...) type) =>
@@ -391,6 +387,10 @@
          (or src expr1 expr2)
          (not src expr))))
 
+  (define-record-type native-entry
+    (nongenerative)
+    (fields function class disclosure* maybe-type-param*))
+
   (define-language/pretty Lpreexpand (extends Lnoandornot)
     (terminals
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
@@ -399,10 +399,15 @@
          (string (prefix mesg opaque-type file discloses))
          (procedure (result-type runtime-code))
          (vm-expr (vm-expr))
-         (vm-code (vm-code))))
+         (vm-code (vm-code))
+         (native-entry (native-entry))))
     (Program-Element (pelt)
-      (+ adt-defn
+      (+ ndecl
+         adt-defn
          circuit-alias-defn))
+    (Native-Declaration (ndecl)
+      (+ (native src exported? function-name native-entry (type-param* ...) (arg* ...) type) =>
+           (native function-name (type-param* ...) (arg* 0 ...) 4 type)))
     (ADT-Definition (adt-defn)
       (+ (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
            (define-adt exported? adt-name #f (type-param* 0 ...) #f (adt-op* 0 ...) #f (adt-rt-op* 0 ...))))
@@ -474,8 +479,7 @@
       (+ (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name opaque-type-name ledger-op ledger-op-class adt-name adt-formal symbolic-function-name generic-kind))
          (boolean (pure-dcl nominal))
          (id (name var-name function-name ledger-field-name))
-         (string (mesg opaque-type file discloses))
-         (native-entry (native-entry))))
+         (string (mesg opaque-type file discloses))))
     (Program (p)
       (- (program src pelt* ...))
       (+ (program src ((export-name* name*) ...) (unused-pelt* ...) (ecdecl* ...) pelt* ...)
@@ -521,10 +525,10 @@
       (- file))
     (Export-Declaration (xdecl)
       (- (export src (src* name*) ...)))
-    (External-Declaration (edecl)
-      (- (external src exported? function-name (type-param* ...) (arg* ...) type))
-      (+ (external src function-name native-entry (arg* ...) type) =>
-           (external function-name (arg* 0 ...) 4 type)))
+    (Native-Declaration (ndecl)
+      (- (native src exported? function-name native-entry (type-param* ...) (arg* ...) type))
+      (+ (native src function-name native-entry (arg* ...) type) =>
+           (native function-name (arg* 0 ...) 4 type)))
     (Witness-Declaration (wdecl)
       (- (witness src exported? function-name (type-param* ...) (arg* ...) type))
       (+ (witness src function-name (arg* ...) type) =>
@@ -620,7 +624,7 @@
       (program src (contract-name* ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
     (Program-Element (pelt)
       cdefn
-      edecl
+      ndecl
       wdecl
       ldecl
       lconstructor
@@ -628,9 +632,9 @@
     (Circuit-Definition (cdefn)
       (circuit src function-name (arg* ...) type expr) =>
         (circuit function-name (arg* 0 ...) 4 type #f expr))
-    (External-Declaration (edecl)
-      (external src function-name native-entry (arg* ...) type) =>
-        (external function-name (arg* 0 ...) 4 type))
+    (Native-Declaration (ndecl)
+      (native src function-name native-entry (arg* ...) type) =>
+        (native function-name (arg* 0 ...) 4 type))
     (Witness-Declaration (wdecl)
       (witness src function-name (arg* ...) type) =>
         (witness function-name (arg* 0 ...) 4 type))
@@ -961,9 +965,9 @@
       )
     (Program (p)
       (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
-    (Program-Element (pelt) cdefn edecl wdecl kdecl ldecl)
-    (External-Declaration (edecl)
-      (external src function-name native-entry (arg* ...) type) => (external function-name (arg* 0 ...) 4 type))
+    (Program-Element (pelt) cdefn ndecl wdecl kdecl ldecl)
+    (Native-Declaration (ndecl)
+      (native src function-name native-entry (arg* ...) type) => (native function-name (arg* 0 ...) 4 type))
     (Witness-Declaration (wdecl)
       (witness src function-name (arg* ...) type) => (witness function-name (arg* 0 ...) 4 type))
     (Circuit-Definition (cdefn)

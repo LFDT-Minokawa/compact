@@ -57,7 +57,7 @@
           [else #f]))
 
       ;; Handling calls (to witnesses and natives) in the IR.  There is a table of code generators
-      ;; for witness-like callables and external natives.
+      ;; for witness-like callables and natives.
       (define callable-ht (make-eq-hashtable))
 
       (define (make-witness primitive-type*)
@@ -147,13 +147,13 @@
                                                       (,primitive-type* ...)))
            (assert (not (hashtable-contains? callable-ht function-name))) 
            (hashtable-set! callable-ht function-name (make-witness primitive-type*))]
-          [(external ,src ,function-name ,native-entry (,arg* ...) (ty (,alignment* ...)
+          [(native ,src ,function-name ,native-entry (,arg* ...) (ty (,alignment* ...)
                                                                      (,primitive-type* ...)))
            (assert (not (hashtable-contains? callable-ht function-name)))
            (hashtable-set! callable-ht function-name
              (if (eq? (native-entry-class native-entry) 'witness)
                  (make-witness primitive-type*)
-                 (make-native (native-entry-name native-entry) arg*)))]
+                 (make-native (id-sym function-name) arg*)))]
           [else (void)]))
 
       ;; ==== Impact Assembler ====
@@ -575,7 +575,7 @@
                      (cons export-name (hashtable-ref export-ht name '()))))
          export-name* name*)
 
-       ;; Process witness and external declarations in a separate pass over the program elements
+       ;; Process witness and native declarations in a separate pass over the program elements
        ;; because we don't assume that they precede their uses (that's not enforced by the syntax).
        (for-each declare-callable pelt*)
        

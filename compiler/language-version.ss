@@ -19,7 +19,7 @@
   (export language-version-string check-language-version)
   (import (chezscheme) (version))
 
-  (define language-version (make-version 'language 0 20 101))
+  (define language-version (make-version 'language 0 20 102))
 
   (define language-version-string (make-version-string language-version))
 

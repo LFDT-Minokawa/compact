@@ -1391,8 +1391,6 @@ groups than for single tests.
       ""
       "sealed ledger L: C;"
       ""
-      "export circuit foo<T>(x: T, y: Field): Vector<3, T>;"
-      ""
       "circuit rat(): Vector<1, Vector<2, S>> {"
       "  const q = S {x: 3, y: 4};"
       "  const q = // S is ..."
@@ -1451,8 +1449,6 @@ groups than for single tests.
         (export a b)
         (export a b)
         (public-ledger-declaration #f #t L (type-ref C))
-        (external #t foo (T) ([x (type-ref T)] [y (tfield)])
-             (tvector 3 (type-ref T)))
         (circuit #f #f rat () ()
              (tvector 1 (tvector 2 (type-ref S)))
           (block
@@ -2812,7 +2808,6 @@ groups than for single tests.
       "circuit fairlylongcircuitname2<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> {"
       "  return (vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>, vector3: Vector<sizeX, typeB>): Vector<sizeX, typeA> => { return vector1; }(vector1, vector2, vector3);"
       "}"
-      "circuit fairlylongnativename<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
       "witness fairlylongwitnessname<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
       )
     (output-file "compiler/testdir/formatter/testfile.compact"
@@ -2859,11 +2854,6 @@ groups than for single tests.
         "           vector3"
         "           );"
         "}"
-        ""
-        "circuit fairlylongnativename<typeA, typeB, sizeX>("
-        "          vector1: Vector<sizeX, typeA>,"
-        "          vector2: Vector<sizeX, typeB>"
-        "          ): Vector<sizeX, typeA>;"
         ""
         "witness fairlylongwitnessname<typeA, typeB, sizeX>("
         "          vector1: Vector<sizeX, typeA>,"
@@ -4227,17 +4217,21 @@ groups than for single tests.
 
   (test
     '(
-       " circuit C (a:Field) : Boolean;"
-       )
-    (returns
-      (program (external #f C () ([a (tfield)]) (tboolean)))))
+      " circuit C (a:Field) : Boolean;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 31" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block"))))
+    )
 
   (test
     '(
-       "export circuit C (a:Field) : Boolean;"
-       )
-    (returns
-      (program (external #t C () ([a (tfield)]) (tboolean)))))
+      "export circuit C (a:Field) : Boolean;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 37" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block"))))
+    )
 
   (test
     '(
@@ -8241,7 +8235,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 42" "parse error: found ~a looking for~?" ("keyword \"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "\";\""))))
+      irritants: '("testfile.compact line 1 char 42" "parse error: found ~a looking for~?" ("keyword \"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block"))))
     )
 
   (test
@@ -8320,7 +8314,7 @@ groups than for single tests.
 
   (test
     '(
-      "circuit C(x: Boolean, x: Field) : Boolean;"
+      "circuit C(x: Boolean, x: Field) : Boolean { return true; }"
       )
     (oops
       message: "~a:\n  ~?"
@@ -10034,7 +10028,7 @@ groups than for single tests.
 
   (test
     '(
-      "circuit C() : [];"
+      "witness C(): [];"
       "export circuit D(q: Field): Field {"
       "  C();"
       "  const C = 5;"
@@ -12408,7 +12402,7 @@ groups than for single tests.
     (returns
       (program ((foo1 %foo1.0) (foo2 %foo2.1))
         (public-ledger-declaration %kernel.2 (Kernel))
-        (external %persistentHash.3 ([%value.4 (tfield)])
+        (native %persistentHash.3 ([%value.4 (tfield)])
              (tbytes 32))
         (circuit %foo1.0 ([%x.5 (tfield)])
              (tbytes 32)
@@ -12428,7 +12422,7 @@ groups than for single tests.
     (returns
       (program ((CompactStandardLibrary %CompactStandardLibrary.3))
         (public-ledger-declaration %kernel.0 (Kernel))
-        (external %persistentHash.1 ([%value.2 (tfield)])
+        (native %persistentHash.1 ([%value.2 (tfield)])
              (tbytes 32))
         (circuit %CompactStandardLibrary.3 ([%x.4 (tfield)])
              (tbytes 32)
@@ -12878,7 +12872,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (external degradeToTransient)))
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native degradeToTransient)))
     )
 
   (test
@@ -13067,16 +13061,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 1" "another binding found for ~s in the same scope at ~a" (kernel "line 1 char 1")))
-  )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "cannot export ~s (~s) from the top level" (external ecAdd)))
   )
 
   ; tests that declared and exported types in standard library cannot be redefined
@@ -16629,253 +16613,117 @@ groups than for single tests.
 
   (test
     '(
-      "circuit transientHash<#n>(xs: Vector<n, Field>): Field;"
-      "export circuit foo(): Field { return transientHash<1>([3]); }"
+      "import CompactStandardLibrary;"
+
+      "export { persistentHash<n> };"
       )
-    (returns
-      (program
-        (external %transientHash.0 ([%xs.2 (tvector 1 (tfield))]) (tfield))
-        (circuit %foo.1 () (tfield)
-          (call %transientHash.0
-            (safe-cast
-              (tvector 1 (tfield))
-              (ttuple (tunsigned 3))
-              (tuple 3))))))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 24" "parse error: found ~a looking for~?" ("\"<\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\"}\""))))
     )
 
   (test
     '(
-      "circuit persistentHash<a>(x: a): Bytes<32>;"
-      "export circuit foo(x: Field): Bytes<32> { return persistentHash<Field>(x); }"
+      "import CompactStandardLibrary;"
+
+      "export { persistentHash };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native persistentHash)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+
+      "export { ownPublicKey };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native ownPublicKey)))
+    )
+
+  (test
+    '(
+      "import {persistentHash} from CompactStandardLibrary;"
+      "circuit foo<#n>(x: Vector<n, Field>): Bytes<32> {"
+      "  return persistentHash<Vector<n, Field>>(x);"
+      "}"
+      "export circuit bar(x: Vector<3, Field>): Bytes<32> {"
+      "  return foo<3>(x);"
+      "}"
       )
     (returns
       (program
-        (external %persistentHash.0 ([%x.1 (tfield)]) (tbytes 32))
-        (circuit %foo.2 ([%x.3 (tfield)])
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (native %persistentHash.1 ([%value.2 (tvector 3 (tfield))])
+             (tbytes 32))
+        (circuit %foo.3 ([%x.4 (tvector 3 (tfield))])
              (tbytes 32)
-          (call %persistentHash.0 %x.3))))
+          (call %persistentHash.1 %x.4))
+        (circuit %bar.5 ([%x.6 (tvector 3 (tfield))])
+             (tbytes 32)
+          (call %foo.3 %x.6))))
     )
 
   (test
     '(
-      "export circuit persistentHash<n>(x: Vector<n, Bytes<32>>): Bytes<32>;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "cannot export ~s (~s) from the top level" (external persistentHash)))
-    )
-
-  (test
-    '(
-      "circuit persistentHash(x: Bytes<32>, y: Bytes<32>): Bytes<32>;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared argument count ~s and expected argument count ~s for native ~s" (2 1 persistentHash)))
-    )
-
-  (test
-    '(
-      "circuit transientHash<#n>(x: Vector<n, Boolean>): Field;"
-      "export circuit foo(): Field { return transientHash<1>([true]); }"
-      )
-    (returns
-      (program
-        (external %transientHash.0 ([%x.1 (tvector 1 (tboolean))])
-             (tfield))
-        (circuit %foo.2 ()
-             (tfield)
-          (call %transientHash.0 (tuple #t)))))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<a>(x: a): Field;"
-      "export circuit foo(): Field { return degradeToTransient<Field>([3]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Field" "Bytes<32>" 1 degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<#n>(x: Vector<n, Boolean>): Field;"
-      "export circuit foo(): Field { return degradeToTransient<1>([true]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Vector<1, Boolean>" "Bytes<32>" 1 degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit transientHash<a>(x: a): Field;"
-      "export circuit foo(): Field { return transientHash<Field>([3]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 38" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (transientHash #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        ([Uint<2>])\n      declared argument types for function at line 1 char 1:\n        (Field)" #f)))
-    )
-
-  (test
-    '(
-      "circuit upgradeFromTransient(x: Field): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "Bytes<32>" upgradeFromTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit transientHash(x: Field, y: Field, z: Field): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared argument count ~s and expected argument count ~s for native ~s" (3 1 transientHash)))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<#n>(x: Bytes<n>): Bytes<n>;"
-      "export circuit foo(): Bytes<30> { return degradeToTransient<32>([3]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Bytes<32>" "Field" degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit persistentHash<#n>(x: Vector<n, Field>): Bytes<32>;"
-      )
-    (returns (program))
-    )
-
-  (test
-    '(
-      "circuit persistentHash<#n>(x: Vector<n, Field>): Bytes<32>;"
+      "import {persistentHash} from CompactStandardLibrary;"
       "export circuit foo(): Bytes<32> { return persistentHash<1>([3]); }"
       )
-    (returns
-      (program
-        (external %persistentHash.0 ([%x.1 (tvector 1 (tfield))])
-             (tbytes 32))
-        (circuit %foo.2 ()
-             (tbytes 32)
-          (call %persistentHash.0
-            (safe-cast (tvector 1 (tfield))
-                       (ttuple (tunsigned 3))
-              (tuple 3))))))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<#n>(x: Vector<n, Field>): Field;"
-      "export circuit foo(): Bytes<32> { return degradeToTransient<1>([3]); }"
-      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Vector<1, Field>" "Bytes<32>" 1 degradeToTransient #f)))
+      irritants: '("testfile.compact line 2 char 42" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (persistentHash "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 1>\n      declared generics for function at <standard library>:\n        <type>" #f #f)))
     )
 
   (test
     '(
-      "circuit upgradeFromTransient(x: Field): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "Bytes<32>" upgradeFromTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<a>(x: Field): Bytes<32>;"
+      "import {degradeToTransient} from CompactStandardLibrary;"
       "export circuit foo(): Bytes<32> { return degradeToTransient<Bytes<32>>(42); }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Field" "Bytes<32>" 1 degradeToTransient #f)))
+      irritants: '("testfile.compact line 2 char 42" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (degradeToTransient "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <type Bytes<32>>\n      declared generics for function at <standard library>:\n        <>" #f #f)))
     )
 
   (test
     '(
-      "circuit persistentHash<a>(x: a): Field;"
+      "import {persistentHash} from CompactStandardLibrary;"
       "export circuit foo(): Field { return persistentHash<Bytes<32>>(42); }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "Bytes<32>" persistentHash #f)))
+      irritants: '("testfile.compact line 2 char 38" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (persistentHash #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<0..43>)\n      declared argument types for function at <standard library>:\n        (Bytes<32>)" #f)))
     )
 
   (test
     '(
-      "import {NativePoint} from CompactStandardLibrary;"
-      "circuit ecAdd(x: Bytes<32>, y: NativePoint): NativePoint;"
+      "import {NativePoint, ecAdd} from CompactStandardLibrary;"
+      "circuit foo(x: Bytes<32>, y: NativePoint): NativePoint {"
+      "  return ecAdd(x, y);"
+      "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Bytes<32>" "NativePoint" 1 ecAdd #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, NativePoint)\n      declared argument types for function at <standard library>:\n        (NativePoint, NativePoint)" #f)))
     )
 
   (test
     '(
-      "import {NativePoint} from CompactStandardLibrary;"
+      "import {NativePoint, ecAdd} from CompactStandardLibrary;"
       "export struct NonNativePoint {"
       "  x: Field;"
       "  y: Field;"
       "}"
-      "circuit ecAdd(x: NonNativePoint, y: NativePoint): NativePoint;"
+      "circuit foo(x: NonNativePoint, y: NativePoint): NativePoint {"
+      "  return ecAdd(x, y);"
+      "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("struct NonNativePoint<x: Field, y: Field>" "NativePoint" 1 ecAdd #f)))
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonNativePoint<x: Field, y: Field>, NativePoint)\n      declared argument types for function at <standard library>:\n        (NativePoint, NativePoint)" #f)))
     )
-
-  (test
-    '(
-      "import {NativePoint} from CompactStandardLibrary;"
-      "circuit ecAdd(x: NativePoint, y: NativePoint): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "NativePoint" ecAdd #f)))
-    )
-
-  #|
-  ; the tests in this comment block should only be uncommented if the declaration of
-  ; justfortesting is uncommented in midnight-natives.ss
-  (test
-    '(
-      "export circuit justfortesting(x: Field, y: Field): Field;"
-      )
-    (returns
-      (program
-        (public-ledger-declaration
-          (%kernel (Kernel))
-          (constructor () (tuple)))
-        (circuit %justfortesting.0 ((%x.1 (tfield)) (%y.2 (tfield))) (tfield))))
-    )
-
-  (test
-    '(
-      "export circuit justfortesting(x: Field, y: Boolean): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Boolean" "A" 2 justfortesting "A previously matched to Field")))
-    )
-
-  (test
-    '(
-      "export circuit justfortesting(x: Field, y: Field): Bytes<32>;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Bytes<32>" "A" justfortesting "A previously matched to Field")))
-    )
-  |#
 
   (test
     '(
@@ -16887,7 +16735,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (external %ecAdd.1 ([%a.2 (talias #t NativePoint
+        (native %ecAdd.1 ([%a.2 (talias #t NativePoint
                                     (tstruct SimplePoint
                                       (x (tfield))
                                       (y (tfield))))]
@@ -16899,7 +16747,7 @@ groups than for single tests.
                (tstruct SimplePoint
                  (x (tfield))
                  (y (tfield)))))
-        (external %ecMul.4 ([%a.5 (talias #t NativePoint
+        (native %ecMul.4 ([%a.5 (talias #t NativePoint
                                     (tstruct SimplePoint
                                       (x (tfield))
                                       (y (tfield))))]
@@ -28010,7 +27858,7 @@ groups than for single tests.
           (new (tstruct Maybe (is_some (tboolean)) (value (tfield)))
             #f
             (default (tfield))))
-        (external %persistentHash<.11 ([%value.12 (tvector
+        (native %persistentHash<.11 ([%value.12 (tvector
                                                     2
                                                     (tbytes 32))])
              (tbytes 32))
@@ -42923,7 +42771,7 @@ groups than for single tests.
            (%state.17
              (2)
              (__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))
-        (external %persistentHash.18 ((argument
+        (native %persistentHash.18 ((argument
                                          (%value.19
                                            %value.20
                                            %value.21
@@ -43743,12 +43591,12 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
-        (external %transientHash.1 ((argument
+        (native %transientHash.1 ((argument
                                       (%value.2 %value.3)
                                       (ty ((afield) (afield))
                                           ((tfield) (tfield)))))
              (ty ((afield)) ((tfield))))
-        (external %persistentHash.4 ((argument
+        (native %persistentHash.4 ((argument
                                        (%value.5 %value.6 %value.7 %value.8 %value.9
                                          %value.10 %value.11 %value.12
                                          %value.13)
@@ -43771,21 +43619,21 @@ groups than for single tests.
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %degradeToTransient.14 ((argument
+        (native %degradeToTransient.14 ((argument
                                             (%x.15 %x.16)
                                             (ty ((abytes 32))
                                                 ((tfield 255)
                                                   (tfield
                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield))))
-        (external %upgradeFromTransient.17 ((argument
+        (native %upgradeFromTransient.17 ((argument
                                               (%x.18)
                                               (ty ((afield)) ((tfield)))))
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %createZswapInput.19 ((argument
+        (native %createZswapInput.19 ((argument
                                           (%coin.20 %coin.21 %coin.22 %coin.23
                                             %coin.24 %coin.25)
                                           (ty ((abytes 32)
@@ -43803,7 +43651,7 @@ groups than for single tests.
                                                 (tfield
                                                   18446744073709551615)))))
              (ty () ()))
-        (external %createZswapOutput.26 ((argument
+        (native %createZswapOutput.26 ((argument
                                            (%coin.27
                                              %coin.28
                                              %coin.29
@@ -43977,12 +43825,12 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
-        (external %transientHash.1 ((argument
+        (native %transientHash.1 ((argument
                                       (%value.2 %value.3)
                                       (ty ((afield) (afield))
                                           ((tfield) (tfield)))))
              (ty ((afield)) ((tfield))))
-        (external %persistentHash.4 ((argument
+        (native %persistentHash.4 ((argument
                                        (%value.5 %value.6 %value.7 %value.8 %value.9
                                          %value.10 %value.11 %value.12
                                          %value.13)
@@ -44005,21 +43853,21 @@ groups than for single tests.
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %degradeToTransient.14 ((argument
+        (native %degradeToTransient.14 ((argument
                                             (%x.15 %x.16)
                                             (ty ((abytes 32))
                                                 ((tfield 255)
                                                   (tfield
                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield))))
-        (external %upgradeFromTransient.17 ((argument
+        (native %upgradeFromTransient.17 ((argument
                                               (%x.18)
                                               (ty ((afield)) ((tfield)))))
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %createZswapInput.19 ((argument
+        (native %createZswapInput.19 ((argument
                                           (%coin.20 %coin.21 %coin.22 %coin.23
                                             %coin.24 %coin.25)
                                           (ty ((abytes 32)
@@ -44037,7 +43885,7 @@ groups than for single tests.
                                                 (tfield
                                                   18446744073709551615)))))
              (ty () ()))
-        (external %createZswapOutput.26 ((argument
+        (native %createZswapOutput.26 ((argument
                                            (%coin.27
                                              %coin.28
                                              %coin.29
@@ -63620,18 +63468,6 @@ groups than for single tests.
       irritants: '("testfile.compact line 1 char 20" "unbound identifier ~s" (QualifiedCoinInf)))
     )
 
-  (test
-    '(
-      "circuit t_c<a>(value: a, rand: Field): Field;"
-      "export circuit foo(x: Uint<12>): Field {"
-      "  return t_c<Uint<12>>(x, 0);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "unrecognized native entry ~s" (t_c)))
-    )
-
   (test-group
     ((create-file "Calculator.compact"
        '(
@@ -66675,7 +66511,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EAmBD,AAAA,iBAAsD,CAArB,OAAQ;oEAAR,OAAQ;;GAAa;EDqBtD,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -67719,6 +67555,18 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls witness foo" "line 3 char 14")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit itIsntPure(): ZswapCoinPublicKey {"
+      "  return ownPublicKey();"
+      "}"
+     )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls native witness ownPublicKey" "line 3 char 10")))
     )
 
     (test
