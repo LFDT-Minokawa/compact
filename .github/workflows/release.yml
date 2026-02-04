@@ -37,11 +37,6 @@ on:
         required: false
         type: boolean
         default: true
-      public_release:
-        description: 'Public release?'
-        required: false
-        type: boolean
-        default: true
 
   schedule:
     - cron: '0 */12 * * *'
@@ -289,20 +284,6 @@ jobs:
           files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
           token: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
           body: Compactc ${{ inputs.version || github.ref_name }}
-
-  public-artifacts-and-docker:
-    if: ${{ inputs.public_release && inputs.create_release && !contains(inputs.version, '-rc') && github.event_name != 'schedule'}}
-    name: Make artifacts public
-    uses: ./.github/workflows/release-public.yml
-    needs: [ setup, make-release ]
-    secrets: inherit
-    with:
-      version: ${{ needs.setup.outputs.clean_tag }}
-      branch: ${{ needs.setup.outputs.branch }}
-      macos_x86: ${{ needs.setup.outputs.macos_x86 }}
-      macos_arm: ${{ needs.setup.outputs.macos_arm }}
-      linux_x86: ${{ needs.setup.outputs.linux_x86 }}
-      linux_arm: ${{ needs.setup.outputs.linux_arm }}
 
   generate-docs-after-release:
     if: ${{ inputs.docs }}
