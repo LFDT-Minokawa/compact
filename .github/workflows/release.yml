@@ -290,7 +290,7 @@ jobs:
           token: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
           body: Compactc ${{ inputs.version || github.ref_name }}
 
-  public-artifacts-and-docker:
+  public-artifacts:
     if: ${{ inputs.public_release && inputs.create_release && !contains(inputs.version, '-rc') && github.event_name != 'schedule'}}
     name: Make artifacts public
     uses: ./.github/workflows/release-public.yml
