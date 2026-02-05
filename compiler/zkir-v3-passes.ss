@@ -57,7 +57,7 @@
           [else #f]))
 
       ;; Handling calls (to witnesses and natives) in the IR.  There is a table of code generators
-      ;; for witness-like callables and external natives.
+      ;; for witness-like callables and natives.
       (define callable-ht (make-eq-hashtable))
 
       (define (make-witness primitive-type*)
@@ -147,13 +147,13 @@
                                                       (,primitive-type* ...)))
            (assert (not (hashtable-contains? callable-ht function-name))) 
            (hashtable-set! callable-ht function-name (make-witness primitive-type*))]
-          [(external ,src ,function-name ,native-entry (,arg* ...) (ty (,alignment* ...)
+          [(native ,src ,function-name ,native-entry (,arg* ...) (ty (,alignment* ...)
                                                                      (,primitive-type* ...)))
            (assert (not (hashtable-contains? callable-ht function-name)))
            (hashtable-set! callable-ht function-name
              (if (eq? (native-entry-class native-entry) 'witness)
                  (make-witness primitive-type*)
-                 (make-native (native-entry-name native-entry) arg*)))]
+                 (make-native (id-sym function-name) arg*)))]
           [else (void)]))
 
       ;; ==== Impact Assembler ====
@@ -298,12 +298,12 @@
                           ,(list-ref rvar* 1)
                           ,(list-ref rvar* 3))
                        (zkir-instr*)))
-                   (let-values ([(sep-val sep-length) (domain-separator "mdn:cc")])
+                   (let-values ([(sep-val sep-length) (domain-separator "midnight:zswap-cc[v1]")])
                      (persistent-hash
                        (with-output-language (Lflattened Alignment)
-                         (list `(abytes ,32) `(abytes ,32) `(abytes ,16) `(abytes ,1)
-                           `(abytes ,32) `(abytes ,sep-length)))
-                       (append (zkir-val-input* coin) (list (car rvar*) data0 data1 sep-val))
+                         (list `(abytes ,sep-length) `(abytes ,32) `(abytes ,32) `(abytes ,16)
+                           `(abytes ,1) `(abytes ,32)))
+                       (append (cons sep-val (zkir-val-input* coin)) (list (car rvar*) data0 data1))
                        code*))))]
               [(VMleaf-hash val)
                (let*-values
@@ -575,7 +575,7 @@
                      (cons export-name (hashtable-ref export-ht name '()))))
          export-name* name*)
 
-       ;; Process witness and external declarations in a separate pass over the program elements
+       ;; Process witness and native declarations in a separate pass over the program elements
        ;; because we don't assume that they precede their uses (that's not enforced by the syntax).
        (for-each declare-callable pelt*)
        
@@ -617,6 +617,8 @@
        (let ([code-generator (hashtable-ref callable-ht function-name #f)])
          (assert code-generator)
          (code-generator var-name* src test triv* instr*))]
+      [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...))
+       (source-errorf src "cross-contract calls are not yet supported")]
       [(= (,var-name0 ,var-name1) (field->bytes ,src ,test ,len ,triv))
        ;; TODO(kmillikin): this needs to respect test because `constrain_bits` can fail.
        (with-output-language (Lzkir Instruction)

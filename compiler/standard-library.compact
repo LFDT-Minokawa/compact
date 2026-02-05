@@ -43,31 +43,21 @@ export circuit right<A, B>(value: B): Either<A, B> {
   return Either<A, B>{ is_left: false, left: default<A>, right: value };
 }
 
-// Hashing
-export circuit transientHash<T>(value: T): Field;
-export circuit transientCommit<T>(value: T, rand: Field): Field;
-export circuit persistentHash<T>(value: T): Bytes<32>;
-export circuit persistentCommit<T>(value: T, rand: Bytes<32>): Bytes<32>;
-export circuit degradeToTransient(x: Bytes<32>) : Field;
-export circuit upgradeFromTransient(x: Field): Bytes<32>;
-
 // Elliptic Curves
 struct SimplePoint {
   x: Field;
   y: Field;
 }
 export new type NativePoint = SimplePoint;
-export circuit NativePointX(np: NativePoint): Field {
+export circuit nativePointX(np: NativePoint): Field {
   return (np as SimplePoint).x;
 }
-export circuit NativePointY(np: NativePoint): Field {
+export circuit nativePointY(np: NativePoint): Field {
   return (np as SimplePoint).y;
 }
-
-export circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;
-export circuit ecMul(a: NativePoint, b: Field): NativePoint;
-export circuit ecMulGenerator(b: Field): NativePoint;
-export circuit hashToCurve<T>(value: T): NativePoint;
+export circuit constructNativePoint(x: Field, y: Field): NativePoint {
+  return NativePoint { x, y };
+}
 
 // Merkle trees
 export struct MerkleTreeDigest { field: Field; }
@@ -140,11 +130,6 @@ export circuit nativeToken(): Bytes<32> {
   return pad(32, "");
 }
 
-// TS: Get from wallet
-export circuit ownPublicKey(): ZswapCoinPublicKey;
-export circuit createZswapInput(coin: QualifiedShieldedCoinInfo): [];
-export circuit createZswapOutput(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [];
-
 // Midnight helper circuits
 export circuit tokenType(domain_sep: Bytes<32>, contractAddress: ContractAddress): Bytes<32> {
   return persistentCommit<Vector<2, Bytes<32>>>([domain_sep, contractAddress.bytes], pad(32, "midnight:derive_token"));
@@ -161,6 +146,10 @@ export circuit mintShieldedToken(
   createZswapOutput(coin, recipient);
   const cm = coinCommitment(coin, recipient);
   kernel.claimZswapCoinSpend(cm);
+  // Auto-receive when minting to self
+  if (!recipient.is_left && recipient.right.bytes == kernel.self().bytes) {
+    kernel.claimZswapCoinReceive(cm);
+  }
   return coin;
 }
 
@@ -189,8 +178,7 @@ export circuit sendShielded(
 ): ShieldedSendResult {
   const selfAddr = kernel.self();
   createZswapInput(input);
-  kernel.claimZswapNullifier(
-    coinNullifier(downcastQualifiedCoin(input), selfAddr));
+  kernel.claimZswapNullifier(coinNullifier(downcastQualifiedCoin(input), selfAddr));
   const change = input.value - value;
   const output = ShieldedCoinInfo{
                    nonce: upgradeFromTransient(transientHash<Vector<2, Field>>(["midnight:kernel:nonce_evolve" as Field, degradeToTransient(input.nonce)])),
@@ -199,7 +187,13 @@ export circuit sendShielded(
                  };
   createZswapOutput(output, recipient);
   kernel.claimZswapCoinSpend(coinCommitment(output, recipient));
-  if(change == 0) {
+
+  // Auto-receive when sending to self
+  if (!recipient.is_left && recipient.right.bytes == selfAddr.bytes) {
+    kernel.claimZswapCoinReceive(coinCommitment(output, recipient));
+  }
+
+  if (change == 0) {
     return ShieldedSendResult{ change: none<ShieldedCoinInfo>(), sent: output };
   } else {
     const changeCoin = ShieldedCoinInfo{
@@ -323,12 +317,20 @@ export circuit mintUnshieldedToken(
   kernel.mintUnshielded(domainSep, amount);
   const color = tokenType(domainSep, kernel.self());
   kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(color), recipient, amount);
+  // Auto-receive when minting to self
+  if (recipient.is_left && recipient.left.bytes == kernel.self().bytes) {
+    kernel.incUnshieldedInputs(left<Bytes<32>, Bytes<32>>(color), amount);
+  }
   return color;
 }
 
 export circuit sendUnshielded(color: Bytes<32>, amount: Uint<128>, recipient: Either<ContractAddress, UserAddress>): [] {
   kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), amount);
   kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(color), recipient, amount);
+  // Auto-receive when sending to self
+  if (recipient.is_left && recipient.left.bytes == kernel.self().bytes) {
+    kernel.incUnshieldedInputs(left<Bytes<32>, Bytes<32>>(color), amount);
+  }
 }
 
 export circuit receiveUnshielded(color: Bytes<32>, amount: Uint<128>): [] {

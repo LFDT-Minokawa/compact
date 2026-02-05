@@ -267,7 +267,7 @@ groups than for single tests.
          (begin
            (when (null? #'(okay?^ ...)) (syntax-error x "last groupie has no checks"))
            #`($test 5 "../src/" #,@(map do-groupie #'((file okay? ...) ... (file^ okay?^ ...)))))])))
-  (indirect-export test-group $test)
+  (indirect-export test-group $test make-groupie)
 
   (define-syntax test
     (lambda (x)
@@ -286,7 +286,7 @@ groups than for single tests.
         [(_ code okay? ...)
          (when (null? #'(okay? ...)) (syntax-error x "test has no checks"))
          #`($test 4 "../src/" #,(do-groupie #'code #'(list okay? ...)))])))
-  (indirect-export test make-groupie)
+  (indirect-export test $test make-groupie)
 
   (module (write-replacement-result!)
     (define (write-replacement-result! bfp efp str)
@@ -1391,8 +1391,6 @@ groups than for single tests.
       ""
       "sealed ledger L: C;"
       ""
-      "export circuit foo<T>(x: T, y: Field): Vector<3, T>;"
-      ""
       "circuit rat(): Vector<1, Vector<2, S>> {"
       "  const q = S {x: 3, y: 4};"
       "  const q = // S is ..."
@@ -1451,8 +1449,6 @@ groups than for single tests.
         (export a b)
         (export a b)
         (public-ledger-declaration #f #t L (type-ref C))
-        (external #t foo (T) ([x (type-ref T)] [y (tfield)])
-             (tvector 3 (type-ref T)))
         (circuit #f #f rat () ()
              (tvector 1 (tvector 2 (type-ref S)))
           (block
@@ -2812,7 +2808,6 @@ groups than for single tests.
       "circuit fairlylongcircuitname2<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> {"
       "  return (vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>, vector3: Vector<sizeX, typeB>): Vector<sizeX, typeA> => { return vector1; }(vector1, vector2, vector3);"
       "}"
-      "circuit fairlylongnativename<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
       "witness fairlylongwitnessname<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
       )
     (output-file "compiler/testdir/formatter/testfile.compact"
@@ -2859,11 +2854,6 @@ groups than for single tests.
         "           vector3"
         "           );"
         "}"
-        ""
-        "circuit fairlylongnativename<typeA, typeB, sizeX>("
-        "          vector1: Vector<sizeX, typeA>,"
-        "          vector2: Vector<sizeX, typeB>"
-        "          ): Vector<sizeX, typeA>;"
         ""
         "witness fairlylongwitnessname<typeA, typeB, sizeX>("
         "          vector1: Vector<sizeX, typeA>,"
@@ -4227,17 +4217,21 @@ groups than for single tests.
 
   (test
     '(
-       " circuit C (a:Field) : Boolean;"
-       )
-    (returns
-      (program (external #f C () ([a (tfield)]) (tboolean)))))
+      " circuit C (a:Field) : Boolean;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 31" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block"))))
+    )
 
   (test
     '(
-       "export circuit C (a:Field) : Boolean;"
-       )
-    (returns
-      (program (external #t C () ([a (tfield)]) (tboolean)))))
+      "export circuit C (a:Field) : Boolean;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 37" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block"))))
+    )
 
   (test
     '(
@@ -8241,7 +8235,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 42" "parse error: found ~a looking for~?" ("keyword \"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "\";\""))))
+      irritants: '("testfile.compact line 1 char 42" "parse error: found ~a looking for~?" ("keyword \"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block"))))
     )
 
   (test
@@ -8320,7 +8314,7 @@ groups than for single tests.
 
   (test
     '(
-      "circuit C(x: Boolean, x: Field) : Boolean;"
+      "circuit C(x: Boolean, x: Field) : Boolean { return true; }"
       )
     (oops
       message: "~a:\n  ~?"
@@ -10034,7 +10028,7 @@ groups than for single tests.
 
   (test
     '(
-      "circuit C() : [];"
+      "witness C(): [];"
       "export circuit D(q: Field): Field {"
       "  C();"
       "  const C = 5;"
@@ -12408,7 +12402,7 @@ groups than for single tests.
     (returns
       (program ((foo1 %foo1.0) (foo2 %foo2.1))
         (public-ledger-declaration %kernel.2 (Kernel))
-        (external %persistentHash.3 ([%value.4 (tfield)])
+        (native %persistentHash.3 ([%value.4 (tfield)])
              (tbytes 32))
         (circuit %foo1.0 ([%x.5 (tfield)])
              (tbytes 32)
@@ -12428,7 +12422,7 @@ groups than for single tests.
     (returns
       (program ((CompactStandardLibrary %CompactStandardLibrary.3))
         (public-ledger-declaration %kernel.0 (Kernel))
-        (external %persistentHash.1 ([%value.2 (tfield)])
+        (native %persistentHash.1 ([%value.2 (tfield)])
              (tbytes 32))
         (circuit %CompactStandardLibrary.3 ([%x.4 (tfield)])
              (tbytes 32)
@@ -12878,7 +12872,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (external degradeToTransient)))
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native degradeToTransient)))
     )
 
   (test
@@ -13067,16 +13061,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 1" "another binding found for ~s in the same scope at ~a" (kernel "line 1 char 1")))
-  )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "cannot export ~s (~s) from the top level" (external ecAdd)))
   )
 
   ; tests that declared and exported types in standard library cannot be redefined
@@ -13905,7 +13889,8 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 32" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Field" "circuit bar"))))
+      irritants: '("testfile.compact line 1 char 32" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "Field")))
+    )
 
   (test
     '(
@@ -13913,7 +13898,8 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Field" "circuit bar"))))
+      irritants: '("testfile.compact line 1 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "Field")))
+    )
 
   (test
     '(
@@ -13921,7 +13907,8 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 60" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Field" "circuit bar"))))
+      irritants: '("testfile.compact line 1 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "Field")))
+    )
 
   (test
     '(
@@ -16626,253 +16613,117 @@ groups than for single tests.
 
   (test
     '(
-      "circuit transientHash<#n>(xs: Vector<n, Field>): Field;"
-      "export circuit foo(): Field { return transientHash<1>([3]); }"
+      "import CompactStandardLibrary;"
+
+      "export { persistentHash<n> };"
       )
-    (returns
-      (program
-        (external %transientHash.0 ([%xs.2 (tvector 1 (tfield))]) (tfield))
-        (circuit %foo.1 () (tfield)
-          (call %transientHash.0
-            (safe-cast
-              (tvector 1 (tfield))
-              (ttuple (tunsigned 3))
-              (tuple 3))))))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 24" "parse error: found ~a looking for~?" ("\"<\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\"}\""))))
     )
 
   (test
     '(
-      "circuit persistentHash<a>(x: a): Bytes<32>;"
-      "export circuit foo(x: Field): Bytes<32> { return persistentHash<Field>(x); }"
+      "import CompactStandardLibrary;"
+
+      "export { persistentHash };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native persistentHash)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+
+      "export { ownPublicKey };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native ownPublicKey)))
+    )
+
+  (test
+    '(
+      "import {persistentHash} from CompactStandardLibrary;"
+      "circuit foo<#n>(x: Vector<n, Field>): Bytes<32> {"
+      "  return persistentHash<Vector<n, Field>>(x);"
+      "}"
+      "export circuit bar(x: Vector<3, Field>): Bytes<32> {"
+      "  return foo<3>(x);"
+      "}"
       )
     (returns
       (program
-        (external %persistentHash.0 ([%x.1 (tfield)]) (tbytes 32))
-        (circuit %foo.2 ([%x.3 (tfield)])
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (native %persistentHash.1 ([%value.2 (tvector 3 (tfield))])
+             (tbytes 32))
+        (circuit %foo.3 ([%x.4 (tvector 3 (tfield))])
              (tbytes 32)
-          (call %persistentHash.0 %x.3))))
+          (call %persistentHash.1 %x.4))
+        (circuit %bar.5 ([%x.6 (tvector 3 (tfield))])
+             (tbytes 32)
+          (call %foo.3 %x.6))))
     )
 
   (test
     '(
-      "export circuit persistentHash<n>(x: Vector<n, Bytes<32>>): Bytes<32>;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "cannot export ~s (~s) from the top level" (external persistentHash)))
-    )
-
-  (test
-    '(
-      "circuit persistentHash(x: Bytes<32>, y: Bytes<32>): Bytes<32>;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared argument count ~s and expected argument count ~s for native ~s" (2 1 persistentHash)))
-    )
-
-  (test
-    '(
-      "circuit transientHash<#n>(x: Vector<n, Boolean>): Field;"
-      "export circuit foo(): Field { return transientHash<1>([true]); }"
-      )
-    (returns
-      (program
-        (external %transientHash.0 ([%x.1 (tvector 1 (tboolean))])
-             (tfield))
-        (circuit %foo.2 ()
-             (tfield)
-          (call %transientHash.0 (tuple #t)))))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<a>(x: a): Field;"
-      "export circuit foo(): Field { return degradeToTransient<Field>([3]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Field" "Bytes<32>" 1 degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<#n>(x: Vector<n, Boolean>): Field;"
-      "export circuit foo(): Field { return degradeToTransient<1>([true]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Vector<1, Boolean>" "Bytes<32>" 1 degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit transientHash<a>(x: a): Field;"
-      "export circuit foo(): Field { return transientHash<Field>([3]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 38" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (transientHash #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        ([Uint<2>])\n      declared argument types for function at line 1 char 1:\n        (Field)" #f)))
-    )
-
-  (test
-    '(
-      "circuit upgradeFromTransient(x: Field): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "Bytes<32>" upgradeFromTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit transientHash(x: Field, y: Field, z: Field): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared argument count ~s and expected argument count ~s for native ~s" (3 1 transientHash)))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<#n>(x: Bytes<n>): Bytes<n>;"
-      "export circuit foo(): Bytes<30> { return degradeToTransient<32>([3]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Bytes<32>" "Field" degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit persistentHash<#n>(x: Vector<n, Field>): Bytes<32>;"
-      )
-    (returns (program))
-    )
-
-  (test
-    '(
-      "circuit persistentHash<#n>(x: Vector<n, Field>): Bytes<32>;"
+      "import {persistentHash} from CompactStandardLibrary;"
       "export circuit foo(): Bytes<32> { return persistentHash<1>([3]); }"
       )
-    (returns
-      (program
-        (external %persistentHash.0 ([%x.1 (tvector 1 (tfield))])
-             (tbytes 32))
-        (circuit %foo.2 ()
-             (tbytes 32)
-          (call %persistentHash.0
-            (safe-cast (tvector 1 (tfield))
-                       (ttuple (tunsigned 3))
-              (tuple 3))))))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<#n>(x: Vector<n, Field>): Field;"
-      "export circuit foo(): Bytes<32> { return degradeToTransient<1>([3]); }"
-      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Vector<1, Field>" "Bytes<32>" 1 degradeToTransient #f)))
+      irritants: '("testfile.compact line 2 char 42" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (persistentHash "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 1>\n      declared generics for function at <standard library>:\n        <type>" #f #f)))
     )
 
   (test
     '(
-      "circuit upgradeFromTransient(x: Field): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "Bytes<32>" upgradeFromTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<a>(x: Field): Bytes<32>;"
+      "import {degradeToTransient} from CompactStandardLibrary;"
       "export circuit foo(): Bytes<32> { return degradeToTransient<Bytes<32>>(42); }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Field" "Bytes<32>" 1 degradeToTransient #f)))
+      irritants: '("testfile.compact line 2 char 42" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (degradeToTransient "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <type Bytes<32>>\n      declared generics for function at <standard library>:\n        <>" #f #f)))
     )
 
   (test
     '(
-      "circuit persistentHash<a>(x: a): Field;"
+      "import {persistentHash} from CompactStandardLibrary;"
       "export circuit foo(): Field { return persistentHash<Bytes<32>>(42); }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "Bytes<32>" persistentHash #f)))
+      irritants: '("testfile.compact line 2 char 38" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (persistentHash #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<0..43>)\n      declared argument types for function at <standard library>:\n        (Bytes<32>)" #f)))
     )
 
   (test
     '(
-      "import {NativePoint} from CompactStandardLibrary;"
-      "circuit ecAdd(x: Bytes<32>, y: NativePoint): NativePoint;"
+      "import {NativePoint, ecAdd} from CompactStandardLibrary;"
+      "circuit foo(x: Bytes<32>, y: NativePoint): NativePoint {"
+      "  return ecAdd(x, y);"
+      "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Bytes<32>" "NativePoint" 1 ecAdd #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, NativePoint)\n      declared argument types for function at <standard library>:\n        (NativePoint, NativePoint)" #f)))
     )
 
   (test
     '(
-      "import {NativePoint} from CompactStandardLibrary;"
+      "import {NativePoint, ecAdd} from CompactStandardLibrary;"
       "export struct NonNativePoint {"
       "  x: Field;"
       "  y: Field;"
       "}"
-      "circuit ecAdd(x: NonNativePoint, y: NativePoint): NativePoint;"
+      "circuit foo(x: NonNativePoint, y: NativePoint): NativePoint {"
+      "  return ecAdd(x, y);"
+      "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("struct NonNativePoint<x: Field, y: Field>" "NativePoint" 1 ecAdd #f)))
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonNativePoint<x: Field, y: Field>, NativePoint)\n      declared argument types for function at <standard library>:\n        (NativePoint, NativePoint)" #f)))
     )
-
-  (test
-    '(
-      "import {NativePoint} from CompactStandardLibrary;"
-      "circuit ecAdd(x: NativePoint, y: NativePoint): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "NativePoint" ecAdd #f)))
-    )
-
-  #|
-  ; the tests in this comment block should only be uncommented if the declaration of
-  ; justfortesting is uncommented in midnight-natives.ss
-  (test
-    '(
-      "export circuit justfortesting(x: Field, y: Field): Field;"
-      )
-    (returns
-      (program
-        (public-ledger-declaration
-          (%kernel (Kernel))
-          (constructor () (tuple)))
-        (circuit %justfortesting.0 ((%x.1 (tfield)) (%y.2 (tfield))) (tfield))))
-    )
-
-  (test
-    '(
-      "export circuit justfortesting(x: Field, y: Boolean): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Boolean" "A" 2 justfortesting "A previously matched to Field")))
-    )
-
-  (test
-    '(
-      "export circuit justfortesting(x: Field, y: Field): Bytes<32>;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Bytes<32>" "A" justfortesting "A previously matched to Field")))
-    )
-  |#
 
   (test
     '(
@@ -16884,7 +16735,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (external %ecAdd.1 ([%a.2 (talias #t NativePoint
+        (native %ecAdd.1 ([%a.2 (talias #t NativePoint
                                     (tstruct SimplePoint
                                       (x (tfield))
                                       (y (tfield))))]
@@ -16896,7 +16747,7 @@ groups than for single tests.
                (tstruct SimplePoint
                  (x (tfield))
                  (y (tfield)))))
-        (external %ecMul.4 ([%a.5 (talias #t NativePoint
+        (native %ecMul.4 ([%a.5 (talias #t NativePoint
                                     (tstruct SimplePoint
                                       (x (tfield))
                                       (y (tfield))))]
@@ -21488,13 +21339,13 @@ groups than for single tests.
    )
 
   (test
-   '(
-     "circuit foo<T>(x: T): T {return x;}"
-     "export circuit bar<>(x: Field): Field { foo<Field>(x); }"
-     )
-   (oops
+    '(
+      "circuit foo<T>(x: T): T {return x;}"
+      "export circuit bar<>(x: Field): Field { foo<Field>(x); }"
+      )
+    (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Field" "circuit bar")))
+      irritants: '("testfile.compact line 2 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "Field")))
    )
 
   (test
@@ -22220,7 +22071,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
+      irritants: '("testfile.compact line 1 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit foo" "Boolean")))
     )
 
   (test
@@ -22229,7 +22080,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "Boolean" "circuit foo")))
+      irritants: '("testfile.compact line 1 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit foo" "Boolean")))
     )
 
   (test
@@ -22238,7 +22089,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 43" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+      irritants: '("testfile.compact line 1 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit foo" "Boolean")))
     )
 
   (test
@@ -22357,7 +22208,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 5" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+      irritants: '("testfile.compact line 2 char 11" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("anonymous circuit" "Boolean")))
     )
 
   ; test for bounds of merkle trees
@@ -22533,7 +22384,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 5" "mismatch between type ~a and type ~a of condition branches" ("Boolean" "[]")))
+      irritants: '("testfile.compact line 2 char 11" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("anonymous circuit" "Boolean")))
     )
 
     ; test for bounds of merkle trees
@@ -23292,6 +23143,64 @@ groups than for single tests.
                  (safe-cast (tunsigned 8589934590)
                             (talias #f U32 (tunsigned 4294967295))
                    %x.3)))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(b: Boolean): Uint<32> {"
+      "  const k = 0;"
+      "  if (b) return k;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit foo" "Uint<32>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(b: Boolean): [] {"
+      "  const k = 0;"
+      "  if (b) return k;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "[]" "circuit foo")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit bar<T>(b: Boolean): T {"
+      "  const k = 0;"
+      "  if (b) return k;"
+      "}"
+      "export circuit foo(b: Boolean): [] {"
+      "  return bar<Uint<32>>(b);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "Uint<32>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit bar<T>(b: Boolean): T {"
+      "  const k = 0;"
+      "  if (b) return k;"
+      "}"
+      "export circuit foo(b: Boolean): [] {"
+      "  return bar<[]>(b);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "[]" "circuit bar")))
     )
 )
 
@@ -27949,7 +27858,7 @@ groups than for single tests.
           (new (tstruct Maybe (is_some (tboolean)) (value (tfield)))
             #f
             (default (tfield))))
-        (external %persistentHash<.11 ([%value.12 (tvector
+        (native %persistentHash<.11 ([%value.12 (tvector
                                                     2
                                                     (tbytes 32))])
              (tbytes 32))
@@ -29173,7 +29082,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
@@ -29361,9 +29270,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37" "\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33" "\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
 
   (test
@@ -29380,7 +29289,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
@@ -29399,7 +29308,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
@@ -29418,7 +29327,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76"))))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76"))))
     )
 
   (test
@@ -29690,7 +29599,17 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter nonce of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value"))))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter nonce of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value"))))
     )
 
   (test
@@ -29709,13 +29628,21 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
@@ -29723,7 +29650,7 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
@@ -29740,13 +29667,21 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
@@ -29754,7 +29689,7 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
@@ -29773,14 +29708,14 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
-    ))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value"))))
+    )
 
   (test
     '("import CompactStandardLibrary;"
@@ -29792,14 +29727,14 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
-    ))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value"))))
+    )
 
   (test
     '("import CompactStandardLibrary;"
@@ -29814,6 +29749,12 @@ groups than for single tests.
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being transferred given by the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the recipient of the unshielded token being transferred given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being received given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
     ))
 
   (test
@@ -29831,6 +29772,14 @@ groups than for single tests.
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being transferred given by the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the recipient of the unshielded token being transferred given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token being received given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being received given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
     ))
 
   (test
@@ -30409,6 +30358,242 @@ groups than for single tests.
           (seq
             (public-ledger %F.1 (0) write (disclose %x.7))
             (tuple)))))
+    )
+
+  ; issue 23: should not report disclosure of unhashed witness data
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger F: Field;"
+      ""
+      "export circuit bar(x: Field): Field {"
+      "  return transientHash<Field>(x);"
+      "}"
+      "export circuit foo(v: Vector<2, Field>): Field {"
+      "  F = bar(bar(v[0]) + v[1]);"
+      "  return F;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter v of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 11\n      the argument to bar at line 8 char 7\n      the argument to transientHash at line 5 char 10\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving a hash of the witness value\n    via this path through the program:\n      the argument to bar at line 8 char 11\n      the argument to transientHash at line 5 char 10\n      the computation at line 8 char 11\n      the argument to bar at line 8 char 7\n      the right-hand side of = at line 8 char 5"))))
+    )
+
+  ; issue 23: should not take a long time to compile
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "module M<#K> {"
+      "  export ledger F: MerkleTree<K, ZswapCoinPublicKey>;"
+      ""
+      "  witness W(pk: ZswapCoinPublicKey): MerkleTreePath<K, ZswapCoinPublicKey>;"
+      ""
+      "  export circuit foo(pk: ZswapCoinPublicKey): [] {"
+      "    const path = W(pk);"
+      "    assert("
+      "      F.checkRoot("
+      "        merkleTreePathRoot<K, ZswapCoinPublicKey>(path)"
+      "      ),"
+      "      'oops'"
+      "    );"
+      "  }"
+      "}"
+      "import M<32>;"
+      "export { foo };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 11 char 8" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 6 char 3" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of the boolean value of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of a modulus of a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: QualifiedShieldedCoinInfo, y: Either<ZswapCoinPublicKey, ContractAddress>, z: Uint<128>): [] {"
+      "  sendShielded(x, y, z);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 20" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter y of exported circuit foo at line 2 char 50" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter z of exported circuit foo at line 2 char 98" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Field, Field>;"
+      "export circuit foo(x: Field): [] {"
+      "  F.insert(x, x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 4" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 3 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the first argument to insert at line 4 char 4" "\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to insert at line 4 char 4"))))
+    )
+
+  (test
+    '(
+      "witness w1(): Field;"
+      "witness w2(): Field;"
+      "ledger X: Vector<9, Field>;"
+      "export circuit foo(): Vector<9, Field> {"
+      "  X = [w1() + 3,"
+      "       w1() - 3,"
+      "       w1() * 3,"
+      "       7 + w2(),"
+      "       7 - w2(),"
+      "       7 * w2(),"
+      "       w1() + w2(),"
+      "       w1() - w2(),"
+      "       w1() * w2(),"
+      "       ];"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 1 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5"))))
+    )
+
+  (test
+    '(
+      "witness w1(): Uint<32>;"
+      "witness w2(): Uint<32>;"
+      "ledger X: Vector<18, Boolean>;"
+      "export circuit foo(): Vector<18, Boolean> {"
+      "  X = [w1() < 37,"
+      "       w1() <= 37,"
+      "       w1() == 37,"
+      "       w1() != 37,"
+      "       w1() >= 37,"
+      "       w1() > 37,"
+      "       43 < w2(),"
+      "       43 <= w2(),"
+      "       43 == w2(),"
+      "       43 != w2(),"
+      "       43 >= w2(),"
+      "       43 > w2(),"
+      "       w1() < w2(),"
+      "       w1() <= w2(),"
+      "       w1() == w2(),"
+      "       w1() != w2(),"
+      "       w1() >= w2(),"
+      "       w1() > w2(),"
+      "       ];"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 1 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 13 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 14 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 15 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 16 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5"))))
+    )
+
+  (test
+    '(
+      "struct S { x: Field, y: Field };"
+      "witness w1(): Field;"
+      "witness w2(): Field;"
+      "ledger X: S;"
+      "export circuit foo(): S {"
+      "  X = S { w1(), w2() };"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5"))))
+    )
+
+  (test
+    '(
+      "struct T { x: Uint<8>, y: Boolean };"
+      "struct S { x: Field, y: Field, z: T };"
+      "witness w1(): Field;"
+      "witness w2(): Field;"
+      "ledger X: S;"
+      "export circuit foo(t: T): S {"
+      "  X = S { z: t, y: w1(), x: w2() };"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter t of exported circuit foo at line 6 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5"))))
+    )
+
+  (test
+    '(
+      "type U8 = Uint<8>;"
+      "type U16 = Uint<16>;"
+      "type U32 = Uint<32>;"
+      "witness w1(): Bytes<8>;"
+      "witness w2(): Vector<8, U32>;"
+      "ledger X: [U32, U8, U16];"
+      "export circuit foo(i: Uint<0..2>, t: [U16, U16, U16]): [U32, U8, U16] {"
+      "  X = [w2()[i+3], w1()[i+4], t[i]];"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 5 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter i of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the witness value\n    via this path through the program:\n      the vector or tuple reference at line 8 char 30\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 13\n      the vector or tuple reference at line 8 char 8\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 24\n      the bytes-value reference at line 8 char 19\n      the right-hand side of = at line 8 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter t of exported circuit foo at line 7 char 35" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5"))))
+    )
+
+  (test
+    '(
+      "type U8 = Uint<8>;"
+      "type U16 = Uint<16>;"
+      "type U32 = Uint<32>;"
+      "witness w1(): Bytes<8>;"
+      "witness w2(): Vector<8, U32>;"
+      "ledger X: Vector<6, U32>;"
+      "export circuit foo(i: Uint<0..2>, t: [U16, U16, U16, U16, U16]): Vector<6, U32> {"
+      "  X = [...slice<2>(disclose(w2()), i+3), ...slice<2>(disclose(w1()), i+4), ...slice<2>(disclose(t), i)];"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter i of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the elements selected by the witness value\n    via this path through the program:\n      the vector or tuple slice at line 8 char 79\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the elements selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 36\n      the vector or tuple slice at line 8 char 11\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the elements selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 70\n      the bytes-value slice at line 8 char 45\n      the right-hand side of = at line 8 char 5"))))
+    )
+
+  (test
+    '(
+      "struct T { x: Field, y: Field }"
+      "struct S { a: T, b: T }"
+      "ledger X: Field;"
+      "witness w(): Field;"
+      "export circuit foo(): [] {"
+      "  const s = S{a: T{x: w(), y: 3}, b: T{x: 4, y: 5}};"
+      "  X = s.a.x;"
+      "  X = disclose(s.a).x;"
+      "  X = s.b.x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of s at line 6 char 9\n      the right-hand side of = at line 7 char 5"))))
     )
 )
 
@@ -33074,13 +33259,19 @@ groups than for single tests.
          "  return disclose(sk() == true);"
          "}"
          ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
      (output-file "compiler/testdir/testfile/compiler/contract-info.json"
-       '(
+       `(
          "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
          "    {"
          "      \"name\": \"foo\","
          "      \"pure\": true,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33092,6 +33283,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"bar\","
          "      \"pure\": true,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33101,6 +33293,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"dummy\","
          "      \"pure\": false,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33131,13 +33324,19 @@ groups than for single tests.
          "witness sk(): Boolean;"
          ))
      ; the witnesses field is empty if the witness is unused.
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
      (output-file "compiler/testdir/testfile/compiler/contract-info.json"
-       '(
+       `(
          "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
          "    {"
          "      \"name\": \"foo\","
          "      \"pure\": true,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33149,6 +33348,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"bar\","
          "      \"pure\": true,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33165,13 +33365,19 @@ groups than for single tests.
 
   (test-group
     ((source-file "examples/tiny.compact")
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
      (output-file "compiler/testdir/tiny/compiler/contract-info.json"
-       '(
+       `(
          "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
          "    {"
          "      \"name\": \"set\","
          "      \"pure\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "        {"
          "          \"name\": \"v\","
@@ -33189,6 +33395,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"get\","
          "      \"pure\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33213,6 +33420,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"clear\","
          "      \"pure\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33224,6 +33432,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"public_key\","
          "      \"pure\": true,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "        {"
          "          \"name\": \"sk\","
@@ -34251,21 +34460,6 @@ groups than for single tests.
      ))
 
   (test-group
-    ((create-file "C1.compact" '())
-     (custom-check
-       (lambda (pass-name x)
-         (mkdir "compiler/testdir/C2")
-         (mkdir "compiler/testdir/C2/compiler")
-         (chmod "compiler/testdir/C2/compiler" 000)
-         #t))
-     )
-    ((create-file "C2.compact" '())
-     (oops
-       message: "error ~a: ~a"
-       irritants: '("creating output file" "failed for compiler/testdir/C2/compiler/contract-info.json: permission denied"))
-     ))
-
-  (test-group
     ((create-file "C.compact"
        '(
          "export circuit foo(x: Bytes<32>): [] { return; }"
@@ -34827,13 +35021,19 @@ groups than for single tests.
       "import m prefix two_;"
       "export { one_foo, two_foo }"
       )
+    ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+    ; lines to avoid hard-coding specific version strings into the test
     (output-file "compiler/testdir/compiler/contract-info.json"
-      '(
+      `(
         "{"
+        ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+        ,(format "  \"language-version\": \"~a\"," language-version-string)
+        ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
         "  \"circuits\": ["
         "    {"
         "      \"name\": \"one_foo\","
         "      \"pure\": true,"
+        "      \"proof\": false,"
         "      \"arguments\": ["
         "      ],"
         "      \"result-type\": {"
@@ -34845,6 +35045,7 @@ groups than for single tests.
         "    {"
         "      \"name\": \"two_foo\","
         "      \"pure\": true,"
+        "      \"proof\": false,"
         "      \"arguments\": ["
         "      ],"
         "      \"result-type\": {"
@@ -35134,6 +35335,158 @@ groups than for single tests.
          "export circuit foo(bv: Bytes<32>): [] { F.foo(disclose(bv)); }"
          ))
      (succeeds)
+     ))
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export circuit bar(): Bytes<32> { return pad(32, ''); }"
+         )
+       )
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract C {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit bar(): Bytes<32>;"
+         "}"
+         "ledger contract_c: C;"
+         "constructor (c: C) { contract_c = disclose(c); }"
+         "ledger F: Vector<2, [C]>;"
+         "export circuit foo(): [] {"
+         "  F = map((x: C) => [x], [contract_c, contract_c]);"
+         "}"
+         ))
+     (pass-returns unroll-loops
+       (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
+         (public-ledger-declaration
+           ((%contract_c.1
+              (0)
+              (__compact_Cell
+                (tcontract C
+                  (foo #f ((tbytes 32)) (ttuple))
+                  (bar #t () (tbytes 32)))))
+            (%F.2
+              (1)
+              (__compact_Cell
+                (tvector
+                  2
+                  (ttuple
+                    (tcontract C
+                      (foo #f ((tbytes 32)) (ttuple))
+                      (bar #t () (tbytes 32))))))))
+           (constructor ([%c.3 (tcontract C
+                                 (foo #f ((tbytes 32)) (ttuple))
+                                 (bar #t () (tbytes 32)))])
+             (seq (public-ledger %contract_c.1 (0) write %c.3) (tuple))))
+         (circuit %foo.4 ()
+              (ttuple)
+           (seq
+             (let* ([[%tmp.5 (tvector
+                               2
+                               (ttuple
+                                 (tcontract C
+                                   (foo #f ((tbytes 32)) (ttuple))
+                                   (bar #t () (tbytes 32)))))]
+                     (flet [%circ.6
+                            (circuit ([%x.7 (tcontract C
+                                              (foo #f ((tbytes 32)) (ttuple))
+                                              (bar #t () (tbytes 32)))])
+                                 (ttuple
+                                   (tcontract C
+                                     (foo #f ((tbytes 32)) (ttuple))
+                                     (bar #t () (tbytes 32))))
+                              (tuple %x.7))]
+                       (let* ([[%t.8 (ttuple
+                                       (tcontract C
+                                         (foo #f ((tbytes 32)) (ttuple))
+                                         (bar #t () (tbytes 32)))
+                                       (tcontract C
+                                         (foo #f ((tbytes 32)) (ttuple))
+                                         (bar #t () (tbytes 32))))]
+                               (tuple
+                                 (public-ledger %contract_c.1 (0) read)
+                                 (public-ledger %contract_c.1 (0) read))])
+                         (tuple
+                           (call %circ.6 (tuple-ref %t.8 0))
+                           (call %circ.6 (tuple-ref %t.8 1)))))])
+               (public-ledger %F.2 (1) write %tmp.5))
+             (tuple)))))
+     ))
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export circuit barr(): Bytes<32> { return pad(32, ''); }"
+         )
+       )
+     (succeeds))
+    ((create-file "UseC.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "contract C {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit barr(): Bytes<32>;"
+         "}"
+         "ledger contract_c: C;"
+         "constructor (c: C) { contract_c = disclose(c); }"
+         "export circuit hello(): [] { return contract_c.foo(contract_c.read().barr()); }"
+         ))
+     (pass-returns flatten-datatypes
+       (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
+         (public-ledger-declaration
+           ((%contract_c.1
+              (0)
+              (__compact_Cell
+                (ty ((acontract))
+                    ((tcontract C
+                       (foo #f ((ty ((abytes 32))
+                                    ((tfield 255)
+                                      (tfield
+                                        452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                         (ty () ()))
+                       (barr #t ()
+                         (ty ((abytes 32))
+                             ((tfield 255)
+                               (tfield
+                                 452312848583266388373324160190187140051835877600158453279131187530910662655)))))))))))
+         (circuit %hello.2 ()
+              (ty () ())
+           (= (%t.3) (public-ledger 1 %contract_c.1 (0) read))
+           (= (%t.4) (public-ledger 1 %contract_c.1 (0) read))
+           (= (%t.5 %t.6)
+              (contract-call 1 barr
+                   (%t.4 (tcontract C
+                           (foo #f ((ty ((abytes 32))
+                                        ((tfield 255)
+                                          (tfield
+                                            452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                             (ty () ()))
+                           (barr #t ()
+                             (ty ((abytes 32))
+                                 ((tfield 255)
+                                   (tfield
+                                     452312848583266388373324160190187140051835877600158453279131187530910662655))))))))
+           (= ()
+              (contract-call 1 foo
+                   (%t.3 (tcontract C
+                           (foo #f ((ty ((abytes 32))
+                                        ((tfield 255)
+                                          (tfield
+                                            452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                             (ty () ()))
+                           (barr #t ()
+                             (ty ((abytes 32))
+                                 ((tfield 255)
+                                   (tfield
+                                     452312848583266388373324160190187140051835877600158453279131187530910662655))))))
+                %t.5
+                %t.6))
+           ())))
      ))
 )
 
@@ -35884,85 +36237,6 @@ groups than for single tests.
               (public-ledger %F.5 (4) write %tmp.32))
             (public-ledger %F.5 (4) read)))))
     )
-
-  (test-group
-    ((create-file "C.compact"
-       '(
-         "export circuit foo(x: Bytes<32>): [] { return; }"
-         "export circuit bar(): Bytes<32> { return pad(32, ''); }"
-         )
-       )
-     (succeeds))
-    ((create-file "testfile.compact"
-       '(
-         "contract C {"
-         "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
-         "}"
-         "ledger contract_c: C;"
-         "constructor (c: C) { contract_c = disclose(c); }"
-         "ledger F: Vector<2, [C]>;"
-         "export circuit foo(): [] {"
-         "  F = map((x: C) => [x], [contract_c, contract_c]);"
-         "}"
-         ))
-     (returns
-       (program
-         (kernel-declaration (%kernel.0 () (Kernel)))
-         (public-ledger-declaration
-           ((%contract_c.1
-              (0)
-              (__compact_Cell
-                (tcontract C
-                  (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32)))))
-            (%F.2
-              (1)
-              (__compact_Cell
-                (tvector
-                  2
-                  (ttuple
-                    (tcontract C
-                      (foo #f ((tbytes 32)) (ttuple))
-                      (bar #t () (tbytes 32))))))))
-           (constructor ([%c.3 (tcontract C
-                                 (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32)))])
-             (seq (public-ledger %contract_c.1 (0) write %c.3) (tuple))))
-         (circuit %foo.4 ()
-              (ttuple)
-           (seq
-             (let* ([[%tmp.5 (tvector
-                               2
-                               (ttuple
-                                 (tcontract C
-                                   (foo #f ((tbytes 32)) (ttuple))
-                                   (bar #t () (tbytes 32)))))]
-                     (flet [%circ.6
-                            (circuit ([%x.7 (tcontract C
-                                              (foo #f ((tbytes 32)) (ttuple))
-                                              (bar #t () (tbytes 32)))])
-                                 (ttuple
-                                   (tcontract C
-                                     (foo #f ((tbytes 32)) (ttuple))
-                                     (bar #t () (tbytes 32))))
-                              (tuple %x.7))]
-                       (let* ([[%t.8 (ttuple
-                                       (tcontract C
-                                         (foo #f ((tbytes 32)) (ttuple))
-                                         (bar #t () (tbytes 32)))
-                                       (tcontract C
-                                         (foo #f ((tbytes 32)) (ttuple))
-                                         (bar #t () (tbytes 32))))]
-                               (tuple
-                                 (public-ledger %contract_c.1 (0) read)
-                                 (public-ledger %contract_c.1 (0) read))])
-                         (tuple
-                           (call %circ.6 (tuple-ref %t.8 0))
-                           (call %circ.6 (tuple-ref %t.8 1)))))])
-               (public-ledger %F.2 (1) write %tmp.5))
-             (tuple)))))
-     ))
 )
 
 (run-tests inline-circuits
@@ -40087,27 +40361,6 @@ groups than for single tests.
           (%t.9))))
     )
 
-  (test-group
-    ((create-file "C.compact"
-       '(
-         "export circuit foo(x: Bytes<32>): [] { return; }"
-         "export circuit barr(): Bytes<32> { return pad(32, ''); }"
-         )
-       )
-     (succeeds))
-    ((create-file "UseC.compact"
-       '(
-         "import CompactStandardLibrary;"
-         "contract C {"
-         "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
-         "}"
-         "ledger contract_c: [C, Field];"
-         "constructor (c: C) { contract_c = default<[C, Field]>; }"
-         ))
-     (succeeds)
-     ))
-
   ; PM-16065
   (test
     '(
@@ -42518,7 +42771,7 @@ groups than for single tests.
            (%state.17
              (2)
              (__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))
-        (external %persistentHash.18 ((argument
+        (native %persistentHash.18 ((argument
                                          (%value.19
                                            %value.20
                                            %value.21
@@ -43338,12 +43591,12 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
-        (external %transientHash.1 ((argument
+        (native %transientHash.1 ((argument
                                       (%value.2 %value.3)
                                       (ty ((afield) (afield))
                                           ((tfield) (tfield)))))
              (ty ((afield)) ((tfield))))
-        (external %persistentHash.4 ((argument
+        (native %persistentHash.4 ((argument
                                        (%value.5 %value.6 %value.7 %value.8 %value.9
                                          %value.10 %value.11 %value.12
                                          %value.13)
@@ -43366,21 +43619,21 @@ groups than for single tests.
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %degradeToTransient.14 ((argument
+        (native %degradeToTransient.14 ((argument
                                             (%x.15 %x.16)
                                             (ty ((abytes 32))
                                                 ((tfield 255)
                                                   (tfield
                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield))))
-        (external %upgradeFromTransient.17 ((argument
+        (native %upgradeFromTransient.17 ((argument
                                               (%x.18)
                                               (ty ((afield)) ((tfield)))))
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %createZswapInput.19 ((argument
+        (native %createZswapInput.19 ((argument
                                           (%coin.20 %coin.21 %coin.22 %coin.23
                                             %coin.24 %coin.25)
                                           (ty ((abytes 32)
@@ -43398,7 +43651,7 @@ groups than for single tests.
                                                 (tfield
                                                   18446744073709551615)))))
              (ty () ()))
-        (external %createZswapOutput.26 ((argument
+        (native %createZswapOutput.26 ((argument
                                            (%coin.27
                                              %coin.28
                                              %coin.29
@@ -43538,6 +43791,24 @@ groups than for single tests.
              (public-ledger 1 %kernel.0 () claimZswapCoinSpend
                %tmp.57
                %tmp.58))
+          (= %t.59 (== %target.43 %selfAddr.49))
+          (= %t.60 (== %target.44 %selfAddr.50))
+          (= %t.61 (select %t.59 %t.60 0))
+          (= (%tmp.62 %tmp.63)
+             (call %t.61 %persistentHash.4
+               136202032268515569762809483864408030127489942841709
+               %t.55
+               %t.56
+               %coin.40
+               %coin.41
+               %coin.42
+               0
+               %target.43
+               %target.44))
+          (= ()
+             (public-ledger %t.61 %kernel.0 () claimZswapCoinReceive
+               %tmp.62
+               %tmp.63))
           ())))
     )
 
@@ -43554,12 +43825,12 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
-        (external %transientHash.1 ((argument
+        (native %transientHash.1 ((argument
                                       (%value.2 %value.3)
                                       (ty ((afield) (afield))
                                           ((tfield) (tfield)))))
              (ty ((afield)) ((tfield))))
-        (external %persistentHash.4 ((argument
+        (native %persistentHash.4 ((argument
                                        (%value.5 %value.6 %value.7 %value.8 %value.9
                                          %value.10 %value.11 %value.12
                                          %value.13)
@@ -43582,21 +43853,21 @@ groups than for single tests.
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %degradeToTransient.14 ((argument
+        (native %degradeToTransient.14 ((argument
                                             (%x.15 %x.16)
                                             (ty ((abytes 32))
                                                 ((tfield 255)
                                                   (tfield
                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield))))
-        (external %upgradeFromTransient.17 ((argument
+        (native %upgradeFromTransient.17 ((argument
                                               (%x.18)
                                               (ty ((afield)) ((tfield)))))
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %createZswapInput.19 ((argument
+        (native %createZswapInput.19 ((argument
                                           (%coin.20 %coin.21 %coin.22 %coin.23
                                             %coin.24 %coin.25)
                                           (ty ((abytes 32)
@@ -43614,7 +43885,7 @@ groups than for single tests.
                                                 (tfield
                                                   18446744073709551615)))))
              (ty () ()))
-        (external %createZswapOutput.26 ((argument
+        (native %createZswapOutput.26 ((argument
                                            (%coin.27
                                              %coin.28
                                              %coin.29
@@ -43769,6 +44040,24 @@ groups than for single tests.
              (public-ledger 1 %kernel.0 () claimZswapCoinSpend
                %tmp.57
                %tmp.58))
+          (= %t.59 (== %target.43 %selfAddr.49))
+          (= %t.60 (== %target.44 %selfAddr.50))
+          (= %t.61 (select %t.59 %t.60 0))
+          (= (%tmp.62 %tmp.63)
+             (call %t.61 %persistentHash.4
+               136202032268515569762809483864408030127489942841709
+               %t.55
+               %t.56
+               %coin.40
+               %coin.41
+               %coin.42
+               0
+               %target.43
+               %target.44))
+          (= ()
+             (public-ledger %t.61 %kernel.0 () claimZswapCoinReceive
+               %tmp.62
+               %tmp.63))
           (0 0 0 0 0 0 %t.55 %t.56 %coin.40 %coin.41 %coin.42))))
     )
 
@@ -59824,7 +60113,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.34\", \"%value.35\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.36\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.34\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.37\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.35\" },"
-        "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.38\", \"%hash.39\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }], \"inputs\": [\"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.36\", \"%data.37\", \"0x6d646e3a6363\"] },"
+        "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.38\", \"%hash.39\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.36\", \"%data.37\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x07\", \"0x33\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.38\", \"%hash.39\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x08\", \"0x11\", \"0x02\", \"0x91\"] },"
         "    { \"op\": \"public_input\", \"output\": \"%value.40\", \"guard\": null },"
@@ -59832,7 +60121,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.40\", \"%value.41\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.42\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.40\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.43\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.41\" },"
-        "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.44\", \"%hash.45\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }], \"inputs\": [\"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.42\", \"%data.43\", \"0x6d646e3a6363\"] },"
+        "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.44\", \"%hash.45\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.42\", \"%data.43\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x08\", \"0x34\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.44\", \"%hash.45\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x09\", \"0x11\", \"0x02\", \"0x91\"] },"
         "    { \"op\": \"public_input\", \"output\": \"%value.46\", \"guard\": null },"
@@ -59840,7 +60129,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.46\", \"%value.47\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.48\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.46\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.49\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.47\" },"
-        "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.50\", \"%hash.51\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }], \"inputs\": [\"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.48\", \"%data.49\", \"0x6d646e3a6363\"] },"
+        "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.50\", \"%hash.51\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.48\", \"%data.49\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x09\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x35\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.50\", \"%hash.51\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x91\", \"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x0a\", \"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
         "    { \"op\": \"public_input\", \"output\": \"%value.52\", \"guard\": null },"
@@ -59848,7 +60137,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.52\", \"%value.53\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.54\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.52\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.55\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.53\" },"
-        "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.56\", \"%hash.57\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }], \"inputs\": [\"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.54\", \"%data.55\", \"0x6d646e3a6363\"] },"
+        "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.56\", \"%hash.57\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.54\", \"%data.55\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x0a\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x37\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.56\", \"%hash.57\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
         "    { \"op\": \"output\", \"val\": \"%q.16\" }"
         "  ]"
@@ -63179,18 +63468,6 @@ groups than for single tests.
       irritants: '("testfile.compact line 1 char 20" "unbound identifier ~s" (QualifiedCoinInf)))
     )
 
-  (test
-    '(
-      "circuit t_c<a>(value: a, rand: Field): Field;"
-      "export circuit foo(x: Uint<12>): Field {"
-      "  return t_c<Uint<12>>(x, 0);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "unrecognized native entry ~s" (t_c)))
-    )
-
   (test-group
     ((create-file "Calculator.compact"
        '(
@@ -66234,7 +66511,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EAmBD,AAAA,iBAAsD,CAArB,OAAQ;oEAAR,OAAQ;;GAAa;EDqBtD,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -67278,6 +67555,18 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls witness foo" "line 3 char 14")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit itIsntPure(): ZswapCoinPublicKey {"
+      "  return ownPublicKey();"
+      "}"
+     )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls native witness ownPublicKey" "line 3 char 10")))
     )
 
     (test
@@ -70001,15 +70290,15 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 8 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter vals of exported circuit foo at line 12 char 50" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the second argument to bar at line 13 char 36\n      the computation at line 8 char 13\n      the right-hand side of = at line 8 char 11")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
+      irritants: '("testfile.compact line 8 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
+      irritants: '("testfile.compact line 8 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 10 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter vals of exported circuit foo at line 12 char 50" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the second argument to bar at line 13 char 36\n      the computation at line 10 char 13\n      the right-hand side of = at line 10 char 11")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
+      irritants: '("testfile.compact line 10 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
+      irritants: '("testfile.compact line 10 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 13 char 25" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n of exported circuit foo at line 12 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 13 char 25"))))
     )
@@ -78123,7 +78412,7 @@ groups than for single tests.
       "export circuit foo(np: NativePoint): [Field, Field] {"
       "  F = disclose(np);"
       "  const q = F;"
-      "  return [NativePointY(q), NativePointX(q)];"
+      "  return [nativePointY(q), nativePointX(q)];"
       "}"
       )
     (stage-javascript
@@ -78132,6 +78421,27 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of NativePoint current as of the creation of this test"
         "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual([7n, 3n]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: NativePoint;"
+      ""
+      "export circuit foo(np: NativePoint): NativePoint {"
+      "  F = disclose(np);"
+      "  const q = F;"
+      "  return constructNativePoint(nativePointY(q), nativePointX(q));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  // NB: assumes the representation of NativePoint current as of the creation of this test"
+        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual({x: 7n, y: 3n});"
         "});"
         ))
     )

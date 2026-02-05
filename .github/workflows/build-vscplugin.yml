@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd ./editor-support/vsc/compact
-          yarn install --frozen-lockfile
+          yarn install --frozen-lockfile 
 
       - name: Build plugin
         run: |

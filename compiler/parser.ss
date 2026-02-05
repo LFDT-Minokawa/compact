@@ -282,7 +282,6 @@
       [program-element-ledger-declaration :: ldecl => values]
       [program-element-ledger-constructor :: lconstructor => values]
       [program-element-circuit-definition :: cdefn => values]
-      [program-element-external-declaration :: edecl => values]
       [program-element-witness-declaration :: wdecl => values]
       [program-element-contract-declaration :: ecdecl => values]
       [program-element-struct-declaration :: struct => values]
@@ -430,11 +429,6 @@
        (lambda (src kwd-export? kwd-pure? kwd function-name generic-param-list? pattern-param-list colon type block)
          (with-output-language (Lparser Circuit-Definition)
            `(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))])
-    (External-declaration (edecl)
-      [external-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD circuit) id (OPT gparams #f) simple-parameter-list #\: type #\; =>
-       (lambda (src kwd-export? kwd id generic-param-list? simple-param-list colon type semicolon)
-         (with-output-language (Lparser External-Declaration)
-           `(external ,src ,kwd-export? ,kwd ,id ,generic-param-list? ,simple-param-list (,colon ,type) ,semicolon)))])
     (Witness-declaration (wdecl)
       [witness-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD witness) id (OPT gparams #f) simple-parameter-list #\: type #\; =>
        (lambda (src kwd-export? kwd id generic-param-list? simple-param-list colon type semicolon)

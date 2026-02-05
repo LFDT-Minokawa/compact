@@ -18,8 +18,8 @@ import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
 describe('[CurvePoint] [PM-21110] Switch from the CurvePoint to NativePoint', () => {
-    const CONTRACTS_ROOT = buildPathTo('/curvepoint/');
-    const CONTRACTS_NEGATIVE_ROOT = buildPathTo('/curvepoint/negative/');
+    const CONTRACTS_ROOT = buildPathTo('/nativepoint/');
+    const CONTRACTS_NEGATIVE_ROOT = buildPathTo('/nativepoint/negative/');
 
     test('example contract should be compiled successfully', async () => {
         const filePath = CONTRACTS_ROOT + 'examples.compact';
@@ -32,7 +32,7 @@ describe('[CurvePoint] [PM-21110] Switch from the CurvePoint to NativePoint', ()
     });
 
     describe('should fail with proper error in certain cases', () => {
-        test('example 1 - use CurvePoint in assignment', async () => {
+        test('example 1 - use deprecated CurvePoint in assignment', async () => {
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_one.compact';
 
             const outputDir = createTempFolder();
@@ -45,7 +45,7 @@ describe('[CurvePoint] [PM-21110] Switch from the CurvePoint to NativePoint', ()
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
 
-        test('example 2 - use CurvePoint as circuit argument', async () => {
+        test('example 2 - use deprecated CurvePoint as circuit argument', async () => {
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_two.compact';
 
             const outputDir = createTempFolder();

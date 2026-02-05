@@ -18,8 +18,8 @@ jobs:
       - name: Run tests
         run: |
           cd ./editor-support/vsc/compact
-          yarn install --frozen-lockfile
-          yarn compile
+          yarn install --frozen-lockfile 
+          yarn compile 
           yarn test-it
         env:
           DISPLAY: ':99.0'

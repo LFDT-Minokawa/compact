@@ -202,7 +202,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.28.0"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.29.0"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./test-center
               ./compiler
@@ -329,7 +329,7 @@
           packages.compactc-binary = pkgs.stdenv.mkDerivation {
             name = "compactc-binary-dist";
             version = "0.0.1";
-            srcs = packages.compactc-binary-nixos;
+            src = packages.compactc-binary-nixos;
 
             installPhase = ''
               mkdir -p $out/bin $out/lib

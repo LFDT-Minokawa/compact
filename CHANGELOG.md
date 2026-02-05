@@ -5,24 +5,137 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Compiler version 0.28.0, language version 0.20.0] - Branched 2026-01-22
+## [Toolchain version 0.29.0, language version 0.21.0]
 
-This release includes all changes for compiler versions in the range 0.27.100
-(inclusive) and 0.28.0 (exclusive); and language versions in the range 0.19.100
-(inclusive) and 0.20.0.  It uses compact-runtime 0.14.0-rc.0 and 
-on-chain runtime 2.0.0-alpha.1.
+This release includes all changes for compiler versions in the range
+0.28.100 and 0.29.0; and language versions in the range 0.20.100 and
+0.21.0.  It uses Compact runtime 0.14.0 and on-chain runtime
+compatible with 2.0.0.
+
+## [Unreleased compiler 0.28.109, language 0.20.102]
+
+### Fixed
+
+- The fixup tool fixup-compact.ss failed to look for include files and modules
+  relative to the directory of the source pathname.
+
+## [Unreleased compiler 0.28.108, language 0.20.102]
+
+### Removed
+
+- The syntax for external circuits, i.e., circuit definitions with no body,
+  has been removed.  This syntax was used exclusively for declaring built-in
+  natives and was not useful outside of the compiler.
+
+### Internal notes
+
+- The compiler now injects natives directly into the standard library module.
+  This is simpler and gives us a single source of truth for natives.
+
+## [Unreleased compiler 0.28.107, language 0.20.101]
+
+### Fixed
+
+- An issue that caused transactions involving `mintShieldedToken`, `sendShielded`, `mintUnshieldedToken`, or
+  `sendUnshielded` to fail validation with `RealUnshieldedSpendsSubsetCheckFailure` when the caller was also the 
+  recipient of the newly minted token.
+
+## [Unreleased compiler 0.28.106, language 0.20.100]
+
+### Fixed
+
+- An issue that caused the compiler to take an excessive amount of time to compile
+  certain `for` loops, `fold` expression, and `map` expressions.
+
+- An bug that caused the compiler to miss some of certain repeated disclosures
+  of a witness value and to overstate the nature of certain other disclosures.
+
+### Changed
+
+- Messages about undeclared witness-value disclosures are now produced in an order
+  that attempts, for each disclosure point and witness value, to put the most severe
+  disclosures along the shortest paths first, since understanding these is easier
+  and properly declaring them often addresses the others.
+
+### Internal notes
+
+- The underlying issue was the representation and maintenance of paths in the
+  witness-protection program, and this has been replaced by a simpler mechanism
+  with some careful crafting of the code to reduce computational complexity and
+  generally make the compiler more efficient.
+
+## [Unreleased compiler 0.28.105, language 0.20.100]
+
+### Added
+
+- The file compiler/contract-info.json that compactc generates in the output
+  directory now includes some extra information: (1) version strings for the
+  compiler, language, and runtime, and (2) for each circuit, a flag saying whether
+  the circuit requires a proof (and therefore whether compactc has produced zkir
+  code and prooving keys for it in the zkir and keys subdirectories of the output
+  directory).
+
+- ARM Linux artifact is added.
+
+### Internal notes
+
+- Adding the proof flag involved moving the pass that saves the contract-info file
+  later in the compiler.  This in turn uncovered a couple of bugs in the preliminary
+  handling of (as yet unsupported) cross-contract calls.  These have been fixed,
+  though the code remains largely untested.  The zkir passes now recognize
+  cross-contract calls and explicitly reject them as unsupported.
+
+## [Unreleased compiler 0.28.104, language 0.20.100]
 
 ### Fixed
 
 - A bug reported in issue [#34](https://github.com/LFDT-Minokawa/compact/issues/34) in which 
   `ChargedState` was not properly copied resulting in junk metadata being passed to contract deployments.
 
+## [Unreleased compiler 0.28.103, language 0.20.100]
+
+### Fixed
+
+- A bug in the experimental `--zkir-v3` feature.  The on-chain representation of
+  coin commitments changed between ledger version 6.1 and 6.2.  The domain
+  separator string is changed, and the inputs to `persistentHash` are in a
+  different order.
+
+  This was already implemented for the default ZKIR v2, but the corresponding
+  change was not implemented in the ZKIR v3 compiler passes.
+
+## [Unreleased compiler 0.28.102, language 0.20.100]
+
 ### Changed
+
+- For any circuit that returns something other than `[]` and for which some path through
+  the circuit does not end in `return` form or ends in a `return` form without
+  a return-value expression, the resulting error message now clearly states that
+  this is the problem.
+
+## [Unreleased compiler 0.28.101, language 0.20.100]
+
+### Added
+
+- Added a constructor, `constructNativePoint`, for `NativePoint` values
+
+### Changed
+
+- Renamed the existing accessors `NativePointX` and `NativePointY` to `nativePointX`
+  and `nativePointY` for consistency with our conventions for circuit names.
+
+## [Unreleased compiler 0.28.100, language 0.20.0]
+
+There are no user-visible changes.
+
+### Internal notes
 
 - Instead of pulling test contracts from the separate (private) repository
   `midnight-contracts`, they are added to this repository under
   `test-center/test-contracts`.
   
+## [Unreleased compiler 0.28.100, language 0.20.0]
+
 ### Changed
 
 - The informal parser rule that "else" clauses belong to the innermost "if"
@@ -31,6 +144,12 @@ on-chain runtime 2.0.0-alpha.1.
   This change is reflected in the formal grammar specification in doc/Compact.html
   but has no impact on how programs are compiled.
 
+## [Compiler version 0.28.0, language version 0.20.0]
+
+This release includes all changes for compiler versions in the range 0.27.100
+(inclusive) and 0.28.0 (exclusive); and language versions in the range 0.19.100
+(inclusive) and 0.20.0.  It uses compact-runtime 0.14.0-rc.0 and 
+on-chain runtime 2.0.0-alpha.1.
 
 ## [Unreleased compiler version 0.27.113, language version 0.19.103]
 

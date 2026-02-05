@@ -37,18 +37,13 @@ on:
         required: false
         type: boolean
         default: true
-      public_release:
-        description: 'Public release?'
-        required: false
-        type: boolean
-        default: true
 
   schedule:
     - cron: '0 */12 * * *'
 
 concurrency:
   group: release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   setup:
@@ -57,6 +52,7 @@ jobs:
     outputs:
       branch: ${{ steps.set_branch.outputs.branch }}
       clean_tag: ${{ steps.clean.outputs.tag }}
+      linux_arm: ${{ steps.linux_arm.outputs.name }}
       linux_x86: ${{ steps.linux_x86.outputs.name }}
       macos_arm: ${{ steps.macos_arm.outputs.name }}
       macos_x86: ${{ steps.macos_x86.outputs.name }}
@@ -78,6 +74,10 @@ jobs:
           # in the build step
           export SAFE_REF_NAME="$(echo ${{ inputs.version || github.ref_name }} | sed 's;/;_;g')"
           echo "tag=$SAFE_REF_NAME" >> $GITHUB_OUTPUT
+
+      - name: Set linux arm name
+        id: linux_arm
+        run: echo "name=aarch64-unknown-linux-musl" >> "$GITHUB_OUTPUT"
 
       - name: Set linux x86 name
         id: linux_x86
@@ -131,9 +131,22 @@ jobs:
 
           echo "Language versions match"
 
-  build-release-linux:
-    # runs-on: ubuntu-24.04-arm # only available for public repos so we cannot have arm64 linux binary until going public
-    name: Build compactc binary for Linux x86_64
+  build-release-arm-linux:
+    name: Build compactc binary for Linux aarch64 (Arm)
+    uses: ./.github/workflows/release-build.yml
+    needs: [ setup, check-docs ]
+    secrets: inherit
+    with:
+      tag: ${{ needs.setup.outputs.clean_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
+      artifact: linux-release-aarch64
+      platform: ubuntu-24.04-arm
+      architecture: ${{ needs.setup.outputs.linux_arm }}
+      buildCommand: nix build .\#compactc-binary -L
+      skipCache: false
+
+  build-release-intel-linux:
+    name: Build compactc binary for Linux x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
     needs: [ setup, check-docs ]
     secrets: inherit
@@ -175,10 +188,22 @@ jobs:
       buildCommand: nix build .\#compactc-binary -L
       skipCache: true
 
-  test-linux:
-    name: Test compactc on Linux x86_64
+  test-arm-linux:
+    name: Test compactc on Linux aarch42 (Arm)
     uses: ./.github/workflows/release-test.yml
-    needs: [ setup, build-release-linux ]
+    needs: [ setup, build-release-arm-linux ]
+    secrets: inherit
+    with:
+      tag: ${{ needs.setup.outputs.clean_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
+      artifact: linux-release-aarch64
+      platform: ubuntu-24.04-arm
+      architecture: ${{ needs.setup.outputs.linux_arm }}
+
+  test-intel-linux:
+    name: Test compactc on Linux x86_64 (Intel)
+    uses: ./.github/workflows/release-test.yml
+    needs: [ setup, build-release-intel-linux ]
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -214,10 +239,10 @@ jobs:
   make-release:
     name: Create GitHub release associated with tag
     runs-on: ubuntu-latest
-    needs: [ setup, test-linux, test-arm-macos, test-intel-macos ]
+    needs: [ setup, test-arm-linux, test-intel-linux, test-arm-macos, test-intel-macos ]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
@@ -227,7 +252,12 @@ jobs:
           git tag ${{ inputs.version }}
           git push origin ${{ inputs.version }}
 
-      - name: Fetch release assets - Linux x86_64
+      - name: Fetch release assets - Linux aarch64 (Arm)
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-release-aarch64
+
+      - name: Fetch release assets - Linux x86_64 (Intel)
         uses: actions/download-artifact@v4
         with:
           name: linux-release-x86_64
@@ -254,19 +284,6 @@ jobs:
           files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
           token: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
           body: Compactc ${{ inputs.version || github.ref_name }}
-
-  public-artifacts-and-docker:
-    if: ${{ inputs.public_release && inputs.create_release && !contains(inputs.version, '-rc') && github.event_name != 'schedule'}}
-    name: Make artifacts public
-    uses: ./.github/workflows/release-public.yml
-    needs: [ setup, make-release ]
-    secrets: inherit
-    with:
-      version: ${{ needs.setup.outputs.clean_tag }}
-      branch: ${{ needs.setup.outputs.branch }}
-      macos_x86: ${{ needs.setup.outputs.macos_x86 }}
-      macos_arm: ${{ needs.setup.outputs.macos_arm }}
-      linux_x86: ${{ needs.setup.outputs.linux_x86 }}
 
   generate-docs-after-release:
     if: ${{ inputs.docs }}

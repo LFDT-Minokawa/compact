@@ -57,7 +57,7 @@ jobs:
         with:
           repository: agda/agda-stdlib-meta
           path: agda-stdlib-meta
-
+          
       - name: Checkout agda-stdlib repo
         uses: actions/checkout@v4
         with:
@@ -93,7 +93,7 @@ jobs:
         run: |
           cd specification
           agda --verbose=2 src/Semantics/Static/Coverage.agda
-          agda --verbose=2 src/Overview.agda
+          agda --verbose=2 src/Overview.agda 
 
       - name: Notify on Failure
         if: failure()

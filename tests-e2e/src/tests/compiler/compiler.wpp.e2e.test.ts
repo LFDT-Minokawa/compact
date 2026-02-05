@@ -106,6 +106,10 @@ describe('[WPP] Compiler', () => {
                 '    nature of the disclosure:\n' +
                 '      ledger operation might disclose the witness value\n' +
                 '    via this path through the program:\n' +
+                '      the first argument to insert at line 40 char 7\n' +
+                '    nature of the disclosure:\n' +
+                '      ledger operation might disclose the witness value\n' +
+                '    via this path through the program:\n' +
                 '      the second argument to insert at line 40 char 7\n' +
                 'Exception: pm_16723_neg.compact line 45 char 7:\n' +
                 '  potential witness-value disclosure must be declared but is not:\n' +

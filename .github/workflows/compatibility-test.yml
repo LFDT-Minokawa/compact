@@ -8,7 +8,7 @@ on:
         required: true
         type: string
         default: "main"
-
+          
   workflow_run:
     workflows: [ "Build, test and release compactc" ]
     types:
