@@ -13,10 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module greg {
-    import "../utils/other/alan";
-    
+module alan {
     export circuit test(): [] {
         return [];
-    } 
+    }
 }
