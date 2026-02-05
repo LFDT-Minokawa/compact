@@ -18,7 +18,6 @@
 
 (import (except (chezscheme) errorf)
         (command-line-parsing)
-        (config-params)
         (program-common)
         (passes)
         (utils))

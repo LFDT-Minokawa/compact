@@ -18,16 +18,15 @@
 (library (zkir-v3-passes)
   (export zkir-v3-passes)
   (import (except (chezscheme) errorf)
-          (config-params)
-          (utils)
-          (datatype)
-          (nanopass)
-          (langs)
-          (pass-helpers)
-          (natives)
-          (ledger)
-          (vm)
-          (json))
+    (utils)
+    (datatype)
+    (nanopass)
+    (langs)
+    (pass-helpers)
+    (natives)
+    (ledger)
+    (vm)
+    (json))
 
   ;; Field representations (which *can* be negative) are represented with an optional leading minus
   ;; sign and then hexadecimal byte values in little endian order.
@@ -170,10 +169,22 @@
         (assert-nibble lo)
         (fxlogor (fxsll hi 4) lo))
 
+      ;; The ZKIR encoding of an Impact instruction consists of a sequence of "codes", where each
+      ;; code can be either a literal byte value or an Lzkir variable (instruction output).
+      (define-datatype Impact-code
+        [Ie-imm n]
+        [Ie-var v])
+
       (define zkir-instr* (make-parameter '()))
 
       ;; Encode a VM operand, collecting codes in reverse.
       (define (assemble-operand-acc code* rand)
+        (define (public-adt type)
+          (nanopass-case (Lflattened Type) type
+            [(ty (,alignment ...) (,primitive-type))
+             (guard (Lflattened-Public-Ledger-ADT? primitive-type))
+             primitive-type]
+            [else #f]))
         ;; Encode a string in a field, return the immediate and the length of the UTF-8 encoding
         (define (domain-separator str)
           (let* ([bytes (string->utf8 str)]
@@ -196,7 +207,7 @@
                 (cons `(persistent_hash ,hash0 ,hash1 (,alignment* ...) ,var* ...)
                   (zkir-instr*)))
               ;; Note that the operand encoding (1 32 hash0 hash1) is reversed.
-              (cons* hash1 hash0 32 1 code*))))
+              (cons* (Ie-var hash1) (Ie-var hash0) (Ie-imm 32) (Ie-imm 1) code*))))
         ;; The number of zeros and alignment for the default value of an Lflattened type.
         (define (default-for type)
           (nanopass-case (Lflattened Type) type
@@ -218,24 +229,27 @@
           [(zkir-val? rand)
            (let ([code* (fold-left (lambda (code* a)
                                      (cons (assemble-alignment-atom a) code*))
-                          (cons (length (zkir-val-alignment* rand)) code*)
+                          (cons (Ie-imm (length (zkir-val-alignment* rand))) code*)
                           (zkir-val-alignment* rand))])
-             (fold-left (lambda (code* var) (cons var code*))
+             (fold-left (lambda (code* var) (cons (Ie-var var) code*))
                code* (zkir-val-input* rand)))]
-          [(not (VMop? rand)) (cons rand code*)]
+          [(not (VMop? rand)) (cons (Ie-imm rand) code*)]
           [else
             (VMop-case rand
-              [(VMstack) (cons -1 code*)]
+              [(VMstack) (cons (Ie-imm -1) code*)]
               [(VM+ x0 x1)
                (let ([op0 (assemble-operand x0)] [op1 (assemble-operand x1)])
                  ;; Expects a pair of singleton immediates.
                  (assert (and (null? (cdr op0)) (null? (cdr op1))))
-                 (assert (and (zkir-field-rep? (car op0)) (zkir-field-rep? (car op1))))
-                 (cons (+ (car op0) (car op1)) code*))]
+                 (Impact-code-case (car op0)
+                   [(Ie-imm n0) (Impact-code-case (car op1)
+                                  [(Ie-imm n1) (cons (Ie-imm (+ n0 n1)) code*)]
+                                  [else (assert cannot-happen)])]
+                   [else (assert cannot-happen)]))]
               [(VMalign value bytes)
                (assert-byte bytes)
                ;; Encoding is length=1 bytes value (in reverse).
-               (assemble-operand-acc (cons* bytes 1 code*) value)]
+               (assemble-operand-acc (cons* (Ie-imm bytes) (Ie-imm 1) code*) value)]
               [(VMaligned-concat x*)
                (let ([op* (maplr assemble-operand x*)])
                  ;; Each element of op* consists of the length, and then a tail that needs to be
@@ -243,19 +257,20 @@
                  (let outer ([op* op*] [count 0] [alignment* '()] [var* '()])
                    (if (null? op*)
                        ;; Encoding in code* is in reversed order.
-                       (append (reverse var*) alignment* (cons count code*))
-                       (let ([len (caar op*)])
-                         (assert (zkir-field-rep? len))
-                         (let inner ([i len] [tail (cdar op*)] [alignment* alignment*])
-                           (if (zero? i)
-                               (outer (cdr op*) (+ count len) alignment* (append var* tail))
-                               (inner (1- i) (cdr tail) (cons (car tail) alignment*))))))))]
+                       (append (reverse var*) alignment* (cons (Ie-imm count) code*))
+                       (Impact-code-case (caar op*)
+                         [(Ie-imm len)
+                          (let inner ([i len] [tail (cdar op*)] [alignment* alignment*])
+                            (if (zero? i)
+                                (outer (cdr op*) (+ count len) alignment* (append var* tail))
+                                (inner (1- i) (cdr tail) (cons (car tail) alignment*))))]
+                         [else (assert cannot-happen)]))))]
               [(VMnull type)
                (let-values ([(count alignment*) (default-for type)])
                  ;; Encoding in code* is in reversed order.
-                 (append (make-list count 0)
+                 (append (make-list count (Ie-imm 0))
                    (map assemble-alignment-atom (reverse alignment*))
-                   (cons (length alignment*) code*)))]
+                   (cons (Ie-imm (length alignment*)) code*)))]
               [(VMmax-sizeof type)
                ;; There's room to tighten this in the future, we just need to be careful to keep it
                ;; in sync with the Rust version.
@@ -263,24 +278,25 @@
                ;; call-by-value reasoning.
                (nanopass-case (Lflattened Type) type
                  [(ty (,alignment* ...) (,primitive-type* ...))
-                  (cons (if (null? alignment*)
-                            2
-                            (fold-left
-                              (lambda (sum atom)
-                                (+ sum
-                                  (nanopass-case (Lflattened Alignment) atom
-                                    [(abytes ,nat)
-                                     (if (zero? nat)
-                                         3
-                                         (+ 2 nat (ceiling (/ (integer-length nat) 8))))]
-                                    [else 34])))
-                              (1+ (ceiling (/ (integer-length (length alignment*)) 8)))
-                              alignment*))
+                  (cons (Ie-imm
+                          (if (null? alignment*)
+                              2
+                              (fold-left
+                                (lambda (sum atom)
+                                  (+ sum
+                                    (nanopass-case (Lflattened Alignment) atom
+                                      [(abytes ,nat)
+                                       (if (zero? nat)
+                                           3
+                                           (+ 2 nat (ceiling (/ (integer-length nat) 8))))]
+                                      [else 34])))
+                                (1+ (ceiling (/ (integer-length (length alignment*)) 8)))
+                                alignment*)))
                     code*)])]
               [(VMvalue->int x)
                (let ([var* (zkir-val-input* x)])
                  (assert (and (list? var*) (= 1 (length var*))))
-                 (cons (car var*) code*))]
+                 (cons (Ie-var (car var*)) code*))]
               [(VMcoin-commit coin recipient)
                ;; A coin-commit operand is like a call to `coinCommitment` in the standard library.
                ;; It's implemented by generating the same ZKIR code that would be generated.
@@ -326,33 +342,34 @@
                        (cons `(abytes ,sep-length) alignment*))
                      (cons sep-val val*)
                      code*)))]
-              [(VMstate-value-null) (cons 0 code*)]
-              [(VMstate-value-cell val) (assemble-operand-acc (cons 1 code*) val)]
+              [(VMstate-value-null) (cons (Ie-imm 0) code*)]
+              [(VMstate-value-cell val) (assemble-operand-acc (cons (Ie-imm 1) code*) val)]
               [(VMstate-value-ADT val type)
-               (or (nanopass-case (Lflattened Type) type
-                     [(ty (,alignment* ...) ((tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))))
-                      (assemble-operand-acc code*
-                        (expand-vm-expr src
-                          (map cons adt-formal* adt-arg*)
-                          (vm-expr-expr vm-expr)))]
-                     [else #f])
-                   (assemble-operand-acc (cons 1 code*) val))]
+               (let ([adt (public-adt type)])
+                 (if (not adt)
+                     (assemble-operand-acc (cons (Ie-imm 1) code*) val)
+                     (nanopass-case (Lflattened Public-Ledger-ADT) adt
+                       [(,src ,adt-name ((,adt-formal* ,adt-arg*) ...) ,vm-expr (,adt-op* ...))
+                        (assemble-operand-acc code*
+                          (expand-vm-expr src
+                            (map cons adt-formal* adt-arg*)
+                            (vm-expr-expr vm-expr)))])))]
               [(VMstate-value-map key* val*)
                (fold-left assemble-operand-acc
                  (fold-left assemble-operand-acc
-                   (cons (combine (length key*) 2) code*)
+                   (cons (Ie-imm (combine (length key*) 2)) code*)
                    key*)
                  val*)]
               [(VMstate-value-merkle-tree nat key* val*)
                (fold-left assemble-operand-acc
                  (fold-left assemble-operand-acc
                    ;; Tag with length(key*) << 8 | combine(nat, 4)
-                   (cons (fxlogor (fxsll (length key*) 8) (combine nat 4)) code*)
+                   (cons (Ie-imm (fxlogor (fxsll (length key*) 8) (combine nat 4))) code*)
                    key*)
                  val*)]
               [(VMstate-value-array val*)
                (fold-left assemble-operand-acc
-                 (cons (combine (length val*) 3) code*)
+                 (cons (Ie-imm (combine (length val*) 3)) code*)
                  val*)]
               [else
                 (fprintf (current-error-port) "rand: ~s\n" rand)
@@ -373,12 +390,12 @@
 
       ;; Map an Impact VM alignment to a ZKIR operand (which might be negative).
       (define (assemble-alignment-atom atom)
-        (nanopass-case (Lflattened Alignment) atom
-          [(abytes ,nat) nat]
-          [(acompress) -1]
-          [(afield) -2]
-          [(aadt) -3]
-          [(acontract) -4]))
+        (Ie-imm (nanopass-case (Lflattened Alignment) atom
+                  [(abytes ,nat) nat]
+                  [(acompress) -1]
+                  [(afield) -2]
+                  [(aadt) -3]
+                  [(acontract) -4])))
 
       ;; Map an impact instruction to a list of ZKIR Impact operands.
       (define (assemble1 impact-instr var-name* alignment*)
@@ -389,83 +406,84 @@
         (let ([rands (vminstr-arg* impact-instr)])
           (case (vminstr-op impact-instr)
             ;; lt --> 0x01
-            [("lt") (list #x01)]
+            [("lt") (list (Ie-imm #x01))]
 
             ;; eq --> 0x02
-            [("eq") (list #x02)]
+            [("eq") (list (Ie-imm #x02))]
 
             ;; type --> 0x03
-            [("type") (list #x03)]
+            [("type") (list (Ie-imm #x03))]
 
             ;; size --> 0x04
-            [("size") (list #x04)]
+            [("size") (list (Ie-imm #x04))]
 
             ;; neg --> 0x08
-            [("neg") (list #x08)]
+            [("neg") (list (Ie-imm #x08))]
 
             ;; root --> 0x0a
-            [("root") (list #x0a)]
+            [("root") (list (Ie-imm #x0a))]
 
             ;; pop --> 0x0b
-            [("pop") (list #x0b)]
+            [("pop") (list (Ie-imm #x0b))]
 
             ;; popeq  --> 0x0c result
             ;; popeqc --> 0x0d result
             ;; This instruction occurs at most once in a program, so it's OK to allocate indexes for
             ;; the variable names.
             [("popeq")
-             (let ([alignment (map assemble-alignment-atom alignment*)])
+             (let ([output-vars (map Ie-var var-name*)]
+                   [alignment (map assemble-alignment-atom alignment*)])
                (cons*
-                 (if (cdr (assoc "cached" rands)) #xd #xc)
-                 (length alignment)
-                 (append alignment var-name*)))]
+                 (Ie-imm (if (cdr (assoc "cached" rands)) #xd #xc))
+                 (Ie-imm (length alignment))
+                 (append alignment output-vars)))]
 
             ;; addi --> 0x0e state
             [("addi")
-             (cons #xe (assemble-operand (cdr (assoc "immediate" rands))))]
+             (cons (Ie-imm #xe) (assemble-operand (cdr (assoc "immediate" rands))))]
 
             ;; subi --> 0x0f state
             [("subi")
-             (cons #xf (assemble-operand (cdr (assoc "immediate" rands))))]
+             (cons (Ie-imm #xf) (assemble-operand (cdr (assoc "immediate" rands))))]
 
             ;; push  --> 0x10 state
             ;; pushs --> 0x11 state
             [("push")
              (let ([code* (assemble-operand (cdr (assoc "value" rands)))])
-               (cons (if (cdr (assoc "storage" rands)) #x11 #x10) code*))]
+               (cons (Ie-imm (if (cdr (assoc "storage" rands)) #x11 #x10)) code*))]
 
             ;; branch --> 0x12 u21
             [("branch")
              ;; TODO(kmillikin): Is skip guaranteed to be in range?
-             (cons #x12 (assemble-operand (cdr (assoc "skip" rands))))]
+             (cons (Ie-imm #x12) (assemble-operand (cdr (assoc "skip" rands))))]
 
             ;; jmp --> 0x13 u21
             [("jmp")
              ;; TODO(kmillikin): Is skip guaranteed to be in range?
-             (cons #x13 (assemble-operand (cdr (assoc "skip" rands))))]
+             (cons (Ie-imm #x13) (assemble-operand (cdr (assoc "skip" rands))))]
 
             ;; add --> 0x14
-            [("add") (list #x14)]
+            [("add") (list (Ie-imm #x14))]
 
             ;; concat  --> 0x16 u21
             ;; concatc --> 0x17 u21
             [("concat")
              ;; TODO(kmillikin): Is n guaranteed to be in range?
-             (cons (if (cdr (assoc "cached" rands)) #x17 #x16)
+             (cons (Ie-imm (if (cdr (assoc "cached" rands)) #x17 #x16))
                (assemble-operand (cdr (assoc "n" rands))))]
 
             ;; member --> 0x18
-            [("member") (list #x18)]
+            [("member") (list (Ie-imm #x18))]
 
             ;; rem  --> 0x19
             ;; remc --> 0x1a
-            [("rem") (list (if (cdr (assoc "cached" rands)) #x1a #x19))]
+            [("rem") (list (Ie-imm (if (cdr (assoc "cached" rands)) #x1a #x19)))]
 
             ;; dup n --> 0x3n
-            [("dup") (list (combine #x3 (cdr (assoc "n" rands))))]
+            [("dup") (list (Ie-imm (combine #x3 (cdr (assoc "n" rands)))))]
 
             ;; swap n --> 0x4n
-            [("swap") (list (combine #x4 (cdr (assoc "n" rands))))]
+            [("swap") (list (Ie-imm (combine #x4 (cdr (assoc "n" rands)))))]
 
             ;; idx path   --> 0x5n [path], where n is length(path)-1
             ;; idxc path  --> 0x6n [path]
@@ -480,7 +498,7 @@
                    '()
                    (begin
                      (assert (not (null? path)))
-                     (cons (combine hi (1- (length path))) (assemble-path path)))))]
+                     (cons (Ie-imm (combine hi (1- (length path)))) (assemble-path path)))))]
 
             ;; ins n  --> 0x9n
             ;; insc n --> 0xan
@@ -489,7 +507,7 @@
                    [n (cdr (assoc "n" rands))])
                (if (suppress? n)
                    '()
-                   (list (combine hi n))))]
+                   (list (Ie-imm (combine hi n)))))]
 
             [else
               (fprintf (current-error-port) "unimplemented: ~s\n" impact-instr)
@@ -498,28 +516,45 @@
       ;; We patch up popeq and popeqc instructions.
       (define (popeq? code*)
         (and (pair? code*)
-             (zkir-field-rep? (car code*))
-             (<= #xc (car code*) #xd)))
+             (Impact-code-case (car code*)
+               [(Ie-imm n) (<= #xc n #xd)]
+               [else #f])))
 
       (define (assemble test-val alignment* var-name* src path env vm-code instr*)
-        (parameterize ([zkir-instr* instr*])
-          (let* ([code (expand-vm-code src path #f env (vm-code-code vm-code))]
-                 [op** (map (lambda (c) (assemble1 c var-name* alignment*)) code)])
-            (with-output-language (Lzkir Instruction)
-              (cons `(impact ,test-val ,(apply append op**) ...)
-                (fold-left (lambda (instr* op*)
-                             (if (not (popeq? op*))
-                                 instr*
-                                 (fold-left
-                                   (lambda (instr* var-name)
-                                     (cons
-                                       ;; A weird case duplicated from ZKIR v2.
-                                       (if (eq? test-val 1)
-                                           `(public_input ,var-name)
-                                           `(public_input ,var-name ,test-val))
-                                       instr*))
-                                   instr* var-name*)))
-                  (zkir-instr*) op**))))))
+        (let ([code (expand-vm-code src path #f env (vm-code-code vm-code))])
+          (with-output-language (Lzkir Instruction)
+            (fold-left
+              (lambda (instr* impact-instr)
+                ;; Some Impact operands will emit ZKIR instructions.  Instead of threading instr*
+                ;; through the assembler, set it here.
+                (parameterize ([zkir-instr* instr*])
+                  (let ([code* (assemble1 impact-instr var-name* alignment*)])
+                    ;; A "suppress" operand was an instruction to skip the instruction, empty code.
+                    (if (null? code*)
+                        instr*
+                        ;; There is at most one popeq.  It needs public_input instructions for each
+                        ;; result.
+                        (let ([instr* (if (not (popeq? code*))
+                                          (zkir-instr*)
+                                          (fold-left
+                                            (lambda (instr* var-name)
+                                              (cons
+                                                ;; A weird case duplicated from ZKIR v2.
+                                                (if (eq? test-val 1)
+                                                    `(public_input ,var-name)
+                                                    `(public_input ,var-name ,test-val))
+                                                instr*))
+                                            (zkir-instr*) var-name*))])
+                          (let ([instr* (fold-left
+                                          (lambda (instr* code)
+                                            (cons `(declare_pub_input
+                                                     ,(Impact-code-case code
+                                                        [(Ie-imm n) n]
+                                                        [(Ie-var v) v]))
+                                              instr*))
+                                          instr* code*)])
+                            (cons `(pi_skip ,test-val ,(length code*)) instr*)))))))
+              instr* code))))
 
       ;; ==== Per-circuit state ====
       (define default-src)
@@ -760,21 +795,7 @@
           [else (assert cannot-happen)]))
       (define (alignment->vector alignment*)
         (list->vector (map alignment-atom->alist alignment*)))
-      (module (with-var-table var->string)
-        (define ht)
-        (define counter)
-        (define-syntax with-var-table
-          (syntax-rules ()
-            [(_ b1 b2 ...)
-             (fluid-let ([ht (make-eq-hashtable)] [counter 0])
-               b1 b2 ...)]))
-        (define (var->string var)
-          (let ([a (eq-hashtable-cell ht var #f)])
-            (or (cdr a)
-                (let ([str (format "%~s.~d" (id-sym var) counter)])
-                  (set! counter (fx+ counter 1))
-                  (set-cdr! a str)
-                  str)))))
+      (define (var->string var) (format "~s" var))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ,cdefn* ...)
@@ -784,13 +805,10 @@
       [(circuit ,src (,name* ...) (,var-name* ...) ,instr* ...)
        (define (print-circuit op)
          (print-json-compact op
-           (with-var-table
-             (let* ([inputs (list->vector (maplr var->string var-name*))]
-                    [instructions (list->vector (maplr Instruction instr*))])
-               `((version . ((major . 3) (minor . 0)))
-                 (do_communications_commitment . ,(not (no-communications-commitment)))
-                 (inputs . ,inputs)
-                 (instructions . ,instructions))))))
+           `((version . ((major . 3) (minor . 0)))
+             (do_communications_commitment . ,(not (no-communications-commitment)))
+             (inputs . ,(list->vector (maplr var->string var-name*)))
+             (instructions . ,(list->vector (maplr Instruction instr*))))))
        (let ([output-port*
                (fold-left (lambda (output-port* name)
                             (let ([target (assq name (target-ports))])
@@ -799,7 +817,7 @@
                                   output-port*)))
                  '() name*)])
          ;; Exported pure circuits are in the IR but don't have any corresponding target ports.
-         (unless (null? output-port*)
+         (when (not (null? output-port*))
            (if (null? (cdr output-port*))
                ;; Directly print it to the port.
                (print-circuit (car output-port*))
@@ -822,6 +840,8 @@
        `((op . "constrain_to_boolean") (val . ,inp))]
       [(copy ,[* outp] ,[* inp])
        `((op . "copy") (output . ,outp) (val . ,inp))]
+      [(declare_pub_input ,[* inp])
+       `((op . "declare_pub_input") (val . ,inp))]
       [(div_mod_power_of_two ,outp0 ,outp1 ,[* inp] ,imm)
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
          `((op . "div_mod_power_of_two") (outputs . ,(vector outp0 outp1)) (val . ,inp)
@@ -853,6 +873,8 @@
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
          `((op . "persistent_hash") (outputs . ,(vector outp0 outp1))
            (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*))))]
+      [(pi_skip ,[* inp] ,imm)
+       `((op . "pi_skip") (guard . ,inp) (count . ,imm))]
       [(private_input ,[* outp])
        ;; Kind of warty: rather than a literal true guard or making it truly optional by leaving it
        ;; out of the JSON representation, ZKIR wants to put a JSON null value there.
@@ -865,8 +887,6 @@
        `((op . "public_input") (output . ,outp) (guard . ,(void)))]
       [(public_input ,[* outp] ,[* inp])
        `((op . "public_input") (output . ,outp) (guard . ,inp))]
-      [(impact ,[* inp] ,[* inp*] ...)
-       `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
       [(reconstitute_field ,[* outp] ,[* inp0] ,[* inp1] ,imm)
        `((op . "reconstitute_field") (output . ,outp) (divisor . ,inp0) (modulus . ,inp1)
          (bits . ,imm))]

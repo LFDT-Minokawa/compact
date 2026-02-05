@@ -1,7 +1,6 @@
-/coverage
-/obj
-/profiled-obj
-/replacement-results.ss
+coverage
+obj
+profiled-obj
 .*.sw?
 
 .vscode

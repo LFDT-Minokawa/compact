@@ -28,7 +28,6 @@ export enum Arguments {
     VERSION = '--version',
     LANGUAGE_VERSION = '--language-version',
     VSCODE = '--vscode',
-    LINES_LENGTH = '--line-length',
 }
 
 type FailedContract = {

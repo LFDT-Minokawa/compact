@@ -20,7 +20,6 @@ mod compiler_legacy;
 mod console;
 pub mod fetch;
 pub mod file;
-pub mod fixup;
 pub mod formatter;
 pub mod http;
 pub mod progress;
@@ -28,8 +27,8 @@ pub mod utils;
 
 pub use self::{
     command_line_arguments::{
-        CheckCommand, CleanCommand, Command, CommandLineArguments, CompactUpdateConfig,
-        FixupCommand, FormatCommand, ListCommand, SSelf, Target, UpdateCommand,
+        CleanCommand, Command, CommandLineArguments, CompactUpdateConfig, FormatCommand,
+        ListCommand, SSelf, Target, UpdateCommand,
     },
     compact_directory::CompactDirectory,
     compiler::Compiler,

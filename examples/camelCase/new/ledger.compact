@@ -39,8 +39,7 @@ constructor() {
   kernel.claimUnshieldedCoinSpend(
     default<Either<Bytes<32>, Bytes<32>>>,
     default<Either<ContractAddress, UserAddress>>,
-    default<Uint<64>>
-    );
+    default<Uint<64>>);
   kernel.incUnshieldedOutputs(default<Either<Bytes<32>, Bytes<32>>>, default<Uint<64>>);
   kernel.incUnshieldedInputs(default<Either<Bytes<32>, Bytes<32>>>, default<Uint<64>>);
   kernel.balance(default<Either<Bytes<32>, Bytes<32>>>);
@@ -63,10 +62,7 @@ constructor() {
 
   maps.insert(1, default<QualifiedShieldedCoinInfo>);
   maps.insertCoin(
-    1,
-    default<ShieldedCoinInfo>,
-    default<Either<ZswapCoinPublicKey, ContractAddress>>
-    );
+    1, default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
   maps.insertDefault(1);
   maps.isEmpty();
   maps.lookup(1);
@@ -81,9 +77,7 @@ constructor() {
   list.popFront();
   list.pushFront(default<QualifiedShieldedCoinInfo>);
   list.pushFrontCoin(
-    default<ShieldedCoinInfo>,
-    default<Either<ZswapCoinPublicKey, ContractAddress>>
-    );
+    default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
   list.resetToDefault();
 
   mt.checkRoot(default<MerkleTreeDigest>);

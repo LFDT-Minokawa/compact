@@ -27,7 +27,7 @@
   (define (parse-file/fixup/format/reparse pathname)
     (let* ([op (get-target-port 'fixup-output.compact)]
            [fixup-pathname (port-name op)])
-      (put-string op (parse-file/fixup/format pathname))
+      (put-string op (parse-file/fixup/format pathname 80))
       (flush-output-port op)
       (parse-file fixup-pathname)))
 

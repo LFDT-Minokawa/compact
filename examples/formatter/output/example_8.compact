@@ -27,10 +27,8 @@ constructor(x: Field, y: Field, z: Field) {
   }
   for (const y of 0..10) {
     if (y == 1) {
-      assert(y == y,
-             "
-        gorgonzola"
-             );
+      assert(y == y, "
+        gorgonzola");
     }
   }
   return [];
@@ -39,5 +37,4 @@ constructor(x: Field, y: Field, z: Field) {
 export circuit burt(): [] {
 
   const y = 1;
-
 }

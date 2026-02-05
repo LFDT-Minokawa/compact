@@ -27,7 +27,7 @@ struct Either<A, B> {
 }
 ```
 
-### `NativePoint`
+### `CurvePoint`
 
 A point on the proof systems embedded curve, in affine coordinates.
 
@@ -35,7 +35,7 @@ Only outputs of elliptic curve operations are actually guaranteed to lie on the
 curve.
 
 ```compact
-struct NativePoint {
+struct CurvePoint {
   x: Field;
   y: Field;
 }
@@ -289,20 +289,20 @@ circuit upgradeFromTransient(x: Field): Bytes<32>;
 
 ### `ecAdd`
 
-This function add two elliptic [`NativePoint`](#nativepoint)s (in multiplicative
+This function add two elliptic [`CurvePoint`](#curvepoint)s (in multiplicative
 notation)
 
 ```compact
-circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;
+circuit ecAdd(a: CurvePoint, b: CurvePoint): CurvePoint;
 ```
 
 ### `ecMul`
 
-This function multiplies an elliptic [`NativePoint`](#nativepoint) by a scalar
+This function multiplies an elliptic [`CurvePoint`](#curvepoint) by a scalar
 (in multiplicative notation)
 
 ```compact
-circuit ecMul(a: NativePoint, b: Field): NativePoint;
+circuit ecMul(a: CurvePoint, b: Field): CurvePoint;
 ```
 
 ### `ecMulGenerator`
@@ -311,12 +311,12 @@ This function multiplies the primary group generator of the embedded curve
 by a scalar (in multiplicative notation)
 
 ```compact
-circuit ecMulGenerator(b: Field): NativePoint;
+circuit ecMulGenerator(b: Field): CurvePoint;
 ```
 
 ### `hashToCurve`
 
-This function maps arbitrary types to [`NativePoint`](#nativepoint)s.
+This function maps arbitrary types to [`CurvePoint`](#curvepoint)s.
 
 Outputs are guaranteed to have unknown discrete logarithm with respect to
 the group base, and any other output, but are not guaranteed to be unique (a
@@ -326,7 +326,7 @@ Inputs of different types `T` may have the same output, if they have the same
 field-aligned binary representation.
 
 ```compact
-circuit hashToCurve<T>(value: T): NativePoint;
+circuit hashToCurve<T>(value: T): CurvePoint;
 ```
 
 ### `merkleTreePathRoot`

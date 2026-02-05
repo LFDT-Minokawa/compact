@@ -34,7 +34,7 @@
       url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0";
       inputs.zkir.follows = "zkir";
     };
-    onchain-runtime-v2 = {
+    onchain-runtime-v1 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
       url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0";
@@ -55,16 +55,22 @@
       url = "github:nix-community/npmlock2nix";
       flake = false;
     };
+
+    midnight-contracts = {
+      url = "github:midnightntwrk/midnight-contracts/unshielded-tokens";
+      flake = false;
+    };
   };
 
   outputs = {
     self,
     zkir,
-    onchain-runtime-v2,
+    onchain-runtime-v1,
     zkir-wasm,
     nixpkgs,
     utils,
     inclusive,
+    midnight-contracts,
     chez-exe,
     npmlock2nix,
     ...
@@ -97,6 +103,7 @@
             cp -r ${self.packages.${system}.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime node_modules/@midnight-ntwrk/compact-runtime
             chown $USER -R node_modules
             chmod u+w -R node_modules
+            ln -sfn ${midnight-contracts} test-center/midnight-contracts
           '';
         test-center-shell-hook =
           ''
@@ -164,11 +171,11 @@
             };
 
             nixDependenciesMap = {
-              "@midnight-ntwrk/onchain-runtime-v2" = let
-                pkg = onchain-runtime-v2.packages.${system}.onchain-runtime-wasm;
+              "@midnight-ntwrk/onchain-runtime-v1" = let
+                pkg = onchain-runtime-v1.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v2-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v2";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v1-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v1";
               };
             };
           };
@@ -202,7 +209,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.28.0"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.27.0"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./test-center
               ./compiler
@@ -231,6 +238,7 @@
               sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/format-compact.ss > obj/compiler/format-compact.ss
               sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/fixup-compact.ss > obj/compiler/fixup-compact.ss
               patchShebangs --host .
+              ln -sfn ${midnight-contracts} test-center/midnight-contracts
 
               scheme -q << END
                 (reset-handler abort)
@@ -314,11 +322,7 @@
                 cp "obj/compiler/$exe" $out/bin
                 chmod +x "$out/bin/$exe"
               done
-            '' + (if isDarwin then ''
-              for exe in compactc format-compact fixup-compact; do
-                install_name_tool -change ${pkgs.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/bin/$exe"
-              done
-            '' else "");
+            '';
           };
 
           packages.compactc-binaryWrapperScript-nixos = pkgs.writeShellScriptBin "run-compactc" ''
@@ -353,9 +357,7 @@
                 cp "bin/$exe" $out/bin
                 chmod +x "$out/bin/$exe"
               done
-            '' + (if isDarwin then ''
-              install_name_tool -change ${inputs.zkir.inputs.nixpkgs.legacyPackages.${system}.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/lib/zkir"
-            '' else "");
+            '';
 
             dontFixup = true;
           };

@@ -30,7 +30,7 @@
   "author": "IOG",
   "license": "Apache-2.0",
   "nixDependencies": [
-    "@midnight-ntwrk/onchain-runtime-v2"
+    "@midnight-ntwrk/onchain-runtime-v1"
   ],
   "dependencies": {
     "@midnight-ntwrk/onchain-runtime-v2": "^2.0.0",

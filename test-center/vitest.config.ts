@@ -17,7 +17,7 @@ import { defineConfig } from 'vitest/config'
 
 const testFiles = ["**/*.test.ts", "test.ts"];
 // the ts directory contents are included in the test.ts file
-const nonTestFiles = ["midnight-example-applications", "node_modules", "test-contracts", "ts/**/*.ts"];
+const nonTestFiles = ["midnight-contracts", "midnight-example-applications", "node_modules", "ts/**/*.ts"];
 
 export default defineConfig({
   test: {

@@ -41,7 +41,7 @@ circuit andy(a: Field, b: Field) : [Field, Field] {
   return [x, x];
 }
 
-export circuit myswitch(a: Boolean): [] {
+export circuit switch(a: Boolean): [] {
   caroline.pushFront(disclose(a));
   const p = caroline.head().value;
 
