@@ -1,0 +1,33 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// test: check if we can still use methods from CompactStandardLibrary
+export circuit nativeMethods(): [] {
+  const a: Field = transientHash<Field>(default<Field>);
+  const b: Field = transientCommit<Field>(default<Field>, default<Field>);
+  const c: Bytes<32> = persistentHash<Field>(default<Field>);
+  const d: Bytes<32> = persistentCommit<Field>(default<Field>, default<Bytes<32>>);
+  const e: Field = degradeToTransient(default<Bytes<32>>);
+  const f: Bytes<32> = upgradeFromTransient(default<Field>);
+  const g: NativePoint = ecAdd(default<NativePoint>, default<NativePoint>);
+  const h: NativePoint = ecMul(default<NativePoint>, default<Field>);
+  const i: NativePoint = ecMulGenerator(default<Field>);
+  const j: NativePoint = hashToCurve<Field>(default<Field>);
+  const k: ZswapCoinPublicKey = ownPublicKey();
+  const l: [] = createZswapInput(default<QualifiedShieldedCoinInfo>);
+  const m: [] = createZswapOutput(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+}
