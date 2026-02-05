@@ -15,7 +15,7 @@
 
 import "bob";
 
-import "utils/greg";
+import "../structured/utils/greg";
 
 import "utils/other/mark";
 
