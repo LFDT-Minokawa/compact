@@ -43,7 +43,7 @@ export interface CompactType<A> {
  * A point in the embedded elliptic curve. TypeScript representation of the
  * Compact type of the same name
  */
-export interface NativePoint {
+export interface JubjubPoint {
   readonly x: bigint;
   readonly y: bigint;
 }
@@ -93,20 +93,20 @@ export interface Recipient {
 }
 
 /**
- * Runtime type of {@link NativePoint}
+ * Runtime type of {@link JubjubPoint}
  */
-export const CompactTypeNativePoint: CompactType<NativePoint> = {
+export const CompactTypeJubjubPoint: CompactType<JubjubPoint> = {
   alignment(): ocrt.Alignment {
     return [
       { tag: 'atom', value: { tag: 'field' } },
       { tag: 'atom', value: { tag: 'field' } },
     ];
   },
-  fromValue(value: ocrt.Value): NativePoint {
+  fromValue(value: ocrt.Value): JubjubPoint {
     const x = value.shift();
     const y = value.shift();
     if (x == undefined || y == undefined) {
-      throw new CompactError('expected NativePoint');
+      throw new CompactError('expected JubjubPoint');
     } else {
       return {
         x: ocrt.valueToBigInt([x]),
@@ -114,7 +114,7 @@ export const CompactTypeNativePoint: CompactType<NativePoint> = {
       };
     }
   },
-  toValue(value: NativePoint): ocrt.Value {
+  toValue(value: JubjubPoint): ocrt.Value {
     return ocrt.bigIntToValue(value.x).concat(ocrt.bigIntToValue(value.y));
   },
 };
