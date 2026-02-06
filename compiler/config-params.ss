@@ -48,5 +48,5 @@
   (export-parameter trace-passes #f)
 
   ; feature flags
-  (export-parameter zkir-v3 #f)
+  (export-parameter feature-zkir-v3 #f)
 )

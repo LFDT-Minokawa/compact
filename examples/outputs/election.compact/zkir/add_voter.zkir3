@@ -2,8 +2,8 @@
   "version": { "major": 3, "minor": 0 },
   "do_communications_commitment": true,
   "inputs": [
-    "%pk.0",
-    "%pk.1"
+    { "name": "%pk.0", "type": "Scalar<BLS12-381>" },
+    { "name": "%pk.1", "type": "Scalar<BLS12-381>" }
   ],
   "instructions": [
     { "op": "constrain_bits", "val": "%pk.0", "bits": 8 },

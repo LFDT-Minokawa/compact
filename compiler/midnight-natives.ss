@@ -45,6 +45,16 @@
   ([x Field (discloses "a converted form of")])
   (Bytes 32))
 
+(declare-native-entry circuit nativePointX
+  "__compactRuntime.nativePointX"
+  ([np (TypeRef NativePoint) (discloses "the X coordinate of")])
+  Field)
+
+(declare-native-entry circuit nativePointY
+  "__compactRuntime.nativePointY"
+  ([np (TypeRef NativePoint) (discloses "the Y coordinate of")])
+  Field)
+
 (declare-native-entry circuit ecAdd
   "__compactRuntime.ecAdd"
   ([a (TypeRef NativePoint) (discloses "an elliptic curve sum including")]
@@ -65,6 +75,12 @@
 (declare-native-entry circuit hashToCurve [A]
   "__compactRuntime.hashToCurve"
   ([value A (discloses "a hash of")])
+  (TypeRef NativePoint))
+
+(declare-native-entry circuit constructNativePoint
+  "__compactRuntime.constructNativePoint"
+  ([x Field (discloses "a NativePoint containing x coordinate")]
+   [y Field (discloses "a NativePoint containing y coordinate")])
   (TypeRef NativePoint))
 
 (declare-native-entry witness ownPublicKey

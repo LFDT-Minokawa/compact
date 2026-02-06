@@ -57,5 +57,18 @@ describe('[CurvePoint] [PM-21110] Switch from the CurvePoint to NativePoint', ()
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
+
+        test('example 3 - treat NativePoint as a struct', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_three.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_three.compact line 23 char 14: expected structure type, received NativePoint',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
     });
 });
