@@ -599,14 +599,33 @@
                      instr*))]))]
           [else (assert cannot-happen)]))
 
-      ;; Turn an Lflattened argument list into a list of names and a parallel list of types.
+      ;; Turn an Lflattened argument list into a list of names, a parallel list of types, and
+      ;; conversion instructions.
       (define (unzip-arguments arg*)
         (if (null? arg*)
-            (values '() '())
-            (let-values ([(name* type*) (unzip-arguments (cdr arg*))])
+            (values '() '() '())
+            (let-values ([(name* type* instr*) (unzip-arguments (cdr arg*))])
               (nanopass-case (Lflattened Argument) (car arg*)
                 [(argument (,var-name* ...) (ty (,alignment* ...) (,primitive-type* ...)))
-                 (values (append var-name* name*) (append primitive-type* type*))]))))
+                 (if (= (length primitive-type*) 1)
+                     (nanopass-case (Lflattened Primitive-Type) (car primitive-type*)
+                       [(topaque ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
+                        ;; We have chosen not to flatten JubjubPoint into a pair of values (in
+                        ;; `flatten-datatype`) because we can't recover the ZKIR type from that.
+                        ;;
+                        ;; If it's a JubjubPoint the circuit will have a pair of field values as
+                        ;; inputs in the proof primage, because that's what the JS code will have
+                        ;; captured.  Expand the inputs into the pair of inputs and insert a
+                        ;; `decode` instruction.
+                        (let* ([x (make-temp-id default-src 'x)]
+                               [y (make-temp-id default-src 'y)])
+                          (values (cons* x y name*)
+                            (with-output-language (Lflattened Primitive-Type)
+                              (cons* `(tfield) `(tfield) type*))
+                            (with-output-language (Lzkir Instruction)
+                              (cons `(decode "Point<Jubjub>" ,(car var-name*) ,x ,y) instr*))))]
+                       [else (values (append var-name* name*) (append primitive-type* type*) instr*)])
+                     (values (append var-name* name*) (append primitive-type* type*) instr*))]))))
 
       (define (type->string primitive-type)
         (nanopass-case (Lflattened Primitive-Type) primitive-type
@@ -649,11 +668,11 @@
        ;; - Translate the statements in the body
        ;; - Add instructions for the outputs
        (fluid-let ([default-src src])
-         (let-values ([(var-name* type*) (unzip-arguments arg*)])
+         (let-values ([(var-name* type* instr*) (unzip-arguments arg*)])
            (let* ([constraint*
                     (fold-left (lambda (constraint* var-name type)
                                  (emit-constraints-for var-name type constraint*))
-                      '() var-name* type*)]
+                      instr* var-name* type*)]
                   [instr*
                     (fold-left (lambda (instr* stmt) (Statement stmt instr*))
                       constraint* stmt*)]
