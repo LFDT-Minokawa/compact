@@ -113,7 +113,8 @@ groups than for single tests.
 |#
 
 (module (run-tests test-group test oops warning returns pass-returns succeeds custom-check >output-file output-file stage-javascript run-javascript
-         testdir show-last-successes show-successes show-all-passes show-stack-backtrace with-compact-path)
+         testdir show-last-successes show-successes show-all-passes show-stack-backtrace with-compact-path
+         with-parameter-values)
 
   (define-record-type feedback
     (nongenerative)
@@ -860,6 +861,25 @@ groups than for single tests.
                              (expt 10 9)))))))
           (set! javascript-op #f))))
     )
+
+  (define-syntax with-parameter-values
+    (syntax-rules ()
+      [(_ ([param e ...] ...) b1 b2 ...)
+       (let ([th (lambda () b1 b2 ...)])
+         (let next-param ([ls (list (list param e ...) ...)] [rchosen* '()])
+           (if (null? ls)
+               (begin
+                 (unless (null? '(param ...))
+                   (printf "==== parameterizing ~{~a~^, ~}\n"
+                     (map (lambda (p v) (format "~a = ~a" p v))
+                          '(param ...)
+                          (reverse rchosen*))))
+                 (th))
+               (let next-value ([v* (cdar ls)])
+                 (unless (null? v*)
+                   (parameterize ([(caar ls) (car v*)])
+                     (next-param (cdr ls) (cons (car v*) rchosen*))
+                     (next-value (cdr v*))))))))]))
 )
 
 (run-tests parse-file/format/reparse
@@ -63357,6 +63377,7 @@ groups than for single tests.
   )
 )
 
+(with-parameter-values ([zkir-v3 #f #t])
 (run-tests print-typescript
   (test-group
     ((create-file "C1.compact"
@@ -78448,3 +78469,4 @@ groups than for single tests.
 )
 
 (run-javascript)
+)

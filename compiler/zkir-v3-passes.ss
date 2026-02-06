@@ -134,7 +134,7 @@
                (assert (= (length var-name*) 2))
                (cons*
                  `(div_mod_power_of_two
-                    ,(cadr var-name*) ,(make-temp-id src 'tmp) ,(car triv*) ,248)
+                    ,(make-temp-id src 'tmp) ,(cadr var-name*) ,(car triv*) ,248)
                  `(copy ,(car var-name*) ,0)
                  instr*)]
               [else
