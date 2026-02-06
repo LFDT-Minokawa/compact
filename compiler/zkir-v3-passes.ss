@@ -893,7 +893,7 @@
        `((op . "ec_mul_generator") (outputs . ,outp) (scalar . ,inp))]
       [(encode ,outp0 ,outp1 ,[* inp])
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-         `((op . "encode") (outputs . ,(vector outp0 outp1)) (val . ,inp)))]
+         `((op . "encode") (outputs . ,(vector outp0 outp1)) (input . ,inp)))]
       [(hash_to_curve ,[* outp] ,[* inp*] ...)
        `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
       [(less_than ,[* outp] ,[* inp0] ,[* inp1] ,imm)
