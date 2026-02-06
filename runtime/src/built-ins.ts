@@ -162,12 +162,16 @@ export function upgradeFromTransient(x: bigint): Uint8Array {
   return res;
 }
 
-export function NativePointX(pt: JubjubPoint): bigint {
+export function nativePointX(pt: JubjubPoint): bigint {
   return pt.x;
 }
 
-export function NativePointY(pt: JubjubPoint): bigint {
+export function nativePointY(pt: JubjubPoint): bigint {
   return pt.y;
+}
+
+export function constructNativePoint(x: bigint, y: bigint): JubjubPoint {
+    return { x: x, y: y };
 }
 
 /**

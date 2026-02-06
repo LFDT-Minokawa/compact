@@ -158,7 +158,7 @@
                               (when (file-exists? (format "~a/zkir" output-directory-pathname))
                                 ;; TODO: Properly string escape!
                                 (let ([res (system (format "exec ~a compile-many '~a/zkir' '~a/keys'"
-                                                           (if (zkir-v3) "zkir-v3" "zkir")
+                                                           (if (feature-zkir-v3) "zkir-v3" "zkir")
                                                            output-directory-pathname
                                                            output-directory-pathname))])
                                   (unless (zero? res)

@@ -92,6 +92,8 @@
           (with-output-language (Lzkir Instruction)
             ;; Generally assume that the arity is correct here.
             (case name
+              [(constructNativePoint)
+               (cons `(decode "Point<Jubjub>" ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
               [(degradeToTransient)
                (cons `(copy ,(car var-name*) ,(cadr triv*)) instr*)]
               [(ecAdd)
@@ -106,10 +108,10 @@
               [(hashToCurve)
                (assert (= (length var-name*) 1))
                (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
-              [(NativePointX)
+              [(nativePointX)
                (assert (= (length var-name*) 1))
                (cons `(encode ,(car var-name*) ,(make-temp-id src 'ingore) ,(car triv*)) instr*)]
-              [(NativePointY)
+              [(nativePointY)
                (assert (= (length var-name*) 1))
                (cons `(encode ,(make-temp-id src 'ignore) ,(car var-name*) ,(car triv*)) instr*)]
               [(persistentCommit)
@@ -154,13 +156,13 @@
           [(witness ,src ,function-name (,arg* ...) (ty (,alignment* ...)
                                                       (,primitive-type* ...)))
            (assert (not (hashtable-contains? callable-ht function-name))) 
-           (hashtable-set! callable-ht function-name (make-witness primitive-type*))]
+           (hashtable-set! callable-ht function-name (make-witness alignment* primitive-type*))]
           [(native ,src ,function-name ,native-entry (,arg* ...) (ty (,alignment* ...)
                                                                      (,primitive-type* ...)))
            (assert (not (hashtable-contains? callable-ht function-name)))
            (hashtable-set! callable-ht function-name
              (if (eq? (native-entry-class native-entry) 'witness)
-                 (make-witness primitive-type*)
+                 (make-witness alignment* primitive-type*)
                  (make-native (id-sym function-name) arg*)))]
           [else (void)]))
 

@@ -16756,26 +16756,14 @@ groups than for single tests.
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
         (native %ecAdd.1 ([%a.2 (talias #t NativePoint
-                                    (tstruct SimplePoint
-                                      (x (tfield))
-                                      (y (tfield))))]
-                             [%b.3 (talias #t NativePoint
-                                    (tstruct SimplePoint
-                                      (x (tfield))
-                                      (y (tfield))))])
-             (talias #t NativePoint
-               (tstruct SimplePoint
-                 (x (tfield))
-                 (y (tfield)))))
+                                  (topaque "JubjubPoint"))]
+                          [%b.3 (talias #t NativePoint
+                                  (topaque "JubjubPoint"))])
+             (talias #t NativePoint (topaque "JubjubPoint")))
         (native %ecMul.4 ([%a.5 (talias #t NativePoint
-                                    (tstruct SimplePoint
-                                      (x (tfield))
-                                      (y (tfield))))]
-                             [%b.6 (tfield)])
-             (talias #t NativePoint
-               (tstruct SimplePoint
-                 (x (tfield))
-                 (y (tfield)))))
+                                  (topaque "JubjubPoint"))]
+                          [%b.6 (tfield)])
+             (talias #t NativePoint (topaque "JubjubPoint")))
         (circuit %foo.7 ([%c.8 (talias #t NativePoint
                                  (topaque "JubjubPoint"))])
              (talias #t NativePoint (topaque "JubjubPoint"))
@@ -46549,7 +46537,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo(p1: NativePoint, p2: NativePoint): NativePoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([NativePointX(p1), NativePointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([nativePointX(p1), nativePointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -57519,7 +57507,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo(p1: NativePoint, p2: NativePoint): NativePoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([NativePointX(p1), NativePointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([nativePointX(p1), nativePointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -63399,7 +63387,7 @@ groups than for single tests.
 )
 )
 
-(with-parameter-values ([zkir-v3 #f #t])
+(with-parameter-values ([feature-zkir-v3 #f #t])
 (run-tests print-typescript
   (test-group
     ((create-file "C1.compact"

@@ -199,12 +199,16 @@
                   (print-gate "hash_to_curve" `[inputs ,args*])
                   (new-var! (car res*) #f)
                   (new-var! (cadr res*) #f)))
-              (register-handler! 'NativePointX
+              (register-handler! 'nativePointX
                 (lambda (align res* a1 a2)
                   (bind-var! (car res*) a1)))
-              (register-handler! 'NativePointY
+              (register-handler! 'nativePointY
                 (lambda (align res* a1 a2)
                   (bind-var! (car res*) a2)))
+              (register-handler! 'constructNativePoint
+                (lambda (align res* a1 a2)
+                  (bind-var! (car res*) a1)
+                  (bind-var! (cadr res*) a2)))
               (register-handler! 'transientCommit
                 ;; First n-1 args are the object being committed.
                 ;; Final arg is commitment nonce.
