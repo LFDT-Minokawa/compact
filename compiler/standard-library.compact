@@ -397,7 +397,7 @@ struct JubjubSchnorrHashInput<#n> {
   msg: Vector<n, Field>
 }
 
-export circuit jubjub_schnorr_verify<#n>(msg: Vector<n, Field>, signature: JubjubSchnorrSignature, pk: NativePoint): [] {
+export circuit jubjubSchnorrVerify<#n>(msg: Vector<n, Field>, signature: JubjubSchnorrSignature, pk: NativePoint): [] {
   const {announcement, response} = signature;
   const c: Field = transientHash<JubjubSchnorrHashInput<n>>(JubjubSchnorrHashInput<n>{
     ann_x: announcement.x,
