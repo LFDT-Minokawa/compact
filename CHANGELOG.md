@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain version 0.29.0, language version 0.21.0]
+
+This release includes all changes for compiler versions in the range
+0.28.100 and 0.29.0; and language versions in the range 0.20.100 and
+0.21.0.  It uses Compact runtime 0.14.0 and on-chain runtime
+compatible with 2.0.0.
+
 ## [Unreleased compiler 0.28.109, language 0.20.102]
 
 ### Fixed
