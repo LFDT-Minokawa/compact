@@ -78457,7 +78457,8 @@ groups than for single tests.
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of NativePoint current as of the creation of this test"
-        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual([7n, 3n]);"
+        "  const p = runtime.ecMulGenerator(1n);"
+        "  expect(C.circuits.foo(Ctxt, p).result).toEqual([p.y, p.x]);"
         "});"
         ))
     )
@@ -78478,7 +78479,8 @@ groups than for single tests.
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of NativePoint current as of the creation of this test"
-        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual({x: 7n, y: 3n});"
+        "  const p = runtime.ecMulGenerator(1n);"
+        "  expect(C.circuits.foo(Ctxt, p).result).toEqual({ x: p.y, y: p.x });"
         "});"
         ))
     )
