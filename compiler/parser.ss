@@ -248,10 +248,10 @@
              (HTML
                "Notational note: In the grammar productions below, ellipses are used to specify repetition."
                "The notation <em>X</em> ... <em>X</em>, where <em>X</em> is a grammar symbol, represents zero or more occurrences of <em>X</em>."
-               "The notation <em>X</em> <em>s</em> ... <em>s</em> <em>X</em>, where <em>X</em> is a grammar symbol and <em>s</em> is a separator such as a comma or or semicolon, represents zero or more occurrences of <em>X</em> separated by <em>s</em>."
+               "The notation <em>X</em> <b><tt>s</tt></b> ... <b><tt>s</tt></b> <em>X</em>, where <em>X</em> is a grammar symbol and <b><tt>s</tt></b> is a separator such as a comma or or semicolon, represents zero or more occurrences of <em>X</em> separated by <b><tt>s</tt></b>."
                "In either case, when the ellipsis is marked with the superscript 1, the notation represents a sequence containing at least one <em>X</em>."
                "When such a sequence is followed by <em>s</em><sup>opt</sup>, an optional trailing separator is allowed, but only if there is at least one <em>X</em>."
-               "For example, id &mldr; id represents zero or more ids, and expr , &mldr;&sup1; , expr ,<sup>opt</sup> represents one or more comma-separated exprs possibly followed by an extra comma."))
+               "For example, <em>id</em> &mldr; <em>id</em> represents zero or more <em>id</em>s, and <em>expr</em> , &mldr;&sup1; , <em>expr</em> ,<sup>opt</sup> represents one or more comma-separated <em>expr</em>s possibly followed by an extra comma."))
     (TERMINALS
       (end-of-file (eof)
         (DESCRIPTION
