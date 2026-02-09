@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased toolchain 0.29.100, language 0.21.100, runtime 0.14.100]
+## [Unreleased toolchain 0.29.101, language 0.21.100, runtime 0.14.100]
 
 ### Added
 
@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   types, this is intended to be a crypto backend (ZKIR) native type (not a JS
   type).  The standard library exports the type `JubjubPoint` which is a
   (transparent) `type` alias for the opaque type.
-  
+
 ### Changed
 
 - The standard library's (opaque) `new type` alias `NativePoint` now has
@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The feature flag `--zkir-v3` is changed to `--feature-zkir-v3` to fit a
   proposed standard naming convention, and to make crystal clear that it is
   still an experimental feature.
-  
+
 ### Internal notes
 
 - When the flag `--feature-zkir-v3` is enabled, `Opaque<'JubjubPoint'>` is
@@ -43,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ZKIR v3 has two types: `Scalar<BLS12-381>` and `Point<Jubjub>`.
 - For both ZKIR v3 and ZKIR v2 modes, the JS representation of is still as a pair
   of field elements.
+
+## [Unreleased toolchain 0.29.100, language 0.21.0]
+
+### Changed
+
+The compiler binary can now report `--runtime-version`, the version of the
+Compact runtime JS package that it will import in generated contract code.
 
 ## [Toolchain version 0.29.0, language version 0.21.0]
 

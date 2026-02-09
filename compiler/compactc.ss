@@ -28,10 +28,10 @@
   (fprintf (current-output-port) "
 This program compiles the Compact source program in the file specified by
 <source-pathname> and puts the resulting target files into the directory
-specified by <target-directory-pathname>.  These target files include
-a Typescript equivalent of the Compact source file, Zkir circuit equivalents
-of the exported circuits, and proving keys created by running zkir on the
-zkir circuits.
+specified by <target-directory-pathname>.  These target files include a
+Typescript equivalent of the Compact source file, Zkir circuit equivalents of
+the exported circuits, and proving keys created by running zkir on the zkir
+circuits.
 
 The following flags, if present, affect the compiler's behavior as follows:
   --help prints help text and exits.
@@ -40,23 +40,27 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --language-version prints the language version and exits.
 
+  --runtime-version prints the runtime version and exits.  The runtime version
+    is the version of the Compact runtime JavaScript package that is used by
+    generated contract code.
+
   --vscode causes error messages to be printed on a single line so they are
     rendered properly within the VS Code extension for Compact.
 
   --skip-zk causes the compiler to skip the generation of proving keys.
-    Generating proving keys can be time-consuming, so this option is useful
-    when debugging only the Typescript output.  The compiler also skips,
-    after printing a warning message, the generation of proving keys when
-    it cannot find zkir.
+    Generating proving keys can be time-consuming, so this option is useful when
+    debugging only the Typescript output.  The compiler also skips, after
+    printing a warning message, the generation of proving keys when it cannot
+    find zkir.
 
-  --no-communications-commitment omits the contract communications
-    commitment that enables data integrity for contract-to-contract calls.
+  --no-communications-commitment omits the contract communications commitment
+    that enables data integrity for contract-to-contract calls.
 
   --sourceRoot <sourceRoot value> overrides the compiler's setting of the
     sourceRoot field in the generated source-map (.js.map) file.  By default,
     the compiler tries to determine a useful value based on the source and
-    target-directory pathnames, but this value might not be appropriate for
-    the deployed structure of the application.
+    target-directory pathnames, but this value might not be appropriate for the
+    deployed structure of the application.
 
   --trace-passes causes the compiler to print tracing information that is
     generally useful only to compiler developers.
@@ -69,6 +73,7 @@ The following flags, if present, affect the compiler's behavior as follows:
     [((flags [(--help) $ (begin (print-help) (exit))]
              [(--version) $ (begin (print-compiler-version) (exit))]
              [(--language-version) $ (begin (print-language-version) (exit))]
+             [(--runtime-version) $ (begin (print-runtime-version) (exit))]
              [(--vscode)]
              [(--skip-zk)]
              [(--no-communications-commitment)]
@@ -88,7 +93,8 @@ The following flags, if present, affect the compiler's behavior as follows:
          (generate-everything source-pathname target-directory-pathname)))]
     [((flags [(--help) $ (begin (print-help) (exit))]
              [(--version) $ (begin (print-compiler-version) (exit))]
-             [(--language-version) $ (begin (print-language-version) (exit))])
+             [(--language-version) $ (begin (print-language-version) (exit))]
+             [(--runtime-version) $ (begin (print-runtime-version) (exit))])
       (string arg) ...)
      (print-usage #t)
      (exit 1)]))
