@@ -14,8 +14,9 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --language-version prints the language version and exits.
 
-  --runtime-version prints the version of the Compact runtime JavaScript package
-    that is used by generated contract code.
+  --runtime-version prints the runtime version and exits.  The runtime version
+    is the version of the Compact runtime JavaScript package that is used by
+    generated contract code.
 
   --vscode causes error messages to be printed on a single line so they are
     rendered properly within the VS Code extension for Compact.
