@@ -106,7 +106,7 @@ The parser supported external circuit declarations, which were ones that did not
 Instead, the implementation was supplied by the compiler itself.
 It's highly unlikely that you were using this feature, because it would require modifications to the compiler and a custom build to use it.
 
-This release removes the syntax from the language, it will now be a compiler error to declare a circuit without a body.
+This release removes the syntax from the language, it is now a compiler error to declare a circuit without a body.
 
 ## Links and references
 
