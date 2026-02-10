@@ -54,14 +54,19 @@ export type Field =
 export interface CurveOps {
   /** Validates that (x, y) is a valid point on the curve */
   validate(x: bigint, y: bigint): void;
+
   /** Adds two points */
   add(a: ocrt.Value, b: ocrt.Value): ocrt.Value;
+
   /** Multiplies a point by a scalar */
   mul(point: ocrt.Value, scalar: ocrt.Value): ocrt.Value;
+
   /** Negates a point */
   neg(point: ocrt.Value): ocrt.Value;
+
   /** Returns the generator point */
   generator(): ocrt.Value;
+
   /** Multiplies the generator by a scalar */
   mulGenerator(scalar: ocrt.Value): ocrt.Value;
 }
@@ -72,14 +77,19 @@ export interface CurveOps {
 export interface FieldOps {
   /** Validates that a value is in the field */
   validate(value: bigint): void;
+
   /** Adds two field elements */
   add(a: bigint, b: bigint): bigint;
+
   /** Subtracts two field elements */
   sub(a: bigint, b: bigint): bigint;
+
   /** Multiplies two field elements */
   mul(a: bigint, b: bigint): bigint;
+
   /** Negates a field element */
   neg(a: bigint): bigint;
+
   /** Computes the multiplicative inverse */
   inv(a: bigint): bigint;
 }
@@ -94,7 +104,9 @@ export interface FieldOps {
 export interface IPointBase {
   readonly x: bigint;
   readonly y: bigint;
+
   toValue(): ocrt.Value;
+
   equals(other: IPointBase): boolean;
 }
 
@@ -129,18 +141,12 @@ function createPointClass<C extends Curve>(curve: C, ops: CurveOps) {
     /** Internal representation - avoids conversion during operations */
     readonly #value: ocrt.Value;
 
-    /** Cached coordinates - parsed lazily from #value */
-    #x: bigint | undefined;
-    #y: bigint | undefined;
-
     private constructor(value: ocrt.Value) {
       this.#value = value;
     }
 
     /** The curve this point belongs to */
     static readonly curve: C = curve;
-
-    // ---- CompactType static methods ----
 
     /** Returns the alignment for this point type */
     static alignment(): ocrt.Alignment {
@@ -168,9 +174,6 @@ function createPointClass<C extends Curve>(curve: C, ops: CurveOps) {
       ops.validate(x, y);
       const value = ocrt.bigIntToValue(x).concat(ocrt.bigIntToValue(y));
       const point = new PointBase(value);
-      // Cache the coordinates since we already have them
-      point.#x = x;
-      point.#y = y;
       return point;
     }
 
@@ -184,22 +187,14 @@ function createPointClass<C extends Curve>(curve: C, ops: CurveOps) {
       return new PointBase(ops.mulGenerator(ocrt.bigIntToValue(scalar)));
     }
 
-    // ---- Instance methods ----
-
     /** The x-coordinate (parsed lazily) */
     get x(): bigint {
-      if (this.#x === undefined) {
-        this.#x = ocrt.valueToBigInt([this.#value[0]]);
-      }
-      return this.#x;
+      return ocrt.valueToBigInt([this.#value[0]]);
     }
 
     /** The y-coordinate (parsed lazily) */
     get y(): bigint {
-      if (this.#y === undefined) {
-        this.#y = ocrt.valueToBigInt([this.#value[1]]);
-      }
-      return this.#y;
+      return ocrt.valueToBigInt([this.#value[1]]);
     }
 
     /** Returns the internal Value representation (no copy) */
@@ -238,7 +233,9 @@ function createPointClass<C extends Curve>(curve: C, ops: CurveOps) {
  */
 export interface IFieldElement {
   readonly value: bigint;
+
   toValue(): ocrt.Value;
+
   equals(other: IFieldElement): boolean;
 }
 
@@ -266,8 +263,6 @@ function createFieldElementClass<F extends Field>(field: F, ops: FieldOps) {
     /** The field this element belongs to */
     static readonly field: F = field;
 
-    // ---- CompactType static methods ----
-
     /** Returns the alignment for this field element type */
     static alignment(): ocrt.Alignment {
       return fieldAlignment;
@@ -287,8 +282,6 @@ function createFieldElementClass<F extends Field>(field: F, ops: FieldOps) {
       return FieldElement.create(ocrt.valueToBigInt([bytes]));
     }
 
-    // ---- Factory methods ----
-
     /** Creates an element, validating it is in the field */
     static create(value: bigint): FieldElement {
       ops.validate(value);
@@ -304,8 +297,6 @@ function createFieldElementClass<F extends Field>(field: F, ops: FieldOps) {
     static one(): FieldElement {
       return new FieldElement(1n);
     }
-
-    // ---- Instance methods ----
 
     /** Converts to field-aligned binary representation */
     toValue(): ocrt.Value {
@@ -473,16 +464,22 @@ const secp256k1BaseOps: FieldOps = secp256k1ScalarOps; // TODO: Different modulu
 /** Instance interface for a Point on curve C */
 interface IPointInstance<C extends Curve> extends IPointBase {
   readonly _curve: C;
+
   add(other: IPointInstance<C>): IPointInstance<C>;
+
   mul(scalar: bigint): IPointInstance<C>;
+
   neg(): IPointInstance<C>;
 }
 
 /** Static interface for a Point class on curve C - also satisfies CompactType<P> */
 interface IPointBuilder<C extends Curve, P extends IPointInstance<C>> extends CompactType<P> {
   readonly curve: C;
+
   create(x: bigint, y: bigint): P;
+
   generator(): P;
+
   mulGenerator(scalar: bigint): P;
 }
 
@@ -496,6 +493,7 @@ export interface JubjubPoint extends IPointInstance<'Jubjub'> {
   mul(scalar: bigint): JubjubPoint;
   neg(): JubjubPoint;
 }
+
 export const JubjubPoint: IPointBuilder<'Jubjub', JubjubPoint> = createPointClass('Jubjub', jubjubOps);
 
 /** A point on the native curve (Jubjub for Midnight) */
@@ -504,6 +502,7 @@ export interface NativePoint extends IPointInstance<'Native'> {
   mul(scalar: bigint): NativePoint;
   neg(): NativePoint;
 }
+
 export const NativePoint: IPointBuilder<'Native', NativePoint> = createPointClass('Native', nativeOps);
 
 /** A point on the secp256k1 curve */
@@ -512,14 +511,16 @@ export interface Secp256k1Point extends IPointInstance<'Secp256k1'> {
   mul(scalar: bigint): Secp256k1Point;
   neg(): Secp256k1Point;
 }
+
 export const Secp256k1Point: IPointBuilder<'Secp256k1', Secp256k1Point> = createPointClass('Secp256k1', secp256k1Ops);
 
-/** A point on the BLS12-381 G1 curve */
+/** A point on the BLS12-381 curve */
 export interface BLS12381Point extends IPointInstance<'BLS12381'> {
   add(other: BLS12381Point): BLS12381Point;
   mul(scalar: bigint): BLS12381Point;
   neg(): BLS12381Point;
 }
+
 export const BLS12381Point: IPointBuilder<'BLS12381', BLS12381Point> = createPointClass('BLS12381', bls12381Ops);
 
 // ============================================================
