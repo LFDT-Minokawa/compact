@@ -62,7 +62,7 @@ for the contract library (Midnight.js), and potentially for tools like IDEs.
 
 This release adds version strings for the compiler, language, and runtime that the contract was compiled for.
 
-It also adds a flag to circuit telling whether the circuit needs a ZK proof or not.
+It also adds a flag to the descriptor of each circuit telling whether the circuit needs a ZK proof or not.
 This allows other tools (like Midnight.js) to avoid constructing proofs when they are not necessary,
 and when submitting such proofs can lead to an error on the blockchain.
 
