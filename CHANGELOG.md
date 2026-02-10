@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain version 0.29.101, language version 0.21.0]
+
+### Changed
+
+- In the formal grammar, the `stmt0` grammar production for one-armed
+  `if` expressions has been removed.  It was unnecessary and made the grammar
+  ambiguous.
+
 ## [Unreleased toolchain 0.29.100, language 0.21.0]
 
 ### Changed

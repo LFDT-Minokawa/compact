@@ -573,10 +573,6 @@
        (lambda (src kwd lparen expr rparen stmt1 kwd-else stmt2)
          (with-output-language (Lparser Statement)
            `(if ,src ,kwd ,lparen ,expr ,rparen ,stmt1 ,kwd-else ,stmt2)))]
-      [statement-one-armed-if :: src (KEYWORD if) #\( expr-seq #\) stmt =>
-       (lambda (src kwd lparen expr rparen stmt)
-         (with-output-language (Lparser Statement)
-           `(if ,src ,kwd ,lparen ,expr ,rparen ,stmt)))]
       [statement-for1 :: src (KEYWORD for) #\( (KEYWORD const) id (KEYWORD of) nat ".." nat #\) stmt =>
        (lambda (src kwd lparen kwd-const id kwd-of start dotdot end rparen stmt)
          (with-output-language (Lparser Statement)
