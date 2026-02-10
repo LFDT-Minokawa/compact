@@ -679,7 +679,7 @@
                   [body
                     (fold-left (lambda (body triv)
                                  (with-output-language (Lzkir Instruction)
-                                   (cons `(output ,triv) body)) )
+                                   (cons `(output ,triv) body)))
                       instr* triv*)])
              `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...)
                 ((,var-name* ,(map type->string type*)) ...)
@@ -866,7 +866,7 @@
                                             var-name* zkir-type*))]
                     [instructions (list->vector (maplr Instruction instr*))])
                `((version . ((major . 3) (minor . 0)))
-                 (do_communications_commitment . ,(not (no-communications-commitment)))
+                 (do_communications_commitment . #f)
                  (inputs . ,inputs)
                  (instructions . ,instructions))))))
        (let ([output-port*
