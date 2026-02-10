@@ -21,47 +21,15 @@ import modules.
 
 Like TypeScript, Compact is an eager call-by-value language.
 
-[The full grammar of Compact](Compact.html) is provided separately. This
-document explains each syntactic category individually (in a mostly top-down
-approach, it uses a bottom-up approach for syntactic categories that are often
-used in upper ones) after providing an overview of what a Compact program looks
-like and what basic concepts and abstractions of Compact are.
-
-## Overview
-
-To be filled in by @kent.dybvig. Note that the docs page already has a page
-before getting to the language reference that attempts to achieve what we
-discussed for the overview section. Once we add this it'd be a good idea to
-remove that page. Alternatively, we can also have this section as the page
-before the lang ref. Here's the link to it: https://docs.midnight.network/compact/writing
-
-### Top-level exports
-
-The circuits exported at the top level of a contract (i.e., not merely exported
-from a module) are the entry points of the contract and may not take generic
-arguments. Although multiple circuits with the same name are allowed generally
-to support [function overloading](#circuit-and-witness-calls), it is a static
-error if more than one circuit with the same name is exported from the top
-level.
-
-User-defined types exported from the top level of the main file can be used to
-describe the argument and return types of witnesses and exported circuits; these
-may accept generic arguments, but generic arguments not actually used as types
-are dropped in the exported type. For example:
-
-```compact
-export struct S<#n, T> { v: Vector<n, T>; curidx: Uint<0..n> }
-```
-
-is exported for use as a TypeScript type with the `T` parameter but not the `n`
-parameter, i.e.,:
-
-```typescript
-export type S<T> = { v: T[]; curidx: bigint }
-```
-
-Ledger field names exported from the top level are visible for direct inspection
-by code outside of the contract via the generated TypeScript `ledger()` function.
+[Writing a contract](writing-contract.html) provides a small example of what a
+Compact program looks like.  It also introduces the basic building blocks of a
+Compact contract.  [The full grammar of Compact](Compact.html) is provided
+separately. This document explains each syntactic category individually.  It
+starts by introducing the basics that are used in various syntactic categories:
+identifiers, constants, types, generic parameters, and patterns and argument.
+Then it expands on programs and program elements and opens up each of the
+program elements separately.  Where applicable it expands a syntactic category
+from lowest precedence to highest.  Finally, it discusses the TypeScript target.
 
 ## Notation
 
@@ -72,207 +40,81 @@ following notational conventions in the grammar:
 - Non-terminals are in <em>emphasized</em> font
 - Alternation is indicated by a vertical bar (`|`)
 - Optional items are indicated by a superscript <sup>opt</sup>
-- Repetition is specified by ellipses. The notation <em>X</em> ... <em>X</em>,
-  where <em>X</em> is a grammar symbol, represents zero or more occurrences of
-  <em>X</em>. The notation <em>X</em> <b><tt>s</tt></b> ... <b><tt>s</tt></b>
-  <em>X</em>, where <em>X</em> is a grammar symbol and <b><tt>s</tt></b> is a
-  separator such as a comma or or semicolon, represents zero or more occurrences
-  of <em>X</em> separated by <b><tt>s</tt></b>. In either case, when the ellipsis
-  is marked with the superscript 1, the notation represents a sequence
-  containing at least one <em>X</em>. When such a sequence is followed by
-  <em>s</em><sup>opt</sup>, an optional trailing separator is allowed, but only
-  if there is at least one <em>X</em>. For example, <em>id</em> &mldr;
-  <em>id</em> represents zero or more <em>id</em>s, and <em>expr</em> ,
-  &mldr;&sup1; , <em>expr</em> ,<sup>opt</sup> represents one or more
-  comma-separated <em>expr</em>s possibly followed by an extra comma.
+- Repetition is specified by ellipses. The
+  notation <em>X</em> ... <em>X</em>, where <em>X</em> is a grammar symbol,
+  represents zero or more occurrences of <em>X</em>. The notation <em>X</em>
+  <b><tt>,</tt></b> ... <b><tt>,</tt></b> <em>X</em>, where <em>X</em> is a
+  grammar symbol and <b><tt>,</tt></b> is a separator, represents zero or more
+  occurrences of <em>X</em> separated by <b><tt>,</tt></b>. In either case, when
+  the ellipsis is marked with the superscript 1, the notation represents a
+  sequence containing at least one <em>X</em>. When such a sequence is followed
+  by <em>,</em><sup>opt</sup>, an optional trailing separator is allowed, but
+  only if there is at least one <em>X</em>. For example, <em>id</em> &mldr;
+  <em>id</em> represents zero or more <em>id</em>s, and <em>expr</em>
+  <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <em>expr</em>
+  <b><tt>,</tt></b><sup>opt</sup> represents one or more comma-separated
+  <em>expr</em>s possibly followed by an extra comma. There are two separators:
+  comma and semicolon.
 
 A Compact program is *well-typed* if it does not contain any type error. If a
 program element such as a type declaration, expression, or statement contains a
 type error, then the Compact compiler will not compile that program.
 
-## Programs
+## Identifiers, scope, and binding
 
-A compact program consists of a sequence of top-level program elements.  A set
-of possible program elements are given by the grammar below.
+In Compact, scope defines the visibility. An identifier is a name that can refer
+to an *entity*: a variable, a constant, an expression, a type, a module, a
+parameter, a generic parameter, a circuit, a witness, or a ledger.
 
-<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &mldr; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<a href="#end-of-file"><em>eof</em></a></td></tr></tbody></table>
+Binding is the process of associating an identifier with an entity. The *scope*
+of an identifier is the region of code where the identifier is "bound" to its
+entity and can be referenced. An identifier can be referenced at program points
+that are in the scope of the identifier, otherwise it is a static error. It is a
+static error if an identifier is bound more than once in a same scope. However,
+the Compact compiler accepts multiple bindings of a same identifier for
+unexported circuits.
 
-<table className="lang-ref-table"><tbody><tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pragma"><em>pragma</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Include"><em>incld</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Module-definition"><em>mdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Import-declaration"><em>idecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Export-declaration"><em>xdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Ledger-declaration"><em>ldecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Constructor"><em>lconstructor</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Circuit-definition"><em>cdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Witness-declaration"><em>wdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#External-contract-declaration"><em>ecdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Structure-definition"><em>struct</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Enum-definition"><em>enumdef</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type-definition"><em>tdefn</em></a></td></tr></tbody></table>
+Scopes can be nested, just like nested boxes. The outermost box is the *global
+scope* of a program. Identifiers declared here, such as types, modules,
+top-level circuits, or ledger fields, are visible throughout the entire
+contract. Within a global scope, zero or more local scopes can be defined, which
+are smaller, nested boxes.
 
-Grammar to be filled in by @parsia and give a one liner of each syntactic
-category.
+In Compact, the primary local scopes are defined in:
 
-## Modules, exports, and imports
+- [structure types](#structure-types): All generic parameters in a structure
+type declaration are visible only within its declaration.
+- [modules](#modules-exports-and-imports): All identifiers defined inside a
+module are visible only within it unless they are explicitly exported.
+- [circuits](#circuits): The circuit's parameters, generic parameters, and any
+`const` bindings defined inside its body are local to that circuit.
+- [blocks](#statements): All identifiers defined by a `const` binding inside a
+block are visible only within it.
+- [`for` loops](#for-loop): All identifiers introduced in a `for` loop are
+visible only inside that `for` loop.
+- [anonymous circuits](#circuit-and-witness-calls): Parameters of an anonymous
+circuit are visible only in its body.
+- [constructor](#contract-constructor): The constructor's parameters and any
+`const` bindings defined inside its body are visible only within the
+constructor.
 
-A module is a collection of definitions whose namespace is hidden from
-surrounding code.
-
-<table className="lang-ref-table"><tbody><tr><td><em>mdefn</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>module</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>module-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &hellip; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
-<tr><td><em>generic-param</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>#</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr></tbody></table>
-
-A module is defined with
-
-```compact
-module Mod1 {
-  ...
-}
-
-module Mod2<T> {
-  ...
-}
-```
-
-By default, identifiers defined within the body of a module are
-visible only within the module, i.e., they are not exported from
-the module.  Any identifier defined at or imported into the top
-level of a module can be exported from the module in one of two
-ways: (1) by prefixing the definition with the `export` keyword,
-or by listing the identifier in a separate `export` declaration.
-For example, the following module exports `G` and `S` but not `F`.
-
-```compact
-module M {
-  export { G };
-  export struct S { x: Uint<16>, y: Boolean }
-  circuit F(s: S): Boolean {
-    return s.y;
-  }
-  circuit G(s: S): Uint<16> {
-    return F(s) ? s.x : 0;
-  }
-}
-```
-
-### Imports and exports
-
-A module can be imported into another definition scope, bringing
-all its exported entries into that scope, potentially with a prefix.
-
-<table className="lang-ref-table"><tbody><tr><td><em>idecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>import</tt></b>&nbsp;&nbsp;<a href="#Import-selection"><em>import-selection</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-name"><em>import-name</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-prefix"><em>import-prefix</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
-<tr><td><em>import-selection</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Import-element"><em>import-element</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Import-element"><em>import-element</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>from</tt></b></td></tr>
-<tr><td><em>import-element</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>as</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr>
-<tr><td><em>import-name</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>file</em></a></td></tr>
-<tr><td><em>import-prefix</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>prefix</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
-<tr><td><em>garg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>xdecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
-
-For instance:
+A key principle of scoping is *shadowing*. Shadowing occurs when an identifier
+in an inner scope has the same name as an identifier in an outer scope. The
+inner identifier "shadows" the outer one: within the inner scope, the name
+refers to the local identifier, not the outer one. For example:
 
 ```compact
-module Runner {
-  export circuit run(): [] {}
-}
-import Runner;
-// run is now in scope
-import Runner prefix SomePrefix_;
-// SomePrefix_run is now in scope
-
-module Identity<T> {
-  export { id }
-  circuit id(x: T): T {
-    return x;
+circuit c(): Field {
+  const answer = 42;
+  { // This is a nested block creating a new scope
+    const answer = 12; // This 'answer' shadows the outer one
+    assert answer != 42 "shadowing didn't work!"; // assertion passes
   }
-}
-import Identity<Field>;
-// id is now in scope, with Field as type T
-```
-
-Compact's standard library can be imported by `import CompactStandardLibrary`.
-The standard library defines a number of useful types and circuits along with
-ledger ADTs such as `Counter`, `Map`, and `MerkleTree`.
-
-When importing module `M`, if the program does not contain a visible module definition
-the compiler looks in the file system in the relative path of the current directory for `M.compact`.
-In the case where a module is defined in a different program (file), the program must only contain
-a top-level module definition. Otherwise, the compiler throws a static error stating that the program
-does not contain a single module definition. For example, the program `M.compact` below defines
-a module:
-
-```compact title=M.compact
-module M {
-  export { F };
-  export struct S { x: Uint<16>, y: Boolean }
-  circuit F(x: S): Boolean {
-    return S.y;
-  }
-}
-// circuit cant_exists() : [] {}
-// If cant_exists is uncommented, the compiler will throw an error when compiling
-// test.compact
-```
-
-Then, `test.compact` imports `M`:
-
-```compact title=test.compact
-//module M {
-//  export { G };
-//  export struct S { x: Uint<16>, y: Boolean }
-//  circuit G(x: S): Boolean {
-//    return S.y;
-//  }
-//}
-// If M is uncommented, the compiler will import this module and not the one
-// defined in M.compact. In this case, the compiler will throw an error for
-// exporting F.
-
-import M;
-export { F };
-```
-
-The import syntax allows the module to be identified by a string pathname. In this case, the compiler
-first looks for the imported module relative to the current directory (the path of the importing
-program) and then in the directories identified by `COMPACT_PATH`. Importing by a pathname allows
-importing multiple modules with the same name. For example, consider the program `M.compact`:
-
-```compact title=M.compact
-module M {
-  export { F };
-  export struct S { x: Uint<16>, y: Boolean }
-  circuit F(x: S): Boolean {
-    return S.y;
-  }
+  return answer; // returns 42 (the outer 'answer')
 }
 ```
 
-And the program `A/M.compact`:
-
-```compact title=A/M.compact
-module M {
-  export { F };
-  export struct S { x: Uint<16>, y: Boolean }
-  circuit F(x: S): Boolean {
-    return S.y;
-  }
-}
-```
-
-And finally the program `test.compact` can export both `$F` and `A_F` but not `$G`:
-
-```compact title=test.compact
-module M {
-  export { G };
-  export struct S { x: Uint<16>, y: Boolean }
-  circuit G(x: S): Boolean {
-    return S.y;
-  }
-}
-
-import "M" prefix $;
-// this imports M.compact and not the module M defined above
-
-import "A/M" prefix A_;
-
-export { $F
-  ,A_F
-//  ,$G
-// uncommenting this will result in an error
-  };
-```
+## Constants
 
 ## Compact Types
 
@@ -543,61 +385,7 @@ are as follows:
   type
 - enumeration types: the first value listed in the declaration
 
-## Scope and binding
-
-In Compact, scope defines the visibility. An identifier is a name that can refer
-to an *entity*: a variable, a constant, an expression, a type, a module, a
-parameter, a generic parameter, a circuit, a witness, or a ledger.
-
-Binding is the process of associating an identifier with an entity. The *scope*
-of an identifier is the region of code where the identifier is "bound" to its
-entity and can be referenced. An identifier can be referenced at program points
-that are in the scope of the identifier, otherwise it is a static error. It is a
-static error if an identifier is bound more than once in a same scope. However,
-the Compact compiler accepts multiple bindings of a same identifier for
-unexported circuits.
-
-Scopes can be nested, just like nested boxes. The outermost box is the *global
-scope* of a program. Identifiers declared here, such as types, modules,
-top-level circuits, or ledger fields, are visible throughout the entire
-contract. Within a global scope, zero or more local scopes can be defined, which
-are smaller, nested boxes.
-
-In Compact, the primary local scopes are defined in:
-
-- [structure types](#structure-types): All generic parameters in a structure
-type declaration are visible only within its declaration.
-- [modules](#modules-exports-and-imports): All identifiers defined inside a
-module are visible only within it unless they are explicitly exported.
-- [circuits](#circuits): The circuit's parameters, generic parameters, and any
-`const` bindings defined inside its body are local to that circuit.
-- [blocks](#statements): All identifiers defined by a `const` binding inside a
-block are visible only within it.
-- [`for` loops](#for-loop): All identifiers introduced in a `for` loop are
-visible only inside that `for` loop.
-- [anonymous circuits](#circuit-and-witness-calls): Parameters of an anonymous
-circuit are visible only in its body.
-- [constructor](#contract-constructor): The constructor's parameters and any
-`const` bindings defined inside its body are visible only within the
-constructor.
-
-A key principle of scoping is *shadowing*. Shadowing occurs when an identifier
-in an inner scope has the same name as an identifier in an outer scope. The
-inner identifier "shadows" the outer one: within the inner scope, the name
-refers to the local identifier, not the outer one. For example:
-
-```compact
-circuit c(): Field {
-  const answer = 42;
-  { // This is a nested block creating a new scope
-    const answer = 12; // This 'answer' shadows the outer one
-    assert answer != 42 "shadowing didn't work!"; // assertion passes
-  }
-  return answer; // returns 42 (the outer 'answer')
-}
-```
-
-### Generic parameter references
+## Generic parameter references
 
 Generic parameters are declared in generic [module
 declarations](#modules-exports-and-imports), generic [structure type
@@ -681,6 +469,485 @@ no expansion, for example, `const {a: x, b} = S {a = 1, b = true}` is valid
 given the structure definition `struct S {a: Field, b: Boolean}`. This constant
 binding binds `x` to `1` and `b` to `true`.
 
+## Programs
+
+A compact program consists of a sequence of top-level program elements.  A set
+of possible program elements are given by the grammar below.
+
+<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &mldr; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<a href="#end-of-file"><em>eof</em></a></td></tr></tbody></table>
+
+<table className="lang-ref-table"><tbody><tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pragma"><em>pragma</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Include"><em>incld</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Module-definition"><em>mdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Import-declaration"><em>idecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Export-declaration"><em>xdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Ledger-declaration"><em>ldecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Constructor"><em>lconstructor</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Circuit-definition"><em>cdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Witness-declaration"><em>wdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#External-contract-declaration"><em>ecdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Structure-definition"><em>struct</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Enum-definition"><em>enumdef</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type-definition"><em>tdefn</em></a></td></tr></tbody></table>
+
+Grammar to be filled in by @parsia and give a one liner of each syntactic
+category.
+
+## Pragmas and versions
+
+<table className="lang-ref-table"><tbody><tr><td><em>pragma</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>pragma</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Version-expression"><em>version-expr</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
+<tr><td><em>version-expr</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Version-expression"><em>version-expr</em></a>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<a href="#Version-expression0"><em>version-expr<sub>0</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Version-expression0"><em>version-expr<sub>0</sub></em></a></td></tr>
+<tr><td><em>version-expr<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Version-expression0"><em>version-expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>&&</tt></b>&nbsp;&nbsp;<a href="#Version-Term"><em>version-term</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Version-Term"><em>version-term</em></a></td></tr>
+<tr><td><em>version-term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<=</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>>=</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Version-expression"><em>version-expr</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
+<tr><td><em>version-atom</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#version-literal"><em>version</em></a></td></tr></tbody></table>
+
+## Include files
+
+Compact supports code separation and namespaces through separate files
+and modules.  The most basic
+of these is the statement
+
+<table className="lang-ref-table"><tbody><tr><td><em>incld</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>include</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>file</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
+
+```compact
+include "path/to/file";
+```
+
+which may appear at the top level of a source file or module. When encountered,
+the Compact compiler will search for a Compact source file at
+`path/to/file.compact` in the current directory and then
+relative to any of the directories in the
+`:`-separated environment variable `COMPACT_PATH`.
+This file *must* be found and will be included
+verbatim in place of the `include` statement.
+
+## Modules, exports, and imports
+
+A module is a collection of definitions whose namespace is hidden from
+surrounding code.
+
+<table className="lang-ref-table"><tbody><tr><td><em>mdefn</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>module</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>module-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &hellip; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
+
+<table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
+<tr><td><em>generic-param</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>#</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr></tbody></table>
+
+A module is defined with
+
+```compact
+module Mod1 {
+  ...
+}
+
+module Mod2<T> {
+  ...
+}
+```
+
+By default, identifiers defined within the body of a module are
+visible only within the module, i.e., they are not exported from
+the module.  Any identifier defined at or imported into the top
+level of a module can be exported from the module in one of two
+ways: (1) by prefixing the definition with the `export` keyword,
+or by listing the identifier in a separate `export` declaration.
+For example, the following module exports `G` and `S` but not `F`.
+
+```compact
+module M {
+  export { G };
+  export struct S { x: Uint<16>, y: Boolean }
+  circuit F(s: S): Boolean {
+    return s.y;
+  }
+  circuit G(s: S): Uint<16> {
+    return F(s) ? s.x : 0;
+  }
+}
+```
+
+### Imports and exports
+
+A module can be imported into another definition scope, bringing
+all its exported entries into that scope, potentially with a prefix.
+
+<table className="lang-ref-table"><tbody><tr><td><em>idecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>import</tt></b>&nbsp;&nbsp;<a href="#Import-selection"><em>import-selection</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-name"><em>import-name</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-prefix"><em>import-prefix</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
+<tr><td><em>import-selection</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Import-element"><em>import-element</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Import-element"><em>import-element</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>from</tt></b></td></tr>
+<tr><td><em>import-element</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>as</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr>
+<tr><td><em>import-name</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>file</em></a></td></tr>
+<tr><td><em>import-prefix</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>prefix</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr></tbody></table>
+
+<table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
+<tr><td><em>garg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
+
+<table className="lang-ref-table"><tbody><tr><td><em>xdecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
+
+For instance:
+
+```compact
+module Runner {
+  export circuit run(): [] {}
+}
+import Runner;
+// run is now in scope
+import Runner prefix SomePrefix_;
+// SomePrefix_run is now in scope
+
+module Identity<T> {
+  export { id }
+  circuit id(x: T): T {
+    return x;
+  }
+}
+import Identity<Field>;
+// id is now in scope, with Field as type T
+```
+
+Compact's standard library can be imported by `import CompactStandardLibrary`.
+The standard library defines a number of useful types and circuits along with
+ledger ADTs such as `Counter`, `Map`, and `MerkleTree`.
+
+When importing module `M`, if the program does not contain a visible module definition
+the compiler looks in the file system in the relative path of the current directory for `M.compact`.
+In the case where a module is defined in a different program (file), the program must only contain
+a top-level module definition. Otherwise, the compiler throws a static error stating that the program
+does not contain a single module definition. For example, the program `M.compact` below defines
+a module:
+
+```compact title=M.compact
+module M {
+  export { F };
+  export struct S { x: Uint<16>, y: Boolean }
+  circuit F(x: S): Boolean {
+    return S.y;
+  }
+}
+// circuit cant_exists() : [] {}
+// If cant_exists is uncommented, the compiler will throw an error when compiling
+// test.compact
+```
+
+Then, `test.compact` imports `M`:
+
+```compact title=test.compact
+//module M {
+//  export { G };
+//  export struct S { x: Uint<16>, y: Boolean }
+//  circuit G(x: S): Boolean {
+//    return S.y;
+//  }
+//}
+// If M is uncommented, the compiler will import this module and not the one
+// defined in M.compact. In this case, the compiler will throw an error for
+// exporting F.
+
+import M;
+export { F };
+```
+
+The import syntax allows the module to be identified by a string pathname. In this case, the compiler
+first looks for the imported module relative to the current directory (the path of the importing
+program) and then in the directories identified by `COMPACT_PATH`. Importing by a pathname allows
+importing multiple modules with the same name. For example, consider the program `M.compact`:
+
+```compact title=M.compact
+module M {
+  export { F };
+  export struct S { x: Uint<16>, y: Boolean }
+  circuit F(x: S): Boolean {
+    return S.y;
+  }
+}
+```
+
+And the program `A/M.compact`:
+
+```compact title=A/M.compact
+module M {
+  export { F };
+  export struct S { x: Uint<16>, y: Boolean }
+  circuit F(x: S): Boolean {
+    return S.y;
+  }
+}
+```
+
+And finally the program `test.compact` can export both `$F` and `A_F` but not `$G`:
+
+```compact title=test.compact
+module M {
+  export { G };
+  export struct S { x: Uint<16>, y: Boolean }
+  circuit G(x: S): Boolean {
+    return S.y;
+  }
+}
+
+import "M" prefix $;
+// this imports M.compact and not the module M defined above
+
+import "A/M" prefix A_;
+
+export { $F
+  ,A_F
+//  ,$G
+// uncommenting this will result in an error
+  };
+```
+
+### Top-level exports
+
+The circuits exported at the top level of a contract (i.e., not merely exported
+from a module) are the entry points of the contract and may not take generic
+arguments. Although multiple circuits with the same name are allowed generally
+to support [function overloading](#circuit-and-witness-calls), it is a static
+error if more than one circuit with the same name is exported from the top
+level.
+
+User-defined types exported from the top level of the main file can be used to
+describe the argument and return types of witnesses and exported circuits; these
+may accept generic arguments, but generic arguments not actually used as types
+are dropped in the exported type. For example:
+
+```compact
+export struct S<#n, T> { v: Vector<n, T>; curidx: Uint<0..n> }
+```
+
+is exported for use as a TypeScript type with the `T` parameter but not the `n`
+parameter, i.e.,:
+
+```typescript
+export type S<T> = { v: T[]; curidx: bigint }
+```
+
+Ledger field names exported from the top level are visible for direct inspection
+by code outside of the contract via the generated TypeScript `ledger()` function.
+
+## Declaring and maintaining public state
+
+Compact code can declare public state through `ledger` declarations.
+
+A ledger declaration defines one piece of information the contract
+stores in Midnight's public ledger.
+Multiple ledger declarations can appear in a program, or none.
+They can appear anywhere circuit definitions can appear,
+including within modules.
+
+<table className="lang-ref-table"><tbody><tr><td><em>ldecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>sealed</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
+
+A ledger declaration associates a ledger field name with one of a
+set of predefined [ledger ADT types](#ledger-state-types)
+For instance:
+
+```compact
+ledger val: Field;
+export ledger cnt: Counter;
+sealed ledger u8list: List<Uint<8>>;
+export sealed ledger mapping: Map<Boolean, Field>;
+```
+
+### Ledger state types
+
+In a `ledger` declaration, the following types are valid:
+
+- `T`, for any Compact type `T`
+- `Counter`
+- `Set<T>`, for any Compact type `T`
+- `Map<K, T>`, for any Compact types `K` and `T`
+- `Map<K, V>`, for any Compact type `K` and ledger state type `V` (see the following section)
+- `List<T>`, for any Compact type `T`
+- `MerkleTree<n, T>`, for a compile time integer `1 < n <= 32`, and any Compact
+  type `T`
+- `HistoricMerkleTree<n, T>`, for a compile time integer `1 < n <= 32`, and any
+  Compact type `T`
+
+Each ledger type supports a set of operations, which can be invoked with
+
+```compact
+<field name>.<operation>(<arguments ...>)
+```
+
+A ledger field that is declared with a Compact type `T` implicitly has the type
+`Cell<T>`. `Cell` has operations such as `read`, `write`, and `reset_to_default`.
+
+The `read` and `write` operations for the `Cell` type of any Compact type `T` have syntactic
+sugar. If `x` is a field in the ledger of any Compact type, then you may write
+
+```compact
+x       // expression equivalent to x.read()
+x = val // statement equivalent to x.write(val)
+```
+
+The `read`, `increment`, and `decrement` operations of type `Counter` type also
+have syntactic sugar.  If `c` is a `Counter` field in the ledger, then you may write
+
+```compact
+c        // expression equivalent to c.read()
+c += val // statement equivalent to c.increment(val)
+c -= val // statement equivalent to c.decrement(val)
+```
+
+A comprehensive list of operations can be found in
+the Compact [ledger data type documentation](./ledger-adt).
+
+
+### Nested state types in the `Map` type
+
+The only ledger state type in which values of other state types may be
+held is `Map`.  The key values in a `Map` must be non-state types
+(simple Compact types), but the mapped values may be counters, sets,
+lists, other maps, and so on.
+
+Here is a small example:
+
+```compact
+import CompactStandardLibrary;
+
+ledger fld: Map<Boolean, Map<Field, Counter>>;
+
+export circuit initNestedMap(b: Boolean): [] {
+  fld.insert(b, default<Map<Field, Counter>>);
+}
+
+export circuit initNestedCounter(b: Boolean, n: Field): [] {
+  fld.lookup(b).insert(n, default<Counter>);
+}
+
+export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {
+  fld.lookup(b).lookup(n).increment(k);
+}
+
+export circuit readNestedCounter1(b: Boolean, n: Field): Uint<64> {
+  return fld.lookup(b).lookup(n).read();
+}
+
+export circuit readNestedCounter2(b: Boolean, n: Field): Uint<64> {
+  return fld.lookup(b).lookup(n);
+}
+```
+
+In this example,
+- `fld` is bound to a `Map` from `Boolean` values to `Map`s from `Field` values to `Counter`s
+- `initNestedMap` can be used to create the inner `Map` for a particular outer-`Map` key
+- `initNestedCounter` can be used to create a `Counter` for a given outer-`Map` key and a given inner-`Map` key
+- `incrementNestedCounter` can be used to increment an existing `Counter` for a given outer-`Map` key and a given inner-`Map` key
+- either `readNestedCounter1` or `readNestedCounter2` can be used to read the value of an existing `Counter`
+  for a given outer-`Map` key and a given inner-`Map` key.
+
+Notes:
+
+1. Nesting is permitted only within `Map` values.  That is, nesting is not permitted in
+   `Map` keys or within any ledger state type other than `Map`.
+2. Nested values must be initialized before first use.  The syntax `default<T>`
+   is used to create default ledger state type values, just as it can be used to
+   create default Compact type values.
+3. Ledger state type values are not first-class objects, so when
+   accessing a nested value, the entire indirection chain must be
+   used.  For example, the following will result in a compiler error:
+   ```compact
+   export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {
+     fld.lookup(b); // ERROR: incomplete chain of indirects
+   }
+   ```
+4. When the last lookup is a read of a base type one can omit the
+   explicit `read()` indirect, as illustrated by the definitions of
+   `readNestedCounter1` and `readNestedCounter2` above, which have the
+   same behavior.
+5. For convenience, local variables can hold default ledger state type values,
+   so the following definition of `initNestedMap` is equivalent to the one
+   above.
+   ```compact
+   export circuit initNestedMap(b: Boolean): [] {
+     const t = default<Map<Field, Counter>>;
+     fld.insert(b, t);
+   }
+   ```
+
+### Sealed and unsealed ledger fields
+
+Any ledger field can be optionally marked *sealed* by prefixing the
+ledger field declaration with the keyword `sealed`.  A sealed field
+cannot be set except during contract initialization.  That is, its
+value can be modified only by the contract constructor (if any),
+either directly within the body of the constructor or via helper
+circuits called by the constructor. The `sealed` keyword must come after
+the `export` keyword (if present) and before the `ledger` keyword, as
+in the following example:
+
+```compact
+sealed ledger field1: Uint<32>;
+export sealed ledger field2: Uint<32>;
+
+circuit init(x: Uint<32>): [] {
+  field2 = x;
+}
+
+constructor(x: Uint<16>) {
+  field1 = 2 * x;
+  init(x);
+}
+```
+
+It is a static error if a sealed ledger field can be set by any
+code that is reachable from an exported circuit.
+
+## Declaring witnesses for private state
+
+Compact code can call code external to the zero-knowledge circuits to read
+and update private state via `witness` functions.
+
+A `witness` function declaration can appear anywhere a `circuit`
+definition can appear, including within modules.  A witness function does not
+have a body, and its implementation is instead an input to
+the contract in the TypeScript target.
+
+<table className="lang-ref-table"><tbody><tr><td><em>wdecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>witness</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Simple-parameter-list"><em>simple-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
+
+For instance:
+
+```compact
+witness something(x: Boolean): Field;
+```
+
+A `witness` function can be called in the same way as a `circuit`.
+
+:::danger
+
+Do not assume in your contract that the code of any `witness` function
+is the code that you wrote in your own implementation.  Any DApp may
+provide any implementation that it wants for your `witness` functions.
+Results from them should be treated as untrusted input.
+
+:::
+
+## Contract constructor
+
+A contract can be initialized via a contract constructor defined at the
+program's top level.
+The constructor, if any, is typically used to initialize public state
+and can also be used to initialize private state through witness
+calls.
+
+<table className="lang-ref-table"><tbody><tr><td><em>lconstructor</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr></tbody></table>
+
+<table className="lang-ref-table"><tbody><tr><td><em>prog</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>}]&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>block</em>&nbsp;&nbsp;</td></tr></tbody></table>
+
+A constructor has the form `constructor (p: T, ...) block` where `p: T, ...` is a sequence of zero or more comma-separated
+[parameter declarations with type annotations](#parameters-patterns-and-destructuring)
+and `block` is a sequence of zero or more semicolon-delimited statements
+enclosed in curly braces (`{ }`). The return type of a constructor is `[]`.
+
+At most one contract constructor can be defined for a contract, and it
+must appear only at the program top level, i.e., it cannot be defined in
+a module.
+To initialize ledger fields that are visible only within a module, the
+constructor can call a circuit that is exported from the module.
+For example:
+
+```compact
+module PublicState {
+  enum STATE { unset, set }
+  ledger state: STATE;
+  ledger value: Field;
+  export circuit init(v: Field): [] {
+    value = disclose(v);
+    state = STATE.set;
+  }
+}
+
+import PublicState;
+
+constructor(v: Field) {
+  init(v);
+}
+```
+
 ## Circuits
 The basic operational element in Compact is the `circuit`. This corresponds
 closely to a function in most languages but is compiled directly into a
@@ -743,7 +1010,7 @@ circuit will be present in the `PureCircuits` type declaration and via the
 `pureCircuits` constant in the TypeScript module produced for a (correct)
 Compact program by the Compact compiler.
 
-### Statements
+## Statements
 
 <table className="lang-ref-table"><tbody><tr><td><em>block</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a> &mldr; <a href="#Statement"><em>stmt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
 <tr><td><em>stmt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Statement0"><em>stmt<sub>0</sub></em></a></td></tr>
@@ -863,12 +1130,12 @@ identifiers cannot be reassigned, although they can be [shadowed in a nested
 block](#scope-and-binding). Constant initializer expressions are evaluated when
 the binding statement is executed.
 
-#### Expression sequence
+### Expression sequence
 
 <table className="lang-ref-table"><tbody><tr><td><em>expr-seq</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> &nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr></tbody></table>
 
 
-### Expressions
+## Expressions
 
 This section describes the syntax of Compact expressions and provides their
 static typing rules and their evaluation rules.
@@ -1707,246 +1974,7 @@ longer equivalent invoking a ledger ADT operation.
 They are evaluated exactly as if their longer equivalent were evaluated as a
 ledger expression.
 
-## Declaring witnesses for private state
-
-Compact code can call code external to the zero-knowledge circuits to read
-and update private state via `witness` functions.
-
-A `witness` function declaration can appear anywhere a `circuit`
-definition can appear, including within modules.  A witness function does not
-have a body, and its implementation is instead an input to
-the contract in the TypeScript target.
-
-<table className="lang-ref-table"><tbody><tr><td><em>wdecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>witness</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Simple-parameter-list"><em>simple-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
-
-For instance:
-
-```compact
-witness something(x: Boolean): Field;
-```
-
-A `witness` function can be called in the same way as a `circuit`.
-
-:::danger
-
-Do not assume in your contract that the code of any `witness` function
-is the code that you wrote in your own implementation.  Any DApp may
-provide any implementation that it wants for your `witness` functions.
-Results from them should be treated as untrusted input.
-
-:::
-
-## Declaring and maintaining public state
-
-Compact code can declare public state through `ledger` declarations.
-
-A ledger declaration defines one piece of information the contract
-stores in Midnight's public ledger.
-Multiple ledger declarations can appear in a program, or none.
-They can appear anywhere circuit definitions can appear,
-including within modules.
-
-<table className="lang-ref-table"><tbody><tr><td><em>ldecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>sealed</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
-
-A ledger declaration associates a ledger field name with one of a
-set of predefined [ledger ADT types](#ledger-state-types)
-For instance:
-
-```compact
-ledger val: Field;
-export ledger cnt: Counter;
-sealed ledger u8list: List<Uint<8>>;
-export sealed ledger mapping: Map<Boolean, Field>;
-```
-
-### Ledger state types
-
-In a `ledger` declaration, the following types are valid:
-
-- `T`, for any Compact type `T`
-- `Counter`
-- `Set<T>`, for any Compact type `T`
-- `Map<K, T>`, for any Compact types `K` and `T`
-- `Map<K, V>`, for any Compact type `K` and ledger state type `V` (see the following section)
-- `List<T>`, for any Compact type `T`
-- `MerkleTree<n, T>`, for a compile time integer `1 < n <= 32`, and any Compact
-  type `T`
-- `HistoricMerkleTree<n, T>`, for a compile time integer `1 < n <= 32`, and any
-  Compact type `T`
-
-Each ledger type supports a set of operations, which can be invoked with
-
-```compact
-<field name>.<operation>(<arguments ...>)
-```
-
-A ledger field that is declared with a Compact type `T` implicitly has the type
-`Cell<T>`. `Cell` has operations such as `read`, `write`, and `reset_to_default`.
-
-The `read` and `write` operations for the `Cell` type of any Compact type `T` have syntactic
-sugar. If `x` is a field in the ledger of any Compact type, then you may write
-
-```compact
-x       // expression equivalent to x.read()
-x = val // statement equivalent to x.write(val)
-```
-
-The `read`, `increment`, and `decrement` operations of type `Counter` type also
-have syntactic sugar.  If `c` is a `Counter` field in the ledger, then you may write
-
-```compact
-c        // expression equivalent to c.read()
-c += val // statement equivalent to c.increment(val)
-c -= val // statement equivalent to c.decrement(val)
-```
-
-A comprehensive list of operations can be found in
-the Compact [ledger data type documentation](./ledger-adt).
-
-
-### Nested state types in the `Map` type
-
-The only ledger state type in which values of other state types may be
-held is `Map`.  The key values in a `Map` must be non-state types
-(simple Compact types), but the mapped values may be counters, sets,
-lists, other maps, and so on.
-
-Here is a small example:
-
-```compact
-import CompactStandardLibrary;
-
-ledger fld: Map<Boolean, Map<Field, Counter>>;
-
-export circuit initNestedMap(b: Boolean): [] {
-  fld.insert(b, default<Map<Field, Counter>>);
-}
-
-export circuit initNestedCounter(b: Boolean, n: Field): [] {
-  fld.lookup(b).insert(n, default<Counter>);
-}
-
-export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {
-  fld.lookup(b).lookup(n).increment(k);
-}
-
-export circuit readNestedCounter1(b: Boolean, n: Field): Uint<64> {
-  return fld.lookup(b).lookup(n).read();
-}
-
-export circuit readNestedCounter2(b: Boolean, n: Field): Uint<64> {
-  return fld.lookup(b).lookup(n);
-}
-```
-
-In this example,
-- `fld` is bound to a `Map` from `Boolean` values to `Map`s from `Field` values to `Counter`s
-- `initNestedMap` can be used to create the inner `Map` for a particular outer-`Map` key
-- `initNestedCounter` can be used to create a `Counter` for a given outer-`Map` key and a given inner-`Map` key
-- `incrementNestedCounter` can be used to increment an existing `Counter` for a given outer-`Map` key and a given inner-`Map` key
-- either `readNestedCounter1` or `readNestedCounter2` can be used to read the value of an existing `Counter`
-  for a given outer-`Map` key and a given inner-`Map` key.
-
-Notes:
-
-1. Nesting is permitted only within `Map` values.  That is, nesting is not permitted in
-   `Map` keys or within any ledger state type other than `Map`.
-2. Nested values must be initialized before first use.  The syntax `default<T>`
-   is used to create default ledger state type values, just as it can be used to
-   create default Compact type values.
-3. Ledger state type values are not first-class objects, so when
-   accessing a nested value, the entire indirection chain must be
-   used.  For example, the following will result in a compiler error:
-   ```compact
-   export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {
-     fld.lookup(b); // ERROR: incomplete chain of indirects
-   }
-   ```
-4. When the last lookup is a read of a base type one can omit the
-   explicit `read()` indirect, as illustrated by the definitions of
-   `readNestedCounter1` and `readNestedCounter2` above, which have the
-   same behavior.
-5. For convenience, local variables can hold default ledger state type values,
-   so the following definition of `initNestedMap` is equivalent to the one
-   above.
-   ```compact
-   export circuit initNestedMap(b: Boolean): [] {
-     const t = default<Map<Field, Counter>>;
-     fld.insert(b, t);
-   }
-   ```
-
-### Sealed and unsealed ledger fields
-
-Any ledger field can be optionally marked *sealed* by prefixing the
-ledger field declaration with the keyword `sealed`.  A sealed field
-cannot be set except during contract initialization.  That is, its
-value can be modified only by the contract constructor (if any),
-either directly within the body of the constructor or via helper
-circuits called by the constructor. The `sealed` keyword must come after
-the `export` keyword (if present) and before the `ledger` keyword, as
-in the following example:
-
-```compact
-sealed ledger field1: Uint<32>;
-export sealed ledger field2: Uint<32>;
-
-circuit init(x: Uint<32>): [] {
-  field2 = x;
-}
-
-constructor(x: Uint<16>) {
-  field1 = 2 * x;
-  init(x);
-}
-```
-
-It is a static error if a sealed ledger field can be set by any
-code that is reachable from an exported circuit.
-
-## Contract constructor
-
-A contract can be initialized via a contract constructor defined at the
-program's top level.
-The constructor, if any, is typically used to initialize public state
-and can also be used to initialize private state through witness
-calls.
-
-<table className="lang-ref-table"><tbody><tr><td><em>lconstructor</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>prog</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>}]&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>block</em>&nbsp;&nbsp;</td></tr></tbody></table>
-
-A constructor has the form `constructor (p: T, ...) block` where `p: T, ...` is a sequence of zero or more comma-separated
-[parameter declarations with type annotations](#parameters-patterns-and-destructuring)
-and `block` is a sequence of zero or more semicolon-delimited statements
-enclosed in curly braces (`{ }`). The return type of a constructor is `[]`.
-
-At most one contract constructor can be defined for a contract, and it
-must appear only at the program top level, i.e., it cannot be defined in
-a module.
-To initialize ledger fields that are visible only within a module, the
-constructor can call a circuit that is exported from the module.
-For example:
-
-```compact
-module PublicState {
-  enum STATE { unset, set }
-  ledger state: STATE;
-  ledger value: Field;
-  export circuit init(v: Field): [] {
-    value = disclose(v);
-    state = STATE.set;
-  }
-}
-
-import PublicState;
-
-constructor(v: Field) {
-  init(v);
-}
-```
-
-### Runtime representations and type/bounds checks
+## Runtime representations and type/bounds checks
 
 The TypeScript type representing a Compact type is defined in [Representations
 in TypeScript](#representations-in-typescript).
@@ -2002,34 +2030,6 @@ manually or using compiler internals.  Enumerations are exposed
 through `new CompactTypeEnum(maxValue, length)`, where `maxValue` is
 the maximum permissible integer assignable, and `length` its
 representation length in bytes (almost always 1).
-
-## Include files
-
-Compact supports code separation and namespaces through separate files
-and modules.  The most basic
-of these is the statement
-
-<table className="lang-ref-table"><tbody><tr><td><em>incld</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>include</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>file</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
-
-```compact
-include "path/to/file";
-```
-
-which may appear at the top level of a source file or module. When encountered,
-the Compact compiler will search for a Compact source file at
-`path/to/file.compact` in the current directory and then
-relative to any of the directories in the
-`:`-separated environment variable `COMPACT_PATH`.
-This file *must* be found and will be included
-verbatim in place of the `include` statement.
-
-## Pragmas and versions
-
-<table className="lang-ref-table"><tbody><tr><td><em>pragma</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>pragma</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Version-expression"><em>version-expr</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
-<tr><td><em>version-expr</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Version-expression"><em>version-expr</em></a>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<a href="#Version-expression0"><em>version-expr<sub>0</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Version-expression0"><em>version-expr<sub>0</sub></em></a></td></tr>
-<tr><td><em>version-expr<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Version-expression0"><em>version-expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>&&</tt></b>&nbsp;&nbsp;<a href="#Version-Term"><em>version-term</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Version-Term"><em>version-term</em></a></td></tr>
-<tr><td><em>version-term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<=</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>>=</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Version-expression"><em>version-expr</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
-<tr><td><em>version-atom</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#version-literal"><em>version</em></a></td></tr></tbody></table>
 
 ## TypeScript target
 
