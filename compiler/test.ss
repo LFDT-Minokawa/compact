@@ -57143,7 +57143,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57168,7 +57168,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57194,7 +57194,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57219,7 +57219,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57245,7 +57245,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57294,7 +57294,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57308,7 +57308,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57340,7 +57340,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57380,7 +57380,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -57397,7 +57397,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57428,7 +57428,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57474,7 +57474,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57489,7 +57489,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57514,7 +57514,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57578,7 +57578,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57591,7 +57591,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57606,7 +57606,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57619,7 +57619,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57634,7 +57634,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57669,7 +57669,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57682,7 +57682,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -57698,7 +57698,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57726,7 +57726,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57753,7 +57753,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -57775,7 +57775,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -57802,7 +57802,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57832,7 +57832,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57867,7 +57867,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57914,7 +57914,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -57941,7 +57941,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -57976,7 +57976,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58057,7 +58057,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58139,7 +58139,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58259,7 +58259,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58291,7 +58291,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58377,7 +58377,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58400,7 +58400,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58426,7 +58426,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58451,7 +58451,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58480,7 +58480,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58509,7 +58509,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58531,7 +58531,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58560,7 +58560,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58592,7 +58592,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58630,7 +58630,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58654,7 +58654,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58679,7 +58679,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -58709,7 +58709,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58758,7 +58758,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -58774,7 +58774,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58787,7 +58787,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58800,7 +58800,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58825,7 +58825,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58852,7 +58852,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58874,7 +58874,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58900,7 +58900,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58924,7 +58924,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58948,7 +58948,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58972,7 +58972,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -58998,7 +58998,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59025,7 +59025,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59052,7 +59052,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59082,7 +59082,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59110,7 +59110,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59138,7 +59138,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59166,7 +59166,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59195,7 +59195,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59228,7 +59228,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59255,7 +59255,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59279,7 +59279,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%arg.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59306,7 +59306,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59331,7 +59331,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59356,7 +59356,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59382,7 +59382,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59407,7 +59407,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59433,7 +59433,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -59459,7 +59459,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59485,7 +59485,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59527,7 +59527,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%foo.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59588,7 +59588,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%foo.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -59635,7 +59635,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59657,7 +59657,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59679,7 +59679,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59701,7 +59701,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59723,7 +59723,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59746,7 +59746,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59768,7 +59768,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59790,7 +59790,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59825,7 +59825,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59856,7 +59856,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59889,7 +59889,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59916,7 +59916,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -59946,7 +59946,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -60028,7 +60028,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60165,7 +60165,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -60198,7 +60198,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -60214,7 +60214,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -60246,7 +60246,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -60262,7 +60262,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -60294,7 +60294,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60315,7 +60315,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60355,7 +60355,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60384,7 +60384,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60433,7 +60433,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60457,7 +60457,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60477,7 +60477,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60518,7 +60518,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60556,7 +60556,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60591,7 +60591,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60621,7 +60621,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%eval.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%arguments.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60670,7 +60670,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%my_guess.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -60696,7 +60696,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -60723,7 +60723,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -60750,7 +60750,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -60785,7 +60785,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60815,7 +60815,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60843,7 +60843,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60921,7 +60921,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -60952,7 +60952,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60982,7 +60982,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -61014,7 +61014,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -61074,7 +61074,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -61090,7 +61090,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -61173,7 +61173,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -61189,7 +61189,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -61232,7 +61232,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -61245,7 +61245,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -61261,7 +61261,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -61307,7 +61307,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -61320,7 +61320,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%k.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -61335,7 +61335,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -61350,7 +61350,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -61412,7 +61412,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -61424,7 +61424,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n1.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n2.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -61438,7 +61438,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -61513,7 +61513,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -61526,7 +61526,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -61540,7 +61540,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -61556,7 +61556,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -61572,7 +61572,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -61665,7 +61665,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -61693,7 +61693,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -61763,7 +61763,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%qcoin.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -61863,7 +61863,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%qcoin.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -62088,7 +62088,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -62114,7 +62114,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62143,7 +62143,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -62177,7 +62177,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62205,7 +62205,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62233,7 +62233,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62366,7 +62366,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -62392,7 +62392,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -62423,7 +62423,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -62466,7 +62466,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -62587,7 +62587,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%bv.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62725,7 +62725,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -62751,7 +62751,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -62782,7 +62782,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -62824,7 +62824,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -62944,7 +62944,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63154,7 +63154,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -63183,7 +63183,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%param1.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63245,7 +63245,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%param1.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63308,7 +63308,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -63321,7 +63321,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -63335,7 +63335,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -63349,7 +63349,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63376,7 +63376,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "    { \"name\": \"%scalar.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
@@ -78471,7 +78471,7 @@ groups than for single tests.
       "export circuit foo(np: NativePoint): NativePoint {"
       "  F = disclose(np);"
       "  const q = F;"
-      "  return constructNativePoint(nativePointY(q), nativePointX(q));"
+      "  return constructNativePoint(nativePointX(q), nativePointY(q));"
       "}"
       )
     (stage-javascript
@@ -78480,7 +78480,7 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of NativePoint current as of the creation of this test"
         "  const p = runtime.ecMulGenerator(1n);"
-        "  expect(C.circuits.foo(Ctxt, p).result).toEqual({ x: p.y, y: p.x });"
+        "  expect(C.circuits.foo(Ctxt, p).result).toEqual({ x: p.x, y: p.y });"
         "});"
         ))
     )
