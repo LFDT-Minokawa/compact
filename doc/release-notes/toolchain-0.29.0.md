@@ -124,3 +124,4 @@ The following GitHub issues were fixed in the toolchain 0.29.0 release:
 - [#23 Compiler takes exponentially more time trying to compile `MerkleTree.checkRoot` with high `n`](https://github.com/LFDT-Minokawa/compact/issues/23)
 - [#55 `mintUnshieldedToken` does not auto-receive when recipient is self](https://github.com/LFDT-Minokawa/compact/issues/55)
 - [#64 compact fixup fails to locate files defined with double dot notation](https://github.com/LFDT-Minokawa/compact/issues/64)
+- [#92 Trying to put coins into `List` throws - `CommitmentsNEClaimedShieldedReceives`](https://github.com/LFDT-Minokawa/compact/issues/92)
