@@ -385,12 +385,18 @@ are as follows:
   type
 - enumeration types: the first value listed in the declaration
 
-## Generic parameter references
+## Generic parameters and arguments
 
 Generic parameters are declared in generic [module
 declarations](#modules-exports-and-imports), generic [structure type
 declarations](#structure-types), generic [circuit definitions](#circuits), and
 generic [witness declarations](#declaring-witnesses-for-private-state).
+
+<table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
+<tr><td><em>generic-param</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>#</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr></tbody></table>
+
+<table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
+<tr><td><em>garg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
 
 For generic modules, they are in scope within the module. For generic
 structures, they are in scope for the structure's fields. For generic circuits,
@@ -516,9 +522,6 @@ surrounding code.
 
 <table className="lang-ref-table"><tbody><tr><td><em>mdefn</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>module</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>module-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &hellip; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
 
-<table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
-<tr><td><em>generic-param</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>#</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr></tbody></table>
-
 A module is defined with
 
 ```compact
@@ -552,7 +555,7 @@ module M {
 }
 ```
 
-### Imports and exports
+### Imports
 
 A module can be imported into another definition scope, bringing
 all its exported entries into that scope, potentially with a prefix.
@@ -562,11 +565,6 @@ all its exported entries into that scope, potentially with a prefix.
 <tr><td><em>import-element</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>as</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr>
 <tr><td><em>import-name</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>file</em></a></td></tr>
 <tr><td><em>import-prefix</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>prefix</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
-<tr><td><em>garg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>xdecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
 
 For instance:
 
@@ -682,6 +680,8 @@ export { $F
 ```
 
 ### Top-level exports
+
+<table className="lang-ref-table"><tbody><tr><td><em>xdecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
 
 The circuits exported at the top level of a contract (i.e., not merely exported
 from a module) are the entry points of the contract and may not take generic
@@ -1014,7 +1014,7 @@ Compact program by the Compact compiler.
 
 <table className="lang-ref-table"><tbody><tr><td><em>block</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a> &mldr; <a href="#Statement"><em>stmt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
 <tr><td><em>stmt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Statement0"><em>stmt<sub>0</sub></em></a></td></tr>
-<tr><td><em>stmt<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement0"><em>stmt<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>else</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>..</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#Const-Binding"><em>cbinding</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Const-Binding"><em>cbinding</em></a> &nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr></tbody></table>
+<tr><td><em>stmt<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement0"><em>stmt<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>else</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>..</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#Const-Binding"><em>cbinding</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Const-Binding"><em>cbinding</em></a> &nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr></tbody></table>
 
 A statement may be
 - a [`for` loop](#for-loop)
@@ -1130,11 +1130,6 @@ identifiers cannot be reassigned, although they can be [shadowed in a nested
 block](#scope-and-binding). Constant initializer expressions are evaluated when
 the binding statement is executed.
 
-### Expression sequence
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr-seq</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> &nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr></tbody></table>
-
-
 ## Expressions
 
 This section describes the syntax of Compact expressions and provides their
@@ -1153,330 +1148,15 @@ evaluation of its subexpressions.  If the evaluation of a subexpression raises
 an exception, then the evaluation of the containing expression will stop and
 raise the same exception.
 
-#### Literals
-
-Compact has syntax for boolean, numeric, and string literal expressions.
-
-<table className="lang-ref-table"><tbody><tr><td><em>term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>nat</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>str</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>nat</em>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>str</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
-
-__Boolean literals__ are the reserved words `true` and `false`. The static type
-of a boolean literal is `Boolean`. It evaluates to one of the two boolean
-values.
-
-__Numeric literals__ are non-negative decimal integers.  They are either the
-number `0` or a sequence of digits starting with a non-zero digit.  The static
-type of a natural number literal `n` is `Uint<0..n>`.
-
-There is an implementation-defined maximum unsigned integer value.  A numeric
-literal larger than this value will have an invalid static type `Uint<0..n>` for
-some `n` larger than the maximum unsigned integer.  This expression will be a
-static type error unless the literal is smaller than the maximum `Field` value
-and is used in a type cast expression of the form `e as Field`.
-
-A natural number literal evaluates to the unsigned integer value that it
-denotes.
-
-__String literals__ use TypeScript string literal syntax. Note that they can
-therefore be enclosed in either single (`'`) or double (`"`) quotes, and they
-can contain escaped characters. Strings are represented by their UTF-8 encoding.
-The **length** of a string is the length of its UTF-8 encoding. The static type
-of a string literal is `Bytes<n>` where `n` is the length of the string. It
-evaluates to a byte array containing its UTF-8 encoding.
-
-In addition, the expression `pad(n, s)` is a string literal, where `pad` is a
-reserved word, `n` is a natural number literal and `s` is a string literal whose
-length must be less than or equal to `n`. The static type of a padded string
-literal `pad(n, s)` is `Bytes<n>`. It evaluates to a byte array containing the
-UTF-8 encoding of `s`, followed by `0` bytes up to the padded length `n`.
-
-#### Variable references
-
-The syntax of Compact identifiers is the same as the syntax of TypeScript
-identifiers.  A variable is an identifier that is bound as a parameter in a
-circuit declaration or else as a constant in a `const` binding statement.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em></td></tr></tbody></table>
-
-__Circuit parameters__ are bound by circuit declarations. The static type of a
-circuit parameter reference is the declared static type given by the parameter
-declaration's type annotation. It evaluates to the value of the corresponding
-argument expression that was passed to the circuit call.
-
-__Constants__ are bound by `const` binding statements. If the binding statement
-has a type annotation, then the constant reference's static type is the declared
-static type given by the type annotation, and the type of the right-hand side
-initializer expression must be a subtype of the declared type. If the binding
-statement does not have a type annotation, then the constant reference's static
-type is the inferred static type (that is, the type of the binding statement's
-initializer expression). A constant reference evaluates to the value of the
-binding statement's initializer expression.
-
-Note that constant references can have ledger state types because they can be
-initialized with a ledger state type's default value.
-
-#### Default values of a type
-
-Every Compact type and ledger state type has a default value.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>ledger-adt</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr></tbody></table>
-
-The expression `default<T>`, where `T` is a Compact type or a ledger state type,
-has static type `T`. It evaluates to the default value of that type.
-
-Note that default value expressions can have ledger state types.
-
-#### Circuit and witness calls
-
-Circuits and witnesses, collectively referred to as functions, are called via an
-expression of the form `f(e, ...)`, where `f` is a function and `e, ...` is a
-sequence of zero or more comma-separated argument expressions.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>9</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>map</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>fold</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>slice</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Type-size"><em>tsize</em></a>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Tuple-argument"><em>tuple-arg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Tuple-argument"><em>tuple-arg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Bytes</tt></b>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Tuple-argument"><em>bytes-arg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Tuple-argument"><em>bytes-arg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type-reference"><em>tref</em></a>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Structure-argument"><em>struct-arg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Structure-argument"><em>struct-arg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>assert</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>disclose</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Term"><em>term</em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>tuple-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr>
-<tr><td><em>struct-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr>
-<tr><td><em>fun</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Arrow-parameter-list"><em>arrow-parameter-list</em></a>&nbsp;&nbsp;<a href="#Return-type"><em>return-type</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Arrow-parameter-list"><em>arrow-parameter-list</em></a>&nbsp;&nbsp;<a href="#Return-type"><em>return-type</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
-<tr><td><em>return-type</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
-<table className="lang-ref-table"><tbody><tr><td><em>arrow-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Optionally-typed-pattern"><em>optionally-typed-pattern</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Optionally-typed-pattern"><em>optionally-typed-pattern</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
-
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td><em>fun</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;[<em>targs</em>]</td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>parg</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>parg</em>}]&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;[<em>type</em>]&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<em>body</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td><em>body</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>block</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
-
-The function expression can take several different forms:
-
-A **function name** is the name of a circuit or witness from a circuit or
-witness declaration in scope.
-
-An **anonymous circuit** is an inline circuit definition having the form `(P,
-...) => body` or `(P, ...): R => body`, where `P, ...` are zero or more
-comma-separated parameter declarations, `R` is an optional return type
-annotation, and `body` is the circuit's body. Each parameter consists of either
-an identifier `x` (the parameter's name) or a [destructured
-pattern](#destructuring-tuples-and-structures) `[x, y]` or `{x, y}` for
-parameters that have a tuple or a structure type, respectively, and an optional
-type annotation `: T` where `T` is a Compact type. The optional return type `R`
-is a Compact type. The body is either a block (a sequence of zero or more
-semicolon-delimited statements enclosed in curly braces (`{ }`)), or an
-expression.
-
-There is no syntax for generic anonymous circuits.  This is because circuits are
-not first-class values: they cannot be passed around or stored in data
-structures, they *must* be called.  And generic circuits must be specialized to
-call them, so anonymous generic circuits would have to be immediately
-specialized.  In that case, the programmer can just write the non-generic
-version themselves.
-
-A **parenthesized function** has the form `(f)` where `f` is a function
-expression, that is either a function name, an anonymous circuit, or a
-parenthesized function.
-
-Because functions are not first class, parameter names and constant names are
-not allowed as the function part of a call.  Nor are arbitrary expressions
-allowed, for the same reason.
-
-Because circuits and witnesses are not first class, parameter names and constant
-names are not allowed as the circuit or witness part of a call.  Nor are
-arbitrary expressions allowed, for the same reason.
-
-Generic functions cannot be called without explicitly specializing them with
-generic arguments enclosed in angle brackets.  Calls to generic functions must
-be fully specialized: the number of generic arguments must match the number of
-generic parameters.
-
-The *underlying function* of a function expression is a non-parenthesized
-function expression.  For a function name it is the function name, for an
-anonymous circuit it is the anonymous circuit, and for a parenthesized function
-it is the underlying function of the parenthesized function expression.
-
-Type checking a function call depends on the form of the underlying function.
-
-* **For a named function:** Function names may be *overloaded*: more than one
-  function of the same name may be present in the scope of a call to that
-  function.  A call whose underlying function is a name can thus have zero or
-  more candidate functions, i.e., all of those that have the given name and are
-  present in the scope of the call.
-
-  A candidate function is not necessarily compatible with the number and kinds
-  of the generic parameter values, nor with the number and types of the argument
-  expressions provided at the call site.  It is compatible if and only if the
-  number of generic parameters is the same as the number of generic arguments,
-  each generic argument is of the required kind (a size or a type), the number
-  of declared parameters is the same as the number of argument expressions, and
-  if the declared type of each parameter is a supertype of the corresponding
-  argument expression.  If exactly one candidate is compatible, the call is made
-  to that candidate.  It is a static type error otherwise (if there is not
-  exactly one compatible candidate).
-
-  The static type of a call to a named function is the return type of the called
-  function.
-
-* **For an anonymous circuit:** Parameters that have type annotations will be
-  type checked, and parameters that do not have type annotations will have types
-  inferred.  The argument subexpressions are type checked and then:
-
-  - If there is a type annotation for a parameter, it is a static type error if
-    the type of the corresponding argument expression is not a subtype of the
-    type annotation.
-
-  - If there is no type annotation for a parameter, the parameter's type is
-    inferred as the type of the corresponding argument expression.
-
-  If there is a return type annotation, then the circuit's body is type checked
-  under the assumption that the parameters have their declared or inferred
-  types.  It is a static type error if there is a returned subexpression whose
-  static type is not a subtype of the return type annotation.  A return
-  statement of the form `return;` is type checked as if it returned a value of
-  type `[]`.  Every control flow path through a body that does not explicitly
-  end with a return statement implicitly ends with one of the form `return;`.
-
-  If there is no return type annotation, then a return type is inferred from the
-  body.  The body is type checked under the assumption that the parameters have
-  their declared or inferred types.  The inferred return type is the least upper
-  bound of the types of all the returned subexpressions, with the same treatment
-  of `return;` and control-flow paths that do not end in an explicit return as
-  described above.
-
-  The static type of a call to an anonymous circuit is the declared or inferred
-  return type.
-
-Calls are evaluated by evaluating the argument expressions in order from left to
-right.  Then, if a circuit is being called, the statements in the body of the
-circuit are executed with the parameter names bound to the corresponding
-argument values.  The value of a circuit call is the value returned from the
-execution of the body.  If a witness is being called, the contract will invoke
-the TypeScript or JavaScript witness function with the argument values.  The
-value of a witness call is the value returned by the witness function.
-
-#### Structure creation
-
-Structure values are created with structure creation expressions.  The
-expression `S {f, ...}` is a structure creation expression, where `S` is a
-structure type and `f, ...` is a sequence of zero or more comma-separated field
-value specifiers.
-
-A field value specifier can be one of three things:
-
-* A **positional** field value is an expression.  Evaluating the expression
-  gives the value for the field.  Positional field values must be given in the
-  order that fields are declared in the corresponding structure declaration.
-* A **named** field value is of the form `id: e` where `id` is a field name and
-  `e` is an expression.  Evaluating the expression gives the value for the
-  corresponding named field.  Named fields can appear in any order.  If named
-  and positional fields are mixed, all the named fields must appear after all
-  the positional fields.
-* A **spread** expression is of the form `...e` where `...` is the literal three
-  dots (ellipsis) token and `e` is an expression.  Evaluating the expression
-  must give a value of the same structure type as the one being created.  The
-  fields of the created structure are given values from the spread structure as
-  described below.  If there is a spread expression, it must occur as the first
-  field value specifier and all other specifiers must be named field values.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>tref</em>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;[<em>new-field</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>new-field</em>}]&nbsp;&nbsp;<b><tt>}</tt></b></td></tr><tr><td><em>new-field</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td><em>tref</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;[<em>targs</em>]</td></tr></tbody></table>
-
-The examples below demonstrate the use of positional and spread field values:
-
-```compact
-struct S { a: Uint<32>, b: Boolean, c: Bytes<8> }
-circuit f(x: Uint<32>, y: Boolean, z: Bytes<8>): S {
-  const s1 = S { c: z, a: x, b: y };
-  // Alternatively, s1 can be created with the positional syntax S { x, y, z }
-  // or a mix of positional and named field values S { x, c: z, b: y }.
-
-  const s2 = S { ...s1, b: true };
-  // s2 is created using the spread syntax.  So, s2 has the same field values
-  // as s1 except that b is true.
-
-  const s3 = S { ...s2, c: 'abcdefgh' };
-  // s3 is also created using the spread syntax.  s3 has the same field values
-  // as s2 except that c is 'abcdefgh'.
-
-  return s3;
-}
-```
-
-The structure type must come from a structure declaration in scope.  If the
-structure is generic, then it must be explicitly specialized with generic
-arguments enclosed in angle brackets.  Generic structures must be fully
-specialized: the number of generic arguments must match the number of generic
-parameters.
-
-The static type of a non-generic structure creation expression is the named
-structure type.
-
-The generic arguments to a generic structure can be types, natural number
-literals, or the names of generic parameters in scope.  A generic structure
-creation expression is type checked by substituting the generic arguments for
-the generic parameters in the structure's definition.  The static type of a
-generic structure creation expression is a structure with the same name as the
-generic type and field types obtained by substituting the generic arguments for
-the generic parameters in the structure's declaration.
-
-**If there is no spread field specifier:** It is a static error if the number of
-field specifiers does not match the number of fields in the corresponding
-structure declaration (a value must be given for every field).  It is a static
-error if a named field specifier occurs before a positional field specifier.  It
-is a static error if a field name occurs more than once, and it is a static
-error if a field name occurs that is not the name of a field in the
-corresponding structure declaration.  It is a static type error if the type of a
-positional field subexpression is not a subtype of the declared type of the
-(positionally) corresponding field in the structure declaration.  It is a static
-type error if the type of a named field subexpression is not a subtype of the
-declared type of the corresponding (named) field in the structure declaration.
-
-**If there is a spread field specifier:** It is a static error if the spread
-field specifier does not come first in the sequence.  It is a static type error
-if the type of the spread subexpression is not the same type as structure to be
-created.  It is a static error if there are any positional field specifiers.  It
-is a static error if a field name occurs that is not the name of a field in the
-corresponding structure declaration.  It is a static type error if the type of a
-named field subexpression is not a subtype of the declared type of the
-corresponding (named) field in the structure declaration.
-
-A structure creation expression is evaluated by evaluating the field specifier
-subexpressions in order from left to right.  The result is a structure value
-whose fields have values based on the corresponding field specifier: if there is
-a positional or named field specifier for the field, the field value is the
-value of the subexpression, otherwise there must be a spread expression and the
-field value is the value of the corresponding field in the (structure) value of
-the spread subexpression.
-
-#### Tuple creation
-
-Tuple values are created with expressions of the form `[e, ...]` where `e, ...`
-is a sequence of zero or more comma-separated argument expressions.  A non-empty
-sequence can have an optional trailing comma.  The *length* of a tuple is the
-number of subexpressions in the tuple creation expression.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;[<b><tt>,</tt></b>]&nbsp;&nbsp;<b><tt>]</tt></b></td></tr></tbody></table>
-
-The static type of a tuple creation expression is `[T, ...]` with the number of
-types matches length of the tuple and each type `T` is the type of the
-corresponding expression.
-
-It is evaluated by evaluating the subexpressions from left to right.  Its value
-is a tuple whose length is the number of subexpressions and whose elements are
-the subexpression values.
-
-#### Parenthesized expressions
-
-Compact allows parenthesized expressions of the form `(e)`, where `e` is an
-expression.  They can be used to control the order of evaluation.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
-
-The type of the parenthesized expression is the type of the subexpression.
-
-Its value is the value of the subexpression.
-
-#### Sequence expressions
+### Sequence expressions
 
 Expressions can be sequenced for their side effects.  An expression of the form
 `(e0, e1, e2, ...)` or `e0, e1, e2, ...` where `e0, e1, e2, ...` is a sequence of two or more
 comma-separated expressions is a sequence expression. The latter form where parentheses can
 be omitted is only allowed in some context which can be viewed in
 [the formal grammar of Compact](./compact-grammar).
+
+<table className="lang-ref-table"><tbody><tr><td><em>expr-seq</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> &nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr></tbody></table>
 
 <table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;</td></tr></tbody></table>
 
@@ -1486,176 +1166,156 @@ subexpression.
 It is evaluated by evaluating the subexpressions from left to right.  Its value
 is the value of the last subexpression.
 
-#### Asserts
+### Conditional expressions and ledger assignment expressions
 
-An assertion has the form `assert(e, "msg")` where `e` is an expression and `msg` is a string message.
-`e` must have a Boolean type, otherwise it is a static type error.  If `e` evaluates to `true`, the assertion
-succeeds. If `e` evaluates to `false`, the assertion fails with the message `msg`.
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>?</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>+=</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>-=</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a></td></tr></tbody></table>
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>assert</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em></td><td><b><tt>,</tt></b>&nbsp;&nbsp;<b><tt>"</tt></b><em>msg</em>&nbsp;<b><tt>"</tt></b>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
+#### Conditional expressions
 
-Each assertion is checked at runtime and constrained in-circuit.
+Compact supports conditional expressions of the form `e0 ? e1 : e2` where `e0`,
+`e1`, and `e2` are expressions.
 
-#### Ledger expressions
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>?</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
-A Compact program interacts with its public state by invoking operations upon
-the ledger or ledger state types.  There are two different forms of ledger
-calls.
+Conditional expressions require the type of `e0` to be `Boolean`.  The types of
+`e1` and `e2` must be in the subtype relation.  That is, either the type of
+`e1` is a subtype of the type of `e2` or else the type of `e2` is a subtype of
+the type of `e1`.
 
-__Kernel operations__ are operations that do not depend on specific ledger
-state.  They can be invoked by expressions of the form `k.op(e, ...)`, where
-`k` is the name of a ledger field declared to have the special ADT type `Kernel`,
-`op` is the name of a builtin kernel operation and
-`e, ...` is a comma separated sequence of zero or more argument expressions.
-The `CompactStandardLibrary` predefines the ledger field name `kernel` to have
-ledger type `Kernel`, so for example, the built-in `self` operation can be called
-from a circuit as follows:
+The type of the entire expression is the type of `e2` if `e1` is a subtype of
+`e2` and the type of `e1` if `e2` is a subtype of `e1`.
 
-```compact
-import CompactStandardLibrary;
-circuit f(): ContractAddress {
-  return kernel.self();
-}
-```
+Conditional expressions are evaluated by first evaluating `e0`.  Then, the
+value of that expression determines which of the other subexpressions is
+evaluated:
 
-__Ledger ADT operations__ are operations on the program's public ledger state.
-They are invoked by expressions of the form `member.op(e, ...)....`,
-where `member` is a ledger field name ([declared via a `ledger` field declaration](#declaring-and-maintaining-public-state))
-and `.op(e, ...)....` are a sequence of zero or more ledger
-ADT operation invocations, where each `op` is the name of a ledger ADT
-operation and each `e, ...` is a sequence of zero or more comma-separated
-argument expressions.
+- if the value of `e0` is `true`, then `e1` is evaluated and its value is the
+  value of the entire expression
+- if the value of `e0` is `false`, then `e2` is evaluated and its value is the
+  value of the entire expression
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>8</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression9"><em>expr<sub>9</sub></em></a></td></tr></tbody></table>
+The evaluation rules ensure that only one of `e1` and `e2` is evaluated.
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<em>ledger-accessor</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;\{<em>ledger-accessor</em>}</td></tr><tr><td><em>ledger-accessor</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
+#### Ledger assignment expressions
 
-Note that ledger ADT operations can be chained, because the result of a ledger
-ADT operation might itself have a ledger state type.  Kernel operations cannot
-be chained, because the kernel is not a ledger state type and is not returned
-by any operation.
+Compact has ledger assignment statements.  They have the form `lhs op e` where
+`lhs` is a ledger expression as defined in the section **Ledger expressions**
+above, `op` is one of the assignment operators `=` (assignment), `+=` (addition
+assignment), or `-=` (subtraction assignment), and `e` is an expression.
 
-The static type of a kernel operation expression is the return type of the
-corresponding kernel operation according to the ledger data types reference.
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;{<em>ledger-accessor</em>}&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;{<em>ledger-accessor</em>}&nbsp;&nbsp;<b><tt>+=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;{<em>ledger-accessor</em>}&nbsp;&nbsp;<b><tt>-=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
-The static type of a ledger ADT operation expression is the return type of the
-corresponding ADT operation according to the ledger data types reference.  Note
-that this might be a Compact type or it might be a ledger ADT type.  Values of
-ledger ADT types can have ADT operations invoked (immediately) on them, but
-any other use would be a static type error.
+`lhs = e` is shorthand for `lhs.write(e)`.  `lhs += e` is shorthand for
+`lhs.increment(e)`.  `lhs -= e` is shorthand for `lhs.decrement(e)`.
 
-Kernel operations are evaluated by evaluating the argument subexpressions in
-order from left to right and then invoking the corresponding kernel operation
-with the argument values.
+Ledger assignment statements are type checked exactly as if they were their
+longer equivalent invoking a ledger ADT operation.
 
-A ledger ADT operation `member` (that is not followed by a ledger
-accessor) is implicitly an invocation of the `read` operation.  It is evaluated
-as if it were `member.read()`.
+They are evaluated exactly as if their longer equivalent were evaluated as a
+ledger expression.
 
-A ledger ADT operation `member.op(e, ...)` is evaluated by evaluating the
-argument subexpressions from left to right, and then invoking the operation
-`op` on the public ledger member `member` with the argument values.
+### Short-circuit logical expressions
 
-A ledger ADT operation `adt.op(e, ...)` where `adt` is itself a ledger ADT
-operation is evaluated by first evaluating `adt`, then evaluating the argument
-subexpressions from left to right, and then invoking the operation `op` on the
-ledger ADT value of `adt` with the argument values.
+Compact supports short-circuit logical expressions of the form `e0 op e1`
+where `e0` and `e1` are expressions and `op` is one of the logical operators
+**or** (`||`) or **and** (`&&`).
 
-#### Element and member access expressions
+<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<a href="#Expression1"><em>expr<sub>1</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression1"><em>expr<sub>1</sub></em></a></td></tr>
+<tr><td><em>expr<sub>1</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression1"><em>expr<sub>1</sub></em></a>&nbsp;&nbsp;<b><tt>&&</tt></b>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a></td></tr></tbody></table>
 
-Compact has expressions for accessing the elements of tuple values and the
-members of structure values.  An expression of the form `e[n]` where `e` is an
-expression and `n` is a numeric literal is a tuple element access.  An
-expression of the form `e.id` where `e` is an expression and `id` is the name of
-a structure member is a structure member access.
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&amp;&amp;</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<em>nat</em>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em></td></tr></tbody></table>
+Logical expressions require the type of the left subexpression to be `Boolean`.
+The type of the right subexpression must be a supertype of `Boolean`.  The only
+supertype of `Boolean` is `Boolean` itself.  The entire expression will have the
+same type as the type of the right subexpression.
 
-Tuple element accesses are type checked by checking the type of the
-subexpression.  It is a type error if this type is not a tuple type `[T, ...]`.
-It is a type error if the length of the tuple is less than or equal to the
-numeric literal in the expression.  The type of the expression is the
-corresponding element type `T` at position `n` in the tuple type.
+Logical expressions are evaluated by first evaluating the left subexpression.
+Then, the value of that expression determines the value of the entire
+expression as follows:
 
-Tuple element accesses are evaluated by evaluating the subexpression.  The
-value of the expression will be the element value at the given zero-based
-index.  The subexpression will have a tuple value and the element access will
-not be out of bounds, because the expression is well-typed.
+- For or, if the value of the left subexpression is `false` then the right
+  subexpression is evaluated and its value is the value of the entire
+  expression.  Otherwise, the right subexpression is **not** evaluated and the
+  value of the left subexpression, implicitly cast to the type of the entire
+  expression, is the value of the entire expression.
+- For and, if the left subexpression is `true` then the right subexpression is
+  evaluated and its value is the value of the entire expression.  Otherwise,
+  the right subexpression is **not** evaluated and the value of the left
+  subexpression, implicitly cast to the type of the entire expression, is the
+  value of the entire expression.
 
-Member access expressions are type checked by checking the type of the
-subexpression.  It is a type error if this type is not a structure type.  It is
-a type error if the structure type does not contain a member with the same name
-as the name in the expression.  The type of the expression is the type of the
-corresponding named member of the subexpression's structure type.
+### Relational comparison expressions
 
-Member access expressions are evaluated by evaluating the subexpression.  The
-value of the expression will be the member value with the given name.  The
-subexpression will have a structure value and the name will exist, because the
-expression is well-typed.
+Relational comparison expressions are of the form `e0 op e1` where `e0`
+and `e1` are expressions and `op` is one of Compact's relational operators.
+The relational operators are **equals** (`==`), **not equals** (`!=`), **less
+than** (`<`), **greater than** (`>`), **less than or equals** (`<=`), and
+**greater than or equals** (`>=`).
 
-#### Boolean negation expressions
+<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>2</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a>&nbsp;&nbsp;<b><tt>==</tt></b>&nbsp;&nbsp;<a href="#Expression3"><em>expr<sub>3</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a>&nbsp;&nbsp;<b><tt>!=</tt></b>&nbsp;&nbsp;<a href="#Expression3"><em>expr<sub>3</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression3"><em>expr<sub>3</sub></em></a></td></tr>
+<tr><td><em>expr<sub>3</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>\<=</tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>>=</tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr></tbody></table>
 
-Compact has unary boolean negation expressions of the form `!e` where `e` is an
-expression.
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>==</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>!=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&lt;</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&gt;</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&lt;=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&gt;=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>7</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<a href="#Expression7"><em>expr<sub>7</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a></td></tr></tbody></table>
+Equals and not equals require the types of the subexpressions to be in the
+subtype relation.  That is, the type of the first subexpression must be a
+subtype of the type of the second subexpression, or else the type of the second
+subexpression must be a subtype of the type of the first subexpression.
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
+Less than, greater than, less than or equals, and greater than or equals require
+the type of both subexpressions to be unsigned integer types (note that `Field`
+cannot be compared with these operators).
 
-A boolean negation expression is type checked by checking the type of the
-subexpression.  It is a type error if this type is not `Boolean`.  The type of
-the expression will be `Boolean`.
+The type of the result is `Boolean`.
 
-Negation expressions are evaluated by evaluating the subexpression.  The value
-of the expression will be `true` if the value of the subexpression is `false`
-and vice versa.  The subexpression will have a boolean value because the
-expression is well-typed.
+Relational comparison expressions are evaluated by evaluating the subexpressions
+in order from left to right.  Then the comparison is performed as described
+below.
 
-#### Binary arithmetic expressions
+**Equals**
 
-Binary arithmetic expressions are of the form `e0 op e1` where `e0` and `e1`
-are expressions and `op` is one of Compact's binary arithmetic operators.  The
-binary arithmetic operators are **add** (`+`), **subtract** (`-`) and
-**multiply** (`*`).
+The comparison that is performed depends on the type of the operands:
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>5</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression5"><em>expr<sub>5</sub></em></a>&nbsp;&nbsp;<b><tt>+</tt></b>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression5"><em>expr<sub>5</sub></em></a>&nbsp;&nbsp;<b><tt>-</tt></b>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a></td></tr>
-<tr><td><em>expr<sub>6</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a>&nbsp;&nbsp;<b><tt>*</tt></b>&nbsp;&nbsp;<a href="#Expression7"><em>expr<sub>7</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression7"><em>expr<sub>7</sub></em></a></td></tr></tbody></table>
+- **`Boolean`:** if the operands have type `Boolean`, then the values must be
+  the same boolean value.  Both operands will have type `Boolean` due to the static typing rules.
+- **`Uint`:** if the operands have unsigned integer types, then the integer
+  values must be equal.  Both operands will have unsigned integer types due to
+  the static typing rules.
+- **`Field`:** if either operand has type `Field`, then the integer values of
+  the operands must be equal.  Both operands will have numeric (`Field` or
+  unsigned integer) types due to the static typing rules.
+- **`Bytes:`** if the operands have bytes types, then the corresponding bytes
+  at each index must be equal.  Both operands will have bytes types and their
+  lengths will be equal due to the static typing rules.
+- **`Tuple:`** if the operands have tuple types, then the corresponding
+  element values at each index must be equal according to these rules, based on
+  the static element types.  Both operands will have tuple types, they will
+  have the the same length, and their element types will be in the subtype
+  relation due to the static typing rules.
+- **`Opaque:`** if the operands have opaque types, then the runtime values
+  must be equal according to JavaScript's strict equality (`===`) operator.
+  Both operands will have the same opaque type due to the static typing rules.
+- **structure type:** if the operands have structure types, then the
+  corresponding values of each field must be equal according to these rules,
+  based on the field types.  Both operands will have the same structure type due
+  to the static typing rules.
+- **enum type:** if the operands have enum types, then they must be the same
+  enum value.  Both operands will have the same enum type due to the static
+  typing rules.
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>+</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>-</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>*</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
+**Not equals**
 
-Arithmetic expressions require the type of both subexpressions to be numeric
-types, that is, either a `Field` or a `Uint`.  The type of the result will
-depend on the types of the subexpressions as follows:
+The operands are compared according to the rules for equals above, and then the
+boolean result is negated.
 
-- If either subexpression has type `Field`, the result will have type `Field`
-- Otherwise the left subexpression will have type `Uint<0..m>` and the right
-  subexpression will have type `Uint<0..n>` for some bounds `m` and `n`. The
-  type of the result depends on the operation as follows:
-  - For add, the result will have type `Uint<0..m+n>`
-  - For subtract, the result will have type `Uint<0..m>`
-  - For multiply, the result will have type `Uint<0..m*n>`
+**Less than, greater than, less than or equals, and greater than or equals**
 
-For arithmetic operations with `Uint` result types, it is a static type error if
-the result's bound would be greater than the maximum unsigned integer.
+The integer values of the operands are compared according to the relational
+operation.  Both operands will have unsigned integer types due to the static
+typing rules.
 
-Arithmetic expressions are evaluated by first evaluating the subexpressions in
-order from left to right.  Integer addition, subtraction, or multiplication is
-then used on the subexpression values.  The overflow and underflow behavior
-differs for `Field` and `Uint` operations:
-
-- `Field` arithmetic overflow and underflow wraps around 0; that is, the result
-  of an arithmetic operation whose result is a `Field` is the actual arithmetic
-  value modulo `k`, where `k` is one more than the maximum field value.
-- `Uint` addition and multiplication cannot overflow: the static type of the
-  result will always be large enough to hold the result value
-- `Uint` subtraction checks if the value of the right subexpression is greater
-  than the value of the left subexpression.  If so, it is a runtime error (the
-  result would be negative).  Otherwise the unsigned subtraction is performed.
-
-The static typing rules imply that if `Field` arithmetic semantics is desired,
-then at least one of the operands must have static type `Field`.
-
-#### Type cast expressions
+### Type cast expressions
 
 Type cast expressions in Compact are of the form `e as T` where `e` is an
 expression, `as` is a reserved words, and `T` is a Compact type.
@@ -1769,132 +1429,288 @@ cast is checked, the check is performed before conversion and the cast
 fails (at runtime) if the check fails.  The exceptions noted in the table
 are evaluated as described above after evaluating the subexpression.
 
-#### Relational comparison expressions
+### Binary arithmetic expressions
 
-Relational comparison expressions are of the form `e0 op e1` where `e0`
-and `e1` are expressions and `op` is one of Compact's relational operators.
-The relational operators are **equals** (`==`), **not equals** (`!=`), **less
-than** (`<`), **greater than** (`>`), **less than or equals** (`<=`), and
-**greater than or equals** (`>=`).
+Binary arithmetic expressions are of the form `e0 op e1` where `e0` and `e1`
+are expressions and `op` is one of Compact's binary arithmetic operators.  The
+binary arithmetic operators are **add** (`+`), **subtract** (`-`) and
+**multiply** (`*`).
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>2</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a>&nbsp;&nbsp;<b><tt>==</tt></b>&nbsp;&nbsp;<a href="#Expression3"><em>expr<sub>3</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a>&nbsp;&nbsp;<b><tt>!=</tt></b>&nbsp;&nbsp;<a href="#Expression3"><em>expr<sub>3</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression3"><em>expr<sub>3</sub></em></a></td></tr>
-<tr><td><em>expr<sub>3</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>\<=</tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>>=</tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>5</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression5"><em>expr<sub>5</sub></em></a>&nbsp;&nbsp;<b><tt>+</tt></b>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression5"><em>expr<sub>5</sub></em></a>&nbsp;&nbsp;<b><tt>-</tt></b>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a></td></tr>
+<tr><td><em>expr<sub>6</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a>&nbsp;&nbsp;<b><tt>*</tt></b>&nbsp;&nbsp;<a href="#Expression7"><em>expr<sub>7</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression7"><em>expr<sub>7</sub></em></a></td></tr></tbody></table>
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>==</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>!=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&lt;</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&gt;</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&lt;=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&gt;=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>+</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>-</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>*</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
-Equals and not equals require the types of the subexpressions to be in the
-subtype relation.  That is, the type of the first subexpression must be a
-subtype of the type of the second subexpression, or else the type of the second
-subexpression must be a subtype of the type of the first subexpression.
+Arithmetic expressions require the type of both subexpressions to be numeric
+types, that is, either a `Field` or a `Uint`.  The type of the result will
+depend on the types of the subexpressions as follows:
 
-Less than, greater than, less than or equals, and greater than or equals require
-the type of both subexpressions to be unsigned integer types (note that `Field`
-cannot be compared with these operators).
+- If either subexpression has type `Field`, the result will have type `Field`
+- Otherwise the left subexpression will have type `Uint<0..m>` and the right
+  subexpression will have type `Uint<0..n>` for some bounds `m` and `n`. The
+  type of the result depends on the operation as follows:
+  - For add, the result will have type `Uint<0..m+n>`
+  - For subtract, the result will have type `Uint<0..m>`
+  - For multiply, the result will have type `Uint<0..m*n>`
 
-The type of the result is `Boolean`.
+For arithmetic operations with `Uint` result types, it is a static type error if
+the result's bound would be greater than the maximum unsigned integer.
 
-Relational comparison expressions are evaluated by evaluating the subexpressions
-in order from left to right.  Then the comparison is performed as described
-below.
+Arithmetic expressions are evaluated by first evaluating the subexpressions in
+order from left to right.  Integer addition, subtraction, or multiplication is
+then used on the subexpression values.  The overflow and underflow behavior
+differs for `Field` and `Uint` operations:
 
-**Equals**
+- `Field` arithmetic overflow and underflow wraps around 0; that is, the result
+  of an arithmetic operation whose result is a `Field` is the actual arithmetic
+  value modulo `k`, where `k` is one more than the maximum field value.
+- `Uint` addition and multiplication cannot overflow: the static type of the
+  result will always be large enough to hold the result value
+- `Uint` subtraction checks if the value of the right subexpression is greater
+  than the value of the left subexpression.  If so, it is a runtime error (the
+  result would be negative).  Otherwise the unsigned subtraction is performed.
 
-The comparison that is performed depends on the type of the operands:
+The static typing rules imply that if `Field` arithmetic semantics is desired,
+then at least one of the operands must have static type `Field`.
 
-- **`Boolean`:** if the operands have type `Boolean`, then the values must be
-  the same boolean value.  Both operands will have type `Boolean` due to the static typing rules.
-- **`Uint`:** if the operands have unsigned integer types, then the integer
-  values must be equal.  Both operands will have unsigned integer types due to
-  the static typing rules.
-- **`Field`:** if either operand has type `Field`, then the integer values of
-  the operands must be equal.  Both operands will have numeric (`Field` or
-  unsigned integer) types due to the static typing rules.
-- **`Bytes:`** if the operands have bytes types, then the corresponding bytes
-  at each index must be equal.  Both operands will have bytes types and their
-  lengths will be equal due to the static typing rules.
-- **`Tuple:`** if the operands have tuple types, then the corresponding
-  element values at each index must be equal according to these rules, based on
-  the static element types.  Both operands will have tuple types, they will
-  have the the same length, and their element types will be in the subtype
-  relation due to the static typing rules.
-- **`Opaque:`** if the operands have opaque types, then the runtime values
-  must be equal according to JavaScript's strict equality (`===`) operator.
-  Both operands will have the same opaque type due to the static typing rules.
-- **structure type:** if the operands have structure types, then the
-  corresponding values of each field must be equal according to these rules,
-  based on the field types.  Both operands will have the same structure type due
-  to the static typing rules.
-- **enum type:** if the operands have enum types, then they must be the same
-  enum value.  Both operands will have the same enum type due to the static
-  typing rules.
+### Boolean negation expressions
 
-**Not equals**
+Compact has unary boolean negation expressions of the form `!e` where `e` is an
+expression.
 
-The operands are compared according to the rules for equals above, and then the
-boolean result is negated.
+<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>7</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<a href="#Expression7"><em>expr<sub>7</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a></td></tr></tbody></table>
 
-**Less than, greater than, less than or equals, and greater than or equals**
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
-The integer values of the operands are compared according to the relational
-operation.  Both operands will have unsigned integer types due to the static
-typing rules.
+A boolean negation expression is type checked by checking the type of the
+subexpression.  It is a type error if this type is not `Boolean`.  The type of
+the expression will be `Boolean`.
 
-#### Short-circuit logical expressions
+Negation expressions are evaluated by evaluating the subexpression.  The value
+of the expression will be `true` if the value of the subexpression is `false`
+and vice versa.  The subexpression will have a boolean value because the
+expression is well-typed.
 
-Compact supports short-circuit logical expressions of the form `e0 op e1`
-where `e0` and `e1` are expressions and `op` is one of the logical operators
-**or** (`||`) or **and** (`&&`).
+### Element and member access expressions and ledger expressions
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&amp;&amp;</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>8</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression9"><em>expr<sub>9</sub></em></a></td></tr></tbody></table>
 
-Logical expressions require the type of the left subexpression to be `Boolean`.
-The type of the right subexpression must be a supertype of `Boolean`.  The only
-supertype of `Boolean` is `Boolean` itself.  The entire expression will have the
-same type as the type of the right subexpression.
+Compact has expressions for accessing the elements of tuple values and the
+members of structure values.  An expression of the form `e[n]` where `e` is an
+expression and `n` is a numeric literal is a tuple element access.  An
+expression of the form `e.id` where `e` is an expression and `id` is the name of
+a structure member is a structure member access.
 
-Logical expressions are evaluated by first evaluating the left subexpression.
-Then, the value of that expression determines the value of the entire
-expression as follows:
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<em>nat</em>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em></td></tr></tbody></table>
 
-- For or, if the value of the left subexpression is `false` then the right
-  subexpression is evaluated and its value is the value of the entire
-  expression.  Otherwise, the right subexpression is **not** evaluated and the
-  value of the left subexpression, implicitly cast to the type of the entire
-  expression, is the value of the entire expression.
-- For and, if the left subexpression is `true` then the right subexpression is
-  evaluated and its value is the value of the entire expression.  Otherwise,
-  the right subexpression is **not** evaluated and the value of the left
-  subexpression, implicitly cast to the type of the entire expression, is the
-  value of the entire expression.
+Tuple element accesses are type checked by checking the type of the
+subexpression.  It is a type error if this type is not a tuple type `[T, ...]`.
+It is a type error if the length of the tuple is less than or equal to the
+numeric literal in the expression.  The type of the expression is the
+corresponding element type `T` at position `n` in the tuple type.
 
-#### Conditional expressions
+Tuple element accesses are evaluated by evaluating the subexpression.  The
+value of the expression will be the element value at the given zero-based
+index.  The subexpression will have a tuple value and the element access will
+not be out of bounds, because the expression is well-typed.
 
-Compact supports conditional expressions of the form `e0 ? e1 : e2` where `e0`,
-`e1`, and `e2` are expressions.
+Member access expressions are type checked by checking the type of the
+subexpression.  It is a type error if this type is not a structure type.  It is
+a type error if the structure type does not contain a member with the same name
+as the name in the expression.  The type of the expression is the type of the
+corresponding named member of the subexpression's structure type.
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<a href="#Expression1"><em>expr<sub>1</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression1"><em>expr<sub>1</sub></em></a></td></tr>
-<tr><td><em>expr<sub>1</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression1"><em>expr<sub>1</sub></em></a>&nbsp;&nbsp;<b><tt>&&</tt></b>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a></td></tr></tbody></table>
+Member access expressions are evaluated by evaluating the subexpression.  The
+value of the expression will be the member value with the given name.  The
+subexpression will have a structure value and the name will exist, because the
+expression is well-typed.
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>?</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
-Conditional expressions require the type of `e0` to be `Boolean`.  The types of
-`e1` and `e2` must be in the subtype relation.  That is, either the type of
-`e1` is a subtype of the type of `e2` or else the type of `e2` is a subtype of
-the type of `e1`.
+A Compact program interacts with its public state by invoking operations upon
+the ledger or ledger state types.  There are two different forms of ledger
+calls.
 
-The type of the entire expression is the type of `e2` if `e1` is a subtype of
-`e2` and the type of `e1` if `e2` is a subtype of `e1`.
+__Kernel operations__ are operations that do not depend on specific ledger
+state.  They can be invoked by expressions of the form `k.op(e, ...)`, where
+`k` is the name of a ledger field declared to have the special ADT type `Kernel`,
+`op` is the name of a builtin kernel operation and
+`e, ...` is a comma separated sequence of zero or more argument expressions.
+The `CompactStandardLibrary` predefines the ledger field name `kernel` to have
+ledger type `Kernel`, so for example, the built-in `self` operation can be called
+from a circuit as follows:
 
-Conditional expressions are evaluated by first evaluating `e0`.  Then, the
-value of that expression determines which of the other subexpressions is
-evaluated:
+```compact
+import CompactStandardLibrary;
+circuit f(): ContractAddress {
+  return kernel.self();
+}
+```
 
-- if the value of `e0` is `true`, then `e1` is evaluated and its value is the
-  value of the entire expression
-- if the value of `e0` is `false`, then `e2` is evaluated and its value is the
-  value of the entire expression
+__Ledger ADT operations__ are operations on the program's public ledger state.
+They are invoked by expressions of the form `member.op(e, ...)....`,
+where `member` is a ledger field name ([declared via a `ledger` field declaration](#declaring-and-maintaining-public-state))
+and `.op(e, ...)....` are a sequence of zero or more ledger
+ADT operation invocations, where each `op` is the name of a ledger ADT
+operation and each `e, ...` is a sequence of zero or more comma-separated
+argument expressions.
 
-The evaluation rules ensure that only one of `e1` and `e2` is evaluated.
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<em>ledger-accessor</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;\{<em>ledger-accessor</em>}</td></tr><tr><td><em>ledger-accessor</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
+
+Note that ledger ADT operations can be chained, because the result of a ledger
+ADT operation might itself have a ledger state type.  Kernel operations cannot
+be chained, because the kernel is not a ledger state type and is not returned
+by any operation.
+
+The static type of a kernel operation expression is the return type of the
+corresponding kernel operation according to the ledger data types reference.
+
+The static type of a ledger ADT operation expression is the return type of the
+corresponding ADT operation according to the ledger data types reference.  Note
+that this might be a Compact type or it might be a ledger ADT type.  Values of
+ledger ADT types can have ADT operations invoked (immediately) on them, but
+any other use would be a static type error.
+
+Kernel operations are evaluated by evaluating the argument subexpressions in
+order from left to right and then invoking the corresponding kernel operation
+with the argument values.
+
+A ledger ADT operation `member` (that is not followed by a ledger
+accessor) is implicitly an invocation of the `read` operation.  It is evaluated
+as if it were `member.read()`.
+
+A ledger ADT operation `member.op(e, ...)` is evaluated by evaluating the
+argument subexpressions from left to right, and then invoking the operation
+`op` on the public ledger member `member` with the argument values.
+
+A ledger ADT operation `adt.op(e, ...)` where `adt` is itself a ledger ADT
+operation is evaluated by first evaluating `adt`, then evaluating the argument
+subexpressions from left to right, and then invoking the operation `op` on the
+ledger ADT value of `adt` with the argument values.
+
+### Circuit and witness calls, map, fold, data creation, assert, and disclose
+
+<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>9</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>map</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>fold</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>slice</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Type-size"><em>tsize</em></a>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Tuple-argument"><em>tuple-arg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Tuple-argument"><em>tuple-arg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Bytes</tt></b>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Tuple-argument"><em>bytes-arg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Tuple-argument"><em>bytes-arg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type-reference"><em>tref</em></a>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Structure-argument"><em>struct-arg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Structure-argument"><em>struct-arg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>assert</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>disclose</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Term"><em>term</em></a></td></tr></tbody></table>
+
+<table className="lang-ref-table"><tbody><tr><td><em>tuple-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr>
+<tr><td><em>struct-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr>
+<tr><td><em>fun</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Arrow-parameter-list"><em>arrow-parameter-list</em></a>&nbsp;&nbsp;<a href="#Return-type"><em>return-type</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Arrow-parameter-list"><em>arrow-parameter-list</em></a>&nbsp;&nbsp;<a href="#Return-type"><em>return-type</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
+<tr><td><em>return-type</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>arrow-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Optionally-typed-pattern"><em>optionally-typed-pattern</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Optionally-typed-pattern"><em>optionally-typed-pattern</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
+
+#### Circuit and witness calls
+
+Circuits and witnesses, collectively referred to as functions, are called via an
+expression of the form `f(e, ...)`, where `f` is a function and `e, ...` is a
+sequence of zero or more comma-separated argument expressions.
+
+
+
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td><em>fun</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;[<em>targs</em>]</td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>parg</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>parg</em>}]&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;[<em>type</em>]&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<em>body</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td><em>body</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>block</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
+
+The function expression can take several different forms:
+
+A **function name** is the name of a circuit or witness from a circuit or
+witness declaration in scope.
+
+An **anonymous circuit** is an inline circuit definition having the form `(P,
+...) => body` or `(P, ...): R => body`, where `P, ...` are zero or more
+comma-separated parameter declarations, `R` is an optional return type
+annotation, and `body` is the circuit's body. Each parameter consists of either
+an identifier `x` (the parameter's name) or a [destructured
+pattern](#destructuring-tuples-and-structures) `[x, y]` or `{x, y}` for
+parameters that have a tuple or a structure type, respectively, and an optional
+type annotation `: T` where `T` is a Compact type. The optional return type `R`
+is a Compact type. The body is either a block (a sequence of zero or more
+semicolon-delimited statements enclosed in curly braces (`{ }`)), or an
+expression.
+
+There is no syntax for generic anonymous circuits.  This is because circuits are
+not first-class values: they cannot be passed around or stored in data
+structures, they *must* be called.  And generic circuits must be specialized to
+call them, so anonymous generic circuits would have to be immediately
+specialized.  In that case, the programmer can just write the non-generic
+version themselves.
+
+A **parenthesized function** has the form `(f)` where `f` is a function
+expression, that is either a function name, an anonymous circuit, or a
+parenthesized function.
+
+Because functions are not first class, parameter names and constant names are
+not allowed as the function part of a call.  Nor are arbitrary expressions
+allowed, for the same reason.
+
+Because circuits and witnesses are not first class, parameter names and constant
+names are not allowed as the circuit or witness part of a call.  Nor are
+arbitrary expressions allowed, for the same reason.
+
+Generic functions cannot be called without explicitly specializing them with
+generic arguments enclosed in angle brackets.  Calls to generic functions must
+be fully specialized: the number of generic arguments must match the number of
+generic parameters.
+
+The *underlying function* of a function expression is a non-parenthesized
+function expression.  For a function name it is the function name, for an
+anonymous circuit it is the anonymous circuit, and for a parenthesized function
+it is the underlying function of the parenthesized function expression.
+
+Type checking a function call depends on the form of the underlying function.
+
+* **For a named function:** Function names may be *overloaded*: more than one
+  function of the same name may be present in the scope of a call to that
+  function.  A call whose underlying function is a name can thus have zero or
+  more candidate functions, i.e., all of those that have the given name and are
+  present in the scope of the call.
+
+  A candidate function is not necessarily compatible with the number and kinds
+  of the generic parameter values, nor with the number and types of the argument
+  expressions provided at the call site.  It is compatible if and only if the
+  number of generic parameters is the same as the number of generic arguments,
+  each generic argument is of the required kind (a size or a type), the number
+  of declared parameters is the same as the number of argument expressions, and
+  if the declared type of each parameter is a supertype of the corresponding
+  argument expression.  If exactly one candidate is compatible, the call is made
+  to that candidate.  It is a static type error otherwise (if there is not
+  exactly one compatible candidate).
+
+  The static type of a call to a named function is the return type of the called
+  function.
+
+* **For an anonymous circuit:** Parameters that have type annotations will be
+  type checked, and parameters that do not have type annotations will have types
+  inferred.  The argument subexpressions are type checked and then:
+
+  - If there is a type annotation for a parameter, it is a static type error if
+    the type of the corresponding argument expression is not a subtype of the
+    type annotation.
+
+  - If there is no type annotation for a parameter, the parameter's type is
+    inferred as the type of the corresponding argument expression.
+
+  If there is a return type annotation, then the circuit's body is type checked
+  under the assumption that the parameters have their declared or inferred
+  types.  It is a static type error if there is a returned subexpression whose
+  static type is not a subtype of the return type annotation.  A return
+  statement of the form `return;` is type checked as if it returned a value of
+  type `[]`.  Every control flow path through a body that does not explicitly
+  end with a return statement implicitly ends with one of the form `return;`.
+
+  If there is no return type annotation, then a return type is inferred from the
+  body.  The body is type checked under the assumption that the parameters have
+  their declared or inferred types.  The inferred return type is the least upper
+  bound of the types of all the returned subexpressions, with the same treatment
+  of `return;` and control-flow paths that do not end in an explicit return as
+  described above.
+
+  The static type of a call to an anonymous circuit is the declared or inferred
+  return type.
+
+Calls are evaluated by evaluating the argument expressions in order from left to
+right.  Then, if a circuit is being called, the statements in the body of the
+circuit are executed with the parameter names bound to the corresponding
+argument values.  The value of a circuit call is the value returned from the
+execution of the body.  If a witness is being called, the contract will invoke
+the TypeScript or JavaScript witness function with the argument values.  The
+value of a witness call is the value returned by the witness function.
 
 #### Map and fold expressions
 
@@ -1954,25 +1770,217 @@ value and to the *i*th element of the corresponding input vector values.  The
 result is the `n`th (final) accumulator value where `n` is the length of the
 input vectors.
 
-#### Ledger assignment expressions
+#### Slices
 
-Compact has ledger assignment statements.  They have the form `lhs op e` where
-`lhs` is a ledger expression as defined in the section **Ledger expressions**
-above, `op` is one of the assignment operators `=` (assignment), `+=` (addition
-assignment), or `-=` (subtraction assignment), and `e` is an expression.
+#### Structure creation
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>?</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>+=</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>-=</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a></td></tr></tbody></table>
+Structure values are created with structure creation expressions.  The
+expression `S {f, ...}` is a structure creation expression, where `S` is a
+structure type and `f, ...` is a sequence of zero or more comma-separated field
+value specifiers.
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;{<em>ledger-accessor</em>}&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;{<em>ledger-accessor</em>}&nbsp;&nbsp;<b><tt>+=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;{<em>ledger-accessor</em>}&nbsp;&nbsp;<b><tt>-=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
+A field value specifier can be one of three things:
 
-`lhs = e` is shorthand for `lhs.write(e)`.  `lhs += e` is shorthand for
-`lhs.increment(e)`.  `lhs -= e` is shorthand for `lhs.decrement(e)`.
+* A **positional** field value is an expression.  Evaluating the expression
+  gives the value for the field.  Positional field values must be given in the
+  order that fields are declared in the corresponding structure declaration.
+* A **named** field value is of the form `id: e` where `id` is a field name and
+  `e` is an expression.  Evaluating the expression gives the value for the
+  corresponding named field.  Named fields can appear in any order.  If named
+  and positional fields are mixed, all the named fields must appear after all
+  the positional fields.
+* A **spread** expression is of the form `...e` where `...` is the literal three
+  dots (ellipsis) token and `e` is an expression.  Evaluating the expression
+  must give a value of the same structure type as the one being created.  The
+  fields of the created structure are given values from the spread structure as
+  described below.  If there is a spread expression, it must occur as the first
+  field value specifier and all other specifiers must be named field values.
 
-Ledger assignment statements are type checked exactly as if they were their
-longer equivalent invoking a ledger ADT operation.
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>tref</em>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;[<em>new-field</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>new-field</em>}]&nbsp;&nbsp;<b><tt>}</tt></b></td></tr><tr><td><em>new-field</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td><em>tref</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;[<em>targs</em>]</td></tr></tbody></table>
 
-They are evaluated exactly as if their longer equivalent were evaluated as a
-ledger expression.
+The examples below demonstrate the use of positional and spread field values:
+
+```compact
+struct S { a: Uint<32>, b: Boolean, c: Bytes<8> }
+circuit f(x: Uint<32>, y: Boolean, z: Bytes<8>): S {
+  const s1 = S { c: z, a: x, b: y };
+  // Alternatively, s1 can be created with the positional syntax S { x, y, z }
+  // or a mix of positional and named field values S { x, c: z, b: y }.
+
+  const s2 = S { ...s1, b: true };
+  // s2 is created using the spread syntax.  So, s2 has the same field values
+  // as s1 except that b is true.
+
+  const s3 = S { ...s2, c: 'abcdefgh' };
+  // s3 is also created using the spread syntax.  s3 has the same field values
+  // as s2 except that c is 'abcdefgh'.
+
+  return s3;
+}
+```
+
+The structure type must come from a structure declaration in scope.  If the
+structure is generic, then it must be explicitly specialized with generic
+arguments enclosed in angle brackets.  Generic structures must be fully
+specialized: the number of generic arguments must match the number of generic
+parameters.
+
+The static type of a non-generic structure creation expression is the named
+structure type.
+
+The generic arguments to a generic structure can be types, natural number
+literals, or the names of generic parameters in scope.  A generic structure
+creation expression is type checked by substituting the generic arguments for
+the generic parameters in the structure's definition.  The static type of a
+generic structure creation expression is a structure with the same name as the
+generic type and field types obtained by substituting the generic arguments for
+the generic parameters in the structure's declaration.
+
+**If there is no spread field specifier:** It is a static error if the number of
+field specifiers does not match the number of fields in the corresponding
+structure declaration (a value must be given for every field).  It is a static
+error if a named field specifier occurs before a positional field specifier.  It
+is a static error if a field name occurs more than once, and it is a static
+error if a field name occurs that is not the name of a field in the
+corresponding structure declaration.  It is a static type error if the type of a
+positional field subexpression is not a subtype of the declared type of the
+(positionally) corresponding field in the structure declaration.  It is a static
+type error if the type of a named field subexpression is not a subtype of the
+declared type of the corresponding (named) field in the structure declaration.
+
+**If there is a spread field specifier:** It is a static error if the spread
+field specifier does not come first in the sequence.  It is a static type error
+if the type of the spread subexpression is not the same type as structure to be
+created.  It is a static error if there are any positional field specifiers.  It
+is a static error if a field name occurs that is not the name of a field in the
+corresponding structure declaration.  It is a static type error if the type of a
+named field subexpression is not a subtype of the declared type of the
+corresponding (named) field in the structure declaration.
+
+A structure creation expression is evaluated by evaluating the field specifier
+subexpressions in order from left to right.  The result is a structure value
+whose fields have values based on the corresponding field specifier: if there is
+a positional or named field specifier for the field, the field value is the
+value of the subexpression, otherwise there must be a spread expression and the
+field value is the value of the corresponding field in the (structure) value of
+the spread subexpression.
+
+#### Tuple creation
+
+Tuple values are created with expressions of the form `[e, ...]` where `e, ...`
+is a sequence of zero or more comma-separated argument expressions.  A non-empty
+sequence can have an optional trailing comma.  The *length* of a tuple is the
+number of subexpressions in the tuple creation expression.
+
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;[<b><tt>,</tt></b>]&nbsp;&nbsp;<b><tt>]</tt></b></td></tr></tbody></table>
+
+The static type of a tuple creation expression is `[T, ...]` with the number of
+types matches length of the tuple and each type `T` is the type of the
+corresponding expression.
+
+It is evaluated by evaluating the subexpressions from left to right.  Its value
+is a tuple whose length is the number of subexpressions and whose elements are
+the subexpression values.
+
+#### Asserts
+
+An assertion has the form `assert(e, "msg")` where `e` is an expression and `msg` is a string message.
+`e` must have a Boolean type, otherwise it is a static type error.  If `e` evaluates to `true`, the assertion
+succeeds. If `e` evaluates to `false`, the assertion fails with the message `msg`.
+
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>assert</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em></td><td><b><tt>,</tt></b>&nbsp;&nbsp;<b><tt>"</tt></b><em>msg</em>&nbsp;<b><tt>"</tt></b>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
+
+Each assertion is checked at runtime and constrained in-circuit.
+
+#### Discloses
+
+### Terms
+
+<table className="lang-ref-table"><tbody><tr><td><em>term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
+
+#### Variable references
+
+The syntax of Compact identifiers is the same as the syntax of TypeScript
+identifiers.  A variable is an identifier that is bound as a parameter in a
+circuit declaration or else as a constant in a `const` binding statement.
+
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em></td></tr></tbody></table>
+
+__Circuit parameters__ are bound by circuit declarations. The static type of a
+circuit parameter reference is the declared static type given by the parameter
+declaration's type annotation. It evaluates to the value of the corresponding
+argument expression that was passed to the circuit call.
+
+__Constants__ are bound by `const` binding statements. If the binding statement
+has a type annotation, then the constant reference's static type is the declared
+static type given by the type annotation, and the type of the right-hand side
+initializer expression must be a subtype of the declared type. If the binding
+statement does not have a type annotation, then the constant reference's static
+type is the inferred static type (that is, the type of the binding statement's
+initializer expression). A constant reference evaluates to the value of the
+binding statement's initializer expression.
+
+Note that constant references can have ledger state types because they can be
+initialized with a ledger state type's default value.
+
+#### Literals
+
+Compact has syntax for boolean, numeric, and string literal expressions.
+
+
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>nat</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>str</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>nat</em>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>str</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
+
+__Boolean literals__ are the reserved words `true` and `false`. The static type
+of a boolean literal is `Boolean`. It evaluates to one of the two boolean
+values.
+
+__Numeric literals__ are non-negative decimal integers.  They are either the
+number `0` or a sequence of digits starting with a non-zero digit.  The static
+type of a natural number literal `n` is `Uint<0..n>`.
+
+There is an implementation-defined maximum unsigned integer value.  A numeric
+literal larger than this value will have an invalid static type `Uint<0..n>` for
+some `n` larger than the maximum unsigned integer.  This expression will be a
+static type error unless the literal is smaller than the maximum `Field` value
+and is used in a type cast expression of the form `e as Field`.
+
+A natural number literal evaluates to the unsigned integer value that it
+denotes.
+
+__String literals__ use TypeScript string literal syntax. Note that they can
+therefore be enclosed in either single (`'`) or double (`"`) quotes, and they
+can contain escaped characters. Strings are represented by their UTF-8 encoding.
+The **length** of a string is the length of its UTF-8 encoding. The static type
+of a string literal is `Bytes<n>` where `n` is the length of the string. It
+evaluates to a byte array containing its UTF-8 encoding.
+
+In addition, the expression `pad(n, s)` is a string literal, where `pad` is a
+reserved word, `n` is a natural number literal and `s` is a string literal whose
+length must be less than or equal to `n`. The static type of a padded string
+literal `pad(n, s)` is `Bytes<n>`. It evaluates to a byte array containing the
+UTF-8 encoding of `s`, followed by `0` bytes up to the padded length `n`.
+
+#### Default values of a type
+
+Every Compact type and ledger state type has a default value.
+
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>ledger-adt</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr></tbody></table>
+
+The expression `default<T>`, where `T` is a Compact type or a ledger state type,
+has static type `T`. It evaluates to the default value of that type.
+
+Note that default value expressions can have ledger state types.
+
+#### Parenthesized expressions
+
+Compact allows parenthesized expressions of the form `(e)`, where `e` is an
+expression.  They can be used to control the order of evaluation.
+
+<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
+
+The type of the parenthesized expression is the type of the subexpression.
+
+Its value is the value of the subexpression.
 
 ## Runtime representations and type/bounds checks
 
