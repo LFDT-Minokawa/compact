@@ -11,13 +11,13 @@ components:
 - a local, off-chain component that can perform arbitrary code
 
 Each contract in Compact can have four kinds of code:
-- type declarations, to support all of the following
-- declarations of the data that the contract stores in the public ledger
-- declarations of `witness` functions, to be supplied in TypeScript
-- `circuit` definitions, that serve as the operational core of a smart contract
+- type declarations, to support all of the following,
+- declarations of the data that the contract stores in the public ledger,
+- declarations of `witness` functions, to be supplied in TypeScript, and
+- `circuit` definitions, that serve as the operational core of a smart contract.
 
-A contract can also include code from external files, and it can declare and
-import modules.
+A contract can declare and import modules, and it can include code from external
+files.
 
 Like TypeScript, Compact is an eager call-by-value language.
 
@@ -26,10 +26,10 @@ Compact program looks like.  It also introduces the basic building blocks of a
 Compact contract.  [The full grammar of Compact](Compact.html) is provided
 separately. This document explains each syntactic category individually.  It
 starts by introducing the basics that are used in various syntactic categories:
-identifiers, constants, types, generic parameters, and patterns and argument.
+identifiers, constants, types, generic parameters, patterns, and arguments.
 Then it expands on programs and program elements and opens up each of the
-program elements separately.  Where applicable it expands a syntactic category
-from lowest precedence to highest.  Finally, it discusses the TypeScript target.
+program elements separately. 
+Finally, it discusses the TypeScript target.
 
 ## Notation
 
@@ -1132,17 +1132,18 @@ the binding statement is executed.
 
 ## Expressions
 
-This section describes the syntax of Compact expressions and provides their
-static typing rules and their evaluation rules.
+This section describes the syntax of Compact expressions, in order with those
+of lower precedence preceding those with lower precedence, and provides their
+static typing rules and evaluation semantics.
 
-A Compact expression either has a static type, or else it contains a type error.
-The static type of an expression, if it has one, is either a Compact type or
-else a ledger state type.  If an expression in a program contains a type error,
-it means that the Compact compiler will not compile that program.
-Subexpressions of Compact expressions are always required to be well-typed
-(free from type errors).
+Every Compact expression is required to be well-typed (free from static type errors).
+If any expression within a program contains a type error, the Compact compiler
+reports the error and does not produce any target code (TypeScript or Zkir)
+for the program.
+The static type of a well-typed expression is either a Compact type or a ledger
+state type.
 
-Every Compact expression either evaluates to a value, or else it raises an
+Every Compact expression either evaluates to a value or raises an
 exception.  The evaluation of an expression is defined in terms of the
 evaluation of its subexpressions.  If the evaluation of a subexpression raises
 an exception, then the evaluation of the containing expression will stop and
