@@ -24,7 +24,7 @@
 //   - red_move :: move by player red,
 //   - done :: game finished (payout).
 
-pragma language_version >= 0.16.0;
+pragma languageVersion >= 0.16.0;
 
 import CompactStandardLibrary;
 

@@ -14,7 +14,7 @@
 // limitations under the License.
 
 pragma
-language_version > 0.14; export ledger counter:
+languageVersion > 0.14; export ledger counter:
 Counter; export circuit reynolds(): Field { return
 default<Field>;}
 

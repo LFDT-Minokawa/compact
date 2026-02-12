@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pragma language_version >= 0.16.0;
+pragma languageVersion >= 0.16.0;
 
 import CompactStandardLibrary;
 export { Maybe }

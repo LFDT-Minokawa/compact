@@ -1518,7 +1518,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma compiler_version >= 0.0 && (!0.0.1 || < 3 || <= 4 && > 5) || 2.2.2222;"
+      "pragma compilerVersion >= 0.0 && (!0.0.1 || < 3 || <= 4 && > 5) || 2.2.2222;"
       )
     (returns
       (program))
@@ -3545,7 +3545,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma compiler_version >= 0.0 && (!0.0.1 || < 3 || <= 4 && > 5) || 2.2.2222;"
+      "pragma compilerVersion >= 0.0 && (!0.0.1 || < 3 || <= 4 && > 5) || 2.2.2222;"
       )
     (returns
       (program))
@@ -3846,6 +3846,28 @@ groups than for single tests.
         (circuit #t #f B () ([x (tunsigned 0 8)])
              (tfield)
           (block (return (call (fref A 12) x))))))
+    )
+
+  (test
+    '(
+      "pragma language_version 0.0.0;"
+      ""
+      "import CompactStandardLibrary;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "unrecognized pragma setting ~s" (language_version)))
+    )
+
+  (test
+    '(
+      "pragma compiler_version 0.0.0;"
+      ""
+      "import CompactStandardLibrary;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "unrecognized pragma setting ~s" (compiler_version)))
     )
 )
 
@@ -5542,7 +5564,7 @@ groups than for single tests.
 
   (test ; TODO improve error message. PM-19118
     '(
-      "pragma language_version 0.0.0;"
+      "pragma languageVersion 0.0.0;"
       ""
       "import CompactStandardLibrary;"
       ""
@@ -5557,7 +5579,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma language_version 0.4.0 && 0.4.1;"
+      "pragma languageVersion 0.4.0 && 0.4.1;"
       ""
       "import CompactStandardLibrary;"
       ""
@@ -5572,7 +5594,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma language_version 0.4.0 && !0.4.0;"
+      "pragma languageVersion 0.4.0 && !0.4.0;"
       ""
       "import CompactStandardLibrary;"
       ""
@@ -5587,7 +5609,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma language_version <= 1 || >= 1;"
+      "pragma languageVersion <= 1 || >= 1;"
       ""
       "import CompactStandardLibrary;"
       ""
@@ -5603,7 +5625,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma compiler_version > 0.2.0;"
+      "pragma compilerVersion > 0.2.0;"
       ""
       "import CompactStandardLibrary;"
       ""
@@ -5619,7 +5641,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma compiler_version 0.3.5 || (> 0.2.0 && < 0.3.0);"
+      "pragma compilerVersion 0.3.5 || (> 0.2.0 && < 0.3.0);"
       ""
       "import CompactStandardLibrary;"
       ""
@@ -6510,11 +6532,11 @@ groups than for single tests.
 
   (test
     '(
-      "pragma compiler_version >= 0.0 && (!0.0.1 || < 3 || <= 4 && > 5) || 2.2.22.222;"
+      "pragma compilerVersion >= 0.0 && (!0.0.1 || < 3 || <= 4 && > 5) || 2.2.22.222;"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 75" "parse error: found ~a looking for~?" ("\".\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\"" "\"||\"" "\"&&\""))))
+      irritants: '("testfile.compact line 1 char 74" "parse error: found ~a looking for~?" ("\".\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\"" "\"||\"" "\"&&\""))))
     )
 
   (test
@@ -6644,21 +6666,21 @@ groups than for single tests.
   ; pm-15798
   (test
     '(
-      "pragma language_version >= 0.14.0 && !>= 0.14.0;"
+      "pragma languageVersion >= 0.14.0 && !>= 0.14.0;"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 39" "parse error: found ~a looking for~?" ("\">=\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a version atom"))))
+      irritants: '("testfile.compact line 1 char 38" "parse error: found ~a looking for~?" ("\">=\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a version atom"))))
     )
 
   ; pm-16349
   (test
     '(
-      "pragma compiler_version  !  <3.0.5>  *  1,2,3,4,5,6,7,8,9,10,11,12  >  (1.7.8)  ,,  self  -=  <1.4.2>  >=  1,2,3,4,5,6,7,8,9,10,11,12,13  ==  pragma;"
+      "pragma compilerVersion  !  <3.0.5>  *  1,2,3,4,5,6,7,8,9,10,11,12  >  (1.7.8)  ,,  self  -=  <1.4.2>  >=  1,2,3,4,5,6,7,8,9,10,11,12,13  ==  pragma;"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 29" "parse error: found ~a looking for~?" ("\"<\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a version atom"))))
+      irritants: '("testfile.compact line 1 char 28" "parse error: found ~a looking for~?" ("\"<\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a version atom"))))
     )
 
   ; pm-17347
@@ -6691,7 +6713,16 @@ groups than for single tests.
 
   (test
     '(
-      "pragma language_version >= 0.๓ؒNJe"
+      "pragma languageVersion >= 0.๓ؒNJe"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 29" "unexpected ~a" ("character '๓'")))
+    )
+
+  (test
+    '(
+      "pragma languageVersion >= 0.4๓ؒNJe"
       )
     (oops
       message: "~a:\n  ~?"
@@ -6700,7 +6731,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma language_version >= 0.4๓ؒNJe"
+      "pragma languageVersion >= 0.4.๓ؒNJe"
       )
     (oops
       message: "~a:\n  ~?"
@@ -6709,20 +6740,11 @@ groups than for single tests.
 
   (test
     '(
-      "pragma language_version >= 0.4.๓ؒNJe"
+      "pragma languageVersion >= 0.4.7๓ؒNJe"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 32" "unexpected ~a" ("character '๓'")))
-    )
-
-  (test
-    '(
-      "pragma language_version >= 0.4.7๓ؒNJe"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 33" "unexpected ~a" ("character '๓'")))
     )
 
   (test
@@ -52624,7 +52646,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma language_version >= 0.4.0;"
+      "pragma languageVersion >= 0.4.0;"
       ""
       "import CompactStandardLibrary;"
       ""
@@ -52671,8 +52693,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "pragma language_version >= 0.4.0 && < 0.99.0;"
-      "pragma compiler_version >= 0.4.2 && < 0.99.0;"
+      "pragma languageVersion >= 0.4.0 && < 0.99.0;"
+      "pragma compilerVersion >= 0.4.2 && < 0.99.0;"
       ""
       "ledger impure: Boolean;"
       ""
@@ -60800,7 +60822,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma language_version >= 0.4.0;"
+      "pragma languageVersion >= 0.4.0;"
       ""
       "import CompactStandardLibrary;"
       ""
@@ -60829,8 +60851,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "pragma language_version >= 0.4.0 && < 0.99.0;"
-      "pragma compiler_version >= 0.4.2 && < 0.99.0;"
+      "pragma languageVersion >= 0.4.0 && < 0.99.0;"
+      "pragma compilerVersion >= 0.4.2 && < 0.99.0;"
       ""
       "ledger impure: Boolean;"
       ""
@@ -67392,7 +67414,7 @@ groups than for single tests.
 
   (test
     '(
-      "pragma language_version >= 0.4.0;"
+      "pragma languageVersion >= 0.4.0;"
       ""
       "import CompactStandardLibrary;"
       ""
@@ -67414,8 +67436,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "pragma language_version >= 0.4.0 && < 0.99.0;"
-      "pragma compiler_version >= 0.4.0 && < 0.99.0;"
+      "pragma languageVersion >= 0.4.0 && < 0.99.0;"
+      "pragma compilerVersion >= 0.4.0 && < 0.99.0;"
       ""
       "export circuit bar(): Field {"
       "  return 3;"
@@ -71807,7 +71829,7 @@ groups than for single tests.
   ; was producing an unparenthesized expression sequence between ? and :
   (test
     '(
-      "pragma language_version >= 0.14.0;"
+      "pragma languageVersion >= 0.14.0;"
       "import CompactStandardLibrary;"
       "export ledger y: Map<Boolean, Vector<1, []>>;"
       "export circuit foo(): [] {  }"

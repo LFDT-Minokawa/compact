@@ -18,7 +18,7 @@
        many syntactic elements of the language.
    CAUTION: this file is used in some of the CIs!!
 */
-pragma language_version >= 0.12.1;
+pragma languageVersion >= 0.12.1;
 
 include 'empty'; // cheer up CI tests by using the include keyword
 new type Frob = Uint<16>; // cheer up CI tests by using the new and type keywords

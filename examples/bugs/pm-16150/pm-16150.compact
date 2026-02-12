@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import CompactStandardLibrary;
-pragma language_version >= 0.15.0;
+pragma languageVersion >= 0.15.0;
 
 module AccessControl {
 

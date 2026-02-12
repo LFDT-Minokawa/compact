@@ -39,7 +39,7 @@ function generateStrings(): string[] {
 
 function getMinimumContractContent() {
     let content: string = '';
-    content = content.concat('pragma language_version > 0.12.1;\n');
+    content = content.concat('pragma languageVersion > 0.12.1;\n');
     content = content.concat('import CompactStandardLibrary;\n');
     return content;
 }

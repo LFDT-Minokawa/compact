@@ -306,8 +306,8 @@
          (let ([sym (token-value id)])
            (case sym
              ; NB: might want to suppress these checks in fixup and maybe formatter
-             [(language_version) (check-language-version src (lversion ve)) '()]
-             [(compiler_version) (check-compiler-version src (lversion ve)) '()]
+             [(languageVersion) (check-language-version src (lversion ve)) '()]
+             [(compilerVersion) (check-compiler-version src (lversion ve)) '()]
              [else (source-errorf src "unrecognized pragma setting ~s" sym)]))
          (with-output-language (Lparser Pragma)
            `(pragma ,src ,kwd ,id ,ve ,semicolon)))])

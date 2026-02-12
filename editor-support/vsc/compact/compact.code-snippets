@@ -2,7 +2,7 @@
   "pragma": {
 	"prefix": "pragma",
 	"body": [
-		"pragma ${1:language_version} ${2:0.8.6};",
+		"pragma ${1:languageVersion} ${2:0.8.6};",
 	    "$0"
 	],
 	"description": "require specified version of language or compiler",
