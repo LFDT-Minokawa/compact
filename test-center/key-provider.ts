@@ -14,11 +14,16 @@
 // limitations under the License.
 
 import {
-  KeyMaterialProvider,
+  KeyMaterialProvider as KeyMaterialProviderV2,
   ProvingKeyMaterial,
-  check,
-  jsonIrToBinary
+  check as checkV2,
+  jsonIrToBinary as jsonIrToBinaryV2
 } from '@midnight-ntwrk/zkir-v2';
+import {
+  KeyMaterialProvider as KeyMaterialProviderV3,
+  check as checkV3,
+  jsonIrToBinary as jsonIrToBinaryV3
+} from '@midnight-ntwrk/zkir-v3';
 import { ProofData } from '@midnight-ntwrk/compact-runtime';
 import { proofDataIntoSerializedPreimage } from '@midnight-ntwrk/onchain-runtime-v2';
 import fs from 'fs/promises';
@@ -28,12 +33,29 @@ const FILE_COIN_URL = 'https://midnight-s3-fileshare-dev-eu-west-1.s3.eu-west-1.
 const ZKIR_DIR = 'zkir';
 const ZKIR_EXT = '.zkir';
 
-const cache: Record<number, Uint8Array> = {};
+const paramsCache: Record<number, Uint8Array> = {};
 
-const readIrFile = (contractDir: string, circuitId: string): Promise<Uint8Array> =>
-  fs.readFile(path.join(contractDir, ZKIR_DIR, circuitId + ZKIR_EXT), 'utf-8').then(jsonIrToBinary);
+type ZkirVersion = { major: number; minor: number };
 
-export const createKeyMaterialProvider = (contractDir: string): KeyMaterialProvider => {
+const readZkirJson = async (contractDir: string, circuitId: string): Promise<string> => {
+  return fs.readFile(path.join(contractDir, ZKIR_DIR, circuitId + ZKIR_EXT), 'utf-8');
+};
+
+const detectZkirVersion = (json: string): ZkirVersion => {
+  const v = JSON.parse(json).version;
+  if (!v) {
+    throw new Error(`Unable to detect ZKIR version in JSON: ${json}`);
+  }
+  return v;
+};
+
+const readIrFile = async (contractDir: string, circuitId: string): Promise<Uint8Array> => {
+  const json = await readZkirJson(contractDir, circuitId);
+  const version = detectZkirVersion(json);
+  return version.major === 3 ? jsonIrToBinaryV3(json) : jsonIrToBinaryV2(json);
+};
+
+export const createKeyMaterialProvider = (contractDir: string): KeyMaterialProviderV2 => {
   const lookupKey = async (circuitId: string): Promise<ProvingKeyMaterial | undefined> => {
     return {
       proverKey: new Uint8Array(0),
@@ -42,21 +64,25 @@ export const createKeyMaterialProvider = (contractDir: string): KeyMaterialProvi
     };
   };
   const getParams = async (k: number): Promise<Uint8Array> => {
-    if (k in cache) {
-      return cache[k];
+    if (k in paramsCache) {
+      return paramsCache[k];
     }
     const url = `${FILE_COIN_URL}${k}`;
     const resp = await fetch(url);
     const blob = await resp.blob();
     const params = new Uint8Array(await blob.arrayBuffer());
-    cache[k] = params;
+    paramsCache[k] = params;
     return params;
   };
   return { lookupKey, getParams };
 };
 
-export const checkProofData = (contractDir: string, circuitName: string, proofData: ProofData): Promise<(bigint | undefined)[]>=> {
+export const checkProofData = async (contractDir: string, circuitName: string, proofData: ProofData): Promise<(bigint | undefined)[]> => {
+  const json = await readZkirJson(contractDir, circuitName);
+  const version = detectZkirVersion(json);
+  const isV3 = version.major === 3;
+
   const preimage = proofDataIntoSerializedPreimage(proofData.input, proofData.output, proofData.publicTranscript, proofData.privateTranscriptOutputs, circuitName);
   const keyProvider = createKeyMaterialProvider(contractDir);
-  return check(preimage, keyProvider);
+  return isV3 ? checkV3(preimage, keyProvider as KeyMaterialProviderV3) : checkV2(preimage, keyProvider);
 };
