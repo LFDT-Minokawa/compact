@@ -56,6 +56,13 @@
                 #f
                 #f
                 ,semicolon)])
+    (Pragma : Pragma (ir) -> Pragma ()
+      [(pragma ,src ,kwd ,name ,version-expr ,semicolon)
+       (guard (eq? (token-value name) 'languageVersion))
+       `(pragma ,src ,kwd ,(make-token (token-src name) 'id 'languageVersion "languageVersion") ,version-expr ,semicolon)]
+      [(pragma ,src ,kwd ,name ,version-expr ,semicolon)
+       (guard (eq? (token-value name) 'compilerVersion))
+       `(pragma ,src ,kwd ,(make-token (token-src name) 'id 'compilerVersion "compilerVersion") ,version-expr ,semicolon)])
     (Type : Type (ir) -> Type ()
       [(tunsigned ,src ,kwd ,langle ,[tsize] ,dotdot ,[tsize^] ,rangle)
        (guard (update-Uint-ranges))

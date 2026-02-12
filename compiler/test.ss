@@ -3861,6 +3861,21 @@ groups than for single tests.
 
   (test
     '(
+      "pragma language_version 0.0.0;"
+      ""
+      "import CompactStandardLibrary;"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "pragma languageVersion 0.0.0;"
+        ""
+        "import CompactStandardLibrary;"
+      ))
+    (returns what)
+    )
+
+  (test
+    '(
       "pragma compiler_version 0.0.0;"
       ""
       "import CompactStandardLibrary;"
