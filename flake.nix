@@ -47,12 +47,12 @@
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/4a396df8f0596a8f721881dd74c6c9ad16fd057d";
+      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-jubjubpoint";
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/4a396df8f0596a8f721881dd74c6c9ad16fd057d";
+      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-jubjubpoint";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -220,7 +220,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.29.101"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.29.102"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./test-center
               ./compiler

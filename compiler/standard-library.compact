@@ -44,20 +44,8 @@ export circuit right<A, B>(value: B): Either<A, B> {
 }
 
 // Elliptic Curves
-struct SimplePoint {
-  x: Field;
-  y: Field;
-}
-export new type NativePoint = SimplePoint;
-export circuit nativePointX(np: NativePoint): Field {
-  return (np as SimplePoint).x;
-}
-export circuit nativePointY(np: NativePoint): Field {
-  return (np as SimplePoint).y;
-}
-export circuit constructNativePoint(x: Field, y: Field): NativePoint {
-  return NativePoint { x, y };
-}
+export type JubjubPoint = Opaque<'JubjubPoint'>;
+export new type NativePoint = Opaque<'JubjubPoint'>;
 
 // Merkle trees
 export struct MerkleTreeDigest { field: Field; }

@@ -20,6 +20,7 @@
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
+          (config-params)
           (nanopass)
           (langs)
           (pass-helpers))
@@ -2215,7 +2216,13 @@
                 [(tfield ,src) (cons `(afield) a*)]
                 [(tunsigned ,src ,nat) (cons `(abytes ,(ceiling (/ (bitwise-length nat) 8))) a*)]
                 [(tbytes ,src ,len) (cons `(abytes ,len) a*)]
-                [(topaque ,src ,opaque-type) (cons `(acompress) a*)]
+                [(topaque ,src ,opaque-type)
+                 (case opaque-type
+                   [("JubjubPoint")
+                    (if (feature-zkir-v3)
+                        (cons `(anative ,opaque-type) a*)
+                        (cons* `(afield) `(afield) a*))]
+                   [else (cons `(acompress) a*)])]
                 [(tvector ,src ,len ,type)
                  (let ([a^* (f type '())])
                    (do ([len len (- len 1)] [a* a* (append a^* a*)])
@@ -2315,6 +2322,11 @@
       [(tstruct ,src ,struct-name (,elt-name* ,[Type->Wump : type -> * wump*]) ...)
        (Wump-struct elt-name* wump*)]
       [(tunknown) (assert cannot-happen)]
+      [(topaque ,src ,opaque-type)
+       (guard (string=? opaque-type "JubjubPoint") (not (feature-zkir-v3)))
+       (Wump-bytes
+         (with-output-language (Lflattened Primitive-Type)
+           (list `(tfield) `(tfield))))]
       [else (Wump-single (Single-Type ir))])
     (Type : Type (ir) -> Type ()
       [else (build-type ir (wump->elts (Type->Wump ir)))])
