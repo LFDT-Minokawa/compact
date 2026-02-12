@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased toolchain 0.29.101, language 0.21.100, runtime 0.14.100]
+## [Unreleased toolchain 0.29.102, language 0.21.100, runtime 0.14.100]
 
 ### Added
 
@@ -43,6 +43,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ZKIR v3 has two types: `Scalar<BLS12-381>` and `Point<Jubjub>`.
 - For both ZKIR v3 and ZKIR v2 modes, the JS representation of is still as a pair
   of field elements.
+
+## [Unreleased toolchain version 0.29.101, language version 0.21.0]
+
+### Changed
+
+- In the formal grammar, the `stmt0` grammar production for one-armed
+  `if` expressions has been removed.  It was unnecessary and made the grammar
+  ambiguous.
 
 ## [Unreleased toolchain 0.29.100, language 0.21.0]
 
