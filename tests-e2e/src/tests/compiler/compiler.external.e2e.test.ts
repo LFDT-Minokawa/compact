@@ -17,9 +17,9 @@ import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
-describe('[CurvePoint] [PM-21110] Switch from the CurvePoint to NativePoint', () => {
-    const CONTRACTS_ROOT = buildPathTo('/nativepoint/');
-    const CONTRACTS_NEGATIVE_ROOT = buildPathTo('/nativepoint/negative/');
+describe('[External] Issue #68 - Removal of external circuits', () => {
+    const CONTRACTS_ROOT = buildPathTo('/external/');
+    const CONTRACTS_NEGATIVE_ROOT = buildPathTo('/external/negative/');
 
     test('example contract should be compiled successfully', async () => {
         const filePath = CONTRACTS_ROOT + 'examples.compact';
@@ -32,40 +32,53 @@ describe('[CurvePoint] [PM-21110] Switch from the CurvePoint to NativePoint', ()
     });
 
     describe('should fail with proper error in certain cases', () => {
-        test('example 1 - use deprecated CurvePoint in assignment', async () => {
+        test('example 1 - non-exported circuit with no body', async () => {
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_one.compact';
 
             const outputDir = createTempFolder();
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_one.compact line 19 char 21: unbound identifier CurvePoint',
+                'Exception: example_one.compact line 17 char 19: parse error: found end of file looking for a block',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
 
-        test('example 2 - use deprecated CurvePoint as circuit argument', async () => {
+        test('example 2 - exported circuit with no body', async () => {
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_two.compact';
 
             const outputDir = createTempFolder();
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_two.compact line 19 char 27: unbound identifier CurvePoint',
+                'Exception: example_two.compact line 17 char 26: parse error: found end of file looking for a block',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
 
-        test('example 3 - treat NativePoint as a struct', async () => {
+        test('example 3 - pure circuit with no body', async () => {
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_three.compact';
 
             const outputDir = createTempFolder();
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_three.compact line 23 char 14: expected structure type, received NativePoint',
+                'Exception: example_three.compact line 17 char 24: parse error: found end of file looking for a block',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
+
+        test('example 4 - module circuit with no body', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_four.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_four.compact line 19 char 1: parse error: found "}" looking for a block',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
