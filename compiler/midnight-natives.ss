@@ -45,43 +45,43 @@
   ([x Field (discloses "a converted form of")])
   (Bytes 32))
 
-(declare-native-entry circuit nativePointX
-  "__compactRuntime.nativePointX"
-  ([np (TypeRef NativePoint) (discloses "the X coordinate of")])
+(declare-native-entry circuit jubjubPointX
+  "__compactRuntime.jubjubPointX"
+  ([np (TypeRef JubjubPoint) (discloses "the X coordinate of")])
   Field)
 
-(declare-native-entry circuit nativePointY
-  "__compactRuntime.nativePointY"
-  ([np (TypeRef NativePoint) (discloses "the Y coordinate of")])
+(declare-native-entry circuit jubjubPointY
+  "__compactRuntime.jubjubPointY"
+  ([np (TypeRef JubjubPoint) (discloses "the Y coordinate of")])
   Field)
 
 (declare-native-entry circuit ecAdd
   "__compactRuntime.ecAdd"
-  ([a (TypeRef NativePoint) (discloses "an elliptic curve sum including")]
-   [b (TypeRef NativePoint) (discloses "an elliptic curve sum including")])
-  (TypeRef NativePoint))
+  ([a (TypeRef JubjubPoint) (discloses "an elliptic curve sum including")]
+   [b (TypeRef JubjubPoint) (discloses "an elliptic curve sum including")])
+  (TypeRef JubjubPoint))
 
 (declare-native-entry circuit ecMul
   "__compactRuntime.ecMul"
-  ([a (TypeRef NativePoint) (discloses "an elliptic curve product including")]
+  ([a (TypeRef JubjubPoint) (discloses "an elliptic curve product including")]
    [b Field (discloses "an elliptic curve product including")])
-  (TypeRef NativePoint))
+  (TypeRef JubjubPoint))
 
 (declare-native-entry circuit ecMulGenerator
   "__compactRuntime.ecMulGenerator"
   ([b Field (discloses "the product of the embedded group generator with")])
-  (TypeRef NativePoint))
+  (TypeRef JubjubPoint))
 
 (declare-native-entry circuit hashToCurve [A]
   "__compactRuntime.hashToCurve"
   ([value A (discloses "a hash of")])
-  (TypeRef NativePoint))
+  (TypeRef JubjubPoint))
 
-(declare-native-entry circuit constructNativePoint
-  "__compactRuntime.constructNativePoint"
-  ([x Field (discloses "a NativePoint containing x coordinate")]
-   [y Field (discloses "a NativePoint containing y coordinate")])
-  (TypeRef NativePoint))
+(declare-native-entry circuit constructJubjubPoint
+  "__compactRuntime.constructJubjubPoint"
+  ([x Field (discloses "a JubjubPoint containing x coordinate")]
+   [y Field (discloses "a JubjubPoint containing y coordinate")])
+  (TypeRef JubjubPoint))
 
 (declare-native-entry witness ownPublicKey
   "__compactRuntime.ownPublicKey"
