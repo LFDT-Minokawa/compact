@@ -16774,6 +16774,28 @@ groups than for single tests.
               (safe-cast (tfield) (tunsigned 3) 3))))))
     )
 
+  (test ; jubjubSchnorrVerify with a simple message
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(msg: Vector<2, Field>, sig: JubjubSchnorrSignature, vk: NativePoint): [] {"
+      "  return jubjubSchnorrVerify<2>(msg, sig, vk);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test ; jubjubSchnorrVerify with wrong argument type should fail
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(msg: Vector<2, Field>, sig: JubjubSchnorrSignature, vk: Bytes<32>): [] {"
+      "  return jubjubSchnorrVerify<2>(msg, sig, vk);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (jubjubSchnorrVerify #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Vector<2, Field>, struct JubjubSchnorrSignature<announcement: NativePoint, response: Field>, Bytes<32>)\n      declared argument types for function at <standard library>:\n        (Vector<2, Field>, struct JubjubSchnorrSignature<announcement: NativePoint, response: Field>, NativePoint)" #f)))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"

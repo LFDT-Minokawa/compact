@@ -41,6 +41,18 @@ struct NativePoint {
 }
 ```
 
+### `JubjubSchnorrSignature`
+
+A Schnorr signature over the JubJub embedded curve. Contains an announcement
+point and a scalar response, used with [`jubjubSchnorrVerify`](#jubjubschnorrverify).
+
+```compact
+struct JubjubSchnorrSignature {
+  announcement: JubjubPoint;
+  response: Field;
+}
+```
+
 ### `MerkleTreeDigest`
 
 The root hash of a Merkle tree, represented by a single `Field`.
@@ -327,6 +339,17 @@ field-aligned binary representation.
 
 ```compact
 circuit hashToCurve<T>(value: T): NativePoint;
+```
+
+### `jubjubSchnorrVerify`
+
+Verifies a Schnorr signature over the JubJub embedded curve. Takes a message
+as a vector of `n` field elements, a [`JubjubSchnorrSignature`](#jubjubschnorrsignature),
+and a verification key (a [`JubjubPoint`](#nativepoint) on the embedded curve).
+Asserts that the signature is valid; fails if the signature does not verify.
+
+```compact
+circuit jubjubSchnorrVerify<#n>(msg: Vector<n, Field>, signature: JubjubSchnorrSignature, vk: JubjubPoint): [];
 ```
 
 ### `merkleTreePathRoot`
