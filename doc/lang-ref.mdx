@@ -319,7 +319,7 @@ As of this writing, declarations of contracts and the cross-contract calls they
 support are not yet fully implemented, but the keyword `contract` used to
 declare contracts is reserved for this use.
 
-#### New type definitions
+#### New types
 
 <table className="lang-ref-table"><tbody><tr><td><em>tdefn</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>new</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>type</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>type-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
@@ -477,62 +477,65 @@ binding binds `x` to `1` and `b` to `true`.
 
 ## Programs
 
-A compact program consists of a sequence of top-level program elements.  A set
-of possible program elements are given by the grammar below.
+A compact program is a sequence of zero or more top-level program elements. The
+grammar below defines the set of possible program elements:
 
-<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &mldr; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<a href="#end-of-file"><em>eof</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#programs"><em>pelt</em></a> &mldr; <a href="#programs"><em>pelt</em></a>&nbsp;&nbsp;<a href="#constants"><em>eof</em></a></td></tr>
+<tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>incld</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-exports-and-imports"><em>mdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>idecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#top-level-exports"><em>xdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ldecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state"><em>wdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>lconstructor</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>cdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enumdef</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>ecdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#new-types"><em>tdefn</em></a></td></tr></tbody></table>
 
-<table className="lang-ref-table"><tbody><tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pragma"><em>pragma</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Include"><em>incld</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Module-definition"><em>mdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Import-declaration"><em>idecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Export-declaration"><em>xdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Ledger-declaration"><em>ldecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Constructor"><em>lconstructor</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Circuit-definition"><em>cdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Witness-declaration"><em>wdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#External-contract-declaration"><em>ecdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Structure-definition"><em>struct</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Enum-definition"><em>enumdef</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type-definition"><em>tdefn</em></a></td></tr></tbody></table>
+A program element can be:
 
-Grammar to be filled in by @parsia and give a one liner of each syntactic
-category.
+- a [pragma](#pragmas-and-versions) to declare the version of the compiler and/or the language
+- an [include](#include-files) to include other Compact programs
+- a [module](#modules-exports-and-imports) to define a Compact module
+- an [import](#imports) to import other Compact modules
+- an [export](#top-level-exports) to export top-level program elements
+- a [ledger field](#declaring-and-maintaining-public-state) to declare a public state
+- a [witness](#declaring-witnesses-for-private-state) to declare a private state
+- a [constructor](#contract-constructor) to define the contract's constructor
+- a [circuit](#circuits) to define a circuit
+- a [structure type](#structure-types) to define a structure type
+- an [enumeration type](#enumeration-types) to define a enumeration type
+- a [contract type](#contract-types) to define a contract type
+- a [type definition](#new-types) to define a new type
 
-## Pragmas and versions
+## Pragmas
 
-<table className="lang-ref-table"><tbody><tr><td><em>pragma</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>pragma</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Version-expression"><em>version-expr</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
-<tr><td><em>version-expr</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Version-expression"><em>version-expr</em></a>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<a href="#Version-expression0"><em>version-expr<sub>0</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Version-expression0"><em>version-expr<sub>0</sub></em></a></td></tr>
-<tr><td><em>version-expr<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Version-expression0"><em>version-expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>&&</tt></b>&nbsp;&nbsp;<a href="#Version-Term"><em>version-term</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Version-Term"><em>version-term</em></a></td></tr>
-<tr><td><em>version-term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<=</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>>=</tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<a href="#Version-atom"><em>version-atom</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Version-expression"><em>version-expr</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
-<tr><td><em>version-atom</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#version-literal"><em>version</em></a></td></tr></tbody></table>
+A pragma declares a constraint on either the compiler version or the language
+version. The valid identifiers for the language and compiler versions are
+`languageVersion` and `compilerVersion`, respectively.
+
+<table className="lang-ref-table"><tbody><tr><td><em>pragma</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>pragma</tt></b>&nbsp;&nbsp;<a href="#to-be-filled-in"><em>id</em></a>&nbsp;&nbsp;<em>version-expr</em>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
+<tr><td><em>version-expr</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>version-expr</em>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<em>version-expr<sub>0</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>version-expr<sub>0</sub></em></td></tr>
+<tr><td><em>version-expr<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>version-expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>&&</tt></b>&nbsp;&nbsp;<em>version-term</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>version-term</em></td></tr>
+<tr><td><em>version-term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<=</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>>=</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>version-expr</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
+<tr><td><em>version-atom</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#constants"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#constants"><em>version</em></a></td></tr></tbody></table>
 
 ## Include files
 
 Compact supports code separation and namespaces through separate files
-and modules.  The most basic
-of these is the statement
+and modules.  The most basic of these is an `include` statement which takes a
+string literal `file`.
 
-<table className="lang-ref-table"><tbody><tr><td><em>incld</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>include</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>file</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>incld</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>include</tt></b>&nbsp;&nbsp;<a href="#constants"><em>file</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
-```compact
-include "path/to/file";
-```
-
-which may appear at the top level of a source file or module. When encountered,
-the Compact compiler will search for a Compact source file at
-`path/to/file.compact` in the current directory and then
-relative to any of the directories in the
-`:`-separated environment variable `COMPACT_PATH`.
-This file *must* be found and will be included
-verbatim in place of the `include` statement.
+An `include "path/to/file";` statement may appear at the top level of a source
+file or module. When encountered, the Compact compiler will search for a Compact
+source file at `path/to/file.compact` in the current directory and then relative
+to any of the directories in the `:`-separated environment variable
+`COMPACT_PATH`. This file *must* be found and will be included verbatim in place
+of the `include` statement.
 
 ## Modules, exports, and imports
 
 A module is a collection of definitions whose namespace is hidden from
-surrounding code.
+surrounding code.  It takes the following form:
 
 <table className="lang-ref-table"><tbody><tr><td><em>mdefn</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>module</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>module-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &hellip; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
 
-A module is defined with
-
-```compact
-module Mod1 {
-  ...
-}
-
-module Mod2<T> {
-  ...
-}
-```
+A module definition can optionally be exported. It must have a name.  It can
+have [generic parameters](#generic-parameters) and then it has a body.  The body
+contains [top-level program elements](#programs).
 
 By default, identifiers defined within the body of a module are
 visible only within the module, i.e., they are not exported from
