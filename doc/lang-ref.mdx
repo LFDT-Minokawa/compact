@@ -1,6 +1,6 @@
 # Compact reference
 
-Compact is a strongly statically typed, bounded smart contract language,
+Compact is a statically typed, bounded smart contract language,
 designed to be used in combination with TypeScript for writing smart contracts
 for the three-part structure of Midnight, where contracts have the following
 components:
@@ -10,26 +10,68 @@ components:
   the former
 - a local, off-chain component that can perform arbitrary code
 
-Each contract in Compact can have four kinds of code:
-- type declarations, to support all of the following
-- declarations of the data that the contract stores in the public ledger
-- declarations of `witness` functions, to be supplied in TypeScript
-- `circuit` definitions, that serve as the operational core of a smart contract
+Each Compact program (also referred to as a **contract**) can contain several
+kinds of program elements:
+- module and import forms for management of namespaces and separate files,
+- type declarations, to support all of the following,
+- declarations of the data that the contract stores in the public ledger,
+- declarations of `witnesses`, which are functions supplied by the TypeScript runner, and
+- definitions of `circuits`, which are functions serving as the operational core of a smart contract.
+- the definition of at most one `constructor`, which is a function used to intialize the public ledger.
 
-A contract can also include code from external files, and it can declare and
-import modules.
+Compact is similar to TypeScript: it has a syntax similar to that of JavaScript,
+and it layers a type system over the JavaScript syntax.
+Like both TypeScript and JavaScript, Compact is an eager call-by-value language.
 
-Like TypeScript, Compact is an eager call-by-value language.
+Compact deviates intentionally from TypeScript, however, in several important ways:
+- Unlike TypeScript, it is not possible to work around the static type system via
+  missing type declarations, unsafe casts.
+  Furthermore, the JavaScript code produced by the Compact compiler includes
+  run-time checks enforcing the static types of values that come from outside
+  Compact as well as preventing external application of a Compact circuit with
+  more or fewer than the declared number of arguments.
+- Compact provides namespace management via static rather than dynamic modules, and
+  these modules can be parameterized via generic parameters, which include size as
+  well as type parameters.
+- Because every Compact program must compile into a set of finite proving circuits,
+  all Compact types have sizes that are fixed at compile time, loops are bounded either
+  by constant bounds or by the size of an object of constant size, and recursion
+  is disallowed.
+- Compact supports only unsigned integers either with a program-declared range or
+  with a range that is determinded by the field size of the target proving system.
+
+Like TypeScript, Compact compiles into JavaScript, but it also produces a TypeScript
+definition file so that it effectively also compiles into TypeScript.
+It does so rather than simply producing TypeScript for three reasons:
+- to allow compiled Compact programs to be used without requiring an additional
+  TypeScript compilation step,
+- to permit the generated code to check function argument counts without disabling
+  argument-type checks when called from TypeScript, and
+- so that it can generate a sourcemap file that properly maps elements of the
+  generated JavaScript code (e.g., variable bindings) to the corresponding
+  elements of the source Compact code.
+
+For each circuit that touches the public ledger and hence requires a proof for
+on-chain executation, the Compact compiler also produces proving circuits in a
+zero-knowledge intermediate language (**zkir**), and it uses a zkir compiler to
+produce proving keys for each such circuit.
+
+Finally, the compact compiler also produces a contract info file that contains
+information about the program, including version numbers and the types of the
+contract's exported circuits.
 
 [Writing a contract](writing-contract.html) provides a small example of what a
 Compact program looks like.  It also introduces the basic building blocks of a
 Compact contract.  [The full grammar of Compact](Compact.html) is provided
-separately. This document explains each syntactic category individually.  It
-starts by introducing the basics that are used in various syntactic categories:
-identifiers, constants, types, generic parameters, and patterns and argument.
-Then it expands on programs and program elements and opens up each of the
-program elements separately.  Where applicable it expands a syntactic category
-from lowest precedence to highest.  Finally, it discusses the TypeScript target.
+separately.
+
+This document explains each syntactic category individually.  It starts by
+introducing the building blocks that are used in various contexts: identifiers,
+constants, types, generic parameters, patterns, and arguments.  Then it describes
+the structure of Compact programs, each kind of program element, and the
+statements and expressions that can appear within circuit and constructor
+definitions.
+Finally, it discusses the TypeScript target.
 
 ## Notation
 
@@ -44,21 +86,18 @@ following notational conventions in the grammar:
   notation <em>X</em> ... <em>X</em>, where <em>X</em> is a grammar symbol,
   represents zero or more occurrences of <em>X</em>. The notation <em>X</em>
   <b><tt>,</tt></b> ... <b><tt>,</tt></b> <em>X</em>, where <em>X</em> is a
-  grammar symbol and <b><tt>,</tt></b> is a separator, represents zero or more
-  occurrences of <em>X</em> separated by <b><tt>,</tt></b>. In either case, when
+  grammar symbol and <b><tt>,</tt></b> is a literal comma, represents zero or more
+  occurrences of <em>X</em> separated by commas. In either case, when
   the ellipsis is marked with the superscript 1, the notation represents a
   sequence containing at least one <em>X</em>. When such a sequence is followed
-  by <em>,</em><sup>opt</sup>, an optional trailing separator is allowed, but
+  by <em>,</em><sup>opt</sup>, an optional trailing comma is allowed, but
   only if there is at least one <em>X</em>. For example, <em>id</em> &mldr;
   <em>id</em> represents zero or more <em>id</em>s, and <em>expr</em>
   <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <em>expr</em>
   <b><tt>,</tt></b><sup>opt</sup> represents one or more comma-separated
-  <em>expr</em>s possibly followed by an extra comma. There are two separators:
-  comma and semicolon.
-
-A Compact program is *well-typed* if it does not contain any type error. If a
-program element such as a type declaration, expression, or statement contains a
-type error, then the Compact compiler will not compile that program.
+  <em>expr</em>s possibly followed by an extra comma.
+  The rules involving commas apply equally to semicolons, i.e., apply when
+  <b><tt>,</tt></b> is replaced by <b><tt>;</tt></b>.
 
 ## Identifiers, scope, and binding
 
@@ -124,10 +163,10 @@ their parameters, and they require a return type annotation.  Anonymous circuit
 expressions can have optional parameter and return type annotations.  Constant
 binding statements can have an optional type annotation.
 
-The language is **strongly typed**: the compiler will reject programs that do
-not type check.  It will reject programs where a circuit or witness with a
+The language is **strongly statically typed**: the compiler rejects programs that do
+not type check.  For example, it rejects programs in which a circuit or witness with a
 parameter type annotation is called with an incorrectly typed argument for that
-parameter.  It will reject programs where a circuit with a return type
+parameter, Iand it rejects programs where a circuit with a return-type
 annotation returns an incorrectly typed value.  If an optional type annotation
 is omitted, the compiler will infer a type and it will reject programs where no
 such type can be inferred.
@@ -1135,17 +1174,18 @@ the binding statement is executed.
 
 ## Expressions
 
-This section describes the syntax of Compact expressions and provides their
-static typing rules and their evaluation rules.
+This section describes the syntax of Compact expressions, in order with those
+of lower precedence preceding those with lower precedence, and provides their
+static typing rules and evaluation semantics.
 
-A Compact expression either has a static type, or else it contains a type error.
-The static type of an expression, if it has one, is either a Compact type or
-else a ledger state type.  If an expression in a program contains a type error,
-it means that the Compact compiler will not compile that program.
-Subexpressions of Compact expressions are always required to be well-typed
-(free from type errors).
+Every Compact expression is required to be well-typed (free from static type errors).
+If any expression within a program contains a type error, the Compact compiler
+reports the error and does not produce any target code (TypeScript or Zkir)
+for the program.
+The static type of a well-typed expression is either a Compact type or a ledger
+state type.
 
-Every Compact expression either evaluates to a value, or else it raises an
+Every Compact expression either evaluates to a value or raises an
 exception.  The evaluation of an expression is defined in terms of the
 evaluation of its subexpressions.  If the evaluation of a subexpression raises
 an exception, then the evaluation of the containing expression will stop and
