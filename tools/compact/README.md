@@ -57,8 +57,11 @@ repository root.
 # list available versions
 cargo run -- list
 
-# install the a specific compiler version
+# install a specific compiler version
 cargo run -- update 0.20.0
+
+# install the latest patch of a specific minor version
+cargo run -- update 0.20
 
 # check for new compact compiler version
 cargo run -- check

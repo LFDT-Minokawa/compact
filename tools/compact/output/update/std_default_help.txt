@@ -10,7 +10,7 @@ Usage: compact update [OPTIONS] [COMPACT_VERSION]
 
 Arguments:
   [COMPACT_VERSION]
-          Set the version to install
+          Version to install, e.g. 0.29 or 0.29.0
 
 Options:
       --no-set-default
