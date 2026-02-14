@@ -44,8 +44,7 @@ export circuit right<A, B>(value: B): Either<A, B> {
 }
 
 // Elliptic Curves
-export type JubjubPoint = Opaque<'JubjubPoint'>;
-export new type NativePoint = Opaque<'JubjubPoint'>;
+export new type JubjubPoint = Opaque<'JubjubPoint'>;
 
 // Merkle trees
 export struct MerkleTreeDigest { field: Field; }

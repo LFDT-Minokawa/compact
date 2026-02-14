@@ -16,7 +16,7 @@
 import CompactStandardLibrary;
 
 constructor(){
-    const bob = slice<77695467265087737476458093315063316059>(default<NativePoint>, 0);
+    const bob = slice<77695467265087737476458093315063316059>(default<JubjubPoint>, 0);
     const tom = default<QualifiedCoinInfo>;
     assert (bob < bob, "DgkdjEqaVcCWnTvagIMXZF");
 }

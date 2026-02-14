@@ -92,7 +92,7 @@
           (with-output-language (Lzkir Instruction)
             ;; Generally assume that the arity is correct here.
             (case name
-              [(constructNativePoint)
+              [(constructJubjubPoint)
                (cons `(decode "Point<Jubjub>" ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
               [(degradeToTransient)
                (cons `(copy ,(car var-name*) ,(cadr triv*)) instr*)]
@@ -108,10 +108,10 @@
               [(hashToCurve)
                (assert (= (length var-name*) 1))
                (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
-              [(nativePointX)
+              [(jubjubPointX)
                (assert (= (length var-name*) 1))
                (cons `(encode ,(car var-name*) ,(make-temp-id src 'ingore) ,(car triv*)) instr*)]
-              [(nativePointY)
+              [(jubjubPointY)
                (assert (= (length var-name*) 1))
                (cons `(encode ,(make-temp-id src 'ignore) ,(car var-name*) ,(car triv*)) instr*)]
               [(persistentCommit)

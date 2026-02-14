@@ -16719,54 +16719,54 @@ groups than for single tests.
 
   (test
     '(
-      "import {NativePoint, ecAdd} from CompactStandardLibrary;"
-      "circuit foo(x: Bytes<32>, y: NativePoint): NativePoint {"
+      "import {JubjubPoint, ecAdd} from CompactStandardLibrary;"
+      "circuit foo(x: Bytes<32>, y: JubjubPoint): JubjubPoint {"
       "  return ecAdd(x, y);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, NativePoint)\n      declared argument types for function at <standard library>:\n        (NativePoint, NativePoint)" #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
 
   (test
     '(
-      "import {NativePoint, ecAdd} from CompactStandardLibrary;"
-      "export struct NonNativePoint {"
+      "import {JubjubPoint, ecAdd} from CompactStandardLibrary;"
+      "export struct NonJubjubPoint {"
       "  x: Field;"
       "  y: Field;"
       "}"
-      "circuit foo(x: NonNativePoint, y: NativePoint): NativePoint {"
+      "circuit foo(x: NonJubjubPoint, y: JubjubPoint): JubjubPoint {"
       "  return ecAdd(x, y);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonNativePoint<x: Field, y: Field>, NativePoint)\n      declared argument types for function at <standard library>:\n        (NativePoint, NativePoint)" #f)))
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonJubjubPoint<x: Field, y: Field>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
       )
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (native %ecAdd.1 ([%a.2 (talias #t NativePoint
+        (native %ecAdd.1 ([%a.2 (talias #t JubjubPoint
                                   (topaque "JubjubPoint"))]
-                          [%b.3 (talias #t NativePoint
+                          [%b.3 (talias #t JubjubPoint
                                   (topaque "JubjubPoint"))])
-             (talias #t NativePoint (topaque "JubjubPoint")))
-        (native %ecMul.4 ([%a.5 (talias #t NativePoint
+             (talias #t JubjubPoint (topaque "JubjubPoint")))
+        (native %ecMul.4 ([%a.5 (talias #t JubjubPoint
                                   (topaque "JubjubPoint"))]
                           [%b.6 (tfield)])
-             (talias #t NativePoint (topaque "JubjubPoint")))
-        (circuit %foo.7 ([%c.8 (talias #t NativePoint
+             (talias #t JubjubPoint (topaque "JubjubPoint")))
+        (circuit %foo.7 ([%c.8 (talias #t JubjubPoint
                                  (topaque "JubjubPoint"))])
-             (talias #t NativePoint (topaque "JubjubPoint"))
+             (talias #t JubjubPoint (topaque "JubjubPoint"))
           (call %ecAdd.1
             %c.8
             (call %ecMul.4
@@ -31167,7 +31167,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness W(): Boolean;"
-      "export circuit foo(): NativePoint {"
+      "export circuit foo(): JubjubPoint {"
       "  return hashToCurve<Boolean>(W());"
       "}"
       )
@@ -31180,7 +31180,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness W(): Boolean;"
-      "export circuit foo(): NativePoint {"
+      "export circuit foo(): JubjubPoint {"
       "  return disclose(hashToCurve<Boolean>(W()));"
       "}"
       )
@@ -46536,8 +46536,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(p1: NativePoint, p2: NativePoint): NativePoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([nativePointX(p1), nativePointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "export circuit foo(p1: JubjubPoint, p2: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -51631,7 +51631,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  impure = true;"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
@@ -52464,7 +52464,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(x: Boolean): NativePoint {"
+      "export circuit foo(x: Boolean): JubjubPoint {"
       "  impure = true;"
       "  return hashToCurve<Boolean>(x);"
       "}"
@@ -57506,8 +57506,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(p1: NativePoint, p2: NativePoint): NativePoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([nativePointX(p1), nativePointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "export circuit foo(p1: JubjubPoint, p2: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -60156,7 +60156,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  impure = true;"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
@@ -60741,7 +60741,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(x: Boolean): NativePoint {"
+      "export circuit foo(x: Boolean): JubjubPoint {"
       "  impure = true;"
       "  return hashToCurve<Boolean>(x);"
       "}"
@@ -63366,8 +63366,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "witness point(): NativePoint;"
-      "export circuit gris(scalar: Field): NativePoint {"
+      "witness point(): JubjubPoint;"
+      "export circuit gris(scalar: Field): JubjubPoint {"
       "  impure = true;"
       "  return disclose(ecMul(point(), scalar));"
       "}"
@@ -66679,10 +66679,10 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
-      "export circuit bar(x: Field): NativePoint {"
+      "export circuit bar(x: Field): JubjubPoint {"
       "  return ecMulGenerator(x);"
       "}"
       )
@@ -67305,7 +67305,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(x: Boolean): NativePoint {"
+      "export circuit foo(x: Boolean): JubjubPoint {"
       "  return hashToCurve<Boolean>(x);"
       "}"
       )
@@ -78444,19 +78444,19 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "ledger F: NativePoint;"
+      "ledger F: JubjubPoint;"
       ""
-      "export circuit foo(np: NativePoint): [Field, Field] {"
-      "  F = disclose(np);"
+      "export circuit foo(pt: JubjubPoint): [Field, Field] {"
+      "  F = disclose(pt);"
       "  const q = F;"
-      "  return [nativePointY(q), nativePointX(q)];"
+      "  return [jubjubPointY(q), jubjubPointX(q)];"
       "}"
       )
     (stage-javascript
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  // NB: assumes the representation of NativePoint current as of the creation of this test"
+        "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
         "  const p = runtime.ecMulGenerator(1n);"
         "  expect(C.circuits.foo(Ctxt, p).result).toEqual([p.y, p.x]);"
         "});"
@@ -78466,19 +78466,19 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "ledger F: NativePoint;"
+      "ledger F: JubjubPoint;"
       ""
-      "export circuit foo(np: NativePoint): NativePoint {"
-      "  F = disclose(np);"
+      "export circuit foo(pt: JubjubPoint): JubjubPoint {"
+      "  F = disclose(pt);"
       "  const q = F;"
-      "  return constructNativePoint(nativePointX(q), nativePointY(q));"
+      "  return constructJubjubPoint(jubjubPointX(q), jubjubPointY(q));"
       "}"
       )
     (stage-javascript
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  // NB: assumes the representation of NativePoint current as of the creation of this test"
+        "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
         "  const p = runtime.ecMulGenerator(1n);"
         "  expect(C.circuits.foo(Ctxt, p).result).toEqual({ x: p.x, y: p.y });"
         "});"

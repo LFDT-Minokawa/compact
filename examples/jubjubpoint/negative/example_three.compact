@@ -15,10 +15,10 @@
 
 import CompactStandardLibrary;
 
-// This should fail becuase NativePoint is opaque and not a struct type.
+// This should fail becuase JubjubPoint is opaque and not a struct type.
 export circuit test(): [] {
-  const a = default<NativePoint>;
-  const b = default<NativePoint>;
+  const a = default<JubjubPoint>;
+  const b = default<JubjubPoint>;
 
   const c = a.x + a.y + b.x + b.y;
 
