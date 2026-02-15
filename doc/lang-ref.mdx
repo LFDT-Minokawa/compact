@@ -1,6 +1,6 @@
 # Compact reference
 
-Compact is a statically typed, bounded smart contract language,
+Compact is a strongly typed, statically typed, bounded smart contract language,
 designed to be used in combination with TypeScript for writing smart contracts
 for the three-part structure of Midnight, where contracts have the following
 components:
@@ -10,22 +10,21 @@ components:
   the former
 - a local, off-chain component that can perform arbitrary code
 
-Each Compact program (also referred to as a **contract**) can contain several
+Each Compact program (also referred to as a *contract*) can contain several
 kinds of program elements:
 - module and import forms for management of namespaces and separate files,
-- type declarations, to support all of the following,
+- declarations of program-defined types,
 - declarations of the data that the contract stores in the public ledger,
 - declarations of `witnesses`, which are functions supplied by the TypeScript runner, and
-- definitions of `circuits`, which are functions serving as the operational core of a smart contract.
+- definitions of `circuits`, which are functions serving as the operational core of a smart contract, and
 - the definition of at most one `constructor`, which is a function used to intialize the public ledger.
 
 Compact is similar to TypeScript: it has a syntax similar to that of JavaScript,
 and it layers a type system over the JavaScript syntax.
-Like both TypeScript and JavaScript, Compact is an eager call-by-value language.
-
 Compact deviates intentionally from TypeScript, however, in several important ways:
-- Unlike TypeScript, it is not possible to work around the static type system via
-  missing type declarations, unsafe casts.
+- Unlike TypeScript, Compact is strongly typed.
+  Programs cannot bypass the static type system via missing type declarations or
+  unsafe casts.
   Furthermore, the JavaScript code produced by the Compact compiler includes
   run-time checks enforcing the static types of values that come from outside
   Compact as well as preventing external application of a Compact circuit with
@@ -37,33 +36,30 @@ Compact deviates intentionally from TypeScript, however, in several important wa
   all Compact types have sizes that are fixed at compile time, loops are bounded either
   by constant bounds or by the size of an object of constant size, and recursion
   is disallowed.
-- Compact supports only unsigned integers either with a program-declared range or
-  with a range that is determinded by the field size of the target proving system.
+- Compact numeric values are limited to unsigned integers either with a
+  program-declared range or with a range determined by the field size of the
+  target proving system.
 
 Like TypeScript, Compact compiles into JavaScript, but it also produces a TypeScript
 definition file so that it effectively also compiles into TypeScript.
-It does so rather than simply producing TypeScript for three reasons:
+It produces separate TypeScript definition files and JavaScript implementation files
+rather than simply producing TypeScript for three reasons:
 - to allow compiled Compact programs to be used without requiring an additional
   TypeScript compilation step,
 - to permit the generated code to check function argument counts without disabling
   argument-type checks when called from TypeScript, and
 - so that it can generate a sourcemap file that properly maps elements of the
-  generated JavaScript code (e.g., variable bindings) to the corresponding
+  generated JavaScript code (e.g., variable bindings and references) to the corresponding
   elements of the source Compact code.
 
 For each circuit that touches the public ledger and hence requires a proof for
-on-chain executation, the Compact compiler also produces proving circuits in a
-zero-knowledge intermediate language (**zkir**), and it uses a zkir compiler to
+on-chain execution, the Compact compiler also produces proving circuits in a
+zero-knowledge intermediate language (*zkir*), and it uses a zkir compiler to
 produce proving keys for each such circuit.
 
 Finally, the compact compiler also produces a contract info file that contains
 information about the program, including version numbers and the types of the
 contract's exported circuits.
-
-[Writing a contract](writing-contract.html) provides a small example of what a
-Compact program looks like.  It also introduces the basic building blocks of a
-Compact contract.  [The full grammar of Compact](Compact.html) is provided
-separately.
 
 This document explains each syntactic category individually.  It starts by
 introducing the building blocks that are used in various contexts: identifiers,
@@ -72,6 +68,11 @@ the structure of Compact programs, each kind of program element, and the
 statements and expressions that can appear within circuit and constructor
 definitions.
 Finally, it discusses the TypeScript target.
+
+[Writing a contract](writing-contract.html) provides a small example of what a
+Compact program looks like.  It also introduces the basic building blocks of a
+Compact contract.  [The full grammar of Compact](Compact.html) is provided
+separately.
 
 ## Notation
 
@@ -99,82 +100,153 @@ following notational conventions in the grammar:
   The rules involving commas apply equally to semicolons, i.e., apply when
   <b><tt>,</tt></b> is replaced by <b><tt>;</tt></b>.
 
-## Identifiers, scope, and binding
+## Static and dynamic errors
 
-In Compact, scope defines the visibility. An identifier is a name that can refer
-to an *entity*: a variable, a constant, an expression, a type, a module, a
-parameter, a generic parameter, a circuit, a witness, or a ledger.
+The compiler detects various kinds of *static errors*, e.g., malformed syntax,
+references to undefined identifiers, and type mismatches.
+When it detects one or more static errors, it prints descriptive error messages
+for the errors and terminates without generating any output.
 
-Binding is the process of associating an identifier with an entity. The *scope*
-of an identifier is the region of code where the identifier is "bound" to its
-entity and can be referenced. An identifier can be referenced at program points
-that are in the scope of the identifier, otherwise it is a static error. It is a
-static error if an identifier is bound more than once in a same scope. However,
-the Compact compiler accepts multiple bindings of a same identifier for
-unexported circuits.
+The code the compiler generates and the run-time libraries it uses detect various
+kinds of *dynamic errors*, e.g., attempts from code outside of Compact to call
+Compact circuits with wrong numbers or types of arguments.
+These errors are reported when the generated code is run.
 
-Scopes can be nested, just like nested boxes. The outermost box is the *global
-scope* of a program. Identifiers declared here, such as types, modules,
-top-level circuits, or ledger fields, are visible throughout the entire
-contract. Within a global scope, zero or more local scopes can be defined, which
-are smaller, nested boxes.
+## Identifiers, bindings, and scope
 
-In Compact, the primary local scopes are defined in:
+Identifiers are used in Compact, as in most other programming languages, to
+name things.
+Syntactally, an *identifier* is a *token* (atomic sequence of characters), beginning
+with with an alphabetic character, a dollar sign (`$`), or an underscore (`_`)
+followed by one or more alphabetic characters, digits (`0` - `9`), dollar signs,
+or underscores.
 
-- [structure types](#structure-types): All generic parameters in a structure
-type declaration are visible only within its declaration.
-- [modules](#modules-exports-and-imports): All identifiers defined inside a
-module are visible only within it unless they are explicitly exported.
-- [circuits](#circuits): The circuit's parameters, generic parameters, and any
-`const` bindings defined inside its body are local to that circuit.
-- [blocks](#statements): All identifiers defined by a `const` binding inside a
-block are visible only within it.
-- [`for` loops](#for-loop): All identifiers introduced in a `for` loop are
-visible only inside that `for` loop.
-- [anonymous circuits](#circuit-and-witness-calls): Parameters of an anonymous
-circuit are visible only in its body.
-- [constructor](#contract-constructor): The constructor's parameters and any
-`const` bindings defined inside its body are visible only within the
-constructor.
+Some identifiers are *reserved words*.
+Of these, some are used as *keywords* in the syntax of the Compact language, e.g.,
+`module`, `import`, `circuit`, and `for`.
+Others, specifically keywords reserved by JavaScript and TypeScript, are considered
+reserved for future use in Compact, e.g., `self` and `class`.
+Still others, specifically all and every identifier that begin with `__compact`,
+are reserved for use by the compiler.
 
-A key principle of scoping is *shadowing*. Shadowing occurs when an identifier
-in an inner scope has the same name as an identifier in an outer scope. The
-inner identifier "shadows" the outer one: within the inner scope, the name
-refers to the local identifier, not the outer one. For example:
+The remaining identifiers can be used to name specific instances of various kinds
+of entities, including modules, types, generic parameters, ledger fields, function
+(circuit or witness) names, function parameters, and local variables.
+An identifier associated with, i.e., *bound* to, one of these entities can be
+referenced anywhere within the *scope* of the binding.
+Compact is lexically scoped, so the scope of each binding is limited to a specific
+region of the program text.
+The binding might be *shadowed* (hidden from view) in some region of program text
+within its scope that contains a binding for the same identifier.
+
+It is a static error for an identifier to be bound more than once in a same scope,
+except that [function overloading](#circuit-and-witness-calls) allows
+more than one function with the same name to be visible in the same scope with
+different signatures, i.e., different numbers or kinds of generic parameters
+and/or different numbers or types of run-time parameters.
+
+The scope of each binding depends upon where it appears, as described below.
+(The caveat "except where shadowed" is not explicitly stated but applies in each case.)
+- Identifiers bound at the outermost level of a contract (refered to as the *top
+  level*) are visible throughout the contract, but not within any modules that are
+  imported from separate files.
+- Identifiers bound at the outermost level of a module are visible throughout the module.
+  They are not visible outside of the module unless exported: any exported
+  binding is also visible if and where it is imported from the module.
+- The generic parameters of a module, structure declaration, or function declaration
+  are visible throughout the declaration.
+- The run-time parameters of a circuit or constructor are visible within its body.
+- Identifiers defined by a `const` binding inside a block are visible throughout
+  the block.
+- Identifiers defined by a `const` binding inside a `for`-loop header are
+  visible throughout the `for` loop.
+
+Every reference to an identifier must appear within the scope of a binding for
+the identifier, in which case we say that the identifier is bound to the entity
+associated with the identifier by that binding.
+Otherwise, the reference is a static error.
+
+For example:
 
 ```compact
 circuit c(): Field {
   const answer = 42;
-  { // This is a nested block creating a new scope
-    const answer = 12; // This 'answer' shadows the outer one
-    assert answer != 42 "shadowing didn't work!"; // assertion passes
+  {
+    const answer = 12;
+    assert(answer != 42, "shadowing didn't work!");
   }
   return answer; // returns 42 (the outer 'answer')
 }
 ```
 
+The identifier `c` is bound to the circuit named `c`, and this binding is visible
+throughout the contract, though no references to `c` appear in the example.
+The first (outer) binding of the identifier `answer` to the value `42` is visible
+throughout the body of `c` except where shadowed by the second (inner) binding of
+`answer` within in the inner block, so the reference to `answer` in `return answer`
+evaluates to `42`.
+The second (inner) binding of `answer` to `42` is visible throughout the inner
+block, so the reference to `answer` in `answer != 42` evaluates to `12`.
+
 ## Constants
+
+!!!!!!!! TBD
+
+## Generic parameters and arguments
+
+!!!!!!!! TBD
+
+??? They have a non-empty list of comma-separated _generic parameter_ names
+enclosed in angle brackets.
+
+??? Generic arguments must be types, natural number literals, or a generic size
+parameter in scope.
+
+Generic parameters are declared in generic [module
+declarations](#modules-exports-and-imports), generic [structure type
+declarations](#structure-types), generic [circuit definitions](#circuits), and
+generic [witness declarations](#declaring-witnesses-for-private-state).
+
+<table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
+<tr><td><em>generic-param</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>#</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr></tbody></table>
+
+<table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
+<tr><td><em>garg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
+
+For generic modules, they are in scope within the module. For generic
+structures, they are in scope for the structure's fields. For generic circuits,
+they are in scope in the circuit's parameters, its return type annotation, and
+its body. In these scopes, a reference to a generic parameter (that is not
+otherwise shadowed by some other identifier binding) is either a type or a
+natural-number size.
 
 ## Compact Types
 
-Compact is **statically typed**: every expression in a Compact program has a
-static type.  Named circuits and witnesses require a type annotation on each of
-their parameters, and they require a return type annotation.  Anonymous circuit
-expressions can have optional parameter and return type annotations.  Constant
-binding statements can have an optional type annotation.
+Compact is *statically typed*: every expression in a Compact program must have
+a static type.
+For named circuits and witnesses, the parameters and return types must be explicitly
+declared.
+For anonymous circuit expressions, the parameters and return types do not need to
+be declared but can be.
+The types of `const` bindings can also be declared or not.
 
-The language is **strongly statically typed**: the compiler rejects programs that do
-not type check.  For example, it rejects programs in which a circuit or witness with a
-parameter type annotation is called with an incorrectly typed argument for that
-parameter, Iand it rejects programs where a circuit with a return-type
-annotation returns an incorrectly typed value.  If an optional type annotation
-is omitted, the compiler will infer a type and it will reject programs where no
-such type can be inferred.
+The language is *strongly typed*: the compiler rejects programs that do not
+type check.
+For example, it rejects programs in which a circuit or witness with a parameter
+type annotation is called with an incorrectly typed argument for that parameter,
+and it rejects programs where a circuit with a return-type annotation returns an
+incorrectly typed value.
+If an optional type annotation is omitted, the compiler attempts to infer a type
+and it rejects the program if no such type can be inferred.
 
-Types consist of built-in primitive types, user-defined types defined in the
-program, and generic type parameters in scope.  When the term "type" occurs in
-this document without any other qualifier, it means either a primitive type, a
-user-defined type, or a generic type parameter in scope.
+Types consist of built-in primitive types, ledger ADT types, program-defined types
+defined in the program, and references to generic type parameters in scope.
+When the term "type" occurs in this document without any other qualifier, it means
+either a primitive type, ledger ADT type, a program-defined type, or a generic type
+parameter in scope.
+The use of ledger ADT types is, at present, limited to typing the result of using
+`default` to obtain the default value of the type, and only constant bindings
+can have a ledger ADT type.
 
 ### Primitive types
 
@@ -184,74 +256,87 @@ The following are the primitive types of Compact:
 <tr><td><em>tref</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup></td></tr>
 <tr><td><em>tsize</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr></tbody></table>
 
-- `Boolean` is the type of *boolean* values.  There are only two values of
+- `Boolean` is the type of *Boolean* values.  There are only two values of
   `Boolean` type.  They are the values of the expressions `true` and `false`.
 
-- `Uint<m..n>`, where `m` is the literal `0` or a generic size parameter in
-  scope and bound to `0`, and where `n` is a natural number literal or a generic
-  size parameter in scope, is the type of *bounded unsigned integer* values
-  between `0` and `n`, both inclusive. (The lower bound is currently required to
-  be `0`.) `Uint` types with different bounds `0..n` are different types,
-  although [one may be a subtype of the
-  other](#subtyping-and-least-upper-bounds). In practice, there is a (large)
-  maximum unsigned integer value determined by the zero-knowledge proving
-  system. The Compact implementation will signal an error if a `Uint` type
-  exceeds this maximum value.
+- `Uint<m..n>`, where `m` is the literal `0` or generic size parameter bound
+  to `0`, and where `n` is a natural number literal or a generic
+  size parameter, is the type of *bounded unsigned integer* values between
+  `0` (inclusive) and `n` (exclusive).
+  (While the lower bound is currently required to be `0`, this restriction might
+  be lifted at some point.)
+  `Uint` types with different upper bounds are different types,
+  although the one with the lower bound is a [subtype of the
+  other](#subtyping-and-least-upper-bounds).
+  In practice, there is a (large) maximum unsigned integer value determined by
+  the zero-knowledge (ZK) proving system.
+  Specifically, the maximum unsigned integer is `(256^k)-1` where `k` is the number
+  of bytes that fits in the scalar field value of the ZK proving system.
+  It is a static error whenever a `Uint` type exceeds this maximum value.
 
-- `Uint<n>`, where `n` is a non-zero natural number literal or a generic size
-  parameter in scope and bound to a non-zero natural number, is the type of
+- `Uint<n>`, where `n` is a non-zero natural number literal or generic size
+  parameter and bound to a non-zero natural number, is the type of
   *sized unsigned integer* values with binary representations using up to `n`
   bits.  This is the same type as `Uint<0..m>` where `m` is equal to `(2^n)-1`.
   Sized integer types can be seen as a convenience for programmers.  `Uint<32>`,
   for example, can be more obvious and less error-prone than the equivalent
   `Uint<0..4294967295>`.  Any Compact program that uses sized integer types can
-  be rewritten to one that uses only bounded integer types.
+  be rewritten to one that uses only bounded integer types, but the converse is
+  not true.
 
-- `Field` is the type of elements in the scalar prime field of the
-  zero-knowledge proving system.
+- `Field` is the type of elements in the scalar prime field of the ZK proving system.
 
-- `[T, ...]`, where `T, ...` are zero or more comma-separated types is the type
-  of *tuple* values with element types `T, ...`.  Note that tuples are
-  heterogeneous: the element types can all be distinct.  The *length* of a tuple
-  type is the number of element types.  Tuple types with different lengths are
-  different types.  Tuple types with the same lengths but where at least one
-  element has different types are different types although [one may be a subtype
-  of the other](#subtyping-and-least-upper-bounds).
+- `[T, ...]`, where `T, ...` are zero or more comma-separated types, is the type
+  of *tuple* values with element types `T, ...`.
+  Tuples are heterogeneous: any element type can differ from any of the others.
+  The *length* of a tuple type is the number of element types.
+  Two tuple types with different lengths are different types.
+  Two tuple types where any element type of one differs from the corresponding
+  element type of the other are also different types, though one of the tuple
+  types might be a [subtype of the other](#subtyping-and-least-upper-bounds).
 
-- `Vector<n, T>`, where `n` is a natural number literal or else a generic size
-  parameter in scope and `T` is a type, is a shorthand notation for the tuple
-  type `[T, ...]` with `n` occurrences of the type `T`.  Note that a vector type
-  and the corresponding tuple type are two different ways of writing exactly the
-  same type.  Unless otherwise specified, type rules for vector types are
-  derived from the rules for the corresponding tuple type.
+- `Vector<n, T>`, where `n` is a natural number literal or generic size
+  parameter and `T` is a type, is a shorthand notation for the tuple type
+  `[T, ...]` with `n` occurrences of the type `T`.
+  Note that a vector type and the corresponding tuple type are two different ways
+  of writing exactly the same type.
+  Unless otherwise specified, type rules for vector types are derived from the
+  rules for the corresponding tuple type.
 
-- `Bytes<n>`, where `n` is a natural number literal or else a generic size
-  parameter in scope, is the type of _byte array_ values of length `n`.  `Bytes`
-  types with different lengths are different types.  `Bytes` types are used in
-  the Compact standard library for hashing.  String literals in Compact also
-  have a `Bytes` type, where `n` is the number of bytes in the UTF-8 encoding of
-  the string.
+- `Bytes<n>`, where `n` is a natural number literal or a generic size parameter,
+  is the type of _byte array_ values of length `n`.
+  `Bytes` types with different lengths are different types.
+  `Bytes` types are used in the Compact standard library for hashing.
+  String literals in Compact also have a `Bytes` type, where `n` is the number
+  of bytes in the UTF-8 encoding of the string.
 
 - `Opaque<s>`, where `s` is a string literal, is the type of _opaque_ values
-  with tag `s`.  The syntax of string literals in Compact is the same as in
-  TypeScript.  `Opaque` types with different tags are different types.  Opaque
-  values can be manipulated in witnesses but they are opaque to circuits.  They
-  are represented in circuits as their hash.  The allowed tags are currently
-  only `"string"` and `"Uint8Array"`.
+  with tag `s`.
+  The syntax of string literals in Compact is the same as in TypeScript.
+  `Opaque` types with different tags are different types.
+  Opaque values can be manipulated in witnesses but they are opaque to circuits.
+  They are represented in circuits as their hash.
+  The only tags currently allowed are `"string"` and `"Uint8Array"`.
 
-### User-defined types
+### Program-defined types
 
-Users can define three kinds of types themselves: structures, enumerations, and
+Programs can define three kinds of new types: structures, enumerations, and
 contracts.
+They can also define structural and nominal aliases for existing types.
 
 #### Structure types
 
-Structure types are defined by a declaration beginning with the keyword
-`struct`.
+Structure types are defined via a `struct` declaration with the following form:
 
 <table className="lang-ref-table"><tbody><tr><td><em>struct</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>;</tt></b> &mldr; <b><tt>;</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>;</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
 
-Here are some examples:
+A structure declaration has a sequence of named fields which must be separated
+either by commas or by semicolons.  Comma and semicolon separators cannot be
+mixed within a single structure declaration.  A trailing separator is allowed,
+but not required.
+
+Each structure field must have a type annotation.
+Here are a couple of examples:
 
 ```compact
 struct Thing {
@@ -265,56 +350,61 @@ struct NumberAnd<T> {
 }
 ```
 
-A _non-generic structure_ declaration introduces a named structure type, such as
-`Thing` in the first example above.  Each non-generic structure declaration
-introduces a distinct type, even when the content of the structure is identical
-to another.
+The first declaration introduces a structure type named `Thing` with two fields:
+`triple` (a vector with 3 field elements) and `flag` (a Boolean).
+The second introduces a *generic* structure type named `NumberAnd` with generic
+parameter `T` and two fields: `num` (a 32-bit unsigned integer) and `item`
+(a value of type `T`).
 
-Structure declarations can also be _generic structure_ declarations, such as
-`NumberAnd` in the second example above. They have a non-empty list of
-comma-separated _generic parameter_ names enclosed in angle brackets. The
-generic parameters of a generic structure declaration are in scope in its body.
+Generic structure types are not fixed types and must eventually be *specialized*
+by supplying generic arguments, e.g., `NumberAnd<Uint<8>>`.
+When any generic structure type is specialized, it must be fully specialized:
+the number of supplied generic arguments must match the number of declared
+generic parameters.
+It is possible and common for a generic structure type to be specialized via
+different generic arguments in different parts of a program.
 
-Generic structure declarations do not introduce a type.  To be used as a type,
-they must be _specialized_ by providing a comma-separated list of _generic
-arguments_, e.g., `NumberAnd<Uint<8>>`.  Generic arguments must be types,
-natural number literals, or a generic size parameter in scope.  Generic
-structures must be fully specialized: the number of generic arguments must match
-the number of generic parameters.
+Structure typing is always `nominal`: two types are equivalent only if they
+have the same names and same fields.  They are distinct if they have different
+names even if they have the same fields.
+More precisely:
+
+!!!!!!!! TBD: verify
+
+- A non-generic structure type is the same as another if they have the same name,
+  same element names (in the same order), and same element types (in the same
+  order).
+  Otherwise they are distinct.
+- The result of specializing a generic structure type is the same as a non-generic
+  structure type if the specialized type has the same name, same element names,
+  and same element types as the non-generic structure type.
+
+These two rules imply that:
 
 - Specializations of the same generic structure to the same types are the same
   type.
 - Specializations of the same generic structure to different types are different
   types.
-- Specializations of different generic structures are always different types,
-  even if the specializations are structurally equivalent.
-- Specializations of generic structures are always different from non-generic
-  structure types, even if the specialization is structurally equivalent to the
-  non-generic type.
 
-A structure declaration has a sequence of named fields which must be separated
-either by commas or by semicolons.  Comma and semicolon separators cannot be
-mixed within a single structure declaration.  A trailing separator is allowed,
-but not required.
-
-Each structure field must have a type annotation.
-
-Values of structure types are created with _structure creation_ expressions.
-These consist of the structure type (so generic structures must be specialized),
-followed by a sequence of field values enclosed in curly braces (`{ }`).  Field
-values can be given positionally, in the same order as they are declared in the
-`struct` declaration; or they can be named using the field names from the
-declaration.  Named field values can appear in any order.  Positional and named
-field values can be mixed in the same structure creation expression, but all the
-positional ones must come before any of the named ones.  See [Structure
-creation](#structure-creation) for the details.
+Values of structure types are created with **structure-creation** expressions.
+These consist of the structure type (fully specialized if generic),
+followed by a sequence of field values enclosed in curly braces (`{ }`).
+Element values can be given positionally, in the same order as they are declared
+in the `struct` declaration; or they can be named using the element names from
+the declaration.
+Named element values can appear in any order.
+Positional and named element values can be mixed in the same structure creation
+expression, but all the positional ones must come before any of the named ones.
+See [Structure creation](#structure-creation) for the details.
 
 Using the example declarations above, structure values could be created with
 `Thing {[0, 1, 2], true}` or `NumberAnd<Uint<8>> { item: 255, num: 0 }`.
 
-Structures may not contain fields containing the same type as the structure,
-either directly or indirectly. For example, it is an error to use the following
-pair of declarations:
+Structure types cannot be recursive, i.e., they cannot contain elements of
+the same type as the structure, either directly or indirectly.
+For example, it is an error to use the following pair of declarations:
+
+!!!!!!!! TBD: is this a static error?
 
 ```compact
 struct Even {
@@ -331,6 +421,8 @@ export circuit doesntWork(s: Even): Odd {
 ```
 
 #### Enumeration types
+
+!!!!!!!! TBD
 
 Enumeration types are defined by a declaration beginning with the keyword
 `enum`.
@@ -423,26 +515,6 @@ are as follows:
 - structure types: the struct with all fields set to the default value of their
   type
 - enumeration types: the first value listed in the declaration
-
-## Generic parameters and arguments
-
-Generic parameters are declared in generic [module
-declarations](#modules-exports-and-imports), generic [structure type
-declarations](#structure-types), generic [circuit definitions](#circuits), and
-generic [witness declarations](#declaring-witnesses-for-private-state).
-
-<table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
-<tr><td><em>generic-param</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>#</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
-<tr><td><em>garg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
-
-For generic modules, they are in scope within the module. For generic
-structures, they are in scope for the structure's fields. For generic circuits,
-they are in scope in the circuit's parameters, its return type annotation, and
-its body. In these scopes, a reference to a generic parameter (that is not
-otherwise shadowed by some other identifier binding) is either a type or a
-natural-number size.
 
 ## Parameters, patterns, and destructuring
 
@@ -732,7 +804,7 @@ to support [function overloading](#circuit-and-witness-calls), it is a static
 error if more than one circuit with the same name is exported from the top
 level.
 
-User-defined types exported from the top level of the main file can be used to
+Program-defined types exported from the top level of the main file can be used to
 describe the argument and return types of witnesses and exported circuits; these
 may accept generic arguments, but generic arguments not actually used as types
 are dropped in the exported type. For example:
@@ -1279,12 +1351,12 @@ expression as follows:
 
 - For or, if the value of the left subexpression is `false` then the right
   subexpression is evaluated and its value is the value of the entire
-  expression.  Otherwise, the right subexpression is **not** evaluated and the
+  expression.  Otherwise, the right subexpression is *not* evaluated and the
   value of the left subexpression, implicitly cast to the type of the entire
   expression, is the value of the entire expression.
 - For and, if the left subexpression is `true` then the right subexpression is
   evaluated and its value is the value of the entire expression.  Otherwise,
-  the right subexpression is **not** evaluated and the value of the left
+  the right subexpression is *not* evaluated and the value of the left
   subexpression, implicitly cast to the type of the entire expression, is the
   value of the entire expression.
 
@@ -2075,7 +2147,7 @@ for a primitive type:
 - `Opaque<"String">` - `new CompactTypeString()`
 - `Opaque<"Uint8Array">` - `new CompactTypeUint8Array()`.
 
-For user-defined types, structures are not currently easily
+For program-defined types, structures are not currently easily
 constructed at runtime and require implementing `CompactType<T>`
 manually or using compiler internals.  Enumerations are exposed
 through `new CompactTypeEnum(maxValue, length)`, where `maxValue` is
@@ -2106,7 +2178,7 @@ contracts depend upon and which implements key built-in behaviors.
 
 A contract exports the following in the TypeScript module:
 
-- The TypeScript type corresponding to each user-defined type exported from the
+- The TypeScript type corresponding to each program-defined type exported from the
   contract's top level
 - A `Witnesses<T>` type, which describes the format external witnesses must
   satisfy to instantiate the contract
@@ -2155,7 +2227,7 @@ Compact's primitive types are represented in TypeScript as follows:
 - `Opaque<"string">` - `string`
 - `Opaque<"Uint8Array">` - `Uint8Array`
 
-User-defined types are represented in TypeScript as follows:
+Program-defined types are represented in TypeScript as follows:
 - `enum` instances - a `number` with runtime membership checks
 - `struct` instances with fields `a: A, b: B, ...` - an object `{ a: A, b: B, ... }`
   where `A`, `B`, ... are the TypeScript representations of the Compact types.
