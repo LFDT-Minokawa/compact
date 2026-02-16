@@ -129,6 +129,8 @@ reserved for future use in Compact, e.g., `self` and `class`.
 Still others, specifically all and every identifier that begin with `__compact`,
 are reserved for use by the compiler.
 
+!!!!!!!! TBD: appendix with a list of the keywords and other reserved words
+
 The remaining identifiers can be used to name specific instances of various kinds
 of entities, including modules, types, generic parameters, ledger fields, function
 (circuit or witness) names, function parameters, and local variables.
@@ -194,31 +196,71 @@ block, so the reference to `answer` in `answer != 42` evaluates to `12`.
 
 ## Generic parameters and arguments
 
-!!!!!!!! TBD
+Various entities, specifically
+[Module declarations](#modules-exports-and-imports),
+[structure declarations](#structure-types),
+[type-alias declarations](#type-aliases),
+[circuit definitions](#circuits),
+and
+[witness declarations](#declaring-witnesses-for-private-state),
+can have *generic parameters*, i.e., compile-time type and size parameters whose
+values are given at the use site rather than fixed at the point of declaration.
+This allows the same *generic* code to be used with different specific types
+and sizes.
+Except where shadowed, generic parameters are visible thoughout the entire entity.
+In particular, the generic parameters of a module are visible within the program
+elements that appear within the body of the module.
 
-??? They have a non-empty list of comma-separated _generic parameter_ names
-enclosed in angle brackets.
-
-??? Generic arguments must be types, natural number literals, or a generic size
-parameter in scope.
-
-Generic parameters are declared in generic [module
-declarations](#modules-exports-and-imports), generic [structure type
-declarations](#structure-types), generic [circuit definitions](#circuits), and
-generic [witness declarations](#declaring-witnesses-for-private-state).
+When present, generic parameters are enclosed in angle brackets following the
+name of the generic entity (module, structure, type alias, circuit, or witness).
+Each parameter is either a type name (e.g., `T`) or a hash-prefixed size name
+(e.g., `#N`).
+Size names are prefixed by `#` to distingish generic size parameters from
+generic type parameters.
 
 <table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
 <tr><td><em>generic-param</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>#</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr></tbody></table>
 
+Generic entities must be *specialized* at the point of use to produce non-generic
+entities at compile time by supplying them with *generic arguments*.
+When present, generic arguments are also enclosed in angle brackets.
+Each generic argument must be a type or a natural number literal.
+
 <table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
 <tr><td><em>garg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
 
-For generic modules, they are in scope within the module. For generic
-structures, they are in scope for the structure's fields. For generic circuits,
-they are in scope in the circuit's parameters, its return type annotation, and
-its body. In these scopes, a reference to a generic parameter (that is not
-otherwise shadowed by some other identifier binding) is either a type or a
-natural-number size.
+The syntax of types allows for type references, including references to generic
+parameters, so any generic argument can pass along the value of a generic type
+or size parameter that is visible at the point of specialization.
+
+The `#` used to distinguish generic size parameters from generic type parameters
+need not and must not used at the point of specialization.
+It is a static error, however, if a generic argument supplied for a generic
+parameter is not a size when a size is expected or is a size when a size is not
+expected.
+
+The example below demonstrates the use of two levels of generic parameterization,
+one at the module level and one at the circuit level.
+
+```compact
+module M<T, #N> {
+  export circuit foo<A>(x: T, v: Vector<N, A>): Vector<N, [A, T]> {
+    return map((y) => [y, x], v);
+  }
+}
+import M<Boolean, 3>;
+export circuit bar1(): Vector<3, [Uint<8>, Boolean]> {
+  return foo<Uint<8>>(true, [101, 103, 107]);
+}
+export circuit bar2(): Vector<3, [Boolean, Boolean]> {
+  return foo<Boolean>(false, [true, false, true]);
+}
+```
+
+The body of circuit `foo` is generic with respect to the module's type parameters
+`T` and `N` as well as to the circuit's own parameter `A`.
+The module is specialized at the point of import, while the circuit is specialized
+at the point of call (in both `bar1` and `bar2`).
 
 ## Compact Types
 
@@ -361,50 +403,57 @@ by supplying generic arguments, e.g., `NumberAnd<Uint<8>>`.
 When any generic structure type is specialized, it must be fully specialized:
 the number of supplied generic arguments must match the number of declared
 generic parameters.
+The effect of specializing a generic structure type is to produce the same type
+as one in which the generic parameters are replaced by the generic argument
+values.
+For example, `NumberAnd<Uint<8>>` is equivalent to `NumberAnd` if `NumberAnd`
+had been defined by:
+
+```compact
+struct NumberAnd {
+  num: Uint<32>;
+  item: Uint<8>
+}
+```
+
 It is possible and common for a generic structure type to be specialized via
-different generic arguments in different parts of a program.
+different generic arguments to produce different specialized structure types
+in different parts of a program.
 
-Structure typing is always `nominal`: two types are equivalent only if they
-have the same names and same fields.  They are distinct if they have different
-names even if they have the same fields.
-More precisely:
+Structure typing is always `nominal`: two types are equivalent only if they have
+the same names and same fields.
+They are distinct if they have different names even if they have the same fields.
+More precisely: each structure type is the same as any other structure type
+that has the same name, same element names (in the same order), and same element
+types (in the same order).
+It is distinct from every other type.
 
-!!!!!!!! TBD: verify
+This means, for example, that the following program is well-typed:
 
-- A non-generic structure type is the same as another if they have the same name,
-  same element names (in the same order), and same element types (in the same
-  order).
-  Otherwise they are distinct.
-- The result of specializing a generic structure type is the same as a non-generic
-  structure type if the specialized type has the same name, same element names,
-  and same element types as the non-generic structure type.
+```compact
+module M {
+  struct NumberAnd {
+    num: Uint<32>;
+    item: Uint<8>
+  }
+  export circuit bar(x: NumberAnd): NumberAnd {
+    return x;
+  }
+}
+import M;
+struct NumberAnd<T> {
+  num: Uint<32>;
+  item: T
+}
+export circuit foo(x: NumberAnd<Uint<8>>): NumberAnd<Uint<8>> {
+  return bar(x);
+}
+```
 
-These two rules imply that:
-
-- Specializations of the same generic structure to the same types are the same
-  type.
-- Specializations of the same generic structure to different types are different
-  types.
-
-Values of structure types are created with **structure-creation** expressions.
-These consist of the structure type (fully specialized if generic),
-followed by a sequence of field values enclosed in curly braces (`{ }`).
-Element values can be given positionally, in the same order as they are declared
-in the `struct` declaration; or they can be named using the element names from
-the declaration.
-Named element values can appear in any order.
-Positional and named element values can be mixed in the same structure creation
-expression, but all the positional ones must come before any of the named ones.
-See [Structure creation](#structure-creation) for the details.
-
-Using the example declarations above, structure values could be created with
-`Thing {[0, 1, 2], true}` or `NumberAnd<Uint<8>> { item: 255, num: 0 }`.
-
-Structure types cannot be recursive, i.e., they cannot contain elements of
-the same type as the structure, either directly or indirectly.
-For example, it is an error to use the following pair of declarations:
-
-!!!!!!!! TBD: is this a static error?
+Structure types must not be recursive, i.e., they cannot contain elements of the
+same type as the structure, either directly or indirectly.
+An attempt to define a recursive structure type is a static error.
+For example, it is a static error to use the following pair of declarations:
 
 ```compact
 struct Even {
@@ -420,37 +469,53 @@ export circuit doesntWork(s: Even): Odd {
 }
 ```
 
+Values of structure types are created with **structure-creation** expressions.
+These consist of the structure type (specialized if generic),
+followed by a sequence of field values enclosed in curly braces (`{ }`).
+Element values can be given positionally, in the same order as they are declared
+in the `struct` declaration; or they can be named using the element names from
+the declaration.
+Named element values can appear in any order.
+Positional and named element values can be mixed in the same structure creation
+expression, but all the positional ones must come before any of the named ones.
+See [Structure creation](#structure-creation) for the details.
+
+Using the example declarations above, structure values could be created with
+`Thing {[0, 1, 2], true}` or `NumberAnd<Uint<8>> { item: 255, num: 0 }`.
+
 #### Enumeration types
 
-!!!!!!!! TBD
-
-Enumeration types are defined by a declaration beginning with the keyword
-`enum`.
+Enumeration types are defined via a `enum` declaration with the following form:
 
 <table className="lang-ref-table"><tbody><tr><td><em>enumdef</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>enum</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>enum-name</em></a>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
 
-Here is an example:
+An enumeration declaration has a sequence of named elements separated by commas.
+A trailing comma is allowed but not required.
+
+An enumeration declaration introduces a named enumeration type, such as `Fruit`
+in the example below:
 
 ```compact
 enum Fruit { apple, pear, plum }
 ```
 
-An enumeration declaration introduces a named enumeration type, such as `Fruit`
-in the example above.  Each enumeration declaration introduces a distinct type.
+Within the scope of this declaration, a value of type `Fruit` can have one of
+three values, selected via `Fruit.apple`, `Fruit.pear`, and `Fruit.plum`.
 
-An enumeration declaration has a sequence of named values separated by commas.
-A trailing separator is allowed but not required.
-
-In the example above, the type `Fruit` has three values: `Fruit.apple`,
-`Fruit.pear`, and `Fruit.plum`.
+Two enumeration types are the same if they have the same name and the same element
+names (in the same order) and distinct otherwise.
 
 #### Contract types
+
+!!!!!!!! TBD
 
 As of this writing, declarations of contracts and the cross-contract calls they
 support are not yet fully implemented, but the keyword `contract` used to
 declare contracts is reserved for this use.
 
-#### New types
+#### Type aliases
+
+!!!!!!!! TBD
 
 <table className="lang-ref-table"><tbody><tr><td><em>tdefn</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>new</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>type</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>type-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 

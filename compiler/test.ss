@@ -23222,6 +23222,45 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 10" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "[]" "circuit bar")))
     )
+
+  ; lang-ref.mdx
+  (test
+    '(
+      "module M {"
+      "  struct NumberAnd {"
+      "    num: Uint<32>;"
+      "    item: Uint<8>"
+      "  }"
+      "  export circuit bar(x: NumberAnd): NumberAnd {"
+      "    return x;"
+      "  }"
+      "}"
+      "import M;"
+      "struct NumberAnd<T> {"
+      "  num: Uint<32>;"
+      "  item: T"
+      "}"
+      "export circuit foo(x: NumberAnd<Uint<8>>): NumberAnd<Uint<8>> {"
+      "  return bar(x);"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %bar.0 ([%x.1 (tstruct NumberAnd
+                                 (num (tunsigned 4294967295))
+                                 (item (tunsigned 255)))])
+             (tstruct NumberAnd
+               (num (tunsigned 4294967295))
+               (item (tunsigned 255)))
+          %x.1)
+        (circuit %foo.2 ([%x.3 (tstruct NumberAnd
+                                 (num (tunsigned 4294967295))
+                                 (item (tunsigned 255)))])
+             (tstruct NumberAnd
+               (num (tunsigned 4294967295))
+               (item (tunsigned 255)))
+          (call %bar.0 %x.3))))
+    )
 )
 
 ; tests limits for vectors, bytes, and tuples.
@@ -78463,6 +78502,32 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of NativePoint current as of the creation of this test"
         "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual({x: 7n, y: 3n});"
+        "});"
+        ))
+    )
+
+  ; lang-ref.mdx
+  (test
+    '(
+      "module M<T, #N> {"
+      "  export circuit foo<A>(x: T, v: Vector<N, A>): Vector<N, [A, T]> {"
+      "    return map((y) => [y, x], v);"
+      "  }"
+      "}"
+      "import M<Boolean, 3>;"
+      "export circuit bar1(): Vector<3, [Uint<8>, Boolean]> {"
+      "  return foo<Uint<8>>(true, [101, 103, 107]);"
+      "}"
+      "export circuit bar2(): Vector<3, [Boolean, Boolean]> {"
+      "  return foo<Boolean>(false, [true, false, true]);"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.bar1(Ctxt).result).toEqual([[101n, true], [103n, true], [107n, true]]);"
+        "  expect(C.circuits.bar2(Ctxt).result).toEqual([[true, false], [false, false], [true, false]]);"
         "});"
         ))
     )
