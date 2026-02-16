@@ -4,9 +4,9 @@
   "inputs": [
   ],
   "instructions": [
-    { "op": "private_input", "output": "%sk.0", "guard": null },
+    { "op": "private_input", "type": "Scalar<BLS12-381>", "output": "%sk.0", "guard": null },
     { "op": "constrain_bits", "val": "%sk.0", "bits": 8 },
-    { "op": "private_input", "output": "%sk.1", "guard": null },
+    { "op": "private_input", "type": "Scalar<BLS12-381>", "output": "%sk.1", "guard": null },
     { "op": "constrain_bits", "val": "%sk.1", "bits": 248 },
     { "op": "persistent_hash", "outputs": ["%apk.2", "%apk.3"], "alignment": [{ "tag": "atom", "value": { "length": 32, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 32, "tag": "bytes" } }], "inputs": ["0x00", "0x6c617265733a656c656374696f6e3a706b3a", "%sk.0", "%sk.1"] },
     { "op": "public_input", "output": "%t.4", "guard": null },
