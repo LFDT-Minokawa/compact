@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased toolchain 0.29.103, language 0.21.101, runtime 0.14.101]
+
+### Changed
+
+- The standard library type `NativePoint` has been removed.  The standard
+  library type `JubjubPoint` is now a `new type` alias for
+  `Opaque<'JubjubPoint'>`.  This way `Opaque<'JubjubPoint'>` isn't really
+  hidden, but it's not shown in error messages.
+- `NativePoint` circuits in the standard library and the corresponding
+  same-named functions in the Compact runtime have been renamed, and they now
+  take or produce `JubjubPoint` values.
+  - `nativePointX` -> `jubjubPointX`
+  - `nativePointY` -> `jubjubPointY`
+  - `constructNativePoint` -> `constructJubjubPoint`
+- Signatures of elliptic curve operations in the standard library now use
+  `JubjubPoint` in place of `NativePoint`.
+
+### Internal notes
+
+- The `compact fixup` tool can do these renamings except it cannot currently
+  rename types (e.g. `NativePoint` to `JubjubPoint`).
+
 ## [Unreleased toolchain 0.29.102, language 0.21.100, runtime 0.14.100]
 
 ### Added

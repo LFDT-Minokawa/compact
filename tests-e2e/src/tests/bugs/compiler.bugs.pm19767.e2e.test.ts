@@ -60,7 +60,7 @@ describe('[Bug] [PM-19767] Large casts in constructor', () => {
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
 
-        test('example 4 - slice in constructor (with default NativePoint)', async () => {
+        test('example 4 - slice in constructor (with default JubjubPoint)', async () => {
             const filePath = CONTRACTS_ROOT + 'example_four.compact';
 
             const outputDir = createTempFolder();

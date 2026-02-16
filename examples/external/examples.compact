@@ -23,10 +23,10 @@ export circuit nativeMethods(): [] {
   const d: Bytes<32> = persistentCommit<Field>(default<Field>, default<Bytes<32>>);
   const e: Field = degradeToTransient(default<Bytes<32>>);
   const f: Bytes<32> = upgradeFromTransient(default<Field>);
-  const g: NativePoint = ecAdd(default<NativePoint>, default<NativePoint>);
-  const h: NativePoint = ecMul(default<NativePoint>, default<Field>);
-  const i: NativePoint = ecMulGenerator(default<Field>);
-  const j: NativePoint = hashToCurve<Field>(default<Field>);
+  const g: JubjubPoint = ecAdd(default<JubjubPoint>, default<JubjubPoint>);
+  const h: JubjubPoint = ecMul(default<JubjubPoint>, default<Field>);
+  const i: JubjubPoint = ecMulGenerator(default<Field>);
+  const j: JubjubPoint = hashToCurve<Field>(default<Field>);
   const k: ZswapCoinPublicKey = ownPublicKey();
   const l: [] = createZswapInput(default<QualifiedShieldedCoinInfo>);
   const m: [] = createZswapOutput(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);

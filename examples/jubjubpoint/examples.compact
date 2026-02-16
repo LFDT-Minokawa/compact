@@ -16,43 +16,43 @@
 import CompactStandardLibrary;
 
 constructor() {
-  const a = default<NativePoint>;
-  const b = nativePointX(a);
+  const a = default<JubjubPoint>;
+  const b = jubjubPointX(a);
 }
 
-// Test1: usage of NativePoint
+// Test1: usage of JubjubPoint
 export circuit test(): [] {
-  const a : NativePoint = default<NativePoint>;
-  const b : NativePoint = ecAdd(a, a);
-  const c : NativePoint = ecMul(a, 1);
-  const d : NativePoint = ecMulGenerator(1);
-  const e : NativePoint = hashToCurve<Field>(1);
+  const a : JubjubPoint = default<JubjubPoint>;
+  const b : JubjubPoint = ecAdd(a, a);
+  const c : JubjubPoint = ecMul(a, 1);
+  const d : JubjubPoint = ecMulGenerator(1);
+  const e : JubjubPoint = hashToCurve<Field>(1);
 }
 
 // Test2: use getters
 export circuit test2(): [] {
-  const a = default<NativePoint>;
-  const b = default<NativePoint>;
+  const a = default<JubjubPoint>;
+  const b = default<JubjubPoint>;
 
-  const c = nativePointX(a) + nativePointY(a) + nativePointX(b) + nativePointY(b);
+  const c = jubjubPointX(a) + jubjubPointY(a) + jubjubPointX(b) + jubjubPointY(b);
 
   const d = ecAdd(a, b);
-  const e = nativePointX(d) + nativePointY(d);
+  const e = jubjubPointX(d) + jubjubPointY(d);
 }
 
 // Test3: Use getters in from circuit
-circuit test3a(): NativePoint {
-  return default<NativePoint>;
+circuit test3a(): JubjubPoint {
+  return default<JubjubPoint>;
 }
 
 export circuit test3(): Field {
-  return nativePointX(test3a()) + nativePointY(test3a());
+  return jubjubPointX(test3a()) + jubjubPointY(test3a());
 }
 
 // use of constructor
-export circuit test4(): NativePoint {
-  const a = constructNativePoint(1, 1);
-  const b: NativePoint = constructNativePoint(default<Field>, default<Field>);
+export circuit test4(): JubjubPoint {
+  const a = constructJubjubPoint(1, 1);
+  const b: JubjubPoint = constructJubjubPoint(default<Field>, default<Field>);
 
   return a;
 }

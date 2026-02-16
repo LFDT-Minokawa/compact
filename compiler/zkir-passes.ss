@@ -199,13 +199,13 @@
                   (print-gate "hash_to_curve" `[inputs ,args*])
                   (new-var! (car res*) #f)
                   (new-var! (cadr res*) #f)))
-              (register-handler! 'nativePointX
+              (register-handler! 'jubjubPointX
                 (lambda (align res* a1 a2)
                   (bind-var! (car res*) a1)))
-              (register-handler! 'nativePointY
+              (register-handler! 'jubjubPointY
                 (lambda (align res* a1 a2)
                   (bind-var! (car res*) a2)))
-              (register-handler! 'constructNativePoint
+              (register-handler! 'constructJubjubPoint
                 (lambda (align res* a1 a2)
                   (bind-var! (car res*) a1)
                   (bind-var! (cadr res*) a2)))

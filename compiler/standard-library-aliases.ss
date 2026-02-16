@@ -53,8 +53,11 @@
       (receive . receiveShielded)
       (send . sendShielded)
       (sendImmediate . sendImmediateShielded)
-      (NativePointX . nativePointX)
-      (NativePointY . nativePointY)))
+      (NativePointX . jubjubPointX)
+      (NativePointY . jubjubPointY)
+      (nativePointX . jubjubPointX)
+      (nativePointY . jubjubPointY)
+      (constructNativePoint . constructJubjubPoint)))
 
   (define stdlib-struct-field-aliases
     '(
