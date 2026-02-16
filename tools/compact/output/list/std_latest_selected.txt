@@ -2,6 +2,7 @@ compact: available versions
 
 → [LATEST_COMPACTC_VERSION] - x86_macos, aarch64_macos, x86_linux
   [PREVIOUS_COMPACTC_VERSION] - x86_macos, aarch64_macos, x86_linux
+  0.26.0 - x86_macos, aarch64_macos, x86_linux
   0.25.0 - x86_macos, aarch64_macos, x86_linux
   0.24.0 - x86_macos, aarch64_macos, x86_linux
   0.23.0 - aarch64_macos, x86_linux
