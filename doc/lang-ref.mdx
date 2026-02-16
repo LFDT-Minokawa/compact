@@ -39,6 +39,14 @@ Compact deviates intentionally from TypeScript, however, in several important wa
 - Compact numeric values are limited to unsigned integers either with a
   program-declared range or with a range determined by the field size of the
   target proving system.
+- Compact distinguishes certain values as potentially containing private data that
+  should typically be protected, and it requires explicit declaration of the
+  disclosure of any potential private data via `disclose()` wrappers.
+  The basics of this are discussed in the description of `disclose`, and a
+  more thorough description and discussion appears in the separate document
+  [Explicit disclosure in Compact](explict-disclosure.mdx).
+
+!!!!!!!! TBD: how do we refer to mdx documents as in the link above?
 
 Like TypeScript, Compact compiles into JavaScript, but it also produces a TypeScript
 definition file so that it effectively also compiles into TypeScript.
@@ -189,10 +197,6 @@ throughout the body of `c` except where shadowed by the second (inner) binding o
 evaluates to `42`.
 The second (inner) binding of `answer` to `42` is visible throughout the inner
 block, so the reference to `answer` in `answer != 42` evaluates to `12`.
-
-## Constants
-
-!!!!!!!! TBD
 
 ## Generic parameters and arguments
 
@@ -564,23 +568,6 @@ types as well.  A vector type `Vector<n, T>` is a subtype of a tuple type
 `S, ...`.  The means, for instance, that a vector could be passed to a circuit
 where a tuple is expected.
 
-### Default values
-
-Every type in Compact has a *default value* of that type.  The default values
-are as follows:
-
-- `Boolean`: the value of the literal `false`
-- `Uint<0..n>` and `Uint<n>`: `0`
-- `Field`: `0`
-- `[T, ...]` where `T, ...` is a sequence of zero or more types: the tuple with
-  the corresponding length, each of the default value of the corresponding type
-- `Bytes<n>`: the byte array of length `n` with all zero bytes
-- `Opaque<"string">`: an empty string, i.e., `""`
-- `Opaque<"Uint8Array">`: a zero-length `Uint8Array`, i.e., `new Uint8Array(0)`
-- structure types: the struct with all fields set to the default value of their
-  type
-- enumeration types: the first value listed in the declaration
-
 ## Parameters, patterns, and destructuring
 
 Each parameter of a circuit or a constructor can either be a single name
@@ -651,13 +638,35 @@ no expansion, for example, `const {a: x, b} = S {a = 1, b = true}` is valid
 given the structure definition `struct S {a: Field, b: Boolean}`. This constant
 binding binds `x` to `1` and `b` to `true`.
 
+## Constants and default values
+
+!!!!!!!! TBD
+
+Every type in Compact has a *default value* of that type.  The default values
+are as follows:
+
+- `Boolean`: the value of the literal `false`
+- `Uint<0..n>` and `Uint<n>`: `0`
+- `Field`: `0`
+- `[T, ...]` where `T, ...` is a sequence of zero or more types: the tuple with
+  the corresponding length, each of the default value of the corresponding type
+- `Bytes<n>`: the byte array of length `n` with all zero bytes
+- `Opaque<"string">`: an empty string, i.e., `""`
+- `Opaque<"Uint8Array">`: a zero-length `Uint8Array`, i.e., `new Uint8Array(0)`
+- structure types: the struct with all fields set to the default value of their
+  type
+- enumeration types: the first value listed in the declaration
+
 ## Programs
 
-A compact program is a sequence of zero or more top-level program elements. The
-grammar below defines the set of possible program elements:
+A compact program is a sequence of zero or more top-level program elements.
+<tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>incld</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-exports-and-imports"><em>mdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>idecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#top-level-exports"><em>xdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ldecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state"><em>wdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>lconstructor</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>cdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enumdef</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>ecdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#new-types"><em>tdefn</em></a></td></tr></tbody></table>
 
 <table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#programs"><em>pelt</em></a> &mldr; <a href="#programs"><em>pelt</em></a>&nbsp;&nbsp;<a href="#constants"><em>eof</em></a></td></tr>
-<tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>incld</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-exports-and-imports"><em>mdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>idecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#top-level-exports"><em>xdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ldecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state"><em>wdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>lconstructor</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>cdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enumdef</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>ecdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#new-types"><em>tdefn</em></a></td></tr></tbody></table>
+
+!!!!!!!! TBD: consider modifying the grammar to give longer, more descriptive pelt names
+
+!!!!!!!! TBD: include the pelt names in the list below
 
 A program element can be:
 
