@@ -50,7 +50,7 @@ jobs:
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
@@ -77,7 +77,7 @@ jobs:
           nix develop --command bash -c "cd ./runtime ; npm run build ; npm run generate-docs"
 
       - name: Checkout docs repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           repository: "midnightntwrk/midnight-docs"
           token: ${{ secrets.MIDNIGHTCI_REPO }}

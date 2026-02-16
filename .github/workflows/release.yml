@@ -97,7 +97,7 @@ jobs:
     needs: [ setup ]
     steps:
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
@@ -253,22 +253,22 @@ jobs:
           git push origin ${{ inputs.version }}
 
       - name: Fetch release assets - Linux aarch64 (Arm)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: linux-release-aarch64
 
       - name: Fetch release assets - Linux x86_64 (Intel)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: linux-release-x86_64
 
       - name: Fetch release assets - Macos aarch64 (Arm)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: macos-release-aarch64
 
       - name: Fetch release assets - Macos x86_64 (Intel)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: macos-release-x86_64
 

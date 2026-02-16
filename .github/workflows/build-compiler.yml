@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout compactc repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ github.head_ref || github.ref_name }}
 
@@ -59,7 +59,7 @@ jobs:
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Check compiler and language versions in internal documentation
         run: |
@@ -120,7 +120,7 @@ jobs:
           zip -r compiler-coverage.zip coverage*
 
       - name: Upload Artifact - coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: Coverage Report
           path: compiler-coverage.zip
@@ -132,14 +132,14 @@ jobs:
           nix develop .#compiler --command yarn test
 
       - name: Upload CTRF test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: test-results-ctrf-summary
           path: tests-e2e/reports/ctrf-report.json
 
       - name: Upload Junit test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: test-results-junit-summary
