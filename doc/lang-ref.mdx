@@ -496,22 +496,20 @@ Enumeration types are defined via a `enum` declaration with the following form:
 An enumeration declaration has a sequence of named elements separated by commas.
 A trailing comma is allowed but not required.
 
-An enumeration declaration introduces a named enumeration type, such as `Fruit`
+An enumeration declaration introduces a named enumeration type, such as `Arrow`
 in the example below:
 
 ```compact
-enum Fruit { apple, pear, plum }
+enum Arrow { up, down, left, right };
 ```
 
-Within the scope of this declaration, a value of type `Fruit` can have one of
-three values, selected via `Fruit.apple`, `Fruit.pear`, and `Fruit.plum`.
+Within the scope of this declaration, a value of type `Arrow` can have one of
+three values, selected via `Arrow.up`, `Arrow.down`, `Arrow.left`, and `Arrow.right`.
 
 Two enumeration types are the same if they have the same name and the same element
 names (in the same order) and distinct otherwise.
 
 #### Contract types
-
-!!!!!!!! TBD
 
 As of this writing, declarations of contracts and the cross-contract calls they
 support are not yet fully implemented, but the keyword `contract` used to
@@ -519,11 +517,57 @@ declare contracts is reserved for this use.
 
 #### Type aliases
 
-!!!!!!!! TBD
+Type aliases can be created via `type` declarations of the form:
 
 <table className="lang-ref-table"><tbody><tr><td><em>tdefn</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>new</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>type</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>type-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
+Within the scope of a type-alias declaration of *type-name* for *type*, *type-name*
+is itself a type.
+Type aliases are either structural or nominal, depending on whether the optional
+`new` modifier is present:
+- A type alias *type-name* for *type* declared without the optional `new` modifier
+  is a structural type alias, i.e., *type-name* is the same type and is fully
+  interchangeable with `type`.
+- A type alias *type-name* for *type* declared with the optional `new` modifier is
+  a nominal type alias, i.e., *type-name* is a distinct type compatible with *type*
+  but neither a subtype of nor a supertype of *type* (or any other type).
+
+Any nominal type alias *type-name* for some type *type* is compatible with
+*type* in the following senses:
+- values of type *type-name* have the same representation as values of type *type*
+- values of type *type-name* can be used by primitive operations that require
+  a value of type *type*
+- values of type *type-name* can be cast explicitly to *type*, and
+- values of type *type* can be cast explicitly to type *type-name*.
+For example, within the scope of `type V3U16 = Vector<3,
+Uint<16>>`, a value of type `V3U16` can be referenced or sliced just like a vector
+of type `Vector<3, Uint<16>>`, but it cannot, for example, be passed to a function
+that expects a value of type `Vector<3, Uint<16>>` without an explicit cast.
+
+When one operand of an arithmetic operation (e.g., `+`) receives a value of some
+nominal type alias *type-name*, the other operand must also be of type *type-name*,
+and the result of performing the operation is cast to type *type-name*.
+This might cause a run-time error if the result cannot be represented by type
+*type-name*.
+
+Values of any nominal type alias *type-name* cannot be compared directly using,
+e.g., `<`, or `==`, with values of any other type, including with values of
+type *type*.
+Such comparisons require one of the operands to be cast to the type of the other.
+
+Both structural and nominal type aliases can take generic parameters, e.g.:
+```compact
+type V3<T> = Vector<3, T>
+```
+and
+```compact
+new type VField<#N> = Vector<N, Field>
+```
+When a nominal type is specialized, the specialized type is a nominal type.
+
 ### Subtyping and least upper bounds
+
+!!!!!!!! TBD
 
 There is a *subtyping* relation on Compact types.  Informally, if a type `T` is
 a subtype of a type `S` then every value of type `T` is also a value of type `S`
