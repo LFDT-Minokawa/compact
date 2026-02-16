@@ -67,7 +67,7 @@ jobs:
           yarn test:release
 
       - name: Publish Test Summary - Linux
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f # v2.22.0
         if: always() && contains(inputs.artifact, 'linux')
         with:
           check_name: Compactc E2E Tests Results - ${{ inputs.artifact }}
@@ -76,7 +76,7 @@ jobs:
             !(node_modules)/**/test-report.xml
             
       - name: Publish Test Summary - macOS
-        uses: EnricoMi/publish-unit-test-result-action/macos@v2
+        uses: EnricoMi/publish-unit-test-result-action/macos@27d65e188ec43221b20d26de30f4892fad91df2f # v2.22.0
         if: always() && contains(inputs.artifact, 'macos')
         with:
           check_name: Compactc E2E Tests Results - ${{ inputs.artifact }}

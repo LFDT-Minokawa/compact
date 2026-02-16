@@ -42,7 +42,7 @@ jobs:
           reporter: jest-junit
 
       - name: Publish Test Summary
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f # v2.22.0
         if: always()
         with:
           check_name: Plugin Test Results
