@@ -567,26 +567,24 @@ When a nominal type is specialized, the specialized type is a nominal type.
 
 ### Subtyping and least upper bounds
 
-!!!!!!!! TBD
-
-There is a *subtyping* relation on Compact types.  Informally, if a type `T` is
-a subtype of a type `S` then every value of type `T` is also a value of type `S`
-(equivalently, `S` is a supertype of `T`).  In that case, Compact allows
-implicitly using a value of type `T` where a value of type `S` is expected,
-without any programmer-supplied conversion.
+Some Compact types are related to other types via subtyping.
+Informally, if a type `T` is a *subtype* of a type `S` (equivalently, `S` is a
+*supertype* of type `T`), then every value of type `T` is also a value of type `S`,
+i.e., any value of type `T` can be used where a value of type `S` expected without
+the need for an explicit cast.
+For example, a circuit or witness can be called with argument expressions whose
+types are subtypes of the corresponding parameter type annotations, and
+a constant binding statement with a type annotation can be initialized with an
+expression whose type is a subtype of the type annotation.
 
 Subtyping is defined by the following rules:
 
 - Any type `T` is a subtype of itself (subtyping is reflexive)
 - `Uint<0..n>` is a subtype of `Uint<0..m>` if `n` is less than `m`
 - `Uint<0..n>` is a subtype of `Field` for all `n`
-- `[T, ...]` is a subtype of `[S, ...]` if the two tuple types have the length
-  and each type `T` is a subtype of the corresponding type `S`
-
-A circuit or witness can be called with argument expressions whose types are
-subtypes of the corresponding parameter type annotations.  A constant binding
-statement with a type annotation can be initialized with an expression whose
-type is a subtype of the type annotation.
+- The tuple type `[T, ...]` is a subtype of the tuple type `[S, ...]`
+  if they have the same length and each type `T` is a subtype of the
+  corresponding type `S`.
 
 The *least upper bound* (with respect to subtyping) of a non-empty set of types
 \{`T0`, ..., `Tn`} is a type `S` such that:
@@ -596,23 +594,39 @@ The *least upper bound* (with respect to subtyping) of a non-empty set of types
 - **`S` is the least upper bound:** for all upper bounds `R` of the set of types
     \{`T0`, ..., `Tn`}, `S` is a subtype of `R`.
 
-Note that least upper bounds do not necessarily exist for all sets of types.
+Note that least upper bounds do not exist for all sets of types, because
+some types (such as `Boolean` and `Field`) are not related.
 
-**Tuple and vector types:** We say that a tuple type `[T, ...]` with possibly
-distinct types `T, ...` "*has a vector type*" if the least upper bound `S` of
-the set of types \{`T`, ...} exists.  In that case, the tuple type has the
-vector type `Vector<n, S>` where `n` is the length of the tuple.  Some
-operations over tuples (such as mapping and folding) require the tuple type to
-have a vector type.
+**Tuple and vector types:** Every vector type has an equivalent tuple type:
+`Vector<n, T>` is equivalent to (in fact, the same type as) `[T1, ..., Tn]`.
+The converse is not always true.
+For example, neither `[Boolean, Field]` nor `[Uint<8>, Uint<16>]` have an
+equivalent vector type.
 
-Note that when a tuple type has a vector type, the tuple type is a subtype of
-the vector type.  Perhaps surprisingly, vector types can be subtypes of tuple
-types as well.  A vector type `Vector<n, T>` is a subtype of a tuple type
-`[S, ...]` if the tuple has length `n` and `T` is a subtype of each of the types
-`S, ...`.  The means, for instance, that a vector could be passed to a circuit
-where a tuple is expected.
+We say, however, that a tuple type `[T, ...]` with possibly distinct types `T, ...`
+"*has a vector type*" if the least upper bound `S` of the set of types \{`T`, ...}
+exists.
+In that case, the tuple type has the vector type `Vector<n, S>` where `n` is the
+length of the tuple.
+Some operations over tuples (such as mapping and folding) require the tuple type
+to have a vector type.
+
+When a tuple type has a vector type, the tuple type is a subtype of the vector
+type, but it might not be the same as the vector type.
+For example, `[Uint<16>, Uint<16>]` has the vector type `Vector<2, Uint<16>>`,
+and the two types are equivalent, whereas `[Uint<8>, Uint<16>]` also has the
+vector type `Vector<2, Uint<16>>`, but the types are not equivalent.
+
+Every vector type is a subtype of the equivalent tuple type and possibly of some
+other tuple types.
+In general, a vector type `Vector<n, T>` is a subtype of a tuple type `[S, ...]`
+if the tuple has length `n` and `T` is a subtype of each of the types `S, ...`.
+The means, for instance, that a vector can often be passed to a circuit where a
+tuple is expected.
 
 ## Parameters, patterns, and destructuring
+
+!!!!!!!! TBD
 
 Each parameter of a circuit or a constructor can either be a single name
 (identifier) or a pattern. A pattern is a destruction of a tuple, a vector, or a
