@@ -627,7 +627,11 @@ tuple is expected.
 The parameters of a circuit or constructor and the target of a `const` binding
 are specified via patterns:
 
+!!!!!!!!! @Kent I added the typed-pattern in the grammar. It used to be in the constructor section but it makes sense to move it here.
+I didn't fix/read any of the explanation of this section to talk about typed-patterns.
+
 <table className="lang-ref-table"><tbody><tr><td><em>pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a><sup>opt</sup> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Pattern"><em>pattern</em></a><sup>opt</sup> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Pattern-struct-element"><em>pattern-struct-elt</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Pattern-struct-element"><em>pattern-struct-elt</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
+<tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr>
 <tr><td><em>pattern-tuple-elt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;(<em>empty</em>)</td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a></td></tr>
 <tr><td><em>pattern-struct-elt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a></td></tr></tbody></table>
 
@@ -1217,7 +1221,6 @@ calls.
 
 <table className="lang-ref-table"><tbody>
 <tr><td><em>constructor-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr>
-<tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr>
 <tr><td><em>pattern-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
 </tbody></table>
 
@@ -1383,6 +1386,24 @@ The syntax of a Compact constant binding is the same as a constant binding in
 TypeScript.
 
 !!!!!!!! TBD this group of rows probably isn't right
+
+!!!!!!!! @Kent I fixed the first table below. I kept the same in case you need to grab something out of them. I also fixed the links in the
+first table below to move to the patterns section. I also included the grammar of patterns in the second table below in case you'd like to
+repeat that here. You can also see that I have each syntactic category on a new line to help us navigate easier while we're working on it.
+
+<table className="lang-ref-table"><tbody>
+<tr><td><em>cbinding</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>optionally-typed-pattern</em>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#expressions"><em>expr</em></a></td></tr>
+<tr><td><em>optionally-typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#patterns-and-destructuring"><em>pattern</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#patterns-and-destructuring"><em>typed-pattern</em></a></td></tr>
+
+<tr><td><em>pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a><sup>opt</sup> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Pattern"><em>pattern</em></a><sup>opt</sup> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Pattern-struct-element"><em>pattern-struct-elt</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Pattern-struct-element"><em>pattern-struct-elt</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
+<tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr>
+<tr><td><em>pattern-tuple-elt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;(<em>empty</em>)</td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a></td></tr>
+<tr><td><em>pattern-struct-elt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a></td></tr>
+</tbody></table>
+
+
+!!!!!!! @Kent this is the grammar you mentioned above that the row grouping isn't right.
+I kept it (if you look I have kept the old grammars throughout the file so that editing the explanation would be easier) in case you need it.
 
 <table className="lang-ref-table"><tbody><tr><td><em>stmt</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<tt>\{</tt>&nbsp;&nbsp;<em>parg</em>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>parg</em>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<em>expr</em>}&nbsp;&nbsp;<tt>}</tt></td></tr><tr><td><em>parg</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>p</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em></td></tr><tr><td><em>p</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<b>[</b>&nbsp;&nbsp;<tt>[</tt>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<tt>\{</tt><b>,</b>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<tt>}</tt>&nbsp;&nbsp;<tt>]</tt>&nbsp;&nbsp;<b>]</b></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<tt>[</tt>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<tt>[</tt><b><tt>:</tt></b>&nbsp;&nbsp;<em>p</em>]&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;[<b><tt>:</tt></b>&nbsp;&nbsp;<em>p</em>]}&nbsp;&nbsp;<tt>]</tt>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr><tr><td><em>cbinding</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Optionally-typed-pattern"><em>optionally-typed-pattern</em></a>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td><em>optionally-typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Typed-pattern"><em>typed-pattern</em></a></td></tr></tbody></table>
 
