@@ -75,9 +75,9 @@ statements and expressions that can appear within circuit and constructor
 definitions.
 Finally, it discusses the TypeScript target.
 
-[Writing a contract](writing-contract.html) provides a small example of what a
+[Writing a contract](writing.mdx) provides a small example of what a
 Compact program looks like.  It also introduces the basic building blocks of a
-Compact contract.  [The full grammar of Compact](Compact.html) is provided
+Compact contract.  [The full grammar of Compact](compact-grammar.mdx) is provided
 separately.
 
 ## Notation
@@ -635,7 +635,9 @@ In its simplest form, a pattern is just an identifier.
 For example, in the code below, the parameter of `sumTuple` is the identifier
 `x` and the targets of the two const bindings are the identifiers `a` and `b`.
 
-!!!!!!!! TBD test the examples in this section
+!!!!!!!! TBD test the examples in this section. mark them in test.ss as lang-ref ex and put them in print-ts that is specifically for lang-ref.
+There are two examples in test.ss add the rest. add stage-js when possible. tag lang-ref.mdx. search for tag and lang ref.
+include all examples, failing, succeeding, one liners, in compact snippet.
 
 ```compact
 circuit sumTuple(x: [Field, Field]): Field {
@@ -772,28 +774,24 @@ circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {
 
 A compact program is a sequence of zero or more top-level program elements.
 
-<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#programs"><em>pelt</em></a> &mldr; <a href="#programs"><em>pelt</em></a>&nbsp;&nbsp;<a href="#constants"><em>eof</em></a></td></tr>
-<tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>incld</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-exports-and-imports"><em>mdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>idecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#top-level-exports"><em>xdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ldecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state"><em>wdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>lconstructor</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>cdefn</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enumdef</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>ecdecl</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#new-types"><em>tdefn</em></a></td></tr></tbody></table>
-
-!!!!!!!! TBD: consider modifying the grammar to give longer, more descriptive pelt names
-
-!!!!!!!! TBD: include the pelt names in the list below
+<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pelt</em> &mldr; <em>pelt</em>&nbsp;&nbsp;<a href="#constants"><em>eof</em></a></td></tr>
+<tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>include-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-imports-and-exports"><em>module-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>import-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#top-level-exports"><em>export-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ledger-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state"><em>witness-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>constructor-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>circuit-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enum-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>contract-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#type-aliases"><em>type-alias-definition</em></a></td></tr></tbody></table>
 
 A program element can be:
 
-- a [pragma](#pragmas-and-versions) to declare the version of the compiler and/or the language
-- an [include](#include-files) to include other Compact programs
-- a [module](#modules-exports-and-imports) to define a Compact module
-- an [import](#imports) to import other Compact modules
-- an [export](#top-level-exports) to export top-level program elements
-- a [ledger field](#declaring-and-maintaining-public-state) to declare a public state
-- a [witness](#declaring-witnesses-for-private-state) to declare a private state
-- a [constructor](#contract-constructor) to define the contract's constructor
-- a [circuit](#circuits) to define a circuit
-- a [structure type](#structure-types) to define a structure type
-- an [enumeration type](#enumeration-types) to define a enumeration type
-- a [contract type](#contract-types) to define a contract type
-- a [type definition](#new-types) to define a new type
+- a [pragma form](#pragmas) to declare the version of the compiler and/or the language
+- an [include form](#include-files) to include other Compact programs
+- a [module definition](#modules-imports-and-exports) to define a Compact module
+- an [import form](#imports) to import other Compact modules
+- an [export form](#top-level-exports) to export top-level program elements
+- a [ledger declaration](#declaring-and-maintaining-public-state) to declare a public state
+- a [witness declaration](#declaring-witnesses-for-private-state) to declare a private state
+- a [constructor definition](#contract-constructor) to define the contract's constructor
+- a [circuit definition](#circuits) to define a circuit
+- a [structure definition](#structure-types) to define a structure type
+- an [enumeration definition](#enumeration-types) to define a enumeration type
+- a [contract declaration](#contract-types) to declare a contract type
+- a [type alias definition](#type-aliases) to define a new type
 
 ## Pragmas
 
@@ -801,7 +799,7 @@ A pragma declares a constraint on either the compiler version or the language
 version. The valid identifiers for the language and compiler versions are
 `language_version` and `compiler_version`, respectively.
 
-<table className="lang-ref-table"><tbody><tr><td><em>pragma</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>pragma</tt></b>&nbsp;&nbsp;<a href="#to-be-filled-in"><em>id</em></a>&nbsp;&nbsp;<em>version-expr</em>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
+<table className="lang-ref-table"><tbody><tr><td><em>pragma-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>pragma</tt></b>&nbsp;&nbsp;<a href="#to-be-filled-in"><em>id</em></a>&nbsp;&nbsp;<em>version-expr</em>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
 <tr><td><em>version-expr</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>version-expr</em>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<em>version-expr<sub>0</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>version-expr<sub>0</sub></em></td></tr>
 <tr><td><em>version-expr<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>version-expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>&&</tt></b>&nbsp;&nbsp;<em>version-term</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>version-term</em></td></tr>
 <tr><td><em>version-term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<=</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>>=</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>version-expr</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
@@ -813,7 +811,7 @@ Compact supports code separation and namespaces through separate files
 and modules.  The most basic of these is an `include` statement which takes a
 string literal `file`.
 
-<table className="lang-ref-table"><tbody><tr><td><em>incld</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>include</tt></b>&nbsp;&nbsp;<a href="#constants"><em>file</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>include-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>include</tt></b>&nbsp;&nbsp;<a href="#constants"><em>file</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
 An `include "path/to/file";` statement may appear at the top level of a source
 file or module. When encountered, the Compact compiler will search for a Compact
@@ -822,12 +820,12 @@ to any of the directories in the `:`-separated environment variable
 `COMPACT_PATH`. This file *must* be found and will be included verbatim in place
 of the `include` statement.
 
-## Modules, exports, and imports
+## Modules, imports, and exports
 
 A module is a collection of definitions whose namespace is hidden from
 surrounding code.  It takes the following form:
 
-<table className="lang-ref-table"><tbody><tr><td><em>mdefn</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>module</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>module-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &hellip; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>module-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>module</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>module-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &hellip; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
 
 A module definition can optionally be exported. It must have a name.  It can
 have [generic parameters](#generic-parameters) and then it has a body.  The body
@@ -859,7 +857,7 @@ module M {
 A module can be imported into another definition scope, bringing
 all its exported entries into that scope, potentially with a prefix.
 
-<table className="lang-ref-table"><tbody><tr><td><em>idecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>import</tt></b>&nbsp;&nbsp;<a href="#Import-selection"><em>import-selection</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-name"><em>import-name</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-prefix"><em>import-prefix</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
+<table className="lang-ref-table"><tbody><tr><td><em>import-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>import</tt></b>&nbsp;&nbsp;<a href="#Import-selection"><em>import-selection</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-name"><em>import-name</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-prefix"><em>import-prefix</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
 <tr><td><em>import-selection</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Import-element"><em>import-element</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Import-element"><em>import-element</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>from</tt></b></td></tr>
 <tr><td><em>import-element</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>as</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr>
 <tr><td><em>import-name</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>file</em></a></td></tr>
@@ -980,7 +978,7 @@ export { $F
 
 ### Top-level exports
 
-<table className="lang-ref-table"><tbody><tr><td><em>xdecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>export-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
 
 The circuits exported at the top level of a contract (i.e., not merely exported
 from a module) are the entry points of the contract and may not take generic
@@ -1018,7 +1016,7 @@ Multiple ledger declarations can appear in a program, or none.
 They can appear anywhere circuit definitions can appear,
 including within modules.
 
-<table className="lang-ref-table"><tbody><tr><td><em>ldecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>sealed</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>ledger-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>sealed</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
 A ledger declaration associates a ledger field name with one of a
 set of predefined [ledger state types](#ledger-state-types)
@@ -1187,7 +1185,7 @@ have a body, and its implementation is instead an input to
 the contract in the TypeScript target.
 
 <table className="lang-ref-table"><tbody>
-<tr><td><em>wdecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>witness</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Simple-parameter-list"><em>simple-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
+<tr><td><em>witness-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>witness</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Simple-parameter-list"><em>simple-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
 <tr><td><em>simple-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
 <tr><td><em>typed-identifier</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr>
 </tbody></table>
@@ -1218,7 +1216,7 @@ and can also be used to initialize private state through witness
 calls.
 
 <table className="lang-ref-table"><tbody>
-<tr><td><em>lconstructor</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr>
+<tr><td><em>constructor-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr>
 <tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr>
 <tr><td><em>pattern-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
 </tbody></table>
@@ -1260,7 +1258,7 @@ The basic operational element in Compact is the `circuit`. This corresponds
 closely to a function in most languages but is compiled directly into a
 zero-knowledge circuit.
 
-<table className="lang-ref-table"><tbody><tr><td><em>cdefn</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>pure</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>circuit</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>function-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>circuit-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>pure</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>circuit</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>function-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr></tbody></table>
 
 <table className="lang-ref-table"><tbody><tr><td><em>prog</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;[<b><tt>export</tt></b>]&nbsp;&nbsp;[<b><tt>pure</tt></b>]&nbsp;&nbsp;<b><tt>circuit</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<em>gpars</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>}]&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;<em>block</em>&nbsp;&nbsp;</td></tr><tr><td><em>gpars</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;[<b><tt>\<</tt></b>&nbsp;&nbsp;[<em>gpar</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>gpar</em>}]&nbsp;&nbsp;<b><tt>></tt></b>]&nbsp;&nbsp;</td></tr><tr><td><em>gpar</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>#</tt></b><em>id</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>id</em></td></tr><tr><td><em>block</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>stmt</em>&nbsp;&nbsp;<b><tt>;</tt></b>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
 

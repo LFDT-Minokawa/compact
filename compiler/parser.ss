@@ -275,20 +275,20 @@
          (with-output-language (Lparser Program)
            `(program ,src ,pelt* ... ,eof)))])
     (Program-element (pelt)
-      [program-element-pragma :: pragma => values]
-      [program-element-include :: incld => values]
-      [program-element-module-definition :: mdefn => values]
-      [program-element-import-declaration :: idecl => values]
-      [program-element-export-declaration :: xdecl => values]
-      [program-element-ledger-declaration :: ldecl => values]
-      [program-element-witness-declaration :: wdecl => values]
-      [program-element-ledger-constructor :: lconstructor => values]
-      [program-element-circuit-definition :: cdefn => values]
-      [program-element-struct-declaration :: struct => values]
-      [program-element-enum-declaration :: enumdef => values]
-      [program-element-contract-declaration :: ecdecl => values]
-      [program-element-type-declaration :: tdefn => values])
-    (Pragma (pragma)
+      [program-element-pragma :: pragma-form => values]
+      [program-element-include :: include-form => values]
+      [program-element-module-definition :: module-definition => values]
+      [program-element-import-declaration :: import-form => values]
+      [program-element-export-declaration :: export-form => values]
+      [program-element-ledger-declaration :: ledger-declaration => values]
+      [program-element-witness-declaration :: witness-declaration => values]
+      [program-element-ledger-constructor :: constructor-definition => values]
+      [program-element-circuit-definition :: circuit-definition => values]
+      [program-element-struct-declaration :: struct-definition => values]
+      [program-element-enum-declaration :: enum-definition => values]
+      [program-element-contract-declaration :: contract-declaration => values]
+      [program-element-type-declaration :: type-alias-definition => values])
+    (Pragma (pragma-form)
       [pragma :: src (KEYWORD pragma) id version-expr #\; =>
        (lambda (src kwd id ve semicolon)
          (define-pass lversion : (Lparser Version-Expression) (ir) -> Lversion ()
@@ -341,12 +341,12 @@
     (Version-atom (version-atom)
       [version-term-nat :: nat => values]
       [version-term-version :: version => values])
-    (Include (incld)
+    (Include (include-form)
       [include :: src (KEYWORD include) file #\; =>
         (lambda (src kwd file semicolon)
           (with-output-language (Lparser Include)
             `(include ,src ,kwd ,file ,semicolon)))])
-    (Module-definition (mdefn)
+    (Module-definition (module-definition)
       [module-definition :: src (OPT (KEYWORD export) #f) (KEYWORD module) module-name (OPT gparams #f) #\{ (K* pelt) #\} =>
        (lambda (src kwd-export? kwd module-name generic-param-list? lbrace pelt* rbrace)
          (with-output-language (Lparser Module-Definition)
@@ -366,7 +366,7 @@
        (lambda (src tvar-name)
          (with-output-language (Lparser Generic-Param)
            `(type-valued ,src ,tvar-name)))])
-    (Import-declaration (idecl)
+    (Import-declaration (import-form)
       [import-declaration :: src (KEYWORD import) (OPT import-selection #f) import-name (OPT gargs #f) (OPT import-prefix #f) #\; =>
        (lambda (src kwd import-selection? module-name generic-arg-list? prefix semicolon)
          (with-output-language (Lparser Import-Declaration)
@@ -409,33 +409,33 @@
        (lambda (src type)
          (with-output-language (Lparser Generic-Arg)
            `(generic-arg-type ,src ,type)))])
-    (Export-declaration (xdecl)
+    (Export-declaration (export-form)
       [export-declaration :: src (KEYWORD export) #\{ (SEP* id #\, #t) #\} (OPT #\; #f) =>
        (lambda (src kwd lbrace id-sep* rbrace semicolon?)
          (with-output-language (Lparser Export-Declaration)
            (let-values ([(id* sep*) (split-sep id-sep*)])
              `(export ,src ,kwd ,lbrace (,id* ...) (,sep* ...) ,rbrace ,semicolon?))))])
-    (Ledger-declaration (ldecl)
+    (Ledger-declaration (ledger-declaration)
       [public-ledger-declaration :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD sealed) #f) (KEYWORD ledger) id #\: type #\; =>
        (lambda (src kwd-export? kwd-sealed? kwd id colon type semicolon)
          (with-output-language (Lparser Ledger-Declaration)
            `(public-ledger-declaration ,src ,kwd-export? ,kwd-sealed? ,kwd ,id ,colon ,type ,semicolon)))])
-    (Witness-declaration (wdecl)
+    (Witness-declaration (witness-declaration)
       [witness-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD witness) id (OPT gparams #f) simple-parameter-list #\: type #\; =>
        (lambda (src kwd-export? kwd id generic-param-list? simple-param-list colon type semicolon)
          (with-output-language (Lparser Witness-Declaration)
            `(witness ,src ,kwd-export? ,kwd ,id ,generic-param-list? ,simple-param-list (,colon ,type) ,semicolon)))])
-    (Constructor (lconstructor)
+    (Constructor (constructor-definition)
       [ledger-constructor :: src (KEYWORD constructor) pattern-parameter-list block =>
        (lambda (src kwd pattern-param-list blck)
          (with-output-language (Lparser Ledger-Constructor)
            `(constructor ,src ,kwd ,pattern-param-list ,blck)))])
-    (Circuit-definition (cdefn)
+    (Circuit-definition (circuit-definition)
       [circuit-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD pure) #f) (KEYWORD circuit) function-name (OPT gparams #f) pattern-parameter-list #\: type block =>
        (lambda (src kwd-export? kwd-pure? kwd function-name generic-param-list? pattern-param-list colon type block)
          (with-output-language (Lparser Circuit-Definition)
            `(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))])
-    (Structure-definition (struct)
+    (Structure-definition (struct-definition)
       [structure-definition/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-identifier #\; #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd struct-name generic-param-list? lbrace arg-sep* rbrace semicolon?)
          (with-output-language (Lparser Structure-Definition)
@@ -446,30 +446,30 @@
          (with-output-language (Lparser Structure-Definition)
            (let-values ([(arg* sep*) (split-sep arg-sep*)])
              `(struct ,src ,kwd-export? ,kwd ,struct-name ,generic-param-list? ,lbrace (,arg* ...) (,sep* ...) ,rbrace ,semicolon?))))])
-    (Enum-definition (enumdef)
+    (Enum-definition (enum-definition)
       [enum-definition :: src (OPT (KEYWORD export) #f) (KEYWORD enum) enum-name #\{ (SEP+ id #\, #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd enum-name lbrace elt-name-sep+ rbrace semicolon?)
          (assert (not (null? elt-name-sep+)))
          (with-output-language (Lparser Enum-Definition)
            (let-values ([(elt-name+ sep*) (split-sep elt-name-sep+)])
              `(enum ,src ,kwd-export? ,kwd ,enum-name ,lbrace (,(car elt-name+) ,(cdr elt-name+) ...) (,sep* ...) ,rbrace ,semicolon?))))])
-    (External-contract-declaration (ecdecl)
-      [contract-declaration/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD contract) contract-name #\{ (SEP* ecdecl-circuit #\; #t) #\} (OPT #\; #f) =>
-       (lambda (src kwd-export? kwd contract-name lbrace ecdecl-circuit-sep* rbrace semicolon?)
+    (External-contract-declaration (contract-declaration)
+      [contract-declaration/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD contract) contract-name #\{ (SEP* circuit-declaration #\; #t) #\} (OPT #\; #f) =>
+       (lambda (src kwd-export? kwd contract-name lbrace circuit-declaration-sep* rbrace semicolon?)
          (with-output-language (Lparser External-Contract-Declaration)
-           (let-values ([(ecdecl-circuit* sep*) (split-sep ecdecl-circuit-sep*)])
-             `(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,ecdecl-circuit* ...) (,sep* ...) ,rbrace ,semicolon?))))]
-      [contract-declaration/commas :: src (OPT (KEYWORD export) #f) (KEYWORD contract) contract-name #\{ (SEP* ecdecl-circuit #\, #t) #\} (OPT #\; #f) =>
-       (lambda (src kwd-export? kwd contract-name lbrace ecdecl-circuit-sep* rbrace semicolon?)
+           (let-values ([(circuit-declaration* sep*) (split-sep circuit-declaration-sep*)])
+             `(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,circuit-declaration* ...) (,sep* ...) ,rbrace ,semicolon?))))]
+      [contract-declaration/commas :: src (OPT (KEYWORD export) #f) (KEYWORD contract) contract-name #\{ (SEP* circuit-declaration #\, #t) #\} (OPT #\; #f) =>
+       (lambda (src kwd-export? kwd contract-name lbrace circuit-declaration-sep* rbrace semicolon?)
          (with-output-language (Lparser External-Contract-Declaration)
-           (let-values ([(ecdecl-circuit* sep*) (split-sep ecdecl-circuit-sep*)])
-             `(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,ecdecl-circuit* ...) (,sep* ...) ,rbrace ,semicolon?))))])
-    (External-contract-circuit (ecdecl-circuit)
+           (let-values ([(circuit-declaration* sep*) (split-sep circuit-declaration-sep*)])
+             `(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,circuit-declaration* ...) (,sep* ...) ,rbrace ,semicolon?))))])
+    (External-contract-circuit (circuit-declaration)
       [external-contract-circuit :: src (OPT (KEYWORD pure) #f) (KEYWORD circuit) id simple-parameter-list #\: type =>
        (lambda (src kwd-pure? kwd id simple-param-list colon type)
          (with-output-language (Lparser External-Contract-Circuit)
            `(,src ,kwd-pure? ,kwd ,id ,simple-param-list (,colon ,type))))])
-    (Type-definition (tdefn)
+    (Type-definition (type-alias-definition)
       ; FIXME: consider eliminating struct syntax and supporting { x: type, ... } as a type
       [type-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD new) #f) (KEYWORD type) type-name (OPT gparams #f) #\= type #\; =>
        (lambda (src kwd-export? kwd-new? kwd type-name generic-param-list? op type semicolon)
