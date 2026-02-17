@@ -15,9 +15,9 @@ kinds of program elements:
 - module and import forms for management of namespaces and separate files,
 - declarations of program-defined types,
 - declarations of the data that the contract stores in the public ledger,
-- declarations of `witnesses`, which are functions supplied by the TypeScript runner, and
-- definitions of `circuits`, which are functions serving as the operational core of a smart contract, and
-- the definition of at most one `constructor`, which is a function used to intialize the public ledger.
+- declarations of *witnesses*, which are functions supplied by the TypeScript runner, and
+- definitions of *circuits*, which are functions serving as the operational core of a smart contract, and
+- the definition of at most one *constructor*, which is a function used to intialize the public ledger.
 
 Compact is similar to TypeScript: it has a syntax similar to that of JavaScript,
 and it layers a type system over the JavaScript syntax.
@@ -563,7 +563,7 @@ and
 ```compact
 new type VField<#N> = Vector<N, Field>
 ```
-When a nominal type is specialized, the specialized type is a nominal type.
+When a generic nominal type is specialized, the specialized type is a nominal type.
 
 ### Subtyping and least upper bounds
 
