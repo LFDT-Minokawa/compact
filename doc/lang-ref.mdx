@@ -285,14 +285,14 @@ incorrectly typed value.
 If an optional type annotation is omitted, the compiler attempts to infer a type
 and it rejects the program if no such type can be inferred.
 
-Types consist of built-in primitive types, ledger ADT types, program-defined types
+Types consist of built-in primitive types, ledger state types, program-defined types
 defined in the program, and references to generic type parameters in scope.
 When the term "type" occurs in this document without any other qualifier, it means
-either a primitive type, ledger ADT type, a program-defined type, or a generic type
+either a primitive type, ledger state type, a program-defined type, or a generic type
 parameter in scope.
-The use of ledger ADT types is, at present, limited to typing the result of using
+The use of ledger state types is, at present, limited to typing the result of using
 `default` to obtain the default value of the type, and only constant bindings
-can have a ledger ADT type.
+can have a ledger state type.
 
 ### Primitive types
 
@@ -901,7 +901,7 @@ import Identity<Field>;
 
 Compact's standard library can be imported by `import CompactStandardLibrary`.
 The standard library defines a number of useful types and circuits along with
-ledger ADTs such as `Counter`, `Map`, and `MerkleTree`.
+ledger state types such as `Counter`, `Map`, and `MerkleTree`.
 
 When importing module `M`, if the program does not contain a visible module definition
 the compiler looks in the file system in the relative path of the current directory for `M.compact`.
@@ -1034,7 +1034,7 @@ including within modules.
 <table className="lang-ref-table"><tbody><tr><td><em>ldecl</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>sealed</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
 A ledger declaration associates a ledger field name with one of a
-set of predefined [ledger ADT types](#ledger-state-types)
+set of predefined [ledger state types](#ledger-state-types)
 For instance:
 
 ```compact
@@ -1522,7 +1522,7 @@ assignment), or `-=` (subtraction assignment), and `e` is an expression.
 `lhs.increment(e)`.  `lhs -= e` is shorthand for `lhs.decrement(e)`.
 
 Ledger assignment statements are type checked exactly as if they were their
-longer equivalent invoking a ledger ADT operation.
+longer equivalent invoking a ledger state operation.
 
 They are evaluated exactly as if their longer equivalent were evaluated as a
 ledger expression.
@@ -1845,7 +1845,7 @@ calls.
 
 __Kernel operations__ are operations that do not depend on specific ledger
 state.  They can be invoked by expressions of the form `k.op(e, ...)`, where
-`k` is the name of a ledger field declared to have the special ADT type `Kernel`,
+`k` is the name of a ledger field declared to have the special ledger state type `Kernel`,
 `op` is the name of a builtin kernel operation and
 `e, ...` is a comma separated sequence of zero or more argument expressions.
 The `CompactStandardLibrary` predefines the ledger field name `kernel` to have
@@ -1859,46 +1859,46 @@ circuit f(): ContractAddress {
 }
 ```
 
-__Ledger ADT operations__ are operations on the program's public ledger state.
+__Ledger state operations__ are operations on the program's public ledger state.
 They are invoked by expressions of the form `member.op(e, ...)....`,
 where `member` is a ledger field name ([declared via a `ledger` field declaration](#declaring-and-maintaining-public-state))
 and `.op(e, ...)....` are a sequence of zero or more ledger
-ADT operation invocations, where each `op` is the name of a ledger ADT
+state operation invocations, where each `op` is the name of a ledger state
 operation and each `e, ...` is a sequence of zero or more comma-separated
 argument expressions.
 
 <table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<em>ledger-accessor</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;\{<em>ledger-accessor</em>}</td></tr><tr><td><em>ledger-accessor</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
-Note that ledger ADT operations can be chained, because the result of a ledger
-ADT operation might itself have a ledger state type.  Kernel operations cannot
+Note that ledger state operations can be chained, because the result of a ledger
+state operation might itself have a ledger state type.  Kernel operations cannot
 be chained, because the kernel is not a ledger state type and is not returned
 by any operation.
 
 The static type of a kernel operation expression is the return type of the
 corresponding kernel operation according to the ledger data types reference.
 
-The static type of a ledger ADT operation expression is the return type of the
-corresponding ADT operation according to the ledger data types reference.  Note
-that this might be a Compact type or it might be a ledger ADT type.  Values of
-ledger ADT types can have ADT operations invoked (immediately) on them, but
+The static type of a ledger state operation expression is the return type of the
+corresponding ledger state operation according to the ledger data types reference.  Note
+that this might be a Compact type or it might be a ledger state type.  Values of
+ledger state types can have ledger state operations invoked (immediately) on them, but
 any other use would be a static type error.
 
 Kernel operations are evaluated by evaluating the argument subexpressions in
 order from left to right and then invoking the corresponding kernel operation
 with the argument values.
 
-A ledger ADT operation `member` (that is not followed by a ledger
+A ledger state operation `member` (that is not followed by a ledger
 accessor) is implicitly an invocation of the `read` operation.  It is evaluated
 as if it were `member.read()`.
 
-A ledger ADT operation `member.op(e, ...)` is evaluated by evaluating the
+A ledger state operation `member.op(e, ...)` is evaluated by evaluating the
 argument subexpressions from left to right, and then invoking the operation
 `op` on the public ledger member `member` with the argument values.
 
-A ledger ADT operation `adt.op(e, ...)` where `adt` is itself a ledger ADT
+A ledger state operation `adt.op(e, ...)` where `adt` is itself a ledger state
 operation is evaluated by first evaluating `adt`, then evaluating the argument
 subexpressions from left to right, and then invoking the operation `op` on the
-ledger ADT value of `adt` with the argument values.
+ledger state value of `adt` with the argument values.
 
 ### Circuit and witness calls, map, fold, data creation, assert, and disclose
 
