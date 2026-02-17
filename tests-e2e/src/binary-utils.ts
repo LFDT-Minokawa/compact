@@ -27,6 +27,7 @@ export enum Arguments {
     HELP = '--help',
     VERSION = '--version',
     LANGUAGE_VERSION = '--language-version',
+    RUNTIME_VERSION = '--runtime-version',
     VSCODE = '--vscode',
     LINES_LENGTH = '--line-length',
 }
