@@ -18,7 +18,7 @@ test('Check block time functions', () => {
   context.currentQueryContext.block = {
     ...context.currentQueryContext.block,
     secondsSinceEpoch: 1n,
-    secondsSinceEpochErr: 0
+    secondsSinceEpochErr: 0,
   };
   expect(c.circuits.testBlockTimeGt(context, 5n).result).toEqual(false);
   expect(c.circuits.testBlockTimeGt(context, 0n).result).toEqual(true);
