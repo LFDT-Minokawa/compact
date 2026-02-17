@@ -781,25 +781,6 @@ circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {
 
 <table className="lang-ref-table"><tbody><tr><td><em>parg</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>p</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em></td></tr><tr><td><em>p</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<b>[</b>&nbsp;&nbsp;<tt>[</tt>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<tt>\{</tt><b>,</b>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<tt>\{</tt><b>,</b><tt>}</tt>&nbsp;&nbsp;<tt>}</tt>&nbsp;&nbsp;<tt>]</tt>&nbsp;&nbsp;<b>]</b></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<tt>[</tt>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<tt>[</tt><b><tt>:</tt></b>&nbsp;&nbsp;<em>p</em>]&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;[<b><tt>:</tt></b>&nbsp;&nbsp;<em>p</em>]}&nbsp;&nbsp;<tt>]</tt>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
 
-## Constants and default values
-
-!!!!!!!! TBD
-
-Every type in Compact has a *default value* of that type.  The default values
-are as follows:
-
-- `Boolean`: the value of the literal `false`
-- `Uint<0..n>` and `Uint<n>`: `0`
-- `Field`: `0`
-- `[T, ...]` where `T, ...` is a sequence of zero or more types: the tuple with
-  the corresponding length, each of the default value of the corresponding type
-- `Bytes<n>`: the byte array of length `n` with all zero bytes
-- `Opaque<"string">`: an empty string, i.e., `""`
-- `Opaque<"Uint8Array">`: a zero-length `Uint8Array`, i.e., `new Uint8Array(0)`
-- structure types: the struct with all fields set to the default value of their
-  type
-- enumeration types: the first value listed in the declaration
-
 ## Programs
 
 A compact program is a sequence of zero or more top-level program elements.
@@ -2302,6 +2283,24 @@ The expression `default<T>`, where `T` is a Compact type or a ledger state type,
 has static type `T`. It evaluates to the default value of that type.
 
 Note that default value expressions can have ledger state types.
+
+!!!!!!!! TBD check this for accuracy
+
+Every type in Compact has a *default value* of that type.  The default values
+are as follows:
+
+- `Boolean`: the value of the literal `false`
+- `Uint<0..n>` and `Uint<n>`: `0`
+- `Field`: `0`
+- `[T, ...]` where `T, ...` is a sequence of zero or more types: the tuple with
+  the corresponding length, each of the default value of the corresponding type
+- `Bytes<n>`: the byte array of length `n` with all zero bytes
+- `Opaque<"string">`: an empty string, i.e., `""`
+- `Opaque<"Uint8Array">`: a zero-length `Uint8Array`, i.e., `new Uint8Array(0)`
+- structure types: the struct with all fields set to the default value of their
+  type
+- enumeration types: the first value listed in the declaration
+
 
 #### Parenthesized expressions
 
