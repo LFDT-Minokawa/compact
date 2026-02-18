@@ -806,7 +806,8 @@ groups than for single tests.
                   (let* ([source-path* (registered-source-pathnames)]
                          [source-dir*
                            (map (lambda (s)
-                                  (let ([s (path-parent s)])
+                                  (let* ([s (if (string-prefix? "./" s) (substring s 2 (string-length s)) s)]
+                                         [s (path-parent s)])
                                     (assert (not (string-prefix? "/" s)))
                                     (assert (not (string-prefix? "." s)))
                                     (format "~a/src/~a" test-root s)))
@@ -6743,40 +6744,40 @@ groups than for single tests.
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
 
-  (with-compact-path
-    (cons "test-center" (compact-path))
-    (test
-      '(
-        "include 'compact/simple';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () () (tfield) (block (return 42)))))
-      ))
+ (with-compact-path '("test-center")
+  (test
+    '(
+      "include 'compact/simple';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () () (tfield) (block (return 42)))))
+    )
+  )
 
-  (with-compact-path
-    (cons* "test-center/compact" "test-center/compact2" (compact-path))
-    (test
-      '(
-        "include 'foo';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () () (tfield) (block (return 42)))))
-      ))
+ (with-compact-path '("test-center/compact" "test-center/compact2")
+  (test
+    '(
+      "include 'foo';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () () (tfield) (block (return 42)))))
+    )
+  )
 
-  (with-compact-path
-    (cons* "test-center/compact2" "test-center/compact" (compact-path))
-    (test
-      '(
-        "include 'foo';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () ([x (tfield)])
-                   (tboolean)
-                   (block (return (== x 0))))))
-      ))
+ (with-compact-path '("test-center/compact2" "test-center/compact")
+  (test
+    '(
+      "include 'foo';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () ([x (tfield)])
+                 (tboolean)
+                 (block (return (== x 0))))))
+    )
+  )
 
   (test
     `(
@@ -6787,17 +6788,15 @@ groups than for single tests.
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
 
-  (with-compact-path
-    (cons "test-center/compact" (compact-path))
-    (test
-      '(
-        "// presumably not present..."
-        "include '/foo';"
-        )
-      (oops
-        message: "~a:\n  ~?"
-        irritants: '("testfile.compact line 2 char 1" "failed to locate file ~s" ("/foo.compact")))
-      ))
+  (test
+    '(
+      "// presumably not present..."
+      "include '/foo';"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "failed to locate file ~s" ("/foo.compact")))
+    )
 
   (test
     "test-center/compact/multiple.compact"
@@ -6831,26 +6830,31 @@ groups than for single tests.
       irritants: '("test-center/compact/loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "include 'test-center/compact/loop';"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
+      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("./test-center/compact/loop.compact")))
     )
+  )
 
-  (test
-    '(
-      "module M {"
-      "  include 'test-center/compact/loop';"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
-    )
+  (test-group
+    ((create-file "loop.compact" '("include 'loop';")))
+    ((create-file "testfile.compact"
+       '(
+         "module M {"
+         "  include 'loop';"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("loop.compact line 1 char 1" "include cycle involving ~s" ("compiler/testdir/loop.compact")))
+     ))
 
+ (with-compact-path '(".")
   (test
     '(
       "module M {"
@@ -6864,7 +6868,9 @@ groups than for single tests.
           (circuit #f #f foo () () (tfield) (block (return 42)))
           (export foo))))
     )
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "include 'test-center/compact/foo';"
@@ -6880,7 +6886,9 @@ groups than for single tests.
           (circuit #f #f foo () () (tfield) (block (return 42)))
           (export foo))))
     )
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "module M {"
@@ -6896,16 +6904,7 @@ groups than for single tests.
           (export foo))
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
-
-  (test-group
-    ((create-file "included.compact" '())
-     (succeeds)
-     )
-    ((create-file "including.compact"
-       '(
-         "include 'compiler/testdir/included';"
-         ))
-     (returns (program))))
+  )
 
   (test-group
     ((create-file "included.compact" '())
@@ -6915,7 +6914,19 @@ groups than for single tests.
        '(
          "include 'included';"
          ))
-     (returns (program))))
+     (returns (program))
+     ))
+
+  (test-group
+    ((create-file "included.compact" '())
+     (succeeds)
+     )
+    ((create-file "including.compact"
+       '(
+         "include 'included';"
+         ))
+     (returns (program))
+     ))
 
   (test-group
     ((create-file "included.compact" '())
@@ -6926,7 +6937,7 @@ groups than for single tests.
      )
     ((create-file "including.compact"
        '(
-         "include 'compiler/testdir/included';"
+         "include 'included';"
          ))
      (oops
        message: "error ~a: ~a"
@@ -46985,6 +46996,7 @@ groups than for single tests.
         "}"))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -47019,6 +47031,7 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+  )
 
   (test
     '(
@@ -57744,6 +57757,7 @@ groups than for single tests.
         "}"))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -57761,6 +57775,7 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+  )
 
   (test
     '(
@@ -64131,6 +64146,7 @@ groups than for single tests.
         ))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -64143,8 +64159,10 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt).result).toEqual([]);"
         "});"
         ))
-    )
+    ) 
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo };"
@@ -64158,6 +64176,7 @@ groups than for single tests.
         "});"
         ))
     )
+  )
 
   (test
     '(
