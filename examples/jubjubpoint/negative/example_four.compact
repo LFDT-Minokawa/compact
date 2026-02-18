@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2026 Midnight Foundation
+// Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,13 +15,6 @@
 
 import CompactStandardLibrary;
 
-// This should fail because JubjubPoint is opaque and not a struct type.
 export circuit test(): [] {
-  const a = default<JubjubPoint>;
-  const b = default<JubjubPoint>;
-
-  const c = a.x + a.y + b.x + b.y;
-
-  const d = ecAdd(a, b);
-  const e = d.x + d.y;
+  const a = default<NativePoint>;
 }
