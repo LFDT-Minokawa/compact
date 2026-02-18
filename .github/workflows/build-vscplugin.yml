@@ -33,7 +33,7 @@ jobs:
           yarn test
 
       - name: Publish Test Report
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2.5.0
         if: always()
         with:
           name: Plugin JEST Tests Report

@@ -75,7 +75,7 @@ jobs:
         uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable (branch)
 
       - name: Install nextest
-        uses: taiki-e/install-action@nextest
+        uses: taiki-e/install-action@5e9ca9f228625a79b1cdac24184900b4ffc542ac # nextest (tag)
 
       - name: Cache Cargo registry and git trees
         uses: actions/cache@v4

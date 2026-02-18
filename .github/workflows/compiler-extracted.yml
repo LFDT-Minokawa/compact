@@ -51,7 +51,7 @@ jobs:
           nix develop .#compiler --command yarn test:extracted
 
       - name: Publish Test Report
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2.5.0
         if: always()
         with:
           name: Compactc E2E Tests Report
@@ -69,7 +69,7 @@ jobs:
             !(node_modules)/**/test-report.xml
 
       - name: Publish Test Summary Results
-        uses: ctrf-io/github-test-reporter@v1
+        uses: ctrf-io/github-test-reporter@024bc4b64d997ca9da86833c6b9548c55c620e40 # v1.0.26
         with:
           report-path: 'tests-e2e/reports/ctrf-report.json'
           flaky-rate-report: 'true'

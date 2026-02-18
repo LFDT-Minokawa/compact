@@ -274,7 +274,7 @@ jobs:
 
       - name: Create Release
         if: ${{ inputs.create_release && github.event_name != 'schedule' }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           repository: midnight-ntwrk/artifacts
           tag_name: compactc-${{ inputs.version || github.ref_name }}
