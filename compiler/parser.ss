@@ -280,14 +280,15 @@
       [program-element-module-definition :: module-definition => values]
       [program-element-import-declaration :: import-form => values]
       [program-element-export-declaration :: export-form => values]
+      [program-element-struct-declaration :: struct-declaration => values]
+      [program-element-enum-declaration :: enum-declaration => values]
+      [program-element-contract-declaration :: contract-declaration => values]
+      [program-element-type-declaration :: type-alias-declaration => values]
       [program-element-ledger-declaration :: ledger-declaration => values]
       [program-element-witness-declaration :: witness-declaration => values]
       [program-element-ledger-constructor :: constructor-definition => values]
       [program-element-circuit-definition :: circuit-definition => values]
-      [program-element-struct-declaration :: struct-definition => values]
-      [program-element-enum-declaration :: enum-definition => values]
-      [program-element-contract-declaration :: contract-declaration => values]
-      [program-element-type-declaration :: type-alias-definition => values])
+      )
     (Pragma (pragma-form)
       [pragma :: src (KEYWORD pragma) id version-expr #\; =>
        (lambda (src kwd id ve semicolon)
@@ -435,19 +436,19 @@
        (lambda (src kwd-export? kwd-pure? kwd function-name generic-param-list? pattern-param-list colon type block)
          (with-output-language (Lparser Circuit-Definition)
            `(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))])
-    (Structure-definition (struct-definition)
-      [structure-definition/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-identifier #\; #t) #\} (OPT #\; #f) =>
+    (Structure-declaration (struct-declaration)
+      [structure-declaration/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-identifier #\; #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd struct-name generic-param-list? lbrace arg-sep* rbrace semicolon?)
          (with-output-language (Lparser Structure-Definition)
            (let-values ([(arg* sep*) (split-sep arg-sep*)])
              `(struct ,src ,kwd-export? ,kwd ,struct-name ,generic-param-list? ,lbrace (,arg* ...) (,sep* ...) ,rbrace ,semicolon?))))]
-      [structure-definition/commas :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-identifier #\, #t) #\} (OPT #\; #f) =>
+      [structure-declaration/commas :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-identifier #\, #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd struct-name generic-param-list? lbrace arg-sep* rbrace semicolon?)
          (with-output-language (Lparser Structure-Definition)
            (let-values ([(arg* sep*) (split-sep arg-sep*)])
              `(struct ,src ,kwd-export? ,kwd ,struct-name ,generic-param-list? ,lbrace (,arg* ...) (,sep* ...) ,rbrace ,semicolon?))))])
-    (Enum-definition (enum-definition)
-      [enum-definition :: src (OPT (KEYWORD export) #f) (KEYWORD enum) enum-name #\{ (SEP+ id #\, #t) #\} (OPT #\; #f) =>
+    (Enum-declaration (enum-declaration)
+      [enum-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD enum) enum-name #\{ (SEP+ id #\, #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd enum-name lbrace elt-name-sep+ rbrace semicolon?)
          (assert (not (null? elt-name-sep+)))
          (with-output-language (Lparser Enum-Definition)
@@ -469,9 +470,9 @@
        (lambda (src kwd-pure? kwd id simple-param-list colon type)
          (with-output-language (Lparser External-Contract-Circuit)
            `(,src ,kwd-pure? ,kwd ,id ,simple-param-list (,colon ,type))))])
-    (Type-definition (type-alias-definition)
+    (Type-declaration (type-alias-declaration)
       ; FIXME: consider eliminating struct syntax and supporting { x: type, ... } as a type
-      [type-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD new) #f) (KEYWORD type) type-name (OPT gparams #f) #\= type #\; =>
+      [type-declaration :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD new) #f) (KEYWORD type) type-name (OPT gparams #f) #\= type #\; =>
        (lambda (src kwd-export? kwd-new? kwd type-name generic-param-list? op type semicolon)
          (with-output-language (Lparser Type-Definition)
            `(typedef ,src ,kwd-export? ,kwd-new? ,kwd ,type-name ,generic-param-list? ,op ,type ,semicolon)))])

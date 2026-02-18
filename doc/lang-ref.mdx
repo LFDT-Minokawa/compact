@@ -1,5 +1,7 @@
 # Compact reference
 
+## Overview
+
 Compact is a strongly typed, statically typed, bounded smart contract language,
 designed to be used in combination with TypeScript for writing smart contracts
 for the three-part structure of Midnight, where contracts have the following
@@ -225,7 +227,8 @@ generic type parameters.
 
 Generic entities must be *specialized* at the point of use to produce non-generic
 entities at compile time by supplying them with *generic arguments*.
-When present, generic arguments are also enclosed in angle brackets.
+Any attempt to use a generic entity without specializing it is a static error.
+Generic arguments are also enclosed in angle brackets.
 Each generic argument must be a type or a natural number literal.
 
 <table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
@@ -291,6 +294,11 @@ parameter in scope.
 The use of ledger state types is, at present, limited to typing the result of using
 `default` to obtain the default value of the type, and only constant bindings
 can have a ledger state type.
+
+A generic type is not a valid type and so cannot, for example, be used as the
+type of a parameter or return value.
+Any attempt to do do is a static error.
+As with any other generic entity, it must be specialized at the point of use.
 
 ### Primitive types
 
@@ -372,7 +380,7 @@ They can also define structural and nominal aliases for existing types.
 
 Structure types are defined via a `struct` declaration with the following form:
 
-<table className="lang-ref-table"><tbody><tr><td><em>struct</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>;</tt></b> &mldr; <b><tt>;</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>;</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>struct-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>;</tt></b> &mldr; <b><tt>;</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>;</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
 
 A structure declaration has a sequence of named fields which must be separated
 either by commas or by semicolons.  Comma and semicolon separators cannot be
@@ -489,7 +497,7 @@ Using the example declarations above, structure values could be created with
 
 Enumeration types are defined via a `enum` declaration with the following form:
 
-<table className="lang-ref-table"><tbody><tr><td><em>enumdef</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>enum</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>enum-name</em></a>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>enum-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>enum</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>enum-name</em></a>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
 
 An enumeration declaration has a sequence of named elements separated by commas.
 A trailing comma is allowed but not required.
@@ -517,7 +525,7 @@ declare contracts is reserved for this use.
 
 Type aliases can be created via `type` declarations of the form:
 
-<table className="lang-ref-table"><tbody><tr><td><em>tdefn</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>new</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>type</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>type-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>type-alias-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>new</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>type</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>type-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
 Within the scope of a type-alias declaration of *type-name* for *type*, *type-name*
 is itself a type.
@@ -776,26 +784,31 @@ circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {
 
 ## Programs
 
-A compact program is a sequence of zero or more top-level program elements.
+A compact program is a sequence of zero or more program elements.
 
-<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pelt</em> &mldr; <em>pelt</em>&nbsp;&nbsp;<a href="#constants"><em>eof</em></a></td></tr>
-<tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>include-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-imports-and-exports"><em>module-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>import-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#top-level-exports"><em>export-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ledger-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state"><em>witness-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>constructor-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>circuit-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enum-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>contract-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#type-aliases"><em>type-alias-definition</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pelt</em> &mldr; <em>pelt</em></td></tr><tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>include-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-imports-and-exports"><em>module-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>import-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#top-level-exports"><em>export-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enum-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>contract-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#type-aliases"><em>type-alias-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state"><em>witness-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ledger-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>constructor-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>circuit-definition</em></a></td></tr></tbody></table>
 
-A program element can be:
+Briefly:
 
-- a [pragma form](#pragmas) to declare the version of the compiler and/or the language
-- an [include form](#include-files) to include other Compact programs
-- a [module definition](#modules-imports-and-exports) to define a Compact module
-- an [import form](#imports) to import other Compact modules
-- an [export form](#top-level-exports) to export top-level program elements
-- a [ledger declaration](#declaring-and-maintaining-public-state) to declare a public state
-- a [witness declaration](#declaring-witnesses-for-private-state) to declare a private state
-- a [constructor definition](#contract-constructor) to define the contract's constructor
-- a [circuit definition](#circuits) to define a circuit
-- a [structure definition](#structure-types) to define a structure type
-- an [enumeration definition](#enumeration-types) to define a enumeration type
-- a [contract declaration](#contract-types) to declare a contract type
-- a [type alias definition](#type-aliases) to define a new type
+- A [pragma form](#pragmas) allows the program to declare the version of the compiler and/or the language that it requires
+- An [include form](#include-files) allows program elements to be included from other Compact programs
+- A [module definition](#modules-imports-and-exports) defines a Compact module, which also
+  contains a sequence of program elements in its own nested scope.
+- An [import form](#modules-imports-and-exports) imports bindings from a Compact module.
+- An [export form](#modules-imports-and-exports) exports bindings from a module or from [the program itself](#top-level-exports).
+- A [structure definition](#structure-types) defines a structure type.
+- An [enumeration definition](#enumeration-types) define an enumeration type.
+- A [contract declaration](#contract-types) declares a contract type.
+- A [type alias definition](#type-aliases) defines a type alias, possibly creating a distinct type.
+- A [witness declaration](#declaring-witnesses-for-private-state) declare a witness, which is a function provided by the Dapp.
+- A [ledger declaration](#declaring-and-maintaining-public-state) declares one field of the contract's public state.
+- A [constructor definition](#contract-constructor) defines the contract's constructor, if any.
+- A [circuit definition](#circuits) defines a circuit.
+
+Detailed descriptions of struct, enum, contract, and type-alias declarations appear in
+[Compact Types](#compact-types) above.
+Detailed descriptions of the remaining program elements are described in the following
+section.
 
 ## Pragmas
 
@@ -817,8 +830,12 @@ string literal `file`.
 
 <table className="lang-ref-table"><tbody><tr><td><em>include-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>include</tt></b>&nbsp;&nbsp;<a href="#constants"><em>file</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
+!!!!!!!! TBD doesn't mention searching relative to the path of the including file
+!!!!!!!! TBD does mention incorrect behavior (see issue 139)
+!!!!!!!! TBD doesn't say what happens when COMPACT_PATH isn't defined
+
 An `include "path/to/file";` statement may appear at the top level of a source
-file or module. When encountered, the Compact compiler will search for a Compact
+file or module. When encountered, the Compact compiler searches for a Compact
 source file at `path/to/file.compact` in the current directory and then relative
 to any of the directories in the `:`-separated environment variable
 `COMPACT_PATH`. This file *must* be found and will be included verbatim in place
@@ -1010,6 +1027,39 @@ export type S<T> = { v: T[]; curidx: bigint }
 Ledger field names exported from the top level are visible for direct inspection
 by code outside of the contract via the generated TypeScript `ledger()` function.
 
+## Declaring witnesses for private state
+
+Compact code can call code external to the zero-knowledge circuits to read
+and update private state via `witness` functions.
+
+A `witness` function declaration can appear anywhere a `circuit`
+definition can appear, including within modules.  A witness function does not
+have a body, and its implementation is instead an input to
+the contract in the TypeScript target.
+
+<table className="lang-ref-table"><tbody>
+<tr><td><em>witness-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>witness</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Simple-parameter-list"><em>simple-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
+<tr><td><em>simple-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
+<tr><td><em>typed-identifier</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr>
+</tbody></table>
+
+For instance:
+
+```compact
+witness something(x: Boolean): Field;
+```
+
+A `witness` function can be called in the same way as a `circuit`.
+
+:::danger
+
+Do not assume in your contract that the code of any `witness` function
+is the code that you wrote in your own implementation.  Any DApp may
+provide any implementation that it wants for your `witness` functions.
+Results from them should be treated as untrusted input.
+
+:::
+
 ## Declaring and maintaining public state
 
 Compact code can declare public state through `ledger` declarations.
@@ -1177,39 +1227,6 @@ constructor(x: Uint<16>) {
 
 It is a static error if a sealed ledger field can be set by any
 code that is reachable from an exported circuit.
-
-## Declaring witnesses for private state
-
-Compact code can call code external to the zero-knowledge circuits to read
-and update private state via `witness` functions.
-
-A `witness` function declaration can appear anywhere a `circuit`
-definition can appear, including within modules.  A witness function does not
-have a body, and its implementation is instead an input to
-the contract in the TypeScript target.
-
-<table className="lang-ref-table"><tbody>
-<tr><td><em>witness-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>witness</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Simple-parameter-list"><em>simple-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
-<tr><td><em>simple-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
-<tr><td><em>typed-identifier</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr>
-</tbody></table>
-
-For instance:
-
-```compact
-witness something(x: Boolean): Field;
-```
-
-A `witness` function can be called in the same way as a `circuit`.
-
-:::danger
-
-Do not assume in your contract that the code of any `witness` function
-is the code that you wrote in your own implementation.  Any DApp may
-provide any implementation that it wants for your `witness` functions.
-Results from them should be treated as untrusted input.
-
-:::
 
 ## Contract constructor
 
