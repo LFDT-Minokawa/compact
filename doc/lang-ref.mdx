@@ -1100,6 +1100,9 @@ In a `ledger` declaration, the following types are valid:
 
 Each ledger type supports a set of operations, which can be invoked with
 
+!!!!!!!!!! TBD if we plan to automate the checking of code snippets we shouldn't have
+code snippets like this.  Same follows for the next two code snippets.
+
 ```compact
 <field name>.<operation>(<arguments ...>)
 ```
@@ -1181,6 +1184,11 @@ Notes:
 3. Ledger state type values are not first-class objects, so when
    accessing a nested value, the entire indirection chain must be
    used.  For example, the following will result in a compiler error:
+
+!!!!!!!!!!! TBD similarly code snippets such as this are missing some context, e.g., fld is
+undefined if we just use the code snippet below. This again makes automating testing these
+code snippets hard. Same goes for the code snippet right after this one.
+
    ```compact
    export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {
      fld.lookup(b); // ERROR: incomplete chain of indirects
@@ -1318,6 +1326,11 @@ A Compact program can declare a circuit to be pure by prefixing the circuit
 definition with the `pure` modifier, which must follow the `export` modifier,
 if present, e.g.:
 
+!!!!!!!!!! TBD again having code snippets like this makes automation harder. Alternatively, if we
+kknow the restrictions (cases where we need expanding the code snippet) we can add special cases
+in our automation. Another approach would be to number these code snippets to add manupulation of
+them in our automation.
+
 ```compact
 pure circuit c(a: Field): Field {
   ...
@@ -1354,6 +1367,9 @@ A statement may be
 A `for` loop repeats for a fixed number of iterations, using one of the two
 syntaxes below:
 
+!!!!!!!!!! TBD again having code snippets like this makes automation harder.
+I have deleted this test for now.
+
 ```compact
 for (const i of <vector>) <statement>
 
@@ -1363,6 +1379,9 @@ for (const i of <lower>..<upper>) <statement>
 #### `if` statement
 
 An `if` statement is of one of the following forms:
+
+!!!!!!!!!! TBD again having code snippets like this makes automation harder.
+I have deleted this test for now.
 
 ```compact
 if (testexpr)
