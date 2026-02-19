@@ -63609,16 +63609,15 @@ groups than for single tests.
     (succeeds)
     )
 
-  ; TODO what's the purpose of this test, doesn't make sense
-  ;; (test
-  ;;   '(
-  ;;     "struct S { x: Uint<16>, y: Uint<32> }"
-  ;;     "circuit sumSomeYs([{y: b1}, , {y: b3}]: [S, S, S]): Field {"
-  ;;     "  return a1 + a3;"
-  ;;     "}"
-  ;;     )
-  ;;   (succeeds)
-  ;;   )
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumSomeYs([{y: b1}, , {y: b3}]: [S, S, S]): Field {"
+      "  return b1 + b3;"
+      "}"
+      )
+    (succeeds)
+    )
 
   (test
     '(
@@ -63632,32 +63631,28 @@ groups than for single tests.
       irritants: '("testfile.compact line 2 char 19" "expected structure type, received ~a" ("[Field, Field]")))
     )
 
-  ; TODO check what's the purpose of this test
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
       "circuit sumSomeYs([{y: b1}, , , {y: b3}]: [S, S, S]): Field {"
-      "  return a1 + a3;"
+      "  return b1 + b3;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 15" "unbound identifier ~s" (a3)))
-    ;; (fails)
+      irritants: '("testfile.compact line 2 char 19" "index ~d is out-of-bounds for a ~a of length ~d" (3 "tuple" 3)))
     )
 
-  ; TODO check what's the purpose of this test
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
       "circuit sumSomeYs([{y: b1}, , {z: b3}]: [S, S, S]): Field {"
-      "  return a1 + a3;"
+      "  return b1 + b3;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 15" "unbound identifier ~s" (a3)))
-    ;; (fails)
+      irritants: '("testfile.compact line 2 char 31" "structure ~s has no field named ~s" (S z)))
     )
 
   (test
@@ -63794,15 +63789,12 @@ groups than for single tests.
   ;;   (succeeds)
   ;;   )
 
-  ; TODO add stage-js
-  ; 0 should be 1 but if it's 1 we still get an error. why
-  ; TODO fix
-  ;; (test
-  ;;   '(
-  ;;     "export struct S<#n, T> { v: Vector<n, T>; curidx: Uint<0..n> }"
-  ;;     )
-  ;;   (succeeds)
-  ;;   )
+  (test
+    '(
+      "export struct S<#n, T> { v: Vector<n, T>; curidx: Uint<0..n> }"
+      )
+    (succeeds)
+    )
 
   (test
     '(
@@ -79102,6 +79094,16 @@ groups than for single tests.
         "  expect(C.circuits.bar2(Ctxt).result).toEqual([[true, false], [false, false], [true, false]]);"
         "});"
         ))
+    )
+
+  (test
+    '(
+      "export type UX<#n> = Uint<n>;"
+      "export type UY<#n> = Uint<0..n>;"
+      "export struct SX<#n, T> { curidx: Uint<n> }"
+      "export struct SY<#n, T> { curidx: Uint<0..n> }"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts" #f)
     )
 )
 

@@ -731,7 +731,7 @@ or struct.
 ```compact
 struct S { x: Uint<16>, y: Uint<32> }
 circuit sumSomeYs([{y: b1}, , {y: b3}]: [S, S, S]): Field {
-  return a1 + a3;
+  return b1 + b3;
 }
 ```
 
@@ -756,7 +756,7 @@ fails because it tries to treat a tuple as a struct, while:
 ```compact
 struct S { x: Uint<16>, y: Uint<32> }
 circuit sumSomeYs([{y: b1}, , , {y: b3}]: [S, S, S]): Field {
-  return a1 + a3;
+  return b1 + b3;
 }
 ```
 
@@ -766,7 +766,7 @@ two skipped elements) when it actually has only three, and:
 ```compact
 struct S { x: Uint<16>, y: Uint<32> }
 circuit sumSomeYs([{y: b1}, , {z: b3}]: [S, S, S]): Field {
-  return a1 + a3;
+  return b1 + b3;
 }
 ```
 
@@ -778,7 +778,7 @@ input and are ignored:
 ```compact
 struct S { x: Uint<16>, y: Uint<32> }
 circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {
-  return a1 + a3;
+  return b1 + b3;
 }
 ```
 
@@ -786,16 +786,16 @@ circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {
 
 A compact program is a sequence of zero or more program elements.
 
-<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pelt</em> &mldr; <em>pelt</em></td></tr><tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>include-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-imports-and-exports"><em>module-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>import-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#top-level-exports"><em>export-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enum-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>contract-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#type-aliases"><em>type-alias-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state"><em>witness-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ledger-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>constructor-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>circuit-definition</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pelt</em> &mldr; <em>pelt</em></td></tr><tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-exports-and-imports"><em>module-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#exports"><em>export-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>import-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>include-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enum-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>contract-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#type-aliases"><em>type-alias-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state"><em>witness-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ledger-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>constructor-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>circuit-definition</em></a></td></tr></tbody></table>
 
 Briefly:
 
 - A [pragma form](#pragmas) allows the program to declare the version of the compiler and/or the language that it requires
-- An [include form](#include-files) allows program elements to be included from other Compact programs
-- A [module definition](#modules-imports-and-exports) defines a Compact module, which also
+- A [module definition](#modules-exports-and-imports) defines a Compact module, which also
   contains a sequence of program elements in its own nested scope.
-- An [import form](#modules-imports-and-exports) imports bindings from a Compact module.
-- An [export form](#modules-imports-and-exports) exports bindings from a module or from [the program itself](#top-level-exports).
+- An [export form](#exports) exports bindings from a module or from [the program itself](#top-level-exports).
+- An [import form](#imports) imports bindings from a Compact module.
+- An [include form](#include-files) allows program elements to be included from other Compact programs
 - A [structure definition](#structure-types) defines a structure type.
 - An [enumeration definition](#enumeration-types) define an enumeration type.
 - A [contract declaration](#contract-types) declares a contract type.
@@ -804,6 +804,11 @@ Briefly:
 - A [ledger declaration](#declaring-and-maintaining-public-state) declares one field of the contract's public state.
 - A [constructor definition](#contract-constructor) defines the contract's constructor, if any.
 - A [circuit definition](#circuits) defines a circuit.
+
+The order of program elements in a program or module is unimportant, except that
+any module must be defined before any import of the module, and any program-defined
+types used as generic parameters by an import form must be defined before the
+import form.
 
 Detailed descriptions of struct, enum, contract, and type-alias declarations appear in
 [Compact Types](#compact-types) above.
@@ -822,42 +827,36 @@ version. The valid identifiers for the language and compiler versions are
 <tr><td><em>version-term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\<=</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>>=</tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<em>version-atom</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>version-expr</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
 <tr><td><em>version-atom</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#constants"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#constants"><em>version</em></a></td></tr></tbody></table>
 
-## Include files
+## Modules, exports, and imports
 
-Compact supports code separation and namespaces through separate files
-and modules.  The most basic of these is an `include` statement which takes a
-string literal `file`.
-
-<table className="lang-ref-table"><tbody><tr><td><em>include-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>include</tt></b>&nbsp;&nbsp;<a href="#constants"><em>file</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
-
-!!!!!!!! TBD doesn't mention searching relative to the path of the including file
-!!!!!!!! TBD does mention incorrect behavior (see issue 139)
-!!!!!!!! TBD doesn't say what happens when COMPACT_PATH isn't defined
-
-An `include "path/to/file";` statement may appear at the top level of a source
-file or module. When encountered, the Compact compiler searches for a Compact
-source file at `path/to/file.compact` in the current directory and then relative
-to any of the directories in the `:`-separated environment variable
-`COMPACT_PATH`. This file *must* be found and will be included verbatim in place
-of the `include` statement.
-
-## Modules, imports, and exports
-
-A module is a collection of definitions whose namespace is hidden from
-surrounding code.  It takes the following form:
+Modules in Compact are used for namespace management and also possibly to split
+programs into multiple files.
+A module is a named collection of program elements created via a `module definition`:
 
 <table className="lang-ref-table"><tbody><tr><td><em>module-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>module</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>module-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &hellip; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
 
-A module definition can optionally be exported. It must have a name.  It can
-have [generic parameters](#generic-parameters) and then it has a body.  The body
-contains [top-level program elements](#programs).
+The order of program elements in a module is unimportant.
 
-By default, identifiers defined within the body of a module are
-visible only within the module, i.e., they are not exported from
-the module.  Any identifier defined at or imported into the top
-level of a module can be exported from the module in one of two
-ways: (1) by prefixing the definition with the `export` keyword,
-or by listing the identifier in a separate `export` declaration.
+A module definition makes a binding from `module-name` to the module visible in
+the program or module containing the module definition.
+Any bindings established by program elements within the module are not made
+visible, at least not until the module is imported.
+
+A module can have [generic parameters](#generic-parameters), in which case it is
+a *generic module* and must be specialized with generic arguments at the point of
+import.
+
+### Exports
+
+By default, identifier bindings created by the program elements within the body
+of a module are visible only within the module, i.e., they are not exported from
+the module.
+Any identifier defined at or imported into the top level of a module can be exported
+from the module in one of two ways: (1) by prefixing the definition with the
+`export` keyword, or by listing the identifier in a separate `export` declaration:
+
+<table className="lang-ref-table"><tbody><tr><td><em>export-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
+
 For example, the following module exports `G` and `S` but not `F`.
 
 ```compact
@@ -873,10 +872,14 @@ module M {
 }
 ```
 
+Exporting a binding from a module has no effect unless the module is imported.
+
 ### Imports
 
-A module can be imported into another definition scope, bringing
-all its exported entries into that scope, potentially with a prefix.
+!!!!!!!! TBD
+
+A module can be imported into another module or into the program top level, making
+some or all of its exported bindings visible there, potentially with a prefix.
 
 <table className="lang-ref-table"><tbody><tr><td><em>import-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>import</tt></b>&nbsp;&nbsp;<a href="#Import-selection"><em>import-selection</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-name"><em>import-name</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-prefix"><em>import-prefix</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
 <tr><td><em>import-selection</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Import-element"><em>import-element</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Import-element"><em>import-element</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>from</tt></b></td></tr>
@@ -884,17 +887,30 @@ all its exported entries into that scope, potentially with a prefix.
 <tr><td><em>import-name</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>file</em></a></td></tr>
 <tr><td><em>import-prefix</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>prefix</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr></tbody></table>
 
-For instance:
+For example:
 
 ```compact
 module Runner {
-  export circuit run(): [] {}
+  export circuit start(): [] {}
+  export circuit stop(): [] {}
 }
-import Runner;
-// run is now in scope
-import Runner prefix SomePrefix_;
-// SomePrefix_run is now in scope
+module UseRunner1 {
+  import Runner;
+  // start and stop are now in scope
+}
+module UseRunner2 {
+  import { start } from Runner;
+  // start is now in scope, but not stop
+}
+module UseRunner2 {
+  import Runner prefix Runner$;
+  // Runner$start and Runner$stop are now in scope, but not stop or run
+}
+```
 
+and
+
+```
 module Identity<T> {
   export { id }
   circuit id(x: T): T {
@@ -902,19 +918,32 @@ module Identity<T> {
   }
 }
 import Identity<Field>;
-// id is now in scope, with Field as type T
+// id is now in scope, specialized to type Field
 ```
 
-Compact's standard library can be imported by `import CompactStandardLibrary`.
-The standard library defines a number of useful types and circuits along with
-ledger state types such as `Counter`, `Map`, and `MerkleTree`.
+When an import for some module *M* appears before any visible definition
+of *M*, the module is assumed to reside in the filesystem, and it is imported
+directly from there.
+If *M* is an identifier `M`, a definition for module `M` must be contained within
+the file `M.compact` in the same directory as the importing file or in one of the
+directories in the compact path.
+If *M* is a string `"{prefix/}M"`, where `{prefix/}` is either empty or is
+a pathname ending in a directory separator, a definition for a module named
+`M` must be contained within a file `M.compact` that is:
+- (a) if `{prefix/}M.compact` is an absolute pathname, then exactly at
+  `{prefix/}M.compact`, otherwise
+- (b) at `{prefix/}M.compact` relative to the directory of the importing
+  file or to one of the directories in the compact path.
+Details on the search order and the mechanism for setting the compact path are
+given in [Compiler Usage](compiler-usage.md).
 
-When importing module `M`, if the program does not contain a visible module definition
-the compiler looks in the file system in the relative path of the current directory for `M.compact`.
-In the case where a module is defined in a different program (file), the program must only contain
-a top-level module definition. Otherwise, the compiler throws a static error stating that the program
-does not contain a single module definition. For example, the program `M.compact` below defines
-a module:
+In any of these cases, it is a static error if `M.compact` is not found, if it
+does not contain a definition for a module named `M`, or if it contains anything
+else other than comments and whitespace.
+
+Several examples follow.
+
+Example 1: The file `M.compact` below contains a single module definition:
 
 ```compact title=M.compact
 module M {
@@ -924,33 +953,34 @@ module M {
     return S.y;
   }
 }
-// circuit cant_exists() : [] {}
-// If cant_exists is uncommented, the compiler will throw an error when compiling
-// test.compact
 ```
 
-Then, `test.compact` imports `M`:
+Then, `test1.compact` import `M` from `M.compact`:
 
 ```compact title=test.compact
-//module M {
-//  export { G };
-//  export struct S { x: Uint<16>, y: Boolean }
-//  circuit G(x: S): Boolean {
-//    return S.y;
-//  }
-//}
-// If M is uncommented, the compiler will import this module and not the one
-// defined in M.compact. In this case, the compiler will throw an error for
-// exporting F.
-
 import M;
 export { F };
 ```
 
-The import syntax allows the module to be identified by a string pathname. In this case, the compiler
-first looks for the imported module relative to the current directory (the path of the importing
-program) and then in the directories identified by `COMPACT_PATH`. Importing by a pathname allows
-importing multiple modules with the same name. For example, consider the program `M.compact`:
+whereas `test2.compact` uses its own definition of `M`:
+
+```compact title=test.compact
+module M {
+  export { G };
+  export struct S { x: Uint<16>, y: Boolean }
+  circuit G(x: S): Boolean {
+    return S.y;
+  }
+}
+import M;
+export { G };
+```
+
+Importing by a pathname allows multiple modules with the same name
+to be imported into the same scope.
+For example:
+
+The file `M.compact` below contains a single module definition, as before:
 
 ```compact title=M.compact
 module M {
@@ -962,7 +992,7 @@ module M {
 }
 ```
 
-And the program `A/M.compact`:
+and `A/M.compact` contains a different module definition:
 
 ```compact title=A/M.compact
 module M {
@@ -974,32 +1004,39 @@ module M {
 }
 ```
 
-And finally the program `test.compact` can export both `$F` and `A_F` but not `$G`:
+Then the program `test.compact` can define `M` and import all three of
+`M`, `"M"`, and `"A/M"`:
 
 ```compact title=test.compact
 module M {
-  export { G };
+  export { F };
   export struct S { x: Uint<16>, y: Boolean }
-  circuit G(x: S): Boolean {
+  circuit F(x: S): Boolean {
     return S.y;
   }
 }
+import M prefix M1$;
+import "M" prefix M2$;
+import "A/M" prefix M3$;
 
-import "M" prefix $;
-// this imports M.compact and not the module M defined above
-
-import "A/M" prefix A_;
-
-export { $F
-  ,A_F
-//  ,$G
-// uncommenting this will result in an error
-  };
+export { M1$F, M2$F, M3$F };
 ```
+
+### The compact standard library
+
+Compact's standard library can be imported by `import CompactStandardLibrary`.
+The standard library defines a number of useful types and circuits along with
+ledger state types such as `Counter`, `Map`, and `MerkleTree`.
 
 ### Top-level exports
 
-<table className="lang-ref-table"><tbody><tr><td><em>export-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
+!!!!!!!! TBD
+
+Exporting a module binding by including the `export` modifier in the module
+definition has the effect of exporting the module binding from the enclosing module.
+It is a static error if the `export` modifier appears on module definition at
+the program's top level, i.e., not enclosed within the body of another module
+definition.
 
 The circuits exported at the top level of a contract (i.e., not merely exported
 from a module) are the entry points of the contract and may not take generic
@@ -1027,7 +1064,28 @@ export type S<T> = { v: T[]; curidx: bigint }
 Ledger field names exported from the top level are visible for direct inspection
 by code outside of the contract via the generated TypeScript `ledger()` function.
 
-## Declaring witnesses for private state
+## Include files
+
+Compact allows programs and modules to be split into multiple files and spliced
+togther via `include` forms, which have the following syntax, where `file` is a
+string literal specifying a filesystem pathname for file to be included:
+
+<table className="lang-ref-table"><tbody><tr><td><em>include-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>include</tt></b>&nbsp;&nbsp;<a href="#constants"><em>file</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
+
+`file` can be an absolute pathname, one that is relative to the directory
+of the including file, or one that is relative to one of the directories in the
+compact path.
+Details on the search order and the mechanism for setting the compact path are
+given in [Compiler Usage](compiler-usage.md).
+
+It is a static error if the file is not present or cannot be read.
+If present and readable, the file must contain a sequence of syntactically
+valid program elements, and these elements are treated as if they had
+been present in the including file in place of the `include` form.
+
+## Declaring witnesses for private state management
+
+!!!!!!!! TBD
 
 Compact code can call code external to the zero-knowledge circuits to read
 and update private state via `witness` functions.

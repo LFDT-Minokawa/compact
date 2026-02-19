@@ -276,10 +276,10 @@
            `(program ,src ,pelt* ... ,eof)))])
     (Program-element (pelt)
       [program-element-pragma :: pragma-form => values]
-      [program-element-include :: include-form => values]
       [program-element-module-definition :: module-definition => values]
       [program-element-import-declaration :: import-form => values]
       [program-element-export-declaration :: export-form => values]
+      [program-element-include :: include-form => values]
       [program-element-struct-declaration :: struct-declaration => values]
       [program-element-enum-declaration :: enum-declaration => values]
       [program-element-contract-declaration :: contract-declaration => values]
