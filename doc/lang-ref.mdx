@@ -183,7 +183,7 @@ circuit c(): Field {
   const answer = 42;
   {
     const answer = 12;
-    assert(answer != 42, "shadowing didn't work!");
+    assert(answer != 42, "shadowing did not work!");
   }
   return answer; // returns 42 (the outer 'answer')
 }
@@ -563,11 +563,11 @@ Such comparisons require one of the operands to be cast to the type of the other
 
 Both structural and nominal type aliases can take generic parameters, e.g.:
 ```compact
-type V3<T> = Vector<3, T>
+type V3<T> = Vector<3, T>;
 ```
 and
 ```compact
-new type VField<#N> = Vector<N, Field>
+new type VField<#N> = Vector<N, Field>;
 ```
 When a generic nominal type is specialized, the specialized type is a nominal type.
 
@@ -1077,6 +1077,8 @@ set of predefined [ledger state types](#ledger-state-types)
 For instance:
 
 ```compact
+import CompactStandardLibrary;
+
 ledger val: Field;
 export ledger cnt: Counter;
 sealed ledger u8list: List<Uint<8>>;
@@ -1146,15 +1148,15 @@ import CompactStandardLibrary;
 ledger fld: Map<Boolean, Map<Field, Counter>>;
 
 export circuit initNestedMap(b: Boolean): [] {
-  fld.insert(b, default<Map<Field, Counter>>);
+  fld.insert(disclose(b), default<Map<Field, Counter>>);
 }
 
 export circuit initNestedCounter(b: Boolean, n: Field): [] {
-  fld.lookup(b).insert(n, default<Counter>);
+  fld.lookup(b).insert(disclose(n), default<Counter>);
 }
 
 export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {
-  fld.lookup(b).lookup(n).increment(k);
+  fld.lookup(b).lookup(n).increment(disclose(k));
 }
 
 export circuit readNestedCounter1(b: Boolean, n: Field): Uint<64> {
@@ -1204,7 +1206,7 @@ code snippets hard. Same goes for the code snippet right after this one.
    ```compact
    export circuit initNestedMap(b: Boolean): [] {
      const t = default<Map<Field, Counter>>;
-     fld.insert(b, t);
+     fld.insert(disclose(b), t);
    }
    ```
 
@@ -1224,11 +1226,11 @@ sealed ledger field1: Uint<32>;
 export sealed ledger field2: Uint<32>;
 
 circuit init(x: Uint<32>): [] {
-  field2 = x;
+  field2 = disclose(x);
 }
 
 constructor(x: Uint<16>) {
-  field1 = 2 * x;
+  field1 = 2 * disclose(x);
   init(x);
 }
 ```

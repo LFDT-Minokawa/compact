@@ -63426,7 +63426,7 @@ groups than for single tests.
       "  const answer = 42;"
       "  {"
       "    const answer = 12;"
-      "    assert(answer != 42, 'shadowing did not work!');" ;; fixed
+      "    assert(answer != 42, 'shadowing did not work!');"
       "  }"
       "  return answer; // returns 42 (the outer 'answer')"
       "}"
@@ -63528,14 +63528,14 @@ groups than for single tests.
 
   (test
     '(
-      "type V3<T> = Vector<3, T>;" ;; fixed
+      "type V3<T> = Vector<3, T>;"
       )
     (succeeds)
     )
 
   (test
     '(
-      "new type VField<#N> = Vector<N, Field>;" ;; fixed
+      "new type VField<#N> = Vector<N, Field>;"
       )
     (succeeds)
     )
@@ -63813,7 +63813,7 @@ groups than for single tests.
 
   (test
     '(
-      "import CompactStandardLibrary;" ;; fixed
+      "import CompactStandardLibrary;"
       "ledger val: Field;"
       "export ledger cnt: Counter;"
       "sealed ledger u8list: List<Uint<8>>;"
@@ -63829,15 +63829,15 @@ groups than for single tests.
       "ledger fld: Map<Boolean, Map<Field, Counter>>;"
       ""
       "export circuit initNestedMap(b: Boolean): [] {"
-      "  fld.insert(disclose(b), default<Map<Field, Counter>>);" ;; fixed
+      "  fld.insert(disclose(b), default<Map<Field, Counter>>);"
       "}"
       ""
       "export circuit initNestedCounter(b: Boolean, n: Field): [] {"
-      "  fld.lookup(b).insert(disclose(n), default<Counter>);" ;; fixed
+      "  fld.lookup(b).insert(disclose(n), default<Counter>);"
       "}"
       ""
       "export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {"
-      "  fld.lookup(b).lookup(n).increment(disclose(k));" ;; fixed
+      "  fld.lookup(b).lookup(n).increment(disclose(k));"
       "}"
       ""
       "export circuit readNestedCounter1(b: Boolean, n: Field): Uint<64> {"
@@ -63874,7 +63874,7 @@ groups than for single tests.
       ""
       "export circuit initNestedMap(b: Boolean): [] {"
       "  const t = default<Map<Field, Counter>>;"
-      "  fld.insert(disclose(b), t);" ;; fixed
+      "  fld.insert(disclose(b), t);"
       "}"
       )
     (succeeds)
@@ -63886,11 +63886,11 @@ groups than for single tests.
       "export sealed ledger field2: Uint<32>;"
       ""
       "circuit init(x: Uint<32>): [] {"
-      "  field2 = disclose(x);" ;; fixed
+      "  field2 = disclose(x);"
       "}"
       ""
       "constructor(x: Uint<16>) {"
-      "  field1 = 2 * disclose(x);" ;; fixed
+      "  field1 = 2 * disclose(x);"
       "  init(x);"
       "}"
       )
