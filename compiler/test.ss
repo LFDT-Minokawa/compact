@@ -6953,6 +6953,88 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 1" "failed to locate file ~s: possibly replace include with import CompactStandardLibrary" ("std.compact")))
     )
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/a.compact"
+       '(
+         "export type A = Field;"
+         ))
+     (succeeds))
+    ((create-file "project/b.compact"
+       '(
+         "include 'a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (returns
+       (program
+         (typedef #t #f A () (tfield))
+         (circuit #t #f foo () ([x (type-ref A)])
+              (type-ref A)
+           (block (return (+ x 5))))))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("a.compact")))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("compiler/testdir/a.compact")))
+     ))
+
+  ; issue 139
+ (with-compact-path '(".")
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
+     ))
+  )
 )
 
 (run-tests expand-const
@@ -13326,6 +13408,89 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 23" "range end for Uint type is ~d but must be at least 1 (the range end is exclusive)" (0)))
     )
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/a.compact"
+       '(
+         "module a {"
+         " export type A = Field;"
+         "}"
+         ))
+     (succeeds))
+    ((create-file "project/b.compact"
+       '(
+         "import a;"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (returns
+       (program ((foo %foo.0))
+         (circuit %foo.0 ([%x.1 (talias #f A (tfield))])
+              (talias #f A (tfield))
+           (+ %x.1 5))))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import a;"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("a.compact")))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("compiler/testdir/a.compact")))
+     ))
+
+  ; issue 139
+ (with-compact-path '(".")
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
+     ))
+  )
 )
 
 (run-tests infer-types
