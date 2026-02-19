@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased toolchain 0.29.104, language 0.21.101, runtime 0.14.101]
+
+### Added
+
+- The generated TypeScript now includes a `ProvableCircuits<PS>` type and a
+  `provableCircuits` field on the `Contract` class.  `ProvableCircuits` contains
+  only the circuits that have verifier keys (i.e., circuits that appear in the
+  flattened circuit IR and produce ZKIR files).  This distinguishes them from
+  impure circuits that only call witnesses without touching the ledger.
+
+### Fixed
+
+- `setOperation` is now emitted only for provable circuits (those in
+  `proof-circuit-name*`) rather than for all impure circuits.  Previously,
+  witness-only impure circuits such as `compute_only` caused the runtime to look
+  for a verifier key that does not exist.
+
 ## [Unreleased toolchain 0.29.103, language 0.21.101, runtime 0.14.101]
 
 ### Changed
