@@ -63416,6 +63416,578 @@ groups than for single tests.
   )
 )
 
+; tests of code snippets in lang-ref
+; TODO search in test.ss to find the lang-ref tests and move them here
+(run-tests print-typescript
+  ; change: " --> ' for message of assert
+  (test
+    '(
+      "circuit c(): Field {"
+      "  const answer = 42;"
+      "  {"
+      "    const answer = 12;"
+      "    assert(answer != 42, 'shadowing did not work!');" ;; fixed
+      "  }"
+      "  return answer; // returns 42 (the outer 'answer')"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module M<T, #N> {"
+      "  export circuit foo<A>(x: T, v: Vector<N, A>): Vector<N, [A, T]> {"
+      "    return map((y) => [y, x], v);"
+      "  }"
+      "}"
+      "import M<Boolean, 3>;"
+      "export circuit bar1(): Vector<3, [Uint<8>, Boolean]> {"
+      "  return foo<Uint<8>>(true, [101, 103, 107]);"
+      "}"
+      "export circuit bar2(): Vector<3, [Boolean, Boolean]> {"
+      "  return foo<Boolean>(false, [true, false, true]);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct Thing {"
+      "  triple: Vector<3, Field>,"
+      "  flag: Boolean,"
+      "}"
+      ""
+      "struct NumberAnd<T> {"
+      "  num: Uint<32>;"
+      "  item: T"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct NumberAnd {"
+      "  num: Uint<32>;"
+      "  item: Uint<8>"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module M {"
+      "  struct NumberAnd {"
+      "    num: Uint<32>;"
+      "    item: Uint<8>"
+      "  }"
+      "  export circuit bar(x: NumberAnd): NumberAnd {"
+      "    return x;"
+      "  }"
+      "}"
+      "import M;"
+      "struct NumberAnd<T> {"
+      "  num: Uint<32>;"
+      "  item: T"
+      "}"
+      "export circuit foo(x: NumberAnd<Uint<8>>): NumberAnd<Uint<8>> {"
+      "  return bar(x);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct Even {"
+      "  predecessor: Odd"
+      "}"
+      ""
+      "struct Odd {"
+      "  predecessor: Even"
+      "}"
+      ""
+      "export circuit doesntWork(s: Even): Odd {"
+      "  return s.predecessor;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 16" "cycle involving ~a~?" ("type" "~#[~; ~a~;s ~a and ~a~:;s~@{~#[~; and~] ~a~^,~}~]" (Odd Even))))
+    )
+
+  (test
+    '(
+      "enum Arrow { up, down, left, right };"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "type V3<T> = Vector<3, T>;" ;; fixed
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "new type VField<#N> = Vector<N, Field>;" ;; fixed
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "circuit sumTuple(x: [Field, Field]): Field {"
+      "  const a = x[0], b = x[1];"
+      "  return a + b;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "circuit sumTuple(x: [Field, Field]): Field {"
+      "  const [a, b] = x;"
+      "  return a + b;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "circuit sumTuple([a, b]: [Field, Field]): Field {"
+      "  return a + b;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumStruct({x, y}: S): Field {"
+      "  return x + y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumStruct({y, x}: S): Field {"
+      "  return x + y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumStruct({x: a, y}: S): Field {"
+      "  return a + y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumTupleStruct([{x: a1, y: b1}, {x: a2, y: b2}]: [S, S]): Field {"
+      "  return a1 + b1 + a2 + b2;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; TODO what's the purpose of this test, doesn't make sense
+  ;; (test
+  ;;   '(
+  ;;     "struct S { x: Uint<16>, y: Uint<32> }"
+  ;;     "circuit sumSomeYs([{y: b1}, , {y: b3}]: [S, S, S]): Field {"
+  ;;     "  return a1 + a3;"
+  ;;     "}"
+  ;;     )
+  ;;   (succeeds)
+  ;;   )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumStruct({x, y}: [Field, Field]): Field {"
+      "  return x + y;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 19" "expected structure type, received ~a" ("[Field, Field]")))
+    )
+
+  ; TODO check what's the purpose of this test
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumSomeYs([{y: b1}, , , {y: b3}]: [S, S, S]): Field {"
+      "  return a1 + a3;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 15" "unbound identifier ~s" (a3)))
+    ;; (fails)
+    )
+
+  ; TODO check what's the purpose of this test
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumSomeYs([{y: b1}, , {z: b3}]: [S, S, S]): Field {"
+      "  return a1 + a3;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 15" "unbound identifier ~s" (a3)))
+    ;; (fails)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {"
+      "  return b1 + b3;" ;; fixed
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; TODO fix the module and import examples
+  ;; (test
+  ;;   '(
+  ;;     "module M {"
+  ;;     "  export { G };"
+  ;;     "  export struct S { x: Uint<16>, y: Boolean }"
+  ;;     "  circuit F(s: S): Boolean {"
+  ;;     "    return s.y;"
+  ;;     "  }"
+  ;;     "  circuit G(s: S): Uint<16> {"
+  ;;     "    return F(s) ? s.x : 0;"
+  ;;     "  }"
+  ;;     "}"
+  ;;     )
+  ;;   (succeeds)
+  ;;   )
+
+  ;; (test
+  ;;   '(
+  ;;     "module Runner {"
+  ;;     "  export circuit run(): [] {}"
+  ;;     "}"
+  ;;     "import Runner;"
+  ;;     "// run is now in scope"
+  ;;     "import Runner prefix SomePrefix_;"
+  ;;     "// SomePrefix_run is now in scope"
+  ;;     ""
+  ;;     "module Identity<T> {"
+  ;;     "  export { id }"
+  ;;     "  circuit id(x: T): T {"
+  ;;     "    return x;"
+  ;;     "  }"
+  ;;     "}"
+  ;;     "import Identity<Field>;"
+  ;;     "// id is now in scope, with Field as type T"
+  ;;     )
+  ;;   (succeeds)
+  ;;   )
+
+  ;; (test
+  ;;   '(
+  ;;     "module M {"
+  ;;     "  export { F };"
+  ;;     "  export struct S { x: Uint<16>, y: Boolean }"
+  ;;     "  circuit F(x: S): Boolean {"
+  ;;     "    return S.y;"
+  ;;     "  }"
+  ;;     "}"
+  ;;     "// circuit cant_exists() : [] {}"
+  ;;     "// If cant_exists is uncommented, the compiler will throw an error when compiling"
+  ;;     "// test.compact"
+  ;;     )
+  ;;   (succeeds)
+  ;;   )
+
+  ;; (test
+  ;;   '(
+  ;;     "//module M {"
+  ;;     "//  export { G };"
+  ;;     "//  export struct S { x: Uint<16>, y: Boolean }"
+  ;;     "//  circuit G(x: S): Boolean {"
+  ;;     "//    return S.y;"
+  ;;     "//  }"
+  ;;     "//}"
+  ;;     "// If M is uncommented, the compiler will import this module and not the one"
+  ;;     "// defined in M.compact. In this case, the compiler will throw an error for"
+  ;;     "// exporting F."
+  ;;     ""
+  ;;     "import M;"
+  ;;     "export { F };"
+  ;;     )
+  ;;   (succeeds)
+  ;;   )
+
+  ;; (test
+  ;;   '(
+  ;;     "module M {"
+  ;;     "  export { F };"
+  ;;     "  export struct S { x: Uint<16>, y: Boolean }"
+  ;;     "  circuit F(x: S): Boolean {"
+  ;;     "    return S.y;"
+  ;;     "  }"
+  ;;     "}"
+  ;;     )
+  ;;   (succeeds)
+  ;;   )
+
+  ;; (test
+  ;;   '(
+  ;;     "module M {"
+  ;;     "  export { F };"
+  ;;     "  export struct S { x: Uint<16>, y: Boolean }"
+  ;;     "  circuit F(x: S): Boolean {"
+  ;;     "    return S.y;"
+  ;;     "  }"
+  ;;     "}"
+  ;;     )
+  ;;   (succeeds)
+  ;;   )
+
+  ;; (test
+  ;;   '(
+  ;;     "module M {"
+  ;;     "  export { G };"
+  ;;     "  export struct S { x: Uint<16>, y: Boolean }"
+  ;;     "  circuit G(x: S): Boolean {"
+  ;;     "    return S.y;"
+  ;;     "  }"
+  ;;     "}"
+  ;;     ""
+  ;;     "import \"M\" prefix $;"
+  ;;     "// this imports M.compact and not the module M defined above"
+  ;;     ""
+  ;;     "import \"A/M\" prefix A_;"
+  ;;     ""
+  ;;     "export { $F"
+  ;;     "  ,A_F"
+  ;;     "//  ,$G"
+  ;;     "// uncommenting this will result in an error"
+  ;;     "  };"
+  ;;     )
+  ;;   (succeeds)
+  ;;   )
+
+  ; TODO add stage-js
+  ; 0 should be 1 but if it's 1 we still get an error. why
+  ; TODO fix
+  ;; (test
+  ;;   '(
+  ;;     "export struct S<#n, T> { v: Vector<n, T>; curidx: Uint<0..n> }"
+  ;;     )
+  ;;   (succeeds)
+  ;;   )
+
+  (test
+    '(
+      "witness something(x: Boolean): Field;"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;" ;; fixed
+      "ledger val: Field;"
+      "export ledger cnt: Counter;"
+      "sealed ledger u8list: List<Uint<8>>;"
+      "export sealed ledger mapping: Map<Boolean, Field>;"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger fld: Map<Boolean, Map<Field, Counter>>;"
+      ""
+      "export circuit initNestedMap(b: Boolean): [] {"
+      "  fld.insert(disclose(b), default<Map<Field, Counter>>);" ;; fixed
+      "}"
+      ""
+      "export circuit initNestedCounter(b: Boolean, n: Field): [] {"
+      "  fld.lookup(b).insert(disclose(n), default<Counter>);" ;; fixed
+      "}"
+      ""
+      "export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {"
+      "  fld.lookup(b).lookup(n).increment(disclose(k));" ;; fixed
+      "}"
+      ""
+      "export circuit readNestedCounter1(b: Boolean, n: Field): Uint<64> {"
+      "  return fld.lookup(b).lookup(n).read();"
+      "}"
+      ""
+      "export circuit readNestedCounter2(b: Boolean, n: Field): Uint<64> {"
+      "  return fld.lookup(b).lookup(n);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger fld: Map<Boolean, Map<Field, Counter>>;"
+      ""
+      "export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {"
+      "  fld.lookup(b); // ERROR: incomplete chain of indirects"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 6" "incomplete chain of ledger indirects: final result must be a regular type, but received ADT type ~a" ("Map<Field, Counter>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger fld: Map<Boolean, Map<Field, Counter>>;"
+      ""
+      "export circuit initNestedMap(b: Boolean): [] {"
+      "  const t = default<Map<Field, Counter>>;"
+      "  fld.insert(disclose(b), t);" ;; fixed
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "sealed ledger field1: Uint<32>;"
+      "export sealed ledger field2: Uint<32>;"
+      ""
+      "circuit init(x: Uint<32>): [] {"
+      "  field2 = disclose(x);" ;; fixed
+      "}"
+      ""
+      "constructor(x: Uint<16>) {"
+      "  field1 = 2 * disclose(x);" ;; fixed
+      "  init(x);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module PublicState {"
+      "  enum STATE { unset, set }"
+      "  ledger state: STATE;"
+      "  ledger value: Field;"
+      "  export circuit init(v: Field): [] {"
+      "    value = disclose(v);"
+      "    state = STATE.set;"
+      "  }"
+      "}"
+      ""
+      "import PublicState;"
+      ""
+      "constructor(v: Field) {"
+      "  init(v);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "pure circuit c(a: Field): Field {"
+      "  return a;"
+      "}"
+      ""
+      "export pure circuit c(a: Field): Field {"
+      "  return a;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; bad test
+  ;; (test
+  ;;   '(
+  ;;     "for (const i of <vector>) <statement>"
+  ;;     ""
+  ;;     "for (const i of <lower>..<upper>) <statement>"
+  ;;     )
+  ;;   (succeeds)
+  ;;   )
+
+  ; bad test
+  ;; (test
+    ;; '(
+    ;;   "if (testexpr)"
+    ;;   "  <statement>"
+    ;;   ""
+    ;;   "if (testexpr)"
+    ;;   "  <statement>"
+    ;;   "else"
+    ;;   "  <statement>"
+    ;;   )
+    ;; (succeeds)
+    ;; )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(): ContractAddress {"
+      "  return kernel.self();"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { a: Uint<32>, b: Boolean, c: Bytes<8> }"
+      "circuit f(x: Uint<32>, y: Boolean, z: Bytes<8>): S {"
+      "  const s1 = S { c: z, a: x, b: y };"
+      "  // Alternatively, s1 can be created with the positional syntax S { x, y, z }"
+      "  // or a mix of positional and named field values S { x, c: z, b: y }."
+      ""
+      "  const s2 = S { ...s1, b: true };"
+      "  // s2 is created using the spread syntax.  So, s2 has the same field values"
+      "  // as s1 except that b is true."
+      ""
+      "  const s3 = S { ...s2, c: 'abcdefgh' };"
+      "  // s3 is also created using the spread syntax.  s3 has the same field values"
+      "  // as s2 except that c is 'abcdefgh'."
+      ""
+      "  return s3;"
+      "}"
+      )
+    (succeeds)
+    )
+  )
+
 (with-parameter-values ([zkir-v3 #f #t])
 (run-tests print-typescript
   (test-group
