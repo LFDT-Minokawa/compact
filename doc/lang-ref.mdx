@@ -950,26 +950,26 @@ module M {
   export { F };
   export struct S { x: Uint<16>, y: Boolean }
   circuit F(x: S): Boolean {
-    return S.y;
+    return x.y;
   }
 }
 ```
 
 Then, `test1.compact` import `M` from `M.compact`:
 
-```compact title=test.compact
+```compact title=test1.compact
 import M;
 export { F };
 ```
 
 whereas `test2.compact` uses its own definition of `M`:
 
-```compact title=test.compact
+```compact title=test2.compact
 module M {
   export { G };
   export struct S { x: Uint<16>, y: Boolean }
   circuit G(x: S): Boolean {
-    return S.y;
+    return x.y;
   }
 }
 import M;
@@ -987,7 +987,7 @@ module M {
   export { F };
   export struct S { x: Uint<16>, y: Boolean }
   circuit F(x: S): Boolean {
-    return S.y;
+    return x.y;
   }
 }
 ```
@@ -999,7 +999,7 @@ module M {
   export { F };
   export struct S { x: Uint<16>, y: Boolean }
   circuit F(x: S): Boolean {
-    return S.y;
+    return x.y;
   }
 }
 ```
@@ -1012,7 +1012,7 @@ module M {
   export { F };
   export struct S { x: Uint<16>, y: Boolean }
   circuit F(x: S): Boolean {
-    return S.y;
+    return x.y;
   }
 }
 import M prefix M1$;

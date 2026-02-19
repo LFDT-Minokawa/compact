@@ -20912,7 +20912,6 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 7" "cannot cast from type ~a to type ~a" ("[Boolean, Boolean, Boolean, Boolean]" "Bytes<4>")))
     )
 
-  ; tests for writing lang ref for patterns
   (test
     '(
       "circuit unroll<T>([a, [b, c], d]: [T, [T, T], T]) : [T, T, T, T] {"
@@ -22072,7 +22071,6 @@ groups than for single tests.
       )
     (succeeds))
 
-  ; tests for writing lang ref of return
   (test
     '(
       "export circuit foo(): [] {}"
@@ -23221,45 +23219,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 10" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "[]" "circuit bar")))
-    )
-
-  ; lang-ref.mdx
-  (test
-    '(
-      "module M {"
-      "  struct NumberAnd {"
-      "    num: Uint<32>;"
-      "    item: Uint<8>"
-      "  }"
-      "  export circuit bar(x: NumberAnd): NumberAnd {"
-      "    return x;"
-      "  }"
-      "}"
-      "import M;"
-      "struct NumberAnd<T> {"
-      "  num: Uint<32>;"
-      "  item: T"
-      "}"
-      "export circuit foo(x: NumberAnd<Uint<8>>): NumberAnd<Uint<8>> {"
-      "  return bar(x);"
-      "}"
-      )
-    (returns
-      (program
-        (circuit %bar.0 ([%x.1 (tstruct NumberAnd
-                                 (num (tunsigned 4294967295))
-                                 (item (tunsigned 255)))])
-             (tstruct NumberAnd
-               (num (tunsigned 4294967295))
-               (item (tunsigned 255)))
-          %x.1)
-        (circuit %foo.2 ([%x.3 (tstruct NumberAnd
-                                 (num (tunsigned 4294967295))
-                                 (item (tunsigned 255)))])
-             (tstruct NumberAnd
-               (num (tunsigned 4294967295))
-               (item (tunsigned 255)))
-          (call %bar.0 %x.3))))
     )
 )
 
@@ -63417,7 +63376,6 @@ groups than for single tests.
 )
 
 ; tests of code snippets in lang-ref
-; TODO search in test.ss to find the lang-ref tests and move them here
 (run-tests print-typescript
   ; change: " --> ' for message of assert
   (test
@@ -63449,7 +63407,14 @@ groups than for single tests.
       "  return foo<Boolean>(false, [true, false, true]);"
       "}"
       )
-    (succeeds)
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.bar1(Ctxt).result).toEqual([[101n, true], [103n, true], [107n, true]]);"
+        "  expect(C.circuits.bar2(Ctxt).result).toEqual([[true, false], [false, false], [true, false]]);"
+        "});"
+        ))
     )
 
   (test
@@ -63659,135 +63624,87 @@ groups than for single tests.
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
       "circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {"
-      "  return b1 + b3;" ;; fixed
+      "  return b1 + b3;"
       "}"
       )
     (succeeds)
     )
 
-  ; TODO fix the module and import examples
-  ;; (test
-  ;;   '(
-  ;;     "module M {"
-  ;;     "  export { G };"
-  ;;     "  export struct S { x: Uint<16>, y: Boolean }"
-  ;;     "  circuit F(s: S): Boolean {"
-  ;;     "    return s.y;"
-  ;;     "  }"
-  ;;     "  circuit G(s: S): Uint<16> {"
-  ;;     "    return F(s) ? s.x : 0;"
-  ;;     "  }"
-  ;;     "}"
-  ;;     )
-  ;;   (succeeds)
-  ;;   )
+  (test-group
+    ((create-file "M.compact"
+       '(
+         "module M {"
+         "  export { G };"
+         "  export struct S { x: Uint<16>, y: Boolean }"
+         "  circuit G(x: S): Boolean {"
+         "    return x.y;"
+         "  }"
+         "}"
+         ))
+      (succeeds))
+    ((create-file "test1.compact"
+       '(
+         "import M;"
+         "export { G };"
+         ))
+     (succeeds))
+    )
 
-  ;; (test
-  ;;   '(
-  ;;     "module Runner {"
-  ;;     "  export circuit run(): [] {}"
-  ;;     "}"
-  ;;     "import Runner;"
-  ;;     "// run is now in scope"
-  ;;     "import Runner prefix SomePrefix_;"
-  ;;     "// SomePrefix_run is now in scope"
-  ;;     ""
-  ;;     "module Identity<T> {"
-  ;;     "  export { id }"
-  ;;     "  circuit id(x: T): T {"
-  ;;     "    return x;"
-  ;;     "  }"
-  ;;     "}"
-  ;;     "import Identity<Field>;"
-  ;;     "// id is now in scope, with Field as type T"
-  ;;     )
-  ;;   (succeeds)
-  ;;   )
+  (test
+    '(
+      "module M {"
+      "  export { F };"
+      "  export struct S { x: Uint<16>, y: Boolean }"
+      "  circuit F(x: S): Boolean {"
+      "    return x.y;"
+      "  }"
+      "}"
+      "import M;"
+      "export { F };"
+      )
+    (succeeds)
+    )
 
-  ;; (test
-  ;;   '(
-  ;;     "module M {"
-  ;;     "  export { F };"
-  ;;     "  export struct S { x: Uint<16>, y: Boolean }"
-  ;;     "  circuit F(x: S): Boolean {"
-  ;;     "    return S.y;"
-  ;;     "  }"
-  ;;     "}"
-  ;;     "// circuit cant_exists() : [] {}"
-  ;;     "// If cant_exists is uncommented, the compiler will throw an error when compiling"
-  ;;     "// test.compact"
-  ;;     )
-  ;;   (succeeds)
-  ;;   )
-
-  ;; (test
-  ;;   '(
-  ;;     "//module M {"
-  ;;     "//  export { G };"
-  ;;     "//  export struct S { x: Uint<16>, y: Boolean }"
-  ;;     "//  circuit G(x: S): Boolean {"
-  ;;     "//    return S.y;"
-  ;;     "//  }"
-  ;;     "//}"
-  ;;     "// If M is uncommented, the compiler will import this module and not the one"
-  ;;     "// defined in M.compact. In this case, the compiler will throw an error for"
-  ;;     "// exporting F."
-  ;;     ""
-  ;;     "import M;"
-  ;;     "export { F };"
-  ;;     )
-  ;;   (succeeds)
-  ;;   )
-
-  ;; (test
-  ;;   '(
-  ;;     "module M {"
-  ;;     "  export { F };"
-  ;;     "  export struct S { x: Uint<16>, y: Boolean }"
-  ;;     "  circuit F(x: S): Boolean {"
-  ;;     "    return S.y;"
-  ;;     "  }"
-  ;;     "}"
-  ;;     )
-  ;;   (succeeds)
-  ;;   )
-
-  ;; (test
-  ;;   '(
-  ;;     "module M {"
-  ;;     "  export { F };"
-  ;;     "  export struct S { x: Uint<16>, y: Boolean }"
-  ;;     "  circuit F(x: S): Boolean {"
-  ;;     "    return S.y;"
-  ;;     "  }"
-  ;;     "}"
-  ;;     )
-  ;;   (succeeds)
-  ;;   )
-
-  ;; (test
-  ;;   '(
-  ;;     "module M {"
-  ;;     "  export { G };"
-  ;;     "  export struct S { x: Uint<16>, y: Boolean }"
-  ;;     "  circuit G(x: S): Boolean {"
-  ;;     "    return S.y;"
-  ;;     "  }"
-  ;;     "}"
-  ;;     ""
-  ;;     "import \"M\" prefix $;"
-  ;;     "// this imports M.compact and not the module M defined above"
-  ;;     ""
-  ;;     "import \"A/M\" prefix A_;"
-  ;;     ""
-  ;;     "export { $F"
-  ;;     "  ,A_F"
-  ;;     "//  ,$G"
-  ;;     "// uncommenting this will result in an error"
-  ;;     "  };"
-  ;;     )
-  ;;   (succeeds)
-  ;;   )
+  (test-group
+    ((create-file "M.compact"
+       '(
+         "module M {"
+         "  export { F };"
+         "  export struct S { x: Uint<16>, y: Boolean }"
+         "  circuit F(x: S): Boolean {"
+         "    return x.y;"
+         "  }"
+         "}"
+         ))
+      (succeeds))
+    ((create-file "A/M.compact"
+       '(
+         "module M {"
+         "  export { F };"
+         "  export struct S { x: Uint<16>, y: Boolean }"
+         "  circuit F(x: S): Boolean {"
+         "    return x.y;"
+         "  }"
+         "}"
+         ))
+      (succeeds))
+    ((create-file "test.compact"
+       '(
+         "module M {"
+         "  export { F };"
+         "  export struct S { x: Uint<16>, y: Boolean }"
+         "  circuit F(x: S): Boolean {"
+         "    return x.y;"
+         "  }"
+         "}"
+         "import M prefix M1$;"
+         "import 'M' prefix M2$;"
+         "import 'A/M' prefix M3$;"
+         ""
+         "export { M1$F, M2$F, M3$F };"
+         ))
+     (succeeds))
+    )
 
   (test
     '(
@@ -63978,6 +63895,7 @@ groups than for single tests.
       )
     (succeeds)
     )
+
   )
 
 (with-parameter-values ([zkir-v3 #f #t])
@@ -79066,32 +78984,6 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of NativePoint current as of the creation of this test"
         "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual({x: 7n, y: 3n});"
-        "});"
-        ))
-    )
-
-  ; lang-ref.mdx
-  (test
-    '(
-      "module M<T, #N> {"
-      "  export circuit foo<A>(x: T, v: Vector<N, A>): Vector<N, [A, T]> {"
-      "    return map((y) => [y, x], v);"
-      "  }"
-      "}"
-      "import M<Boolean, 3>;"
-      "export circuit bar1(): Vector<3, [Uint<8>, Boolean]> {"
-      "  return foo<Uint<8>>(true, [101, 103, 107]);"
-      "}"
-      "export circuit bar2(): Vector<3, [Boolean, Boolean]> {"
-      "  return foo<Boolean>(false, [true, false, true]);"
-      "}"
-      )
-    (stage-javascript
-      `(
-        "test('check 1', () => {"
-        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar1(Ctxt).result).toEqual([[101n, true], [103n, true], [107n, true]]);"
-        "  expect(C.circuits.bar2(Ctxt).result).toEqual([[true, false], [false, false], [true, false]]);"
         "});"
         ))
     )
