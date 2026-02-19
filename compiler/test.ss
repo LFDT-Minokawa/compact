@@ -78589,6 +78589,29 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "export type UX<#n> = Uint<n>;"
+      "export type UY<#n> = Uint<0..n>;"
+      "export struct SX<#n, T> { curidx: Uint<n> }"
+      "export struct SY<#n, T> { curidx: Uint<0..n> }"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts" #f)
+    )
+
+  ;; (test
+  ;;   '(
+  ;;     ;; "module M<#n> { "
+  ;;     ;; "  export type UX = Uint<n>;"
+  ;;     ;; "  export type UY = Uint<0..n>;"
+  ;;     "  circuit foo<#m>(x: Uint<m>): Uint<m> { return x; }"
+  ;;     "  export circuit specilaize_foo (x: Uint<5>) : Uint<5> { return foo<5>(default<Uint<5>>); }"
+  ;;     ;; "}"
+  ;;     ;; "import M<4>;"
+  ;;     )
+  ;;   (output-file "compiler/testdir/contract/index.d.ts" #f)
+  ;;   )
 )
 
 (run-javascript)
