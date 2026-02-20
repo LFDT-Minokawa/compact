@@ -38,16 +38,22 @@
   (define source-file-name (make-parameter #f))
 
   (define (find-source-pathname src pathname err)
+    (define (try pathname)
+      (let ([ex? (file-exists? pathname)])
+        (when (trace-search)
+          (fprintf (current-error-port) "looking for ~a...~a\n"
+            pathname
+            (if ex? "found" "not found")))
+        (and ex? pathname)))
     (let ([pathname (format "~a.compact" pathname)])
-      (or (and (file-exists? pathname) pathname)
-          (and (not (path-absolute? pathname))
-               (ormap
-                 (lambda (dir)
-                   (let ([pathname (format "~a/~a" dir pathname)])
-                     (and (file-exists? pathname) pathname)))
-                 (if (relative-path)
-                     (cons (relative-path) (compact-path))
-                     (compact-path))))
+      (or (if (path-absolute? pathname)
+              (try pathname)
+              (ormap
+                (lambda (dir)
+                  (try (if (equal? dir "")
+                           pathname
+                           (format "~a/~a" dir pathname))))
+                (cons (assert (relative-path)) (compact-path))))
           (err pathname))))
 
   (define contract-ht (make-parameter #f))
