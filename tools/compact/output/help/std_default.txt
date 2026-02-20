@@ -4,8 +4,8 @@ Usage: compact [OPTIONS] <COMMAND>
 
 Commands:
   check    Check for updates with the remote server [aliases: ch]
-  update   Update to the latest or a specific version of the Compact toolchain [aliases: u]
-  format   Format compact files [aliases: fmt]
+  update   Update to the latest or a specific version of the Compact toolchain [aliases: u, up]
+  format   Format compact files [aliases: fmt, f]
   fixup    Apply fixup transformations to compact files [aliases: fx]
   list     List available compact versions [aliases: l]
   clean    Remove all compact versions [aliases: cl]

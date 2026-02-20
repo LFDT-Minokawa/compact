@@ -75,10 +75,10 @@ pub enum Command {
     /// version to the installed one.
     ///
     /// If the compiler was already downloaded it is not downloaded again
-    #[command(verbatim_doc_comment, visible_alias = "u")]
+    #[command(verbatim_doc_comment, visible_alias = "u", visible_alias = "up")]
     Update(UpdateCommand),
 
-    #[command(visible_alias = "fmt")]
+    #[command(visible_alias = "fmt", visible_alias = "f")]
     Format(FormatCommand),
 
     #[command(visible_alias = "fx")]
