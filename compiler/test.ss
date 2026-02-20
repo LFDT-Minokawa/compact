@@ -63766,7 +63766,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness W(x: Uint<64>): Uint<32>;"
+      "witness W(x: Uint<16>): Bytes<32>;"
       )
     (succeeds)
     )
@@ -63778,6 +63778,65 @@ groups than for single tests.
       "export ledger cnt: Counter;"
       "sealed ledger u8list: List<Uint<8>>;"
       "export sealed ledger mapping: Map<Boolean, Field>;"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "ledger F: Uint<16>;"
+      "export circuit putF(x: Uint<16>): [] {"
+      "  F.write(disclose(x));"
+      "}"
+      "export circuit getF(): Uint<16> {"
+      "  return F.read();"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "ledger F: Uint<16>;"
+      "export circuit putF(x: Uint<16>): [] {"
+      "  F = disclose(x);"
+      "}"
+      "export circuit getF(): Uint<16> {"
+      "  return F;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Counter;"
+      "export circuit incrF(): [] {"
+      "  F += 1;"
+      "}"
+      "export circuit decrF(): [] {"
+      "  F -= 1;"
+      "}"
+      "export circuit getF(): Uint<64> {"
+      "  return F;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "ledger F: Uint<64>;"
+      "export circuit incrF(): [] {"
+      "  F = F + 1 as Uint<64>;"
+      "}"
+      "export circuit decrF(): [] {"
+      "  F = F - 1;"
+      "}"
+      "export circuit getF(): Uint<64> {"
+      "  return F;"
+      "}"
       )
     (succeeds)
     )

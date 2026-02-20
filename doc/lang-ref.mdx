@@ -286,14 +286,14 @@ incorrectly typed value.
 If an optional type annotation is omitted, the compiler attempts to infer a type
 and it rejects the program if no such type can be inferred.
 
-Types consist of built-in primitive types, ledger state types, program-defined types
+Types consist of built-in primitive types, ledger-state types, program-defined types
 defined in the program, and references to generic type parameters in scope.
 When the term "type" occurs in this document without any other qualifier, it means
-either a primitive type, ledger state type, a program-defined type, or a generic type
+either a primitive type, ledger-state type, a program-defined type, or a generic type
 parameter in scope.
-The use of ledger state types is, at present, limited to typing the result of using
+The use of ledger-state types is, at present, limited to typing the result of using
 `default` to obtain the default value of the type, and only constant bindings
-can have a ledger state type.
+can have a ledger-state type.
 
 A generic type is not a valid type and so cannot, for example, be used as the
 type of a parameter or return value.
@@ -647,10 +647,6 @@ In its simplest form, a pattern is just an identifier.
 For example, in the code below, the parameter of `sumTuple` is the identifier
 `x` and the targets of the two const bindings are the identifiers `a` and `b`.
 
-!!!!!!!! TBD test the examples in this section. mark them in test.ss as lang-ref ex and put them in print-ts that is specifically for lang-ref.
-There are two examples in test.ss add the rest. add stage-js when possible. tag lang-ref.mdx. search for tag and lang ref.
-include all examples, failing, succeeding, one liners, in compact snippet.
-
 ```compact
 circuit sumTuple(x: [Field, Field]): Field {
   const a = x[0], b = x[1];
@@ -713,7 +709,7 @@ circuit sumStruct({x: a, y}: S): Field {
 ```
 
 While `x: a` looks like an identifier with a type annotation, in this context
-it simply indicates that `a` rather than `x` will be bound to the value in the
+it simply indicates that `a` rather than `x` is bound to the value in the
 `x` field.
 
 Patterns can be arbitrarily nested, e.g.:
@@ -874,8 +870,6 @@ Exporting a binding from a module has no effect unless the module is imported.
 
 ### Imports
 
-!!!!!!!! TBD
-
 A module can be imported into another module or into the program top level, making
 some or all of its exported bindings visible there, potentially with a prefix.
 
@@ -1024,7 +1018,7 @@ export { M1$F, M2$F, M3$F };
 
 Compact's standard library can be imported by `import CompactStandardLibrary`.
 The standard library defines a number of useful types and circuits along with
-ledger state types such as `Counter`, `Map`, and `MerkleTree`.
+ledger-state types such as `Counter`, `Map`, and `MerkleTree`.
 
 ### Top-level exports
 
@@ -1117,7 +1111,7 @@ witness W(x: Uint<16>): Bytes<32>;
 ```
 
 defines a witness `W`, to which the contract provides a 16-bit unsigned value
-and from which the contract receives 32 bytes of some private data.
+and from which the contract receives 32 bytes of some presumably private data.
 
 :::danger
 
@@ -1141,7 +1135,7 @@ top level.
 <table className="lang-ref-table"><tbody><tr><td><em>ledger-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>sealed</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
 A ledger declaration binds a ledger field name to one of a
-set of predefined [ledger state types](#ledger-state-types)
+set of predefined [ledger-state types](#ledger-state-types)
 For instance:
 
 ```compact
@@ -1153,22 +1147,20 @@ sealed ledger u8list: List<Uint<8>>;
 export sealed ledger mapping: Map<Boolean, Field>;
 ```
 
-### Ledger state types
+### Ledger-state types
 
-The following *ledger state types* are supported.
+The following *ledger-state types* are supported.
 
-- `T`, for any Compact type `T`
+- `T`, for any regular Compact type `T`
 - `Counter`
 - `Set<T>`, for any Compact type `T`
 - `Map<K, T>`, for any Compact types `K` and `T`
-- `Map<K, V>`, for any Compact type `K` and ledger state type `V` (see the following section)
+- `Map<K, V>`, for any Compact type `K` and ledger-state type `V` (see the following section)
 - `List<T>`, for any Compact type `T`
 - `MerkleTree<n, T>`, for a compile time integer `1 < n <= 32`, and any Compact
   type `T`
 - `HistoricMerkleTree<n, T>`, for a compile time integer `1 < n <= 32`, and any
   Compact type `T`
-
-!!!!!!!! TBD
 
 Each ledger type supports a set of operations, which can be invoked with
 
@@ -1177,34 +1169,88 @@ Each ledger type supports a set of operations, which can be invoked with
 ```
 
 A ledger field that is declared with a Compact type `T` implicitly has the type
-`Cell<T>`. `Cell` has operations such as `read`, `write`, and `reset_to_default`.
-
-The `read` and `write` operations for the `Cell` type of any Compact type `T` have syntactic
-sugar. If `x` is a field in the ledger of any Compact type, then you may write
-
-```compact
-x       // expression equivalent to x.read()
-x = val // statement equivalent to x.write(val)
-```
-
-The `read`, `increment`, and `decrement` operations of type `Counter` type also
-have syntactic sugar.  If `c` is a `Counter` field in the ledger, then you may write
+`Cell<T>`, which supports several operations, including `read`, `write`, and
+`reset_to_default`.
+For example:
 
 ```compact
-c        // expression equivalent to c.read()
-c += val // statement equivalent to c.increment(val)
-c -= val // statement equivalent to c.decrement(val)
+ledger F: Uint<16>;
+export circuit putF(x: Uint<16>): [] {
+  F.write(disclose(x));
+}
+export circuit getF(): Uint<16> {
+  return F.read();
+}
 ```
+
+The `read` operation of the `Cell` ledger-state type can be abbreviated to,
+simply, a reference to the field name, and the `write` operation can be abbreviated
+to an assignment of the form `<field name> = expr`.
+So the above can be written more simply as:
+
+```compact
+ledger F: Uint<16>;
+export circuit putF(x: Uint<16>): [] {
+  F = disclose(x);
+}
+export circuit getF(): Uint<16> {
+  return F;
+}
+```
+
+The `read` operation of the `Counter` type can be abbreviated in the same way,
+and its `increment` and `decrement` operations can be abbreviated to assignments
+of the form `<field name> += expr` and `<field name> -= expr`.
+For example:
+
+```compact
+import CompactStandardLibrary;
+ledger F: Counter;
+export circuit incrF(): [] {
+  F += 1;
+}
+export circuit decrF(): [] {
+  F -= 1;
+}
+export circuit getF(): Uint<64> {
+  return F;
+}
+```
+
+The ledger-state types are designed in to minimize the extent to which a circuit
+proof depends upon the exact value of a ledger-state field as of when a transaction
+is created to minimize the chance of the transaction being rejected when the
+proof is checked on chain.
+For example, `Counter` increment and decrement do not commit to the current value
+of the counter.
+While the preceding example could be written a Cell instead:
+
+```compact
+ledger F: Uint<64>;
+export circuit incrF(): [] {
+  F = F + 1 as Uint<64>;
+}
+export circuit decrF(): [] {
+  F = F - 1;
+}
+export circuit getF(): Uint<64> {
+  return F;
+}
+```
+
+A call to `incrF` or `decrF` involves an explicit read of `F`, and if `F` does
+not have the same value when the proof is checked as when the transaction is
+created, the proof fails and the transaction is rejected.
 
 A comprehensive description of ledger-state types and operations can be found in
 the Compact [ledger data type documentation](./ledger-adt).
 
 ### Nested state types in the `Map` type
 
-The only ledger state type in which values of other state types may be
-held is `Map`.  The key values in a `Map` must be non-state types
-(simple Compact types), but the mapped values may be counters, sets,
-lists, other maps, and so on.
+The only ledger-state type in which values of other state types may be held is
+`Map`.
+The key values in a `Map` must be regular Compact types, but the mapped values
+may be counters, sets, lists, other maps, and so on.
 
 Here is a small example:
 
@@ -1245,17 +1291,13 @@ In this example,
 Notes:
 
 1. Nesting is permitted only within `Map` values.  That is, nesting is not permitted in
-   `Map` keys or within any ledger state type other than `Map`.
+   `Map` keys or within any ledger-state type other than `Map`.
 2. Nested values must be initialized before first use.  The syntax `default<T>`
-   is used to create default ledger state type values, just as it can be used to
+   is used to create default ledger-state type values, just as it can be used to
    create default Compact type values.
 3. Ledger state type values are not first-class objects, so when
    accessing a nested value, the entire indirection chain must be
-   used.  For example, the following will result in a compiler error:
-
-!!!!!!!!!!! TBD similarly code snippets such as this are missing some context, e.g., fld is
-undefined if we just use the code snippet below. This again makes automating testing these
-code snippets hard. Same goes for the code snippet right after this one.
+   used.  For example, the following results in a compiler error:
 
    ```compact
    export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {
@@ -1266,7 +1308,7 @@ code snippets hard. Same goes for the code snippet right after this one.
    explicit `read()` indirect, as illustrated by the definitions of
    `readNestedCounter1` and `readNestedCounter2` above, which have the
    same behavior.
-5. For convenience, local variables can hold default ledger state type values,
+5. For convenience, local variables can hold default values of ledger-state types,
    so the following definition of `initNestedMap` is equivalent to the one
    above.
    ```compact
@@ -1278,14 +1320,14 @@ code snippets hard. Same goes for the code snippet right after this one.
 
 ### Sealed and unsealed ledger fields
 
-Any ledger field can be optionally marked *sealed* by prefixing the
-ledger field declaration with the keyword `sealed`.  A sealed field
-cannot be set except during contract initialization.  That is, its
+Any ledger field can be marked *sealed* by prefixing the ledger field declaration
+with the optional modifier `sealed`.
+A sealed field cannot be set except during contract initialization.  That is, its
 value can be modified only by the contract constructor (if any),
 either directly within the body of the constructor or via helper
-circuits called by the constructor. The `sealed` keyword must come after
-the `export` keyword (if present) and before the `ledger` keyword, as
-in the following example:
+circuits called by the constructor.
+The `sealed` keyword must come after the `export` keyword (if present) and before
+the `ledger` keyword, as in the following example:
 
 ```compact
 sealed ledger field1: Uint<32>;
@@ -1301,29 +1343,19 @@ constructor(x: Uint<16>) {
 }
 ```
 
-It is a static error if a sealed ledger field can be set by any
-code that is reachable from an exported circuit.
+It is a static error if a sealed ledger field is updated by any code that is
+reachable from an exported circuit.
 
 ## Contract constructor
 
 A contract can be initialized via a contract constructor defined at the
 program's top level.
+
+<table className="lang-ref-table"><tbody><tr><td><em>constructor-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr><tr><td><em>pattern-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr> </tbody></table>
+
 The constructor, if any, is typically used to initialize public state
 and can also be used to initialize private state through witness
 calls.
-
-<table className="lang-ref-table"><tbody>
-<tr><td><em>constructor-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr>
-<tr><td><em>pattern-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
-</tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>prog</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>}]&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>block</em>&nbsp;&nbsp;</td></tr></tbody></table>
-
-A constructor has the form `constructor (p: T, ...) block` where `p: T, ...` is a sequence of zero or more comma-separated
-[parameter declarations with type annotations](#parameters-patterns-and-destructuring)
-and `block` is a sequence of zero or more semicolon-delimited statements
-enclosed in curly braces (`{ }`). The return type of a constructor is `[]`.
-
 At most one contract constructor can be defined for a contract, and it
 must appear only at the program top level, i.e., it cannot be defined in
 a module.
@@ -1350,13 +1382,16 @@ constructor(v: Field) {
 ```
 
 ## Circuits
-The basic operational element in Compact is the `circuit`. This corresponds
-closely to a function in most languages but is compiled directly into a
-zero-knowledge circuit.
+
+!!!!!!!! TBD
+
+!!!!!!!! TBD not every circuit is compiled to a zk circuits, and TypeScript is also generated.
+
+The basic operational element in Compact is the `circuit`.
+This corresponds closely to a function in most languages but is compiled directly
+into a zero-knowledge circuit.
 
 <table className="lang-ref-table"><tbody><tr><td><em>circuit-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>pure</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>circuit</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>function-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>prog</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;[<b><tt>export</tt></b>]&nbsp;&nbsp;[<b><tt>pure</tt></b>]&nbsp;&nbsp;<b><tt>circuit</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<em>gpars</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>p</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>}]&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;<em>block</em>&nbsp;&nbsp;</td></tr><tr><td><em>gpars</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;[<b><tt>\<</tt></b>&nbsp;&nbsp;[<em>gpar</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>gpar</em>}]&nbsp;&nbsp;<b><tt>></tt></b>]&nbsp;&nbsp;</td></tr><tr><td><em>gpar</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>#</tt></b><em>id</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>id</em></td></tr><tr><td><em>block</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>stmt</em>&nbsp;&nbsp;<b><tt>;</tt></b>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
 
 Circuits can optionally be exported. [They can also optionally be declared as
 `pure` circuits.](#pure-and-impure-circuits) *Non-generic* circuit definitions
@@ -1394,11 +1429,6 @@ A Compact program can declare a circuit to be pure by prefixing the circuit
 definition with the `pure` modifier, which must follow the `export` modifier,
 if present, e.g.:
 
-!!!!!!!!!! TBD again having code snippets like this makes automation harder. Alternatively, if we
-kknow the restrictions (cases where we need expanding the code snippet) we can add special cases
-in our automation. Another approach would be to number these code snippets to add manupulation of
-them in our automation.
-
 ```compact
 pure circuit c(a: Field): Field {
   ...
@@ -1435,9 +1465,6 @@ A statement may be
 A `for` loop repeats for a fixed number of iterations, using one of the two
 syntaxes below:
 
-!!!!!!!!!! TBD again having code snippets like this makes automation harder.
-I have deleted this test for now.
-
 ```compact
 for (const i of <vector>) <statement>
 
@@ -1447,9 +1474,6 @@ for (const i of <lower>..<upper>) <statement>
 #### `if` statement
 
 An `if` statement is of one of the following forms:
-
-!!!!!!!!!! TBD again having code snippets like this makes automation harder.
-I have deleted this test for now.
 
 ```compact
 if (testexpr)
@@ -1639,7 +1663,7 @@ assignment), or `-=` (subtraction assignment), and `e` is an expression.
 `lhs.increment(e)`.  `lhs -= e` is shorthand for `lhs.decrement(e)`.
 
 Ledger assignment statements are type checked exactly as if they were their
-longer equivalent invoking a ledger state operation.
+longer equivalent invoking a ledger-state operation.
 
 They are evaluated exactly as if their longer equivalent were evaluated as a
 ledger expression.
@@ -1957,12 +1981,12 @@ expression is well-typed.
 
 
 A Compact program interacts with its public state by invoking operations upon
-the ledger or ledger state types.  There are two different forms of ledger
+the ledger or ledger-state types.  There are two different forms of ledger
 calls.
 
 __Kernel operations__ are operations that do not depend on specific ledger
 state.  They can be invoked by expressions of the form `k.op(e, ...)`, where
-`k` is the name of a ledger field declared to have the special ledger state type `Kernel`,
+`k` is the name of a ledger field declared to have the special ledger-state type `Kernel`,
 `op` is the name of a builtin kernel operation and
 `e, ...` is a comma separated sequence of zero or more argument expressions.
 The `CompactStandardLibrary` predefines the ledger field name `kernel` to have
@@ -1976,46 +2000,46 @@ circuit f(): ContractAddress {
 }
 ```
 
-__Ledger state operations__ are operations on the program's public ledger state.
+__Ledger state operations__ are operations on the program's public ledger-state.
 They are invoked by expressions of the form `member.op(e, ...)....`,
 where `member` is a ledger field name ([declared via a `ledger` field declaration](#declaring-and-maintaining-public-state))
 and `.op(e, ...)....` are a sequence of zero or more ledger
-state operation invocations, where each `op` is the name of a ledger state
+state operation invocations, where each `op` is the name of a ledger-state
 operation and each `e, ...` is a sequence of zero or more comma-separated
 argument expressions.
 
 <table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<em>ledger-accessor</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;\{<em>ledger-accessor</em>}</td></tr><tr><td><em>ledger-accessor</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
-Note that ledger state operations can be chained, because the result of a ledger
-state operation might itself have a ledger state type.  Kernel operations cannot
-be chained, because the kernel is not a ledger state type and is not returned
+Note that ledger-state operations can be chained, because the result of a ledger
+state operation might itself have a ledger-state type.  Kernel operations cannot
+be chained, because the kernel is not a ledger-state type and is not returned
 by any operation.
 
 The static type of a kernel operation expression is the return type of the
 corresponding kernel operation according to the ledger data types reference.
 
-The static type of a ledger state operation expression is the return type of the
-corresponding ledger state operation according to the ledger data types reference.  Note
-that this might be a Compact type or it might be a ledger state type.  Values of
-ledger state types can have ledger state operations invoked (immediately) on them, but
+The static type of a ledger-state operation expression is the return type of the
+corresponding ledger-state operation according to the ledger data types reference.  Note
+that this might be a Compact type or it might be a ledger-state type.  Values of
+ledger-state types can have ledger-state operations invoked (immediately) on them, but
 any other use would be a static type error.
 
 Kernel operations are evaluated by evaluating the argument subexpressions in
 order from left to right and then invoking the corresponding kernel operation
 with the argument values.
 
-A ledger state operation `member` (that is not followed by a ledger
+A ledger-state operation `member` (that is not followed by a ledger
 accessor) is implicitly an invocation of the `read` operation.  It is evaluated
 as if it were `member.read()`.
 
-A ledger state operation `member.op(e, ...)` is evaluated by evaluating the
+A ledger-state operation `member.op(e, ...)` is evaluated by evaluating the
 argument subexpressions from left to right, and then invoking the operation
 `op` on the public ledger member `member` with the argument values.
 
-A ledger state operation `adt.op(e, ...)` where `adt` is itself a ledger state
+A ledger-state operation `adt.op(e, ...)` where `adt` is itself a ledger-state
 operation is evaluated by first evaluating `adt`, then evaluating the argument
 subexpressions from left to right, and then invoking the operation `op` on the
-ledger state value of `adt` with the argument values.
+ledger-state value of `adt` with the argument values.
 
 ### Circuit and witness calls, map, fold, data creation, assert, and disclose
 
@@ -2350,8 +2374,8 @@ type is the inferred static type (that is, the type of the binding statement's
 initializer expression). A constant reference evaluates to the value of the
 binding statement's initializer expression.
 
-Note that constant references can have ledger state types because they can be
-initialized with a ledger state type's default value.
+Note that constant references can have ledger-state types because they can be
+initialized with a ledger-state type's default value.
 
 #### Literals
 
@@ -2392,14 +2416,14 @@ UTF-8 encoding of `s`, followed by `0` bytes up to the padded length `n`.
 
 #### Default values of a type
 
-Every Compact type and ledger state type has a default value.
+Every Compact type and ledger-state type has a default value.
 
 <table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>ledger-adt</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr></tbody></table>
 
-The expression `default<T>`, where `T` is a Compact type or a ledger state type,
+The expression `default<T>`, where `T` is a Compact type or a ledger-state type,
 has static type `T`. It evaluates to the default value of that type.
 
-Note that default value expressions can have ledger state types.
+Note that default value expressions can have ledger-state types.
 
 !!!!!!!! TBD check this for accuracy
 
