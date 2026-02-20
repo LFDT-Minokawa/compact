@@ -63652,6 +63652,42 @@ groups than for single tests.
 
   (test
     '(
+      "module Runner {"
+      "  export circuit start(): [] {}"
+      "  export circuit stop(): [] {}"
+      "}"
+      "module UseRunner1 {"
+      "  import Runner;"
+      "  // start and stop are now in scope"
+      "}"
+      "module UseRunner2 {"
+      "  import { start } from Runner;"
+      "  // start is now in scope, but not stop"
+      "}"
+      "module UseRunner3 {"
+      "  import Runner prefix Runner$;"
+      "  // Runner$start and Runner$stop are now in scope, but not stop or run"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module Identity<T> {"
+      "  export { id }"
+      "  circuit id(x: T): T {"
+      "    return x;"
+      "  }"
+      "}"
+      "import Identity<Field>;"
+      "// id is now in scope, specialized to type Field"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
       "module M {"
       "  export { F };"
       "  export struct S { x: Uint<16>, y: Boolean }"
@@ -63661,6 +63697,21 @@ groups than for single tests.
       "}"
       "import M;"
       "export { F };"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export { G };"
+      "  export struct S { x: Uint<16>, y: Boolean }"
+      "  circuit G(x: S): Boolean {"
+      "    return x.y;"
+      "  }"
+      "}"
+      "import M;"
+      "export { G };"
       )
     (succeeds)
     )
