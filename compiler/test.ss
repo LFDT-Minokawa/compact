@@ -63766,7 +63766,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness something(x: Boolean): Field;"
+      "witness W(x: Uint<64>): Uint<32>;"
       )
     (succeeds)
     )

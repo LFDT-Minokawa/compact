@@ -1028,25 +1028,24 @@ ledger state types such as `Counter`, `Map`, and `MerkleTree`.
 
 ### Top-level exports
 
-!!!!!!!! TBD
-
-Exporting a module binding by including the `export` modifier in the module
-definition has the effect of exporting the module binding from the enclosing module.
-It is a static error if the `export` modifier appears on module definition at
-the program's top level, i.e., not enclosed within the body of another module
-definition.
+Certain kinds of program elements can be exported from a contract's top level,
+namely circuits, program-defined types, and ledger fields.
+Exporting them makes them visible outside of the contract, i.e., to the
+TypeScript driver for the smart contract.
 
 The circuits exported at the top level of a contract (i.e., not merely exported
-from a module) are the entry points of the contract and may not take generic
-arguments. Although multiple circuits with the same name are allowed generally
-to support [function overloading](#circuit-and-witness-calls), it is a static
-error if more than one circuit with the same name is exported from the top
-level.
+from a module) are the entry points of the contract.
+Although multiple circuits with the same name are allowed generally to support
+[function overloading](#circuit-and-witness-calls), it is a static error if more
+than one circuit with the same name is exported from the top level.
+It is also a static error for a generic circuit, i.e., one with generic parameters,
+to be exported from the top level.
 
-Program-defined types exported from the top level of the main file can be used to
-describe the argument and return types of witnesses and exported circuits; these
-may accept generic arguments, but generic arguments not actually used as types
-are dropped in the exported type. For example:
+Program-defined types exported from the top level of the main file can be used
+to describe the argument and return types of witnesses and exported circuits;
+these may accept generic arguments, but generic arguments marked as sizes rather
+than types are dropped in the exported type.
+For example:
 
 ```compact
 export struct S<#n, T> { v: Vector<n, T>; curidx: Uint<0..n> }
@@ -1061,6 +1060,8 @@ export type S<T> = { v: T[]; curidx: bigint }
 
 Ledger field names exported from the top level are visible for direct inspection
 by code outside of the contract via the generated TypeScript `ledger()` function.
+
+It is a static error to export any other kind of binding from the top level.
 
 ## Include files
 
@@ -1083,15 +1084,22 @@ been present in the including file in place of the `include` form.
 
 ## Declaring witnesses for private state management
 
-!!!!!!!! TBD
+A user's private state should be maintained in some secure way by the
+TypeScript driver of a smart contract and never stored directly in the public
+state of the contract.
+A contract must sometimes prove something about some piece of private state,
+however, as well as cause an update to the private state.
 
-Compact code can call code external to the zero-knowledge circuits to read
-and update private state via `witness` functions.
+The TypeScript driver of the smart contract can provide pieces of private state
+to the contract via the arguments of some exported circuit, and it can update
+the private state based on the return values of the exported circuit.
 
-A `witness` function declaration can appear anywhere a `circuit`
-definition can appear, including within modules.  A witness function does not
-have a body, and its implementation is instead an input to
-the contract in the TypeScript target.
+A circuit can also access or update private state as it operates via *witnesses*.
+Witnesses are callback functions provided by the TypeScript driver.
+
+Witnesses must be declared to make them visible to the circuits of a contract.
+A witness declaration does not include a body, because the implementation is
+provided by the TypeScript driver.
 
 <table className="lang-ref-table"><tbody>
 <tr><td><em>witness-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>witness</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Simple-parameter-list"><em>simple-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
@@ -1099,13 +1107,17 @@ the contract in the TypeScript target.
 <tr><td><em>typed-identifier</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr>
 </tbody></table>
 
+Witness declarations can appear anywhere among the program elements of
+a module or the contract's top level.
+
 For instance:
 
 ```compact
-witness something(x: Boolean): Field;
+witness W(x: Uint<16>): Bytes<32>;
 ```
 
-A `witness` function can be called in the same way as a `circuit`.
+defines a witness `W`, to which the contract provides a 16-bit unsigned value
+and from which the contract receives 32 bytes of some private data.
 
 :::danger
 
@@ -1118,17 +1130,17 @@ Results from them should be treated as untrusted input.
 
 ## Declaring and maintaining public state
 
-Compact code can declare public state through `ledger` declarations.
+A contract declares the shape of its public state through *ledger declarations*.
 
-A ledger declaration defines one piece of information the contract
-stores in Midnight's public ledger.
+Each ledger declaration defines one piece of information that the contract might
+store in the public ledger.
 Multiple ledger declarations can appear in a program, or none.
-They can appear anywhere circuit definitions can appear,
-including within modules.
+They can appear anywhere among the program elements of a module or the contract's
+top level.
 
 <table className="lang-ref-table"><tbody><tr><td><em>ledger-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>sealed</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
-A ledger declaration associates a ledger field name with one of a
+A ledger declaration binds a ledger field name to one of a
 set of predefined [ledger state types](#ledger-state-types)
 For instance:
 
@@ -1143,7 +1155,7 @@ export sealed ledger mapping: Map<Boolean, Field>;
 
 ### Ledger state types
 
-In a `ledger` declaration, the following types are valid:
+The following *ledger state types* are supported.
 
 - `T`, for any Compact type `T`
 - `Counter`
@@ -1156,10 +1168,9 @@ In a `ledger` declaration, the following types are valid:
 - `HistoricMerkleTree<n, T>`, for a compile time integer `1 < n <= 32`, and any
   Compact type `T`
 
-Each ledger type supports a set of operations, which can be invoked with
+!!!!!!!! TBD
 
-!!!!!!!!!! TBD if we plan to automate the checking of code snippets we shouldn't have
-code snippets like this.  Same follows for the next two code snippets.
+Each ledger type supports a set of operations, which can be invoked with
 
 ```compact
 <field name>.<operation>(<arguments ...>)
@@ -1185,9 +1196,8 @@ c += val // statement equivalent to c.increment(val)
 c -= val // statement equivalent to c.decrement(val)
 ```
 
-A comprehensive list of operations can be found in
+A comprehensive description of ledger-state types and operations can be found in
 the Compact [ledger data type documentation](./ledger-adt).
-
 
 ### Nested state types in the `Map` type
 
