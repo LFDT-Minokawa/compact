@@ -1,0 +1,85 @@
+# Publishes test results from the "Compiler Build" workflow as PR comments
+# and check runs.
+#
+# This is a separate workflow because fork PRs run with a read-only
+# GITHUB_TOKEN, which prevents the build workflow from posting comments
+# or creating check runs. By using the workflow_run trigger, this workflow
+# runs from the default branch with write permissions while never executing
+# untrusted fork code (it only processes data artifacts).
+#
+# See: https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
+name: Publish Test Results
+
+on:
+  workflow_run:
+    workflows: ["Compiler Build"]
+    types:
+      - completed
+
+permissions:
+  checks: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  publish-results:
+    name: Publish test results
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'cancelled'
+    steps:
+      - name: Download JUnit test results
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: test-results-junit-summary
+          path: artifacts/junit
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download CTRF test results
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: test-results-ctrf-summary
+          path: artifacts/ctrf
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download event file
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: event-file
+          path: artifacts/event
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # dorny/test-reporter: Creates a GitHub check run with a summary of
+      # test results parsed from JUnit XML reports.
+      - name: Publish Test Report
+        uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2.5.0
+        with:
+          name: Compactc E2E Tests Report
+          path: artifacts/junit/test-report.xml
+          reporter: jest-junit
+
+      # EnricoMi/publish-unit-test-result-action: Creates a check run and
+      # posts a PR comment with detailed test counts (pass/fail/skip).
+      # The commit, event_file, and event_name inputs are required for
+      # workflow_run to associate results with the correct PR.
+      - name: Publish Test Summary
+        uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f # v2.22.0
+        with:
+          check_name: Compactc E2E Tests Results
+          files: artifacts/junit/test-report.xml
+          commit: ${{ github.event.workflow_run.head_sha }}
+          event_file: artifacts/event/event.json
+          event_name: ${{ github.event.workflow_run.event }}
+
+      # github-actions-ctrf: Posts a CTRF-format test summary to the
+      # Actions run and as a PR comment.
+      - name: Publish CTRF Summary
+        if: always()
+        run: |
+          npx github-actions-ctrf artifacts/ctrf/ctrf-report.json --title "E2E test results"
+          npx github-actions-ctrf pull-request artifacts/ctrf/ctrf-report.json --title "E2E test results"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_EVENT_PATH: artifacts/event/event.json
