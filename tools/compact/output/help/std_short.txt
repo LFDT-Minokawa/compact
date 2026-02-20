@@ -3,28 +3,18 @@ The Compact command-line tool provides a set of utilities for Compact smart cont
 Usage: compact [OPTIONS] <COMMAND>
 
 Commands:
-  check   Check for updates with the remote server
-  update  Update to the latest or a specific version of the Compact toolchain
-  format  Format compact files
-  fixup   Apply fixup transformations to compact files
-  list    List available compact versions
-  clean   Remove all compact versions
-  self    Commands for managing the compact tool itself
-  help    Print this message or the help of the given subcommand(s)
+  check    Check for updates with the remote server [aliases: ch]
+  update   Update to the latest or a specific version of the Compact toolchain [aliases: u]
+  format   Format compact files [aliases: fmt]
+  fixup    Apply fixup transformations to compact files [aliases: fx]
+  list     List available compact versions [aliases: l]
+  clean    Remove all compact versions [aliases: cl]
+  self     Commands for managing the compact tool itself [aliases: s]
+  compile  Call the compiler [aliases: c]
+  help     Print this message or the help of the given subcommand(s)
 
 Options:
       --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
                                [default: [USER_DIR]/.compact]
   -h, --help                   Print help (see more with '--help')
   -V, --version                Print version
-
-
-Additional Commands:
-
-* `compile [+VERSION] [ARGS...]': call the compiler for the given `VERSION'.
-
-Usage examples:
-
-  `compact compile source/path target/path`
-
-  `compact compile +0.21.0 --help`

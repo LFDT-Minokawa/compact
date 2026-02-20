@@ -22,24 +22,10 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use semver::Version;
 use std::{fmt, str::FromStr};
 
-const ADDITIONAL_HELP: &str = r###"
-Additional Commands:
-
-* `compile [+VERSION] [ARGS...]': call the compiler for the given `VERSION'.
-
-Usage examples:
-
-  `compact compile source/path target/path`
-
-  `compact compile +0.21.0 --help`
-
-"###;
-
 /// The Compact command-line tool provides a set of utilities for Compact smart
 /// contract development.
 #[derive(Debug, Clone, Parser)]
 #[clap(version)]
-#[command(after_help = ADDITIONAL_HELP)]
 pub struct CommandLineArguments {
     /// Set the target
     ///
@@ -79,6 +65,7 @@ pub struct CompactUpdateConfig {}
 #[derive(Debug, Clone, Subcommand)]
 pub enum Command {
     /// Check for updates with the remote server
+    #[command(visible_alias = "ch")]
     Check(CheckCommand),
 
     /// Update to the latest or a specific version of the Compact toolchain
@@ -88,22 +75,27 @@ pub enum Command {
     /// version to the installed one.
     ///
     /// If the compiler was already downloaded it is not downloaded again
-    #[command(verbatim_doc_comment)]
+    #[command(verbatim_doc_comment, visible_alias = "u")]
     Update(UpdateCommand),
 
+    #[command(visible_alias = "fmt")]
     Format(FormatCommand),
 
+    #[command(visible_alias = "fx")]
     Fixup(FixupCommand),
 
+    #[command(visible_alias = "l")]
     List(ListCommand),
 
+    #[command(visible_alias = "cl")]
     Clean(CleanCommand),
 
-    #[command(name = "self", subcommand)]
+    #[command(name = "self", subcommand, visible_alias = "s")]
     SSelf(SSelf),
 
-    #[command(external_subcommand)]
-    ExternalCommand(Vec<String>),
+    /// Call the compiler
+    #[command(visible_alias = "c")]
+    Compile(CompileCommand),
 }
 
 /// Check for updates with the remote server
@@ -264,6 +256,14 @@ pub struct CleanCommand {
     /// Also remove the cache directory
     #[arg(long, default_value_t = false)]
     pub cache: bool,
+}
+
+/// Call the compiler
+#[derive(Debug, Clone, Args)]
+pub struct CompileCommand {
+    /// Arguments to pass to the compiler (use +VERSION to specify version)
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+    pub args: Vec<String>,
 }
 
 /// Commands for managing the compact tool itself

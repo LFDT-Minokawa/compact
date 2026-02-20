@@ -19,8 +19,8 @@ use anyhow::{Context as _, Result, anyhow, bail};
 use axoupdater::AxoUpdater;
 use clap::Parser;
 use compact::{
-    COMPACT_NAME, COMPACT_VERSION, CleanCommand, Command, CommandLineArguments, Compiler,
-    FixupCommand, FormatCommand, ListCommand, SSelf, UpdateCommand, VersionSpec,
+    COMPACT_NAME, COMPACT_VERSION, CleanCommand, Command, CommandLineArguments, CompileCommand,
+    Compiler, FixupCommand, FormatCommand, ListCommand, SSelf, UpdateCommand, VersionSpec,
     fetch::{self, MidnightArtifacts},
     file,
     fixup::{self, FixupStatus, fixup_file},
@@ -54,7 +54,7 @@ async fn main() -> Result<()> {
         Command::Clean(clean_command) => clean(&cli, clean_command)
             .await
             .context("Failed to list available versions")?,
-        Command::ExternalCommand(command) => run_external(&cli, command)
+        Command::Compile(compile_command) => compile(&cli, compile_command)
             .await
             .context("Failed to run compactc")?,
     }
@@ -134,43 +134,33 @@ async fn self_update(cfg: &CommandLineArguments) -> Result<()> {
     Ok(())
 }
 
-async fn run_external(cfg: &CommandLineArguments, arguments: &[String]) -> Result<()> {
-    let mut arguments = arguments.iter();
-    let Some(command) = arguments.next() else {
-        bail!("Missing command, did you mean `compile'?")
+async fn compile(cfg: &CommandLineArguments, command: &CompileCommand) -> Result<()> {
+    let mut version: Option<semver::Version> = None;
+    let mut args = vec![];
+
+    for argument in &command.args {
+        if let Some(argument) = argument.strip_prefix('+') {
+            let argument = argument.to_owned();
+            version = Some(argument.parse().context("Invalid version format")?);
+        } else {
+            args.push(argument.clone());
+        }
+    }
+
+    let compiler = if let Some(version) = version {
+        let target = cfg.target;
+
+        Compiler::open(cfg, version.clone(), target)
+            .await
+            .with_context(|| anyhow!("Couldn't find compiler for {target} ({version})"))?
+    } else {
+        utils::get_current_compiler(cfg)
+            .await
+            .context("Failed to load current compiler.")?
+            .ok_or_else(|| anyhow!("No default compiler set"))?
     };
 
-    match command.as_str() {
-        "compile" => {
-            let mut version: Option<semver::Version> = None;
-            let mut args = vec![];
-
-            for argument in arguments {
-                if let Some(argument) = argument.strip_prefix('+') {
-                    let argument = argument.to_owned();
-                    version = Some(argument.parse().context("Invalid version format")?);
-                } else {
-                    args.push(argument.clone());
-                }
-            }
-
-            let compiler = if let Some(version) = version {
-                let target = cfg.target;
-
-                Compiler::open(cfg, version.clone(), target)
-                    .await
-                    .with_context(|| anyhow!("Couldn't find compiler for {target} ({version})"))?
-            } else {
-                utils::get_current_compiler(cfg)
-                    .await
-                    .context("Failed to load current compiler.")?
-                    .ok_or_else(|| anyhow!("No default compiler set"))?
-            };
-
-            compiler.invoke(args).await?;
-        }
-        cmd => bail!("Unknown command ({cmd}), did you mean `compile'?"),
-    }
+    compiler.invoke(args).await?;
 
     Ok(())
 }
