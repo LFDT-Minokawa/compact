@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- The search order for include and external module files specified with
-  non-absolute paths has been fixed so that (a) the compiler looks first
-  relative to the directory of the including or importing file, and (b)
-  the compiler does not automatically look in the directory where the
-  compiler was invoked.
+- [Breaking Change] The search order for include and external module files
+  specified with non-absolute paths has been fixed so that (a) the compiler looks
+  first relative to the directory of the including or importing file, and (b)
+  the compiler does not automatically look in the directory where the compiler
+  was invoked.
 
 ### Added
 
