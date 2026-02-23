@@ -23207,6 +23207,31 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 10" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "[]" "circuit bar")))
     )
+
+  (test
+    '(
+      "export type UX<#n> = Uint<n>;"
+      "export type UY<#n> = Uint<0..n>;"
+      "export struct SX<#n, T> { curidx: Uint<n> }"
+      "export struct SY<#n, T> { curidx: Uint<0..n> }"
+      )
+    (returns
+      (program
+        (export-typedef UX ()
+          (talias #f UX
+            ;  the following foour tunsigned are dummy values since these values
+            ;  aren't actually used since n is a free type variable
+            (tunsigned ,(max-unsigned))))
+        (export-typedef UY ()
+          (talias #f UY
+            (tunsigned ,(- (unsigned-bits) 1))))
+        (export-typedef SX (T)
+          (tstruct SX
+            (curidx (tunsigned ,(max-unsigned)))))
+        (export-typedef SY (T)
+          (tstruct SY
+            (curidx (tunsigned ,(- (unsigned-bits) 1)))))))
+    )
 )
 
 ; tests limits for vectors, bytes, and tuples.
@@ -78597,21 +78622,52 @@ groups than for single tests.
       "export struct SX<#n, T> { curidx: Uint<n> }"
       "export struct SY<#n, T> { curidx: Uint<0..n> }"
       )
-    (output-file "compiler/testdir/contract/index.d.ts" #f)
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type UX = bigint;"
+        ""
+        "export type UY = bigint;"
+        ""
+        "export type SX<T> = { curidx: bigint };"
+        ""
+        "export type SY<T> = { curidx: bigint };"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "}"
+        ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
     )
-
-  ;; (test
-  ;;   '(
-  ;;     ;; "module M<#n> { "
-  ;;     ;; "  export type UX = Uint<n>;"
-  ;;     ;; "  export type UY = Uint<0..n>;"
-  ;;     "  circuit foo<#m>(x: Uint<m>): Uint<m> { return x; }"
-  ;;     "  export circuit specilaize_foo (x: Uint<5>) : Uint<5> { return foo<5>(default<Uint<5>>); }"
-  ;;     ;; "}"
-  ;;     ;; "import M<4>;"
-  ;;     )
-  ;;   (output-file "compiler/testdir/contract/index.d.ts" #f)
-  ;;   )
 )
 
 (run-javascript)
