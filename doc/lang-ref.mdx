@@ -1790,6 +1790,8 @@ run time from the one representation to the other.
 The following rules govern when casts are allowed, when a cast might cause a
 run-time error, and when a cast require a run-time conversion.
 
+!!!!!!!! TBD verify all of these claims
+
 - Casts from a type to the same type are always allowed (but never required),
   never result in run-time errors, and never require run-time conversions.
 - Upcasts, i.e., casts from a type to a supertype (e.g., from `Vector<3, Uint<8>>`
@@ -1822,8 +1824,21 @@ run-time error, and when a cast require a run-time conversion.
   with the first byte of the bytes value corresponding to the least-significant
   byte of the integer.
   A run-time error occurs if the result does not fit in `m` bytes.
+- Casts from `Bytes<m>` to `Vector<m, Field>` or `Vector<m, Uint<0..k>>`,
+  `k >= 256`, or `[U1, ..., Um]`, where each `Ui = Uint<0..j>` for some j >= are allowed, cannot cause a run-time error, but do require a
+  run-time conversion.
+- Casts from `Bytes<m>` to tuple type `[U1, ..., Um]`, where each `Ui` is
+  `Uint<0..j>` for some `j >= 256` are allowed, cannot cause a run-time error,
+  but do require a run-time conversion.
+- Casts from tuple type `[U1, ..., Um]` to `Bytes<m>`, where each `Ui` is
+  `Uint<0..j>` for some `j < 256` are allowed, cannot cause a run-time error,
+  but do require a run-time conversion.
+- Casts from `Vector<m, Uint<0..k>>`, `k < 256`, to `Bytes<m>` are allowed,
+  cannot cause a run-time error, but do require a run-time conversion.
 
-!!!!!!!! TBD casts from tuples and vectors to tuples and vectors
+!!!!!!!! TBD enum <-> Field & Uint
+
+!!!!!!!! Might want to mention impliciations, such as rules for casting tuples to vectors and back
 
 No other casts are allowed.
 
