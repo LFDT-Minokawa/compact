@@ -336,11 +336,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1771207753,
-        "narHash": "sha256-b9uG8yN50DRQ6A7JdZBfzq718ryYrlmGgqkRm9OOwCE=",
+        "lastModified": 1771423170,
+        "narHash": "sha256-K7Dg9TQ0mOcAtWTO/FX/FaprtWQ8BmEXTpLIaNRhEwU=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "d1c15b7d5806069da59e819999d70e1cec0760bf",
+        "rev": "bcc4a9d9533c033d806a46b37dc444f9b0da49dd",
         "type": "github"
       },
       "original": {
@@ -473,17 +473,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1771524068,
-        "narHash": "sha256-TRPGkL2ffrSqNhUK2vNuZyT4n23uViYkRh3urs5pj6w=",
+        "lastModified": 1771863586,
+        "narHash": "sha256-MvFHm4qhy6CwN2EIXZFkQl35RXlLgTjf7YMkVKae3E4=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "a679b8b269df41691e72f99b108bca50e02e0562",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-8.0.0-rc.4",
         "repo": "midnight-ledger",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       }
     },
@@ -919,17 +919,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1771524068,
-        "narHash": "sha256-TRPGkL2ffrSqNhUK2vNuZyT4n23uViYkRh3urs5pj6w=",
+        "lastModified": 1771863586,
+        "narHash": "sha256-MvFHm4qhy6CwN2EIXZFkQl35RXlLgTjf7YMkVKae3E4=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "a679b8b269df41691e72f99b108bca50e02e0562",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-8.0.0-rc.4",
         "repo": "midnight-ledger",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       }
     },
@@ -944,17 +944,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1771429680,
-        "narHash": "sha256-pBUzhxt5vWx0Em8EMd6DFiIYNd+mxfY1s0y+GLECZa0=",
+        "lastModified": 1771863586,
+        "narHash": "sha256-MvFHm4qhy6CwN2EIXZFkQl35RXlLgTjf7YMkVKae3E4=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "642c274f90ce671b525656940d4d3900d20ebb3f",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "642c274f90ce671b525656940d4d3900d20ebb3f",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       }
     },
@@ -969,17 +969,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1771429680,
-        "narHash": "sha256-pBUzhxt5vWx0Em8EMd6DFiIYNd+mxfY1s0y+GLECZa0=",
+        "lastModified": 1771863586,
+        "narHash": "sha256-MvFHm4qhy6CwN2EIXZFkQl35RXlLgTjf7YMkVKae3E4=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "642c274f90ce671b525656940d4d3900d20ebb3f",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "642c274f90ce671b525656940d4d3900d20ebb3f",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       }
     },
@@ -994,17 +994,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1771524068,
-        "narHash": "sha256-TRPGkL2ffrSqNhUK2vNuZyT4n23uViYkRh3urs5pj6w=",
+        "lastModified": 1771863586,
+        "narHash": "sha256-MvFHm4qhy6CwN2EIXZFkQl35RXlLgTjf7YMkVKae3E4=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "a679b8b269df41691e72f99b108bca50e02e0562",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-8.0.0-rc.4",
         "repo": "midnight-ledger",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       }
     }
