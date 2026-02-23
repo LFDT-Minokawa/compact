@@ -445,14 +445,12 @@
                          (let* ([pt0 (make-temp-id default-src 'pt)]
                                 [pt1 (make-temp-id default-src 'pt)])
                            (zkir-instr*
-                             (cons
-                               `(decode "Point<Jubjub>" ,(car var-name*) ,pt0 ,pt1)
+                             (cons*
+                               `(encode ,pt0 ,pt1 ,(car var-name*))
                                (if (eq? test-val 1)
-                                   (cons* `(public_input ,pt1) `(public_input ,pt0)
-                                     (zkir-instr*))
-                                   (cons* `(public_input ,pt1 ,test-val)
-                                     `(public_input ,pt0 ,test-val)
-                                     (zkir-instr*)))))
+                                   `(public_input "Point<Jubjub>" ,(car var-name*))
+                                   `(public_input "Point<Jubjub>" ,(car var-name*) ,test-val))
+                               (zkir-instr*)))
                            (values (list -2 -2) (list pt0 pt1)))
                          (begin
                            (for-each (lambda (var-name)
@@ -460,8 +458,8 @@
                                          (cons
                                            ;; A case duplicated from ZKIR v2.
                                            (if (eq? test-val 1)
-                                               `(public_input ,var-name)
-                                               `(public_input ,var-name ,test-val))
+                                               `(public_input "Scalar<BLS12-381>" ,var-name)
+                                               `(public_input "Scalar<BLS12-381>" ,var-name ,test-val))
                                            (zkir-instr*))))
                              var-name*)
                            (values (map assemble-alignment-atom alignment*) var-name*))))])
@@ -907,12 +905,12 @@
        `((op . "private_input") (type . ,zkir-type) (output . ,outp) (guard . ,(void)))]
       [(private_input ,zkir-type ,[* outp] ,[* inp])
        `((op . "private_input") (type . ,zkir-type) (output . ,outp) (guard . ,inp))]
-      [(public_input ,[* outp])
+      [(public_input ,zkir-type ,[* outp])
        ;; Kind of warty: rather than a literal true guard or making it truly optional by leaving it
        ;; out of the JSON representation, ZKIR wants to put a JSON null value there.
-       `((op . "public_input") (output . ,outp) (guard . ,(void)))]
-      [(public_input ,[* outp] ,[* inp])
-       `((op . "public_input") (output . ,outp) (guard . ,inp))]
+       `((op . "public_input") (type . ,zkir-type) (output . ,outp) (guard . ,(void)))]
+      [(public_input ,zkir-type ,[* outp] ,[* inp])
+       `((op . "public_input") (type . ,zkir-type) (output . ,outp) (guard . ,inp))]
       [(impact ,[* inp] ,[* inp*] ...)
        `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
       [(reconstitute_field ,[* outp] ,[* inp0] ,[* inp1] ,imm)

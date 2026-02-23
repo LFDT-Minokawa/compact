@@ -5,7 +5,7 @@
     { "name": "%v.0", "type": "Scalar<BLS12-381>" }
   ],
   "instructions": [
-    { "op": "public_input", "output": "%t.1", "guard": null },
+    { "op": "public_input", "type": "Scalar<BLS12-381>", "output": "%t.1", "guard": null },
     { "op": "impact", "guard": "0x01", "inputs": ["0x30", "0x50", "0x01", "0x01", "0x02", "0x0c", "0x01", "0x01", "%t.1"] },
     { "op": "test_eq", "output": "%t.2", "a": "%t.1", "b": "0x00" },
     { "op": "assert", "cond": "%t.2" },
