@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: actions/cache@v3
         name: Cache cabal packages
@@ -28,7 +28,7 @@ jobs:
           key: ${{ runner.os }}-cabal-packages
 
       - name: Set up Haskell (GHC and Cabal)
-        uses: haskell-actions/setup@v2.7.9
+        uses: haskell-actions/setup@f9150cb1d140e9a9271700670baa38991e6fa25c # v2.10.3
         with:
           ghc-version: "9.4.8"
           cabal-version: "3.10.3.0"
@@ -53,26 +53,26 @@ jobs:
         run: agda --version
 
       - name: Checkout agda-stdlib-meta repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: agda/agda-stdlib-meta
           path: agda-stdlib-meta
           
       - name: Checkout agda-stdlib repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: agda/agda-stdlib
           ref: v2.3
           path: agda-stdlib
 
       - name: Checkout agda-stdlib-classes repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: agda/agda-stdlib-classes
           path: agda-stdlib-classes
 
       - name: Checkout iog-agda-prelude repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: input-output-hk/iog-agda-prelude
           path: iog-agda-prelude

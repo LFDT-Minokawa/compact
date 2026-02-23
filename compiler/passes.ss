@@ -171,7 +171,8 @@
                            '((contract.js . "contract/index.js")
                              (contract.d.ts . "contract/index.d.ts")
                              (contract.js.map . "contract/index.js.map"))
-                           (run-passes typescript-passes analyzed-ir))
+                           (parameterize ([proof-circuit-names proof-circuit-name*])
+                             (run-passes typescript-passes analyzed-ir)))
                           (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass)))]))))))))]))
 
   (define-pass extract-circuit-names : Lflattened (ir) -> * (ls)

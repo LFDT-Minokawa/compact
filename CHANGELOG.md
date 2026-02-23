@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased toolchain 0.29.105, language 0.21.101, runtime 0.14.101]
+
+### Fixed
+
+- [Breaking Change] The search order for include and external module files
+  specified with non-absolute paths has been fixed so that (a) the compiler looks
+  first relative to the directory of the including or importing file, and (b)
+  the compiler does not automatically look in the directory where the compiler
+  was invoked.
+
+### Added
+
+- compactc and fixup-compact support two new options: --compact-path to
+  set the compact path and --trace-search to cause the compiler to say where
+  it looks for include and external module files.  If the `--compact-path`
+  command-line option is present, the environment variable `COMPACT_PATH`
+  is ignored.
+
+## [Unreleased toolchain 0.29.104, language 0.21.101, runtime 0.14.101]
+
+### Added
+
+- The generated TypeScript now includes a `ProvableCircuits<PS>` type and a
+  `provableCircuits` field on the `Contract` class.  `ProvableCircuits` contains
+  only the circuits that have verifier keys (i.e., circuits that appear in the
+  flattened circuit IR and produce ZKIR files).  This distinguishes them from
+  impure circuits that only call witnesses without touching the ledger.
+
+### Fixed
+
+- `setOperation` is now emitted only for provable circuits (those in
+  `proof-circuit-name*`) rather than for all impure circuits.  Previously,
+  witness-only impure circuits caused the runtime to look
+  for a verifier key that does not exist.
+
 ## [Unreleased toolchain 0.29.103, language 0.21.101, runtime 0.14.101]
 
 ### Changed

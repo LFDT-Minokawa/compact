@@ -62,6 +62,18 @@ The following flags, if present, affect the compiler's behavior as follows:
     target-directory pathnames, but this value might not be appropriate for the
     deployed structure of the application.
 
+  --compact-path <search list> sets the compact path, overriding the default
+    value, which is the value of the environment variable COMPACT_PATH, if
+    it is set, and empty otherwise.  <search list> should be a colon-separated
+    (semicolon-separated under Windows) sequence of directory pathnames.
+    The compact path controls where the compiler looks for include and external
+    module files with non-absolute pathnames.  It always looks first relative
+    to the directory of the including or importing file, then in each directory
+    in the compact path from left to right.
+
+  --trace-search causes the compiler to print a sequence of messages saying
+    where it is looking for each included file and imported module source file.
+
   --trace-passes causes the compiler to print tracing information that is
     generally useful only to compiler developers.
 "))
@@ -78,6 +90,8 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--skip-zk)]
              [(--no-communications-commitment)]
              [(--sourceRoot) (string source-root)]
+             [(--compact-path) (string search-list)]
+             [(--trace-search)]
              [(--trace-passes)]
              [(--feature-zkir-v3)])
       (string source-pathname)
@@ -87,7 +101,9 @@ The following flags, if present, affect the compiler's behavior as follows:
      (parameterize ([trace-passes ?--trace-passes]
                     [skip-zk ?--skip-zk]
                     [no-communications-commitment ?--no-communications-commitment]
-                    [feature-zkir-v3 ?--feature-zkir-v3])
+                    [feature-zkir-v3 ?--feature-zkir-v3]
+                    [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
+                    [trace-search ?--trace-search])
        (when source-root (register-source-root! source-root))
        (handle-exceptions ?--vscode
          (generate-everything source-pathname target-directory-pathname)))]

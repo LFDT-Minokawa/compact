@@ -15,7 +15,7 @@
 
 import CompactStandardLibrary;
 
-// This should fail becuase JubjubPoint is opaque and not a struct type.
+// This should fail because JubjubPoint is opaque and not a struct type.
 export circuit test(): [] {
   const a = default<JubjubPoint>;
   const b = default<JubjubPoint>;

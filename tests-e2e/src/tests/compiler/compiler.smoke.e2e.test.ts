@@ -79,6 +79,12 @@ describe('[Smoke] Compiler', () => {
         expectCompilerResult(result).toBeSuccess('', VERSION_REGEX);
     });
 
+    test('should get runtime version', async () => {
+        const result: Result = await compile([Arguments.RUNTIME_VERSION]);
+
+        expectCompilerResult(result).toBeSuccess('', VERSION_REGEX);
+    });
+
     test('should get first argument only - version then help', async () => {
         const result: Result = await compile([Arguments.VERSION, Arguments.HELP]);
 

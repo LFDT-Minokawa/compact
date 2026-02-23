@@ -97,7 +97,7 @@ jobs:
     needs: [ setup ]
     steps:
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
@@ -253,28 +253,28 @@ jobs:
           git push origin ${{ inputs.version }}
 
       - name: Fetch release assets - Linux aarch64 (Arm)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: linux-release-aarch64
 
       - name: Fetch release assets - Linux x86_64 (Intel)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: linux-release-x86_64
 
       - name: Fetch release assets - Macos aarch64 (Arm)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: macos-release-aarch64
 
       - name: Fetch release assets - Macos x86_64 (Intel)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: macos-release-x86_64
 
       - name: Create Release
         if: ${{ inputs.create_release && github.event_name != 'schedule' }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           repository: midnight-ntwrk/artifacts
           tag_name: compactc-${{ inputs.version || github.ref_name }}

@@ -806,7 +806,8 @@ groups than for single tests.
                   (let* ([source-path* (registered-source-pathnames)]
                          [source-dir*
                            (map (lambda (s)
-                                  (let ([s (path-parent s)])
+                                  (let* ([s (if (string-prefix? "./" s) (substring s 2 (string-length s)) s)]
+                                         [s (path-parent s)])
                                     (assert (not (string-prefix? "/" s)))
                                     (assert (not (string-prefix? "." s)))
                                     (format "~a/src/~a" test-root s)))
@@ -6743,40 +6744,40 @@ groups than for single tests.
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
 
-  (with-compact-path
-    (cons "test-center" (compact-path))
-    (test
-      '(
-        "include 'compact/simple';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () () (tfield) (block (return 42)))))
-      ))
+ (with-compact-path '("test-center")
+  (test
+    '(
+      "include 'compact/simple';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () () (tfield) (block (return 42)))))
+    )
+  )
 
-  (with-compact-path
-    (cons* "test-center/compact" "test-center/compact2" (compact-path))
-    (test
-      '(
-        "include 'foo';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () () (tfield) (block (return 42)))))
-      ))
+ (with-compact-path '("test-center/compact" "test-center/compact2")
+  (test
+    '(
+      "include 'foo';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () () (tfield) (block (return 42)))))
+    )
+  )
 
-  (with-compact-path
-    (cons* "test-center/compact2" "test-center/compact" (compact-path))
-    (test
-      '(
-        "include 'foo';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () ([x (tfield)])
-                   (tboolean)
-                   (block (return (== x 0))))))
-      ))
+ (with-compact-path '("test-center/compact2" "test-center/compact")
+  (test
+    '(
+      "include 'foo';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () ([x (tfield)])
+                 (tboolean)
+                 (block (return (== x 0))))))
+    )
+  )
 
   (test
     `(
@@ -6787,17 +6788,15 @@ groups than for single tests.
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
 
-  (with-compact-path
-    (cons "test-center/compact" (compact-path))
-    (test
-      '(
-        "// presumably not present..."
-        "include '/foo';"
-        )
-      (oops
-        message: "~a:\n  ~?"
-        irritants: '("testfile.compact line 2 char 1" "failed to locate file ~s" ("/foo.compact")))
-      ))
+  (test
+    '(
+      "// presumably not present..."
+      "include '/foo';"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "failed to locate file ~s" ("/foo.compact")))
+    )
 
   (test
     "test-center/compact/multiple.compact"
@@ -6831,26 +6830,31 @@ groups than for single tests.
       irritants: '("test-center/compact/loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "include 'test-center/compact/loop';"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
+      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("./test-center/compact/loop.compact")))
     )
+  )
 
-  (test
-    '(
-      "module M {"
-      "  include 'test-center/compact/loop';"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
-    )
+  (test-group
+    ((create-file "loop.compact" '("include 'loop';")))
+    ((create-file "testfile.compact"
+       '(
+         "module M {"
+         "  include 'loop';"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("loop.compact line 1 char 1" "include cycle involving ~s" ("compiler/testdir/loop.compact")))
+     ))
 
+ (with-compact-path '(".")
   (test
     '(
       "module M {"
@@ -6864,7 +6868,9 @@ groups than for single tests.
           (circuit #f #f foo () () (tfield) (block (return 42)))
           (export foo))))
     )
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "include 'test-center/compact/foo';"
@@ -6880,7 +6886,9 @@ groups than for single tests.
           (circuit #f #f foo () () (tfield) (block (return 42)))
           (export foo))))
     )
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "module M {"
@@ -6896,16 +6904,7 @@ groups than for single tests.
           (export foo))
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
-
-  (test-group
-    ((create-file "included.compact" '())
-     (succeeds)
-     )
-    ((create-file "including.compact"
-       '(
-         "include 'compiler/testdir/included';"
-         ))
-     (returns (program))))
+  )
 
   (test-group
     ((create-file "included.compact" '())
@@ -6915,7 +6914,19 @@ groups than for single tests.
        '(
          "include 'included';"
          ))
-     (returns (program))))
+     (returns (program))
+     ))
+
+  (test-group
+    ((create-file "included.compact" '())
+     (succeeds)
+     )
+    ((create-file "including.compact"
+       '(
+         "include 'included';"
+         ))
+     (returns (program))
+     ))
 
   (test-group
     ((create-file "included.compact" '())
@@ -6926,7 +6937,7 @@ groups than for single tests.
      )
     ((create-file "including.compact"
        '(
-         "include 'compiler/testdir/included';"
+         "include 'included';"
          ))
      (oops
        message: "error ~a: ~a"
@@ -6942,6 +6953,88 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 1" "failed to locate file ~s: possibly replace include with import CompactStandardLibrary" ("std.compact")))
     )
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/a.compact"
+       '(
+         "export type A = Field;"
+         ))
+     (succeeds))
+    ((create-file "project/b.compact"
+       '(
+         "include 'a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (returns
+       (program
+         (typedef #t #f A () (tfield))
+         (circuit #t #f foo () ([x (type-ref A)])
+              (type-ref A)
+           (block (return (+ x 5))))))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("a.compact")))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("compiler/testdir/a.compact")))
+     ))
+
+  ; issue 139
+ (with-compact-path '(".")
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
+     ))
+  )
 )
 
 (run-tests expand-const
@@ -13315,6 +13408,89 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 23" "range end for Uint type is ~d but must be at least 1 (the range end is exclusive)" (0)))
     )
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/a.compact"
+       '(
+         "module a {"
+         " export type A = Field;"
+         "}"
+         ))
+     (succeeds))
+    ((create-file "project/b.compact"
+       '(
+         "import a;"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (returns
+       (program ((foo %foo.0))
+         (circuit %foo.0 ([%x.1 (talias #f A (tfield))])
+              (talias #f A (tfield))
+           (+ %x.1 5))))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import a;"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("a.compact")))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("compiler/testdir/a.compact")))
+     ))
+
+  ; issue 139
+ (with-compact-path '(".")
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
+     ))
+  )
 )
 
 (run-tests infer-types
@@ -46985,6 +47161,7 @@ groups than for single tests.
         "}"))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -47019,6 +47196,7 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+  )
 
   (test
     '(
@@ -57740,6 +57918,7 @@ groups than for single tests.
         "}"))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -57757,6 +57936,7 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+  )
 
   (test
     '(
@@ -63622,6 +63802,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -63641,6 +63824,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -63700,6 +63884,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -63719,6 +63906,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -63790,6 +63978,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -63809,6 +64000,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -63880,6 +64072,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -63899,6 +64094,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -64151,6 +64347,7 @@ groups than for single tests.
         ))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -64163,8 +64360,10 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt).result).toEqual([]);"
         "});"
         ))
-    )
+    ) 
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo };"
@@ -64178,6 +64377,7 @@ groups than for single tests.
         "});"
         ))
     )
+  )
 
   (test
     '(
@@ -66032,6 +66232,12 @@ groups than for single tests.
         "  clear(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, Maybe<bigint>>;"
+        "  clear(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  public_key(sk_0: Uint8Array): Uint8Array;"
         "}"
@@ -66055,6 +66261,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>, v_0: bigint): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -66235,6 +66442,11 @@ groups than for single tests.
         "      }"
         "    };"
         "    this.impureCircuits = {"
+        "      set: this.circuits.set,"
+        "      get: this.circuits.get,"
+        "      clear: this.circuits.clear"
+        "    };"
+        "    this.provableCircuits = {"
         "      set: this.circuits.set,"
         "      get: this.circuits.get,"
         "      clear: this.circuits.clear"
@@ -66568,7 +66780,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -66996,6 +67208,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  uno(q_0: Q<bigint>): bigint;"
         "}"
@@ -67015,6 +67230,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -67058,6 +67274,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  uno(q_0: Q<bigint>): bigint;"
         "}"
@@ -67077,6 +67296,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -67112,6 +67332,10 @@ groups than for single tests.
         "  hello(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, string>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  hello(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, string>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -67131,6 +67355,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>, x_0: string): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -67183,6 +67408,13 @@ groups than for single tests.
         "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "            eval_0: bigint,"
+        "            arguments_0: bigint,"
+        "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  functions(Maybe_0: Maybe<bigint>): bigint;"
         "  finalize(): bigint;"
@@ -67213,6 +67445,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>,"
         "               witnesses_0: bigint): __compactRuntime.ConstructorResult<PS>;"
@@ -67921,6 +68154,14 @@ groups than for single tests.
         "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  init0(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
+        "  ismember(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, boolean>;"
+        "  init1(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
+        "  update(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  identity(q_0: bigint): bigint;"
         "}"
@@ -67958,6 +68199,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -68220,6 +68462,15 @@ groups than for single tests.
         "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  init(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
+        "  put(context: __compactRuntime.CircuitContext<PS>,"
+        "      b_0: boolean,"
+        "      n_0: bigint,"
+        "      q_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -68255,6 +68506,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -68879,6 +69131,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -68934,6 +69189,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -69852,6 +70108,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  foo(): Commitment<any>;"
         "}"
@@ -69871,6 +70130,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -77139,6 +77399,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -77157,6 +77421,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -77195,6 +77460,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -77214,6 +77483,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -77252,6 +77522,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -77271,6 +77545,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -77307,6 +77582,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  foo(x_0: U32): bigint;"
         "}"
@@ -77326,6 +77604,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -77367,6 +77646,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): __compactRuntime.CircuitResults<PS, S>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): __compactRuntime.CircuitResults<PS, S>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -77386,6 +77669,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -77450,6 +77734,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -77469,6 +77757,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
