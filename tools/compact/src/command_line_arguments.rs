@@ -65,7 +65,7 @@ pub struct CompactUpdateConfig {}
 #[derive(Debug, Clone, Subcommand)]
 pub enum Command {
     /// Check for updates with the remote server
-    #[command(visible_alias = "ch")]
+    #[command(visible_alias = "ch", alias = "che", alias = "chec")]
     Check(CheckCommand),
 
     /// Update to the latest or a specific version of the Compact toolchain
@@ -75,26 +75,26 @@ pub enum Command {
     /// version to the installed one.
     ///
     /// If the compiler was already downloaded it is not downloaded again
-    #[command(verbatim_doc_comment, visible_alias = "u", visible_alias = "up")]
+    #[command(verbatim_doc_comment, visible_alias = "u", visible_alias = "up", alias = "upd", alias = "upda", alias = "updat")]
     Update(UpdateCommand),
 
-    #[command(visible_alias = "fmt", visible_alias = "f")]
+    #[command(visible_alias = "fmt", visible_alias = "f", alias = "fo", alias = "for", alias = "form", alias = "forma")]
     Format(FormatCommand),
 
-    #[command(visible_alias = "fx")]
+    #[command(visible_alias = "fx", visible_alias = "fix", alias = "fi", alias = "fixu")]
     Fixup(FixupCommand),
 
-    #[command(visible_alias = "l")]
+    #[command(visible_alias = "l", alias = "li", alias = "lis")]
     List(ListCommand),
 
-    #[command(visible_alias = "cl")]
+    #[command(visible_alias = "cl", alias = "cle", alias = "clea")]
     Clean(CleanCommand),
 
-    #[command(name = "self", subcommand, visible_alias = "s")]
+    #[command(name = "self", subcommand, visible_alias = "s", alias = "se", alias = "sel")]
     SSelf(SSelf),
 
     /// Call the compiler
-    #[command(visible_alias = "c")]
+    #[command(visible_alias = "c", alias = "co", alias = "com", alias = "comp", alias = "compi", alias = "compil")]
     Compile(CompileCommand),
 }
 
