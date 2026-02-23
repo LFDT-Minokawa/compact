@@ -46,6 +46,18 @@ The following flags, if present, affect the tool's behavior as follows:
 
   --vscode causes error messages to be printed on a single line so they are
     rendered properly within the VS Code extension for Compact.
+
+  --compact-path <search list> sets the compact path, overriding the default
+    value, which is the value of the environment variable COMPACT_PATH, if
+    it is set, and empty otherwise.  <search list> should be a colon-separated
+    (semicolon-separated under Windows) sequence of directory pathnames.
+    The compact path controls where the compiler looks for include and external
+    module files with non-absolute pathnames.  It always looks first relative
+    to the directory of the including or importing file, then in each directory
+    in the compact path from left to right.
+
+  --trace-search causes the compiler to print a sequence of messages saying
+    where it is looking for each included file and imported module source file.
 "))
 
 (usage "<flag> ... <source-pathname> [ <target-pathname> ]")
@@ -56,14 +68,18 @@ The following flags, if present, affect the tool's behavior as follows:
              [(--version) $ (begin (print-compiler-version) (exit))]
              [(--language-version) $ (begin (print-language-version) (exit))]
              [(--vscode)]
-             [(--update-Uint-ranges)])
+             [(--update-Uint-ranges)]
+             [(--compact-path) (string search-list)]
+             [(--trace-search)])
       (string source-pathname)
       (optional string target-pathname #f))
      (check-pathname source-pathname)
      (when target-pathname (check-pathname target-pathname))
      (handle-exceptions ?--vscode
        (let ([s (parameterize ([update-Uint-ranges ?--update-Uint-ranges]
-                               [relative-path (path-parent source-pathname)])
+                               [relative-path (path-parent source-pathname)]
+                               [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
+                               [trace-search ?--trace-search])
                   (parse-file/fixup/format source-pathname))])
          (if target-pathname
              (let ([op (guard (c [else (error-accessing-file c "creating output file")])

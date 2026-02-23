@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased toolchain 0.29.106, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- The Compact compiler now targets `midnight-ledger` version 8.0.0.  The Compact
+  runtime now imports `onchain-runtime-v3` (instead of `-v2`) at version
+  compatible with 3.0.0-rc.2.
+
+## [Unreleased toolchain 0.29.105, language 0.21.101, runtime 0.14.101]
+
+### Fixed
+
+- [Breaking Change] The search order for include and external module files
+  specified with non-absolute paths has been fixed so that (a) the compiler looks
+  first relative to the directory of the including or importing file, and (b)
+  the compiler does not automatically look in the directory where the compiler
+  was invoked.
+
+### Added
+
+- compactc and fixup-compact support two new options: --compact-path to
+  set the compact path and --trace-search to cause the compiler to say where
+  it looks for include and external module files.  If the `--compact-path`
+  command-line option is present, the environment variable `COMPACT_PATH`
+  is ignored.
+
 ## [Unreleased toolchain 0.29.104, language 0.21.101, runtime 0.14.101]
 
 ### Added

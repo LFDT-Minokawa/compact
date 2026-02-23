@@ -32,7 +32,8 @@
           pending-conditions
           stdlib-sfd stdlib-src?
           renaming-table record-alias!
-          pretty-print/formats)
+          pretty-print/formats
+          split-search-path)
   (import (except (chezscheme) errorf))
 
   ; when set, renaming-table maps src -> (old-name . new-name) and is used by the fixup tool to
@@ -389,4 +390,12 @@
                             (cdr a)])
               (loop alist))))))
 
+  (define (split-search-path str)
+    (let ([n (string-length str)])
+      (let f ([i 0] [j 0])
+        (if (fx= j n)
+            (if (fx= i j) '() (list (substring str i j)))
+            (if (char=? (string-ref str j) (if (directory-separator? #\\) #\; #\:))
+                (cons (substring str i j) (f (fx+ j 1) (fx+ j 1)))
+                (f i (fx+ j 1)))))))
 )

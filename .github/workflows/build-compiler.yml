@@ -17,8 +17,6 @@ jobs:
     steps:
       - name: Checkout compactc repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -131,6 +129,10 @@ jobs:
           nix develop .#compiler --command yarn install
           nix develop .#compiler --command yarn test
 
+      # Test result artifacts are consumed by the "Publish Test Results"
+      # workflow (publish-test-results.yml) which runs with write permissions
+      # via the workflow_run trigger. This two-workflow pattern is necessary
+      # so that fork PRs can have test results posted as PR comments.
       - name: Upload CTRF test results
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
@@ -145,28 +147,11 @@ jobs:
           name: test-results-junit-summary
           path: tests-e2e/reports/test-report.xml
 
-      - name: Publish Test Report
-        uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2.5.0
+      # The event file is needed by the reporting workflow to associate
+      # test results with the correct PR.
+      - name: Upload event file
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
-          name: Compactc E2E Tests Report
-          path: |
-            !(node_modules)/**/reports/test-report.xml
-          reporter: jest-junit
-
-      - name: Publish Test Summary
-        uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f # v2.22.0
-        if: always()
-        with:
-          check_name: Compactc E2E Tests Results
-          files: |
-            **/reports/test-report.xml
-            !(node_modules)/**/test-report.xml
-
-      - name: Publish Test Summary Results
-        if: always()
-        run: |
-          npx github-actions-ctrf tests-e2e/reports/ctrf-report.json --title "E2E test results"
-          npx github-actions-ctrf pull-request tests-e2e/reports/ctrf-report.json --title "E2E test results"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: event-file
+          path: ${{ github.event_path }}
