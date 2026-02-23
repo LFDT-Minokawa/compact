@@ -593,11 +593,11 @@
       ;; conversion instructions.
       (define (unzip-arguments arg*)
         (if (null? arg*)
-            (values '() '() '())
-            (let-values ([(name* type* instr*) (unzip-arguments (cdr arg*))])
+            (values '() '())
+            (let-values ([(name* type*) (unzip-arguments (cdr arg*))])
               (nanopass-case (Lflattened Argument) (car arg*)
                 [(argument (,var-name* ...) (ty (,alignment* ...) (,primitive-type* ...)))
-                 (values (append var-name* name*) (append primitive-type* type*) instr*)]))))
+                 (values (append var-name* name*) (append primitive-type* type*))]))))
 
       (define (type->string primitive-type)
         (nanopass-case (Lflattened Primitive-Type) primitive-type
@@ -640,11 +640,11 @@
        ;; - Translate the statements in the body
        ;; - Add instructions for the outputs
        (fluid-let ([default-src src])
-         (let-values ([(var-name* type* instr*) (unzip-arguments arg*)])
+         (let-values ([(var-name* type*) (unzip-arguments arg*)])
            (let* ([constraint*
                     (fold-left (lambda (constraint* var-name type)
                                  (emit-constraints-for var-name type constraint*))
-                      instr* var-name* type*)]
+                      '() var-name* type*)]
                   [instr*
                     (fold-left (lambda (instr* stmt) (Statement stmt instr*))
                       constraint* stmt*)]
