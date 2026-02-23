@@ -462,7 +462,7 @@
         "type": "github"
       }
     },
-    "onchain-runtime-v2": {
+    "onchain-runtime-v3": {
       "inputs": {
         "fenix": "fenix",
         "inclusive": "inclusive_2",
@@ -473,17 +473,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1769539005,
-        "narHash": "sha256-I4e9AdBQYmAfy7XlVPhJ+6oC7a0oW99+Xm1KwrZxHTc=",
+        "lastModified": 1771863586,
+        "narHash": "sha256-MvFHm4qhy6CwN2EIXZFkQl35RXlLgTjf7YMkVKae3E4=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "8f2ed5c0954770e84b43c5dbb64ecb880d3e9e78",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-7.0.0",
         "repo": "midnight-ledger",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       }
     },
@@ -494,7 +494,7 @@
         "n2c": "n2c",
         "nixpkgs": "nixpkgs_3",
         "npmlock2nix": "npmlock2nix",
-        "onchain-runtime-v2": "onchain-runtime-v2",
+        "onchain-runtime-v3": "onchain-runtime-v3",
         "utils": "utils_3",
         "zkir": "zkir",
         "zkir-v3": "zkir-v3",
@@ -919,17 +919,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1769539005,
-        "narHash": "sha256-I4e9AdBQYmAfy7XlVPhJ+6oC7a0oW99+Xm1KwrZxHTc=",
+        "lastModified": 1771863586,
+        "narHash": "sha256-MvFHm4qhy6CwN2EIXZFkQl35RXlLgTjf7YMkVKae3E4=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "8f2ed5c0954770e84b43c5dbb64ecb880d3e9e78",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-7.0.0",
         "repo": "midnight-ledger",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       }
     },
@@ -994,17 +994,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1769539005,
-        "narHash": "sha256-I4e9AdBQYmAfy7XlVPhJ+6oC7a0oW99+Xm1KwrZxHTc=",
+        "lastModified": 1771863586,
+        "narHash": "sha256-MvFHm4qhy6CwN2EIXZFkQl35RXlLgTjf7YMkVKae3E4=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "8f2ed5c0954770e84b43c5dbb64ecb880d3e9e78",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-7.0.0",
         "repo": "midnight-ledger",
+        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
         "type": "github"
       }
     }

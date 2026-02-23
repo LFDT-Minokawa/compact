@@ -31,18 +31,18 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0";
+      url = "github:midnightntwrk/midnight-ledger/d36f02ce5988db16c3520fef7ab7cfd1d3231af5";
       inputs.zkir.follows = "zkir";
     };
-    onchain-runtime-v2 = {
+    onchain-runtime-v3 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0";
+      url = "github:midnightntwrk/midnight-ledger/d36f02ce5988db16c3520fef7ab7cfd1d3231af5";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0";
+      url = "github:midnightntwrk/midnight-ledger/d36f02ce5988db16c3520fef7ab7cfd1d3231af5";
       inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
@@ -70,7 +70,7 @@
   outputs = {
     self,
     zkir,
-    onchain-runtime-v2,
+    onchain-runtime-v3,
     zkir-wasm,
     zkir-v3,
     zkir-v3-wasm,
@@ -176,11 +176,11 @@
             };
 
             nixDependenciesMap = {
-              "@midnight-ntwrk/onchain-runtime-v2" = let
-                pkg = onchain-runtime-v2.packages.${system}.onchain-runtime-wasm;
+              "@midnight-ntwrk/onchain-runtime-v3" = let
+                pkg = onchain-runtime-v3.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v2-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v2";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v3-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v3";
               };
             };
           };
@@ -220,7 +220,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.29.105"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.29.106"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./test-center
               ./compiler
@@ -354,7 +354,7 @@
               cp bin/compactc $out/bin
               mv $out/bin/compactc $out/bin/compactc.bin
               cp ${zkir.packages.${system}.zkir}/bin/zkir $out/lib/zkir
-              cp ${zkir-v3.packages.${system}.zkir-v3}/bin/zkir-v3 $out/lib/zkir-v3
+              cp ${zkir-v3.packages.${system}.zkir-v3}/bin/zkir $out/lib/zkir-v3
 
               chmod +w $out/lib/zkir
               chmod +w $out/lib/zkir-v3

@@ -323,6 +323,7 @@ test('getUnshieldedBalanceTest', () => {
     ownAddress: context.currentQueryContext.address,
     secondsSinceEpoch: 0n,
     secondsSinceEpochErr: 0,
+    lastBlockTime: 0n,
     parentBlockHash: '0'.repeat(64),
     balance: new Map([[tokenType, initialBalance]]),
     comIndices: new Map(),
