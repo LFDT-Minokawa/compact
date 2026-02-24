@@ -1776,29 +1776,52 @@ takes the following form:
 
 <table className="lang-ref-table"><tbody><tr><td><em>expr<sub>4</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>as</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression5"><em>expr<sub>5</sub></em></a></td></tr></tbody></table>
 
-The effects of casting an expression `e` of type `T` to another type `U`
-depend on the specific types involved.
+The effects of casting an expression `e` of type `T` to another type `U` depend
+on the specific types involved.
 For some types `T` and `U`, the cast is not allowed, which is a static error.
-Even if the cast is allowed, a run-time error might occur if the value of `e`
-cannot be represented as a value of type `U`.
-In some cases, the run-time representation of `T` is different from the run-time
-representation of `U`, in which case the value of `e` must be converted at
-run time from the one representation to the other.
+Even if the cast is allowed, some values of type `T` might not be representable
+as values of type `U`.
+In such cases, a run-time check of the value of `e` is required and can result
+in a run-time error.
+In cases where the run-time representation of `T` is different from the run-time
+representation of `U`, the value of `e` must be converted at run time from the
+one representation to the other.
 
-The following rules govern when casts are allowed, when a cast might cause a
-run-time error, and when a cast require a run-time conversion.
+The type of any (allowed) cast `e as T` is, naturally, `T`.
+
+Evaluation of a cast proceeds by evaluation of its subexpression, followed by
+any checks and conversions required by the cast.
+If a check fails, a run-time error is reported.
+
+TypeScript casts of the form `<T>e` are not supported in Compact.
+
+The following rules govern when casts are allowed, when casts might cause run-time
+errors, and casts might require run-time conversions.
+Any cast not covered by one of the rules is not allowed.
 
 !!!!!!!! TBD verify all of these claims
 
-- Upcasts, i.e., casts from a type to a supertype (e.g., from `Vector<3, Uint<8>>`
-  to `Vector<3, Uint<16>>`, are always allowed (but never required), never
-  result in run-time errors, and might require run-time conversions, though
-  never when the type and supertype are the same.
-- Downcasts, i.e., casts from a type to a subtype, are always allowed, always
-  require run-time checks, and might require run-time conversions.
+#### Casts between related types:
+
+- Indentity casts, i.e., casts from a type to itself, are always allowed (but
+  never required), never result in run-time errors, and never require run-time
+  conversions.
+- Upcasts, i.e., casts from a type to a supertype that is not the same type
+  (e.g., from `Vector<3, Uint<8>>` to `Vector<3, Uint<16>>`, are always allowed
+  (but never required), never result in run-time errors, and might require run-time
+  conversions.
+- Downcasts, i.e., casts from a type to a subtype that is not the same type,
+  are always allowed, always require run-time checks, and might require run-time
+  conversions.
   For example, a value of type `Vector<3, Uint<16>>` can be cast to type
   `Vector<3, Uint<8>>` with a run-time check of each element and possibly
   a conversion if the representations differ.
+
+!!!!!!!! Might want to mention impliciations of these rules, such as rules for casting tuples to vectors and back
+
+
+#### Casts of `Boolean` to and from `Field` and `Uint`:
+
 - Casts from `Boolean` to `Field` or `Uint<0..m>` are always allowed, sometimes
   require run-time checks, and require a run-time conversion (of `false` to `0`
   and `true` to `1`).
@@ -1806,6 +1829,9 @@ run-time error, and when a cast require a run-time conversion.
 - Casts from `Field` or `Uint<0..m>` to `Boolean` are always allowed, cannot
   result in run-time errors, and require a simple run-time conversion (of `0` to
   `false` and any other value to `true`).
+
+#### Casts of Enum types to and from `Field` and `Uint`:
+
 - Casts from enum types with `n` elements to `Field` or `Uint<0..m>` are
   always allowed, sometimes require run-time checks, and might require a run-time
   conversion.
@@ -1814,6 +1840,9 @@ run-time error, and when a cast require a run-time conversion.
   always allowed, sometimes requires a run-time checks, and might require a run-time
   conversion.
   A run-time check is required for `Field` and `Uint<0..m>`, `m > n + 1`.
+
+#### Casts of `Bytes` to and from `Field` and `Uint`:
+
 - Casts from `Bytes<m>`, `m != 0`, to `Field` or `Uint<0..k>` are always allowed,
   require a run-time check, and require a run-time conversion.
   That is, the bytes value of the expression is converted into a `Field` or
@@ -1827,6 +1856,9 @@ run-time error, and when a cast require a run-time conversion.
   with the first byte of the bytes value corresponding to the least-significant
   byte of the integer.
   A run-time error occurs if the result does not fit in `m` bytes.
+
+#### Casts of `Bytes` to and from `Vector` and tuple types:
+
 - Casts from `Bytes<m>` to `Vector<m, Field>` or `Vector<m, Uint<0..k>>`,
   `k >= 256`, or `[U1, ..., Um]`, where each `Ui = Uint<0..j>` for some j >= are allowed, cannot cause a run-time error, but do require a
   run-time conversion.
@@ -1838,87 +1870,6 @@ run-time error, and when a cast require a run-time conversion.
   but do require a run-time conversion.
 - Casts from `Vector<m, Uint<0..k>>`, `k < 256`, to `Bytes<m>` are allowed,
   cannot cause a run-time error, but do require a run-time conversion.
-
-Any cast not covered by these rules is not allowed.
-
-!!!!!!!! Might want to mention impliciations, such as rules for casting tuples to vectors and back
-
-!!!!!!!! TBD flush or update this table
-
-The table below describes the allowed type casts.  Casting between
-types not shown in the table is not allowed.  The entries in the
-table can be one of:
-
-- **static:** the type cast only changes the static type and does
-  not have any effect at runtime
-- **conversion:** the type cast always succeeds but has the runtime
-  effect of converting between different source and target
-  representations, which normally has a low cost
-- **checked:** the type cast is checked at runtime and can fail
-- **no:** the type cast is not allowed
-- a number: see the corresponding note below the table
-
-<table>
-  <thead>
-    <tr>
-      <th colspan="2"></th>
-      <th colspan="4">TO</th>
-    </tr>
-    <tr>
-      <th colspan="2"></th>
-      <th><tt>Field</tt></th>
-      <th><tt>Uint\<0..n></tt></th>
-      <th><tt>Boolean</tt></th>
-      <th><tt>Bytes\<n></tt></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="5">FROM</th>
-      <th><tt>Field</tt></th>
-      <td>static</td>
-      <td>checked</td>
-      <td>1</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th><tt>Uint\<0..m></tt></th>
-      <td>static</td>
-      <td>3</td>
-      <td>conversion</td>
-      <td>no</td>
-    </tr>
-    <tr>
-      <th>enum type</th>
-      <td>conversion</td>
-      <td>no</td>
-      <td>no</td>
-      <td>no</td>
-    </tr>
-    <tr>
-      <th><tt>Boolean</tt></th>
-      <td>conversion</td>
-      <td>4</td>
-      <td>no</td>
-      <td>no</td>
-    </tr>
-    <tr>
-      <th><tt>Bytes\<m></tt></th>
-      <td>5</td>
-      <td>no</td>
-      <td>no</td>
-      <td>6</td>
-    </tr>
-  </tbody>
-</table>
-
-The type of any cast `e as T` is, naturally, `T`.
-
-Evaluation of a cast proceeds by evaluation of its subexpression, followed by
-any checks and conversions required by the cast.
-If a check fails, a run-time error is reported.
-
-TypeScript casts of the form `<T>e` are not supported in Compact.
 
 ### Binary arithmetic expressions
 
