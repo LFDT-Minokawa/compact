@@ -63,24 +63,16 @@
       (define (make-witness alignment* primitive-type*)
         (lambda (var-name* src test triv* instr*)
           (with-output-language (Lzkir Instruction)
-            (define (make-private-input var-name)
+            (define (make-private-input var-name primitive-type)
               ;; The ZKIR v2 backend has this special case for literal true guards.
               (if (eq? test 1)
-                  `(private_input ,var-name)
-                  `(private_input ,var-name ,test)))
-            (if (jubjub-point-alignment? alignment*)
-                (let* ([pt0 (make-temp-id src 'pt)] [pt1 (make-temp-id src 'pt)])
-                  (assert (= (length var-name*) 1))
-                  (cons*
-                    `(decode "Point<Jubjub>" ,(car var-name*) ,pt0 ,pt1)
-                    (make-private-input pt1)
-                    (make-private-input pt0)
-                    instr*))
-                (fold-left
-                  (lambda (instr* var-name primitive-type)
-                    (emit-constraints-for var-name primitive-type
-                      (cons (make-private-input var-name) instr*)))
-                  instr* var-name* primitive-type*)))))
+                  `(private_input ,(type->string primitive-type) ,var-name)
+                  `(private_input ,(type->string primitive-type) ,var-name ,test)))
+            (fold-left
+              (lambda (instr* var-name primitive-type)
+                (emit-constraints-for var-name primitive-type
+                  (cons (make-private-input var-name primitive-type) instr*)))
+              instr* var-name* primitive-type*))))
 
       (define (make-native name arg*)
         ;; Get the list of alignment atoms for a 0-based arg index.
@@ -453,14 +445,12 @@
                          (let* ([pt0 (make-temp-id default-src 'pt)]
                                 [pt1 (make-temp-id default-src 'pt)])
                            (zkir-instr*
-                             (cons
-                               `(decode "Point<Jubjub>" ,(car var-name*) ,pt0 ,pt1)
+                             (cons*
+                               `(encode ,pt0 ,pt1 ,(car var-name*))
                                (if (eq? test-val 1)
-                                   (cons* `(public_input ,pt1) `(public_input ,pt0)
-                                     (zkir-instr*))
-                                   (cons* `(public_input ,pt1 ,test-val)
-                                     `(public_input ,pt0 ,test-val)
-                                     (zkir-instr*)))))
+                                   `(public_input "Point<Jubjub>" ,(car var-name*))
+                                   `(public_input "Point<Jubjub>" ,(car var-name*) ,test-val))
+                               (zkir-instr*)))
                            (values (list -2 -2) (list pt0 pt1)))
                          (begin
                            (for-each (lambda (var-name)
@@ -468,8 +458,8 @@
                                          (cons
                                            ;; A case duplicated from ZKIR v2.
                                            (if (eq? test-val 1)
-                                               `(public_input ,var-name)
-                                               `(public_input ,var-name ,test-val))
+                                               `(public_input "Scalar<BLS12-381>" ,var-name)
+                                               `(public_input "Scalar<BLS12-381>" ,var-name ,test-val))
                                            (zkir-instr*))))
                              var-name*)
                            (values (map assemble-alignment-atom alignment*) var-name*))))])
@@ -603,29 +593,11 @@
       ;; conversion instructions.
       (define (unzip-arguments arg*)
         (if (null? arg*)
-            (values '() '() '())
-            (let-values ([(name* type* instr*) (unzip-arguments (cdr arg*))])
+            (values '() '())
+            (let-values ([(name* type*) (unzip-arguments (cdr arg*))])
               (nanopass-case (Lflattened Argument) (car arg*)
                 [(argument (,var-name* ...) (ty (,alignment* ...) (,primitive-type* ...)))
-                 (if (= (length primitive-type*) 1)
-                     (nanopass-case (Lflattened Primitive-Type) (car primitive-type*)
-                       [(topaque ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
-                        ;; We have chosen not to flatten JubjubPoint into a pair of values (in
-                        ;; `flatten-datatype`) because we can't recover the ZKIR type from that.
-                        ;;
-                        ;; If it's a JubjubPoint the circuit will have a pair of field values as
-                        ;; inputs in the proof primage, because that's what the JS code will have
-                        ;; captured.  Expand the inputs into the pair of inputs and insert a
-                        ;; `decode` instruction.
-                        (let* ([x (make-temp-id default-src 'x)]
-                               [y (make-temp-id default-src 'y)])
-                          (values (cons* x y name*)
-                            (with-output-language (Lflattened Primitive-Type)
-                              (cons* `(tfield) `(tfield) type*))
-                            (with-output-language (Lzkir Instruction)
-                              (cons `(decode "Point<Jubjub>" ,(car var-name*) ,x ,y) instr*))))]
-                       [else (values (append var-name* name*) (append primitive-type* type*) instr*)])
-                     (values (append var-name* name*) (append primitive-type* type*) instr*))]))))
+                 (values (append var-name* name*) (append primitive-type* type*))]))))
 
       (define (type->string primitive-type)
         (nanopass-case (Lflattened Primitive-Type) primitive-type
@@ -668,11 +640,11 @@
        ;; - Translate the statements in the body
        ;; - Add instructions for the outputs
        (fluid-let ([default-src src])
-         (let-values ([(var-name* type* instr*) (unzip-arguments arg*)])
+         (let-values ([(var-name* type*) (unzip-arguments arg*)])
            (let* ([constraint*
                     (fold-left (lambda (constraint* var-name type)
                                  (emit-constraints-for var-name type constraint*))
-                      instr* var-name* type*)]
+                      '() var-name* type*)]
                   [instr*
                     (fold-left (lambda (instr* stmt) (Statement stmt instr*))
                       constraint* stmt*)]
@@ -927,18 +899,18 @@
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
          `((op . "persistent_hash") (outputs . ,(vector outp0 outp1))
            (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*))))]
-      [(private_input ,[* outp])
+      [(private_input ,zkir-type ,[* outp])
        ;; Kind of warty: rather than a literal true guard or making it truly optional by leaving it
        ;; out of the JSON representation, ZKIR wants to put a JSON null value there.
-       `((op . "private_input") (output . ,outp) (guard . ,(void)))]
-      [(private_input ,[* outp] ,[* inp])
-       `((op . "private_input") (output . ,outp) (guard . ,inp))]
-      [(public_input ,[* outp])
+       `((op . "private_input") (type . ,zkir-type) (output . ,outp) (guard . ,(void)))]
+      [(private_input ,zkir-type ,[* outp] ,[* inp])
+       `((op . "private_input") (type . ,zkir-type) (output . ,outp) (guard . ,inp))]
+      [(public_input ,zkir-type ,[* outp])
        ;; Kind of warty: rather than a literal true guard or making it truly optional by leaving it
        ;; out of the JSON representation, ZKIR wants to put a JSON null value there.
-       `((op . "public_input") (output . ,outp) (guard . ,(void)))]
-      [(public_input ,[* outp] ,[* inp])
-       `((op . "public_input") (output . ,outp) (guard . ,inp))]
+       `((op . "public_input") (type . ,zkir-type) (output . ,outp) (guard . ,(void)))]
+      [(public_input ,zkir-type ,[* outp] ,[* inp])
+       `((op . "public_input") (type . ,zkir-type) (output . ,outp) (guard . ,inp))]
       [(impact ,[* inp] ,[* inp*] ...)
        `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
       [(reconstitute_field ,[* outp] ,[* inp0] ,[* inp1] ,imm)

@@ -5,13 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased toolchain 0.29.107, language 0.21.101, runtime 0.14.102]
+## [Unreleased toolchain 0.29.108, language 0.21.101, runtime 0.14.102]
+
 
 ### Fixed
 
 - Type declarations of `Uint<n>` and `Uint<0..n>` where `n` is a free type variable
   are now accepted by the compiler.  The generated TypeScript code uses `bigint`
   for them.
+
+## [Unreleased toolchain 0.29.107, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- The ZKIR v3 format, behind the feature flag `--feature-zkir-v3`, has changed
+  so that:
+  - circuit inputs are correctly typed as either `Scalar<BLS12-381>` or
+    `Point<Jubjub>` (before they were always scalars, with `encode` instructions
+    for curve points), and
+  - `private_input` and `public_input` instructions are typed (before they
+    always read scalars, with `encode` instructions for curve points)
 
 ## [Unreleased toolchain 0.29.106, language 0.21.101, runtime 0.14.102]
 
