@@ -75,13 +75,32 @@ pub enum Command {
     /// version to the installed one.
     ///
     /// If the compiler was already downloaded it is not downloaded again
-    #[command(verbatim_doc_comment, visible_alias = "u", visible_alias = "up", alias = "upd", alias = "upda", alias = "updat")]
+    #[command(
+        verbatim_doc_comment,
+        visible_alias = "u",
+        visible_alias = "up",
+        alias = "upd",
+        alias = "upda",
+        alias = "updat"
+    )]
     Update(UpdateCommand),
 
-    #[command(visible_alias = "fmt", visible_alias = "f", alias = "fo", alias = "for", alias = "form", alias = "forma")]
+    #[command(
+        visible_alias = "fmt",
+        visible_alias = "f",
+        alias = "fo",
+        alias = "for",
+        alias = "form",
+        alias = "forma"
+    )]
     Format(FormatCommand),
 
-    #[command(visible_alias = "fx", visible_alias = "fix", alias = "fi", alias = "fixu")]
+    #[command(
+        visible_alias = "fx",
+        visible_alias = "fix",
+        alias = "fi",
+        alias = "fixu"
+    )]
     Fixup(FixupCommand),
 
     #[command(visible_alias = "l", alias = "li", alias = "lis")]
@@ -90,11 +109,24 @@ pub enum Command {
     #[command(visible_alias = "cl", alias = "cle", alias = "clea")]
     Clean(CleanCommand),
 
-    #[command(name = "self", subcommand, visible_alias = "s", alias = "se", alias = "sel")]
+    #[command(
+        name = "self",
+        subcommand,
+        visible_alias = "s",
+        alias = "se",
+        alias = "sel"
+    )]
     SSelf(SSelf),
 
     /// Call the compiler
-    #[command(visible_alias = "c", alias = "co", alias = "com", alias = "comp", alias = "compi", alias = "compil")]
+    #[command(
+        visible_alias = "c",
+        alias = "co",
+        alias = "com",
+        alias = "comp",
+        alias = "compi",
+        alias = "compil"
+    )]
     Compile(CompileCommand),
 }
 
