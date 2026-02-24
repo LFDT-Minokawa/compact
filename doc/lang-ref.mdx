@@ -1801,24 +1801,25 @@ Any cast not covered by one of the rules is not allowed.
 
 !!!!!!!! TBD verify all of these claims
 
-#### Casts between related types:
+#### Upcasts
 
-- Indentity casts, i.e., casts from a type to itself, are always allowed (but
-  never required), never result in run-time errors, and never require run-time
-  conversions.
-- Upcasts, i.e., casts from a type to a supertype that is not the same type
-  (e.g., from `Vector<3, Uint<8>>` to `Vector<3, Uint<16>>`, are always allowed
-  (but never required), never result in run-time errors, and might require run-time
-  conversions.
-- Downcasts, i.e., casts from a type to a subtype that is not the same type,
-  are always allowed, always require run-time checks, and might require run-time
-  conversions.
-  For example, a value of type `Vector<3, Uint<16>>` can be cast to type
-  `Vector<3, Uint<8>>` with a run-time check of each element and possibly
-  a conversion if the representations differ.
+- Upcasts, i.e., casts from a type to a supertype (e.g., from `Vector<3, Uint<8>>`
+  to `Vector<3, Uint<16>>`, are always allowed (but never required), never result
+  in run-time errors, and, except in the case where the type and the supertype are
+  the same, might require run-time conversions.
 
-!!!!!!!! Might want to mention impliciations of these rules, such as rules for casting tuples to vectors and back
+!!!!!!!! TBD Might want to mention other impliciations of this rule, such as rules for casting tuples to vectors and back
 
+#### Downcasts of `Field` and `Uint` types
+
+!!!!!!!! TBD this applies to to unsigned integers and should be adjusted accordingly
+
+- `Uint` downcasts, i.e., casts from `Uint<m>` to `Uint<n>`, `m > n`, are always
+   allowed always require run-time checks, and might require run-time conversions.
+   The same applies to `Field` to `Uint` casts where the maximum value of the
+   `Uint` type exceeds the maximum `Field` value, as well as `Uint` to `Field` casts
+   where the maximum value of the `Uint` type is less than or equal to the maximum
+   `Field` value.
 
 #### Casts of `Boolean` to and from `Field` and `Uint`:
 
