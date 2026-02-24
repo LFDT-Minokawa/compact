@@ -23393,20 +23393,11 @@ groups than for single tests.
       )
     (returns
       (program
-        (export-typedef UX ()
-          (talias #f UX
-            ;  the following foour tunsigned are dummy values since these values
-            ;  aren't actually used since n is a free type variable
-            (tunsigned ,(max-unsigned))))
-        (export-typedef UY ()
-          (talias #f UY
-            (tunsigned ,(- (unsigned-bits) 1))))
-        (export-typedef SX (T)
-          (tstruct SX
-            (curidx (tunsigned ,(max-unsigned)))))
+        (export-typedef UX () (talias #f UX (tunsigned 1)))
+        (export-typedef UY () (talias #f UY (tunsigned 0)))
+        (export-typedef SX (T) (tstruct SX (curidx (tunsigned 1))))
         (export-typedef SY (T)
-          (tstruct SY
-            (curidx (tunsigned ,(- (unsigned-bits) 1)))))))
+          (tstruct SY (curidx (tunsigned 0))))))
     )
 )
 
