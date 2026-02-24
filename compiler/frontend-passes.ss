@@ -265,11 +265,6 @@
           [(nat-valued ,src ,tvar-name) tvar-name]
           [(type-valued ,src ,tvar-name) tvar-name]))
       )
-    (External-Declaration : External-Declaration (ir) -> External-Declaration ()
-      [(external ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
-       (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
-       (reject-duplicate! src "parameter name" (map arg->sym arg*))
-       ir])
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
       [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
        (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))

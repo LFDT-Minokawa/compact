@@ -164,8 +164,6 @@
           (define std-circuits
             (let ([ht (make-hashtable symbol-hash eq?)])
               (define (register-handler! name handler)
-                (unless (hashtable-contains? native-table name)
-                  (internal-errorf 'print-zkir "undeclared native name ~s" name))
                 (let ([a (hashtable-cell ht name #f)])
                   (when (cdr a) (internal-errorf 'print-zkir "duplicate circuit name ~s" name))
                   (set-cdr! a handler)))
@@ -201,6 +199,16 @@
                   (print-gate "hash_to_curve" `[inputs ,args*])
                   (new-var! (car res*) #f)
                   (new-var! (cadr res*) #f)))
+              (register-handler! 'jubjubPointX
+                (lambda (align res* a1 a2)
+                  (bind-var! (car res*) a1)))
+              (register-handler! 'jubjubPointY
+                (lambda (align res* a1 a2)
+                  (bind-var! (car res*) a2)))
+              (register-handler! 'constructJubjubPoint
+                (lambda (align res* a1 a2)
+                  (bind-var! (car res*) a1)
+                  (bind-var! (cadr res*) a2)))
               (register-handler! 'transientCommit
                 ;; First n-1 args are the object being committed.
                 ;; Final arg is commitment nonce.
@@ -306,7 +314,7 @@
              (for-each Statement stmt*)
              (for-each (lambda (triv) (print-gate "output" `[var ,(Triv triv)])) triv*)
              (printf "\n  ]\n"))]
-          [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+          [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
            (if (eq? (native-entry-class native-entry) 'witness)
                (begin
                  (set-calltype! function-name '(witness . #f))
@@ -314,7 +322,7 @@
                (set-calltype! function-name
                  (cons*
                    'builtin-circuit
-                   (native-entry-name native-entry)
+                   (id-sym function-name)
                    (list (map (lambda (arg)
                                 (nanopass-case (Lflattened Argument) arg
                                   [(argument (,var-name ...) (ty (,alignment* ...) (,primitive-type* ...)))
@@ -360,6 +368,8 @@
                   (assert (hashtable-ref returntype-ht function-name #f))
                   var-name*)]
                [else (assert cannot-happen)]))]
+          [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...))
+           (source-errorf src "cross-contract calls are not yet supported")]
           [(= (,var-name* ...) (bytes->vector ,[* triv]))
            (assert (not (null? var-name*)))
            (let loop ([var-name* var-name*] [triv triv])

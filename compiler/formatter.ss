@@ -832,19 +832,6 @@
                             (list (Return-Type return-type)))
                      '()))))
              blck))]
-      [(external ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,return-type ,semicolon)
-       (// src
-           (apply make-Qconcat #f
-             (add-modifier kwd-export?
-               (cons*
-                 (make-Qtoken kwd)
-                 nbsp (make-Qsignature
-                        (Qfun function-name generic-param-list?)
-                        (arg-list-getter arg-list)
-                        (cons
-                          (Return-Type return-type)
-                          (add-punctuation semicolon '())))
-                 '()))))]
       [(witness ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,return-type ,semicolon)
        (// src
            (apply make-Qconcat #f

@@ -35,12 +35,12 @@ jobs:
           echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
 
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ inputs.branch }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
           always-auth: true
           registry-url: https://npm.pkg.github.com/
@@ -48,7 +48,7 @@ jobs:
           node-version-file: '.nvmrc'
 
       - name: Download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: ${{ inputs.artifact }}
 
@@ -67,7 +67,7 @@ jobs:
           yarn test:release
 
       - name: Publish Test Summary - Linux
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f # v2.22.0
         if: always() && contains(inputs.artifact, 'linux')
         with:
           check_name: Compactc E2E Tests Results - ${{ inputs.artifact }}
@@ -76,7 +76,7 @@ jobs:
             !(node_modules)/**/test-report.xml
             
       - name: Publish Test Summary - macOS
-        uses: EnricoMi/publish-unit-test-result-action/macos@v2
+        uses: EnricoMi/publish-unit-test-result-action/macos@27d65e188ec43221b20d26de30f4892fad91df2f # v2.22.0
         if: always() && contains(inputs.artifact, 'macos')
         with:
           check_name: Compactc E2E Tests Results - ${{ inputs.artifact }}

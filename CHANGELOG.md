@@ -5,6 +5,217 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased toolchain 0.29.107, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- The ZKIR v3 format, behind the feature flag `--feature-zkir-v3`, has changed
+  so that:
+  - circuit inputs are correctly typed as either `Scalar<BLS12-381>` or
+    `Point<Jubjub>` (before they were always scalars, with `encode` instructions
+    for curve points), and
+  - `private_input` and `public_input` instructions are typed (before they
+    always read scalars, with `encode` instructions for curve points)
+
+## [Unreleased toolchain 0.29.106, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- The Compact compiler now targets `midnight-ledger` version 8.0.0.  The Compact
+  runtime now imports `onchain-runtime-v3` (instead of `-v2`) at version
+  compatible with 3.0.0-rc.2.
+
+## [Unreleased toolchain 0.29.105, language 0.21.101, runtime 0.14.101]
+
+### Fixed
+
+- [Breaking Change] The search order for include and external module files
+  specified with non-absolute paths has been fixed so that (a) the compiler looks
+  first relative to the directory of the including or importing file, and (b)
+  the compiler does not automatically look in the directory where the compiler
+  was invoked.
+
+### Added
+
+- compactc and fixup-compact support two new options: --compact-path to
+  set the compact path and --trace-search to cause the compiler to say where
+  it looks for include and external module files.  If the `--compact-path`
+  command-line option is present, the environment variable `COMPACT_PATH`
+  is ignored.
+
+## [Unreleased toolchain 0.29.104, language 0.21.101, runtime 0.14.101]
+
+### Added
+
+- The generated TypeScript now includes a `ProvableCircuits<PS>` type and a
+  `provableCircuits` field on the `Contract` class.  `ProvableCircuits` contains
+  only the circuits that have verifier keys (i.e., circuits that appear in the
+  flattened circuit IR and produce ZKIR files).  This distinguishes them from
+  impure circuits that only call witnesses without touching the ledger.
+
+### Fixed
+
+- `setOperation` is now emitted only for provable circuits (those in
+  `proof-circuit-name*`) rather than for all impure circuits.  Previously,
+  witness-only impure circuits caused the runtime to look
+  for a verifier key that does not exist.
+
+## [Unreleased toolchain 0.29.103, language 0.21.101, runtime 0.14.101]
+
+### Changed
+
+- The standard library type `NativePoint` has been removed.  The standard
+  library type `JubjubPoint` is now a `new type` alias for
+  `Opaque<'JubjubPoint'>`.  This way `Opaque<'JubjubPoint'>` isn't really
+  hidden, but it's not shown in error messages.
+- `NativePoint` circuits in the standard library and the corresponding
+  same-named functions in the Compact runtime have been renamed, and they now
+  take or produce `JubjubPoint` values.
+  - `nativePointX` -> `jubjubPointX`
+  - `nativePointY` -> `jubjubPointY`
+  - `constructNativePoint` -> `constructJubjubPoint`
+- Signatures of elliptic curve operations in the standard library now use
+  `JubjubPoint` in place of `NativePoint`.
+
+### Internal notes
+
+- The `compact fixup` tool can do these renamings except it cannot currently
+  rename types (e.g. `NativePoint` to `JubjubPoint`).
+
+## [Unreleased toolchain 0.29.102, language 0.21.100, runtime 0.14.100]
+
+### Added
+
+- There is a new builtin type `Opaque<'JubjubPoint'>`.  Unlike the other opaque
+  types, this is intended to be a crypto backend (ZKIR) native type (not a JS
+  type).  The standard library exports the type `JubjubPoint` which is a
+  (transparent) `type` alias for the opaque type.
+
+### Changed
+
+- The standard library's (opaque) `new type` alias `NativePoint` now has
+  underlying type `Opaque<'JubjubPoint'>`.
+- The Compact runtime's types `CompactTypeNativePoint` and `NativePoint` are
+  renamed to `CompactTypeJubjubPoint` and `JubjubPoint`.
+- The runtime has TS (instead of Compact) implementations of the now-builtin
+  `NativePointX` and `NativePointY` circuits.
+- The feature flag `--zkir-v3` is changed to `--feature-zkir-v3` to fit a
+  proposed standard naming convention, and to make crystal clear that it is
+  still an experimental feature.
+
+### Internal notes
+
+- When the flag `--feature-zkir-v3` is enabled, `Opaque<'JubjubPoint'>` is
+  represented natively in ZKIR v3.  Without the flag, it is still represented as
+  a pair of field elements in ZKIR v2.
+- This is implemented as a "pseudo"-alignment tag after flattening.  The tag
+  looks like `(anative "JubjubPoint")` and it's interpreted as a `midnight-zk`
+  JubjubPoint for ZKIR operations, converted to a pair of field values for
+  the Impact code embedded in the ZKIR circuit.
+- ZKIR v3 has new `encode` and `decode` gates for converting from ZKIR
+  representations to Impact representations and back.
+- ZKIR v3's `ec_add` has been eliminated; regular `add` is polymorphic,
+  operating on either a pair of scalars or a pair of Jubjub curve points.
+- ZKIR v3 has type annotations on circuit inputs and on `decode` instructions.
+- ZKIR v3 has two types: `Scalar<BLS12-381>` and `Point<Jubjub>`.
+- For both ZKIR v3 and ZKIR v2 modes, the JS representation of is still as a pair
+  of field elements.
+
+## [Unreleased toolchain version 0.29.101, language version 0.21.0]
+
+### Changed
+
+- In the formal grammar, the `stmt0` grammar production for one-armed
+  `if` expressions has been removed.  It was unnecessary and made the grammar
+  ambiguous.
+
+## [Unreleased toolchain 0.29.100, language 0.21.0]
+
+### Changed
+
+The compiler binary can now report `--runtime-version`, the version of the
+Compact runtime JS package that it will import in generated contract code.
+
+## [Toolchain version 0.29.0, language version 0.21.0]
+
+This release includes all changes for compiler versions in the range
+0.28.100 and 0.29.0; and language versions in the range 0.20.100 and
+0.21.0.  It uses Compact runtime 0.14.0 and on-chain runtime
+compatible with 2.0.0.
+
+## [Unreleased compiler 0.28.109, language 0.20.102]
+
+### Fixed
+
+- The fixup tool fixup-compact.ss failed to look for include files and modules
+  relative to the directory of the source pathname.
+
+## [Unreleased compiler 0.28.108, language 0.20.102]
+
+### Removed
+
+- The syntax for external circuits, i.e., circuit definitions with no body,
+  has been removed.  This syntax was used exclusively for declaring built-in
+  natives and was not useful outside of the compiler.
+
+### Internal notes
+
+- The compiler now injects natives directly into the standard library module.
+  This is simpler and gives us a single source of truth for natives.
+
+## [Unreleased compiler 0.28.107, language 0.20.101]
+
+### Fixed
+
+- An issue that caused transactions involving `mintShieldedToken`, `sendShielded`, `mintUnshieldedToken`, or
+  `sendUnshielded` to fail validation with `RealUnshieldedSpendsSubsetCheckFailure` when the caller was also the 
+  recipient of the newly minted token.
+
+## [Unreleased compiler 0.28.106, language 0.20.100]
+
+### Fixed
+
+- An issue that caused the compiler to take an excessive amount of time to compile
+  certain `for` loops, `fold` expression, and `map` expressions.
+
+- An bug that caused the compiler to miss some of certain repeated disclosures
+  of a witness value and to overstate the nature of certain other disclosures.
+
+### Changed
+
+- Messages about undeclared witness-value disclosures are now produced in an order
+  that attempts, for each disclosure point and witness value, to put the most severe
+  disclosures along the shortest paths first, since understanding these is easier
+  and properly declaring them often addresses the others.
+
+### Internal notes
+
+- The underlying issue was the representation and maintenance of paths in the
+  witness-protection program, and this has been replaced by a simpler mechanism
+  with some careful crafting of the code to reduce computational complexity and
+  generally make the compiler more efficient.
+
+## [Unreleased compiler 0.28.105, language 0.20.100]
+
+### Added
+
+- The file compiler/contract-info.json that compactc generates in the output
+  directory now includes some extra information: (1) version strings for the
+  compiler, language, and runtime, and (2) for each circuit, a flag saying whether
+  the circuit requires a proof (and therefore whether compactc has produced zkir
+  code and prooving keys for it in the zkir and keys subdirectories of the output
+  directory).
+
+- ARM Linux artifact is added.
+
+### Internal notes
+
+- Adding the proof flag involved moving the pass that saves the contract-info file
+  later in the compiler.  This in turn uncovered a couple of bugs in the preliminary
+  handling of (as yet unsupported) cross-contract calls.  These have been fixed,
+  though the code remains largely untested.  The zkir passes now recognize
+  cross-contract calls and explicitly reject them as unsupported.
+
 ## [Unreleased compiler 0.28.104, language 0.20.100]
 
 ### Fixed

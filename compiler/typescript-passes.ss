@@ -195,13 +195,13 @@
                 (type-descriptors ,descriptor-table (,descriptor-id* ,type*) ...)
                 ,pelt* ...))))])
     (Program-Element : Program-Element (ir) -> Program-Element ()
-      [(external ,src ,function-name ,native-entry (,[arg*] ...) ,[type])
+      [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[type])
        ;; TODO: We shouldn't actually need to register all these
        ;; descriptors, just the generic arguments.
        ;; But those aren't around anymore, so this is a safe stand-in.
        (for-each register-descriptor! (map arg->type arg*))
        (maybe-register-descriptor! type)
-       `(external ,src ,function-name ,native-entry (,arg* ...) ,type)]
+       `(native ,src ,function-name ,native-entry (,arg* ...) ,type)]
       [(witness ,src ,function-name (,[arg*] ...) ,[type])
        (maybe-register-descriptor! type)
        `(witness ,src ,function-name (,arg* ...) ,type)])
@@ -437,7 +437,7 @@
         (XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
         (XPelt-internal-circuit src internal-id arg* type stmt pure?)
         (XPelt-witness src internal-id arg* type external-name)
-        (XPelt-external-circuit src internal-id native-entry arg* type external-name pure?)
+        (Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
         (XPelt-type-definition src type-name export-name tvar-name* type)
         (XPelt-public-ledger pl-array lconstructor external-names)
         (XPelt-ledger-kernel))
@@ -449,7 +449,7 @@
            (format-internal-binding unique-global-name internal-id)]
           [(XPelt-witness src internal-id arg* type external-name)
            (format-internal-binding unique-global-name internal-id)]
-          [(XPelt-external-circuit src internal-id native-entry arg* type external-name pure?)
+          [(Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
            (format-internal-binding unique-global-name internal-id)]
           [(XPelt-type-definition src type-name export-name tvar-name* type) #f]
           [(XPelt-public-ledger pl-array lconstructor external-names) #f]
@@ -883,6 +883,28 @@
                    (newline))
                  external-name*))]
             [else (void)]))
+        (define (print-exported-provable-circuit-declaration)
+          (lambda (xpelt uname)
+            (XPelt-case xpelt
+              [(XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
+               (for-each
+                 (lambda (external-name)
+                   (when (memq (string->symbol external-name) (proof-circuit-names))
+                     (with-local-unique-names
+                       (demand-unique-local-name! "context")
+                       (print-Q 2
+                         (make-Qconcat
+                           external-name
+                           "("
+                           (apply (make-Qsep ",")
+                             "context: __compactRuntime.CircuitContext<PS>"
+                             (map Typed-Argument arg*))
+                           "): "
+                           "__compactRuntime.CircuitResults<PS, " (Type type) ">"
+                           ";")))
+                     (newline)))
+                 external-name*)]
+              [else (void)])))
         (define (print-exported-circuit-declaration xpelt uname)
           (XPelt-case xpelt
             [(XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
@@ -1130,6 +1152,10 @@
               (for-each (print-exported-impure-circuit-declaration not) xpelt* uname*)
               (display-string "}\n")
               (newline)
+              (display-string "export type ProvableCircuits<PS> = {\n")
+              (for-each (print-exported-provable-circuit-declaration) xpelt* uname*)
+              (display-string "}\n")
+              (newline)
               (display-string "export type PureCircuits = {\n")
               (for-each print-exported-pure-circuit-declaration xpelt* uname*)
               (display-string "}\n")
@@ -1150,6 +1176,7 @@
               (display-string "  witnesses: W;\n")
               (display-string "  circuits: Circuits<PS>;\n")
               (display-string "  impureCircuits: ImpureCircuits<PS>;\n")
+              (display-string "  provableCircuits: ProvableCircuits<PS>;\n")
               (display-string "  constructor(witnesses: W);\n")
               (print-constructor-declaration xpelt*)
               (display-string "}\n")
@@ -1244,6 +1271,7 @@
                    (case opaque-type
                      [("string") (format "__compactRuntime.CompactTypeOpaqueString")]
                      [("Uint8Array") (format "__compactRuntime.CompactTypeOpaqueUint8Array")]
+                     [("JubjubPoint") (format "__compactRuntime.CompactTypeJubjubPoint")]
                      ; FIXME: what should happen with other opaque types?
                      [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                   [(tvector ,src ,len ,type)
@@ -1663,6 +1691,19 @@
                            (append external-name* impure-name*)))]
                     [else (values pure-name* impure-name*)]))))
 
+          (define (get-provable-circuit-names xpelt*)
+            (fold-right
+              (lambda (xpelt rest)
+                (XPelt-case xpelt
+                  [(XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
+                   (append (filter
+                             (lambda (name) (memq (string->symbol name) (proof-circuit-names)))
+                             external-name*)
+                           rest)]
+                  [else rest]))
+              '()
+              xpelt*))
+
           (define (get-witness-names xpelt*)
             (fold-right
               (lambda (xpelt witness-name*)
@@ -1673,7 +1714,20 @@
               '()
               xpelt*))
 
-          (define (print-contract-constructor xpelt0* uname* impure-name*)
+          (define (build-circuit-name-object prefix name*)
+            (apply make-Qconcat
+              (format "this.~a = {" prefix)
+              (if (null? name*)
+                  (list "};")
+                  (let f ([name* name*])
+                    (let ([name (car name*)]
+                          [name* (cdr name*)])
+                      (let ([q (format "~a: this.circuits.~:*~a" name)])
+                        (if (null? name*)
+                            (list 2 q 0 "};")
+                            (cons* 2 q "," (f name*)))))))))
+
+          (define (print-contract-constructor xpelt0* uname* impure-name* provable-name*)
             (let loop ([xpelt* xpelt0*])
               (assert (not (null? xpelt*)))
               (XPelt-case (car xpelt*)
@@ -1697,17 +1751,8 @@
                                        2 "this.circuits = {"
                                        4 (build-exported-circuits xpelt0* uname*)
                                        2 "};"
-                                       2 (apply make-Qconcat
-                                           "this.impureCircuits = {"
-                                           (if (null? impure-name*)
-                                               (list "};")
-                                               (let f ([impure-name* impure-name*])
-                                                 (let ([impure-name (car impure-name*)]
-                                                       [impure-name* (cdr impure-name*)])
-                                                   (let ([q (format "~a: this.circuits.~:*~a" impure-name)])
-                                                     (if (null? impure-name*)
-                                                         (list 2 q 0 "};")
-                                                         (cons* 2 q "," (f impure-name*))))))))
+                                       2 (build-circuit-name-object "impureCircuits" impure-name*)
+                                       2 (build-circuit-name-object "provableCircuits" provable-name*)
                                        0 "}")))))))
                     (newline)])]
                 [else (loop (cdr xpelt*))])))
@@ -1891,18 +1936,18 @@
               (lambda (xpelt q*)
                 (XPelt-case xpelt
                   [(XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
-                   (if pure?
-                       q*
-                       (fold-right
-                         (lambda (external-name q*)
+                   (fold-right
+                     (lambda (external-name q*)
+                       (if (memq (string->symbol external-name) (proof-circuit-names))
                            (cons*
                              2 (format
                                  "~a.setOperation('~a', new __compactRuntime.ContractOperation());"
                                  state
                                  external-name)
-                             q*))
-                         q*
-                         external-name*))]
+                             q*)
+                           q*))
+                     q*
+                     external-name*)]
                   [else q*]))
               q*
               xpelt*))
@@ -1995,7 +2040,7 @@
                (print-local-circuit src internal-id arg* stmt pure?)]
               [(XPelt-witness src internal-id arg* type external-name)
                (print-external-witness src internal-id uname arg* type external-name)]
-              [(XPelt-external-circuit src internal-id native-entry arg* type external-name pure?)
+              [(Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
                (print-external-circuit src internal-id native-entry uname arg* type external-name pure?)]
               [else (void)]))
 
@@ -2033,17 +2078,14 @@
                       (apply (make-Qsep ",")
                              (fold-right
                                (let ([ht (make-hashtable symbol-hash eq?)])
-                                 (lambda (native-type type q*)
-                                   (native-type-case native-type
-                                     [(native-type-param name)
-                                      (if (hashtable-contains? ht name)
-                                          q*
-                                          (begin
-                                            (hashtable-set! ht name #t)
-                                            (cons
-                                              (type->descriptor-name type)
-                                              q*)))]
-                                      [else q*])))
+                                 (lambda (maybe-type-param type q*)
+                                   (if (and maybe-type-param (not (hashtable-contains? ht maybe-type-param)))
+                                       (begin
+                                         (hashtable-set! ht maybe-type-param #t)
+                                         (cons
+                                           (type->descriptor-name type)
+                                           q*))
+                                       q*)))
                                (let ([arg-q* (map (lambda (arg)
                                                     (let ([var-name (arg->id arg)])
                                                       (make-Qconcat/src
@@ -2053,9 +2095,7 @@
                                  (if (eq? (native-entry-class native-entry) 'witness)
                                      (cons "context" arg-q*)
                                      arg-q*))
-                               (append
-                                 (native-entry-argument-types native-entry)
-                                 (list (native-entry-result-type native-entry)))
+                               (native-entry-maybe-type-param* native-entry)
                                (append
                                  (map arg->type arg*)
                                  (list type))))
@@ -2113,34 +2153,35 @@
               (demand-unique-local-name! "context")
               (demand-unique-local-name! "partialProofData")
               (let-values ([(pure-name* impure-name*) (get-pure&impure-circuit-names xpelt*)])
-                (display-string "export class Contract {\n")
-                (display-string "  witnesses;\n")
-                (fluid-let ([helper* '()])
-                  (print-contract-constructor xpelt* uname* impure-name*)
-                  (print-contract-initializer xpelt* uname*)
-                  (for-each print-unexported-circuit xpelt* uname*)
-                  (for-each display-string (reverse helper*)))
-                (display-string "}\n")
-                (print-contract-ledger src xpelt* uname*)
-                (display-string "const _emptyContext = {\n")
-                (display-string "  currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress())\n")
-                (display-string "};\n")
-                (print-Q 0
-                  (make-Qconcat
-                    "const _dummyContract = new Contract({"
-                    2 (apply (make-Qsep ",")
-                             (map (lambda (witness-name)
-                                    (format "~a: (...args) => undefined" witness-name))
-                                  (get-witness-names xpelt*)))
-                    0 "});"))
-                (newline)
-                (print-Q 0
-                  (apply make-Qconcat
-                    "export const pureCircuits = {"
-                    (if (null? pure-name*)
-                        (list "};")
-                        (list 2 (build-exported-pure-circuits xpelt* uname*) 0 "};"))))
-                (newline)))))
+                (let ([provable-name* (get-provable-circuit-names xpelt*)])
+                  (display-string "export class Contract {\n")
+                  (display-string "  witnesses;\n")
+                  (fluid-let ([helper* '()])
+                    (print-contract-constructor xpelt* uname* impure-name* provable-name*)
+                    (print-contract-initializer xpelt* uname*)
+                    (for-each print-unexported-circuit xpelt* uname*)
+                    (for-each display-string (reverse helper*)))
+                  (display-string "}\n")
+                  (print-contract-ledger src xpelt* uname*)
+                  (display-string "const _emptyContext = {\n")
+                  (display-string "  currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress())\n")
+                  (display-string "};\n")
+                  (print-Q 0
+                    (make-Qconcat
+                      "const _dummyContract = new Contract({"
+                      2 (apply (make-Qsep ",")
+                               (map (lambda (witness-name)
+                                      (format "~a: (...args) => undefined" witness-name))
+                                    (get-witness-names xpelt*)))
+                      0 "});"))
+                  (newline)
+                  (print-Q 0
+                    (apply make-Qconcat
+                      "export const pureCircuits = {"
+                      (if (null? pure-name*)
+                          (list "};")
+                          (list 2 (build-exported-pure-circuits xpelt* uname*) 0 "};"))))
+                  (newline))))))
 
         (define (print-exported-types xpelt*)
           (for-each
@@ -2566,9 +2607,9 @@
       [(witness ,src ,function-name (,arg* ...) ,type)
        (let ([external-name (symbol->string (id-sym function-name))])
          (XPelt-witness src function-name arg* type external-name))]
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (let ([external-name (symbol->string (id-sym function-name))])
-         (XPelt-external-circuit src function-name native-entry arg* type external-name (id-pure? function-name)))]
+         (Xpelt-native-circuit src function-name native-entry arg* type external-name (id-pure? function-name)))]
       [(export-typedef ,src ,type-name (,tvar-name* ...) ,type)
        (let ([actual-type-name
               (nanopass-case (Ltypescript Type) type
@@ -2742,6 +2783,7 @@
                 (case opaque-type
                   [("string") "''"]
                   [("Uint8Array") "new Uint8Array(0)"]
+                  [("JubjubPoint") "({x: 0n, y: 1n})"]
                   ; FIXME: what should happen with other opaque types?
                   [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                [(tvector ,src ,len ,type)
@@ -3268,7 +3310,8 @@
       [(topaque ,src ,opaque-type)
        (case opaque-type
          [("string" "Uint8Array") opaque-type]
-         ; FIXME: what should happen with other opaque types?
+         [("JubjubPoint") "__compactRuntime.JubjubPoint"]
+         ;; FIXME: what should happen with other opaque types?
          [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
       [(tvector ,src ,len ,[Type : type -> * type])
        (make-Qconcat type "[]")]

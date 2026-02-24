@@ -61,7 +61,6 @@
       ldecl
       lconstructor
       cdefn
-      edecl
       wdecl
       ecdecl
       structdef
@@ -124,10 +123,6 @@
     (Circuit-Definition (cdefn)
       (circuit src (maybe kwd-export?) (maybe kwd-pure?) kwd function-name (maybe generic-param-list?) parg-list return-type blck) =>
         (circuit kwd-export? kwd-pure? function-name generic-param-list? parg-list 4 return-type #f blck)
-      )
-    (External-Declaration (edecl)
-      (external src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) arg-list return-type semicolon) =>
-        (external kwd-export? function-name generic-param-list? arg-list 4 return-type)
       )
     (Witness-Declaration (wdecl)
       (witness src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) arg-list return-type semicolon) =>

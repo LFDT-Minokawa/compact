@@ -18,13 +18,15 @@
           print-usage
           print-compiler-version
           print-language-version
+          print-runtime-version
           check-pathname
           handle-exceptions)
   (import (except (chezscheme) errorf)
           (utils)
           (state-case)
           (compiler-version)
-          (language-version))
+          (language-version)
+          (runtime-version))
 
   (define usage (make-parameter #f))
 
@@ -46,6 +48,11 @@
     (fprintf (current-output-port)
              "~a\n"
              language-version-string))
+
+  (define (print-runtime-version)
+    (fprintf (current-output-port)
+             "~a\n"
+             runtime-version-string))
 
   (define (check-pathname pathname)
     (when (and (>= (string-length pathname) 1)

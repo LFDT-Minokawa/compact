@@ -594,9 +594,9 @@ fn test_sc9_update_compile_contract() {
             "/keys/increment.prover",
             "/keys/increment.verifier",
             "/compiler/contract-info.json",
-            "/contract/index.d.cts",
-            "/contract/index.cjs.map",
-            "/contract/index.cjs",
+            "/contract/index.d.ts",
+            "/contract/index.js.map",
+            "/contract/index.js",
         ],
     );
 }

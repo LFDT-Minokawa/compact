@@ -113,7 +113,8 @@ groups than for single tests.
 |#
 
 (module (run-tests test-group test oops warning returns pass-returns succeeds custom-check >output-file output-file stage-javascript run-javascript
-         testdir show-last-successes show-successes show-all-passes show-stack-backtrace with-compact-path)
+         testdir show-last-successes show-successes show-all-passes show-stack-backtrace with-compact-path
+         with-parameter-values)
 
   (define-record-type feedback
     (nongenerative)
@@ -267,7 +268,7 @@ groups than for single tests.
          (begin
            (when (null? #'(okay?^ ...)) (syntax-error x "last groupie has no checks"))
            #`($test 5 "../src/" #,@(map do-groupie #'((file okay? ...) ... (file^ okay?^ ...)))))])))
-  (indirect-export test-group $test)
+  (indirect-export test-group $test make-groupie)
 
   (define-syntax test
     (lambda (x)
@@ -286,7 +287,7 @@ groups than for single tests.
         [(_ code okay? ...)
          (when (null? #'(okay? ...)) (syntax-error x "test has no checks"))
          #`($test 4 "../src/" #,(do-groupie #'code #'(list okay? ...)))])))
-  (indirect-export test make-groupie)
+  (indirect-export test $test make-groupie)
 
   (module (write-replacement-result!)
     (define (write-replacement-result! bfp efp str)
@@ -805,7 +806,8 @@ groups than for single tests.
                   (let* ([source-path* (registered-source-pathnames)]
                          [source-dir*
                            (map (lambda (s)
-                                  (let ([s (path-parent s)])
+                                  (let* ([s (if (string-prefix? "./" s) (substring s 2 (string-length s)) s)]
+                                         [s (path-parent s)])
                                     (assert (not (string-prefix? "/" s)))
                                     (assert (not (string-prefix? "." s)))
                                     (format "~a/src/~a" test-root s)))
@@ -860,6 +862,25 @@ groups than for single tests.
                              (expt 10 9)))))))
           (set! javascript-op #f))))
     )
+
+  (define-syntax with-parameter-values
+    (syntax-rules ()
+      [(_ ([param e ...] ...) b1 b2 ...)
+       (let ([th (lambda () b1 b2 ...)])
+         (let next-param ([ls (list (list param e ...) ...)] [rchosen* '()])
+           (if (null? ls)
+               (begin
+                 (unless (null? '(param ...))
+                   (printf "==== parameterizing ~{~a~^, ~}\n"
+                     (map (lambda (p v) (format "~a = ~a" p v))
+                          '(param ...)
+                          (reverse rchosen*))))
+                 (th))
+               (let next-value ([v* (cdar ls)])
+                 (unless (null? v*)
+                   (parameterize ([(caar ls) (car v*)])
+                     (next-param (cdr ls) (cons (car v*) rchosen*))
+                     (next-value (cdr v*))))))))]))
 )
 
 (run-tests parse-file/format/reparse
@@ -1391,8 +1412,6 @@ groups than for single tests.
       ""
       "sealed ledger L: C;"
       ""
-      "export circuit foo<T>(x: T, y: Field): Vector<3, T>;"
-      ""
       "circuit rat(): Vector<1, Vector<2, S>> {"
       "  const q = S {x: 3, y: 4};"
       "  const q = // S is ..."
@@ -1451,8 +1470,6 @@ groups than for single tests.
         (export a b)
         (export a b)
         (public-ledger-declaration #f #t L (type-ref C))
-        (external #t foo (T) ([x (type-ref T)] [y (tfield)])
-             (tvector 3 (type-ref T)))
         (circuit #f #f rat () ()
              (tvector 1 (tvector 2 (type-ref S)))
           (block
@@ -2812,7 +2829,6 @@ groups than for single tests.
       "circuit fairlylongcircuitname2<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> {"
       "  return (vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>, vector3: Vector<sizeX, typeB>): Vector<sizeX, typeA> => { return vector1; }(vector1, vector2, vector3);"
       "}"
-      "circuit fairlylongnativename<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
       "witness fairlylongwitnessname<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
       )
     (output-file "compiler/testdir/formatter/testfile.compact"
@@ -2859,11 +2875,6 @@ groups than for single tests.
         "           vector3"
         "           );"
         "}"
-        ""
-        "circuit fairlylongnativename<typeA, typeB, sizeX>("
-        "          vector1: Vector<sizeX, typeA>,"
-        "          vector2: Vector<sizeX, typeB>"
-        "          ): Vector<sizeX, typeA>;"
         ""
         "witness fairlylongwitnessname<typeA, typeB, sizeX>("
         "          vector1: Vector<sizeX, typeA>,"
@@ -4227,17 +4238,21 @@ groups than for single tests.
 
   (test
     '(
-       " circuit C (a:Field) : Boolean;"
-       )
-    (returns
-      (program (external #f C () ([a (tfield)]) (tboolean)))))
+      " circuit C (a:Field) : Boolean;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 31" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block"))))
+    )
 
   (test
     '(
-       "export circuit C (a:Field) : Boolean;"
-       )
-    (returns
-      (program (external #t C () ([a (tfield)]) (tboolean)))))
+      "export circuit C (a:Field) : Boolean;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 37" "parse error: found ~a looking for~?" ("\";\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block"))))
+    )
 
   (test
     '(
@@ -6729,40 +6744,40 @@ groups than for single tests.
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
 
-  (with-compact-path
-    (cons "test-center" (compact-path))
-    (test
-      '(
-        "include 'compact/simple';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () () (tfield) (block (return 42)))))
-      ))
+ (with-compact-path '("test-center")
+  (test
+    '(
+      "include 'compact/simple';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () () (tfield) (block (return 42)))))
+    )
+  )
 
-  (with-compact-path
-    (cons* "test-center/compact" "test-center/compact2" (compact-path))
-    (test
-      '(
-        "include 'foo';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () () (tfield) (block (return 42)))))
-      ))
+ (with-compact-path '("test-center/compact" "test-center/compact2")
+  (test
+    '(
+      "include 'foo';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () () (tfield) (block (return 42)))))
+    )
+  )
 
-  (with-compact-path
-    (cons* "test-center/compact2" "test-center/compact" (compact-path))
-    (test
-      '(
-        "include 'foo';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () ([x (tfield)])
-                   (tboolean)
-                   (block (return (== x 0))))))
-      ))
+ (with-compact-path '("test-center/compact2" "test-center/compact")
+  (test
+    '(
+      "include 'foo';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () ([x (tfield)])
+                 (tboolean)
+                 (block (return (== x 0))))))
+    )
+  )
 
   (test
     `(
@@ -6773,17 +6788,15 @@ groups than for single tests.
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
 
-  (with-compact-path
-    (cons "test-center/compact" (compact-path))
-    (test
-      '(
-        "// presumably not present..."
-        "include '/foo';"
-        )
-      (oops
-        message: "~a:\n  ~?"
-        irritants: '("testfile.compact line 2 char 1" "failed to locate file ~s" ("/foo.compact")))
-      ))
+  (test
+    '(
+      "// presumably not present..."
+      "include '/foo';"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "failed to locate file ~s" ("/foo.compact")))
+    )
 
   (test
     "test-center/compact/multiple.compact"
@@ -6817,26 +6830,31 @@ groups than for single tests.
       irritants: '("test-center/compact/loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "include 'test-center/compact/loop';"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
+      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("./test-center/compact/loop.compact")))
     )
+  )
 
-  (test
-    '(
-      "module M {"
-      "  include 'test-center/compact/loop';"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
-    )
+  (test-group
+    ((create-file "loop.compact" '("include 'loop';")))
+    ((create-file "testfile.compact"
+       '(
+         "module M {"
+         "  include 'loop';"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("loop.compact line 1 char 1" "include cycle involving ~s" ("compiler/testdir/loop.compact")))
+     ))
 
+ (with-compact-path '(".")
   (test
     '(
       "module M {"
@@ -6850,7 +6868,9 @@ groups than for single tests.
           (circuit #f #f foo () () (tfield) (block (return 42)))
           (export foo))))
     )
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "include 'test-center/compact/foo';"
@@ -6866,7 +6886,9 @@ groups than for single tests.
           (circuit #f #f foo () () (tfield) (block (return 42)))
           (export foo))))
     )
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "module M {"
@@ -6882,16 +6904,7 @@ groups than for single tests.
           (export foo))
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
-
-  (test-group
-    ((create-file "included.compact" '())
-     (succeeds)
-     )
-    ((create-file "including.compact"
-       '(
-         "include 'compiler/testdir/included';"
-         ))
-     (returns (program))))
+  )
 
   (test-group
     ((create-file "included.compact" '())
@@ -6901,7 +6914,19 @@ groups than for single tests.
        '(
          "include 'included';"
          ))
-     (returns (program))))
+     (returns (program))
+     ))
+
+  (test-group
+    ((create-file "included.compact" '())
+     (succeeds)
+     )
+    ((create-file "including.compact"
+       '(
+         "include 'included';"
+         ))
+     (returns (program))
+     ))
 
   (test-group
     ((create-file "included.compact" '())
@@ -6912,7 +6937,7 @@ groups than for single tests.
      )
     ((create-file "including.compact"
        '(
-         "include 'compiler/testdir/included';"
+         "include 'included';"
          ))
      (oops
        message: "error ~a: ~a"
@@ -6928,6 +6953,88 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 1" "failed to locate file ~s: possibly replace include with import CompactStandardLibrary" ("std.compact")))
     )
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/a.compact"
+       '(
+         "export type A = Field;"
+         ))
+     (succeeds))
+    ((create-file "project/b.compact"
+       '(
+         "include 'a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (returns
+       (program
+         (typedef #t #f A () (tfield))
+         (circuit #t #f foo () ([x (type-ref A)])
+              (type-ref A)
+           (block (return (+ x 5))))))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("a.compact")))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("compiler/testdir/a.compact")))
+     ))
+
+  ; issue 139
+ (with-compact-path '(".")
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
+     ))
+  )
 )
 
 (run-tests expand-const
@@ -8241,7 +8348,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 42" "parse error: found ~a looking for~?" ("keyword \"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block" "\";\""))))
+      irritants: '("testfile.compact line 1 char 42" "parse error: found ~a looking for~?" ("keyword \"const\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a block"))))
     )
 
   (test
@@ -8320,7 +8427,7 @@ groups than for single tests.
 
   (test
     '(
-      "circuit C(x: Boolean, x: Field) : Boolean;"
+      "circuit C(x: Boolean, x: Field) : Boolean { return true; }"
       )
     (oops
       message: "~a:\n  ~?"
@@ -10034,7 +10141,7 @@ groups than for single tests.
 
   (test
     '(
-      "circuit C() : [];"
+      "witness C(): [];"
       "export circuit D(q: Field): Field {"
       "  C();"
       "  const C = 5;"
@@ -12408,7 +12515,7 @@ groups than for single tests.
     (returns
       (program ((foo1 %foo1.0) (foo2 %foo2.1))
         (public-ledger-declaration %kernel.2 (Kernel))
-        (external %persistentHash.3 ([%value.4 (tfield)])
+        (native %persistentHash.3 ([%value.4 (tfield)])
              (tbytes 32))
         (circuit %foo1.0 ([%x.5 (tfield)])
              (tbytes 32)
@@ -12428,7 +12535,7 @@ groups than for single tests.
     (returns
       (program ((CompactStandardLibrary %CompactStandardLibrary.3))
         (public-ledger-declaration %kernel.0 (Kernel))
-        (external %persistentHash.1 ([%value.2 (tfield)])
+        (native %persistentHash.1 ([%value.2 (tfield)])
              (tbytes 32))
         (circuit %CompactStandardLibrary.3 ([%x.4 (tfield)])
              (tbytes 32)
@@ -12878,7 +12985,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (external degradeToTransient)))
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native degradeToTransient)))
     )
 
   (test
@@ -13067,16 +13174,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 1" "another binding found for ~s in the same scope at ~a" (kernel "line 1 char 1")))
-  )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "cannot export ~s (~s) from the top level" (external ecAdd)))
   )
 
   ; tests that declared and exported types in standard library cannot be redefined
@@ -13311,6 +13408,89 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 23" "range end for Uint type is ~d but must be at least 1 (the range end is exclusive)" (0)))
     )
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/a.compact"
+       '(
+         "module a {"
+         " export type A = Field;"
+         "}"
+         ))
+     (succeeds))
+    ((create-file "project/b.compact"
+       '(
+         "import a;"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (returns
+       (program ((foo %foo.0))
+         (circuit %foo.0 ([%x.1 (talias #f A (tfield))])
+              (talias #f A (tfield))
+           (+ %x.1 5))))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import a;"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("a.compact")))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("compiler/testdir/a.compact")))
+     ))
+
+  ; issue 139
+ (with-compact-path '(".")
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
+     ))
+  )
 )
 
 (run-tests infer-types
@@ -16629,296 +16809,145 @@ groups than for single tests.
 
   (test
     '(
-      "circuit transientHash<#n>(xs: Vector<n, Field>): Field;"
-      "export circuit foo(): Field { return transientHash<1>([3]); }"
-      )
-    (returns
-      (program
-        (external %transientHash.0 ([%xs.2 (tvector 1 (tfield))]) (tfield))
-        (circuit %foo.1 () (tfield)
-          (call %transientHash.0
-            (safe-cast
-              (tvector 1 (tfield))
-              (ttuple (tunsigned 3))
-              (tuple 3))))))
-    )
+      "import CompactStandardLibrary;"
 
-  (test
-    '(
-      "circuit persistentHash<a>(x: a): Bytes<32>;"
-      "export circuit foo(x: Field): Bytes<32> { return persistentHash<Field>(x); }"
-      )
-    (returns
-      (program
-        (external %persistentHash.0 ([%x.1 (tfield)]) (tbytes 32))
-        (circuit %foo.2 ([%x.3 (tfield)])
-             (tbytes 32)
-          (call %persistentHash.0 %x.3))))
-    )
-
-  (test
-    '(
-      "export circuit persistentHash<n>(x: Vector<n, Bytes<32>>): Bytes<32>;"
+      "export { persistentHash<n> };"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "cannot export ~s (~s) from the top level" (external persistentHash)))
+      irritants: '("testfile.compact line 2 char 24" "parse error: found ~a looking for~?" ("\"<\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\",\"" "\"}\""))))
     )
-
-  (test
-    '(
-      "circuit persistentHash(x: Bytes<32>, y: Bytes<32>): Bytes<32>;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared argument count ~s and expected argument count ~s for native ~s" (2 1 persistentHash)))
-    )
-
-  (test
-    '(
-      "circuit transientHash<#n>(x: Vector<n, Boolean>): Field;"
-      "export circuit foo(): Field { return transientHash<1>([true]); }"
-      )
-    (returns
-      (program
-        (external %transientHash.0 ([%x.1 (tvector 1 (tboolean))])
-             (tfield))
-        (circuit %foo.2 ()
-             (tfield)
-          (call %transientHash.0 (tuple #t)))))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<a>(x: a): Field;"
-      "export circuit foo(): Field { return degradeToTransient<Field>([3]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Field" "Bytes<32>" 1 degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<#n>(x: Vector<n, Boolean>): Field;"
-      "export circuit foo(): Field { return degradeToTransient<1>([true]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Vector<1, Boolean>" "Bytes<32>" 1 degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit transientHash<a>(x: a): Field;"
-      "export circuit foo(): Field { return transientHash<Field>([3]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 38" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (transientHash #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        ([Uint<2>])\n      declared argument types for function at line 1 char 1:\n        (Field)" #f)))
-    )
-
-  (test
-    '(
-      "circuit upgradeFromTransient(x: Field): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "Bytes<32>" upgradeFromTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit transientHash(x: Field, y: Field, z: Field): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared argument count ~s and expected argument count ~s for native ~s" (3 1 transientHash)))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<#n>(x: Bytes<n>): Bytes<n>;"
-      "export circuit foo(): Bytes<30> { return degradeToTransient<32>([3]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Bytes<32>" "Field" degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit persistentHash<#n>(x: Vector<n, Field>): Bytes<32>;"
-      )
-    (returns (program))
-    )
-
-  (test
-    '(
-      "circuit persistentHash<#n>(x: Vector<n, Field>): Bytes<32>;"
-      "export circuit foo(): Bytes<32> { return persistentHash<1>([3]); }"
-      )
-    (returns
-      (program
-        (external %persistentHash.0 ([%x.1 (tvector 1 (tfield))])
-             (tbytes 32))
-        (circuit %foo.2 ()
-             (tbytes 32)
-          (call %persistentHash.0
-            (safe-cast (tvector 1 (tfield))
-                       (ttuple (tunsigned 3))
-              (tuple 3))))))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<#n>(x: Vector<n, Field>): Field;"
-      "export circuit foo(): Bytes<32> { return degradeToTransient<1>([3]); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Vector<1, Field>" "Bytes<32>" 1 degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit upgradeFromTransient(x: Field): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "Bytes<32>" upgradeFromTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit degradeToTransient<a>(x: Field): Bytes<32>;"
-      "export circuit foo(): Bytes<32> { return degradeToTransient<Bytes<32>>(42); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Field" "Bytes<32>" 1 degradeToTransient #f)))
-    )
-
-  (test
-    '(
-      "circuit persistentHash<a>(x: a): Field;"
-      "export circuit foo(): Field { return persistentHash<Bytes<32>>(42); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "Bytes<32>" persistentHash #f)))
-    )
-
-  (test
-    '(
-      "import {NativePoint} from CompactStandardLibrary;"
-      "circuit ecAdd(x: Bytes<32>, y: NativePoint): NativePoint;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Bytes<32>" "NativePoint" 1 ecAdd #f)))
-    )
-
-  (test
-    '(
-      "import {NativePoint} from CompactStandardLibrary;"
-      "export struct NonNativePoint {"
-      "  x: Field;"
-      "  y: Field;"
-      "}"
-      "circuit ecAdd(x: NonNativePoint, y: NativePoint): NativePoint;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("struct NonNativePoint<x: Field, y: Field>" "NativePoint" 1 ecAdd #f)))
-    )
-
-  (test
-    '(
-      "import {NativePoint} from CompactStandardLibrary;"
-      "circuit ecAdd(x: NativePoint, y: NativePoint): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Field" "NativePoint" ecAdd #f)))
-    )
-
-  #|
-  ; the tests in this comment block should only be uncommented if the declaration of
-  ; justfortesting is uncommented in midnight-natives.ss
-  (test
-    '(
-      "export circuit justfortesting(x: Field, y: Field): Field;"
-      )
-    (returns
-      (program
-        (public-ledger-declaration
-          (%kernel (Kernel))
-          (constructor () (tuple)))
-        (circuit %justfortesting.0 ((%x.1 (tfield)) (%y.2 (tfield))) (tfield))))
-    )
-
-  (test
-    '(
-      "export circuit justfortesting(x: Field, y: Boolean): Field;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]" ("Boolean" "A" 2 justfortesting "A previously matched to Field")))
-    )
-
-  (test
-    '(
-      "export circuit justfortesting(x: Field, y: Field): Bytes<32>;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]" ("Bytes<32>" "A" justfortesting "A previously matched to Field")))
-    )
-  |#
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+
+      "export { persistentHash };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native persistentHash)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+
+      "export { ownPublicKey };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native ownPublicKey)))
+    )
+
+  (test
+    '(
+      "import {persistentHash} from CompactStandardLibrary;"
+      "circuit foo<#n>(x: Vector<n, Field>): Bytes<32> {"
+      "  return persistentHash<Vector<n, Field>>(x);"
+      "}"
+      "export circuit bar(x: Vector<3, Field>): Bytes<32> {"
+      "  return foo<3>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (native %persistentHash.1 ([%value.2 (tvector 3 (tfield))])
+             (tbytes 32))
+        (circuit %foo.3 ([%x.4 (tvector 3 (tfield))])
+             (tbytes 32)
+          (call %persistentHash.1 %x.4))
+        (circuit %bar.5 ([%x.6 (tvector 3 (tfield))])
+             (tbytes 32)
+          (call %foo.3 %x.6))))
+    )
+
+  (test
+    '(
+      "import {persistentHash} from CompactStandardLibrary;"
+      "export circuit foo(): Bytes<32> { return persistentHash<1>([3]); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 42" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (persistentHash "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 1>\n      declared generics for function at <standard library>:\n        <type>" #f #f)))
+    )
+
+  (test
+    '(
+      "import {degradeToTransient} from CompactStandardLibrary;"
+      "export circuit foo(): Bytes<32> { return degradeToTransient<Bytes<32>>(42); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 42" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (degradeToTransient "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <type Bytes<32>>\n      declared generics for function at <standard library>:\n        <>" #f #f)))
+    )
+
+  (test
+    '(
+      "import {persistentHash} from CompactStandardLibrary;"
+      "export circuit foo(): Field { return persistentHash<Bytes<32>>(42); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 38" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (persistentHash #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<0..43>)\n      declared argument types for function at <standard library>:\n        (Bytes<32>)" #f)))
+    )
+
+  (test
+    '(
+      "import {JubjubPoint, ecAdd} from CompactStandardLibrary;"
+      "circuit foo(x: Bytes<32>, y: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(x, y);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
+    )
+
+  (test
+    '(
+      "import {JubjubPoint, ecAdd} from CompactStandardLibrary;"
+      "export struct NonJubjubPoint {"
+      "  x: Field;"
+      "  y: Field;"
+      "}"
+      "circuit foo(x: NonJubjubPoint, y: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(x, y);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonJubjubPoint<x: Field, y: Field>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
       )
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (external %ecAdd.1 ([%a.2 (talias #t NativePoint
-                                    (tstruct SimplePoint
-                                      (x (tfield))
-                                      (y (tfield))))]
-                             [%b.3 (talias #t NativePoint
-                                    (tstruct SimplePoint
-                                      (x (tfield))
-                                      (y (tfield))))])
-             (talias #t NativePoint
-               (tstruct SimplePoint
-                 (x (tfield))
-                 (y (tfield)))))
-        (external %ecMul.4 ([%a.5 (talias #t NativePoint
-                                    (tstruct SimplePoint
-                                      (x (tfield))
-                                      (y (tfield))))]
-                             [%b.6 (tfield)])
-             (talias #t NativePoint
-               (tstruct SimplePoint
-                 (x (tfield))
-                 (y (tfield)))))
-        (circuit %foo.7 ([%c.8 (talias #t NativePoint
-                                  (tstruct SimplePoint
-                                    (x (tfield))
-                                    (y (tfield))))])
-             (talias #t NativePoint
-               (tstruct SimplePoint
-                 (x (tfield))
-                 (y (tfield))))
+        (native %ecAdd.1 ([%a.2 (talias #t JubjubPoint
+                                  (topaque "JubjubPoint"))]
+                          [%b.3 (talias #t JubjubPoint
+                                  (topaque "JubjubPoint"))])
+             (talias #t JubjubPoint (topaque "JubjubPoint")))
+        (native %ecMul.4 ([%a.5 (talias #t JubjubPoint
+                                  (topaque "JubjubPoint"))]
+                          [%b.6 (tfield)])
+             (talias #t JubjubPoint (topaque "JubjubPoint")))
+        (circuit %foo.7 ([%c.8 (talias #t JubjubPoint
+                                 (topaque "JubjubPoint"))])
+             (talias #t JubjubPoint (topaque "JubjubPoint"))
           (call %ecAdd.1
             %c.8
-            (call %ecMul.4 %c.8 (safe-cast (tfield) (tunsigned 3) 3))))))
+            (call %ecMul.4
+              %c.8
+              (safe-cast (tfield) (tunsigned 3) 3))))))
     )
 
   (test
@@ -28010,7 +28039,7 @@ groups than for single tests.
           (new (tstruct Maybe (is_some (tboolean)) (value (tfield)))
             #f
             (default (tfield))))
-        (external %persistentHash<.11 ([%value.12 (tvector
+        (native %persistentHash<.11 ([%value.12 (tvector
                                                     2
                                                     (tbytes 32))])
              (tbytes 32))
@@ -29234,7 +29263,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
@@ -29422,9 +29451,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37" "\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33" "\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
 
   (test
@@ -29441,7 +29470,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
@@ -29460,7 +29489,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
@@ -29479,7 +29508,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76"))))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76"))))
     )
 
   (test
@@ -29751,7 +29780,17 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter nonce of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value"))))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter nonce of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintShieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value"))))
     )
 
   (test
@@ -29770,13 +29809,21 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
@@ -29784,7 +29831,7 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
@@ -29801,13 +29848,21 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
@@ -29815,7 +29870,7 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
       message: "~a:\n  ~?"
@@ -29834,14 +29889,14 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
-    ))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value"))))
+    )
 
   (test
     '("import CompactStandardLibrary;"
@@ -29853,14 +29908,14 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
-    ))
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value"))))
+    )
 
   (test
     '("import CompactStandardLibrary;"
@@ -29875,6 +29930,12 @@ groups than for single tests.
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being transferred given by the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the recipient of the unshielded token being transferred given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being received given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit mintUnshieldedToken at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
     ))
 
   (test
@@ -29892,6 +29953,14 @@ groups than for single tests.
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being transferred given by the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the recipient of the unshielded token being transferred given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter color of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the type of the unshielded token being received given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter amount of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose the amount of the unshielded token being received given by the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter recipient of exported circuit sendUnshielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
     ))
 
   (test
@@ -30471,6 +30540,242 @@ groups than for single tests.
             (public-ledger %F.1 (0) write (disclose %x.7))
             (tuple)))))
     )
+
+  ; issue 23: should not report disclosure of unhashed witness data
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger F: Field;"
+      ""
+      "export circuit bar(x: Field): Field {"
+      "  return transientHash<Field>(x);"
+      "}"
+      "export circuit foo(v: Vector<2, Field>): Field {"
+      "  F = bar(bar(v[0]) + v[1]);"
+      "  return F;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter v of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 11\n      the argument to bar at line 8 char 7\n      the argument to transientHash at line 5 char 10\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving a hash of the witness value\n    via this path through the program:\n      the argument to bar at line 8 char 11\n      the argument to transientHash at line 5 char 10\n      the computation at line 8 char 11\n      the argument to bar at line 8 char 7\n      the right-hand side of = at line 8 char 5"))))
+    )
+
+  ; issue 23: should not take a long time to compile
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "module M<#K> {"
+      "  export ledger F: MerkleTree<K, ZswapCoinPublicKey>;"
+      ""
+      "  witness W(pk: ZswapCoinPublicKey): MerkleTreePath<K, ZswapCoinPublicKey>;"
+      ""
+      "  export circuit foo(pk: ZswapCoinPublicKey): [] {"
+      "    const path = W(pk);"
+      "    assert("
+      "      F.checkRoot("
+      "        merkleTreePathRoot<K, ZswapCoinPublicKey>(path)"
+      "      ),"
+      "      'oops'"
+      "    );"
+      "  }"
+      "}"
+      "import M<32>;"
+      "export { foo };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 11 char 8" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 6 char 3" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of the boolean value of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of a modulus of a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: QualifiedShieldedCoinInfo, y: Either<ZswapCoinPublicKey, ContractAddress>, z: Uint<128>): [] {"
+      "  sendShielded(x, y, z);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 20" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter y of exported circuit foo at line 2 char 50" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter z of exported circuit foo at line 2 char 98" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Field, Field>;"
+      "export circuit foo(x: Field): [] {"
+      "  F.insert(x, x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 4" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 3 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the first argument to insert at line 4 char 4" "\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to insert at line 4 char 4"))))
+    )
+
+  (test
+    '(
+      "witness w1(): Field;"
+      "witness w2(): Field;"
+      "ledger X: Vector<9, Field>;"
+      "export circuit foo(): Vector<9, Field> {"
+      "  X = [w1() + 3,"
+      "       w1() - 3,"
+      "       w1() * 3,"
+      "       7 + w2(),"
+      "       7 - w2(),"
+      "       7 * w2(),"
+      "       w1() + w2(),"
+      "       w1() - w2(),"
+      "       w1() * w2(),"
+      "       ];"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 1 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5"))))
+    )
+
+  (test
+    '(
+      "witness w1(): Uint<32>;"
+      "witness w2(): Uint<32>;"
+      "ledger X: Vector<18, Boolean>;"
+      "export circuit foo(): Vector<18, Boolean> {"
+      "  X = [w1() < 37,"
+      "       w1() <= 37,"
+      "       w1() == 37,"
+      "       w1() != 37,"
+      "       w1() >= 37,"
+      "       w1() > 37,"
+      "       43 < w2(),"
+      "       43 <= w2(),"
+      "       43 == w2(),"
+      "       43 != w2(),"
+      "       43 >= w2(),"
+      "       43 > w2(),"
+      "       w1() < w2(),"
+      "       w1() <= w2(),"
+      "       w1() == w2(),"
+      "       w1() != w2(),"
+      "       w1() >= w2(),"
+      "       w1() > w2(),"
+      "       ];"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 1 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 13 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 14 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 15 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 16 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5"))))
+    )
+
+  (test
+    '(
+      "struct S { x: Field, y: Field };"
+      "witness w1(): Field;"
+      "witness w2(): Field;"
+      "ledger X: S;"
+      "export circuit foo(): S {"
+      "  X = S { w1(), w2() };"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5"))))
+    )
+
+  (test
+    '(
+      "struct T { x: Uint<8>, y: Boolean };"
+      "struct S { x: Field, y: Field, z: T };"
+      "witness w1(): Field;"
+      "witness w2(): Field;"
+      "ledger X: S;"
+      "export circuit foo(t: T): S {"
+      "  X = S { z: t, y: w1(), x: w2() };"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter t of exported circuit foo at line 6 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5"))))
+    )
+
+  (test
+    '(
+      "type U8 = Uint<8>;"
+      "type U16 = Uint<16>;"
+      "type U32 = Uint<32>;"
+      "witness w1(): Bytes<8>;"
+      "witness w2(): Vector<8, U32>;"
+      "ledger X: [U32, U8, U16];"
+      "export circuit foo(i: Uint<0..2>, t: [U16, U16, U16]): [U32, U8, U16] {"
+      "  X = [w2()[i+3], w1()[i+4], t[i]];"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 5 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter i of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the witness value\n    via this path through the program:\n      the vector or tuple reference at line 8 char 30\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 13\n      the vector or tuple reference at line 8 char 8\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 24\n      the bytes-value reference at line 8 char 19\n      the right-hand side of = at line 8 char 5")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter t of exported circuit foo at line 7 char 35" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5"))))
+    )
+
+  (test
+    '(
+      "type U8 = Uint<8>;"
+      "type U16 = Uint<16>;"
+      "type U32 = Uint<32>;"
+      "witness w1(): Bytes<8>;"
+      "witness w2(): Vector<8, U32>;"
+      "ledger X: Vector<6, U32>;"
+      "export circuit foo(i: Uint<0..2>, t: [U16, U16, U16, U16, U16]): Vector<6, U32> {"
+      "  X = [...slice<2>(disclose(w2()), i+3), ...slice<2>(disclose(w1()), i+4), ...slice<2>(disclose(t), i)];"
+      "  return X;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter i of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the elements selected by the witness value\n    via this path through the program:\n      the vector or tuple slice at line 8 char 79\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the elements selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 36\n      the vector or tuple slice at line 8 char 11\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the elements selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 70\n      the bytes-value slice at line 8 char 45\n      the right-hand side of = at line 8 char 5"))))
+    )
+
+  (test
+    '(
+      "struct T { x: Field, y: Field }"
+      "struct S { a: T, b: T }"
+      "ledger X: Field;"
+      "witness w(): Field;"
+      "export circuit foo(): [] {"
+      "  const s = S{a: T{x: w(), y: 3}, b: T{x: 4, y: 5}};"
+      "  X = s.a.x;"
+      "  X = disclose(s.a).x;"
+      "  X = s.b.x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of s at line 6 char 9\n      the right-hand side of = at line 7 char 5"))))
+    )
 )
 
 ; examples of where disclose can be placed
@@ -31038,7 +31343,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness W(): Boolean;"
-      "export circuit foo(): NativePoint {"
+      "export circuit foo(): JubjubPoint {"
       "  return hashToCurve<Boolean>(W());"
       "}"
       )
@@ -31051,7 +31356,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness W(): Boolean;"
-      "export circuit foo(): NativePoint {"
+      "export circuit foo(): JubjubPoint {"
       "  return disclose(hashToCurve<Boolean>(W()));"
       "}"
       )
@@ -33135,13 +33440,19 @@ groups than for single tests.
          "  return disclose(sk() == true);"
          "}"
          ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
      (output-file "compiler/testdir/testfile/compiler/contract-info.json"
-       '(
+       `(
          "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
          "    {"
          "      \"name\": \"foo\","
          "      \"pure\": true,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33153,6 +33464,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"bar\","
          "      \"pure\": true,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33162,6 +33474,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"dummy\","
          "      \"pure\": false,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33192,13 +33505,19 @@ groups than for single tests.
          "witness sk(): Boolean;"
          ))
      ; the witnesses field is empty if the witness is unused.
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
      (output-file "compiler/testdir/testfile/compiler/contract-info.json"
-       '(
+       `(
          "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
          "    {"
          "      \"name\": \"foo\","
          "      \"pure\": true,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33210,6 +33529,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"bar\","
          "      \"pure\": true,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33226,13 +33546,19 @@ groups than for single tests.
 
   (test-group
     ((source-file "examples/tiny.compact")
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
      (output-file "compiler/testdir/tiny/compiler/contract-info.json"
-       '(
+       `(
          "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
          "    {"
          "      \"name\": \"set\","
          "      \"pure\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "        {"
          "          \"name\": \"v\","
@@ -33250,6 +33576,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"get\","
          "      \"pure\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33274,6 +33601,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"clear\","
          "      \"pure\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -33285,6 +33613,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"public_key\","
          "      \"pure\": true,"
+         "      \"proof\": false,"
          "      \"arguments\": ["
          "        {"
          "          \"name\": \"sk\","
@@ -34312,21 +34641,6 @@ groups than for single tests.
      ))
 
   (test-group
-    ((create-file "C1.compact" '())
-     (custom-check
-       (lambda (pass-name x)
-         (mkdir "compiler/testdir/C2")
-         (mkdir "compiler/testdir/C2/compiler")
-         (chmod "compiler/testdir/C2/compiler" 000)
-         #t))
-     )
-    ((create-file "C2.compact" '())
-     (oops
-       message: "error ~a: ~a"
-       irritants: '("creating output file" "failed for compiler/testdir/C2/compiler/contract-info.json: permission denied"))
-     ))
-
-  (test-group
     ((create-file "C.compact"
        '(
          "export circuit foo(x: Bytes<32>): [] { return; }"
@@ -34888,13 +35202,19 @@ groups than for single tests.
       "import m prefix two_;"
       "export { one_foo, two_foo }"
       )
+    ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+    ; lines to avoid hard-coding specific version strings into the test
     (output-file "compiler/testdir/compiler/contract-info.json"
-      '(
+      `(
         "{"
+        ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+        ,(format "  \"language-version\": \"~a\"," language-version-string)
+        ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
         "  \"circuits\": ["
         "    {"
         "      \"name\": \"one_foo\","
         "      \"pure\": true,"
+        "      \"proof\": false,"
         "      \"arguments\": ["
         "      ],"
         "      \"result-type\": {"
@@ -34906,6 +35226,7 @@ groups than for single tests.
         "    {"
         "      \"name\": \"two_foo\","
         "      \"pure\": true,"
+        "      \"proof\": false,"
         "      \"arguments\": ["
         "      ],"
         "      \"result-type\": {"
@@ -35195,6 +35516,158 @@ groups than for single tests.
          "export circuit foo(bv: Bytes<32>): [] { F.foo(disclose(bv)); }"
          ))
      (succeeds)
+     ))
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export circuit bar(): Bytes<32> { return pad(32, ''); }"
+         )
+       )
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract C {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit bar(): Bytes<32>;"
+         "}"
+         "ledger contract_c: C;"
+         "constructor (c: C) { contract_c = disclose(c); }"
+         "ledger F: Vector<2, [C]>;"
+         "export circuit foo(): [] {"
+         "  F = map((x: C) => [x], [contract_c, contract_c]);"
+         "}"
+         ))
+     (pass-returns unroll-loops
+       (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
+         (public-ledger-declaration
+           ((%contract_c.1
+              (0)
+              (__compact_Cell
+                (tcontract C
+                  (foo #f ((tbytes 32)) (ttuple))
+                  (bar #t () (tbytes 32)))))
+            (%F.2
+              (1)
+              (__compact_Cell
+                (tvector
+                  2
+                  (ttuple
+                    (tcontract C
+                      (foo #f ((tbytes 32)) (ttuple))
+                      (bar #t () (tbytes 32))))))))
+           (constructor ([%c.3 (tcontract C
+                                 (foo #f ((tbytes 32)) (ttuple))
+                                 (bar #t () (tbytes 32)))])
+             (seq (public-ledger %contract_c.1 (0) write %c.3) (tuple))))
+         (circuit %foo.4 ()
+              (ttuple)
+           (seq
+             (let* ([[%tmp.5 (tvector
+                               2
+                               (ttuple
+                                 (tcontract C
+                                   (foo #f ((tbytes 32)) (ttuple))
+                                   (bar #t () (tbytes 32)))))]
+                     (flet [%circ.6
+                            (circuit ([%x.7 (tcontract C
+                                              (foo #f ((tbytes 32)) (ttuple))
+                                              (bar #t () (tbytes 32)))])
+                                 (ttuple
+                                   (tcontract C
+                                     (foo #f ((tbytes 32)) (ttuple))
+                                     (bar #t () (tbytes 32))))
+                              (tuple %x.7))]
+                       (let* ([[%t.8 (ttuple
+                                       (tcontract C
+                                         (foo #f ((tbytes 32)) (ttuple))
+                                         (bar #t () (tbytes 32)))
+                                       (tcontract C
+                                         (foo #f ((tbytes 32)) (ttuple))
+                                         (bar #t () (tbytes 32))))]
+                               (tuple
+                                 (public-ledger %contract_c.1 (0) read)
+                                 (public-ledger %contract_c.1 (0) read))])
+                         (tuple
+                           (call %circ.6 (tuple-ref %t.8 0))
+                           (call %circ.6 (tuple-ref %t.8 1)))))])
+               (public-ledger %F.2 (1) write %tmp.5))
+             (tuple)))))
+     ))
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export circuit barr(): Bytes<32> { return pad(32, ''); }"
+         )
+       )
+     (succeeds))
+    ((create-file "UseC.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "contract C {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit barr(): Bytes<32>;"
+         "}"
+         "ledger contract_c: C;"
+         "constructor (c: C) { contract_c = disclose(c); }"
+         "export circuit hello(): [] { return contract_c.foo(contract_c.read().barr()); }"
+         ))
+     (pass-returns flatten-datatypes
+       (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
+         (public-ledger-declaration
+           ((%contract_c.1
+              (0)
+              (__compact_Cell
+                (ty ((acontract))
+                    ((tcontract C
+                       (foo #f ((ty ((abytes 32))
+                                    ((tfield 255)
+                                      (tfield
+                                        452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                         (ty () ()))
+                       (barr #t ()
+                         (ty ((abytes 32))
+                             ((tfield 255)
+                               (tfield
+                                 452312848583266388373324160190187140051835877600158453279131187530910662655)))))))))))
+         (circuit %hello.2 ()
+              (ty () ())
+           (= (%t.3) (public-ledger 1 %contract_c.1 (0) read))
+           (= (%t.4) (public-ledger 1 %contract_c.1 (0) read))
+           (= (%t.5 %t.6)
+              (contract-call 1 barr
+                   (%t.4 (tcontract C
+                           (foo #f ((ty ((abytes 32))
+                                        ((tfield 255)
+                                          (tfield
+                                            452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                             (ty () ()))
+                           (barr #t ()
+                             (ty ((abytes 32))
+                                 ((tfield 255)
+                                   (tfield
+                                     452312848583266388373324160190187140051835877600158453279131187530910662655))))))))
+           (= ()
+              (contract-call 1 foo
+                   (%t.3 (tcontract C
+                           (foo #f ((ty ((abytes 32))
+                                        ((tfield 255)
+                                          (tfield
+                                            452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                             (ty () ()))
+                           (barr #t ()
+                             (ty ((abytes 32))
+                                 ((tfield 255)
+                                   (tfield
+                                     452312848583266388373324160190187140051835877600158453279131187530910662655))))))
+                %t.5
+                %t.6))
+           ())))
      ))
 )
 
@@ -35945,85 +36418,6 @@ groups than for single tests.
               (public-ledger %F.5 (4) write %tmp.32))
             (public-ledger %F.5 (4) read)))))
     )
-
-  (test-group
-    ((create-file "C.compact"
-       '(
-         "export circuit foo(x: Bytes<32>): [] { return; }"
-         "export circuit bar(): Bytes<32> { return pad(32, ''); }"
-         )
-       )
-     (succeeds))
-    ((create-file "testfile.compact"
-       '(
-         "contract C {"
-         "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
-         "}"
-         "ledger contract_c: C;"
-         "constructor (c: C) { contract_c = disclose(c); }"
-         "ledger F: Vector<2, [C]>;"
-         "export circuit foo(): [] {"
-         "  F = map((x: C) => [x], [contract_c, contract_c]);"
-         "}"
-         ))
-     (returns
-       (program
-         (kernel-declaration (%kernel.0 () (Kernel)))
-         (public-ledger-declaration
-           ((%contract_c.1
-              (0)
-              (__compact_Cell
-                (tcontract C
-                  (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32)))))
-            (%F.2
-              (1)
-              (__compact_Cell
-                (tvector
-                  2
-                  (ttuple
-                    (tcontract C
-                      (foo #f ((tbytes 32)) (ttuple))
-                      (bar #t () (tbytes 32))))))))
-           (constructor ([%c.3 (tcontract C
-                                 (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32)))])
-             (seq (public-ledger %contract_c.1 (0) write %c.3) (tuple))))
-         (circuit %foo.4 ()
-              (ttuple)
-           (seq
-             (let* ([[%tmp.5 (tvector
-                               2
-                               (ttuple
-                                 (tcontract C
-                                   (foo #f ((tbytes 32)) (ttuple))
-                                   (bar #t () (tbytes 32)))))]
-                     (flet [%circ.6
-                            (circuit ([%x.7 (tcontract C
-                                              (foo #f ((tbytes 32)) (ttuple))
-                                              (bar #t () (tbytes 32)))])
-                                 (ttuple
-                                   (tcontract C
-                                     (foo #f ((tbytes 32)) (ttuple))
-                                     (bar #t () (tbytes 32))))
-                              (tuple %x.7))]
-                       (let* ([[%t.8 (ttuple
-                                       (tcontract C
-                                         (foo #f ((tbytes 32)) (ttuple))
-                                         (bar #t () (tbytes 32)))
-                                       (tcontract C
-                                         (foo #f ((tbytes 32)) (ttuple))
-                                         (bar #t () (tbytes 32))))]
-                               (tuple
-                                 (public-ledger %contract_c.1 (0) read)
-                                 (public-ledger %contract_c.1 (0) read))])
-                         (tuple
-                           (call %circ.6 (tuple-ref %t.8 0))
-                           (call %circ.6 (tuple-ref %t.8 1)))))])
-               (public-ledger %F.2 (1) write %tmp.5))
-             (tuple)))))
-     ))
 )
 
 (run-tests inline-circuits
@@ -40148,27 +40542,6 @@ groups than for single tests.
           (%t.9))))
     )
 
-  (test-group
-    ((create-file "C.compact"
-       '(
-         "export circuit foo(x: Bytes<32>): [] { return; }"
-         "export circuit barr(): Bytes<32> { return pad(32, ''); }"
-         )
-       )
-     (succeeds))
-    ((create-file "UseC.compact"
-       '(
-         "import CompactStandardLibrary;"
-         "contract C {"
-         "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
-         "}"
-         "ledger contract_c: [C, Field];"
-         "constructor (c: C) { contract_c = default<[C, Field]>; }"
-         ))
-     (succeeds)
-     ))
-
   ; PM-16065
   (test
     '(
@@ -42579,7 +42952,7 @@ groups than for single tests.
            (%state.17
              (2)
              (__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))
-        (external %persistentHash.18 ((argument
+        (native %persistentHash.18 ((argument
                                          (%value.19
                                            %value.20
                                            %value.21
@@ -43399,12 +43772,12 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
-        (external %transientHash.1 ((argument
+        (native %transientHash.1 ((argument
                                       (%value.2 %value.3)
                                       (ty ((afield) (afield))
                                           ((tfield) (tfield)))))
              (ty ((afield)) ((tfield))))
-        (external %persistentHash.4 ((argument
+        (native %persistentHash.4 ((argument
                                        (%value.5 %value.6 %value.7 %value.8 %value.9
                                          %value.10 %value.11 %value.12
                                          %value.13)
@@ -43427,21 +43800,21 @@ groups than for single tests.
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %degradeToTransient.14 ((argument
+        (native %degradeToTransient.14 ((argument
                                             (%x.15 %x.16)
                                             (ty ((abytes 32))
                                                 ((tfield 255)
                                                   (tfield
                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield))))
-        (external %upgradeFromTransient.17 ((argument
+        (native %upgradeFromTransient.17 ((argument
                                               (%x.18)
                                               (ty ((afield)) ((tfield)))))
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %createZswapInput.19 ((argument
+        (native %createZswapInput.19 ((argument
                                           (%coin.20 %coin.21 %coin.22 %coin.23
                                             %coin.24 %coin.25)
                                           (ty ((abytes 32)
@@ -43459,7 +43832,7 @@ groups than for single tests.
                                                 (tfield
                                                   18446744073709551615)))))
              (ty () ()))
-        (external %createZswapOutput.26 ((argument
+        (native %createZswapOutput.26 ((argument
                                            (%coin.27
                                              %coin.28
                                              %coin.29
@@ -43599,6 +43972,24 @@ groups than for single tests.
              (public-ledger 1 %kernel.0 () claimZswapCoinSpend
                %tmp.57
                %tmp.58))
+          (= %t.59 (== %target.43 %selfAddr.49))
+          (= %t.60 (== %target.44 %selfAddr.50))
+          (= %t.61 (select %t.59 %t.60 0))
+          (= (%tmp.62 %tmp.63)
+             (call %t.61 %persistentHash.4
+               136202032268515569762809483864408030127489942841709
+               %t.55
+               %t.56
+               %coin.40
+               %coin.41
+               %coin.42
+               0
+               %target.43
+               %target.44))
+          (= ()
+             (public-ledger %t.61 %kernel.0 () claimZswapCoinReceive
+               %tmp.62
+               %tmp.63))
           ())))
     )
 
@@ -43615,12 +44006,12 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration ())
-        (external %transientHash.1 ((argument
+        (native %transientHash.1 ((argument
                                       (%value.2 %value.3)
                                       (ty ((afield) (afield))
                                           ((tfield) (tfield)))))
              (ty ((afield)) ((tfield))))
-        (external %persistentHash.4 ((argument
+        (native %persistentHash.4 ((argument
                                        (%value.5 %value.6 %value.7 %value.8 %value.9
                                          %value.10 %value.11 %value.12
                                          %value.13)
@@ -43643,21 +44034,21 @@ groups than for single tests.
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %degradeToTransient.14 ((argument
+        (native %degradeToTransient.14 ((argument
                                             (%x.15 %x.16)
                                             (ty ((abytes 32))
                                                 ((tfield 255)
                                                   (tfield
                                                     452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield))))
-        (external %upgradeFromTransient.17 ((argument
+        (native %upgradeFromTransient.17 ((argument
                                               (%x.18)
                                               (ty ((afield)) ((tfield)))))
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (external %createZswapInput.19 ((argument
+        (native %createZswapInput.19 ((argument
                                           (%coin.20 %coin.21 %coin.22 %coin.23
                                             %coin.24 %coin.25)
                                           (ty ((abytes 32)
@@ -43675,7 +44066,7 @@ groups than for single tests.
                                                 (tfield
                                                   18446744073709551615)))))
              (ty () ()))
-        (external %createZswapOutput.26 ((argument
+        (native %createZswapOutput.26 ((argument
                                            (%coin.27
                                              %coin.28
                                              %coin.29
@@ -43830,6 +44221,24 @@ groups than for single tests.
              (public-ledger 1 %kernel.0 () claimZswapCoinSpend
                %tmp.57
                %tmp.58))
+          (= %t.59 (== %target.43 %selfAddr.49))
+          (= %t.60 (== %target.44 %selfAddr.50))
+          (= %t.61 (select %t.59 %t.60 0))
+          (= (%tmp.62 %tmp.63)
+             (call %t.61 %persistentHash.4
+               136202032268515569762809483864408030127489942841709
+               %t.55
+               %t.56
+               %coin.40
+               %coin.41
+               %coin.42
+               0
+               %target.43
+               %target.44))
+          (= ()
+             (public-ledger %t.61 %kernel.0 () claimZswapCoinReceive
+               %tmp.62
+               %tmp.63))
           (0 0 0 0 0 0 %t.55 %t.56 %coin.40 %coin.41 %coin.42))))
     )
 
@@ -46303,8 +46712,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(p1: NativePoint, p2: NativePoint): NativePoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([p1.x, p2.x])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "export circuit foo(p1: JubjubPoint, p2: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -46752,6 +47161,7 @@ groups than for single tests.
         "}"))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -46786,6 +47196,7 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+  )
 
   (test
     '(
@@ -51398,7 +51809,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  impure = true;"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
@@ -52231,7 +52642,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(x: Boolean): NativePoint {"
+      "export circuit foo(x: Boolean): JubjubPoint {"
       "  impure = true;"
       "  return hashToCurve<Boolean>(x);"
       "}"
@@ -56845,7 +57256,7 @@ groups than for single tests.
     )
 )
 
-(parameterize ([zkir-v3 #t])
+(parameterize ([feature-zkir-v3 #t])
 (run-tests print-zkir-v3
   (test
     "examples/tiny.compact"
@@ -56910,9 +57321,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
@@ -56935,9 +57346,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
@@ -56961,9 +57372,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 16 },"
@@ -56986,9 +57397,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 16 },"
@@ -57012,9 +57423,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
@@ -57061,9 +57472,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
@@ -57075,9 +57486,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
@@ -57107,9 +57518,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
@@ -57147,7 +57558,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -57164,9 +57575,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
@@ -57195,12 +57606,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%x.1\","
-        "    \"%y.2\","
-        "    \"%z.3\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 8 },"
@@ -57241,9 +57652,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
@@ -57256,9 +57667,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 32 },"
@@ -57273,35 +57684,34 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(p1: NativePoint, p2: NativePoint): NativePoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([p1.x, p2.x])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "export circuit foo(p1: JubjubPoint, p2: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%p1.0\","
-        "    \"%p1.1\","
-        "    \"%p2.2\","
-        "    \"%p2.3\""
+        "    { \"name\": \"%p1.0\", \"type\": \"Point<Jubjub>\" },"
+        "    { \"name\": \"%p2.1\", \"type\": \"Point<Jubjub>\" }"
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"transient_hash\", \"output\": \"%t.4\", \"inputs\": [\"%p1.0\", \"%p2.2\"] },"
-        "    { \"op\": \"ec_mul\", \"outputs\": [\"%t.5\", \"%t.6\"], \"a_x\": \"%p1.0\", \"a_y\": \"%p1.1\", \"scalar\": \"%t.4\" },"
-        "    { \"op\": \"ec_mul_generator\", \"outputs\": [\"%t.7\", \"%t.8\"], \"scalar\": \"0x11\" },"
-        "    { \"op\": \"ec_add\", \"outputs\": [\"%t.9\", \"%t.10\"], \"a_x\": \"%t.5\", \"a_y\": \"%t.6\", \"b_x\": \"%t.7\", \"b_y\": \"%t.8\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.11\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.12\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%t.11\", \"%t.12\"] },"
-        "    { \"op\": \"hash_to_curve\", \"outputs\": [\"%t.13\", \"%t.14\"], \"inputs\": [\"%t.11\", \"%t.12\"] },"
-        "    { \"op\": \"ec_add\", \"outputs\": [\"%t.15\", \"%t.16\"], \"a_x\": \"%t.9\", \"a_y\": \"%t.10\", \"b_x\": \"%t.13\", \"b_y\": \"%t.14\" },"
-        "    { \"op\": \"hash_to_curve\", \"outputs\": [\"%t.17\", \"%t.18\"], \"inputs\": [] },"
-        "    { \"op\": \"ec_add\", \"outputs\": [\"%t.19\", \"%t.20\"], \"a_x\": \"%t.15\", \"a_y\": \"%t.16\", \"b_x\": \"%t.17\", \"b_y\": \"%t.18\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.19\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.20\" }"
+        "    { \"op\": \"encode\", \"outputs\": [\"%t.2\", \"%ingore.3\"], \"input\": \"%p1.0\" },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%t.4\", \"%ingore.5\"], \"input\": \"%p2.1\" },"
+        "    { \"op\": \"transient_hash\", \"output\": \"%t.6\", \"inputs\": [\"%t.2\", \"%t.4\"] },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.7\", \"a\": \"%p1.0\", \"scalar\": \"%t.6\" },"
+        "    { \"op\": \"ec_mul_generator\", \"outputs\": \"%t.8\", \"scalar\": \"0x11\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.7\", \"b\": \"%t.8\" },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%t.10\", \"%t.11\"] },"
+        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.12\", \"inputs\": [\"%t.10\", \"%t.11\"] },"
+        "    { \"op\": \"add\", \"output\": \"%t.13\", \"a\": \"%t.9\", \"b\": \"%t.12\" },"
+        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.14\", \"inputs\": [] },"
+        "    { \"op\": \"add\", \"output\": \"%t.15\", \"a\": \"%t.13\", \"b\": \"%t.14\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.15\" }"
         "  ]"
         "}"))
     )
@@ -57342,9 +57752,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57355,13 +57765,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -57370,9 +57780,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57383,10 +57793,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57398,13 +57808,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -57433,9 +57843,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57446,11 +57856,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57462,9 +57872,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57490,9 +57900,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -57508,6 +57918,7 @@ groups than for single tests.
         "}"))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -57517,7 +57928,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -57525,6 +57936,7 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+  )
 
   (test
     '(
@@ -57539,7 +57951,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -57566,9 +57978,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -57596,9 +58008,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -57631,9 +58043,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -57678,9 +58090,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -57705,10 +58117,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57740,22 +58152,22 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%nv.0\","
-        "    \"%nv.1\","
-        "    \"%nv.2\","
-        "    \"%nv.3\","
-        "    \"%nv.4\","
-        "    \"%nv.5\","
-        "    \"%nv.6\","
-        "    \"%bv.7\","
-        "    \"%bv.8\","
-        "    \"%bv.9\","
-        "    \"%bv.10\","
-        "    \"%bv.11\","
-        "    \"%bv.12\","
-        "    \"%bv.13\""
+        "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -57821,22 +58233,22 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%nv.0\","
-        "    \"%nv.1\","
-        "    \"%nv.2\","
-        "    \"%nv.3\","
-        "    \"%nv.4\","
-        "    \"%nv.5\","
-        "    \"%nv.6\","
-        "    \"%bv.7\","
-        "    \"%bv.8\","
-        "    \"%bv.9\","
-        "    \"%bv.10\","
-        "    \"%bv.11\","
-        "    \"%bv.12\","
-        "    \"%bv.13\""
+        "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -57903,22 +58315,22 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%nv.0\","
-        "    \"%nv.1\","
-        "    \"%nv.2\","
-        "    \"%nv.3\","
-        "    \"%nv.4\","
-        "    \"%nv.5\","
-        "    \"%nv.6\","
-        "    \"%bv.7\","
-        "    \"%bv.8\","
-        "    \"%bv.9\","
-        "    \"%bv.10\","
-        "    \"%bv.11\","
-        "    \"%bv.12\","
-        "    \"%bv.13\""
+        "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -58023,14 +58435,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.0\", \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 248 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%t.2\", \"divisor\": \"%t.0\", \"modulus\": \"%t.1\", \"bits\": 248 },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
@@ -58055,22 +58467,22 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%nv.0\","
-        "    \"%nv.1\","
-        "    \"%nv.2\","
-        "    \"%nv.3\","
-        "    \"%nv.4\","
-        "    \"%nv.5\","
-        "    \"%nv.6\","
-        "    \"%bv.7\","
-        "    \"%bv.8\","
-        "    \"%bv.9\","
-        "    \"%bv.10\","
-        "    \"%bv.11\","
-        "    \"%bv.12\","
-        "    \"%bv.13\""
+        "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -58141,7 +58553,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58164,7 +58576,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58190,7 +58602,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58215,15 +58627,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.3\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" },"
         "    { \"op\": \"output\", \"val\": \"%t.3\" }"
         "  ]"
@@ -58244,15 +58656,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.3\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" },"
         "    { \"op\": \"output\", \"val\": \"%t.3\" }"
         "  ]"
@@ -58273,7 +58685,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58295,9 +58707,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58324,9 +58736,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58356,9 +58768,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58394,9 +58806,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58418,9 +58830,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58443,11 +58855,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 2 },"
@@ -58473,10 +58885,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
@@ -58522,10 +58934,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58538,9 +58950,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58551,9 +58963,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58564,9 +58976,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58589,7 +59001,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58616,7 +59028,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58638,9 +59050,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58664,9 +59076,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -58688,9 +59100,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -58712,9 +59124,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -58736,9 +59148,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -58762,9 +59174,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -58789,9 +59201,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58816,10 +59228,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
@@ -58846,11 +59258,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58874,11 +59286,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58902,11 +59314,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58930,11 +59342,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58959,9 +59371,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58992,9 +59404,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59019,9 +59431,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%arg.0\", \"bits\": 40 },"
@@ -59043,10 +59455,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\","
-        "    \"%arg.1\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%arg.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%arg.0\", \"bits\": 72 },"
@@ -59070,9 +59482,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%arg.0\" },"
@@ -59095,9 +59507,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.1\", \"a\": \"%arg.0\", \"b\": \"0x03\", \"bits\": 2 },"
@@ -59120,9 +59532,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59146,9 +59558,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59171,9 +59583,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59197,9 +59609,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59223,11 +59635,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x08\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.0\" }"
         "  ]"
@@ -59249,16 +59661,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 248 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\", \"0x80\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%x.0\", \"%x.1\", \"0x10\", \"0x00\", \"0xa2\", \"0x40\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -59291,25 +59703,25 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\","
-        "    \"%foo.1\","
-        "    \"%foo.2\","
-        "    \"%foo.3\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%foo.1\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%foo.2\", \"bits\": 248 },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%foo.3\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.4\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.5\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.6\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.4\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.6\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%t.4\", \"%t.5\", \"%t.6\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%t.6\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.7\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.8\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.9\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.7\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.8\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.9\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%q.7\", \"%q.8\", \"%q.9\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.10\", \"a\": \"%q.7\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.11\", \"a\": \"%q.8\", \"b\": \"0x00\" },"
@@ -59318,8 +59730,8 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%t.14\", \"bit\": \"%t.12\", \"a\": \"%t.13\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.15\", \"bit\": \"%t.14\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.15\" },"
-        "    { \"op\": \"private_input\", \"output\": \"%tmp.16\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.17\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%tmp.16\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.16\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.17\" }"
         "  ]"
@@ -59352,25 +59764,25 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\","
-        "    \"%foo.1\","
-        "    \"%foo.2\","
-        "    \"%foo.3\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%foo.1\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%foo.2\", \"bits\": 248 },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%foo.3\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.4\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.5\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.6\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.4\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.6\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%t.4\", \"%t.5\", \"%t.6\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%t.6\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.7\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.8\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.9\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.7\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.8\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.9\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%q.7\", \"%q.8\", \"%q.9\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.10\", \"a\": \"%q.7\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.11\", \"a\": \"%q.8\", \"b\": \"0x00\" },"
@@ -59379,8 +59791,8 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%t.14\", \"bit\": \"%t.12\", \"a\": \"%t.13\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.15\", \"bit\": \"%t.14\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.15\" },"
-        "    { \"op\": \"private_input\", \"output\": \"%tmp.16\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.17\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%tmp.16\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.16\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.17\" }"
         "  ]"
@@ -59399,7 +59811,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59421,7 +59833,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59443,7 +59855,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59465,7 +59877,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59487,7 +59899,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59510,7 +59922,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59532,7 +59944,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59554,7 +59966,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59589,7 +60001,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59620,7 +60032,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59653,10 +60065,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
@@ -59680,10 +60092,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -59710,10 +60122,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -59792,23 +60204,23 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%y.2\","
-        "    \"%y.3\","
-        "    \"%y.4\","
-        "    \"%y.5\","
-        "    \"%y.6\","
-        "    \"%y.7\","
-        "    \"%y.8\","
-        "    \"%y.9\","
-        "    \"%ci.10\","
-        "    \"%ci.11\","
-        "    \"%ci.12\","
-        "    \"%ci.13\","
-        "    \"%ci.14\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%ci.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%ci.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%ci.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%ci.13\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%ci.14\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.1\", \"bits\": 8 },"
@@ -59828,21 +60240,21 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x0e\", \"0x05\", \"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x0f\", \"0x02\", \"0xa1\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.15\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.15\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x04\", \"0x01\", \"0x0d\", \"0x01\", \"0x01\", \"%t.15\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.15\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.16\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.16\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x0c\", \"0x01\", \"0x01\", \"%q.16\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x11\", \"0x02\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.17\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x02\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.17\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.18\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.18\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x0d\", \"0x01\", \"0x08\", \"%t.18\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.19\", \"a\": \"%t.18\", \"b\": \"0x00\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.19\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.20\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.20\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.20\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.21\", \"bit\": \"%t.20\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.21\" },"
@@ -59852,27 +60264,27 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%tmp.23\", \"a\": \"%x.0\", \"b\": \"0x02\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.23\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.24\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.24\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x0d\", \"0x01\", \"0x08\", \"%t.24\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.25\", \"a\": \"%t.24\", \"b\": \"0x03\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.25\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\", \"0x19\", \"0xa1\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.26\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.26\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x0d\", \"0x01\", \"0x08\", \"%t.26\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.27\", \"a\": \"%t.26\", \"b\": \"0x02\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.27\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.28\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.28\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x02\", \"0x0d\", \"0x01\", \"0x01\", \"%t.28\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.29\", \"bit\": \"%t.28\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.29\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.30\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.30\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.30\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.30\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.31\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.31\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.31\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.32\", \"bit\": \"%t.31\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.32\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.33\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.33\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.23\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.33\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.33\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x03\", \"0x11\", \"0x02\", \"0x91\"] },"
@@ -59880,32 +60292,32 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x04\", \"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x05\", \"0x11\", \"0x23\", \"0xa4\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x06\", \"0x11\", \"0x33\", \"0xa4\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x02\", \"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x32\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0a\", \"0x11\", \"0x00\", \"0xa2\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.34\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.35\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.34\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.35\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.34\", \"%value.35\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.36\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.34\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.37\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.35\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.38\", \"%hash.39\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.36\", \"%data.37\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x07\", \"0x33\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.38\", \"%hash.39\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x08\", \"0x11\", \"0x02\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.40\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.41\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.40\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.41\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.40\", \"%value.41\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.42\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.40\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.43\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.41\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.44\", \"%hash.45\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.42\", \"%data.43\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x08\", \"0x34\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.44\", \"%hash.45\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x09\", \"0x11\", \"0x02\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.46\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.47\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.46\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.47\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.46\", \"%value.47\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.48\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.46\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.49\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.47\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.50\", \"%hash.51\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.48\", \"%data.49\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x09\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x35\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.50\", \"%hash.51\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x91\", \"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x0a\", \"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.52\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.53\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.52\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.53\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.52\", \"%value.53\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.54\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.52\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.55\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.53\" },"
@@ -59920,7 +60332,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  impure = true;"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
@@ -59929,17 +60341,43 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%c.0\","
-        "    \"%c.1\""
+        "    { \"name\": \"%c.0\", \"type\": \"Point<Jubjub>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"ec_mul\", \"outputs\": [\"%t.2\", \"%t.3\"], \"a_x\": \"%c.0\", \"a_y\": \"%c.1\", \"scalar\": \"0x03\" },"
-        "    { \"op\": \"ec_add\", \"outputs\": [\"%t.4\", \"%t.5\"], \"a_x\": \"%c.0\", \"a_y\": \"%c.1\", \"b_x\": \"%t.2\", \"b_y\": \"%t.3\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.4\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.5\" }"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.1\", \"a\": \"%c.0\", \"scalar\": \"0x03\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"b\": \"%t.1\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger impure: Boolean;"
+      "witness point(): JubjubPoint;"
+      "export circuit foo(): JubjubPoint {"
+      "  impure = true;"
+      "  const c = point();"
+      "  return disclose(ecAdd(c, ecMul(c, 3)));"
+      "}"
+     )
+    (output-file "compiler/testdir/zkir/foo.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"private_input\", \"type\": \"Point<Jubjub>\", \"output\": \"%c.0\", \"guard\": null },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.1\", \"a\": \"%c.0\", \"scalar\": \"0x03\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"b\": \"%t.1\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
         "}"))
     )
@@ -59962,10 +60400,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -59978,10 +60416,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60010,10 +60448,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -60026,10 +60464,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60058,12 +60496,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\","
-        "    \"%q.3\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -60079,14 +60517,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\","
-        "    \"%q.3\","
-        "    \"%q.4\","
-        "    \"%q.5\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.5\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60119,13 +60557,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\","
-        "    \"%q.3\","
-        "    \"%q.4\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.4\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -60148,12 +60586,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\","
-        "    \"%q.3\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.2\", \"bits\": 12 },"
@@ -60197,11 +60635,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
@@ -60221,11 +60659,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -60241,11 +60679,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
@@ -60282,11 +60720,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60320,11 +60758,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
@@ -60355,11 +60793,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"-0x01\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.0\" }"
         "  ]"
@@ -60385,21 +60823,21 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%eval.0\","
-        "    \"%arguments.1\","
-        "    \"%witnesses.2\""
+        "    { \"name\": \"%eval.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%arguments.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%witnesses.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%eval.0\", \"b\": \"%arguments.1\" },"
         "    { \"op\": \"add\", \"output\": \"%x.4\", \"a\": \"%t.3\", \"b\": \"%witnesses.2\" },"
         "    { \"op\": \"add\", \"output\": \"%x.5\", \"a\": \"%x.4\", \"b\": \"0x07\" },"
         "    { \"op\": \"add\", \"output\": \"%x.6\", \"a\": \"%x.5\", \"b\": \"0x03\" },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.7\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.7\", \"guard\": null },"
         "    { \"op\": \"add\", \"output\": \"%t.8\", \"a\": \"%t.7\", \"b\": \"0x05\" },"
         "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.8\", \"b\": \"0x02\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.10\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.10\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.11\", \"a\": \"%t.9\", \"b\": \"%t.10\" },"
         "    { \"op\": \"output\", \"val\": \"%t.11\" }"
@@ -60434,9 +60872,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%my_guess.0\""
+        "    { \"name\": \"%my_guess.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60460,9 +60898,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 12 },"
@@ -60487,9 +60925,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 12 },"
@@ -60505,7 +60943,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(x: Boolean): NativePoint {"
+      "export circuit foo(x: Boolean): JubjubPoint {"
       "  impure = true;"
       "  return hashToCurve<Boolean>(x);"
       "}"
@@ -60514,16 +60952,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"hash_to_curve\", \"outputs\": [\"%t.1\", \"%t.2\"], \"inputs\": [\"%x.0\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.1\", \"inputs\": [\"%x.0\"] },"
+        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
         "}"))
     )
@@ -60550,7 +60987,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60580,7 +61017,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60608,7 +61045,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60686,9 +61123,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.1\", \"%hash.2\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"0x6d646e3a6c68\", \"%x.0\"] },"
@@ -60717,12 +61154,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\", \"0x80\", \"0x01\", \"0x01\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"0x00\", \"0x00\", \"0x31\", \"0x31\", \"0x18\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x05\", \"0x40\", \"0x08\", \"0x12\", \"0x04\", \"0x32\", \"0x32\", \"0x60\", \"-0x01\", \"0x14\", \"0xa2\", \"0x40\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0d\", \"0x01\", \"0x08\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.0\" }"
         "  ]"
@@ -60747,7 +61184,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60779,7 +61216,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60788,8 +61225,8 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x05\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x09\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.0\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x03\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x12\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0x16\", \"0x26\", \"0x13\", \"0x02\", \"0x0b\", \"0x10\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"0x00\", \"0x00\", \"0x0d\", \"0x02\", \"0x01\", \"-0x02\", \"%t.0\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.0\" },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
@@ -60839,10 +61276,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -60855,15 +61292,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -60938,10 +61375,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -60954,18 +61391,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.3\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.4\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.5\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.4\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x04\", \"0x01\", \"0x0a\", \"0x01\", \"0x01\", \"%t.2\", \"%t.3\", \"%t.4\", \"%t.5\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" },"
         "    { \"op\": \"output\", \"val\": \"%t.3\" },"
@@ -60997,9 +61434,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61010,11 +61447,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61026,15 +61463,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -61072,9 +61509,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61085,10 +61522,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%k.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%k.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61100,13 +61537,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -61115,13 +61552,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -61177,9 +61614,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
@@ -61189,11 +61626,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n1.0\","
-        "    \"%n2.1\","
-        "    \"%n3.2\""
+        "    { \"name\": \"%n1.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n2.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n3.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%n1.0\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n2.1\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%n3.2\", \"0x91\", \"0xa2\"] }"
@@ -61203,9 +61640,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
@@ -61278,9 +61715,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61291,10 +61728,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61305,11 +61742,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\","
-        "    \"%k.2\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%k.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61321,14 +61758,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x52\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -61337,14 +61774,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x52\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -61430,9 +61867,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -61458,9 +61895,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -61528,19 +61965,19 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%qcoin.0\","
-        "    \"%qcoin.1\","
-        "    \"%qcoin.2\","
-        "    \"%qcoin.3\","
-        "    \"%qcoin.4\","
-        "    \"%qcoin.5\","
-        "    \"%coin.6\","
-        "    \"%coin.7\","
-        "    \"%coin.8\","
-        "    \"%coin.9\","
-        "    \"%coin.10\""
+        "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.10\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.0\", \"bits\": 8 },"
@@ -61555,16 +61992,16 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.10\", \"bits\": 128 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"private_input\", \"output\": \"%value.11\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.11\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"output\": \"%value.12\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.12\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.12\", \"bits\": 248 }"
         "  ]"
         "}"))
-    ;; (output-file "compiler/testdir/zkir/bar.zkir"
-    ;;              "compiler/testdir/zkir/foo.zkir")
-    ;; (output-file "compiler/testdir/zkir/M2$bar.zkir"
-    ;;              "compiler/testdir/zkir/foo.zkir")
+    (output-file "compiler/testdir/zkir/bar.zkir"
+                 "compiler/testdir/zkir/foo.zkir")
+    (output-file "compiler/testdir/zkir/M2$bar.zkir"
+                 "compiler/testdir/zkir/foo.zkir")
     )
 
   (test
@@ -61628,19 +62065,19 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%qcoin.0\","
-        "    \"%qcoin.1\","
-        "    \"%qcoin.2\","
-        "    \"%qcoin.3\","
-        "    \"%qcoin.4\","
-        "    \"%qcoin.5\","
-        "    \"%coin.6\","
-        "    \"%coin.7\","
-        "    \"%coin.8\","
-        "    \"%coin.9\","
-        "    \"%coin.10\""
+        "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.10\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.0\", \"bits\": 8 },"
@@ -61655,9 +62092,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.10\", \"bits\": 128 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"private_input\", \"output\": \"%value.11\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.11\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"output\": \"%value.12\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.12\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.12\", \"bits\": 248 }"
         "  ]"
         "}"))
@@ -61687,7 +62124,7 @@ groups than for single tests.
      )
     (returns
       (program
-        (circuit (init) (%b.0 %n.1)
+        (circuit (init) ((%b.0 "Scalar<BLS12-381>") (%n.1 "Scalar<BLS12-381>"))
           (constrain_to_boolean %b.0)
           (constrain_bits %n.1 16)
           (impact 1 112 1 1 0 16 1 1 1 %b.0 17 2 145 161)
@@ -61853,9 +62290,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.1\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -61879,10 +62316,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.2\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -61908,11 +62345,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.3\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -61942,10 +62379,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.2\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -61970,10 +62407,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 4 },"
@@ -61998,10 +62435,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 4 },"
@@ -62072,9 +62509,13 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit (foo) (%v.0 %v.1 %v.2 %v.3 %v.4)
+        (circuit (foo) ((%v.0 "Scalar<BLS12-381>")
+                        (%v.1 "Scalar<BLS12-381>")
+                        (%v.2 "Scalar<BLS12-381>")
+                        (%v.3 "Scalar<BLS12-381>")
+                        (%v.4 "Scalar<BLS12-381>"))
           (impact 1 16 1 1 1 0 17 1 1 -2 %v.3 145)
-          (public_input %t.5)
+          (public_input "Scalar<BLS12-381>" %t.5)
           (impact 1 48 80 1 1 0 12 1 -2 %t.5)
           (output %t.5))))
     )
@@ -62089,7 +62530,11 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit (foo) (%v.10 %v.0 %v.1 %v.4 %v.7)
+        (circuit (foo) ((%v.10 "Scalar<BLS12-381>")
+                        (%v.0 "Scalar<BLS12-381>")
+                        (%v.1 "Scalar<BLS12-381>")
+                        (%v.4 "Scalar<BLS12-381>")
+                        (%v.7 "Scalar<BLS12-381>"))
           (constrain_bits %v.10 16)
           (constrain_bits %v.0 16)
           (constrain_bits %v.1 16)
@@ -62131,7 +62576,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -62157,15 +62602,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%bv.0\""
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.1\", \"val\": \"%bv.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.1\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x01\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -62188,9 +62633,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%bv.0\""
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 40 },"
@@ -62200,11 +62645,11 @@ groups than for single tests.
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.7\", \"%tmp.8\"], \"val\": \"%quo.5\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.9\", \"val\": \"%quo.7\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x05\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.2\", \"%tmp.4\", \"%tmp.6\", \"%tmp.8\", \"%tmp.9\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.10\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.11\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.12\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.13\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.14\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.12\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.13\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.14\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x05\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.10\", \"%t.11\", \"%t.12\", \"%t.13\", \"%t.14\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.10\" },"
         "    { \"op\": \"output\", \"val\": \"%t.11\" },"
@@ -62231,9 +62676,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%bv.0\""
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 248 },"
@@ -62269,37 +62714,37 @@ groups than for single tests.
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.59\", \"%tmp.60\"], \"val\": \"%quo.57\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.61\", \"val\": \"%quo.59\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x1f\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.2\", \"%tmp.4\", \"%tmp.6\", \"%tmp.8\", \"%tmp.10\", \"%tmp.12\", \"%tmp.14\", \"%tmp.16\", \"%tmp.18\", \"%tmp.20\", \"%tmp.22\", \"%tmp.24\", \"%tmp.26\", \"%tmp.28\", \"%tmp.30\", \"%tmp.32\", \"%tmp.34\", \"%tmp.36\", \"%tmp.38\", \"%tmp.40\", \"%tmp.42\", \"%tmp.44\", \"%tmp.46\", \"%tmp.48\", \"%tmp.50\", \"%tmp.52\", \"%tmp.54\", \"%tmp.56\", \"%tmp.58\", \"%tmp.60\", \"%tmp.61\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.62\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.63\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.64\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.65\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.66\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.67\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.68\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.69\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.70\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.71\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.72\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.73\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.74\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.75\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.76\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.77\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.78\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.79\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.80\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.81\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.82\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.83\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.84\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.85\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.86\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.87\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.88\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.89\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.90\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.91\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.92\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.62\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.63\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.64\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.65\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.66\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.67\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.68\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.69\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.70\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.71\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.72\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.73\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.74\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.75\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.76\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.77\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.78\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.79\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.80\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.81\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.82\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.83\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.84\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.85\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.86\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.87\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.88\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.89\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.90\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.91\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.92\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x1f\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.62\", \"%t.63\", \"%t.64\", \"%t.65\", \"%t.66\", \"%t.67\", \"%t.68\", \"%t.69\", \"%t.70\", \"%t.71\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.62\" },"
         "    { \"op\": \"output\", \"val\": \"%t.63\" },"
@@ -62352,10 +62797,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%bv.0\","
-        "    \"%bv.1\""
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 40 },"
@@ -62397,42 +62842,42 @@ groups than for single tests.
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.69\", \"%tmp.70\"], \"val\": \"%quo.67\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.71\", \"val\": \"%quo.69\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x24\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.12\", \"%tmp.14\", \"%tmp.16\", \"%tmp.18\", \"%tmp.20\", \"%tmp.22\", \"%tmp.24\", \"%tmp.26\", \"%tmp.28\", \"%tmp.30\", \"%tmp.32\", \"%tmp.34\", \"%tmp.36\", \"%tmp.38\", \"%tmp.40\", \"%tmp.42\", \"%tmp.44\", \"%tmp.46\", \"%tmp.48\", \"%tmp.50\", \"%tmp.52\", \"%tmp.54\", \"%tmp.56\", \"%tmp.58\", \"%tmp.60\", \"%tmp.62\", \"%tmp.64\", \"%tmp.66\", \"%tmp.68\", \"%tmp.70\", \"%tmp.71\", \"%tmp.3\", \"%tmp.5\", \"%tmp.7\", \"%tmp.9\", \"%tmp.10\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.72\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.73\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.74\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.75\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.76\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.77\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.78\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.79\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.80\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.81\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.82\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.83\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.84\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.85\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.86\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.87\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.88\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.89\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.90\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.91\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.92\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.93\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.94\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.95\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.96\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.97\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.98\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.99\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.100\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.101\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.102\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.103\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.104\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.105\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.106\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.107\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.72\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.73\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.74\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.75\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.76\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.77\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.78\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.79\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.80\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.81\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.82\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.83\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.84\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.85\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.86\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.87\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.88\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.89\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.90\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.91\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.92\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.93\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.94\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.95\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.96\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.97\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.98\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.99\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.100\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.101\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.102\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.103\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.104\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.105\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.106\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.107\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x24\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\", \"%t.93\", \"%t.94\", \"%t.95\", \"%t.96\", \"%t.97\", \"%t.98\", \"%t.99\", \"%t.100\", \"%t.101\", \"%t.102\", \"%t.103\", \"%t.104\", \"%t.105\", \"%t.106\", \"%t.107\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.72\" },"
         "    { \"op\": \"output\", \"val\": \"%t.73\" },"
@@ -62490,7 +62935,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -62516,15 +62961,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%v.0\""
+        "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.1\", \"val\": \"%v.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.1\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x01\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -62547,13 +62992,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%v.0\","
-        "    \"%v.1\","
-        "    \"%v.2\","
-        "    \"%v.3\","
-        "    \"%v.4\""
+        "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.4\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
@@ -62566,7 +63011,7 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.7\", \"divisor\": \"%div.6\", \"modulus\": \"%v.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.8\", \"divisor\": \"%div.7\", \"modulus\": \"%v.0\", \"bits\": 8 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x05\", \"%tmp.8\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.9\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.9\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x05\", \"%t.9\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.9\" }"
         "  ]"
@@ -62589,39 +63034,39 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%v.0\","
-        "    \"%v.1\","
-        "    \"%v.2\","
-        "    \"%v.3\","
-        "    \"%v.4\","
-        "    \"%v.5\","
-        "    \"%v.6\","
-        "    \"%v.7\","
-        "    \"%v.8\","
-        "    \"%v.9\","
-        "    \"%v.10\","
-        "    \"%v.11\","
-        "    \"%v.12\","
-        "    \"%v.13\","
-        "    \"%v.14\","
-        "    \"%v.15\","
-        "    \"%v.16\","
-        "    \"%v.17\","
-        "    \"%v.18\","
-        "    \"%v.19\","
-        "    \"%v.20\","
-        "    \"%v.21\","
-        "    \"%v.22\","
-        "    \"%v.23\","
-        "    \"%v.24\","
-        "    \"%v.25\","
-        "    \"%v.26\","
-        "    \"%v.27\","
-        "    \"%v.28\","
-        "    \"%v.29\","
-        "    \"%v.30\""
+        "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.13\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.14\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.15\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.16\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.17\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.18\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.19\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.20\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.21\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.22\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.23\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.24\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.25\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.26\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.27\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.28\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.29\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.30\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
@@ -62686,7 +63131,7 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.59\", \"divisor\": \"%div.58\", \"modulus\": \"%v.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.60\", \"divisor\": \"%div.59\", \"modulus\": \"%v.0\", \"bits\": 8 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x1f\", \"%tmp.60\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.61\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.61\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x1f\", \"%t.61\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.61\" }"
         "  ]"
@@ -62709,69 +63154,69 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%v.0\","
-        "    \"%v.1\","
-        "    \"%v.2\","
-        "    \"%v.3\","
-        "    \"%v.4\","
-        "    \"%v.5\","
-        "    \"%v.6\","
-        "    \"%v.7\","
-        "    \"%v.8\","
-        "    \"%v.9\","
-        "    \"%v.10\","
-        "    \"%v.11\","
-        "    \"%v.12\","
-        "    \"%v.13\","
-        "    \"%v.14\","
-        "    \"%v.15\","
-        "    \"%v.16\","
-        "    \"%v.17\","
-        "    \"%v.18\","
-        "    \"%v.19\","
-        "    \"%v.20\","
-        "    \"%v.21\","
-        "    \"%v.22\","
-        "    \"%v.23\","
-        "    \"%v.24\","
-        "    \"%v.25\","
-        "    \"%v.26\","
-        "    \"%v.27\","
-        "    \"%v.28\","
-        "    \"%v.29\","
-        "    \"%v.30\","
-        "    \"%v.31\","
-        "    \"%v.32\","
-        "    \"%v.33\","
-        "    \"%v.34\","
-        "    \"%v.35\","
-        "    \"%v.36\","
-        "    \"%v.37\","
-        "    \"%v.38\","
-        "    \"%v.39\","
-        "    \"%v.40\","
-        "    \"%v.41\","
-        "    \"%v.42\","
-        "    \"%v.43\","
-        "    \"%v.44\","
-        "    \"%v.45\","
-        "    \"%v.46\","
-        "    \"%v.47\","
-        "    \"%v.48\","
-        "    \"%v.49\","
-        "    \"%v.50\","
-        "    \"%v.51\","
-        "    \"%v.52\","
-        "    \"%v.53\","
-        "    \"%v.54\","
-        "    \"%v.55\","
-        "    \"%v.56\","
-        "    \"%v.57\","
-        "    \"%v.58\","
-        "    \"%v.59\","
-        "    \"%v.60\""
+        "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.13\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.14\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.15\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.16\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.17\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.18\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.19\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.20\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.21\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.22\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.23\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.24\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.25\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.26\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.27\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.28\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.29\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.30\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.31\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.32\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.33\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.34\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.35\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.36\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.37\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.38\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.39\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.40\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.41\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.42\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.43\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.44\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.45\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.46\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.47\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.48\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.49\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.50\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.51\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.52\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.53\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.54\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.55\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.56\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.57\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.58\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.59\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.60\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
@@ -62895,8 +63340,8 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.118\", \"divisor\": \"%div.117\", \"modulus\": \"%v.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.119\", \"divisor\": \"%div.118\", \"modulus\": \"%v.0\", \"bits\": 8 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x3d\", \"%tmp.89\", \"%tmp.119\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.120\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.121\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.120\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.121\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x3d\", \"%t.120\", \"%t.121\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.120\" },"
         "    { \"op\": \"output\", \"val\": \"%t.121\" }"
@@ -62919,9 +63364,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%param1.0\""
+        "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.0\", \"bits\": 8 },"
@@ -62948,18 +63393,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%param1.0\","
-        "    \"%param1.1\","
-        "    \"%param1.2\","
-        "    \"%param1.3\","
-        "    \"%param1.4\","
-        "    \"%param1.5\","
-        "    \"%param1.6\","
-        "    \"%param1.7\","
-        "    \"%param1.8\","
-        "    \"%param1.9\""
+        "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.9\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.0\", \"bits\": 8 },"
@@ -63010,18 +63455,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%param1.0\","
-        "    \"%param1.1\","
-        "    \"%param1.2\","
-        "    \"%param1.3\","
-        "    \"%param1.4\","
-        "    \"%param1.5\","
-        "    \"%param1.6\","
-        "    \"%param1.7\","
-        "    \"%param1.8\","
-        "    \"%param1.9\""
+        "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.9\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.0\", \"bits\": 8 },"
@@ -63044,7 +63489,7 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.17\", \"divisor\": \"%div.16\", \"modulus\": \"%param1.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.18\", \"divisor\": \"%div.17\", \"modulus\": \"%param1.0\", \"bits\": 8 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x0a\", \"%tmp.18\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.19\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.19\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x0a\", \"%t.19\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.19\" }"
         "  ]"
@@ -63073,11 +63518,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"0xe803\", \"0x50\", \"0x01\", \"-0x02\", \"0xd007\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.0\" }"
         "  ]"
@@ -63086,12 +63531,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"0xe803\", \"0x50\", \"0x01\", \"-0x02\", \"%x.0\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -63100,12 +63545,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%x.0\", \"0x50\", \"0x01\", \"-0x02\", \"0xe803\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -63114,21 +63559,49 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%x.0\", \"0x50\", \"0x01\", \"-0x02\", \"%y.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
         "}"))
     )
-  )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger impure: Boolean;"
+      "witness point(): JubjubPoint;"
+      "export circuit gris(scalar: Field): JubjubPoint {"
+      "  impure = true;"
+      "  return disclose(ecMul(point(), scalar));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/gris.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%scalar.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"private_input\", \"type\": \"Point<Jubjub>\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.2\", \"a\": \"%t.1\", \"scalar\": \"%scalar.0\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "  ]"
+        "}"))
+    )
+)
 )
 
+(with-parameter-values ([feature-zkir-v3 #f #t])
 (run-tests print-typescript
   (test-group
     ((create-file "C1.compact"
@@ -63240,18 +63713,6 @@ groups than for single tests.
       irritants: '("testfile.compact line 1 char 20" "unbound identifier ~s" (QualifiedCoinInf)))
     )
 
-  (test
-    '(
-      "circuit t_c<a>(value: a, rand: Field): Field;"
-      "export circuit foo(x: Uint<12>): Field {"
-      "  return t_c<Uint<12>>(x, 0);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "unrecognized native entry ~s" (t_c)))
-    )
-
   (test-group
     ((create-file "Calculator.compact"
        '(
@@ -63349,6 +63810,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -63368,6 +63832,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -63427,6 +63892,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -63446,6 +63914,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -63517,6 +63986,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -63536,6 +64008,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -63607,6 +64080,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -63626,6 +64102,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -63878,6 +64355,7 @@ groups than for single tests.
         ))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -63890,8 +64368,10 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt).result).toEqual([]);"
         "});"
         ))
-    )
+    ) 
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo };"
@@ -63905,6 +64385,7 @@ groups than for single tests.
         "});"
         ))
     )
+  )
 
   (test
     '(
@@ -65759,6 +66240,12 @@ groups than for single tests.
         "  clear(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, Maybe<bigint>>;"
+        "  clear(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  public_key(sk_0: Uint8Array): Uint8Array;"
         "}"
@@ -65782,6 +66269,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>, v_0: bigint): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -65962,6 +66450,11 @@ groups than for single tests.
         "      }"
         "    };"
         "    this.impureCircuits = {"
+        "      set: this.circuits.set,"
+        "      get: this.circuits.get,"
+        "      clear: this.circuits.clear"
+        "    };"
+        "    this.provableCircuits = {"
         "      set: this.circuits.set,"
         "      get: this.circuits.get,"
         "      clear: this.circuits.clear"
@@ -66295,7 +66788,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EAmBD,AAAA,iBAAsD,CAArB,OAAQ;oEAAR,OAAQ;;GAAa;EDqBtD,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -66426,10 +66919,10 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
-      "export circuit bar(x: Field): NativePoint {"
+      "export circuit bar(x: Field): JubjubPoint {"
       "  return ecMulGenerator(x);"
       "}"
       )
@@ -66723,6 +67216,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  uno(q_0: Q<bigint>): bigint;"
         "}"
@@ -66742,6 +67238,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -66785,6 +67282,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  uno(q_0: Q<bigint>): bigint;"
         "}"
@@ -66804,6 +67304,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -66839,6 +67340,10 @@ groups than for single tests.
         "  hello(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, string>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  hello(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, string>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -66858,6 +67363,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>, x_0: string): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -66910,6 +67416,13 @@ groups than for single tests.
         "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "            eval_0: bigint,"
+        "            arguments_0: bigint,"
+        "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  functions(Maybe_0: Maybe<bigint>): bigint;"
         "  finalize(): bigint;"
@@ -66940,6 +67453,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>,"
         "               witnesses_0: bigint): __compactRuntime.ConstructorResult<PS>;"
@@ -67052,7 +67566,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(x: Boolean): NativePoint {"
+      "export circuit foo(x: Boolean): JubjubPoint {"
       "  return hashToCurve<Boolean>(x);"
       "}"
       )
@@ -67339,6 +67853,18 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls witness foo" "line 3 char 14")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit itIsntPure(): ZswapCoinPublicKey {"
+      "  return ownPublicKey();"
+      "}"
+     )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls native witness ownPublicKey" "line 3 char 10")))
     )
 
     (test
@@ -67636,6 +68162,14 @@ groups than for single tests.
         "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  init0(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
+        "  ismember(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, boolean>;"
+        "  init1(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
+        "  update(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  identity(q_0: bigint): bigint;"
         "}"
@@ -67673,6 +68207,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -67935,6 +68470,15 @@ groups than for single tests.
         "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  init(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
+        "  put(context: __compactRuntime.CircuitContext<PS>,"
+        "      b_0: boolean,"
+        "      n_0: bigint,"
+        "      q_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -67970,6 +68514,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -68594,6 +69139,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -68649,6 +69197,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -69567,6 +70116,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  foo(): Commitment<any>;"
         "}"
@@ -69586,6 +70138,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -70062,15 +70615,15 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 8 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter vals of exported circuit foo at line 12 char 50" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the second argument to bar at line 13 char 36\n      the computation at line 8 char 13\n      the right-hand side of = at line 8 char 11")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
+      irritants: '("testfile.compact line 8 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
+      irritants: '("testfile.compact line 8 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 10 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter vals of exported circuit foo at line 12 char 50" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the second argument to bar at line 13 char 36\n      the computation at line 10 char 13\n      the right-hand side of = at line 10 char 11")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
+      irritants: '("testfile.compact line 10 char 11" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
+      irritants: '("testfile.compact line 10 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter ops of exported circuit foo at line 12 char 30" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 5 char 7\n      the conditional branch at line 5 char 3" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the first argument to bar at line 13 char 36\n      the comparison at line 7 char 12\n      the conditional branch at line 7 char 8")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 13 char 25" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n of exported circuit foo at line 12 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 13 char 25"))))
     )
@@ -76854,6 +77407,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -76872,6 +77429,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -76910,6 +77468,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -76929,6 +77491,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -76967,6 +77530,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -76986,6 +77553,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -77022,6 +77590,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  foo(x_0: U32): bigint;"
         "}"
@@ -77041,6 +77612,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -77082,6 +77654,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): __compactRuntime.CircuitResults<PS, S>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): __compactRuntime.CircuitResults<PS, S>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -77101,6 +77677,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -77165,6 +77742,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -77184,6 +77765,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -78179,20 +78761,21 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "ledger F: NativePoint;"
+      "ledger F: JubjubPoint;"
       ""
-      "export circuit foo(np: NativePoint): [Field, Field] {"
-      "  F = disclose(np);"
+      "export circuit foo(pt: JubjubPoint): [Field, Field] {"
+      "  F = disclose(pt);"
       "  const q = F;"
-      "  return [nativePointY(q), nativePointX(q)];"
+      "  return [jubjubPointY(q), jubjubPointX(q)];"
       "}"
       )
     (stage-javascript
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  // NB: assumes the representation of NativePoint current as of the creation of this test"
-        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual([7n, 3n]);"
+        "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
+        "  const p = runtime.ecMulGenerator(1n);"
+        "  expect(C.circuits.foo(Ctxt, p).result).toEqual([p.y, p.x]);"
         "});"
         ))
     )
@@ -78200,23 +78783,25 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "ledger F: NativePoint;"
+      "ledger F: JubjubPoint;"
       ""
-      "export circuit foo(np: NativePoint): NativePoint {"
-      "  F = disclose(np);"
+      "export circuit foo(pt: JubjubPoint): JubjubPoint {"
+      "  F = disclose(pt);"
       "  const q = F;"
-      "  return constructNativePoint(nativePointY(q), nativePointX(q));"
+      "  return constructJubjubPoint(jubjubPointX(q), jubjubPointY(q));"
       "}"
       )
     (stage-javascript
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  // NB: assumes the representation of NativePoint current as of the creation of this test"
-        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual({x: 7n, y: 3n});"
+        "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
+        "  const p = runtime.ecMulGenerator(1n);"
+        "  expect(C.circuits.foo(Ctxt, p).result).toEqual({ x: p.x, y: p.y });"
         "});"
         ))
     )
 )
 
 (run-javascript)
+)

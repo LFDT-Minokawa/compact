@@ -47,7 +47,7 @@ describe('[Reserved] PM-14357 - Reserved keywords', () => {
                 testcase: 'catch keyword',
                 file: 'example_4.compact',
                 output: {
-                    stderr: 'Exception: example_4.compact line 16 char 14: parse error: found keyword "catch" (which is reserved for future use) looking for a typed pattern, a typed identifier, or ")"',
+                    stderr: 'Exception: example_4.compact line 16 char 14: parse error: found keyword "catch" (which is reserved for future use) looking for a typed pattern or ")"',
                 },
             },
             {

@@ -22,24 +22,10 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use semver::Version;
 use std::{fmt, str::FromStr};
 
-const ADDITIONAL_HELP: &str = r###"
-Additional Commands:
-
-* `compile [+VERSION] [ARGS...]': call the compiler for the given `VERSION'.
-
-Usage examples:
-
-  `compact compile source/path target/path`
-
-  `compact compile +0.21.0 --help`
-
-"###;
-
 /// The Compact command-line tool provides a set of utilities for Compact smart
 /// contract development.
 #[derive(Debug, Clone, Parser)]
 #[clap(version)]
-#[command(after_help = ADDITIONAL_HELP)]
 pub struct CommandLineArguments {
     /// Set the target
     ///
@@ -79,6 +65,7 @@ pub struct CompactUpdateConfig {}
 #[derive(Debug, Clone, Subcommand)]
 pub enum Command {
     /// Check for updates with the remote server
+    #[command(visible_alias = "ch", alias = "che", alias = "chec")]
     Check(CheckCommand),
 
     /// Update to the latest or a specific version of the Compact toolchain
@@ -88,22 +75,59 @@ pub enum Command {
     /// version to the installed one.
     ///
     /// If the compiler was already downloaded it is not downloaded again
-    #[command(verbatim_doc_comment)]
+    #[command(
+        verbatim_doc_comment,
+        visible_alias = "u",
+        visible_alias = "up",
+        alias = "upd",
+        alias = "upda",
+        alias = "updat"
+    )]
     Update(UpdateCommand),
 
+    #[command(
+        visible_alias = "f",
+        visible_alias = "fmt",
+        alias = "fo",
+        alias = "for",
+        alias = "form",
+        alias = "forma"
+    )]
     Format(FormatCommand),
 
+    #[command(
+        visible_alias = "fx",
+        visible_alias = "fix",
+        alias = "fi",
+        alias = "fixu"
+    )]
     Fixup(FixupCommand),
 
+    #[command(visible_alias = "l", alias = "li", alias = "lis")]
     List(ListCommand),
 
+    #[command(visible_alias = "cl", alias = "cle", alias = "clea")]
     Clean(CleanCommand),
 
-    #[command(name = "self", subcommand)]
+    #[command(
+        name = "self",
+        subcommand,
+        visible_alias = "s",
+        alias = "se",
+        alias = "sel"
+    )]
     SSelf(SSelf),
 
-    #[command(external_subcommand)]
-    ExternalCommand(Vec<String>),
+    /// Call the compiler
+    #[command(
+        visible_alias = "c",
+        alias = "co",
+        alias = "com",
+        alias = "comp",
+        alias = "compi",
+        alias = "compil"
+    )]
+    Compile(CompileCommand),
 }
 
 /// Check for updates with the remote server
@@ -114,9 +138,9 @@ pub struct CheckCommand {}
 #[derive(Debug, Clone, Args)]
 #[command(version)]
 pub struct UpdateCommand {
-    /// Set the version to install
+    /// Version to install, e.g. 0, 0.29, or 0.29.0
     #[arg(id = "COMPACT_VERSION")]
-    pub version: Option<Version>,
+    pub version: Option<VersionSpec>,
 
     /// Don't make the newly installed compiler the default one
     #[arg(long, default_value_t = false)]
@@ -124,6 +148,68 @@ pub struct UpdateCommand {
 
     #[command(flatten)]
     pub config: CompactUpdateConfig,
+}
+
+/// A version specifier that is either an exact semver version, a
+/// `major.minor` prefix, or a `major`-only prefix.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VersionSpec {
+    Exact(Version),
+    Partial { major: u64, minor: u64 },
+    Major { major: u64 },
+}
+
+impl VersionSpec {
+    /// Returns true when `version` matches this specifier.
+    pub fn matches(&self, version: &Version) -> bool {
+        match self {
+            VersionSpec::Exact(v) => v == version,
+            VersionSpec::Partial { major, minor } => {
+                version.major == *major && version.minor == *minor
+            }
+            VersionSpec::Major { major } => version.major == *major,
+        }
+    }
+}
+
+impl FromStr for VersionSpec {
+    type Err = semver::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Ok(version) = Version::parse(s) {
+            return Ok(VersionSpec::Exact(version));
+        }
+
+        // Try parsing as "major.minor"
+        let parts: Vec<&str> = s.split('.').collect();
+        if parts.len() == 2
+            && let (Ok(major), Ok(minor)) = (parts[0].parse::<u64>(), parts[1].parse::<u64>())
+        {
+            return Ok(VersionSpec::Partial { major, minor });
+        }
+
+        // Try parsing as "major" only
+        if let Ok(major) = s.parse::<u64>() {
+            return Ok(VersionSpec::Major { major });
+        }
+
+        // Fall back to semver error for the original input
+        Version::parse(s).map(VersionSpec::Exact)
+    }
+}
+
+impl fmt::Display for VersionSpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VersionSpec::Exact(v) => v.fmt(f),
+            VersionSpec::Partial { major, minor } => {
+                write!(f, "{major}.{minor}")
+            }
+            VersionSpec::Major { major } => {
+                write!(f, "{major}")
+            }
+        }
+    }
 }
 
 /// Format compact files
@@ -204,6 +290,14 @@ pub struct CleanCommand {
     pub cache: bool,
 }
 
+/// Call the compiler
+#[derive(Debug, Clone, Args)]
+pub struct CompileCommand {
+    /// Arguments to pass to the compiler (use +VERSION to specify version)
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+    pub args: Vec<String>,
+}
+
 /// Commands for managing the compact tool itself
 #[derive(Debug, Clone, Subcommand)]
 #[command(version)]
@@ -251,5 +345,75 @@ impl FromStr for Target {
 
             unknown => bail!("Unsupported target `{unknown}'"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_exact_version() {
+        let spec: VersionSpec = "0.29.0".parse().unwrap();
+        assert_eq!(spec, VersionSpec::Exact(Version::new(0, 29, 0)));
+        assert_eq!(spec.to_string(), "0.29.0");
+    }
+
+    #[test]
+    fn parse_partial_version() {
+        let spec: VersionSpec = "0.29".parse().unwrap();
+        assert_eq!(
+            spec,
+            VersionSpec::Partial {
+                major: 0,
+                minor: 29
+            }
+        );
+        assert_eq!(spec.to_string(), "0.29");
+    }
+
+    #[test]
+    fn parse_invalid_version() {
+        assert!("bob".parse::<VersionSpec>().is_err());
+        assert!("".parse::<VersionSpec>().is_err());
+        assert!("abc.def".parse::<VersionSpec>().is_err());
+    }
+
+    #[test]
+    fn exact_matches_itself() {
+        let spec = VersionSpec::Exact(Version::new(0, 29, 1));
+        assert!(spec.matches(&Version::new(0, 29, 1)));
+        assert!(!spec.matches(&Version::new(0, 29, 0)));
+        assert!(!spec.matches(&Version::new(0, 28, 1)));
+    }
+
+    #[test]
+    fn partial_matches_any_patch() {
+        let spec = VersionSpec::Partial {
+            major: 0,
+            minor: 29,
+        };
+        assert!(spec.matches(&Version::new(0, 29, 0)));
+        assert!(spec.matches(&Version::new(0, 29, 1)));
+        assert!(spec.matches(&Version::new(0, 29, 99)));
+        assert!(!spec.matches(&Version::new(0, 28, 0)));
+        assert!(!spec.matches(&Version::new(1, 29, 0)));
+    }
+
+    #[test]
+    fn parse_major_only_version() {
+        let spec: VersionSpec = "29".parse().unwrap();
+        assert_eq!(spec, VersionSpec::Major { major: 29 });
+        assert_eq!(spec.to_string(), "29");
+    }
+
+    #[test]
+    fn major_matches_any_minor_and_patch() {
+        let spec = VersionSpec::Major { major: 1 };
+        assert!(spec.matches(&Version::new(1, 0, 0)));
+        assert!(spec.matches(&Version::new(1, 2, 3)));
+        assert!(spec.matches(&Version::new(1, 99, 99)));
+        assert!(!spec.matches(&Version::new(0, 1, 0)));
+        assert!(!spec.matches(&Version::new(2, 0, 0)));
     }
 }

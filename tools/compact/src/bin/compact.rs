@@ -19,8 +19,8 @@ use anyhow::{Context as _, Result, anyhow, bail};
 use axoupdater::AxoUpdater;
 use clap::Parser;
 use compact::{
-    COMPACT_NAME, COMPACT_VERSION, CleanCommand, Command, CommandLineArguments, Compiler,
-    FixupCommand, FormatCommand, ListCommand, SSelf, UpdateCommand,
+    COMPACT_NAME, COMPACT_VERSION, CleanCommand, Command, CommandLineArguments, CompileCommand,
+    Compiler, FixupCommand, FormatCommand, ListCommand, SSelf, UpdateCommand, VersionSpec,
     fetch::{self, MidnightArtifacts},
     file,
     fixup::{self, FixupStatus, fixup_file},
@@ -54,7 +54,7 @@ async fn main() -> Result<()> {
         Command::Clean(clean_command) => clean(&cli, clean_command)
             .await
             .context("Failed to list available versions")?,
-        Command::ExternalCommand(command) => run_external(&cli, command)
+        Command::Compile(compile_command) => compile(&cli, compile_command)
             .await
             .context("Failed to run compactc")?,
     }
@@ -134,43 +134,33 @@ async fn self_update(cfg: &CommandLineArguments) -> Result<()> {
     Ok(())
 }
 
-async fn run_external(cfg: &CommandLineArguments, arguments: &[String]) -> Result<()> {
-    let mut arguments = arguments.iter();
-    let Some(command) = arguments.next() else {
-        bail!("Missing command, did you mean `compile'?")
+async fn compile(cfg: &CommandLineArguments, command: &CompileCommand) -> Result<()> {
+    let mut version: Option<semver::Version> = None;
+    let mut args = vec![];
+
+    for argument in &command.args {
+        if let Some(argument) = argument.strip_prefix('+') {
+            let argument = argument.to_owned();
+            version = Some(argument.parse().context("Invalid version format")?);
+        } else {
+            args.push(argument.clone());
+        }
+    }
+
+    let compiler = if let Some(version) = version {
+        let target = cfg.target;
+
+        Compiler::open(cfg, version.clone(), target)
+            .await
+            .with_context(|| anyhow!("Couldn't find compiler for {target} ({version})"))?
+    } else {
+        utils::get_current_compiler(cfg)
+            .await
+            .context("Failed to load current compiler.")?
+            .ok_or_else(|| anyhow!("No default compiler set"))?
     };
 
-    match command.as_str() {
-        "compile" => {
-            let mut version: Option<semver::Version> = None;
-            let mut args = vec![];
-
-            for argument in arguments {
-                if let Some(argument) = argument.strip_prefix('+') {
-                    let argument = argument.to_owned();
-                    version = Some(argument.parse().context("Invalid version format")?);
-                } else {
-                    args.push(argument.clone());
-                }
-            }
-
-            let compiler = if let Some(version) = version {
-                let target = cfg.target;
-
-                Compiler::open(cfg, version.clone(), target)
-                    .await
-                    .with_context(|| anyhow!("Couldn't find compiler for {target} ({version})"))?
-            } else {
-                utils::get_current_compiler(cfg)
-                    .await
-                    .context("Failed to load current compiler.")?
-                    .ok_or_else(|| anyhow!("No default compiler set"))?
-            };
-
-            compiler.invoke(args).await?;
-        }
-        cmd => bail!("Unknown command ({cmd}), did you mean `compile'?"),
-    }
+    compiler.invoke(args).await?;
 
     Ok(())
 }
@@ -178,9 +168,9 @@ async fn run_external(cfg: &CommandLineArguments, arguments: &[String]) -> Resul
 async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<()> {
     utils::initialise_directories(cfg).await?;
 
-    // quick initial check to if see a version is already installed
-    // skipping network requests entirely
-    if let Some(version) = &command.version {
+    // quick initial check to see if an exact version is already installed,
+    // skipping network requests entirely (only works for exact versions)
+    if let Some(VersionSpec::Exact(version)) = &command.version {
         let dir = cfg
             .directory
             .versions_dir()
@@ -215,16 +205,12 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
 
     let mut artifacts = load_compilers().await?;
 
-    let (version, artifact) = if let Some(version) = &command.version {
-        artifacts
-            .compilers
-            .remove_entry(version)
-            .ok_or_else(|| anyhow!("Couldn't find specified version"))?
-    } else {
-        artifacts
+    let (version, artifact) = match &command.version {
+        Some(spec) => resolve_version(spec, &mut artifacts)?,
+        None => artifacts
             .compilers
             .pop_last()
-            .ok_or_else(|| anyhow!("Couldn't find specified version"))?
+            .ok_or_else(|| anyhow!("No versions available"))?,
     };
 
     let target = cfg.target;
@@ -498,6 +484,34 @@ async fn fixup(cfg: &CommandLineArguments, command: &FixupCommand) -> Result<()>
         bail!("fixup failed")
     } else {
         Ok(())
+    }
+}
+
+fn resolve_version(
+    spec: &VersionSpec,
+    artifacts: &mut MidnightArtifacts,
+) -> Result<(semver::Version, fetch::MidnightCompiler)> {
+    match spec {
+        VersionSpec::Exact(version) => artifacts
+            .compilers
+            .remove_entry(version)
+            .ok_or_else(|| anyhow!("Couldn't find version {version}")),
+        _ => {
+            let matched = artifacts
+                .compilers
+                .keys()
+                .rev()
+                .find(|v| spec.matches(v))
+                .cloned();
+
+            match matched {
+                Some(version) => artifacts
+                    .compilers
+                    .remove_entry(&version)
+                    .ok_or_else(|| anyhow!("Couldn't find version {version}")),
+                None => bail!("No version matching {spec} found"),
+            }
+        }
     }
 }
 
@@ -852,4 +866,103 @@ async fn clean(cfg: &CommandLineArguments, command: &CleanCommand) -> Result<()>
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use semver::Version;
+
+    fn make_compiler(version: Version) -> fetch::MidnightCompiler {
+        fetch::MidnightCompiler {
+            version: version.clone(),
+            x86_macos: None,
+            aarch64_macos: None,
+            x86_linux: None,
+            aarch64_linux: None,
+        }
+    }
+
+    fn make_artifacts(versions: &[&str]) -> MidnightArtifacts {
+        let mut compilers = std::collections::BTreeMap::new();
+        for v in versions {
+            let version = Version::parse(v).unwrap();
+            compilers.insert(version.clone(), make_compiler(version));
+        }
+        MidnightArtifacts { compilers }
+    }
+
+    #[test]
+    fn resolve_exact_version_found() {
+        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0", "0.29.1"]);
+        let spec = VersionSpec::Exact(Version::new(0, 29, 0));
+        let (v, _) = resolve_version(&spec, &mut artifacts).unwrap();
+        assert_eq!(v, Version::new(0, 29, 0));
+    }
+
+    #[test]
+    fn resolve_exact_version_not_found() {
+        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0"]);
+        let spec = VersionSpec::Exact(Version::new(0, 30, 0));
+        let err = resolve_version(&spec, &mut artifacts).unwrap_err();
+        assert!(err.to_string().contains("0.30.0"));
+    }
+
+    #[test]
+    fn resolve_partial_picks_latest_patch() {
+        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0", "0.29.1", "0.29.2", "0.30.0"]);
+        let spec = VersionSpec::Partial {
+            major: 0,
+            minor: 29,
+        };
+        let (v, _) = resolve_version(&spec, &mut artifacts).unwrap();
+        assert_eq!(v, Version::new(0, 29, 2));
+    }
+
+    #[test]
+    fn resolve_partial_single_patch() {
+        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0"]);
+        let spec = VersionSpec::Partial {
+            major: 0,
+            minor: 29,
+        };
+        let (v, _) = resolve_version(&spec, &mut artifacts).unwrap();
+        assert_eq!(v, Version::new(0, 29, 0));
+    }
+
+    #[test]
+    fn resolve_partial_not_found() {
+        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0"]);
+        let spec = VersionSpec::Partial {
+            major: 0,
+            minor: 30,
+        };
+        let err = resolve_version(&spec, &mut artifacts).unwrap_err();
+        assert!(err.to_string().contains("0.30"));
+    }
+
+    #[test]
+    fn resolve_major_picks_latest() {
+        let mut artifacts =
+            make_artifacts(&["0.28.0", "0.29.0", "0.29.1", "1.0.0", "1.1.0", "1.1.1"]);
+        let spec = VersionSpec::Major { major: 1 };
+        let (v, _) = resolve_version(&spec, &mut artifacts).unwrap();
+        assert_eq!(v, Version::new(1, 1, 1));
+    }
+
+    #[test]
+    fn resolve_major_single_version() {
+        let mut artifacts = make_artifacts(&["0.28.0", "1.0.0"]);
+        let spec = VersionSpec::Major { major: 1 };
+        let (v, _) = resolve_version(&spec, &mut artifacts).unwrap();
+        assert_eq!(v, Version::new(1, 0, 0));
+    }
+
+    #[test]
+    fn resolve_major_not_found() {
+        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0"]);
+        let spec = VersionSpec::Major { major: 1 };
+        let err = resolve_version(&spec, &mut artifacts).unwrap_err();
+        assert!(err.to_string().contains("No version matching 1 found"));
+    }
 }

@@ -16,111 +16,74 @@
 ;;; limitations under the License.
 
 (library (natives) 
-  (export
-    native-nat-case
-    native-nat-value
-    native-nat-param
-    native-type-case
-    native-type-boolean
-    native-type-field
-    native-type-unsigned
-    native-type-bytes
-    native-type-vector
-    native-type-struct
-    native-type-alias
-    native-type-void
-    native-type-param
-    native-entry?
-    native-entry-name
-    native-entry-class
-    native-entry-disclosures
-    native-entry-type-params
-    native-entry-function
-    native-entry-argument-types
-    native-entry-result-type
-    native-table)
+  (export native-declarations)
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
-          (field))
+          (nanopass)
+          (langs))
 
-  (define-datatype native-nat
-    (native-nat-value n)
-    (native-nat-param name))
+  (define (native-declarations)
+    (define ndecl* '())
+    (define native-src (make-source-object (assert (stdlib-sfd)) 0 0 1 1))
 
-  (define-datatype native-type
-    (native-type-boolean)
-    (native-type-field)
-    (native-type-unsigned native-nat)
-    (native-type-bytes native-nat)
-    (native-type-vector native-nat native-type)
-    (native-type-struct native-type*)
-    (native-type-alias name)
-    (native-type-void)
-    (native-type-param name))
-
-  (define-record-type native-entry
-    (nongenerative)
-    (fields name class type-params function disclosures argument-types result-type))
-
-  (define native-table (make-hashtable symbol-hash eq?))
-
-  (define-syntax declare-native-entry
-    (lambda (q)
-      (define (f class name type-param* function argument-type* disclosure* result-type)
-        (define (convert-native-nat type)
-          (syntax-case type ()
-            [id (memq (datum id) (map syntax->datum type-param*)) #'(native-nat-param 'id)]
-            [nat (field? (datum nat)) #'(native-nat-value nat)]
-            [other (syntax-error #'other "invalid nat")]))
-        (define (convert-native-type type)
-          (syntax-case type (Boolean Field Uint Bytes Vector Struct Void Alias)
-            [id
-             (memq (datum id) (map syntax->datum type-param*))
-             #'(native-type-param 'id)]
-            [Boolean #'(native-type-boolean)]
-            [Field #'(native-type-field)]
-            [(Uint nat)
-             #`(native-type-unsigned #,(convert-native-nat #'nat))]
-            [(Bytes nat)
-             #`(native-type-bytes #,(convert-native-nat #'nat))]
-            [(Vector nat type)
-             #`(native-type-vector #,(convert-native-nat #'nat) #,(convert-native-type #'type))]
-            [(Struct type ...)
-             #`(native-type-struct (list #,@(map convert-native-type #'(type ...))))]
-            [(Alias name) #`(native-type-alias 'name)]
-            [Void #`(native-type-void)]
-            [other (syntax-error #'other "invalid native type")]))
-        (define (parse-disclosure disclosure)
-          (syntax-case disclosure (discloses nothing)
-            [(discloses nothing) #f]
-            [(discloses what) (string? (datum what)) #'what]
-            [other (syntax-error #'other "invalid discloses syntax")]))
-        (unless (identifier? name) (syntax-error name "non-identifier name"))
-        (for-each
-          (lambda (type-param)
-            (unless (identifier? type-param) (syntax-error type-param "non-identifier type-param")))
-          type-param*)
-        (unless (string? (syntax->datum function)) (syntax-error function "non-string function"))
-        #`(hashtable-set! native-table '#,name
-            (make-native-entry
-              '#,name
-              '#,(case (syntax->datum class)
-                   [(external) class]
-                   [(witness) class]
-                   [else (syntax-error class "invalid class")])
-              '#,type-param*
-              #,function
-              '#,(map parse-disclosure disclosure*)
-              (list #,@(map convert-native-type argument-type*))
-              #,(convert-native-type result-type))))
-      (syntax-case q ()
-        [(_ class name [type-param ...] function ([argument-type disclosure] ...) result-type)
-         (f #'class #'name #'(type-param ...) #'function #'(argument-type ...) #'(disclosure ...) #'result-type)]
-        [(_ class name function ([argument-type disclosure] ...) result-type)
-         (f #'class #'name '() #'function #'(argument-type ...) #'(disclosure ...) #'result-type)])))
-
-  (let ()
+    (define-syntax declare-native-entry
+      (lambda (q)
+        (define (f class name type-param* function argument-name* argument-type* disclosure* result-type)
+          (define (convert-outer-type type)
+            (define (convert-native-type type)
+              (define (convert-native-targ targ)
+                #`(targ-type ,native-src #,(convert-native-type targ)))
+              (syntax-case type (TypeRef Boolean Field Bytes Void)
+                [(TypeRef id targ ...) #`(type-ref ,native-src id #,@(map convert-native-targ #'(targ ...)))]
+                [Boolean #'(tboolean ,native-src)]
+                [Field #'(tfield ,native-src)]
+                [(Bytes nat) (field? (datum nat)) #`(tbytes ,native-src (type-size ,native-src ,nat))]
+                [Void #`(ttuple ,native-src)]
+                [other (syntax-error #'other "unrecognized native type")]))
+            (syntax-case type ()
+              [id (memq (datum id) (map syntax->datum type-param*)) #'(type-ref ,native-src id)]
+              [else (convert-native-type type)]))
+          (define (convert-native-argument name type)
+            #`(,native-src #,name #,(convert-outer-type type)))
+          (define (convert-type-param tvar-name)
+            #`(type-valued ,native-src #,tvar-name))
+          (define (maybe-type-param type)
+            (syntax-case type ()
+              [id (memq (datum id) (map syntax->datum type-param*)) #'id]
+              [else #f]))
+          (define (parse-disclosure disclosure)
+            (syntax-case disclosure (discloses nothing)
+              [(discloses nothing) #f]
+              [(discloses what) (string? (datum what)) #'what]
+              [other (syntax-error #'other "invalid discloses syntax")]))
+          (unless (identifier? name) (syntax-error name "non-identifier name"))
+          (for-each
+            (lambda (type-param)
+              (unless (identifier? type-param) (syntax-error type-param "non-identifier type-param")))
+            type-param*)
+          (unless (string? (syntax->datum function)) (syntax-error function "non-string function"))
+          #`(set! ndecl*
+              (cons
+                (with-output-language (Lpreexpand Native-Declaration)
+                  `(native ,native-src #t #,name
+                     ,(make-native-entry
+                        #,function
+                        '#,(case (syntax->datum class)
+                             [(circuit) class]
+                             [(witness) class]
+                             [else (syntax-error class "invalid class")])
+                        '#,(map parse-disclosure disclosure*)
+                        '#,(map maybe-type-param (append argument-type* (list result-type))))
+                     (#,@(map convert-type-param type-param*))
+                     (#,@(map convert-native-argument argument-name* argument-type*))
+                     #,(convert-outer-type result-type)))
+                ndecl*)))
+        (syntax-case q ()
+          [(_ class name [type-param ...] function ([argument-name argument-type disclosure] ...) result-type)
+           (f #'class #'name #'(type-param ...) #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)]
+          [(_ class name function ([argument-name argument-type disclosure] ...) result-type)
+           (f #'class #'name '() #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)])))
     (include "midnight-natives.ss")
-    (void))
+    (reverse ndecl*))
 )
