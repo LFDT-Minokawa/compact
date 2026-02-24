@@ -11,8 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Type declarations of `Uint<n>` and `Uint<0..n>` where `n` is a free type variable
-  are now accepted by the compiler.  The generated TypeScript code uses `bigint`
-  for them.
+  are now accepted by the compiler.
 
 ## [Unreleased toolchain 0.29.107, language 0.21.101, runtime 0.14.102]
 
