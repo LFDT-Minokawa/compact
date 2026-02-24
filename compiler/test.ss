@@ -11847,7 +11847,7 @@ groups than for single tests.
             (x (tstruct B (x (tstruct C (x (tvector 3 T))))))))
         (export-typedef B (T)
           (tstruct B (x (tstruct C (x (tvector 3 T))))))
-        (export-typedef C (T) (tstruct C (x (tvector 0 T))))
+        (export-typedef C (T) (tstruct C (x (tvector 1 T))))
         (circuit %foo.0 ([%x.1 (tstruct C
                                  (x (tvector
                                       3

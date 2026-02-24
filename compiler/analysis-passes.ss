@@ -1118,7 +1118,7 @@
        (let ([id (make-source-id src var-name)] [p (add-rib p)])
          (env-insert! p src var-name (Info-var id))
          `(for ,src ,id ,expr1 ,(Expression expr2 p)))]
-      [(tuple-slice ,src ,[expr] ,[index] ,[Type-Size->nat : tsize p 'min-or-size -> * nat])
+      [(tuple-slice ,src ,[expr] ,[index] ,[Type-Size->nat : tsize p 1 -> * nat])
        (check-length! src "slice" nat)
        `(tuple-slice ,src ,expr ,index ,nat)]
       [(elt-ref ,src ,expr ,elt-name^)
@@ -1158,13 +1158,13 @@
     (New-Field : New-Field (ir p) -> New-Field ())
     (Type : Type (ir p) -> Type ()
       [,tref (Type-Ref->Type ir p)]
-      [(tunsigned ,src ,[Type-Size->nat : tsize p 'unsigned-max -> * nat])
+      [(tunsigned ,src ,[Type-Size->nat : tsize p 1 -> * nat])
        (unless (<= 1 nat (unsigned-bits))
           (source-errorf src "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)"
                          nat
                          (unsigned-bits)))
        `(tunsigned ,src ,(- (expt 2 nat) 1))]
-      [(tunsigned ,src ,[Type-Size->nat : tsize p 'min-or-size -> * nat] ,[Type-Size->nat : tsize^ p 'unsigned-max -> * nat^])
+      [(tunsigned ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,[Type-Size->nat : tsize^ p 1 -> * nat^])
        (unless (= nat 0)
          (source-errorf src "range start for Uint type is ~d but must be 0" nat))
        (unless (<= 1 nat^)
@@ -1176,10 +1176,10 @@
                         (+ (max-unsigned) 1)
                         (unsigned-bits)))
        `(tunsigned ,src ,(- nat^ 1))]
-      [(tvector ,src ,[Type-Size->nat : tsize p 'min-or-size -> * nat] ,[type])
+      [(tvector ,src ,[Type-Size->nat : tsize p 1 -> * nat] ,[type])
        (check-length! src "vector type" nat)
        `(tvector ,src ,nat ,type)]
-      [(tbytes ,src ,[Type-Size->nat : tsize p 'min-or-size -> * nat])
+      [(tbytes ,src ,[Type-Size->nat : tsize p 1 -> * nat])
        (check-length! src "bytes type" nat)
        `(tbytes ,src ,nat)]
       [(ttuple ,src ,[type*] ...)
@@ -1188,19 +1188,16 @@
     (Type-Ref->Type : Type-Ref (ir p) -> Type ()
       [(type-ref ,src ,tvar-name ,[Type-Argument->info : targ* p -> * info*] ...)
        (handle-type-ref src tvar-name info* (lookup p src tvar-name))])
-    (Type-Size->nat : Type-Size (ir p what) -> * (nat)
+    (Type-Size->nat : Type-Size (ir p default) -> * (nat)
       [(type-size ,src ,nat) nat]
       [(type-size-ref ,src ,tsize-name)
        (Info-lookup (p src tsize-name)
          [(Info-size src size) size]
          ; if we find a free tvar here, it's in an exported type where sizes are
-         ; ultimately ignored, so any nat will do.  However, the checks of Type transformer
-         ; requires two cases one when this nat is the lower bound of checks and one when
-         ; it is the upper bound
-         [(Info-free-tvar tvar-name)
-          (case what
-            ['min-or-size 0]
-            ['unsigned-max (unsigned-bits)])])])
+         ; ultimately ignored, so any nat will do.  the default argument takes either
+         ; 1 for the range end points of uint
+         ; 1 for everything else
+         [(Info-free-tvar tvar-name) default])])
     (Type-Argument->info : Type-Argument (ir p) -> * (info)
       [(targ-size ,src ,nat) (Info-size src nat)]
       [(targ-type ,src (type-ref ,src^ ,tvar-name ,[Type-Argument->info : targ* p -> * info*] ...))
