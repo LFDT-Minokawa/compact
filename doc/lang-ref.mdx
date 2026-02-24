@@ -1771,8 +1771,6 @@ typing rules.
 
 ### Type cast expressions
 
-!!!!!!!! TBD
-
 Values of one type can be cast to another, when allowed, via a *cast*, which
 takes the following form:
 
@@ -1792,25 +1790,30 @@ run-time error, and when a cast require a run-time conversion.
 
 !!!!!!!! TBD verify all of these claims
 
-- Casts from a type to the same type are always allowed (but never required),
-  never result in run-time errors, and never require run-time conversions.
 - Upcasts, i.e., casts from a type to a supertype (e.g., from `Vector<3, Uint<8>>`
-  to `Vector<3, Uint<16>>`, are always allowed (but never required) and never
-  result in run-time errors.
-  They might require run-time conversions.
+  to `Vector<3, Uint<16>>`, are always allowed (but never required), never
+  result in run-time errors, and might require run-time conversions, though
+  never when the type and supertype are the same.
 - Downcasts, i.e., casts from a type to a subtype, are always allowed, always
   require run-time checks, and might require run-time conversions.
   For example, a value of type `Vector<3, Uint<16>>` can be cast to type
   `Vector<3, Uint<8>>` with a run-time check of each element and possibly
   a conversion if the representations differ.
-- Casts from `Boolean` to `Field` or `Uint<0..m>`, `m > 1`, are always allowed,
-  do not require a run-time check, but require a simple run-time conversion (of
-  `false` to `0` and `true` to `1`).
-  Casts from `Boolean` to `Uint<0..1>` require a run-time check, i.e., that the
-  value is `false`.
-- Casts from `Field` or `Uint<0..m>`, for all `m`, to Booleans are always allowed,
-  cannot result in a run-time error, and require a simple run-time conversion
-  (of `0` to `false` and any other value to `true`).
+- Casts from `Boolean` to `Field` or `Uint<0..m>` are always allowed, sometimes
+  require run-time checks, and require a run-time conversion (of `false` to `0`
+  and `true` to `1`).
+  A run-time check is required for `Uint<0..1>`.
+- Casts from `Field` or `Uint<0..m>` to `Boolean` are always allowed, cannot
+  result in run-time errors, and require a simple run-time conversion (of `0` to
+  `false` and any other value to `true`).
+- Casts from enum types with `n` elements to `Field` or `Uint<0..m>` are
+  always allowed, sometimes require run-time checks, and might require a run-time
+  conversion.
+  A run-time check is required for `Uint<0..m>`, `m <= n`.
+- Casts from `Field` or `Uint<0..m>` to an enum type with `n` elements are
+  always allowed, sometimes requires a run-time checks, and might require a run-time
+  conversion.
+  A run-time check is required for `Field` and `Uint<0..m>`, `m > n + 1`.
 - Casts from `Bytes<m>`, `m != 0`, to `Field` or `Uint<0..k>` are always allowed,
   require a run-time check, and require a run-time conversion.
   That is, the bytes value of the expression is converted into a `Field` or
@@ -1836,13 +1839,11 @@ run-time error, and when a cast require a run-time conversion.
 - Casts from `Vector<m, Uint<0..k>>`, `k < 256`, to `Bytes<m>` are allowed,
   cannot cause a run-time error, but do require a run-time conversion.
 
-!!!!!!!! TBD enum <-> Field & Uint
+Any cast not covered by these rules is not allowed.
 
 !!!!!!!! Might want to mention impliciations, such as rules for casting tuples to vectors and back
 
-No other casts are allowed.
-
-!!!!!!!! TBD flush this table, decide if any of the notes are still useful
+!!!!!!!! TBD flush or update this table
 
 The table below describes the allowed type casts.  Casting between
 types not shown in the table is not allowed.  The entries in the
@@ -1911,32 +1912,11 @@ table can be one of:
   </tbody>
 </table>
 
-1. `Field` to `Boolean`: the value `0` is converted to `false` and all other
-   values are converted to `true`.
-2. `Field` to `Bytes<n>`: the value of the field is converted into `Bytes` of
-   the given length, with the least-significant byte of the field occurring
-   first in the `Bytes`. The `Bytes` will be padded to the length with trailing
-   zeros.  It is a runtime error if the field value does not fit in the length.
-3. `Uint<0..m>` to `Uint<0..n>`: if `m` is less than or equal to `n` this is a
-   static cast.  Otherwise it is checked and will fail at runtime if the value
-   is greater than `n`.
-4. `Boolean` to `Uint<0..n>`: If `n` is not 0 then this is a conversion of
-   `false` to 0 and `true` to 1. Otherwise, it is checked and will fail at
-   runtime if the value is `true` (and convert `false` to 0).
-5. `Bytes<m>` to `Field`: the bytes are converted into a field with the
-   least-significant byte of the field occurring first in the `Bytes`.  It is a
-   runtime error if the result would exceed the maximum `Field` value.
-6. `Bytes<m>` to `Bytes<n>`: the cast is a static cast if `m` equals `n`, and is
-   not allowed otherwise.
+The type of any cast `e as T` is, naturally, `T`.
 
-Allowed type casts are evaluated by first evaluating the subexpression.
-Then, if the cast is static, the result is the subexpression's value
-interpreted as the type `T` mentioned in the cast expression.  If the
-cast is a conversion, the JavaScript representation of the subexpression's
-value is converted into the representation of a value of type `T`. If the
-cast is checked, the check is performed before conversion and the cast
-fails (at runtime) if the check fails.  The exceptions noted in the table
-are evaluated as described above after evaluating the subexpression.
+Evaluation of a cast proceeds by evaluation of its subexpression, followed by
+any checks and conversions required by the cast.
+If a check fails, a run-time error is reported.
 
 TypeScript casts of the form `<T>e` are not supported in Compact.
 
