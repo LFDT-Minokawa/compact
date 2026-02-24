@@ -86,8 +86,8 @@ pub enum Command {
     Update(UpdateCommand),
 
     #[command(
-        visible_alias = "fmt",
         visible_alias = "f",
+        visible_alias = "fmt",
         alias = "fo",
         alias = "for",
         alias = "form",
