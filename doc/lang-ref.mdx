@@ -222,7 +222,7 @@ Each parameter is either a type name (e.g., `T`) or a hash-prefixed size name
 Size names are prefixed by `#` to distingish generic size parameters from
 generic type parameters.
 
-<table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-parameter"><em>generic-param</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
+<table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>generic-param</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>generic-param</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
 <tr><td><em>generic-param</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>#</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>tvar-name</em></a></td></tr></tbody></table>
 
 Generic entities must be *specialized* at the point of use to produce non-generic
@@ -231,8 +231,8 @@ Any attempt to use a generic entity without specializing it is a static error.
 Generic arguments are also enclosed in angle brackets.
 Each generic argument must be a type or a natural number literal.
 
-<table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Generic-argument"><em>garg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
-<tr><td><em>garg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>garg</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>garg</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
+<tr><td><em>garg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr></tbody></table>
 
 The syntax of types allows for type references, including references to generic
 parameters, so any generic argument can pass along the value of a generic type
@@ -267,7 +267,7 @@ The body of circuit `foo` is generic with respect to the module's type parameter
 The module is specialized at the point of import, while the circuit is specialized
 at the point of call (in both `bar1` and `bar2`).
 
-## Compact Types
+## Compact types
 
 Compact is *statically typed*: every expression in a Compact program must have
 a static type.
@@ -304,8 +304,8 @@ As with any other generic entity, it must be specialized at the point of use.
 
 The following are the primitive types of Compact:
 
-<table className="lang-ref-table"><tbody><tr><td><em>type</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Type-reference"><em>tref</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Boolean</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Field</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Uint</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Type-size"><em>tsize</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Uint</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Type-size"><em>tsize</em></a>&nbsp;&nbsp;<b><tt>..</tt></b>&nbsp;&nbsp;<a href="#Type-size"><em>tsize</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Bytes</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Type-size"><em>tsize</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Opaque</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Vector</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Type-size"><em>tsize</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Type"><em>type</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr>
-<tr><td><em>tref</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup></td></tr>
+<table className="lang-ref-table"><tbody><tr><td><em>type</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>tref</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Boolean</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Field</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Uint</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>tsize</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Uint</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>tsize</em>&nbsp;&nbsp;<b><tt>..</tt></b>&nbsp;&nbsp;<em>tsize</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Bytes</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>tsize</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Opaque</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Vector</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>tsize</em>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<em>type</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>type</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr>
+<tr><td><em>tref</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gargs</em></a><sup>opt</sup></td></tr>
 <tr><td><em>tsize</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr></tbody></table>
 
 - `Boolean` is the type of *Boolean* values.  There are only two values of
@@ -380,7 +380,8 @@ They can also define structural and nominal aliases for existing types.
 
 Structure types are defined via a `struct` declaration with the following form:
 
-<table className="lang-ref-table"><tbody><tr><td><em>struct-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>;</tt></b> &mldr; <b><tt>;</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>;</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>struct-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>typed-identifier</em> <b><tt>;</tt></b> &mldr; <b><tt>;</tt></b> <em>typed-identifier</em> <b><tt>;</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>typed-identifier</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>typed-identifier</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr>
+<tr><td><em>typed-identifier</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr></tbody></table>
 
 A structure declaration has a sequence of named fields which must be separated
 either by commas or by semicolons.  Comma and semicolon separators cannot be
@@ -525,7 +526,7 @@ declare contracts is reserved for this use.
 
 Type aliases can be created via `type` declarations of the form:
 
-<table className="lang-ref-table"><tbody><tr><td><em>type-alias-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>new</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>type</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>type-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>type-alias-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>new</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>type</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>type-name</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
 Within the scope of a type-alias declaration of *type-name* for *type*, *type-name*
 is itself a type.
@@ -635,9 +636,8 @@ tuple is expected.
 The parameters of a circuit or constructor and the target of a `const` binding
 are specified via patterns:
 
-<table className="lang-ref-table"><tbody><tr><td><em>pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a><sup>opt</sup> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Pattern"><em>pattern</em></a><sup>opt</sup> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Pattern-struct-element"><em>pattern-struct-elt</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Pattern-struct-element"><em>pattern-struct-elt</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
-<tr><td><em>pattern-tuple-elt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;(<em>empty</em>)</td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a></td></tr>
-<tr><td><em>pattern-struct-elt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<em>pattern</em><sup>opt</sup> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>pattern</em><sup>opt</sup> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>pattern-struct-elt</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>pattern-struct-elt</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
+<tr><td><em>pattern-struct-elt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>pattern</em></td></tr></tbody></table>
 
 In its simplest form, a pattern is just an identifier.
 For example, in the code below, the parameter of `sumTuple` is the identifier
@@ -778,7 +778,7 @@ circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {
 
 A compact program is a sequence of zero or more program elements.
 
-<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pelt</em> &mldr; <em>pelt</em></td></tr><tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-exports-and-imports"><em>module-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#exports"><em>export-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>import-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>include-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enum-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>contract-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#type-aliases"><em>type-alias-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state"><em>witness-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ledger-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>constructor-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>circuit-definition</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pelt</em> &mldr; <em>pelt</em></td></tr><tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-exports-and-imports"><em>module-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#exports"><em>export-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>import-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>include-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enum-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>contract-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#type-aliases"><em>type-alias-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state-management"><em>witness-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ledger-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>constructor-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>circuit-definition</em></a></td></tr></tbody></table>
 
 Briefly:
 
@@ -792,7 +792,7 @@ Briefly:
 - An [enumeration definition](#enumeration-types) define an enumeration type.
 - A [contract declaration](#contract-types) declares a contract type.
 - A [type alias definition](#type-aliases) defines a type alias, possibly creating a distinct type.
-- A [witness declaration](#declaring-witnesses-for-private-state) declare a witness, which is a function provided by the Dapp.
+- A [witness declaration](#declaring-witnesses-for-private-state-management) declare a witness, which is a function provided by the Dapp.
 - A [ledger declaration](#declaring-and-maintaining-public-state) declares one field of the contract's public state.
 - A [constructor definition](#contract-constructor) defines the contract's constructor, if any.
 - A [circuit definition](#circuits) defines a circuit.
@@ -825,14 +825,14 @@ Modules in Compact are used for namespace management and also possibly to split
 programs into multiple files.
 A module is a named collection of program elements created via a `module definition`:
 
-<table className="lang-ref-table"><tbody><tr><td><em>module-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>module</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>module-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Program-element"><em>pelt</em></a> &hellip; <a href="#Program-element"><em>pelt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>module-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>module</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>module-name</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#programs"><em>pelt</em></a> &hellip; <a href="#programs"><em>pelt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
 
 A module definition makes a binding from `module-name` to the module visible in
 the program or module containing the module definition.
 Any bindings established by program elements within the module are not made
 visible, at least not until the module is imported.
 
-A module can have [generic parameters](#generic-parameters), in which case it is
+A module can have [generic parameters](#generic-parameters-and-arguments), in which case it is
 a *generic module* and must be specialized with generic arguments at the point of
 import.
 
@@ -869,8 +869,8 @@ Exporting a binding from a module has no effect unless the module is imported.
 A module can be imported into another module or into the program top level, making
 some or all of its exported bindings visible there, potentially with a prefix.
 
-<table className="lang-ref-table"><tbody><tr><td><em>import-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>import</tt></b>&nbsp;&nbsp;<a href="#Import-selection"><em>import-selection</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-name"><em>import-name</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Import-prefix"><em>import-prefix</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
-<tr><td><em>import-selection</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Import-element"><em>import-element</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Import-element"><em>import-element</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>from</tt></b></td></tr>
+<table className="lang-ref-table"><tbody><tr><td><em>import-form</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>import</tt></b>&nbsp;&nbsp;<em>import-selection</em><sup>opt</sup>&nbsp;&nbsp;<em>import-name</em>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gargs</em></a><sup>opt</sup>&nbsp;&nbsp;<em>import-prefix</em><sup>opt</sup>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
+<tr><td><em>import-selection</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>import-element</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>import-element</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>from</tt></b></td></tr>
 <tr><td><em>import-element</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>as</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr>
 <tr><td><em>import-name</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>file</em></a></td></tr>
 <tr><td><em>import-prefix</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>prefix</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr></tbody></table>
@@ -1092,9 +1092,9 @@ A witness declaration does not include a body, because the implementation is
 provided by the TypeScript driver.
 
 <table className="lang-ref-table"><tbody>
-<tr><td><em>witness-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>witness</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Simple-parameter-list"><em>simple-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
-<tr><td><em>simple-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-identifier"><em>typed-identifier</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
-<tr><td><em>typed-identifier</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr>
+<tr><td><em>witness-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>witness</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<em>simple-parameter-list</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr>
+<tr><td><em>simple-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>typed-identifier</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>typed-identifier</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
+<tr><td><em>typed-identifier</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr>
 </tbody></table>
 
 Witness declarations can appear anywhere among the program elements of
@@ -1128,10 +1128,10 @@ Multiple ledger declarations can appear in a program, or none.
 They can appear anywhere among the program elements of a module or the contract's
 top level.
 
-<table className="lang-ref-table"><tbody><tr><td><em>ledger-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>sealed</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>ledger-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>sealed</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr></tbody></table>
 
 A ledger declaration binds a ledger field name to one of a
-set of predefined [ledger-state types](#ledger-state-types)
+set of predefined [ledger-state types](#ledger-state-types).
 For instance:
 
 ```compact
@@ -1347,8 +1347,8 @@ reachable from an exported circuit.
 A contract can be initialized via a contract constructor defined at the
 program's top level.
 
-<table className="lang-ref-table"><tbody><tr><td><em>constructor-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr><tr><td><em>pattern-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
-<tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>constructor-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>constructor</tt></b>&nbsp;&nbsp;<em>pattern-parameter-list</em>&nbsp;&nbsp;<a href="#statements"><em>block</em></a></td></tr><tr><td><em>pattern-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>typed-pattern</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>typed-pattern</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
+<tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#patterns-and-destructuring"><em>pattern</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr></tbody></table>
 
 The constructor, if any, is typically used to initialize public state
 and can also be used to initialize private state through witness
@@ -1388,9 +1388,9 @@ The basic operational element in Compact is the `circuit`.
 This corresponds closely to a function in most languages but is compiled directly
 into a zero-knowledge circuit.
 
-<table className="lang-ref-table"><tbody><tr><td><em>circuit-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>pure</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>circuit</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>function-name</em></a>&nbsp;&nbsp;<a href="#Generic-parameter-list"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<a href="#Pattern-parameter-list"><em>pattern-parameter-list</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr>
-<tr><td><em>pattern-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Typed-pattern"><em>typed-pattern</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
-<tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>circuit-definition</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>pure</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>circuit</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>function-name</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<em>pattern-parameter-list</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a>&nbsp;&nbsp;<a href="#statements"><em>block</em></a></td></tr>
+<tr><td><em>pattern-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>typed-pattern</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>typed-pattern</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
+<tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#patterns-and-destructuring"><em>pattern</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr></tbody></table>
 
 Circuits can optionally be exported. [They can also optionally be declared as
 `pure` circuits.](#pure-and-impure-circuits) *Non-generic* circuit definitions
@@ -1447,85 +1447,30 @@ Compact program by the Compact compiler.
 
 ## Statements
 
-<table className="lang-ref-table"><tbody><tr><td><em>block</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a> &mldr; <a href="#Statement"><em>stmt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
-<tr><td><em>stmt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Statement0"><em>stmt<sub>0</sub></em></a></td></tr>
-<tr><td><em>stmt<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement0"><em>stmt<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>else</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>..</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#Const-Binding"><em>cbinding</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Const-Binding"><em>cbinding</em></a> &nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr></tbody></table>
-
-!!!!!!!!!! TBD reorder the statement in parser and then consequently here -- Parisa
-exper-seq, const, if, for, return, block and add all the section (the section for expr-seq should have a foward ref to expr-seq of expressions)
+<table className="lang-ref-table"><tbody><tr><td><em>block</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>stmt</em> &mldr; <em>stmt</em>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
+<tr><td><em>stmt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>stmt<sub>0</sub></em></td></tr>
+<tr><td><em>stmt<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#const-binding-statement"><em>cbinding</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#const-binding-statement"><em>cbinding</em></a> &nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt<sub>0</sub></em>&nbsp;&nbsp;<b><tt>else</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>..</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>block</em></td></tr></tbody></table>
 
 A statement may be
-- a [`for` loop](#for-loop)
+- a [expression sequence](#expression-sequence)
+- a [`const` binding](#const-binding-statement)
 - an [`if` statement](#if-statement)
+- a [`for` loop](#for-loop)
 - a [`return` statement](#return-statement)
-- a block - a sequence of zeror or more statements in a nested scope, enclosed by curly braces
-- a [`const` binding statement](#const-binding-statement)
-- an [expression](#expressions)
-
-### `for` loop
-
-A `for` loop repeats for a fixed number of iterations, using one of the two
-syntaxes below:
-
-```compact
-for (const i of <vector>) <statement>
-
-for (const i of <lower>..<upper>) <statement>
-```
-
-### `if` statement
-
-An `if` statement is of one of the following forms:
-
-```compact
-if (testexpr)
-  <statement>
-
-if (testexpr)
-  <statement>
-else
-  <statement>
-```
-
-### `return` statement
-
-A `return` statement can appear only in a block.
-
-<table className="lang-ref-table"><tbody><tr><td><em>stmt</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;[<em>expr</em>]<b><tt>;</tt></b></td></tr></tbody></table>
-
-A `return` statement takes either the form `return;` or `return e;` where `e` is
-a Compact expression. For a `return` statement of form `return e;` it is a
-static type error if the static type of `e` is not a
-[subtype](#subtyping-and-least-upper-bounds) of the declared return type `R` of
-a circuit (accounting for [anonymous circuits](#circuit-and-witness-calls) and
-[constructors](#contract-constructor)) if one exists. For a `return` statement
-of the form `return;`, it is a static type error if the return type `R` is not
-[].
-
-If the return type `R` is `[]` the `return` statement can be dropped. However,
-for return types other than `[]` it is a static type error if there exists a
-path in a circuit block that does not have a `return` statement, for example,
-`export circuit foo(c: Boolean): Boolean { return ((x) : Boolean => { if (c)
-return x; })(c);}` causes a static type error since the `else` branch of the
-`if` statements has type `[]`. It is a static type error to have a statement
-after a `return` statement in a same block.
+- a block - a sequence of zero or more statements in a nested scope, enclosed by curly braces
 
 ### `const` binding statement
 
 The syntax of a Compact constant binding is the same as a constant binding in
 TypeScript.
 
-
 <table className="lang-ref-table"><tbody>
 <tr><td><em>cbinding</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>optionally-typed-pattern</em>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#expressions"><em>expr</em></a></td></tr>
-<tr><td><em>optionally-typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#patterns-and-destructuring"><em>pattern</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#patterns-and-destructuring"><em>typed-pattern</em></a></td></tr>
-
-<tr><td><em>pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a><sup>opt</sup> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Pattern"><em>pattern</em></a><sup>opt</sup> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Pattern-struct-element"><em>pattern-struct-elt</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Pattern-struct-element"><em>pattern-struct-elt</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
-<tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr>
-<tr><td><em>pattern-tuple-elt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;(<em>empty</em>)</td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a></td></tr>
-<tr><td><em>pattern-struct-elt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Pattern"><em>pattern</em></a></td></tr>
+<tr><td><em>optionally-typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pattern</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>typed-pattern</em></td></tr>
+<tr><td><a href="#patterns-and-destructuring"><em>pattern</em></a>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<em>pattern</em><sup>opt</sup> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>pattern</em><sup>opt</sup> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>pattern-struct-elt</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>pattern-struct-elt</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
+<tr><td><a href="#patterns-and-destructuring"><em>pattern-struct-elt</em></a>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>pattern</em></td></tr>
+<tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pattern</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr>
 </tbody></table>
-
 
 A `const` binding brings a new identifier into scope and assigns it to the value
 of an expression.
@@ -1575,16 +1520,73 @@ identifiers cannot be reassigned, although they can be [shadowed in a nested
 block](#scope-and-binding). Constant initializer expressions are evaluated when
 the binding statement is executed.
 
-## Expressions
+### `if` statement
 
-!!!!!!!! TBD put expression grammar up top, don't break any of it. restructure
-the sections based on the semantics of cases and not the grammar grouping. e.g.,
-put slice, and bytes ref in one. put arithmetic in one. put map and fold in one.
-put fun in one.
+An `if` statement is of one of the following forms:
+
+```compact
+if (testexpr)
+  <statement>
+
+if (testexpr)
+  <statement>
+else
+  <statement>
+```
+
+### `for` loop
+
+A `for` loop repeats for a fixed number of iterations, using one of the two
+syntaxes below:
+
+```compact
+for (const i of <vector>) <statement>
+
+for (const i of <lower>..<upper>) <statement>
+```
+
+### `return` statement
+
+A `return` statement can appear only in a block.
+
+A `return` statement takes either the form `return;` or `return e;` where `e` is
+a Compact expression. For a `return` statement of form `return e;` it is a
+static type error if the static type of `e` is not a
+[subtype](#subtyping-and-least-upper-bounds) of the declared return type `R` of
+a circuit (accounting for [anonymous circuits](#circuit-and-witness-calls) and
+[constructors](#contract-constructor)) if one exists. For a `return` statement
+of the form `return;`, it is a static type error if the return type `R` is not
+[].
+
+If the return type `R` is `[]` the `return` statement can be dropped. However,
+for return types other than `[]` it is a static type error if there exists a
+path in a circuit block that does not have a `return` statement, for example,
+`export circuit foo(c: Boolean): Boolean { return ((x) : Boolean => { if (c)
+return x; })(c);}` causes a static type error since the `else` branch of the
+`if` statements has type `[]`. It is a static type error to have a statement
+after a `return` statement in a same block.
+
+## Expressions
 
 This section describes the syntax of Compact expressions, in order with those
 of lower precedence preceding those with lower precedence, and provides their
 static typing rules and evaluation semantics.
+
+<table className="lang-ref-table"><tbody><tr><td><em>expr-seq</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr</em> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <em>expr</em> &nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr>
+<tr><td><em>expr</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>?</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>+=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>-=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em></td></tr>
+<tr><td><em>expr<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<em>expr<sub>1</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>1</sub></em></td></tr>
+<tr><td><em>expr<sub>1</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr<sub>1</sub></em>&nbsp;&nbsp;<b><tt>&&</tt></b>&nbsp;&nbsp;<em>expr<sub>2</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>2</sub></em></td></tr>
+<tr><td><em>expr<sub>2</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr<sub>2</sub></em>&nbsp;&nbsp;<b><tt>==</tt></b>&nbsp;&nbsp;<em>expr<sub>3</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>2</sub></em>&nbsp;&nbsp;<b><tt>!=</tt></b>&nbsp;&nbsp;<em>expr<sub>3</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>3</sub></em></td></tr>
+<tr><td><em>expr<sub>3</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr<sub>4</sub></em>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>expr<sub>4</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>4</sub></em>&nbsp;&nbsp;<b><tt>\<=</tt></b>&nbsp;&nbsp;<em>expr<sub>4</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>4</sub></em>&nbsp;&nbsp;<b><tt>>=</tt></b>&nbsp;&nbsp;<em>expr<sub>4</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>4</sub></em>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<em>expr<sub>4</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>4</sub></em></td></tr>
+<tr><td><em>expr<sub>4</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr<sub>4</sub></em>&nbsp;&nbsp;<b><tt>as</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>5</sub></em></td></tr>
+<tr><td><em>expr<sub>5</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr<sub>5</sub></em>&nbsp;&nbsp;<b><tt>+</tt></b>&nbsp;&nbsp;<em>expr<sub>6</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>5</sub></em>&nbsp;&nbsp;<b><tt>-</tt></b>&nbsp;&nbsp;<em>expr<sub>6</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>6</sub></em></td></tr>
+<tr><td><em>expr<sub>6</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr<sub>6</sub></em>&nbsp;&nbsp;<b><tt>*</tt></b>&nbsp;&nbsp;<em>expr<sub>7</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>7</sub></em></td></tr>
+<tr><td><em>expr<sub>7</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<em>expr<sub>7</sub></em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>8</sub></em></td></tr>
+<tr><td><em>expr<sub>8</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr<sub>8</sub></em>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>8</sub></em>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>8</sub></em>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>expr</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>9</sub></em></td></tr>
+<tr><td><em>expr<sub>9</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#circuit-and-witness-calls"><em>fun</em></a>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>expr</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>map</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#circuit-and-witness-calls"><em>fun</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <em>expr</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>fold</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#circuit-and-witness-calls"><em>fun</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <em>expr</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>slice</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>tsize</em></a>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<em>tuple/bytes-arg</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>tuple/bytes-arg</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Bytes</tt></b>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<em>tuple/bytes-arg</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>tuple/bytes-arg</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#primitive-types"><em>tref</em></a>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>struct-arg</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>struct-arg</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>assert</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>disclose</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>term</em></td></tr>
+<tr><td><em>tuple/bytes-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr>
+<tr><td><em>struct-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr>
+<tr><td><em>term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr-seq</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
 Every Compact expression is required to be well-typed (free from static type errors).
 If any expression within a program contains a type error, the Compact compiler
@@ -1599,7 +1601,7 @@ evaluation of its subexpressions.  If the evaluation of a subexpression raises
 an exception, then the evaluation of the containing expression will stop and
 raise the same exception.
 
-### Sequence expressions
+### Expression sequence
 
 Expressions can be sequenced for their side effects.  An expression of the form
 `(e0, e1, e2, ...)` or `e0, e1, e2, ...` where `e0, e1, e2, ...` is a sequence of two or more
@@ -1607,26 +1609,16 @@ comma-separated expressions is a sequence expression. The latter form where pare
 be omitted is only allowed in some context which can be viewed in
 [the formal grammar of Compact](./compact-grammar).
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr-seq</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> &nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;</td></tr></tbody></table>
-
 The static type of a sequence expression is the static type of the last
 subexpression.
 
 It is evaluated by evaluating the subexpressions from left to right.  Its value
 is the value of the last subexpression.
 
-### Conditional expressions and ledger assignment expressions
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>?</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>+=</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>-=</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a></td></tr></tbody></table>
-
-#### Conditional expressions
+### Conditional expressions
 
 Compact supports conditional expressions of the form `e0 ? e1 : e2` where `e0`,
 `e1`, and `e2` are expressions.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>?</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
 Conditional expressions require the type of `e0` to be `Boolean`.  The types of
 `e1` and `e2` must be in the subtype relation.  That is, either the type of
@@ -1647,14 +1639,12 @@ evaluated:
 
 The evaluation rules ensure that only one of `e1` and `e2` is evaluated.
 
-#### Ledger assignment expressions
+### Ledger assignment expressions
 
 Compact has ledger assignment statements.  They have the form `lhs op e` where
 `lhs` is a ledger expression as defined in the section **Ledger expressions**
 above, `op` is one of the assignment operators `=` (assignment), `+=` (addition
 assignment), or `-=` (subtraction assignment), and `e` is an expression.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;{<em>ledger-accessor</em>}&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;{<em>ledger-accessor</em>}&nbsp;&nbsp;<b><tt>+=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;{<em>ledger-accessor</em>}&nbsp;&nbsp;<b><tt>-=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
 `lhs = e` is shorthand for `lhs.write(e)`.  `lhs += e` is shorthand for
 `lhs.increment(e)`.  `lhs -= e` is shorthand for `lhs.decrement(e)`.
@@ -1670,11 +1660,6 @@ ledger expression.
 Compact supports short-circuit logical expressions of the form `e0 op e1`
 where `e0` and `e1` are expressions and `op` is one of the logical operators
 **or** (`||`) or **and** (`&&`).
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression0"><em>expr<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<a href="#Expression1"><em>expr<sub>1</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression1"><em>expr<sub>1</sub></em></a></td></tr>
-<tr><td><em>expr<sub>1</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression1"><em>expr<sub>1</sub></em></a>&nbsp;&nbsp;<b><tt>&&</tt></b>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>||</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&amp;&amp;</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
 Logical expressions require the type of the left subexpression to be `Boolean`.
 The type of the right subexpression must be a supertype of `Boolean`.  The only
@@ -1703,11 +1688,6 @@ and `e1` are expressions and `op` is one of Compact's relational operators.
 The relational operators are **equals** (`==`), **not equals** (`!=`), **less
 than** (`<`), **greater than** (`>`), **less than or equals** (`<=`), and
 **greater than or equals** (`>=`).
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>2</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a>&nbsp;&nbsp;<b><tt>==</tt></b>&nbsp;&nbsp;<a href="#Expression3"><em>expr<sub>3</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression2"><em>expr<sub>2</sub></em></a>&nbsp;&nbsp;<b><tt>!=</tt></b>&nbsp;&nbsp;<a href="#Expression3"><em>expr<sub>3</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression3"><em>expr<sub>3</sub></em></a></td></tr>
-<tr><td><em>expr<sub>3</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>\<=</tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>>=</tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>==</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>!=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&lt;</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&gt;</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&lt;=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>&gt;=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
 Equals and not equals require the types of the subexpressions to be in the
 subtype relation.  That is, the type of the first subexpression must be a
@@ -1770,8 +1750,6 @@ typing rules.
 
 Values of one type can be cast to another, when allowed, via a *cast*, which
 takes the following form:
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>4</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression4"><em>expr<sub>4</sub></em></a>&nbsp;&nbsp;<b><tt>as</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression5"><em>expr<sub>5</sub></em></a></td></tr></tbody></table>
 
 The effects of casting an expression `e` of type `T` to another type `U` depend
 on the specific types involved.
@@ -1879,11 +1857,6 @@ are expressions and `op` is one of Compact's binary arithmetic operators.  The
 binary arithmetic operators are **add** (`+`), **subtract** (`-`) and
 **multiply** (`*`).
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>5</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression5"><em>expr<sub>5</sub></em></a>&nbsp;&nbsp;<b><tt>+</tt></b>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression5"><em>expr<sub>5</sub></em></a>&nbsp;&nbsp;<b><tt>-</tt></b>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a></td></tr>
-<tr><td><em>expr<sub>6</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression6"><em>expr<sub>6</sub></em></a>&nbsp;&nbsp;<b><tt>*</tt></b>&nbsp;&nbsp;<a href="#Expression7"><em>expr<sub>7</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression7"><em>expr<sub>7</sub></em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>+</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>-</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>*</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
-
 Arithmetic expressions require the type of both subexpressions to be numeric
 types, that is, either a `Field` or a `Uint`.  The type of the result will
 depend on the types of the subexpressions as follows:
@@ -1921,10 +1894,6 @@ then at least one of the operands must have static type `Field`.
 Compact has unary boolean negation expressions of the form `!e` where `e` is an
 expression.
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>7</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<a href="#Expression7"><em>expr<sub>7</sub></em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>!</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
-
 A boolean negation expression is type checked by checking the type of the
 subexpression.  It is a type error if this type is not `Boolean`.  The type of
 the expression will be `Boolean`.
@@ -1934,17 +1903,10 @@ of the expression will be `true` if the value of the subexpression is `false`
 and vice versa.  The subexpression will have a boolean value because the
 expression is well-typed.
 
-### Element and member access expressions and ledger expressions
+### Tuple element access
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>8</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression8"><em>expr<sub>8</sub></em></a>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Expression9"><em>expr<sub>9</sub></em></a></td></tr></tbody></table>
-
-Compact has expressions for accessing the elements of tuple values and the
-members of structure values.  An expression of the form `e[n]` where `e` is an
-expression and `n` is a numeric literal is a tuple element access.  An
-expression of the form `e.id` where `e` is an expression and `id` is the name of
-a structure member is a structure member access.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<em>nat</em>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em></td></tr></tbody></table>
+An expression of the form `e[n]` where `e` is an
+expression and `n` is a numeric literal is a tuple element access.
 
 Tuple element accesses are type checked by checking the type of the
 subexpression.  It is a type error if this type is not a tuple type `[T, ...]`.
@@ -1957,6 +1919,12 @@ value of the expression will be the element value at the given zero-based
 index.  The subexpression will have a tuple value and the element access will
 not be out of bounds, because the expression is well-typed.
 
+### Structure member access
+
+An
+expression of the form `e.id` where `e` is an expression and `id` is the name of
+a structure member is a structure member access.
+
 Member access expressions are type checked by checking the type of the
 subexpression.  It is a type error if this type is not a structure type.  It is
 a type error if the structure type does not contain a member with the same name
@@ -1968,6 +1936,7 @@ value of the expression will be the member value with the given name.  The
 subexpression will have a structure value and the name will exist, because the
 expression is well-typed.
 
+### Ledger state operations
 
 A Compact program interacts with its public state by invoking operations upon
 the ledger or ledger-state types.  There are two different forms of ledger
@@ -1996,8 +1965,6 @@ and `.op(e, ...)....` are a sequence of zero or more ledger
 state operation invocations, where each `op` is the name of a ledger-state
 operation and each `e, ...` is a sequence of zero or more comma-separated
 argument expressions.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<em>ledger-accessor</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>ledger</tt></b>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;\{<em>ledger-accessor</em>}</td></tr><tr><td><em>ledger-accessor</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>.</tt></b>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
 Note that ledger-state operations can be chained, because the result of a ledger
 state operation might itself have a ledger-state type.  Kernel operations cannot
@@ -2030,25 +1997,19 @@ operation is evaluated by first evaluating `adt`, then evaluating the argument
 subexpressions from left to right, and then invoking the operation `op` on the
 ledger-state value of `adt` with the argument values.
 
-### Circuit and witness calls, map, fold, data creation, assert, and disclose
+### Circuit and witness calls
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr<sub>9</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>map</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>fold</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Expression"><em>expr</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>slice</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Type-size"><em>tsize</em></a>&nbsp;&nbsp;<b><tt>></tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Tuple-argument"><em>tuple-arg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Tuple-argument"><em>tuple-arg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>Bytes</tt></b>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<a href="#Tuple-argument"><em>bytes-arg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Tuple-argument"><em>bytes-arg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Type-reference"><em>tref</em></a>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Structure-argument"><em>struct-arg</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Structure-argument"><em>struct-arg</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>assert</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>disclose</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Term"><em>term</em></a></td></tr></tbody></table>
-
-<table className="lang-ref-table"><tbody><tr><td><em>tuple-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr>
-<tr><td><em>struct-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr>
-<tr><td><em>fun</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#Generic-argument-list"><em>gargs</em></a><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Arrow-parameter-list"><em>arrow-parameter-list</em></a>&nbsp;&nbsp;<a href="#Return-type"><em>return-type</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Arrow-parameter-list"><em>arrow-parameter-list</em></a>&nbsp;&nbsp;<a href="#Return-type"><em>return-type</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#Expression"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Function"><em>fun</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
-<tr><td><em>return-type</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a></td></tr></tbody></table>
-<table className="lang-ref-table"><tbody><tr><td><em>arrow-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Optionally-typed-pattern"><em>optionally-typed-pattern</em></a> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <a href="#Optionally-typed-pattern"><em>optionally-typed-pattern</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
-
-#### Circuit and witness calls
+<table className="lang-ref-table"><tbody><tr><td><em>fun</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gargs</em></a><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>arrow-parameter-list</em>&nbsp;&nbsp;<em>return-type</em><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#statements"><em>block</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>arrow-parameter-list</em>&nbsp;&nbsp;<em>return-type</em><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#expressions"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
+<tr><td><em>arrow-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>optionally-typed-pattern</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>optionally-typed-pattern</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
+<tr><td><em>optionally-typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pattern</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>typed-pattern</em></td></tr>
+<tr><td><a href="#patterns-and-destructuring"><em>pattern</em></a>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;<em>pattern</em><sup>opt</sup> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>pattern</em><sup>opt</sup> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>]</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>pattern-struct-elt</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>pattern-struct-elt</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
+<tr><td><a href="#patterns-and-destructuring"><em>pattern-struct-elt</em></a>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>pattern</em></td></tr>
+<tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pattern</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr>
+<tr><td><em>return-type</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr></tbody></table>
 
 Circuits and witnesses, collectively referred to as functions, are called via an
 expression of the form `f(e, ...)`, where `f` is a function and `e, ...` is a
 sequence of zero or more comma-separated argument expressions.
-
-
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td><em>fun</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;[<em>targs</em>]</td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;[<em>parg</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>parg</em>}]&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;[<em>type</em>]&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<em>body</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td><em>body</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>block</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr</em></td></tr></tbody></table>
 
 The function expression can take several different forms:
 
@@ -2155,7 +2116,7 @@ execution of the body.  If a witness is being called, the contract will invoke
 the TypeScript or JavaScript witness function with the argument values.  The
 value of a witness call is the value returned by the witness function.
 
-#### Map and fold expressions
+### Map and fold expressions
 
 Compact supports expressions that perform the higher-order operations _map_ and
 (left) _fold_ over tuples that have a vector type (not arbitrary tuples).
@@ -2169,8 +2130,6 @@ Fold expressions have the form `fold(f, init, e, e, ...)` where `fold` is a
 keyword, `f` is a circuit or witness, and `init` and the `e`s are expressions.
 A circuit or witness taking _n_+1 arguments can be folded over an initial value
 `init` and _n_ vectors by providing _n_ vector subexpressions to the `fold`.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>map</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td></td><td>|</td><td>&nbsp;&nbsp;<b><tt>fold</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
 The syntax of the circuit or witness is given by the grammar production for
 _fun_ in the section **Circuit and witness calls** above.
@@ -2213,9 +2172,28 @@ value and to the *i*th element of the corresponding input vector values.  The
 result is the `n`th (final) accumulator value where `n` is the length of the
 input vectors.
 
-#### Slices
+### Slices
 
-#### Structure creation
+
+### Tuple creation
+
+Tuple values are created with expressions of the form `[e, ...]` where `e, ...`
+is a sequence of zero or more comma-separated argument expressions.  A non-empty
+sequence can have an optional trailing comma.  The *length* of a tuple is the
+number of subexpressions in the tuple creation expression.
+
+The static type of a tuple creation expression is `[T, ...]` with the number of
+types matches length of the tuple and each type `T` is the type of the
+corresponding expression.
+
+It is evaluated by evaluating the subexpressions from left to right.  Its value
+is a tuple whose length is the number of subexpressions and whose elements are
+the subexpression values.
+
+### Bytes creation
+
+
+### Structure creation
 
 Structure values are created with structure creation expressions.  The
 expression `S {f, ...}` is a structure creation expression, where `S` is a
@@ -2238,8 +2216,6 @@ A field value specifier can be one of three things:
   fields of the created structure are given values from the spread structure as
   described below.  If there is a spread expression, it must occur as the first
   field value specifier and all other specifiers must be named field values.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>tref</em>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;[<em>new-field</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>new-field</em>}]&nbsp;&nbsp;<b><tt>}</tt></b></td></tr><tr><td><em>new-field</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td><em>tref</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em>&nbsp;&nbsp;[<em>targs</em>]</td></tr></tbody></table>
 
 The examples below demonstrate the use of positional and spread field values:
 
@@ -2308,46 +2284,22 @@ value of the subexpression, otherwise there must be a spread expression and the
 field value is the value of the corresponding field in the (structure) value of
 the spread subexpression.
 
-#### Tuple creation
-
-Tuple values are created with expressions of the form `[e, ...]` where `e, ...`
-is a sequence of zero or more comma-separated argument expressions.  A non-empty
-sequence can have an optional trailing comma.  The *length* of a tuple is the
-number of subexpressions in the tuple creation expression.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>[</tt></b>&nbsp;&nbsp;[<em>expr</em>&nbsp;&nbsp;\{<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em>}]&nbsp;&nbsp;[<b><tt>,</tt></b>]&nbsp;&nbsp;<b><tt>]</tt></b></td></tr></tbody></table>
-
-The static type of a tuple creation expression is `[T, ...]` with the number of
-types matches length of the tuple and each type `T` is the type of the
-corresponding expression.
-
-It is evaluated by evaluating the subexpressions from left to right.  Its value
-is a tuple whose length is the number of subexpressions and whose elements are
-the subexpression values.
-
-#### Asserts
+### Asserts
 
 An assertion has the form `assert(e, "msg")` where `e` is an expression and `msg` is a string message.
 `e` must have a Boolean type, otherwise it is a static type error.  If `e` evaluates to `true`, the assertion
 succeeds. If `e` evaluates to `false`, the assertion fails with the message `msg`.
 
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>assert</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em></td><td><b><tt>,</tt></b>&nbsp;&nbsp;<b><tt>"</tt></b><em>msg</em>&nbsp;<b><tt>"</tt></b>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
-
 Each assertion is checked at runtime and constrained in-circuit.
 
-#### Discloses
+### Discloses
 
-### Terms
 
-<table className="lang-ref-table"><tbody><tr><td><em>term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#Type"><em>type</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
-
-#### Variable references
+### Variable references
 
 The syntax of Compact identifiers is the same as the syntax of TypeScript
 identifiers.  A variable is an identifier that is bound as a parameter in a
 circuit declaration or else as a constant in a `const` binding statement.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<em>id</em></td></tr></tbody></table>
 
 __Circuit parameters__ are bound by circuit declarations. The static type of a
 circuit parameter reference is the declared static type given by the parameter
@@ -2366,12 +2318,10 @@ binding statement's initializer expression.
 Note that constant references can have ledger-state types because they can be
 initialized with a ledger-state type's default value.
 
-#### Literals
+### Literals
 
 Compact has syntax for boolean, numeric, and string literal expressions.
 
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>nat</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>str</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>nat</em>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>str</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
 __Boolean literals__ are the reserved words `true` and `false`. The static type
 of a boolean literal is `Boolean`. It evaluates to one of the two boolean
@@ -2403,11 +2353,9 @@ length must be less than or equal to `n`. The static type of a padded string
 literal `pad(n, s)` is `Bytes<n>`. It evaluates to a byte array containing the
 UTF-8 encoding of `s`, followed by `0` bytes up to the padded length `n`.
 
-#### Default values of a type
+### Default values of a type
 
 Every Compact type and ledger-state type has a default value.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>type</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>ledger-adt</em>&nbsp;&nbsp;<b><tt>></tt></b></td></tr></tbody></table>
 
 The expression `default<T>`, where `T` is a Compact type or a ledger-state type,
 has static type `T`. It evaluates to the default value of that type.
@@ -2432,12 +2380,10 @@ are as follows:
 - enumeration types: the first value listed in the declaration
 
 
-#### Parenthesized expressions
+### Parenthesized expressions
 
 Compact allows parenthesized expressions of the form `(e)`, where `e` is an
 expression.  They can be used to control the order of evaluation.
-
-<table className="lang-ref-table"><tbody><tr><td><em>expr</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
 The type of the parenthesized expression is the type of the subexpression.
 
