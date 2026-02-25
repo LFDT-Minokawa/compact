@@ -34,7 +34,7 @@
 ;;; limitations under the License.
 
 (library (parser)
-  (export parse-file parse-file/token-stream parser-keywords parser-passes)
+  (export parse-file parse-file/token-stream parser-keywords keywordReservedForFutureUse parser-passes)
   (import (except (chezscheme) errorf)
           (utils)
           (streams)
