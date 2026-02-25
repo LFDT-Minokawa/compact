@@ -11847,7 +11847,7 @@ groups than for single tests.
             (x (tstruct B (x (tstruct C (x (tvector 3 T))))))))
         (export-typedef B (T)
           (tstruct B (x (tstruct C (x (tvector 3 T))))))
-        (export-typedef C (T) (tstruct C (x (tvector 0 T))))
+        (export-typedef C (T) (tstruct C (x (tvector 1 T))))
         (circuit %foo.0 ([%x.1 (tstruct C
                                  (x (tvector
                                       3
@@ -23382,6 +23382,22 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 10" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "[]" "circuit bar")))
+    )
+
+  (test
+    '(
+      "export type UX<#n> = Uint<n>;"
+      "export type UY<#n> = Uint<0..n>;"
+      "export struct SX<#n, T> { curidx: Uint<n> }"
+      "export struct SY<#n, T> { curidx: Uint<0..n> }"
+      )
+    (returns
+      (program
+        (export-typedef UX () (talias #f UX (tunsigned 1)))
+        (export-typedef UY () (talias #f UY (tunsigned 0)))
+        (export-typedef SX (T) (tstruct SX (curidx (tunsigned 1))))
+        (export-typedef SY (T)
+          (tstruct SY (curidx (tunsigned 0))))))
     )
 )
 
@@ -78800,6 +78816,60 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt, p).result).toEqual({ x: p.x, y: p.y });"
         "});"
         ))
+    )
+
+  (test
+    '(
+      "export type UX<#n> = Uint<n>;"
+      "export type UY<#n> = Uint<0..n>;"
+      "export struct SX<#n, T> { curidx: Uint<n> }"
+      "export struct SY<#n, T> { curidx: Uint<0..n> }"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type UX = bigint;"
+        ""
+        "export type UY = bigint;"
+        ""
+        "export type SX<T> = { curidx: bigint };"
+        ""
+        "export type SY<T> = { curidx: bigint };"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "}"
+        ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
     )
 )
 
