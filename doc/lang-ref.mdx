@@ -841,7 +841,7 @@ types used as generic parameters by an import form must be defined before the
 import form.
 
 Detailed descriptions of struct, enum, contract, and type-alias declarations appear in
-[Compact Types](#compact-types) above.
+[Compact types](#compact-types) above.
 Detailed descriptions of the remaining program elements are described in the following
 section.
 
@@ -1520,8 +1520,15 @@ Thus it is not necessary to talk about the type of a statement.
 
 !!!!!!!! TBD
 
-The syntax of a Compact constant binding is the same as a constant binding in
-TypeScript.
+`const` statements create local variable bindings.
+Every `const` statement takes the following form:
+
+```compact
+const cbindings
+```
+
+where `cbindings` is a comma-separated sequence of one or more `cbinding` subforms
+in the syntax specified by the following grammar snippet:
 
 <table className="lang-ref-table"><tbody>
 <tr><td><em>cbinding</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>optionally-typed-pattern</em>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<a href="#expressions"><em>expr</em></a></td></tr>
@@ -1531,53 +1538,54 @@ TypeScript.
 <tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pattern</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr>
 </tbody></table>
 
-A `const` binding brings a new identifier into scope and assigns it to the value
-of an expression.
+A `const` statement is typed by typing each its `cbinding` subforms.
+A `cbinding` subform is typed by typing the expression on the right-hand side
+of the `=`.
+If a type `T` is included on the left-hand side, the type of the expression
+must be a subtype of `T`, otherwise it is a static error.
+It is also a static error if the pattern implies a different structure from
+the type of the expression.
+For example, it is a static error if the pattern implies that the expression's
+value is a tuple when the type is actually, say, `Field`.
 
-It can bring into scope a *single pattern* with `const p = e` where `p` is the
-new pattern and `e` is an expression. `p` can be an identifier, a tuple pattern,
-or a structure pattern:
+The scope of each variable bound by a `const` statement is the entirety
+of the innermost block containing the `const` statement.
+It must not be referenced, however, before it is given a binding.
+Any attempt to do so is a static error.
+For example, the reference to `x` on the first line of the body in the
+definition of `foo` below is a static error:
 
-- If `p` is an identifier the static type of the identifier is the type of `e`
-  and the identifier is bound to the value of `e`.
+```compact
+circuit foo(x: Uint<16>): Field {
+  return x;
+  const x = 7;
+}
+```
 
-- If `p` is a tuple pattern `e` must have a tuple or a vector type, otherwise it
-  is a static type error. It is a static type error if the number of identifiers
-  are more than the length of tuple `[v, ...]` where `[v, ...]` is the result of
-  evaluating `e`. However, it is not a static type error if the number of
-  identifiers are less than the length of `[v, ...]`, in this case identifiers
-  are bound from left-to-right to elements in `[v, ...]` until there is no more
-  identifiers to bind to the next elements of `[v, ...]`. The sequence of
-  identifiers does not have to bind every element of a tuple, that is, it can
-  drop some of the identifiers to skip binding them, for example, `const [a, ,
-  b] = [1, 2, 3]` binds `1` to `a` and `3` to `b`. These skipped identifiers are
-  counted towards the length of the sequence of identifiers. For example, `[a, ,
-  b]` matches a tuple or vector with three or more elements.
+Similarly, the reference to `x` in the first `cbinding` of the `const`
+statement below is also a static error.
 
-- If `p` is a structure pattern, `e` must have a structure type, otherwise it is
-  a static type error. The fields of pattern `p` must be a subset of the
-  structure type's fields, otherwise it is a static type error. The order of
-  fields does not matter.
+```compact
+const y = x, x = 7;
+}
+```
 
-A `const` binding can bring into scope *multiple patterns* with `const p = e,
-...` where `p = e` is a sequencce of one or more comma-separated single pattern
-constant bindings. It is a static type error if the The static typing of rules
-described for a single pattern binding must hold of each identifier is the type
-of its assigned expression. Constant bindings are evaluate from left-to-right.
-This means that an identifier can only be referenced after it is bound. It is a
-static type error to bind an identifier more than once. It is a static type
-error to reference an identifier before binding it.
+A `const` statement is evaluated by evaluating the `cbinding` subforms in order
+so that the variables given values by each `cbinding` is available to the
+cbindings that follow.
 
-A `const` binding can optionally declare the type for each binding with `const
-p: T = e`. It is a static type error if `e` does not have type `T`. In `const`
-statements with multiple pattern/expression pairs, it is permissible to for some
-of the pairs to include types and some not to include types, that is, a binding
-such as `const x: Field = 2, y = true` is valid.
+The evaluation of each `cbinding` involves evaluating the expression
+on the right-hand side of the `=` and then giving values to identifiers
+in the pattern `p` on the left-hand side to the value `v` of the
+expression as described earlier in
+(Patterns and destructuring)[patterns-and-destructuring].
 
-Any identifier bound by `const` may not be reused within a block, and
-identifiers cannot be reassigned, although they can be [shadowed in a nested
-block](#scope-and-binding). Constant initializer expressions are evaluated when
-the binding statement is executed.
+Any variable bound by `const` may not be reused within a block, although a
+`const` binding in a nested block might [shadow it](#scope-and-binding).
+Variables are immutable, although the same variable might take on different values
+at different times if is contined within a block of code that is evaluated more
+than once, such as would be the case for the body of a `circuit` that is called
+more than once.
 
 ### `if` statements
 
@@ -1601,7 +1609,8 @@ else
   else-statement
 ```
 
-In either case, the type of `expr-seq` must be `Boolean`.
+The typing of an `if` expression requires only that the type of `expr-seq` must be
+`Boolean`.
 
 Evaluating an `if` expression involves first evaluating the `expr-seq`.
 If it evaluates to `true`, `then-statement` is evaluated.
@@ -1610,19 +1619,38 @@ Otherwise, it must evaluate to `false`, in which case `else-statement`
 
 ### `for` statements
 
-!!!!!!!! TBD
+`for` statements are used to iterate over a sequence of values.
+In Compact, in constrast to most languages, the number of iterations can
+always be determined at compile time.
+That is, the number of iterations is bounded either by constant numeric
+bounds or by size of an object of constant size.
+This restriction is motivated by the need for the compiler to generate
+finite proving circuits.
 
-A `for` statement is used to loop through a set of vector elements or through
-a sequence of numbers
-...
-repeats for a fixed number of iterations, using one of the two
-syntaxes below:
+Each `for` statement takes one of the following forms:
 
 ```compact
-for (const i of <vector>) <statement>
+for (const i of expression) statement
 
-for (const i of <lower>..<upper>) <statement>
+for (const i of start..end) statement
 ```
+
+In the second form, each of `start` and `end` must be a literal
+unsigned integer or a reference to a generic size parameter, and
+`end` must be greater than or equal to `start`.
+Otherwise, it is a static error.
+
+The first form is typed by typing `expression` and verifying that it
+is a `Vector` type, a tuple type that
+(has a vector type)[Subtyping and least upper bounds],
+or a `Bytes` type.
+
+The second form is always well-typed.
+
+!!!!!!!! TBD
+
+The first form is evaluated by evaluating `expression`
+
 
 ### `return` statement
 
