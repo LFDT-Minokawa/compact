@@ -198,6 +198,44 @@ evaluates to `42`.
 The second (inner) binding of `answer` to `42` is visible throughout the inner
 block, so the reference to `answer` in `answer != 42` evaluates to `12`.
 
+In addition to having a scope, every binding also has a lifetime.
+For circuit and witness bindings, the lifetime is effectively permanent, i.e.,
+the binding is always available for use whenever the program is run.
+On the other hand 
+
+The lifetimes of ledger-field bindings begin when they are first initialized
+and are effectively permanant from that point on; although the value of a
+field can change over time, the association of the ledger-field name with the
+ledger field's location in the (replicated) public state of a contract never
+changes.
+
+On the other hand, bindings for module names, type names, and generic
+parameters exist only when a program is compiled, i.e., they help determine
+the structure of the program and the shape of the data used by the program
+but are not needed and do not exist once the program has been compiled.
+(TypeScript bindings for type names exported from the program's top level
+do live on, however, in the generated TypeScript definition file.)
+
+Variable bindings, i.e., bindings of circuit parameters, constructor parameters,
+and local variables bound by `const` statements and `for` loops, have dynamic
+lifetimes.
+That is, the bindings of a circuit or constructor's parameters start to exist when
+the circuit or constructor is called and cease to exist when the circuit or
+constructor exits, a variable binding established by a `const` statement
+starts to exist when the `const` statement is evaluated and cease to exist when
+the block containing the `const` statement exits, and a `const` binding established
+by the `const` subform of a `for`-loop header starts to exist on each iteration
+of the loop and ceases to exist when that iteration has ended.
+
+A parameter or `const` binding might have multiple lifetimes, because a circuit
+might be called multiple times, a block might be evaluated multiple times, and a
+`for` loop might be evaluated multiple times and/or have multiple iterations.
+Variables in Compact are immutable: they have the same value over the entire
+lifetime of each binding of the variable.
+Thus, they are referred to as variables not because their value can vary over
+any single lifetime but because they can have different values in different
+lifetimes.
+
 ## Generic parameters and arguments
 
 Various entities, specifically
@@ -1447,67 +1485,60 @@ Compact program by the Compact compiler.
 
 ## Statements
 
+Statements are the basic building blocks of circuit and constructor bodies.
+The syntax of Compact statements is summarized by the following grammar snippet:
+
 <table className="lang-ref-table"><tbody><tr><td><em>block</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a> &mldr; <a href="#Statement"><em>stmt</em></a>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
 <tr><td><em>stmt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Statement0"><em>stmt<sub>0</sub></em></a></td></tr>
 <tr><td><em>stmt<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement0"><em>stmt<sub>0</sub></em></a>&nbsp;&nbsp;<b><tt>else</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>..</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#Expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<a href="#Statement"><em>stmt</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#Const-Binding"><em>cbinding</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#Const-Binding"><em>cbinding</em></a> &nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#Block"><em>block</em></a></td></tr></tbody></table>
 
-A statement may be
-- a [`for` loop](#for-loop)
-- an [`if` statement](#if-statement)
-- a [`return` statement](#return-statement)
-- a block - a sequence of zeror or more statements in a nested scope, enclosed by curly braces
-- a [`const` binding statement](#const-binding-statement)
-- an [expression](#expressions)
+The snipped shows that a statement (`stmt`) is either a one-armed `if` expression
+or some other kinf of statement (`stmt0`).
+This structure is used to enforce the restriction that the *then* part of a
+two-armed cannot be a one-armed `if` expression.
+This is often left ambiguous in the grammar, with a separate note to say
+that the ambiguity is resolved by assocating an *else* part with the closest
+enclosing `if` expression, but we prefer to make the constraint explicit in
+the grammar and avoid any ambiguity.
 
-### `for` loop
+The first kind of `stmt0` is `expr-seq`.
+An `expr-seq`, or *expression sequence*, is a comma separated sequence of one
+or more expressions to be evaluated in sequence.
+This simply means that any expression or comma-separated sequence also qualifies
+as a statement.
+Expression sequences are described more fully in
+(their own section)[expression-sequences].
 
-A `for` loop repeats for a fixed number of iterations, using one of the two
-syntaxes below:
+The remaining subsections of this section describe each of the other kinds of
+statement.
 
-```compact
-for (const i of <vector>) <statement>
+Statements either do not have a value or (in the case of expression sequences
+serving as statements) their value is ignored.
+Thus it is not necessary to talk about the type of a statement.
 
-for (const i of <lower>..<upper>) <statement>
-```
+### `const` statements
 
-### `if` statement
+`const` statements are used to create immutable bindings from local variables
+to values, i.e., 
+Although `const` implies constant, these are 
 
-An `if` statement is of one of the following forms:
+Like `const` bindings in TypeScript, these bindings are immutable, i.e.,
+cannot be changed via variable assignments.
 
-```compact
-if (testexpr)
-  <statement>
+If the body containing a `const` statement is evaluated more than once,
+a new immutable
 
-if (testexpr)
-  <statement>
-else
-  <statement>
-```
 
-### `return` statement
+in contrast with `var` and
+`let` bindings in TypeScript, which Compact does not support.
 
-A `return` statement can appear only in a block.
 
-<table className="lang-ref-table"><tbody><tr><td><em>stmt</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;[<em>expr</em>]<b><tt>;</tt></b></td></tr></tbody></table>
+Each time a `const` statement is evaluated, it creates a new association
 
-A `return` statement takes either the form `return;` or `return e;` where `e` is
-a Compact expression. For a `return` statement of form `return e;` it is a
-static type error if the static type of `e` is not a
-[subtype](#subtyping-and-least-upper-bounds) of the declared return type `R` of
-a circuit (accounting for [anonymous circuits](#circuit-and-witness-calls) and
-[constructors](#contract-constructor)) if one exists. For a `return` statement
-of the form `return;`, it is a static type error if the return type `R` is not
-[].
 
-If the return type `R` is `[]` the `return` statement can be dropped. However,
-for return types other than `[]` it is a static type error if there exists a
-path in a circuit block that does not have a `return` statement, for example,
-`export circuit foo(c: Boolean): Boolean { return ((x) : Boolean => { if (c)
-return x; })(c);}` causes a static type error since the `else` branch of the
-`if` statements has type `[]`. It is a static type error to have a statement
-after a `return` statement in a same block.
-
-### `const` binding statement
+over the lifetime of the binding, though each time
+the same `cons
+of the body containing a `const` statement can bind the 
 
 The syntax of a Compact constant binding is the same as a constant binding in
 TypeScript.
@@ -1571,6 +1602,77 @@ Any identifier bound by `const` may not be reused within a block, and
 identifiers cannot be reassigned, although they can be [shadowed in a nested
 block](#scope-and-binding). Constant initializer expressions are evaluated when
 the binding statement is executed.
+
+### `if` statements
+
+An `if` statement is used to determine the flow of control through the
+statements of a circuit or constructor body.
+A *one-armed* `if` expression has a *test part* (an `expr-seq` enclosed
+in parentheses) and a *then part* (`then-statement`):
+
+```compact
+if (expr-seq) then-statement
+```
+
+A *two-armed* `if` expression has a *test part* (an `expr-seq` enclosed
+in parentheses), a *then part* (`then-statement`), and an *else part*
+(`else-statement`):
+
+```compact
+if (expr-seq)
+  then-statement
+else
+  else-statement
+```
+
+In either case, the type of `expr-seq` must be `Boolean`.
+
+Evaluating an `if` expression involves first evaluating the `expr-seq`.
+If it evaluates to `true`, `then-statement` is evaluated.
+Otherwise, it must evaluate to `false`, in which case `else-statement`
+(if present), is evaluated.
+
+### `for` statement
+
+!!!!!!!! TBD
+A `for` statement is used to loop through a set of vector elements or through
+a sequence of numbers
+...
+repeats for a fixed number of iterations, using one of the two
+syntaxes below:
+
+```compact
+for (const i of <vector>) <statement>
+
+for (const i of <lower>..<upper>) <statement>
+```
+
+### `return` statement
+
+A `return` statement can appear only in a block.
+
+<table className="lang-ref-table"><tbody><tr><td><em>stmt</em>&nbsp;&nbsp;</td><td>→</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;[<em>expr</em>]<b><tt>;</tt></b></td></tr></tbody></table>
+
+A `return` statement takes either the form `return;` or `return e;` where `e` is
+a Compact expression. For a `return` statement of form `return e;` it is a
+static type error if the static type of `e` is not a
+[subtype](#subtyping-and-least-upper-bounds) of the declared return type `R` of
+a circuit (accounting for [anonymous circuits](#circuit-and-witness-calls) and
+[constructors](#contract-constructor)) if one exists. For a `return` statement
+of the form `return;`, it is a static type error if the return type `R` is not
+[].
+
+If the return type `R` is `[]` the `return` statement can be dropped. However,
+for return types other than `[]` it is a static type error if there exists a
+path in a circuit block that does not have a `return` statement, for example,
+`export circuit foo(c: Boolean): Boolean { return ((x) : Boolean => { if (c)
+return x; })(c);}` causes a static type error since the `else` branch of the
+`if` statements has type `[]`. It is a static type error to have a statement
+after a `return` statement in a same block.
+
+### Expression sequences
+
+!!!!!!!! TBD
 
 ## Expressions
 
@@ -1795,10 +1897,10 @@ what the claims say. the downcast isn't correct, even the example isn't correct.
 
 #### Upcasts
 
-- Upcasts, i.e., casts from a type to a supertype (e.g., from `Vector<3, Uint<8>>`
-  to `Vector<3, Uint<16>>`, are always allowed (but never required), never result
-  in run-time errors, and, except in the case where the type and the supertype are
-  the same, might require run-time conversions.
+- Upcasts, i.e., casts from a type to a (supertype)[subtyping-and-least-upper-bounds]
+  (e.g., from `Vector<3, Uint<8>>` to `Vector<3, Uint<16>>`), are always allowed
+  (but never required), never result in run-time errors, and, except in the case
+  where the type and the supertype are the same, might require run-time conversions.
 
 !!!!!!!! TBD Might want to mention other impliciations of this rule, such as rules for casting tuples to vectors and back
 
