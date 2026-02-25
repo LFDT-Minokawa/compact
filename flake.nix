@@ -458,7 +458,7 @@
                 cd tmp
 
                 echo Export current keywords
-                scheme --program ./compiler/export-keywords.ss $(pwd)/../tests/resources/keywords.json
+                scheme --program ./compiler/export-keywords.ss 0 $(pwd)/../tests/resources/keywords.json
                 cat $(pwd)/../tests/resources/keywords.json
                 cd ..
 
