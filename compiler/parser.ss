@@ -563,14 +563,11 @@
        (lambda (src expr semicolon)
          (with-output-language (Lparser Statement)
            `(statement-expression ,src ,expr ,semicolon)))]
-      [statement-return-value :: src (KEYWORD return) expr-seq #\; =>
-       (lambda (src kwd expr semicolon)
+      [statement-const :: src (KEYWORD const) (SEP+ cbinding #\, #f) #\; =>
+       (lambda (src kwd cbinding-sep+ semicolon)
          (with-output-language (Lparser Statement)
-           `(return ,src ,kwd ,expr ,semicolon)))]
-      [statement-return-no-value :: src (KEYWORD return) #\; =>
-       (lambda (src kwd semicolon)
-         (with-output-language (Lparser Statement)
-           `(return ,src ,kwd ,semicolon)))]
+           (let-values ([(cbinding+ sep*) (split-sep cbinding-sep+)])
+             `(const ,src ,kwd (,(car cbinding+) ,(cdr cbinding+) ...) (,sep* ...) ,semicolon))))]
       [statement-if :: src (KEYWORD if) #\( expr-seq #\) stmt0 (KEYWORD else) stmt =>
        (lambda (src kwd lparen expr rparen stmt1 kwd-else stmt2)
          (with-output-language (Lparser Statement)
@@ -583,11 +580,14 @@
        (lambda (src kwd lparen kwd-const id kwd-of expr rparen stmt)
          (with-output-language (Lparser Statement)
            `(for ,src ,kwd ,lparen ,kwd-const ,id ,kwd-of ,expr ,rparen ,stmt)))]
-      [statement-const :: src (KEYWORD const) (SEP+ cbinding #\, #f) #\; =>
-       (lambda (src kwd cbinding-sep+ semicolon)
+      [statement-return-value :: src (KEYWORD return) expr-seq #\; =>
+       (lambda (src kwd expr semicolon)
          (with-output-language (Lparser Statement)
-           (let-values ([(cbinding+ sep*) (split-sep cbinding-sep+)])
-             `(const ,src ,kwd (,(car cbinding+) ,(cdr cbinding+) ...) (,sep* ...) ,semicolon))))]
+           `(return ,src ,kwd ,expr ,semicolon)))]
+      [statement-return-no-value :: src (KEYWORD return) #\; =>
+       (lambda (src kwd semicolon)
+         (with-output-language (Lparser Statement)
+           `(return ,src ,kwd ,semicolon)))]
       [statement-block :: block =>
        (lambda (block) block)])
     (Pattern (pattern)
@@ -602,9 +602,6 @@
          (let-values ([(pattern-struct-elt* sep*) (split-sep pattern-struct-elt-sep*)])
            (with-output-language (Lparser Pattern)
              `(struct ,src ,lbrace (,pattern-struct-elt* ...) (,sep* ...) ,rbrace))))])
-    (Pattern-tuple-element (pattern-tuple-elt)
-      [pattern-tuple-elt-nada :: => (lambda () #f)]
-      [pattern-tuple-elt-pattern :: pattern => values])
     (Pattern-struct-element (pattern-struct-elt)
       [pattern-struct-elt-id :: id => values]
       [pattern-struct-elt-pattern :: id #\: pattern =>
@@ -706,16 +703,16 @@
        (lambda (src kwd langle tsize rangle lparen expr comma index rparen)
          (with-output-language (Lparser Expression)
            `(tuple-slice ,src ,kwd ,langle ,tsize ,rangle ,lparen ,expr ,comma ,index ,rparen)))]
-      [term-tuple :: src #\[ (SEP* tuple-arg #\, #t) #\] =>
-       (lambda (src lbracket tuple-arg-sep* rbracket)
-         (let-values ([(tuple-arg* sep*) (split-sep tuple-arg-sep*)])
+      [term-tuple :: src #\[ (SEP* tuple/bytes-arg #\, #t) #\] =>
+       (lambda (src lbracket tuple/bytes-arg-sep* rbracket)
+         (let-values ([(tuple/bytes-arg* sep*) (split-sep tuple/bytes-arg-sep*)])
            (with-output-language (Lparser Expression)
-             `(tuple ,src ,lbracket (,tuple-arg* ...) (,sep* ...) ,rbracket))))]
-      [term-bytes :: src (KEYWORD Bytes) #\[ (SEP* bytes-arg #\, #t) #\] =>
-       (lambda (src kwd lbracket bytes-arg-sep* rbracket)
-         (let-values ([(bytes-arg* sep*) (split-sep bytes-arg-sep*)])
+             `(tuple ,src ,lbracket (,tuple/bytes-arg* ...) (,sep* ...) ,rbracket))))]
+      [term-bytes :: src (KEYWORD Bytes) #\[ (SEP* tuple/bytes-arg #\, #t) #\] =>
+       (lambda (src kwd lbracket tuple/bytes-arg-sep* rbracket)
+         (let-values ([(tuple/bytes-arg* sep*) (split-sep tuple/bytes-arg-sep*)])
            (with-output-language (Lparser Expression)
-             `(bytes ,src ,kwd ,lbracket (,bytes-arg* ...) (,sep* ...) ,rbracket))))]
+             `(bytes ,src ,kwd ,lbracket (,tuple/bytes-arg* ...) (,sep* ...) ,rbracket))))]
       [term-struct :: src tref #\{ (SEP* struct-arg #\, #t) #\} =>
        (lambda (src tref lbrace new-field-sep* rbrace)
          (let-values ([(new-field* sep*) (split-sep new-field-sep*)])
@@ -763,7 +760,7 @@
        (lambda (src lparen expr rparen)
          (with-output-language (Lparser Expression)
            `(parenthesized ,src ,lparen ,expr ,rparen)))])
-    (Tuple-argument (tuple-arg bytes-arg)
+    (Tuple-argument (tuple/bytes-arg)
       [tuple-arg-expression :: src expr =>
        (lambda (src expr)
          (with-output-language (Lparser Tuple-Argument)
@@ -772,6 +769,25 @@
        (lambda (src dotdotdot expr)
          (with-output-language (Lparser Tuple-Argument)
            `(spread ,src ,dotdotdot ,expr)))])
+    ;; TODO clean up comment
+    ;; @Kent I added this to see whether I like separating the meta-var to get
+    ;; two grammars (one for tuple-arg and another --which is the exact same
+    ;; grammar-- for bytes-arg).  Then I decided to try renaming the meta-var
+    ;; to indicate it's used for both cases.  I do like not repeating the
+    ;; exact same grammar twice and not having to reproduce a grammar twice
+    ;; since how the html is generated it doesn't pick up the grammar for
+    ;; two meta-vars if a grammar has two meta-vars.  On the other hand,
+    ;; I'm not a big fan of the long name but maybe that's OK.  LMK which
+    ;; you prefer.
+    ;; (Bytes-argument (bytes-arg)
+    ;;   [bytes-arg-expression :: src expr =>
+    ;;    (lambda (src expr)
+    ;;      (with-output-language (Lparser Tuple-Argument)
+    ;;        `(single ,src ,expr)))]
+    ;;   [bytes-arg-spread :: src "..." expr =>
+    ;;    (lambda (src dotdotdot expr)
+    ;;      (with-output-language (Lparser Tuple-Argument)
+    ;;        `(spread ,src ,dotdotdot ,expr)))])
     (Structure-argument (struct-arg)
       [struct-arg-positional :: src expr =>
        (lambda (src expr)
