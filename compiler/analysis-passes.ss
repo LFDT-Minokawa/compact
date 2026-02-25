@@ -1196,7 +1196,7 @@
          ; if we find a free tvar here, it's in an exported type where sizes are
          ; ultimately ignored, so any nat will do.  the default argument takes either
          ; 1 for the range end points of uint
-         ; 1 for everything else
+         ; 0 for everything else
          [(Info-free-tvar tvar-name) default])])
     (Type-Argument->info : Type-Argument (ir p) -> * (info)
       [(targ-size ,src ,nat) (Info-size src nat)]
