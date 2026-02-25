@@ -1518,28 +1518,6 @@ Thus it is not necessary to talk about the type of a statement.
 
 ### `const` statements
 
-`const` statements are used to create immutable bindings from local variables
-to values, i.e., 
-Although `const` implies constant, these are 
-
-Like `const` bindings in TypeScript, these bindings are immutable, i.e.,
-cannot be changed via variable assignments.
-
-If the body containing a `const` statement is evaluated more than once,
-a new immutable
-
-
-in contrast with `var` and
-`let` bindings in TypeScript, which Compact does not support.
-
-
-Each time a `const` statement is evaluated, it creates a new association
-
-
-over the lifetime of the binding, though each time
-the same `cons
-of the body containing a `const` statement can bind the 
-
 !!!!!!!! TBD
 
 The syntax of a Compact constant binding is the same as a constant binding in
@@ -1630,7 +1608,7 @@ If it evaluates to `true`, `then-statement` is evaluated.
 Otherwise, it must evaluate to `false`, in which case `else-statement`
 (if present), is evaluated.
 
-### `for` statement
+### `for` statements
 
 !!!!!!!! TBD
 
