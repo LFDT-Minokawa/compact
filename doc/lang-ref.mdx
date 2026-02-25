@@ -1628,30 +1628,41 @@ bounds or by size of an object of constant size.
 This restriction is motivated by the need for the compiler to generate
 finite proving circuits.
 
-Each `for` statement takes one of the following forms:
+Compact supports two kinds of `for` statements.
+The first iterates over vectors, tuples, and bytes values and takes the
+following form:
 
 ```compact
-for (const i of expression) statement
+for (const x of expression) statement
+```
 
+This kind of `for` statement is typed by typing `expression` and verifying that
+it is a `Vector` type, a tuple type that (has a vector type)[Subtyping and least
+upper bounds], or a `Bytes` type.
+
+Evaluating this kind of `for` requires evaluating `expression` then evaluating
+`statement` once for each element with `x` bound to the value of each element
+in turn.
+
+The second form iterates over a range of unsigned integer values and takes the
+following form:
+
+```compact
 for (const i of start..end) statement
 ```
 
-In the second form, each of `start` and `end` must be a literal
-unsigned integer or a reference to a generic size parameter, and
-`end` must be greater than or equal to `start`.
+In this form, each of `start` and `end` must be a literal unsigned integer
+or reference to a generic size parameter, and `end` must be greater than or
+equal to `start`.
 Otherwise, it is a static error.
 
-The first form is typed by typing `expression` and verifying that it
-is a `Vector` type, a tuple type that
-(has a vector type)[Subtyping and least upper bounds],
-or a `Bytes` type.
+This form is always well-typed.
 
-The second form is always well-typed.
+Evaluating this kind of `for` requires evaluating statement with `i` bound
+to *k* for each *k* in the range `start` (inclusive) to `end` (exclusive).
 
-!!!!!!!! TBD
-
-The first form is evaluated by evaluating `expression`
-
+Iteration can also be accomplished via
+(`map` and `fold` expressions)[map-and-fold-expressions].
 
 ### `return` statement
 
