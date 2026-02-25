@@ -16925,7 +16925,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo(c: JubjubPoint): JubjubPoint {"
-      "  return ecAdd(c, ecMul(c, 3));"
+      "  return ecAdd(c, ecMul(c, 3 as JubjubScalar));"
       "}"
       )
     (returns
@@ -16938,7 +16938,8 @@ groups than for single tests.
              (talias #t JubjubPoint (topaque "JubjubPoint")))
         (native %ecMul.4 ([%a.5 (talias #t JubjubPoint
                                   (topaque "JubjubPoint"))]
-                          [%b.6 (tfield)])
+                          [%b.6 (talias #t JubjubScalar
+                                  (topaque "JubjubScalar"))])
              (talias #t JubjubPoint (topaque "JubjubPoint")))
         (circuit %foo.7 ([%c.8 (talias #t JubjubPoint
                                  (topaque "JubjubPoint"))])
@@ -16947,7 +16948,9 @@ groups than for single tests.
             %c.8
             (call %ecMul.4
               %c.8
-              (safe-cast (tfield) (tunsigned 3) 3))))))
+              (safe-cast (talias #t JubjubScalar (topaque "JubjubScalar"))
+                         (topaque "JubjubScalar")
+                (safe-cast (topaque "JubjubScalar") (tunsigned 3) 3)))))))
     )
 
   (test
@@ -46713,7 +46716,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo(p1: JubjubPoint, p2: JubjubPoint): JubjubPoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)]) as JubjubScalar), ecMulGenerator(17 as JubjubScalar)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -51811,7 +51814,7 @@ groups than for single tests.
       "ledger impure: Boolean;"
       "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  impure = true;"
-      "  return ecAdd(c, ecMul(c, 3));"
+      "  return ecAdd(c, ecMul(c, 3 as JubjubScalar));"
       "}"
      )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -57685,7 +57688,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo(p1: JubjubPoint, p2: JubjubPoint): JubjubPoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)]) as JubjubScalar), ecMulGenerator(17 as JubjubScalar)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -60334,7 +60337,7 @@ groups than for single tests.
       "ledger impure: Boolean;"
       "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  impure = true;"
-      "  return ecAdd(c, ecMul(c, 3));"
+      "  return ecAdd(c, ecMul(c, 3 as JubjubScalar));"
       "}"
      )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -60362,7 +60365,7 @@ groups than for single tests.
       "export circuit foo(): JubjubPoint {"
       "  impure = true;"
       "  const c = point();"
-      "  return disclose(ecAdd(c, ecMul(c, 3)));"
+      "  return disclose(ecAdd(c, ecMul(c, 3 as JubjubScalar)));"
       "}"
      )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -63577,7 +63580,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
       "witness point(): JubjubPoint;"
-      "export circuit gris(scalar: Field): JubjubPoint {"
+      "export circuit gris(scalar: JubjubScalar): JubjubPoint {"
       "  impure = true;"
       "  return disclose(ecMul(point(), scalar));"
       "}"
@@ -63588,7 +63591,7 @@ groups than for single tests.
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
         "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    { \"name\": \"%scalar.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "    { \"name\": \"%scalar.0\", \"type\": \"Scalar<Jubjub>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -66920,9 +66923,9 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo(c: JubjubPoint): JubjubPoint {"
-      "  return ecAdd(c, ecMul(c, 3));"
+      "  return ecAdd(c, ecMul(c, 3 as JubjubScalar));"
       "}"
-      "export circuit bar(x: Field): JubjubPoint {"
+      "export circuit bar(x: JubjubScalar): JubjubPoint {"
       "  return ecMulGenerator(x);"
       "}"
       )

@@ -64,12 +64,12 @@
 (declare-native-entry circuit ecMul
   "__compactRuntime.ecMul"
   ([a (TypeRef JubjubPoint) (discloses "an elliptic curve product including")]
-   [b Field (discloses "an elliptic curve product including")])
+   [b (TypeRef JubjubScalar) (discloses "an elliptic curve product including")])
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit ecMulGenerator
   "__compactRuntime.ecMulGenerator"
-  ([b Field (discloses "the product of the embedded group generator with")])
+  ([b (TypeRef JubjubScalar) (discloses "the product of the embedded group generator with")])
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit hashToCurve [A]

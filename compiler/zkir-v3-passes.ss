@@ -603,11 +603,12 @@
         (nanopass-case (Lflattened Primitive-Type) primitive-type
           [(tfield) "Scalar<BLS12-381>"]
           [(tfield ,nat) "Scalar<BLS12-381>"]
-          [(topaque ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
-           "Point<Jubjub>"]
-          [(topaque ,opaque-type) "Scalar<BLS12-381>"]
-          [else (assert cannot-happen)]))
-      )
+          [(topaque ,opaque-type)
+           (case opaque-type
+             [("JubjubPoint") "Point<Jubjub>"]
+             [("JubjubScalar") "Scalar<Jubjub>"]
+             [else "Scalar<BLS12-381>"])]
+          [else (assert cannot-happen)])))
 
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
