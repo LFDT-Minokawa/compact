@@ -325,8 +325,8 @@ incorrectly typed value.
 If an optional type annotation is omitted, the compiler attempts to infer a type
 and it rejects the program if no such type can be inferred.
 
-Types consist of built-in primitive types, ledger-state types, program-defined types
-defined in the program, and references to generic type parameters in scope.
+Types consist of built-in primitive types, ledger-state types, program-defined types,
+and references to generic type parameters in scope.
 When the term "type" occurs in this document without any other qualifier, it means
 either a primitive type, ledger-state type, a program-defined type, or a generic type
 parameter in scope.
@@ -1520,10 +1520,10 @@ statement.
 Statements either do not have a value or (in the case of expression sequences
 serving as statements) their value is ignored.
 Thus it is not necessary to talk about the type of a statement.
+Nevertheless, each statement has typing rules that must be followed, such as that
+the type of the test expression of an `if` expression must be `Boolean`.
 
 ### `const` statements
-
-!!!!!!!! TBD
 
 `const` statements create local variable bindings.
 Every `const` statement takes the following form:
@@ -1678,10 +1678,11 @@ Iteration can also be accomplished via
 A `return` statement can be used to exit from the closest enclosing
 [anonymous circuit](#circuit-and-witness-calls) circuit, if any, or otherwise from
 the enclosing constructor or named circuit, and to return to the caller either
-an explicit return value, i.e., the value of `expression` in this form of `return`:
+an explicit return value, i.e., the value of (`expr-seq`)[expression-sequences]
+in this form of `return`:
 
 ```compact
-return expression;
+return expr-seq;
 ```
 
 or the default value `[]` in this form of `return`:
@@ -1696,8 +1697,8 @@ treated as if ended with `return;`.
 
 A `return` statement is always well-typed if it exits from an anonymous circuit
 without a declared return type.
-Otherwise, a `return` statement is well-typed if the type of `expression`, or
-`[]` if no `expression` is present, is a subtype the expected return type.
+Otherwise, a `return` statement is well-typed if the type of `expr-seq`, or
+`[]` if no `expr-seq` is present, is a subtype the expected return type.
 If the `return` form exits from a named circuit or an anonymous circuit
 with a declared return type, the expected type is the declared return type,
 while if it exits from the constructor, the expected return type is `[]`.
@@ -1705,20 +1706,14 @@ while if it exits from the constructor, the expected return type is `[]`.
 An implication of these rules is that it is a static error to exit without an
 explicit return value from a circuit with a declared return type other than `[]`.
 
-When a `return` statement is evaluated, the `expression`, if present, is evaluated,
+When a `return` statement is evaluated, the `expr-seq`, if present, is evaluated,
 the circuit or constructor exits immediately without evaluating any
-subsequent statements, and it returns to the caller the value of `expression` or
-`[]` if no `expression` is present.
-
-### Expression sequences
-
-!!!!!!!! TBD
+subsequent statements, and it returns to the caller the value of `expr-seq` or
+`[]` if no `expr-seq` is present.
 
 ## Expressions
 
-This section describes the syntax of Compact expressions, in order with those
-of lower precedence preceding those with lower precedence, and provides their
-static typing rules and evaluation semantics.
+The syntax of Compact expressions is summarized by the following grammar snippet:
 
 <table className="lang-ref-table"><tbody><tr><td><em>expr-seq</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr</em> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <em>expr</em> &nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr>
 <tr><td><em>expr</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>?</tt></b>&nbsp;&nbsp;<em>expr</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>+=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em>&nbsp;&nbsp;<b><tt>-=</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>expr<sub>0</sub></em></td></tr>
@@ -1736,34 +1731,49 @@ static typing rules and evaluation semantics.
 <tr><td><em>struct-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr>
 <tr><td><em>term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr-seq</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
-Every Compact expression is required to be well-typed (free from static type errors).
+!!!!!!!! TBD describe how the structure of grammar unambiguously expresses precedence, associativity, and restrictions
+
+Every Compact expression must be well-typed (free from static type errors).
 If any expression within a program contains a type error, the Compact compiler
 reports the error and does not produce any target code (TypeScript or Zkir)
 for the program.
-The static type of a well-typed expression is either a Compact type or a ledger
-state type.
+The static type of a well-typed expression is either a Compact type or a
+ledger-state type.
 
-Every Compact expression either evaluates to a value or raises an
-exception.  The evaluation of an expression is defined in terms of the
-evaluation of its subexpressions.  If the evaluation of a subexpression raises
-an exception, then the evaluation of the containing expression will stop and
-raise the same exception.
+Every Compact expression either evaluates to a value or raises an exception,
+and it might have have an effect.
+The evaluation of an expression is defined in terms of the evaluation of its
+subexpressions.
+If the evaluation of a subexpression raises an exception, then the evaluation of
+the containing expression will stop and raise the same exception.
 
-### Expression sequence
+### Expression sequences
 
-Expressions can be sequenced for their side effects.  An expression of the form
-`(e0, e1, e2, ...)` or `e0, e1, e2, ...` where `e0, e1, e2, ...` is a sequence of two or more
-comma-separated expressions is a sequence expression. The latter form where parentheses can
-be omitted is only allowed in some context which can be viewed in
-[the formal grammar of Compact](./compact-grammar).
+An expression sequence (`expr-seq` in the grammar above) is a comma-separated
+sequence of one or more expressions.
 
-The static type of a sequence expression is the static type of the last
-subexpression.
+```compact
+expression, ..., expression
+```
 
-It is evaluated by evaluating the subexpressions from left to right.  Its value
-is the value of the last subexpression.
+Expression sequences can appear only in a few contexts.
+When an expression sequence is required in a context where only a single expression
+is permitted, the expression sequence can be wrapped in parentheses:
+
+```compact
+(expression, ..., expression)
+```
+
+The type of an expression sequence is the type of its last expression.
+
+An expression sequence is evaluated by evaluating the subexpressions from
+left to right, and its value is the value of the last subexpression.
+The values of the other subexpressions are ignored; these other subexpressions
+are evaluated solely for their effects.
 
 ### Conditional expressions
+
+!!!!!!!! TBD
 
 Compact supports conditional expressions of the form `e0 ? e1 : e2` where `e0`,
 `e1`, and `e2` are expressions.
@@ -1938,10 +1948,8 @@ what the claims say. the downcast isn't correct, even the example isn't correct.
 
 #### Downcasts of `Field` and `Uint` types
 
-!!!!!!!! TBD this applies to to unsigned integers and should be adjusted accordingly
-
 - `Uint` downcasts, i.e., casts from `Uint<m>` to `Uint<n>`, `m > n`, are always
-   allowed always require run-time checks, and might require run-time conversions.
+   allowed, always require run-time checks, and might require run-time conversions.
    The same applies to `Field` to `Uint` casts where the maximum value of the
    `Uint` type exceeds the maximum `Field` value, as well as `Uint` to `Field` casts
    where the maximum value of the `Uint` type is less than or equal to the maximum
