@@ -14,99 +14,97 @@
 // limitations under the License.
 
 const witnesses = {
-    num({ privateState }: any, n: bigint): [any, bigint] {
+    num({ privateState }: any, n: runtime.FieldElement): [any, runtime.FieldElement] {
         const fibs = [0, 0, 1, 1, 2, 3, 5, 8, 13];
-        return [privateState, BigInt(fibs[Number(n)])]
+        return [privateState, runtime.FieldElement.create(BigInt(fibs[Number(n.value)]))]
     }
 };
 
 test('Check fib 0', () => {
   const [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    expect(c.circuits.fib(Ctxt, 1n).result).toEqual(0n)
+    expect(c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).result).toEqual(runtime.FieldElement.create(0n))
 });
 
 test('Check fib 1', () => {
     var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    expect(c.circuits.fib(Ctxt, 2n).result).toEqual(1n)
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    expect(c.circuits.fib(Ctxt, runtime.FieldElement.create(2n)).result).toEqual(runtime.FieldElement.create(1n))
 });
 
 test('Check fib 3', () => {
     var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    expect(c.circuits.fib(Ctxt, 3n).result).toEqual(2n)
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(2n)).context;
+    expect(c.circuits.fib(Ctxt, runtime.FieldElement.create(3n)).result).toEqual(runtime.FieldElement.create(2n))
 });
 
 test('Check fib 4', () => {
     var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    expect(c.circuits.fib(Ctxt, 4n).result).toEqual(3n)
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(2n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(3n)).context;
+    expect(c.circuits.fib(Ctxt, runtime.FieldElement.create(4n)).result).toEqual(runtime.FieldElement.create(3n))
 });
 
 test('Check fib 5', () => {
     var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    Ctxt = c.circuits.fib(Ctxt, 4n).context;
-    expect(c.circuits.fib(Ctxt, 5n).result).toEqual(5n)
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(2n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(3n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(4n)).context;
+    expect(c.circuits.fib(Ctxt, runtime.FieldElement.create(5n)).result).toEqual(runtime.FieldElement.create(5n))
 });
 
 test('Check fib 0', () => {
     const [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    expect(c.circuits.fib(Ctxt, 1n).result).toEqual(0n)
+    expect(c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).result).toEqual(runtime.FieldElement.create(0n))
 });
 
 test('Check fib 6', () => {
     var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    Ctxt = c.circuits.fib(Ctxt, 4n).context;
-    Ctxt = c.circuits.fib(Ctxt, 5n).context;
-    expect(c.circuits.fib(Ctxt, 6n).result).toEqual(8n)
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(2n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(3n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(4n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(5n)).context;
+    expect(c.circuits.fib(Ctxt, runtime.FieldElement.create(6n)).result).toEqual(runtime.FieldElement.create(8n))
 });
 
 test('Check fib reset to 1', () => {
     var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    Ctxt = c.circuits.fib(Ctxt, 4n).context;
-    Ctxt = c.circuits.fib(Ctxt, 5n).context;
-    expect(c.circuits.fib(Ctxt, 1n).result).toEqual(0n)
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(2n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(3n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(4n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(5n)).context;
+    expect(c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).result).toEqual(runtime.FieldElement.create(0n))
 });
 
 test('Check fib reset to 1', () => {
     var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    Ctxt = c.circuits.fib(Ctxt, 4n).context;
-    Ctxt = c.circuits.fib(Ctxt, 5n).context;
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    expect(c.circuits.fib(Ctxt, 2n).result).toEqual(1n)
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(2n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(3n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(4n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(5n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    expect(c.circuits.fib(Ctxt, runtime.FieldElement.create(2n)).result).toEqual(runtime.FieldElement.create(1n))
 });
 
 test('Check c > counter + 1', () => {
     var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    Ctxt = c.circuits.fib(Ctxt, 3n).context;
-    Ctxt = c.circuits.fib(Ctxt, 4n).context;
-    Ctxt = c.circuits.fib(Ctxt, 5n).context;
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    expect(() => c.circuits.fib(Ctxt, 3n).result).toThrow(runtime.CompactError)
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(2n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(3n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(4n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(5n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    expect(() => c.circuits.fib(Ctxt, runtime.FieldElement.create(3n)).result).toThrow(runtime.CompactError)
 });
 
 test('Check c > counter + 1', () => {
     var [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib(Ctxt, 1n).context;
-    Ctxt = c.circuits.fib(Ctxt, 2n).context;
-    expect(() => c.circuits.fib(Ctxt, 4n).result).toThrow('invalid fib num requested')
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(1n)).context;
+    Ctxt = c.circuits.fib(Ctxt, runtime.FieldElement.create(2n)).context;
+    expect(() => c.circuits.fib(Ctxt, runtime.FieldElement.create(4n)).result).toThrow('invalid fib num requested')
 });
-
-

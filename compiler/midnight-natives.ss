@@ -46,29 +46,29 @@
   (Bytes 32))
 
 (declare-native-entry circuit jubjubPointX
-  "__compactRuntime.jubjubPointX"
+  "@x"
   ([np (TypeRef JubjubPoint) (discloses "the X coordinate of")])
   Field)
 
 (declare-native-entry circuit jubjubPointY
-  "__compactRuntime.jubjubPointY"
+  "@y"
   ([np (TypeRef JubjubPoint) (discloses "the Y coordinate of")])
   Field)
 
 (declare-native-entry circuit ecAdd
-  "__compactRuntime.ecAdd"
+  ".add"
   ([a (TypeRef JubjubPoint) (discloses "an elliptic curve sum including")]
    [b (TypeRef JubjubPoint) (discloses "an elliptic curve sum including")])
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit ecMul
-  "__compactRuntime.ecMul"
+  ".mul"
   ([a (TypeRef JubjubPoint) (discloses "an elliptic curve product including")]
    [b Field (discloses "an elliptic curve product including")])
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit ecMulGenerator
-  "__compactRuntime.ecMulGenerator"
+  "__compactRuntime.JubjubPoint.mulGenerator"
   ([b Field (discloses "the product of the embedded group generator with")])
   (TypeRef JubjubPoint))
 
@@ -78,7 +78,7 @@
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit constructJubjubPoint
-  "__compactRuntime.constructJubjubPoint"
+  "__compactRuntime.JubjubPoint.create"
   ([x Field (discloses "a JubjubPoint containing x coordinate")]
    [y Field (discloses "a JubjubPoint containing y coordinate")])
   (TypeRef JubjubPoint))

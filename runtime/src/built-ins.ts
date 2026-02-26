@@ -14,49 +14,9 @@
 // limitations under the License.
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
-import { MAX_FIELD } from './constants.js';
-import { CompactType, CompactTypeJubjubPoint, JubjubPoint } from './compact-types.js';
+import { CompactType } from './compact-types.js';
+import { JubjubPoint, FieldElement } from './curves.js';
 import { CompactError } from './error.js';
-
-const FIELD_MODULUS: bigint = MAX_FIELD + 1n;
-
-/**
- * Field addition
- * returns the result of adding x and y, wrapping if necessary
- * x and y are assumed to be values in the range [0, FIELD_MODULUS)
- */
-export function addField(x: bigint, y: bigint): bigint {
-  const t = x + y;
-  // effectively mod(x + y, FIELD_MODULUS) for x and y in the assumed range
-  // (x + y) % FIELD_MODULUS would also work but would likely be more expensive
-  return t < FIELD_MODULUS ? t : t - FIELD_MODULUS;
-}
-
-/**
- * Field subtraction
- * returns the result of subtracting y from x, wrapping if necessary
- * x and y are assumed to be values in the range [0, FIELD_MODULUS)
- */
-export function subField(x: bigint, y: bigint): bigint {
-  // effectively mod(x - y, FIELD_MODULUS) for x and y in the assumed range
-  // NB: JavaScript % implements remainder rather than modulus, so
-  // (x - y) % FIELD_MODULUS would return an incorrect value for negative values of x - y.
-  // also, any implementation involving % would likely be more expensive
-  const t = x - y;
-  return t >= 0 ? t : t + FIELD_MODULUS;
-}
-
-/**
- * Field multiplication
- * returns the result of multipying x and y, wrapping if necessary
- * x and y are assumed to be values in the range [0, FIELD_MODULUS)
- */
-export function mulField(x: bigint, y: bigint): bigint {
-  // effectively mod(x * y, FIELD_MODULUS) for x and y in the assumed range
-  // (although JavaScript % implements remainder rather than modulo, remainder
-  // and modulo coincide for nonnegative inputs)
-  return (x * y) % FIELD_MODULUS;
-}
 
 /**
  * The Compact builtin `transient_hash` function
@@ -66,8 +26,8 @@ export function mulField(x: bigint, y: bigint): bigint {
  * It should not be used to derive state data, but can be used for consistency
  * checks.
  */
-export function transientHash<A>(rtType: CompactType<A>, value: A): bigint {
-  return ocrt.valueToBigInt(ocrt.transientHash(rtType.alignment(), rtType.toValue(value)));
+export function transientHash<A>(rtType: CompactType<A>, value: A): FieldElement {
+  return FieldElement.fromValue(ocrt.transientHash(rtType.alignment(), rtType.toValue(value)));
 }
 
 /**
@@ -81,8 +41,8 @@ export function transientHash<A>(rtType: CompactType<A>, value: A): bigint {
  *
  * @throws If `opening` is out of range for field elements
  */
-export function transientCommit<A>(rtType: CompactType<A>, value: A, opening: bigint): bigint {
-  return ocrt.valueToBigInt(ocrt.transientCommit(rtType.alignment(), rtType.toValue(value), ocrt.bigIntToValue(opening)));
+export function transientCommit<A>(rtType: CompactType<A>, value: A, opening: FieldElement): FieldElement {
+  return FieldElement.fromValue(ocrt.transientCommit(rtType.alignment(), rtType.toValue(value), ocrt.bigIntToValue(opening.value)));
 }
 
 /**
@@ -139,11 +99,11 @@ export function persistentCommit<A>(rtType: CompactType<A>, value: A, opening: U
  *
  * @throws If `x` is not 32 bytes long
  */
-export function degradeToTransient(x: Uint8Array): bigint {
+export function degradeToTransient(x: Uint8Array): FieldElement {
   if (x.length != 32) {
     throw new CompactError('Expected 32-byte string');
   }
-  return ocrt.valueToBigInt(ocrt.degradeToTransient([x]));
+  return FieldElement.fromValue(ocrt.degradeToTransient([x]));
 }
 
 /**
@@ -155,23 +115,11 @@ export function degradeToTransient(x: Uint8Array): bigint {
  *
  * @throws If `x` is not a valid field element
  */
-export function upgradeFromTransient(x: bigint): Uint8Array {
-  const wrapped = ocrt.upgradeFromTransient(ocrt.bigIntToValue(x))[0];
+export function upgradeFromTransient(x: FieldElement): Uint8Array {
+  const wrapped = ocrt.upgradeFromTransient(ocrt.bigIntToValue(x.value))[0];
   const res = new Uint8Array(32);
   res.set(wrapped, 0);
   return res;
-}
-
-export function jubjubPointX(pt: JubjubPoint): bigint {
-  return pt.x;
-}
-
-export function jubjubPointY(pt: JubjubPoint): bigint {
-  return pt.y;
-}
-
-export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
-    return { x: x, y: y };
 }
 
 /**
@@ -188,36 +136,7 @@ export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
  * field-aligned binary representation.
  */
 export function hashToCurve<A>(rtType: CompactType<A>, x: A): JubjubPoint {
-  return CompactTypeJubjubPoint.fromValue(ocrt.hashToCurve(rtType.alignment(), rtType.toValue(x)));
-}
-
-/**
- * The Compact builtin `ec_add` function
- *
- * This function add two elliptic curve points (in multiplicative notation)
- */
-export function ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint {
-  return CompactTypeJubjubPoint.fromValue(ocrt.ecAdd(CompactTypeJubjubPoint.toValue(a), CompactTypeJubjubPoint.toValue(b)));
-}
-
-/**
- * The Compact builtin `ec_mul` function
- *
- * This function multiplies an elliptic curve point by a scalar (in
- * multiplicative notation)
- */
-export function ecMul(a: JubjubPoint, b: bigint): JubjubPoint {
-  return CompactTypeJubjubPoint.fromValue(ocrt.ecMul(CompactTypeJubjubPoint.toValue(a), ocrt.bigIntToValue(b)));
-}
-
-/**
- * The Compact builtin `ec_mul_generator` function
- *
- * This function multiplies the primary group generator of the embedded curve
- * by a scalar (in multiplicative notation)
- */
-export function ecMulGenerator(b: bigint): JubjubPoint {
-  return CompactTypeJubjubPoint.fromValue(ocrt.ecMulGenerator(ocrt.bigIntToValue(b)));
+  return JubjubPoint.fromValue(ocrt.hashToCurve(rtType.alignment(), rtType.toValue(x)));
 }
 
 /**

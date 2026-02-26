@@ -18,41 +18,41 @@ const witnesses = {
 };
 
 test('Check for initial get', () => {
-  const [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
-  expect(c.circuits.get(Ctxt).result).toEqual({ is_some: true, value: 64n })
+  const [c, Ctxt] = startContract(contractCode, witnesses, 0, runtime.FieldElement.create(64n));
+  expect(c.circuits.get(Ctxt).result).toEqual({ is_some: true, value: runtime.FieldElement.create(64n) })
 });
 
 test('Check for clear, set, get', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
+  var [c, Ctxt] = startContract(contractCode, witnesses, 0, runtime.FieldElement.create(64n));
   Ctxt = c.circuits.clear(Ctxt).context;
-  Ctxt = c.circuits.set(Ctxt, 5n).context;
+  Ctxt = c.circuits.set(Ctxt, runtime.FieldElement.create(5n)).context;
   var q = c.circuits.get(Ctxt).result;
-  expect(q).toEqual({ is_some: true, value: 5n })
+  expect(q).toEqual({ is_some: true, value: runtime.FieldElement.create(5n) })
 });
 
 test('Check for clear, set, set', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
+  var [c, Ctxt] = startContract(contractCode, witnesses, 0, runtime.FieldElement.create(64n));
   Ctxt = c.circuits.clear(Ctxt).context;
-  Ctxt = c.circuits.set(Ctxt, 5n).context;
-  expect(() => c.circuits.set(Ctxt, 7n)).toThrow(runtime.CompactError);
+  Ctxt = c.circuits.set(Ctxt, runtime.FieldElement.create(5n)).context;
+  expect(() => c.circuits.set(Ctxt, runtime.FieldElement.create(7n))).toThrow(runtime.CompactError);
 });
 
 test('Check for clear, get', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
+  var [c, Ctxt] = startContract(contractCode, witnesses, 0, runtime.FieldElement.create(64n));
   Ctxt = c.circuits.clear(Ctxt).context;
-  expect(c.circuits.get(Ctxt).result).toEqual({ is_some: false, value: 0n })
+  expect(c.circuits.get(Ctxt).result).toEqual({ is_some: false, value: runtime.FieldElement.create(0n) })
 });
 
 test('Check with actually big int', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
+  var [c, Ctxt] = startContract(contractCode, witnesses, 0, runtime.FieldElement.create(64n));
   Ctxt = c.circuits.clear(Ctxt).context;
-  const n = 1000000000000000000000000n
+  const n = runtime.FieldElement.create(1000000000000000000000000n)
   Ctxt = c.circuits.set(Ctxt, n).context;
   expect(c.circuits.get(Ctxt).result).toEqual({ is_some: true, value: n });
 });
 
 test('Check resulting proofData', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
+  var [c, Ctxt] = startContract(contractCode, witnesses, 0, runtime.FieldElement.create(64n));
   expect(c.circuits.get(Ctxt).proofData).toEqual(
     {
       "input":
@@ -97,7 +97,7 @@ test('Check resulting proofData', () => {
 });
 
 test('Check ledger inspection', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
+  var [c, Ctxt] = startContract(contractCode, witnesses, 0, runtime.FieldElement.create(64n));
   const L = contractCode.ledger(Ctxt.currentQueryContext.state);
-  expect(L.value).toEqual(64n);
+  expect(L.value).toEqual(runtime.FieldElement.create(64n));
 });

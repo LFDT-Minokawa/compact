@@ -15,6 +15,7 @@
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
 import { CompactError } from './error.js';
+import { FieldElement } from './curves.js';
 
 /**
  * A runtime representation of a type in Compact
@@ -40,20 +41,11 @@ export interface CompactType<A> {
 }
 
 /**
- * A point in the embedded elliptic curve. TypeScript representation of the
- * Compact type of the same name
- */
-export interface JubjubPoint {
-  readonly x: bigint;
-  readonly y: bigint;
-}
-
-/**
  * The hash value of a Merkle tree. TypeScript representation of the Compact
  * type of the same name
  */
 export interface MerkleTreeDigest {
-  readonly field: bigint;
+  readonly field: FieldElement;
 }
 
 /**
@@ -93,33 +85,6 @@ export interface Recipient {
 }
 
 /**
- * Runtime type of {@link JubjubPoint}
- */
-export const CompactTypeJubjubPoint: CompactType<JubjubPoint> = {
-  alignment(): ocrt.Alignment {
-    return [
-      { tag: 'atom', value: { tag: 'field' } },
-      { tag: 'atom', value: { tag: 'field' } },
-    ];
-  },
-  fromValue(value: ocrt.Value): JubjubPoint {
-    const x = value.shift();
-    const y = value.shift();
-    if (x == undefined || y == undefined) {
-      throw new CompactError('expected JubjubPoint');
-    } else {
-      return {
-        x: ocrt.valueToBigInt([x]),
-        y: ocrt.valueToBigInt([y]),
-      };
-    }
-  },
-  toValue(value: JubjubPoint): ocrt.Value {
-    return ocrt.bigIntToValue(value.x).concat(ocrt.bigIntToValue(value.y));
-  },
-};
-
-/**
  * Runtime type of {@link MerkleTreeDigest}
  */
 export const CompactTypeMerkleTreeDigest: CompactType<MerkleTreeDigest> = {
@@ -127,15 +92,10 @@ export const CompactTypeMerkleTreeDigest: CompactType<MerkleTreeDigest> = {
     return [{ tag: 'atom', value: { tag: 'field' } }];
   },
   fromValue(value: ocrt.Value): MerkleTreeDigest {
-    const val = value.shift();
-    if (val == undefined) {
-      throw new CompactError('expected MerkleTreeDigest');
-    } else {
-      return { field: ocrt.valueToBigInt([val]) };
-    }
+    return { field: FieldElement.fromValue(value) };
   },
   toValue(value: MerkleTreeDigest): ocrt.Value {
-    return ocrt.bigIntToValue(value.field);
+    return value.field.toValue();
   },
 };
 
@@ -190,26 +150,6 @@ export class CompactTypeMerkleTreePath<A> implements CompactType<MerkleTreePath<
 }
 
 /**
- * Runtime type of the builtin `Field` type
- */
-export const CompactTypeField: CompactType<bigint> = {
-  alignment(): ocrt.Alignment {
-    return [{ tag: 'atom', value: { tag: 'field' } }];
-  },
-  fromValue(value: ocrt.Value): bigint {
-    const val = value.shift();
-    if (val == undefined) {
-      throw new CompactError('expected Field');
-    } else {
-      return ocrt.valueToBigInt([val]);
-    }
-  },
-  toValue(value: bigint): ocrt.Value {
-    return ocrt.bigIntToValue(value);
-  },
-};
-
-/**
  * Runtime type of an enum with a given number of entries
  */
 export class CompactTypeEnum implements CompactType<number> {
@@ -242,7 +182,7 @@ export class CompactTypeEnum implements CompactType<number> {
   }
 
   toValue(value: number): ocrt.Value {
-    return CompactTypeField.toValue(BigInt(value));
+    return FieldElement.create(BigInt(value)).toValue();
   }
 }
 
@@ -279,7 +219,7 @@ export class CompactTypeUnsignedInteger implements CompactType<bigint> {
   }
 
   toValue(value: bigint): ocrt.Value {
-    return CompactTypeField.toValue(value);
+    return FieldElement.create(value).toValue();
   }
 }
 

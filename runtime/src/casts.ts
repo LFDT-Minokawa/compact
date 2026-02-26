@@ -14,23 +14,25 @@
 // limitations under the License.
 
 import { MAX_FIELD } from './constants.js';
+import { FieldElement } from './curves.js';
 import { CompactError } from './error.js';
 
 /**
  * Compiler internal for typecasts
  * @internal
  */
-export function convertFieldToBytes(n: number, x: bigint, src: string): Uint8Array {
-  const x_0 = x;
+export function convertFieldToBytes(n: number, x: FieldElement, src: string): Uint8Array {
+  let v = x.value;
+  const v_0 = v;
   const a = new Uint8Array(n);
   // counting on new Uint8Array setting all elements to zero; those not set are
   // intentionally left with a value of zero
   for (let i = 0; i < n; i++) {
-    a[i] = Number(x & 0xffn);
-    x = x / 0x100n;
-    if (x == 0n) return a;
+    a[i] = Number(v & 0xffn);
+    v = v / 0x100n;
+    if (v == 0n) return a;
   }
-  const msg = `range error at ${src}: Field or Uint value ${x_0} does not fit into ${n} bytes`;
+  const msg = `range error at ${src}: Field or Uint value ${v_0} does not fit into ${n} bytes`;
   throw new CompactError(msg);
 }
 
@@ -38,7 +40,7 @@ export function convertFieldToBytes(n: number, x: bigint, src: string): Uint8Arr
  * Compiler internal for typecasts
  * @internal
  */
-export function convertBytesToField(n: number, a: Uint8Array, src: string): bigint {
+export function convertBytesToField(n: number, a: Uint8Array, src: string): FieldElement {
   let x = 0n;
   for (let i = n - 1; i >= 0; i -= 1) {
     x = x * 0x100n + BigInt(a[i]);
@@ -47,7 +49,7 @@ export function convertBytesToField(n: number, a: Uint8Array, src: string): bigi
       throw new CompactError(msg);
     }
   }
-  return x;
+  return FieldElement.create(x);
 }
 
 /**

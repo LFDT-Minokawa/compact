@@ -37,7 +37,8 @@
     onchain-runtime-v3 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/d36f02ce5988db16c3520fef7ab7cfd1d3231af5";
+      # NOTE: temporarily pointing to local midnight-ledger for development
+      url = "git+file:///Users/josephdenman/IdeaProjects/midnight-ledger";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {

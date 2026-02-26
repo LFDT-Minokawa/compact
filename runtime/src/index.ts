@@ -15,6 +15,7 @@
 
 export * from './version.js';
 export * from './compact-types.js';
+export * from './curves.js';
 export * from './built-ins.js';
 export * from './casts.js';
 export * from './error.js';

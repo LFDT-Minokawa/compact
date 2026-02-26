@@ -786,6 +786,7 @@ groups than for single tests.
                     (lambda (s) (put-string javascript-op s))
                     '(
                       "import * as runtime from '@midnight-ntwrk/compact-runtime';\n"
+                      "import { FieldElement as Field } from '@midnight-ntwrk/compact-runtime';\n"
                       "import { startContract, flushProofChecks } from './util.js';\n"
                       "import { describe, expect, test, afterEach } from 'vitest';\n"
                       "\n"
@@ -63675,11 +63676,11 @@ groups than for single tests.
          ; each contract should be visible under its contractCode name
          "test('check 1', () => {"
          "  const [C, Ctxt] = startContract(contractCode1, {}, 0);"
-         "  expect(C.circuits.foo(Ctxt).result).toEqual(3n);"
+         "  expect(C.circuits.foo(Ctxt).result.value).toEqual(3n);"
          "});"
          "test('check 2', () => {"
          "  const [C, Ctxt] = startContract(contractCode2, {}, 0);"
-         "  expect(C.circuits.foo(Ctxt).result).toEqual(7n);"
+         "  expect(C.circuits.foo(Ctxt).result.value).toEqual(7n);"
          "});"
          )))
     )
@@ -63830,11 +63831,12 @@ groups than for single tests.
         "}"
         ""
         "export type PureCircuits = {"
-        "  bar(n_0: bigint): bigint;"
+        "  bar(n_0: __compactRuntime.FieldElement): __compactRuntime.FieldElement;"
         "}"
         ""
         "export type Circuits<PS> = {"
-        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "  bar(context: __compactRuntime.CircuitContext<PS>,"
+        "      n_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "}"
         ""
         "export type Ledger = {"
@@ -63859,8 +63861,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 5n).result).toEqual(6n);"
-        "  expect(contractCode.pureCircuits.bar(5n)).toEqual(6n);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(5n)).result.value).toEqual(6n);"
+        "  expect(contractCode.pureCircuits.bar(Field.create(5n)).value).toEqual(6n);"
         "  });"
         ))
     )
@@ -63912,11 +63914,12 @@ groups than for single tests.
         "}"
         ""
         "export type PureCircuits = {"
-        "  bar(n_0: bigint): bigint;"
+        "  bar(n_0: __compactRuntime.FieldElement): __compactRuntime.FieldElement;"
         "}"
         ""
         "export type Circuits<PS> = {"
-        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "  bar(context: __compactRuntime.CircuitContext<PS>,"
+        "      n_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "}"
         ""
         "export type Ledger = {"
@@ -63941,7 +63944,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 5n).result).toEqual(6n);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(5n)).result).toEqual(Field.create(6n));"
         "  });"
         ))
     )
@@ -64035,7 +64038,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 5n).result).toEqual(3n);"
+        "  expect(C.circuits.bar(Ctxt, 5n).result.value).toEqual(3n);"
         "  });"
         ))
     )
@@ -64129,7 +64132,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 5n).result).toEqual(3n);"
+        "  expect(C.circuits.bar(Ctxt, 5n).result.value).toEqual(3n);"
         "  });"
         ))
     )
@@ -64246,8 +64249,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 4n, 5n).result).toEqual(true);"
-        "  expect(C.circuits.foo(Ctxt, 4n, 4n).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(4n), Field.create(5n)).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(4n), Field.create(4n)).result).toEqual(false);"
         "  });"
         ))
     )
@@ -64263,7 +64266,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, [1n, 2n], [1n, 5n]).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, [Field.create(1n), Field.create(2n)], [Field.create(1n), Field.create(5n)]).result).toEqual(true);"
         "  });"
         ))
     )
@@ -64280,7 +64283,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 1n, f2: true}).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, {f1: Field.create(1n), f2: true}, {f1: Field.create(1n), f2: true}).result).toEqual(false);"
         "  });"
         ))
     )
@@ -64312,8 +64315,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 4n, 5n).result).toEqual(false);"
-        "  expect(C.circuits.foo(Ctxt, 4n, 4n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(4n), Field.create(5n)).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(4n), Field.create(4n)).result).toEqual(true);"
         "  });"
         ))
     )
@@ -64329,8 +64332,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, [1n, 2n], [1n, 5n]).result).toEqual(false);"
-        "  expect(C.circuits.foo(Ctxt, [1n, 2n], [1n, 2n]).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, [Field.create(1n), Field.create(2n)], [Field.create(1n), Field.create(5n)]).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, [Field.create(1n), Field.create(2n)], [Field.create(1n), Field.create(2n)]).result).toEqual(true);"
         "  });"
         ))
     )
@@ -64347,9 +64350,9 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 1n, f2: true}).result).toEqual(true);"
-        "  expect(C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 1n, f2: false}).result).toEqual(false);"
-        "  expect(C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 2n, f2: true}).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, {f1: Field.create(1n), f2: true}, {f1: Field.create(1n), f2: true}).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, {f1: Field.create(1n), f2: true}, {f1: Field.create(1n), f2: false}).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, {f1: Field.create(1n), f2: true}, {f1: Field.create(2n), f2: true}).result).toEqual(false);"
         "  });"
         ))
     )
@@ -64433,7 +64436,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 10n).result).toEqual(9n);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(10n)).result.value).toEqual(9n);"
         "});"
         ))
     )
@@ -64452,7 +64455,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 5n).result).toEqual(6n);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(5n)).result.value).toEqual(6n);"
         "});"
         ))
     )
@@ -64471,7 +64474,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 2n).result).toEqual(360n);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(2n)).result.value).toEqual(360n);"
         "});"
         ))
     )
@@ -64489,7 +64492,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 2n).result).toEqual(36n);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(2n)).result.value).toEqual(36n);"
         "});"
         ))
     )
@@ -64526,11 +64529,11 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true, 3n).result).toEqual(6n);"
+        "  expect(C.circuits.foo(Ctxt, true, Field.create(3n)).result.value).toEqual(6n);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, false, 3n).result).toEqual(4n);"
+        "  expect(C.circuits.foo(Ctxt, false, Field.create(3n)).result.value).toEqual(4n);"
         "});"
         ))
     )
@@ -64548,7 +64551,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true]).result).toEqual([ 4n,  4n,  6n, 12n, 12n, 18n, 20n ]);"
+        "  expect(C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n].map(Field.create), [true, false, false, true, false, true, true]).result.map((v: runtime.Field) => v.value)).toEqual([ 4n,  4n,  6n, 12n, 12n, 18n, 20n ]);"
         "});"
         ))
     )
@@ -64566,50 +64569,50 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true]).result).toEqual([ 5n,  3n,  5n, 13n, 11n, 19n, 21n ]);"
+        "  expect(C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n].map(Field.create), [true, false, false, true, false, true, true]).result.map((v: runtime.Field) => v.value)).toEqual([ 5n,  3n,  5n, 13n, 11n, 19n, 21n ]);"
         "});"
         "test('check 2a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.bar(Ctxt, <any>[3n,5n,7n,11n,13n,17,19n], [true, false, false, true, false, true, true])).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.bar(Ctxt, <any>[3n,5n,7n,11n,13n,17,19n].map((v: any) => Field.create(v)), [true, false, false, true, false, true, true])).toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.bar(Ctxt, <any>[3n,5n,7n,11n,13n,17,19n], [true, false, false, true, false, true, true])).toThrow(/type error: bar argument 1 at testfile\\.compact line 4 char 1; expected value of type Vector<7, Field> but received/);"
+        "  expect(() => C.circuits.bar(Ctxt, <any>[3n,5n,7n,11n,13n,17,19n].map((v: any) => Field.create(v)), [true, false, false, true, false, true, true])).toThrow(/type error: bar argument 1 at testfile\\.compact line 4 char 1; expected value of type Vector<7, Field> but received/);"
         "});"
         "test('check 3a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], <any>[true, false, false, true, 13, true, true])).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n].map(Field.create), <any>[true, false, false, true, 13, true, true])).toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], <any>[true, false, false, true, 13, true, true])).toThrow(/type error: bar argument 2 at testfile\\.compact line 4 char 1; expected value of type Vector<7, Boolean> but received/);"
+        "  expect(() => C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n].map(Field.create), <any>[true, false, false, true, 13, true, true])).toThrow(/type error: bar argument 2 at testfile\\.compact line 4 char 1; expected value of type Vector<7, Boolean> but received/);"
         "});"
         "test('check 4a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => (<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n])).toThrow(runtime.CompactError);"
+        "  expect(() => (<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n].map(Field.create))).toThrow(runtime.CompactError);"
         "});"
         "test('check 4b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => (<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n])).toThrow('bar: expected 2 arguments (as invoked from Typescript), received 1');"
+        "  expect(() => (<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n].map(Field.create))).toThrow('bar: expected 2 arguments (as invoked from Typescript), received 1');"
         "});"
         "test('check 5a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => (<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true], 'extra!')).toThrow(runtime.CompactError);"
+        "  expect(() => (<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n].map(Field.create), [true, false, false, true, false, true, true], 'extra!')).toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => (<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true], 'extra!')).toThrow('bar: expected 2 arguments (as invoked from Typescript), received 3');"
+        "  expect(() => (<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n].map(Field.create), [true, false, false, true, false, true, true], 'extra!')).toThrow('bar: expected 2 arguments (as invoked from Typescript), received 3');"
         "});"
         ;; "test('check 6a', () => {"
         ;; "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         ;; ;; FIXME this and following fail. expected: null. received: undefined
         ;; "  // @ts-expect-error"
-        ;; "  expect(() => (<any>C.circuits.bar)(7773n, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).toThrow(runtime.CompactError);"
+        ;; "  expect(() => (<any>C.circuits.bar)(7773n, [3n,5n,7n,11n,13n,17n,19n].map(Field.create), [true, false, false, true, false, true, true])).toThrow(runtime.CompactError);"
         ;; "});"
         ;; "test('check 6b', () => {"
         ;; "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         ;; "  // @ts-expect-error"
-        ;; "  expect(() => (<any>C.circuits.bar)(7773n, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).toThrow('type error: bar argument 1 (as invoked from Typescript) at testfile.compact line 4 char 1; expected value of type CircuitContext but received 7773n');"
+        ;; "  expect(() => (<any>C.circuits.bar)(7773n, [3n,5n,7n,11n,13n,17n,19n].map(Field.create), [true, false, false, true, false, true, true])).toThrow('type error: bar argument 1 (as invoked from Typescript) at testfile.compact line 4 char 1; expected value of type CircuitContext but received 7773n');"
         ;; "});"
         ))
     )
@@ -64627,7 +64630,7 @@ groups than for single tests.
         "const contract1 = () => new contractCode.Contract(witnesses1);"
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses1, 0);"
-        "  expect(contract1().circuits.foo(Ctxt).result).toEqual(0x030201n);"
+        "  expect(contract1().circuits.foo(Ctxt).result.value).toEqual(0x030201n);"
         "});"
         "const witnesses2 = { spam({privateState}: runtime.WitnessContext<{}, number>): [number, Uint8Array] { return [privateState, <any>72n]; } };"
         "const contract2 = () => new contractCode.Contract(witnesses2);"
@@ -64676,7 +64679,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true]).result).toEqual(93n);"
+        "  expect(C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n].map(Field.create), [true, false, false, true, false, true, true]).result.value).toEqual(93n);"
         "});"
         ))
     )
@@ -64708,7 +64711,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual([ [ 7n ], [ 11n ], [ 19n ] ]);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual([ [ 7n ], [ 11n ], [ 19n ] ].map((x) => x.map(Field.create)));"
         "});"
         ))
     )
@@ -64725,7 +64728,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual({ x: 23n, y: 31n });"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual({ x: Field.create(23n), y: Field.create(31n) });"
         "});"
         ))
     )
@@ -64740,18 +64743,20 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = { W(private_state: any, x: {x: bigint, y: bigint}): [any, {x: bigint, y: bigint}] { return [private_state, {x: x.x + 1n, y: x.y + 1n}]; }};"
+        "const witnesses = { W(private_state: any, x: {x: Field, y: Field}): [any, {x: Field, y: Field}] {"
+        "   return [private_state, {x: x.x.add(Field.create(1n)), y: x.y.add(Field.create(1n))}];"
+        "}};"
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 4n}).result).toEqual({ x: 4n, y: 5n });"
+        "  expect(C.circuits.foo(Ctxt, {x: Field.create(3n), y: Field.create(4n)}).result).toEqual({ x: Field.create(4n), y: Field.create(5n) });"
         "});"
         "test('check 2a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, <any>{y: 7n})).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(Ctxt, <any>{y: Field.create(7n)})).toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, <any>{y: 7n})).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type struct S<x: Field, y: Field> but received { y: 7n }');"
+        "  expect(() => C.circuits.foo(Ctxt, <any>{y: Field.create(7n)})).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type struct S<x: Field, y: Field> but received { y: 7n }');"
         "});"
         ))
     )
@@ -64766,18 +64771,18 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = { state(private_state: any, x: {x: bigint, y: bigint}): [any, {x: bigint, y: bigint}] { return [private_state, {x: x.x + 1n, y: x.y + 1n}]; }};"
+        "const witnesses = { state(private_state: any, x: {x: Field, y: Field}): [any, {x: Field, y: Field}] { return [private_state, {x: x.x.add(Field.create(1n)), y: x.y.add(Field.create(1n))}]; }};"
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 4n}).result).toEqual({ x: 4n, y: 5n });"
+        "  expect(C.circuits.foo(Ctxt, {x: Field.create(3n), y: Field.create(4n)}).result).toEqual({ x: Field.create(4n), y: Field.create(5n) });"
         "});"
         "test('check 2a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, <any>{y: 7n})).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(Ctxt, <any>{y: Field.create(7n)})).toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, <any>{y: 7n})).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type struct S<x: Field, y: Field> but received { y: 7n }');"
+        "  expect(() => C.circuits.foo(Ctxt, <any>{y: Field.create(7n)})).toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type struct S<x: Field, y: Field> but received { y: 7n }');"
         "});"
         ))
     )
@@ -64809,15 +64814,15 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 17n).result).toEqual([]);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(17n)).result).toEqual([]);"
         "});"
         "test('check 2a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, 19n)).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(Ctxt, Field.create(19n))).toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, 19n)).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(Ctxt, Field.create(19n))).toThrow('failed assert: oops');"
         "});"
         "test('check 3a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
@@ -64843,15 +64848,15 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 17n).result).toEqual(22n);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(17n)).result).toEqual(Field.create(22n));"
         "});"
         "test('check 2a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.bar(Ctxt, 19n)).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.bar(Ctxt, Field.create(19n))).toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.bar(Ctxt, 19n)).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.bar(Ctxt, Field.create(19n))).toThrow('failed assert: oops');"
         "});"
         "test('check 3a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
@@ -64877,15 +64882,15 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 17n).result).toEqual(220n);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(17n)).result).toEqual(Field.create(220n));"
         "});"
         "test('check 2a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.bar(Ctxt, 19n)).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.bar(Ctxt, Field.create(19n))).toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.bar(Ctxt, 19n)).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.bar(Ctxt, Field.create(19n))).toThrow('failed assert: oops');"
         "});"
         "test('check 3a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
@@ -64915,7 +64920,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 53n).result).toEqual(53n);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(53n)).result).toEqual(Field.create(53n));"
         "});"
         "test('check 2a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
@@ -64955,28 +64960,28 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 1, {a: 91, b: true}, {a: 97, b: false}).result).toEqual(0n);"
+        "  expect(C.circuits.foo(Ctxt, 1, {a: 91, b: true}, {a: 97, b: false}).result).toEqual(Field.create(0n));"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 2, {a: 91, b: true}, {a: 97, b: false}).result).toEqual(1n);"
+        "  expect(C.circuits.foo(Ctxt, 2, {a: 91, b: true}, {a: 97, b: false}).result).toEqual(Field.create(1n));"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0, {a: 91, b: true}, {a: 97, b: true}).result).toEqual(0n);"
+        "  expect(C.circuits.foo(Ctxt, 0, {a: 91, b: true}, {a: 97, b: true}).result).toEqual(Field.create(0n));"
         "});"
         "test('check 4', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 2, {a: 91, b: true}, {a: 91, b: true}).result).toEqual(1n);"
+        "  expect(C.circuits.foo(Ctxt, 2, {a: 91, b: true}, {a: 91, b: true}).result).toEqual(Field.create(1n));"
         "});"
         "const x = {a: 91, b: true};"
         "test('check 5', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 3, x, x).result).toEqual(2n);"
+        "  expect(C.circuits.foo(Ctxt, 3, x, x).result).toEqual(Field.create(2n));"
         "});"
         "test('check 6', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 2, x, x).result).toEqual(3n);"
+        "  expect(C.circuits.foo(Ctxt, 2, x, x).result).toEqual(Field.create(3n));"
         "});"
         "test('check 7a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
@@ -65015,19 +65020,19 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, false, false).result).toEqual(17n);"
+        "  expect(C.circuits.foo(Ctxt, false, false).result).toEqual(Field.create(17n));"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, false, true).result).toEqual(23n);"
+        "  expect(C.circuits.foo(Ctxt, false, true).result).toEqual(Field.create(23n));"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true, false).result).toEqual(23n);"
+        "  expect(C.circuits.foo(Ctxt, true, false).result).toEqual(Field.create(23n));"
         "});"
         "test('check 4', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true, true).result).toEqual(17n);"
+        "  expect(C.circuits.foo(Ctxt, true, true).result).toEqual(Field.create(17n));"
         "});"
         ))
     )
@@ -65059,7 +65064,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar1(Ctxt, {a: 3, b: true}, 73n).result).toEqual(true);"
+        "  expect(C.circuits.bar1(Ctxt, {a: 3, b: true}, Field.create(73n)).result).toEqual(true);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
@@ -65087,7 +65092,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt).result).toEqual(1n);"
+        "  expect(C.circuits.bar(Ctxt).result).toEqual(Field.create(1n));"
         "});"
         ))
     )
@@ -65121,19 +65126,19 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 0n).result).toEqual([]);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(0n)).result).toEqual([]);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 1n).result).toEqual([]);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(1n)).result).toEqual([]);"
         "});"
         "test('check 3a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.bar(Ctxt, 2n)).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.bar(Ctxt, Field.create(2n))).toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.bar(Ctxt, 2n)).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.bar(Ctxt, Field.create(2n))).toThrow('failed assert: oops');"
         "});"
         ))
     )
@@ -65267,7 +65272,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 7n).result).toEqual(7n);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(7n)).result).toEqual(Field.create(7n));"
         "});"
         ))
     )
@@ -65282,19 +65287,19 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, false, false).result).toEqual(170n);"
+        "  expect(C.circuits.foo(Ctxt, false, false).result).toEqual(Field.create(170n));"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, false, true).result).toEqual(110n);"
+        "  expect(C.circuits.foo(Ctxt, false, true).result).toEqual(Field.create(110n));"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true, false).result).toEqual(170n);"
+        "  expect(C.circuits.foo(Ctxt, true, false).result).toEqual(Field.create(170n));"
         "});"
         "test('check 4', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true, true).result).toEqual(70n);"
+        "  expect(C.circuits.foo(Ctxt, true, true).result).toEqual(Field.create(70n));"
         "});"
         ))
     )
@@ -65309,15 +65314,15 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 3n, 3n, 3n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(3n), Field.create(3n), Field.create(3n)).result).toEqual(true);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 3n, 4n, 4n).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(3n), Field.create(4n), Field.create(4n)).result).toEqual(false);"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 3n, 4n, 5n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(3n), Field.create(4n), Field.create(5n)).result).toEqual(true);"
         "});"
         ))
     )
@@ -65332,19 +65337,19 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 1n, 2n, 3n).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(1n), Field.create(2n), Field.create(3n)).result).toEqual(false);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0n, 2n, 3n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(0n), Field.create(2n), Field.create(3n)).result).toEqual(true);"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 1n, 0n, 3n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(1n), Field.create(0n), Field.create(3n)).result).toEqual(true);"
         "});"
         "test('check 4', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0n, 0n, 3n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(0n), Field.create(0n), Field.create(3n)).result).toEqual(true);"
         "});"
         ))
     )
@@ -65359,19 +65364,19 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 1n, 2n, 3n).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(1n), Field.create(2n), Field.create(3n)).result).toEqual(false);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0n, 2n, 3n).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(0n), Field.create(2n), Field.create(3n)).result).toEqual(false);"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 1n, 0n, 3n).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(1n), Field.create(0n), Field.create(3n)).result).toEqual(false);"
         "});"
         "test('check 4', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0n, 0n, 3n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(0n), Field.create(0n), Field.create(3n)).result).toEqual(true);"
         "});"
         ))
     )
@@ -65386,19 +65391,19 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 1n, 2n, 3n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(1n), Field.create(2n), Field.create(3n)).result).toEqual(true);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0n, 2n, 3n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(0n), Field.create(2n), Field.create(3n)).result).toEqual(true);"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 1n, 0n, 3n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(1n), Field.create(0n), Field.create(3n)).result).toEqual(true);"
         "});"
         "test('check 4', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0n, 0n, 3n).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(0n), Field.create(0n), Field.create(3n)).result).toEqual(false);"
         "});"
         ))
     )
@@ -65413,19 +65418,19 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 4n).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(4n)).result).toEqual(false);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 5n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(5n)).result).toEqual(true);"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 6n).result).toEqual(true);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(6n)).result).toEqual(true);"
         "});"
         "test('check 4', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 7n).result).toEqual(false);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(7n)).result).toEqual(false);"
         "});"
         ))
     )
@@ -65440,7 +65445,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 5n).result).toEqual([ 5n, 15n, 35n ]);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(5n)).result).toEqual([ Field.create(5n), Field.create(15n), Field.create(35n) ]);"
         "});"
         ))
     )
@@ -65451,7 +65456,7 @@ groups than for single tests.
       )
     (stage-javascript
       `(
-        ,(format "test('check 1', () => { const [C, Ctxt] = startContract(contractCode, {}, 0); expect(C.circuits.baz(Ctxt, new Uint8Array([1, 2, 3, 4, 5])).result).toEqual(~dn) });" #x0504030201)
+        ,(format "test('check 1', () => { const [C, Ctxt] = startContract(contractCode, {}, 0); expect(C.circuits.baz(Ctxt, new Uint8Array([1, 2, 3, 4, 5])).result).toEqual(Field.create(~dn)) });" #x0504030201)
         ))
     )
 
@@ -65461,7 +65466,7 @@ groups than for single tests.
       )
     (stage-javascript
       `(
-        ,(format "test('check 1', () => { const [C, Ctxt] = startContract(contractCode, {}, 0); expect(C.circuits.baz(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).result).toEqual(~dn) });" #x09080706)
+        ,(format "test('check 1', () => { const [C, Ctxt] = startContract(contractCode, {}, 0); expect(C.circuits.baz(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).result).toEqual(Field.create(~dn)) });" #x09080706)
         "test('check 2a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  expect(() => C.circuits.baz(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow(runtime.CompactError);"
@@ -65481,11 +65486,11 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.baz(Ctxt, true).result).toEqual(1n);"
+        "  expect(C.circuits.baz(Ctxt, true).result).toEqual(Field.create(1n));"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.baz(Ctxt, false).result).toEqual(0n);"
+        "  expect(C.circuits.baz(Ctxt, false).result).toEqual(Field.create(0n));"
         "});"
         ))
     )
@@ -65499,15 +65504,15 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.baz(Ctxt, 0).result).toEqual(0n);"
+        "  expect(C.circuits.baz(Ctxt, 0).result).toEqual(Field.create(0n));"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.baz(Ctxt, 1).result).toEqual(1n);"
+        "  expect(C.circuits.baz(Ctxt, 1).result).toEqual(Field.create(1n));"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.baz(Ctxt, 2).result).toEqual(2n);"
+        "  expect(C.circuits.baz(Ctxt, 2).result).toEqual(Field.create(2n));"
         "});"
         ))
     )
@@ -65520,15 +65525,15 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.baz(Ctxt, 1n).result).toEqual(true);"
+        "  expect(C.circuits.baz(Ctxt, Field.create(1n)).result).toEqual(true);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.baz(Ctxt, 0n).result).toEqual(false);"
+        "  expect(C.circuits.baz(Ctxt, Field.create(0n)).result).toEqual(false);"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.baz(Ctxt, 3n).result).toEqual(true);"
+        "  expect(C.circuits.baz(Ctxt, Field.create(3n)).result).toEqual(true);"
         "});"
         ))
     )
@@ -65542,11 +65547,11 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0n).result).toEqual([ 1n ]);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(0n)).result).toEqual([ Field.create(1n) ]);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 7n).result).toEqual([ 2n ]);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(7n)).result).toEqual([ Field.create(2n) ]);"
         "});"
         ))
     )
@@ -65559,15 +65564,15 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0x04030201n).result).toEqual(new Uint8Array([ 1, 2, 3, 4, 0 ]));"
+        "  expect(C.circuits.foo(Ctxt, Field.create(0x04030201n)).result).toEqual(new Uint8Array([ 1, 2, 3, 4, 0 ]));"
         "});"
         "test('check 2a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, 0x060504030201n)).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(Ctxt, Field.create(0x060504030201n))).toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, 0x060504030201n)).toThrow('range error at testfile.compact line 1 char 52: Field or Uint value 6618611909121 does not fit into 5 bytes');"
+        "  expect(() => C.circuits.foo(Ctxt, Field.create(0x060504030201n))).toThrow('range error at testfile.compact line 1 char 52: Field or Uint value 6618611909121 does not fit into 5 bytes');"
         "});"
         ))
     )
@@ -65581,11 +65586,11 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0n).result).toEqual([ 1n ]);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(0n)).result).toEqual([ Field.create(1n) ]);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 7n).result).toEqual([ 2n ]);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(7n)).result).toEqual([ Field.create(2n) ]);"
         "});"
         ))
     )
@@ -65628,7 +65633,7 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual(0n);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(Field.create(0n));"
         "});"
         ))
     )
@@ -65655,18 +65660,18 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0, true, false);"
-        "  expect(C.circuits.call_foo(Ctxt, 1n, 2n).result).toEqual(true);"
-        "  expect(C.circuits.call_foo(Ctxt, 1n, 2n).result).toEqual(true);"
+        "  expect(C.circuits.call_foo(Ctxt, Field.create(1n), Field.create(2n)).result).toEqual(true);"
+        "  expect(C.circuits.call_foo(Ctxt, Field.create(1n), Field.create(2n)).result).toEqual(true);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0, true, false);"
-        "  expect(() => C.circuits.call_foo(Ctxt, 2n, 7n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.call_foo(Ctxt, 2n, 7n)).toThrow('Error: invalid operation for type');"
+        "  expect(() => C.circuits.call_foo(Ctxt, Field.create(2n), Field.create(7n))).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.call_foo(Ctxt, Field.create(2n), Field.create(7n))).toThrow('Error: invalid operation for type');"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0, true, false);"
-        "  expect(() => C.circuits.call_foo(Ctxt, 1n, 11n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.call_foo(Ctxt, 1n, 11n)).toThrow('Error: expected a cell');"
+        "  expect(() => C.circuits.call_foo(Ctxt, Field.create(1n), Field.create(11n))).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.call_foo(Ctxt, Field.create(1n), Field.create(11n))).toThrow('Error: expected a cell');"
         "});"
         )))
 
@@ -65692,18 +65697,18 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0, [true, false]);"
-        "  expect(C.circuits.call_foo(Ctxt, 1n, 2n).result).toEqual(true);"
-        "  expect(C.circuits.call_foo(Ctxt, 1n, 2n).result).toEqual(true);"
+        "  expect(C.circuits.call_foo(Ctxt, Field.create(1n), Field.create(2n)).result).toEqual(true);"
+        "  expect(C.circuits.call_foo(Ctxt, Field.create(1n), Field.create(2n)).result).toEqual(true);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0, [true, false]);"
-        "  expect(() => C.circuits.call_foo(Ctxt, 2n, 7n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.call_foo(Ctxt, 2n, 7n)).toThrow('Error: invalid operation for type');"
+        "  expect(() => C.circuits.call_foo(Ctxt, Field.create(2n), Field.create(7n))).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.call_foo(Ctxt, Field.create(2n), Field.create(7n))).toThrow('Error: invalid operation for type');"
         "});"
         "test('check 3', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0, [true, false]);"
-        "  expect(() => C.circuits.call_foo(Ctxt, 1n, 11n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.call_foo(Ctxt, 1n, 11n)).toThrow('Error: expected a cell');"
+        "  expect(() => C.circuits.call_foo(Ctxt, Field.create(1n), Field.create(11n))).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.call_foo(Ctxt, Field.create(1n), Field.create(11n))).toThrow('Error: expected a cell');"
         "});"
         )))
 
@@ -65753,7 +65758,7 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0, 91n);"
-        "  expect(C.circuits.foo(Ctxt, new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])).result).toEqual(91n);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])).result).toEqual(Field.create(91n));"
         "});"
         ))
     )
@@ -65782,14 +65787,14 @@ groups than for single tests.
       )
     (stage-javascript
       `(
-        "const witnesses = { merkle_path_root(foo: any): any { return { field: 0n }; } };"
+        "const witnesses = { merkle_path_root(foo: any): any { return { field: Field.create(0n) }; } };"
         "test('check 1a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, 23n, { bar: new Uint8Array(32), baz: false })).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(Ctxt, Field.create(23n), { bar: new Uint8Array(32), baz: false })).toThrow(runtime.CompactError);"
         "});"
         "test('check 1b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, 23n, { bar: new Uint8Array(32), baz: false })).toThrow('expected a cell');"
+        "  expect(() => C.circuits.foo(Ctxt, Field.create(23n), { bar: new Uint8Array(32), baz: false })).toThrow('expected a cell');"
         "});"
         ))
    )
@@ -65819,7 +65824,7 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual(0n);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(Field.create(0n));"
         "});"
         ))
     )
@@ -65929,7 +65934,7 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual({ a: 0n, b: false });"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual({ a: Field.create(0n), b: false });"
         "});"
         ))
     )
@@ -65952,7 +65957,7 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual({a: [{a: [0n, 0n], b: false}, {a: [0n, 0n], b: false}, {a: [0n, 0n], b: false}], c: false});"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual({a: [{a: [Field.create(0n), Field.create(0n)], b: false}, {a: [Field.create(0n), Field.create(0n)], b: false}, {a: [Field.create(0n), Field.create(0n)], b: false}], c: false});"
         "});"
         ))
     )
@@ -66166,18 +66171,18 @@ groups than for single tests.
       "}")
     (stage-javascript
       `(
-        "const w = ({privateState}: runtime.WitnessContext<{}, {n1: bigint, n2: bigint}>) : [{n1: bigint, n2: bigint}, bigint] => {const n = privateState.n1 + privateState.n2; return [{n1: privateState.n2, n2: n}, n];}"
+        "const w = ({privateState}: runtime.WitnessContext<{}, {n1: Field, n2: Field}>) : [{n1: Field, n2: Field}, Field] => {const n = privateState.n1.add(privateState.n2); return [{n1: privateState.n2, n2: n}, n];}"
         "const witnesses = { next_fib: w };"
         "test('check', () => {"
-        "  const [C, Ctxt] = startContract(contractCode, witnesses, {n1 : 1n, n2 : 1n});"
+        "  const [C, Ctxt] = startContract(contractCode, witnesses, {n1 : Field.create(1n), n2 : Field.create(1n)});"
         "  const x = C.circuits.fib(Ctxt);"
-        "  expect(x.result).toEqual(2n);"
+        "  expect(x.result.value).toEqual(2n);"
         "  expect(x.proofData.privateTranscriptOutputs.length).toEqual(1);"
         "  const x2 = C.circuits.fib(x.context);"
-        "  expect(x2.result).toEqual(3n);"
+        "  expect(x2.result.value).toEqual(3n);"
         "  const x3 = C.circuits.fib(x2.context);"
-        "  expect(x3.result).toEqual(5n);"
-        "  expect(C.circuits.fib(Ctxt).result).toEqual(2n);"
+        "  expect(x3.result.value).toEqual(5n);"
+        "  expect(C.circuits.fib(Ctxt).result.value).toEqual(2n);"
         "})"
          )))
 
@@ -66207,12 +66212,12 @@ groups than for single tests.
       "}")
     (stage-javascript
       `(
-        "const w = ({privateState}: runtime.WitnessContext<{}, {n1: bigint, n2: bigint}>) : [{n1: bigint, n2: bigint}, bigint] => {const n = privateState.n1 + privateState.n2; return [{n1: privateState.n2, n2: n}, n];}"
+        "const w = ({privateState}: runtime.WitnessContext<{}, {n1: bigint, n2: bigint}>) : [{n1: bigint, n2: bigint}, runtime.Field] => {const n = privateState.n1 + privateState.n2; return [{n1: privateState.n2, n2: n}, Field.create(n)];}"
         "const witnesses = { next_fib: w };"
         "test('check', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, {n1 : 1n, n2 : 1n});"
         "  const x = C.circuits.fib(Ctxt);"
-        "  expect(x.result.x).toEqual(2n);"
+        "  expect(x.result.x).toEqual(Field.create(2n));"
         "  expect(x.proofData.privateTranscriptOutputs.length).toEqual(2);"
         "})"
          ))
@@ -66251,14 +66256,16 @@ groups than for single tests.
         "}"
         ""
         "export type ImpureCircuits<PS> = {"
-        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, Maybe<bigint>>;"
+        "  set(context: __compactRuntime.CircuitContext<PS>,"
+        "      v_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, Maybe<__compactRuntime.FieldElement>>;"
         "  clear(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
         "}"
         ""
         "export type ProvableCircuits<PS> = {"
-        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, Maybe<bigint>>;"
+        "  set(context: __compactRuntime.CircuitContext<PS>,"
+        "      v_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, Maybe<__compactRuntime.FieldElement>>;"
         "  clear(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
         "}"
         ""
@@ -66267,14 +66274,15 @@ groups than for single tests.
         "}"
         ""
         "export type Circuits<PS> = {"
-        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, Maybe<bigint>>;"
+        "  set(context: __compactRuntime.CircuitContext<PS>,"
+        "      v_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, Maybe<__compactRuntime.FieldElement>>;"
         "  clear(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
         "  public_key(context: __compactRuntime.CircuitContext<PS>, sk_0: Uint8Array): __compactRuntime.CircuitResults<PS, Uint8Array>;"
         "}"
         ""
         "export type Ledger = {"
-        "  readonly value: bigint;"
+        "  readonly value: __compactRuntime.FieldElement;"
         "}"
         ""
         "export type ContractReferenceLocations = any;"
@@ -66287,7 +66295,8 @@ groups than for single tests.
         "  impureCircuits: ImpureCircuits<PS>;"
         "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>, v_0: bigint): __compactRuntime.ConstructorResult<PS>;"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>,"
+        "               v_0: __compactRuntime.FieldElement): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -66299,7 +66308,7 @@ groups than for single tests.
         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ,(format "__compactRuntime.checkRuntimeVersion('~a');" runtime-version-string)
         ""
-        "const _descriptor_0 = __compactRuntime.CompactTypeField;"
+        "const _descriptor_0 = __compactRuntime.FieldElement;"
         ""
         "const _descriptor_1 = new __compactRuntime.CompactTypeBytes(32);"
         ""
@@ -66394,7 +66403,7 @@ groups than for single tests.
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
-        "        if (!(typeof(v_0) === 'bigint' && v_0 >= 0 && v_0 <= __compactRuntime.MAX_FIELD)) {"
+        "        if (!(v_0 instanceof __compactRuntime.FieldElement)) {"
         "          __compactRuntime.typeError('set',"
         "                                     'argument 1 (argument 2 as invoked from Typescript)',"
         "                                     'tiny.compact line 82 char 1',"
@@ -66494,7 +66503,7 @@ groups than for single tests.
         "    if (typeof(constructorContext_0.initialZswapLocalState) !== 'object') {"
         "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript) to be an object`);"
         "    }"
-        "    if (!(typeof(v_0) === 'bigint' && v_0 >= 0 && v_0 <= __compactRuntime.MAX_FIELD)) {"
+        "    if (!(v_0 instanceof __compactRuntime.FieldElement)) {"
         "      __compactRuntime.typeError('Contract state constructor',"
         "                                 'argument 1 (argument 2 as invoked from Typescript)',"
         "                                 'tiny.compact line 55 char 1',"
@@ -66534,7 +66543,7 @@ groups than for single tests.
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
         "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(0n),"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(__compactRuntime.FieldElement.zero()),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
         "                                       { ins: { cached: false, n: 1 } }]);"
         "    __compactRuntime.queryLedgerState(context,"
@@ -66587,7 +66596,9 @@ groups than for single tests.
         "    }"
         "  }"
         "  _some_0(value_0) { return { is_some: true, value: value_0 }; }"
-        "  _none_0() { return { is_some: false, value: 0n }; }"
+        "  _none_0() {"
+        "    return { is_some: false, value: __compactRuntime.FieldElement.zero() };"
+        "  }"
         "  _persistentHash_0(value_0) {"
         "    const result_0 = __compactRuntime.persistentHash(_descriptor_5, value_0);"
         "    return result_0;"
@@ -66717,7 +66728,7 @@ groups than for single tests.
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
         "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(0n),"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(__compactRuntime.FieldElement.zero()),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
         "                                       { ins: { cached: false, n: 1 } }]);"
         "    __compactRuntime.queryLedgerState(context,"
@@ -66804,7 +66815,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC;;GAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -66946,9 +66957,9 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 0n).result).toEqual({ x: 0n, y: 1n });"
-        "  expect(C.circuits.bar(Ctxt, 1n).result).toEqual({ x: 28336281903124990867587793011069573392383982287722241916350956173377953689573n, y: 39385640392217313770878525135509063452020585410343666726093009378539878503883n });"
-        "  expect(C.circuits.foo(Ctxt, C.circuits.bar(Ctxt, 1n).result).result).toEqual({x: 52314913592789878805517974153014629220250507019089108027564561641173449264214n, y: 316401541904675051751671509748590036265704531513998184420066319217098126774n });"
+        "  expect(C.circuits.bar(Ctxt, Field.create(0n)).result).toEqual({ x: Field.create(0n), y: Field.create(1n) });"
+        "  expect(C.circuits.bar(Ctxt, Field.create(1n)).result).toEqual({ x: Field.create(28336281903124990867587793011069573392383982287722241916350956173377953689573n), y: Field.create(39385640392217313770878525135509063452020585410343666726093009378539878503883n) });"
+        "  expect(C.circuits.foo(Ctxt, C.circuits.bar(Ctxt, Field.create(1n)).result).result).toEqual({x: Field.create(52314913592789878805517974153014629220250507019089108027564561641173449264214n), y: Field.create(316401541904675051751671509748590036265704531513998184420066319217098126774n) });"
         "});"
         ))
     )
@@ -67236,11 +67247,12 @@ groups than for single tests.
         "}"
         ""
         "export type PureCircuits = {"
-        "  uno(q_0: Q<bigint>): bigint;"
+        "  uno(q_0: Q<__compactRuntime.FieldElement>): __compactRuntime.FieldElement;"
         "}"
         ""
         "export type Circuits<PS> = {"
-        "  uno(context: __compactRuntime.CircuitContext<PS>, q_0: Q<bigint>): __compactRuntime.CircuitResults<PS, bigint>;"
+        "  uno(context: __compactRuntime.CircuitContext<PS>,"
+        "      q_0: Q<__compactRuntime.FieldElement>): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "}"
         ""
         "export type Ledger = {"
@@ -67290,7 +67302,7 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Q<a> = { x: a[]; y: bigint };"
+        "export type Q<a> = { x: a[]; y: __compactRuntime.FieldElement };"
         ""
         "export type Witnesses<PS> = {"
         "}"
@@ -67418,47 +67430,56 @@ groups than for single tests.
         ""
         "export type Witnesses<PS> = {"
         "  witnesses(context: __compactRuntime.WitnessContext<Ledger, PS>,"
-        "            witnesses_0: bigint): [PS, bigint];"
+        "            witnesses_0: __compactRuntime.FieldElement): [PS, __compactRuntime.FieldElement];"
         "}"
         ""
         "export type ImpureCircuits<PS> = {"
-        "  state(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
-        "  context(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
-        "  transcript(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
-        "  Contract(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "  state(context: __compactRuntime.CircuitContext<PS>,"
+        "        x_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
+        "  context(context: __compactRuntime.CircuitContext<PS>,"
+        "          x_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
+        "  transcript(context: __compactRuntime.CircuitContext<PS>,"
+        "             x_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
+        "  Contract(context: __compactRuntime.CircuitContext<PS>,"
+        "           x_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "  arguments(context: __compactRuntime.CircuitContext<PS>,"
-        "            eval_0: bigint,"
-        "            arguments_0: bigint,"
-        "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "            eval_0: __compactRuntime.FieldElement,"
+        "            arguments_0: __compactRuntime.FieldElement,"
+        "            witnesses_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "}"
         ""
         "export type ProvableCircuits<PS> = {"
         "  arguments(context: __compactRuntime.CircuitContext<PS>,"
-        "            eval_0: bigint,"
-        "            arguments_0: bigint,"
-        "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "            eval_0: __compactRuntime.FieldElement,"
+        "            arguments_0: __compactRuntime.FieldElement,"
+        "            witnesses_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "}"
         ""
         "export type PureCircuits = {"
-        "  functions(Maybe_0: Maybe<bigint>): bigint;"
-        "  finalize(): bigint;"
+        "  functions(Maybe_0: Maybe<__compactRuntime.FieldElement>): __compactRuntime.FieldElement;"
+        "  finalize(): __compactRuntime.FieldElement;"
         "}"
         ""
         "export type Circuits<PS> = {"
-        "  state(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
-        "  context(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
-        "  transcript(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
-        "  Contract(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "  state(context: __compactRuntime.CircuitContext<PS>,"
+        "        x_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
+        "  context(context: __compactRuntime.CircuitContext<PS>,"
+        "          x_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
+        "  transcript(context: __compactRuntime.CircuitContext<PS>,"
+        "             x_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
+        "  Contract(context: __compactRuntime.CircuitContext<PS>,"
+        "           x_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "  arguments(context: __compactRuntime.CircuitContext<PS>,"
-        "            eval_0: bigint,"
-        "            arguments_0: bigint,"
-        "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
-        "  functions(context: __compactRuntime.CircuitContext<PS>, Maybe_0: Maybe<bigint>): __compactRuntime.CircuitResults<PS, bigint>;"
-        "  finalize(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, bigint>;"
+        "            eval_0: __compactRuntime.FieldElement,"
+        "            arguments_0: __compactRuntime.FieldElement,"
+        "            witnesses_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
+        "  functions(context: __compactRuntime.CircuitContext<PS>,"
+        "            Maybe_0: Maybe<__compactRuntime.FieldElement>): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
+        "  finalize(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "}"
         ""
         "export type Ledger = {"
-        "  readonly rat: bigint;"
+        "  readonly rat: __compactRuntime.FieldElement;"
         "}"
         ""
         "export type ContractReferenceLocations = any;"
@@ -67472,21 +67493,21 @@ groups than for single tests.
         "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>,"
-        "               witnesses_0: bigint): __compactRuntime.ConstructorResult<PS>;"
+        "               witnesses_0: __compactRuntime.FieldElement): __compactRuntime.ConstructorResult<PS>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     (stage-javascript
       `(
-        "const witnesses = { witnesses(private_state: any, witnesses: bigint): [any, bigint] { return [private_state, witnesses + 11n]; } };"
+        "const witnesses = { witnesses(private_state: any, witnesses: runtime.Field): [any, runtime.Field] { return [private_state, witnesses.add(runtime.Field.create(11n))]; } };"
         "test('check 1', () => {"
-        "  const [C, Ctxt] = startContract(contractCode, witnesses, 0, 73n);"
-        "  expect(C.circuits.arguments(Ctxt, 11n, 7n, 13n).result).toEqual(132n);"
+        "  const [C, Ctxt] = startContract(contractCode, witnesses, 0, runtime.Field.create(73n));"
+        "  expect(C.circuits.arguments(Ctxt, runtime.Field.create(11n), runtime.Field.create(7n), runtime.Field.create(13n)).result).toEqual(runtime.Field.create(132n));"
         "});"
         "test('check 2', () => {"
-        "  const [C, Ctxt] = startContract(contractCode, witnesses, 0, 73n);"
-        "  expect(C.circuits.finalize(Ctxt).result).toEqual(20n);"
+        "  const [C, Ctxt] = startContract(contractCode, witnesses, 0, runtime.Field.create(73n));"
+        "  expect(C.circuits.finalize(Ctxt).result).toEqual(runtime.Field.create(20n));"
         "});"
         ))
     )
@@ -67500,7 +67521,7 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.red_guess(Ctxt, 11n).result).toEqual(10n);"
+        "  expect(C.circuits.red_guess(Ctxt, Field.create(11n)).result).toEqual(Field.create(10n));"
         "});"
         "test('check 2a', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
@@ -67626,9 +67647,9 @@ groups than for single tests.
         "test('check 2', () => {"
         "  const [C, Ctxt0] = startContract(contractCode, {}, 0);"
         "  const L0 = contractCode.ledger(Ctxt0.currentQueryContext.state);"
-        "  expect(L0.foo).toEqual(0n);"
-        "  expect(L0.bar.member(17n)).toEqual(false);"
-        "  expect(L0.bar.member(23n)).toEqual(false);"
+        "  expect(L0.foo).toEqual(Field.create(0n));"
+        "  expect(L0.bar.member(runtime.Field.create(17n))).toEqual(false);"
+        "  expect(L0.bar.member(runtime.Field.create(23n))).toEqual(false);"
         "  expect(L0.bar.isEmpty()).toEqual(true);"
         "  const Ctxt1 = C.circuits.rat(Ctxt0).context;"
         "  const L1 = contractCode.ledger(Ctxt1.currentQueryContext.state);"
@@ -67638,13 +67659,13 @@ groups than for single tests.
         "  const L3 = contractCode.ledger(Ctxt3.currentQueryContext.state);"
         "  const Ctxt4 = C.circuits.rat(Ctxt3).context;"
         "  const L4 = contractCode.ledger(Ctxt4.currentQueryContext.state);"
-        "  expect(L1.foo).toEqual(42n);"
+        "  expect(L1.foo).toEqual(Field.create(42n));"
         "  expect(L1.bar.isEmpty()).toEqual(false);"
         "  expect(L1.bar.size()).toEqual(1n);"
-        "  expect(L1.bar.member(17n)).toEqual(false);"
-        "  expect(L1.bar.member(23n)).toEqual(true);"
+        "  expect(L1.bar.member(runtime.Field.create(17n))).toEqual(false);"
+        "  expect(L1.bar.member(runtime.Field.create(23n))).toEqual(true);"
         "  var sum: bigint = 3n;"
-        "  for(const elem of L1.bar) { sum = sum + elem; }"
+        "  for(const elem of L1.bar) { sum = sum + elem.value; }"
         "  expect(sum).toEqual(26n);"
         "  expect(() => (<any>L1).bar.size(3n)).toThrow(runtime.CompactError);"
         "  expect(() => (<any>L1).bar.member()).toThrow(runtime.CompactError);"
@@ -67657,10 +67678,10 @@ groups than for single tests.
         "  expect(L1.baz.isFull()).toEqual(false);"
         "  expect(L2.baz.firstFree()).toEqual(2n);"
         "  expect(L4.baz.isFull()).toEqual(true);"
-        "  expect(contractCode.pureCircuits.root_of(L1.baz.findPathForLeaf(71n)!)).toEqual(L1.baz.root());"
-        "  expect(contractCode.pureCircuits.root_of(L2.baz.pathForLeaf(1n, 71n)!)).toEqual(L2.baz.root());"
-        "  expect(L1.baz.checkRoot(contractCode.pureCircuits.root_of(L1.baz.findPathForLeaf(71n)!))).toEqual(true);"
-        "  expect(L2.baz.checkRoot(contractCode.pureCircuits.root_of(L1.baz.findPathForLeaf(71n)!))).toEqual(false);"
+        "  expect(contractCode.pureCircuits.root_of(L1.baz.findPathForLeaf(runtime.Field.create(71n))!)).toEqual(L1.baz.root());"
+        "  expect(contractCode.pureCircuits.root_of(L2.baz.pathForLeaf(1n, runtime.Field.create(71n))!)).toEqual(L2.baz.root());"
+        "  expect(L1.baz.checkRoot(contractCode.pureCircuits.root_of(L1.baz.findPathForLeaf(runtime.Field.create(71n))!))).toEqual(true);"
+        "  expect(L2.baz.checkRoot(contractCode.pureCircuits.root_of(L1.baz.findPathForLeaf(runtime.Field.create(71n))!))).toEqual(false);"
         ; FIXME: test more L1.baz operators
         "});"
         )
@@ -67681,7 +67702,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt).result).toEqual(3n);"
+        "  expect(C.circuits.bar(Ctxt).result).toEqual(Field.create(3n));"
         "});"
         )
       )
@@ -67702,7 +67723,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt).result).toEqual(3n);"
+        "  expect(C.circuits.bar(Ctxt).result).toEqual(Field.create(3n));"
         "});"
         )
       )
@@ -67787,10 +67808,10 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt0] = startContract(contractCode, {}, 0);"
-        "  const Ctxt1 = C.circuits.foo(Ctxt0, 17n).context;"
+        "  const Ctxt1 = C.circuits.foo(Ctxt0, runtime.Field.create(17n)).context;"
         "  const L1 = contractCode.ledger(Ctxt1.currentQueryContext.state);"
-        "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(17n)!)).toEqual(L1.rats.root());"
-        "  expect(L1.rats.findPathForLeaf(23n)).toEqual(undefined);"
+        "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(runtime.Field.create(17n))!)).toEqual(L1.rats.root());"
+        "  expect(L1.rats.findPathForLeaf(runtime.Field.create(23n))).toEqual(undefined);"
         "  });"
         ))
     )
@@ -67813,10 +67834,10 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt0] = startContract(contractCode, {}, 0);"
-        "  const Ctxt1 = C.circuits.foo(Ctxt0, 17n).context;"
+        "  const Ctxt1 = C.circuits.foo(Ctxt0, runtime.Field.create(17n)).context;"
         "  const L1 = contractCode.ledger(Ctxt1.currentQueryContext.state);"
-        "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(17n)!)).toEqual(L1.rats.root());"
-        "  expect(L1.rats.findPathForLeaf(23n)).toEqual(undefined);"
+        "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(runtime.Field.create(17n))!)).toEqual(L1.rats.root());"
+        "  expect(L1.rats.findPathForLeaf(runtime.Field.create(23n))).toEqual(undefined);"
         "  });"
         ))
     )
@@ -68003,10 +68024,10 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt0] = startContract(contractCode, {}, 0);"
-        "  const Ctxt1 = C.circuits.foo(Ctxt0, 17n).context;"
+        "  const Ctxt1 = C.circuits.foo(Ctxt0, runtime.Field.create(17n)).context;"
         "  const L1 = contractCode.ledger(Ctxt1.currentQueryContext.state);"
-        "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(17n)!)).toEqual(L1.rats.root());"
-        "  expect(L1.rats.findPathForLeaf(23n)).toEqual(undefined);"
+        "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(runtime.Field.create(17n))!)).toEqual(L1.rats.root());"
+        "  expect(L1.rats.findPathForLeaf(runtime.Field.create(23n))).toEqual(undefined);"
         "  });"
         ))
     )
@@ -68029,7 +68050,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.baz(Ctxt).result).toEqual(1n);"
+        "  expect(C.circuits.baz(Ctxt).result).toEqual(Field.create(1n));"
         "  });"
         ))
     )
@@ -68055,7 +68076,7 @@ groups than for single tests.
         "  let tmp = C.circuits.foo(Ctxt);"
         "  let L = contractCode.ledger(tmp.context.currentQueryContext.state);"
         "  var sum: bigint = 20n;"
-        "  for(const elem of L.field0) { const [key, value] = elem; sum = sum + value; }"
+        "  for(const elem of L.field0) { const [key, value] = elem; sum = sum + value.value; }"
         "  expect(sum).toEqual(45n);"
         "  });"
         ))
@@ -68081,14 +68102,14 @@ groups than for single tests.
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  let tmp = C.circuits.foo(Ctxt);"
-        "  expect(tmp.result).toEqual({ is_some: true, value: 9n });"
+        "  expect(tmp.result).toEqual({ is_some: true, value: Field.create(9n) });"
         "  });"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  let tmp = C.circuits.foo(Ctxt);"
         "  let L = contractCode.ledger(tmp.context.currentQueryContext.state);"
         "  var sum: bigint = 20n;"
-        "  for(const elem of L.field0) { sum = sum + elem; }"
+        "  for(const elem of L.field0) { sum = sum + elem.value; }"
         "  expect(sum).toEqual(45n);"
         "  });"
         ))
@@ -68130,8 +68151,8 @@ groups than for single tests.
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  let tmp;"
-        "  tmp = C.circuits.identity(Ctxt, 73n);"
-        "  expect(tmp.result).toEqual(74n);"
+        "  tmp = C.circuits.identity(Ctxt, Field.create(73n));"
+        "  expect(tmp.result).toEqual(Field.create(74n));"
         "  tmp = C.circuits.init0(tmp.context, true);"
         "  expect(tmp.result).toEqual([]);"
         "  tmp = C.circuits.ismember(tmp.context, true);"
@@ -68187,11 +68208,12 @@ groups than for single tests.
         "}"
         ""
         "export type PureCircuits = {"
-        "  identity(q_0: bigint): bigint;"
+        "  identity(q_0: __compactRuntime.FieldElement): __compactRuntime.FieldElement;"
         "}"
         ""
         "export type Circuits<PS> = {"
-        "  identity(context: __compactRuntime.CircuitContext<PS>, q_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "  identity(context: __compactRuntime.CircuitContext<PS>,"
+        "           q_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "  init0(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
         "  ismember(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, boolean>;"
         "  init1(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
@@ -68204,8 +68226,8 @@ groups than for single tests.
         "    isEmpty(): boolean;"
         "    size(): bigint;"
         "    member(key_0: boolean): boolean;"
-        "    lookup(key_0: boolean): bigint;"
-        "    [Symbol.iterator](): Iterator<[boolean, bigint]>"
+        "    lookup(key_0: boolean): __compactRuntime.FieldElement;"
+        "    [Symbol.iterator](): Iterator<[boolean, __compactRuntime.FieldElement]>"
         "  };"
         "  field1: {"
         "    isEmpty(): boolean;"
@@ -68287,15 +68309,15 @@ groups than for single tests.
         "  expect(tmp.result).toEqual([]);"
         "  tmp = C.circuits.reset(tmp.context, true, 7n);"
         "  expect(tmp.result).toEqual([]);"
-        "  tmp = C.circuits.put(tmp.context, true, 7n, 999999999n);"
+        "  tmp = C.circuits.put(tmp.context, true, 7n, Field.create(999999999n));"
         "  expect(tmp.result).toEqual([]);"
         "  tmp = C.circuits.get(tmp.context, true, 7n);"
-        "  expect(tmp.result).toEqual(999999999n);"
+        "  expect(tmp.result).toEqual(Field.create(999999999n));"
         "  let L = contractCode.ledger(tmp.context.currentQueryContext.state);"
         "  expect(L.field1.size()).toEqual(1n);"
         "  expect(L.field1.member(true)).toEqual(true);"
         "  expect(L.field1.member(false)).toEqual(false);"
-        "  expect(L.field1.lookup(true).lookup(7n).head()).toEqual({ is_some: true, value: 999999999n });"
+        "  expect(L.field1.lookup(true).lookup(7n).head()).toEqual({ is_some: true, value: Field.create(999999999n) });"
         "  expect(() => L.field1.lookup(false)).toThrow(runtime.CompactError);"
         "  expect(() => L.field1.lookup(false)).toThrow(`Map value undefined for false`);"
         "  expect(() => L.field1.lookup(false).lookup(7n)).toThrow(runtime.CompactError);"
@@ -68444,15 +68466,15 @@ groups than for single tests.
         "  let tmp;"
         "  tmp = C.circuits.init(Ctxt, true);"
         "  expect(tmp.result).toEqual([]);"
-        "  tmp = C.circuits.put(tmp.context, true, 7n, 999999999n);"
+        "  tmp = C.circuits.put(tmp.context, true, 7n, Field.create(999999999n));"
         "  expect(tmp.result).toEqual([]);"
         "  tmp = C.circuits.get(tmp.context, true, 7n);"
-        "  expect(tmp.result).toEqual(999999999n);"
+        "  expect(tmp.result).toEqual(Field.create(999999999n));"
         "  let L = contractCode.ledger(tmp.context.currentQueryContext.state);"
         "  expect(L.field1.size()).toEqual(1n);"
         "  expect(L.field1.member(true)).toEqual(true);"
         "  expect(L.field1.member(false)).toEqual(false);"
-        "  expect(L.field1.lookup(true).lookup(7n)).toEqual(999999999n);"
+        "  expect(L.field1.lookup(true).lookup(7n)).toEqual(Field.create(999999999n));"
         "  expect(() => L.field1.lookup(false)).toThrow(runtime.CompactError);"
         "  expect(() => L.field1.lookup(false)).toThrow(`Map value undefined for false`);"
         "  expect(() => L.field1.lookup(false).lookup(7n)).toThrow(runtime.CompactError);"
@@ -68463,10 +68485,10 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  let tmp;"
         "  tmp = C.circuits.init(Ctxt, true);"
-        "  tmp = C.circuits.put(tmp.context, true, 7n, 999999999n);"
+        "  tmp = C.circuits.put(tmp.context, true, 7n, Field.create(999999999n));"
         "  let L = contractCode.ledger(tmp.context.currentQueryContext.state);"
         "  var sum: bigint = 3n;"
-        "  for(const elem of L.field1.lookup(true)) { const [key, value] = elem; sum = sum + value; }"
+        "  for(const elem of L.field1.lookup(true)) { const [key, value] = elem; sum = sum + value.value; }"
         "  expect(sum).toEqual(1000000002n);"
         "  });"
         ))
@@ -68482,8 +68504,8 @@ groups than for single tests.
         "  put(context: __compactRuntime.CircuitContext<PS>,"
         "      b_0: boolean,"
         "      n_0: bigint,"
-        "      q_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "      q_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "}"
         ""
         "export type ProvableCircuits<PS> = {"
@@ -68491,8 +68513,8 @@ groups than for single tests.
         "  put(context: __compactRuntime.CircuitContext<PS>,"
         "      b_0: boolean,"
         "      n_0: bigint,"
-        "      q_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "      q_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "}"
         ""
         "export type PureCircuits = {"
@@ -68503,8 +68525,8 @@ groups than for single tests.
         "  put(context: __compactRuntime.CircuitContext<PS>,"
         "      b_0: boolean,"
         "      n_0: bigint,"
-        "      q_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "      q_0: __compactRuntime.FieldElement): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, __compactRuntime.FieldElement>;"
         "}"
         ""
         "export type Ledger = {"
@@ -68516,8 +68538,8 @@ groups than for single tests.
         "      isEmpty(): boolean;"
         "      size(): bigint;"
         "      member(key_1: bigint): boolean;"
-        "      lookup(key_1: bigint): bigint;"
-        "      [Symbol.iterator](): Iterator<[bigint, bigint]>"
+        "      lookup(key_1: bigint): __compactRuntime.FieldElement;"
+        "      [Symbol.iterator](): Iterator<[bigint, __compactRuntime.FieldElement]>"
         "    }"
         "  };"
         "}"
@@ -68605,10 +68627,10 @@ groups than for single tests.
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  let tmp;"
-        "  tmp = C.circuits.init_nested_map(Ctxt, 3n);"
-        "  tmp = C.circuits.insert_nested_map(tmp.context, 3n, 7n, 11n);"
-        "  tmp = C.circuits.lookup_nested_map(tmp.context, 3n, 7n);"
-        "  expect(tmp.result).toEqual(11n);"
+        "  tmp = C.circuits.init_nested_map(Ctxt, Field.create(3n));"
+        "  tmp = C.circuits.insert_nested_map(tmp.context, Field.create(3n), Field.create(7n), Field.create(11n));"
+        "  tmp = C.circuits.lookup_nested_map(tmp.context, Field.create(3n), Field.create(7n));"
+        "  expect(tmp.result).toEqual(Field.create(11n));"
         "  });"
         ))
     )
@@ -68645,14 +68667,14 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  let tmp;"
         "  tmp = C.circuits.init_nested_map(Ctxt, false);"
-        "  tmp = C.circuits.init_nested_counter(tmp.context, false, 7n);"
-        "  tmp = C.circuits.read_nested_counter1(tmp.context, false, 7n);"
+        "  tmp = C.circuits.init_nested_counter(tmp.context, false, Field.create(7n));"
+        "  tmp = C.circuits.read_nested_counter1(tmp.context, false, Field.create(7n));"
         "  expect(tmp.result).toEqual(0n);"
-        "  tmp = C.circuits.increment_nested_counter(tmp.context, false, 7n, 11n);"
-        "  tmp = C.circuits.read_nested_counter1(tmp.context, false, 7n);"
+        "  tmp = C.circuits.increment_nested_counter(tmp.context, false, Field.create(7n), 11n);"
+        "  tmp = C.circuits.read_nested_counter1(tmp.context, false, Field.create(7n));"
         "  expect(tmp.result).toEqual(11n);"
-        "  tmp = C.circuits.increment_nested_counter(tmp.context, false, 7n, 10n);"
-        "  tmp = C.circuits.read_nested_counter2(tmp.context, false, 7n);"
+        "  tmp = C.circuits.increment_nested_counter(tmp.context, false, Field.create(7n), 10n);"
+        "  tmp = C.circuits.read_nested_counter2(tmp.context, false, Field.create(7n));"
         "  expect(tmp.result).toEqual(21n);"
         "  });"
         ))
@@ -69147,7 +69169,7 @@ groups than for single tests.
         ""
         "export type Maybe<T> = { is_some: boolean; value: T };"
         ""
-        "export type MerkleTreeDigest = { field: bigint };"
+        "export type MerkleTreeDigest = { field: __compactRuntime.FieldElement };"
         ""
         "export type Witnesses<PS> = {"
         "}"
@@ -69191,7 +69213,7 @@ groups than for single tests.
         "    checkRoot(rt_0: MerkleTreeDigest): boolean;"
         "    root(): __compactRuntime.MerkleTreeDigest;"
         "    firstFree(): bigint;"
-        "    pathForLeaf(index_0: bigint, leaf_0: value_type): __compactRuntime.MerkleTreePath<value_type>;"
+        "    pathForLeaf(index_0: __compactRuntime.FieldElement, leaf_0: value_type): __compactRuntime.MerkleTreePath<value_type>;"
         "    findPathForLeaf(leaf_0: value_type): __compactRuntime.MerkleTreePath<value_type> | undefined"
         "  };"
         "  fhistoricmerkletree: {"
@@ -69199,7 +69221,7 @@ groups than for single tests.
         "    checkRoot(rt_0: MerkleTreeDigest): boolean;"
         "    root(): __compactRuntime.MerkleTreeDigest;"
         "    firstFree(): bigint;"
-        "    pathForLeaf(index_0: bigint, leaf_0: value_type): __compactRuntime.MerkleTreePath<value_type>;"
+        "    pathForLeaf(index_0: __compactRuntime.FieldElement, leaf_0: value_type): __compactRuntime.MerkleTreePath<value_type>;"
         "    findPathForLeaf(leaf_0: value_type): __compactRuntime.MerkleTreePath<value_type> | undefined;"
         "    history(): Iterator<__compactRuntime.MerkleTreeDigest>"
         "  };"
@@ -69256,7 +69278,7 @@ groups than for single tests.
         "  expect(state.serialize()).toEqual(viaSerialization.serialize());"
         "})"
         "test('check 2', () => {"
-        "  expect(contractCode.pureCircuits.folding([3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).toEqual(93n);"
+        "  expect(contractCode.pureCircuits.folding([runtime.Field.create(3n),runtime.Field.create(5n),runtime.Field.create(7n),runtime.Field.create(11n),runtime.Field.create(13n),runtime.Field.create(17n),runtime.Field.create(19n)], [true, false, false, true, false, true, true])).toEqual(runtime.Field.create(93n));"
         "});"
        ))
     )
@@ -69342,8 +69364,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  var tmp = C.circuits.M1_foo(Ctxt, 7n);"
-        "  expect(tmp.result).toEqual({x: 8n, y: false});"
+        "  var tmp = C.circuits.M1_foo(Ctxt, Field.create(7n));"
+        "  expect(tmp.result).toEqual({x: Field.create(8n), y: false});"
         "});"
         ))
     )
@@ -69428,10 +69450,10 @@ groups than for single tests.
         "  var [C, context] = startContract(contractCode, {}, 0);"
         "  var t1 = C.circuits.foo(context);"
         "  context = t1.context;"
-        "  expect(t1.result).toEqual(37n);"
+        "  expect(t1.result).toEqual(Field.create(37n));"
         "  var L = contractCode.ledger(context.currentQueryContext.state);"
-        "  expect(L.p).toEqual(18n);"
-        "  expect(L.q).toEqual(19n);"
+        "  expect(L.p).toEqual(Field.create(18n));"
+        "  expect(L.q).toEqual(Field.create(19n));"
         "});"
         ))
     )
@@ -69459,14 +69481,14 @@ groups than for single tests.
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
         "  var L = contractCode.ledger(context.currentQueryContext.state);"
-        "  expect(L.p).toEqual(18n);"
-        "  expect(L.q).toEqual(19n);"
+        "  expect(L.p).toEqual(Field.create(18n));"
+        "  expect(L.q).toEqual(Field.create(19n));"
         "  var t1 = C.circuits.foo(context);"
         "  context = t1.context;"
-        "  expect(t1.result).toEqual(91n);"
+        "  expect(t1.result).toEqual(Field.create(91n));"
         "  var L = contractCode.ledger(context.currentQueryContext.state);"
-        "  expect(L.p).toEqual(18n);"
-        "  expect(L.q).toEqual(73n);"
+        "  expect(L.p).toEqual(Field.create(18n));"
+        "  expect(L.q).toEqual(Field.create(73n));"
         "});"
         ))
     )
@@ -69531,16 +69553,16 @@ groups than for single tests.
         "  var [C, context] = startContract(contractCode, {}, 0);"
         "  var t1 = C.circuits.M1_foo2(context);"
         "  context = t1.context;"
-        "  expect(t1.result).toEqual(1n);"
+        "  expect(t1.result).toEqual(Field.create(1n));"
         "  var t2 = C.circuits.M1_foo2(context);"
-        "  expect(t2.result).toEqual(2n);"
+        "  expect(t2.result).toEqual(Field.create(2n));"
         "  context = t2.context;"
         "  var L = contractCode.ledger(context.currentQueryContext.state);"
         "  expect(L.M1_george.isEmpty()).toEqual(true);"
         "  expect(L.george.length()).toEqual(1n);"
-        "  var t3 = C.circuits.M1_foo1(context, 13n);"
+        "  var t3 = C.circuits.M1_foo1(context, Field.create(13n));"
         "  context = t3.context;"
-        "  expect(t3.result).toEqual({x: 1n, y: true});"
+        "  expect(t3.result).toEqual({x: Field.create(1n), y: true});"
         "  var L = contractCode.ledger(context.currentQueryContext.state);"
         "  expect(L.M1_george.isEmpty()).toEqual(false);"
         "  expect(L.george.length()).toEqual(1n);"
@@ -69565,7 +69587,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', () => {"
-        "  const [C, Ctxt] = startContract(contractCode, {}, 0, 75n);"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0, Field.create(75n));"
         "  const L = contractCode.ledger(Ctxt.currentQueryContext.state);"
         "  expect(L.x).toEqual(75n);"
         "})"
@@ -69595,13 +69617,13 @@ groups than for single tests.
     (stage-javascript
       '(
         "const witnesses = {"
-        "                    W(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                    X(private_state: any): [any, bigint] { return [private_state, 20n];}"
+        "                    W(private_state: any): [any, runtime.Field] { return [private_state, Field.create(17n)]; },"
+        "                    X(private_state: any): [any, runtime.Field] { return [private_state, Field.create(20n)];}"
         "                  };"
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual(17n);"
-        "  expect(C.circuits.bar(Ctxt).result).toEqual(37n);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(Field.create(17n));"
+        "  expect(C.circuits.bar(Ctxt).result).toEqual(Field.create(37n));"
         "});"
         ))
     )
@@ -69626,14 +69648,14 @@ groups than for single tests.
     (stage-javascript
       '(
         "const witnesses = {"
-        "                   X(private_state: any): [any, bigint] { return [private_state, 17n]; },"
+        "                   X(private_state: any): [any, Field] { return [private_state, Field.create(17n)]; },"
         "                   W(private_state: any, b: boolean): [any, boolean] { return [private_state, !b]; }"
         "                   };"
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual(17n);"
-        "  expect(C.circuits.bar(Ctxt, true).result).toEqual(21n);"
-        "  expect(C.circuits.bar(Ctxt, false).result).toEqual(20n);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(Field.create(17n));"
+        "  expect(C.circuits.bar(Ctxt, true).result).toEqual(Field.create(21n));"
+        "  expect(C.circuits.bar(Ctxt, false).result).toEqual(Field.create(20n));"
         "});"
         ))
     )
@@ -69680,15 +69702,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "const witnesses = {"
-        "                    W(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                    X(private_state: any): [any, bigint] { return [private_state, 17n]; },"
+        "                    W(private_state: any): [any, runtime.Field] { return [private_state, Field.create(17n)]; },"
+        "                    X(private_state: any): [any, runtime.Field] { return [private_state, Field.create(17n)]; },"
         "                    Y(private_state: any, b: boolean): [any, boolean] { return [private_state, !b]; },"
         "                  };"
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual(17n);"
-        "  expect(C.circuits.M$bar(Ctxt, true).result).toEqual(21n);"
-        "  expect(C.circuits.M$bar(Ctxt, false).result).toEqual(20n);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(Field.create(17n));"
+        "  expect(C.circuits.M$bar(Ctxt, true).result).toEqual(Field.create(21n));"
+        "  expect(C.circuits.M$bar(Ctxt, false).result).toEqual(Field.create(20n));"
         "});"
         ))
     )
@@ -69713,14 +69735,14 @@ groups than for single tests.
     (stage-javascript
       '(
         "const witnesses = {"
-        "                   X(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                   W(private_state: any, ...args: unknown[]): [any, any] { return [private_state, args.length == 0 ? 17n : !args[0]];},"
+        "                   X(private_state: any): [any, runtime.Field] { return [private_state, Field.create(17n)]; },"
+        "                   W(private_state: any, ...args: unknown[]): [any, any] { return [private_state, args.length == 0 ? Field.create(17n) : !args[0]];},"
         "                  };"
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual(17n);"
-        "  expect(C.circuits.bar(Ctxt, true).result).toEqual(21n);"
-        "  expect(C.circuits.bar(Ctxt, false).result).toEqual(20n);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(Field.create(17n));"
+        "  expect(C.circuits.bar(Ctxt, true).result).toEqual(Field.create(21n));"
+        "  expect(C.circuits.bar(Ctxt, false).result).toEqual(Field.create(20n));"
         "});"
         ))
     )
@@ -69769,7 +69791,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual(16n);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(Field.create(16n));"
         "});"
         ))
     )
@@ -69792,7 +69814,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0, 7n);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual(15n);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(Field.create(15n));"
         "});"
         ))
     )
@@ -70104,7 +70126,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, { x: { x: 29n } }).result).toEqual({ x: 29n });"
+        "  expect(C.circuits.foo(context, { x: { x: Field.create(29n) } }).result).toEqual({ x: Field.create(29n) });"
         "  expect(() => C.circuits.foo(context, { x: { y: 29n } })).toThrow(runtime.CompactError);"
         "  expect(() => C.circuits.foo(context, { x: { y: 29n } })).toThrow('type error: foo argument 1 at testfile.compact line 4 char 1; expected value of type struct S<x: struct S<x: Field>> but received { x: { y: 29n } }');"
         "});"
@@ -70124,7 +70146,7 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Commitment<A> = { value: bigint };"
+        "export type Commitment<A> = { value: __compactRuntime.FieldElement };"
         ""
         "export type Witnesses<PS> = {"
         "}"
@@ -70165,7 +70187,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt).result).toEqual({ value: 10n });"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual({ value: Field.create(10n) });"
         "});"
         ))
     )
@@ -70269,9 +70291,9 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 3n).result).toEqual(2n);"
-        "  expect(() => C.circuits.foo(context, 0n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(context, 0n)).toThrow('failed assert: oops');"
+        "  expect(C.circuits.foo(context, Field.create(3n)).result).toEqual(Field.create(2n));"
+        "  expect(() => C.circuits.foo(context, Field.create(0n))).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(context, Field.create(0n))).toThrow('failed assert: oops');"
         "});"
         ))
     )
@@ -70287,9 +70309,9 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 3n).result).toEqual(2n);"
-        "  expect(() => C.circuits.foo(context, 0n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(context, 0n)).toThrow('failed assert: oops');"
+        "  expect(C.circuits.foo(context, Field.create(3n)).result).toEqual(Field.create(2n));"
+        "  expect(() => C.circuits.foo(context, Field.create(0n))).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(context, Field.create(0n))).toThrow('failed assert: oops');"
         "});"
         ))
     )
@@ -70328,14 +70350,14 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.foo(context, 4n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(context, 4n)).toThrow('failed assert: oops');"
-        "  expect(() => C.circuits.foo(context, 3n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(context, 3n)).toThrow('failed assert: oops');"
-        "  expect(() => C.circuits.foo(context, 2n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(context, 2n)).toThrow('failed assert: oops');"
-        ,(format "  expect(C.circuits.foo(context, 1n).result).toEqual(~dn);" (max-field))
-        ,(format "  expect(C.circuits.foo(context, 0n).result).toEqual(~dn-1n);" (max-field))
+        "  expect(() => C.circuits.foo(context, Field.create(4n))).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(context, Field.create(4n))).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(context, Field.create(3n))).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(context, Field.create(3n))).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(context, Field.create(2n))).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(context, Field.create(2n))).toThrow('failed assert: oops');"
+        ,(format "  expect(C.circuits.foo(context, Field.create(1n)).result).toEqual(Field.create(~dn));" (max-field))
+        ,(format "  expect(C.circuits.foo(context, Field.create(0n)).result).toEqual(Field.create(~dn-1n));" (max-field))
         "});"
         ))
     )
@@ -70369,10 +70391,10 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 3n).result).toEqual(1n);"
-        "  expect(C.circuits.foo(context, 2n).result).toEqual(0n);"
-        ,(format "  expect(C.circuits.foo(context, 1n).result).toEqual(~dn);" (max-field))
-        ,(format "  expect(C.circuits.foo(context, 0n).result).toEqual(~dn-1n);" (max-field))
+        "  expect(C.circuits.foo(context, Field.create(3n)).result).toEqual(Field.create(1n));"
+        "  expect(C.circuits.foo(context, Field.create(2n)).result).toEqual(Field.create(0n));"
+        ,(format "  expect(C.circuits.foo(context, Field.create(1n)).result).toEqual(Field.create(~dn));" (max-field))
+        ,(format "  expect(C.circuits.foo(context, Field.create(0n)).result).toEqual(Field.create(~dn-1n));" (max-field))
         "});"
         ))
     )
@@ -70408,10 +70430,10 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 3n).result).toEqual([]);"
-        "  expect(C.circuits.foo(context, 2n).result).toEqual([]);"
-        "  expect(C.circuits.foo(context, 1n).result).toEqual([]);"
-        "  expect(C.circuits.foo(context, 0n).result).toEqual([]);"
+        "  expect(C.circuits.foo(context, Field.create(3n)).result).toEqual([]);"
+        "  expect(C.circuits.foo(context, Field.create(2n)).result).toEqual([]);"
+        "  expect(C.circuits.foo(context, Field.create(1n)).result).toEqual([]);"
+        "  expect(C.circuits.foo(context, Field.create(0n)).result).toEqual([]);"
         "});"
         ))
     )
@@ -70429,10 +70451,10 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 3n).result).toEqual([]);"
-        "  expect(() => C.circuits.foo(context, 2n)).toThrow('failed assert: oops');"
-        "  expect(() => C.circuits.foo(context, 1n)).toThrow('failed assert: oops');"
-        "  expect(() => C.circuits.foo(context, 0n)).toThrow('failed assert: oops');"
+        "  expect(C.circuits.foo(context, Field.create(3n)).result).toEqual([]);"
+        "  expect(() => C.circuits.foo(context, Field.create(2n))).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(context, Field.create(1n))).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(context, Field.create(0n))).toThrow('failed assert: oops');"
         "});"
         ))
     )
@@ -70453,11 +70475,11 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 4n).result).toEqual(false);"
-        "  expect(C.circuits.foo(context, 3n).result).toEqual(true);"
-        "  expect(() => C.circuits.foo(context, 2n)).toThrow('failed assert: oops');"
-        "  expect(() => C.circuits.foo(context, 1n)).toThrow('failed assert: oops');"
-        "  expect(() => C.circuits.foo(context, 0n)).toThrow('failed assert: oops');"
+        "  expect(C.circuits.foo(context, Field.create(4n)).result).toEqual(false);"
+        "  expect(C.circuits.foo(context, Field.create(3n)).result).toEqual(true);"
+        "  expect(() => C.circuits.foo(context, Field.create(2n))).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(context, Field.create(1n))).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(context, Field.create(0n))).toThrow('failed assert: oops');"
         "});"
         ))
     )
@@ -70477,11 +70499,11 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 4n).result).toEqual(false);"
-        "  expect(C.circuits.foo(context, 3n).result).toEqual(true);"
-        "  expect(() => C.circuits.foo(context, 2n)).toThrow('failed assert: oops');"
-        "  expect(() => C.circuits.foo(context, 1n)).toThrow('failed assert: oops');"
-        "  expect(() => C.circuits.foo(context, 0n)).toThrow('failed assert: oops');"
+        "  expect(C.circuits.foo(context, Field.create(4n)).result).toEqual(false);"
+        "  expect(C.circuits.foo(context, Field.create(3n)).result).toEqual(true);"
+        "  expect(() => C.circuits.foo(context, Field.create(2n))).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(context, Field.create(1n))).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(context, Field.create(0n))).toThrow('failed assert: oops');"
         "});"
         ))
     )
@@ -70520,8 +70542,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, [3n, 4n]).result).toEqual([3n, 4n]);"
-        "  expect(() => C.circuits.foo(context, [2n, 3n])).toThrow('failed assert: oops');"
+        "  expect(C.circuits.foo(context, [Field.create(3n), Field.create(4n)]).result).toEqual([Field.create(3n), Field.create(4n)]);"
+        "  expect(() => C.circuits.foo(context, [Field.create(2n), Field.create(3n)])).toThrow('failed assert: oops');"
         "});"
         ))
     )
@@ -70567,11 +70589,11 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, [5n, 6n]).result).toEqual([3n, 4n]);"
-        "  expect(() => C.circuits.foo(context, [2n, 3n])).toThrow('failed assert: oops');"
-        "  expect(() => C.circuits.foo(context, [3n, 4n])).toThrow('failed assert: oops');"
-        "  expect(() => C.circuits.foo(context, [4n, 5n])).toThrow('failed assert: oops');"
-        ,(format "  expect(C.circuits.foo(context, [1n, 5n]).result).toEqual([~dn, 3n]);" (max-field))
+        "  expect(C.circuits.foo(context, [Field.create(5n), Field.create(6n)]).result).toEqual([Field.create(3n), Field.create(4n)]);"
+        "  expect(() => C.circuits.foo(context, [Field.create(2n), Field.create(3n)])).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(context, [Field.create(3n), Field.create(4n)])).toThrow('failed assert: oops');"
+        "  expect(() => C.circuits.foo(context, [Field.create(4n), Field.create(5n)])).toThrow('failed assert: oops');"
+        ,(format "  expect(C.circuits.foo(context, [Field.create(1n), Field.create(5n)]).result).toEqual([Field.create(~dn), Field.create(3n)]);" (max-field))
         "});"
         ))
     )
@@ -70598,8 +70620,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 7n, [0, 1, 2], [3n, 5n, 7n]).result).toEqual(35n);"
-        "  expect(C.circuits.foo(context, 7n, [2, 1, 0], [7n, 5n, 3n]).result).toEqual(47n);"
+        "  expect(C.circuits.foo(context, Field.create(7n), [0, 1, 2], [Field.create(3n), Field.create(5n), Field.create(7n)]).result).toEqual(Field.create(35n));"
+        "  expect(C.circuits.foo(context, Field.create(7n), [2, 1, 0], [Field.create(7n), Field.create(5n), Field.create(3n)]).result).toEqual(Field.create(47n));"
         "});"
         ))
     )
@@ -70665,8 +70687,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 7n, [0, 1, 2], [3n, 5n, 7n]).result).toEqual(35n);"
-        "  expect(C.circuits.foo(context, 7n, [2, 1, 0], [7n, 5n, 3n]).result).toEqual(47n);"
+        "  expect(C.circuits.foo(context, Field.create(7n), [0, 1, 2], [Field.create(3n), Field.create(5n), Field.create(7n)]).result).toEqual(Field.create(35n));"
+        "  expect(C.circuits.foo(context, Field.create(7n), [2, 1, 0], [Field.create(7n), Field.create(5n), Field.create(3n)]).result).toEqual(Field.create(47n));"
         "});"
         ))
     )
@@ -70694,8 +70716,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 7n, [0, 1, 2], [3n, 5n, 7n]).result).toEqual(35n);"
-        "  expect(C.circuits.foo(context, 7n, [2, 1, 0], [7n, 5n, 3n]).result).toEqual(47n);"
+        "  expect(C.circuits.foo(context, Field.create(7n), [0, 1, 2], [Field.create(3n), Field.create(5n), Field.create(7n)]).result).toEqual(Field.create(35n));"
+        "  expect(C.circuits.foo(context, Field.create(7n), [2, 1, 0], [Field.create(7n), Field.create(5n), Field.create(3n)]).result).toEqual(Field.create(47n));"
         "});"
         ))
     )
@@ -70708,10 +70730,10 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = { transientHash(private_state: any, x: boolean): [any, bigint] { return [private_state, 101n]; }};"
+        "const witnesses = { transientHash(private_state: any, x: boolean): [any, Field] { return [private_state, Field.create(101n)]; }};"
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, witnesses, 0);"
-        "  expect(C.circuits.transientHash(context, 7n).result).toEqual(true);"
+        "  expect(C.circuits.transientHash(context, Field.create(7n)).result).toEqual(true);"
         "});"
         ))
     )
@@ -70729,7 +70751,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.M$foo(context, 7n).result).toEqual(8n);"
+        "  expect(C.circuits.M$foo(context, Field.create(7n)).result).toEqual(Field.create(8n));"
         "});"
         ))
     )
@@ -70760,7 +70782,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, 7n).result).toEqual([0n, 0n, 0n, 0n, 0n]);"
+        "  expect(C.circuits.foo(context, Field.create(7n)).result).toEqual([Field.create(0n), Field.create(0n), Field.create(0n), Field.create(0n), Field.create(0n)]);"
         "});"
         ))
     )
@@ -70793,15 +70815,15 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  let t = C.circuits.foo(context, 93n);"
-        "  expect(t.result).toEqual([3n, 3n, 1n, 71n, 1n]);"
+        "  let t = C.circuits.foo(context, Field.create(93n));"
+        "  expect(t.result).toEqual([Field.create(3n), Field.create(3n), Field.create(1n), Field.create(71n), Field.create(1n)]);"
         "  let L = contractCode.ledger(t.context.currentQueryContext.state);"
         "  expect(L.M1$fld).toEqual(3n);"
         "  expect(L.M2$fld).toEqual(3n);"
         "  expect(L.M3$fld.isEmpty()).toEqual(false);"
-        "  expect(L.M3$fld.member(71n)).toEqual(false);"
-        "  expect(L.M3$fld.member(93n)).toEqual(true);"
-        "  expect(L.M4$fld).toEqual(71n);"
+        "  expect(L.M3$fld.member(Field.create(71n))).toEqual(false);"
+        "  expect(L.M3$fld.member(Field.create(93n))).toEqual(true);"
+        "  expect(L.M4$fld).toEqual(Field.create(71n));"
         "  expect(L.M5$fld.lookup(3n).member(4n)).toEqual(true);"
         "  expect(L.M5$fld.lookup(3n).lookup(4n).head().value).toEqual(true);"
         "  expect(L.M5$fld.lookup(3n).member(5n)).toEqual(false);"
@@ -70846,8 +70868,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 17n, 17n).result).toEqual(true);"
-        "  expect(C.circuits.bar(Ctxt, 17n, 19n).result).toEqual(false);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(17n), Field.create(17n)).result).toEqual(true);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(17n), Field.create(19n)).result).toEqual(false);"
         "  });"
         ))
     )
@@ -70866,8 +70888,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, [], 17n, 17n).result).toEqual(true);"
-        "  expect(C.circuits.bar(Ctxt, [], 17n, 19n).result).toEqual(false);"
+        "  expect(C.circuits.bar(Ctxt, [], Field.create(17n), Field.create(17n)).result).toEqual(true);"
+        "  expect(C.circuits.bar(Ctxt, [], Field.create(17n), Field.create(19n)).result).toEqual(false);"
         "  expect(() => C.circuits.bar(Ctxt, 13n, 17n, 19n)).toThrow(runtime.CompactError);"
         "  });"
         ))
@@ -70893,8 +70915,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, 17n, 17n).result).toEqual(true);"
-        "  expect(C.circuits.bar(Ctxt, 17n, 19n).result).toEqual(false);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(17n), Field.create(17n)).result).toEqual(true);"
+        "  expect(C.circuits.bar(Ctxt, Field.create(17n), Field.create(19n)).result).toEqual(false);"
         "  });"
         ))
     )
@@ -71214,13 +71236,13 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const t = C.circuits.foo(Ctxt, [3n, true]);"
+        "  const t = C.circuits.foo(Ctxt, [Field.create(3n), true]);"
         "  expect(t.result).toEqual(false);"
         "  Ctxt = t.context;"
         "  let L = contractCode.ledger(Ctxt.currentQueryContext.state);"
-        "  expect(L.f1.findPathForLeaf([3n, false])).toEqual(undefined);"
-        "  expect(L.f1.findPathForLeaf([7n, true])).toEqual(undefined);"
-        "  expect(L.f1.findPathForLeaf([3n, true])).toHaveProperty('leaf');"
+        "  expect(L.f1.findPathForLeaf([Field.create(3n), false])).toEqual(undefined);"
+        "  expect(L.f1.findPathForLeaf([Field.create(7n), true])).toEqual(undefined);"
+        "  expect(L.f1.findPathForLeaf([Field.create(3n), true])).toHaveProperty('leaf');"
         "  });"
         ))
     )
@@ -71239,13 +71261,13 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const t = C.circuits.foo(Ctxt, [3n, true]);"
+        "  const t = C.circuits.foo(Ctxt, [Field.create(3n), true]);"
         "  expect(t.result).toEqual(false);"
         "  Ctxt = t.context;"
         "  let L = contractCode.ledger(Ctxt.currentQueryContext.state);"
-        "  expect(L.f1.lookup(17n).findPathForLeaf([3n, false])).toEqual(undefined);"
-        "  expect(L.f1.lookup(17n).findPathForLeaf([7n, true])).toEqual(undefined);"
-        "  expect(L.f1.lookup(17n).findPathForLeaf([3n, true])).toHaveProperty('leaf');"
+        "  expect(L.f1.lookup(Field.create(17n)).findPathForLeaf([Field.create(3n), false])).toEqual(undefined);"
+        "  expect(L.f1.lookup(Field.create(17n)).findPathForLeaf([Field.create(7n), true])).toEqual(undefined);"
+        "  expect(L.f1.lookup(Field.create(17n)).findPathForLeaf([Field.create(3n), true])).toHaveProperty('leaf');"
         "  });"
         ))
     )
@@ -71302,8 +71324,8 @@ groups than for single tests.
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  let L = contractCode.ledger(Ctxt.currentQueryContext.state);"
-        "  expect(L.f17).toEqual(101n);"
-        "  expect(L.f32).toEqual(0n);"
+        "  expect(L.f17).toEqual(Field.create(101n));"
+        "  expect(L.f32).toEqual(Field.create(0n));"
         "  });"
         ))
     )
@@ -71323,8 +71345,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true, 17n).result).toEqual(17n);"
-        "  expect(C.circuits.foo(Ctxt, false, 17n).result).toEqual(34n);"
+        "  expect(C.circuits.foo(Ctxt, true, Field.create(17n)).result).toEqual(Field.create(17n));"
+        "  expect(C.circuits.foo(Ctxt, false, Field.create(17n)).result).toEqual(Field.create(34n));"
         "  });"
         ))
     )
@@ -71344,8 +71366,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true, 17n).result).toEqual(43n);"
-        "  expect(C.circuits.foo(Ctxt, false, 17n).result).toEqual(47n);"
+        "  expect(C.circuits.foo(Ctxt, true, Field.create(17n)).result).toEqual(Field.create(43n));"
+        "  expect(C.circuits.foo(Ctxt, false, Field.create(17n)).result).toEqual(Field.create(47n));"
         "  });"
         ))
     )
@@ -71365,8 +71387,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true, 17n).result).toEqual(43n);"
-        "  expect(C.circuits.foo(Ctxt, false, 17n).result).toEqual(47n);"
+        "  expect(C.circuits.foo(Ctxt, true, Field.create(17n)).result).toEqual(Field.create(43n));"
+        "  expect(C.circuits.foo(Ctxt, false, Field.create(17n)).result).toEqual(Field.create(47n));"
         "  });"
         ))
     )
@@ -71386,8 +71408,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true).result).toEqual(43n);"
-        "  expect(C.circuits.foo(Ctxt, false).result).toEqual(47n);"
+        "  expect(C.circuits.foo(Ctxt, true).result).toEqual(Field.create(43n));"
+        "  expect(C.circuits.foo(Ctxt, false).result).toEqual(Field.create(47n));"
         "  });"
         ))
     )
@@ -71474,8 +71496,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true, 17n).result).toEqual(43n);"
-        "  expect(C.circuits.foo(Ctxt, false, 17n).result).toEqual(47n);"
+        "  expect(C.circuits.foo(Ctxt, true, Field.create(17n)).result).toEqual(Field.create(43n));"
+        "  expect(C.circuits.foo(Ctxt, false, Field.create(17n)).result).toEqual(Field.create(47n));"
         "  });"
         ))
     )
@@ -71491,7 +71513,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.bar(Ctxt, true, 17n).result).toEqual([17n, true]);"
+        "  expect(C.circuits.bar(Ctxt, true, Field.create(17n)).result).toEqual([Field.create(17n), true]);"
         "  });"
         ))
     )
@@ -71512,8 +71534,8 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, true, 17n).result).toEqual(17n);"
-        "  expect(C.circuits.foo(Ctxt, false, 17n).result).toEqual(34n);"
+        "  expect(C.circuits.foo(Ctxt, true, Field.create(17n)).result).toEqual(Field.create(17n));"
+        "  expect(C.circuits.foo(Ctxt, false, Field.create(17n)).result).toEqual(Field.create(34n));"
         "  });"
         ))
     )
@@ -71534,10 +71556,10 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, false, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([34n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
-        "  expect(C.circuits.foo(Ctxt, false, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([34n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
-        "  expect(C.circuits.foo(Ctxt, true, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([17n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
-        "  expect(C.circuits.foo(Ctxt, true, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([17n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, false, false, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([Field.create(34n), new Uint8Array([104, 101, 108, 108, 111, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, false, true, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([Field.create(34n), new Uint8Array([97, 100, 105, 111, 115, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, true, false, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([Field.create(17n), new Uint8Array([104, 101, 108, 108, 111, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, true, true, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])]);"
         "  });"
         ))
     )
@@ -71561,10 +71583,10 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, false, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([34n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
-        "  expect(C.circuits.foo(Ctxt, false, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([34n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
-        "  expect(C.circuits.foo(Ctxt, true, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([17n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
-        "  expect(C.circuits.foo(Ctxt, true, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([17n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, false, false, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([34n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, false, true, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([34n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, true, false, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([17n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, true, true, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([17n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
         "  });"
         ))
     )
@@ -71585,10 +71607,10 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, false, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([34n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
-        "  expect(C.circuits.foo(Ctxt, false, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([34n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
-        "  expect(C.circuits.foo(Ctxt, true, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([17n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
-        "  expect(C.circuits.foo(Ctxt, true, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([17n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, false, false, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([Field.create(34n), new Uint8Array([104, 101, 108, 108, 111, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, false, true, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([Field.create(34n), new Uint8Array([97, 100, 105, 111, 115, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, true, false, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([Field.create(17n), new Uint8Array([104, 101, 108, 108, 111, 33])]);"
+        "  expect(C.circuits.foo(Ctxt, true, true, Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])).result).toEqual([Field.create(17n), new Uint8Array([97, 100, 105, 111, 115, 33])]);"
         "  });"
         ))
     )
@@ -71609,9 +71631,9 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo1(Ctxt, [false, 17n, true]).result).toEqual([true, false]);"
-        "  expect(C.circuits.foo2(Ctxt, [false, 17n, true]).result).toEqual([true, 17n]);"
-        "  expect(C.circuits.foo3(Ctxt, [false, 17n, true]).result).toEqual([17n, false]);"
+        "  expect(C.circuits.foo1(Ctxt, [false, Field.create(17n), true]).result).toEqual([true, false]);"
+        "  expect(C.circuits.foo2(Ctxt, [false, Field.create(17n), true]).result).toEqual([true, Field.create(17n)]);"
+        "  expect(C.circuits.foo3(Ctxt, [false, Field.create(17n), true]).result).toEqual([Field.create(17n), false]);"
         "  });"
         ))
     )
@@ -71966,8 +71988,8 @@ groups than for single tests.
       `(
         "test('check 1', () => {"
         "  var [C, context] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(context, [0n, 0n, 0n]).result).toEqual(0n);"
-        ,(format "  expect(C.circuits.foo(context, [5n, 6n, 7n]).result).toEqual(~dn-17n);" (max-field))
+        "  expect(C.circuits.foo(context, [Field.create(0n), Field.create(0n), Field.create(0n)]).result).toEqual(Field.create(0n));"
+        ,(format "  expect(C.circuits.foo(context, [Field.create(5n), Field.create(6n), Field.create(7n)]).result).toEqual(Field.create(~dn-17n));" (max-field))
         "});"
         ))
     )
@@ -72147,7 +72169,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, [7n, 11n, 13n, 17n, 19n]).result).toEqual(17n);"
+        "  expect(C.circuits.foo(Ctxt, [Field.create(7n), Field.create(11n), Field.create(13n), Field.create(17n), Field.create(19n)]).result).toEqual(Field.create(17n));"
         "  });"
         ))
     )
@@ -72420,7 +72442,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, [3n]).result).toEqual(3n);"
+        "  expect(C.circuits.foo(Ctxt, [Field.create(3n)]).result).toEqual(Field.create(3n));"
         "  });"
         ))
     )
@@ -72480,7 +72502,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, [3n, 5n, 7n, 11n, 13n, 17n]).result).toEqual([7n, 11n]);"
+        "  expect(C.circuits.foo(Ctxt, [Field.create(3n), Field.create(5n), Field.create(7n), Field.create(11n), Field.create(13n), Field.create(17n)]).result).toEqual([Field.create(7n), Field.create(11n)]);"
         "  });"
         ))
     )
@@ -73187,13 +73209,13 @@ groups than for single tests.
     (stage-javascript
       '(
         "const witnesses = {"
-        "  getData({privateState}: runtime.WitnessContext<any, number>): [number, bigint] { return [privateState, 37n]; },"
-        "  getRandomness({privateState}: runtime.WitnessContext<any, number>): [number, bigint] { return [privateState, 59n]; },"
+        "  getData({privateState}: runtime.WitnessContext<any, number>): [number, runtime.Field] { return [privateState, Field.create(37n)]; },"
+        "  getRandomness({privateState}: runtime.WitnessContext<any, number>): [number, runtime.Field] { return [privateState, Field.create(59n)]; },"
         "  };"
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, witnesses, 0);"
         "  const t = C.circuits.test(Ctxt);"
-        "  expect(typeof(t.result)).toEqual('bigint');"
+        "  expect(typeof(t.result)).toEqual('object');"
         "  });"
         ))
     )
@@ -76316,7 +76338,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, new Uint8Array([17, 23, 29, 31, 37])).result).toEqual([17n, 23n, 29n, 31n, 37n]);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([17, 23, 29, 31, 37])).result).toEqual([Field.create(17n), Field.create(23n), Field.create(29n), Field.create(31n), Field.create(37n)]);"
         "  });"
         ))
     )
@@ -76333,7 +76355,7 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, new Uint8Array([17, 23, 29, 31, 37])).result).toEqual([17n, 23n, 29n, 31n, 37n]);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([17, 23, 29, 31, 37])).result).toEqual([17n, 23n, 29n, 31n, Field.create(37n)]);"
         "  });"
         ))
     )
@@ -76357,12 +76379,12 @@ groups than for single tests.
       '(
         "test('check 1', () => {"
         "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, 0n).result).toEqual(0);"
-        "  expect(C.circuits.foo(Ctxt, 1n).result).toEqual(1);"
-        "  expect(C.circuits.foo(Ctxt, 2n).result).toEqual(2);"
-        "  expect(C.circuits.foo(Ctxt, 3n).result).toEqual(3);"
-        "  expect(() => C.circuits.foo(Ctxt, 4n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, 4n)).toThrow('testfile.compact line 5 char 7: cast from Field or Uint value to enum E failed: 4 is greater than maximum enum value 3n');"
+        "  expect(C.circuits.foo(Ctxt, Field.create(0n)).result).toEqual(0);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(1n)).result).toEqual(1);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(2n)).result).toEqual(2);"
+        "  expect(C.circuits.foo(Ctxt, Field.create(3n)).result).toEqual(3);"
+        "  expect(() => C.circuits.foo(Ctxt, Field.create(4n))).toThrow(runtime.CompactError);"
+        "  expect(() => C.circuits.foo(Ctxt, Field.create(4n))).toThrow('testfile.compact line 5 char 7: cast from Field or Uint value to enum E failed: 4 is greater than maximum enum value 3n');"
         "  });"
         ))
     )
@@ -78790,7 +78812,7 @@ groups than for single tests.
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
-        "  const p = runtime.ecMulGenerator(1n);"
+        "  const p = runtime.JubjubPoint.mulGenerator(Field.create(1n));"
         "  expect(C.circuits.foo(Ctxt, p).result).toEqual([p.y, p.x]);"
         "});"
         ))
@@ -78812,7 +78834,7 @@ groups than for single tests.
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
-        "  const p = runtime.ecMulGenerator(1n);"
+        "  const p = runtime.JubjubPoint.mulGenerator(Field.create(1n));"
         "  expect(C.circuits.foo(Ctxt, p).result).toEqual({ x: p.x, y: p.y });"
         "});"
         ))

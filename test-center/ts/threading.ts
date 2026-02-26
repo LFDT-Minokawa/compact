@@ -14,35 +14,36 @@
 // limitations under the License.
 
 const witnesses = {
-    num({ privateState }: any, n: bigint): [any, bigint] {
+    num({ privateState }: any, n: runtime.FieldElement): [any, runtime.FieldElement] {
         let a = 0, b = 1, c, i;
-        if (n == 0n)
-            return [privateState, BigInt(a)];
-        for (i = 2; i <= n; i++) {
+        const nv = Number(n.value);
+        if (nv == 0)
+            return [privateState, runtime.FieldElement.create(BigInt(a))];
+        for (i = 2; i <= nv; i++) {
             c = a + b;
             a = b;
             b = c;
         }
-        return [privateState, BigInt(b)]
+        return [privateState, runtime.FieldElement.create(BigInt(b))]
     }
 };
 
 test('Check fib 0', () => {
     var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(1n)
+    expect(c.circuits.fib2(Ctxt, false).result).toEqual(runtime.FieldElement.create(1n))
 });
 
 test('Check fib 1', () => {
     var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
     Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(1n)
+    expect(c.circuits.fib2(Ctxt, false).result).toEqual(runtime.FieldElement.create(1n))
 });
 
 test('Check fib 2', () => {
     var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(2n)
+    expect(c.circuits.fib2(Ctxt, false).result).toEqual(runtime.FieldElement.create(2n))
 });
 
 test('Check fib 3', () => {
@@ -50,7 +51,7 @@ test('Check fib 3', () => {
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(3n)
+    expect(c.circuits.fib2(Ctxt, false).result).toEqual(runtime.FieldElement.create(3n))
 });
 
 test('Check fib 4', () => {
@@ -59,13 +60,13 @@ test('Check fib 4', () => {
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(5n)
+    expect(c.circuits.fib2(Ctxt, false).result).toEqual(runtime.FieldElement.create(5n))
 });
 
 test('Check fib 1', () => {
     var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
     Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(1n)
+    expect(c.circuits.fib2(Ctxt, false).result).toEqual(runtime.FieldElement.create(1n))
 });
 
 test('Check reset', () => {
@@ -75,7 +76,7 @@ test('Check reset', () => {
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, true).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(1n)
+    expect(c.circuits.fib2(Ctxt, false).result).toEqual(runtime.FieldElement.create(1n))
 });
 
 test('Check reset + fib 0', () => {
@@ -84,7 +85,7 @@ test('Check reset + fib 0', () => {
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, true).result).toEqual(0n)
+    expect(c.circuits.fib2(Ctxt, true).result).toEqual(runtime.FieldElement.create(0n))
 });
 
 test('Check reset + fib 1', () => {
@@ -95,7 +96,7 @@ test('Check reset + fib 1', () => {
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, true).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(1n)
+    expect(c.circuits.fib2(Ctxt, false).result).toEqual(runtime.FieldElement.create(1n))
 });
 
 test('Check reset + fib 2', () => {
@@ -107,7 +108,7 @@ test('Check reset + fib 2', () => {
     Ctxt = c.circuits.fib2(Ctxt, true).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(2n)
+    expect(c.circuits.fib2(Ctxt, false).result).toEqual(runtime.FieldElement.create(2n))
 });
 
 test('check access counter differently', () => {
@@ -146,5 +147,3 @@ test('check contract address', () => {
     Ctxt = c.circuits.fib2(Ctxt, false).context;
     expect(Ctxt.currentQueryContext.address).toEqual("0000000000000000000000000000000000000000000000000000000000000000")
 });
-
-

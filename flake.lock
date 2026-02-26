@@ -473,18 +473,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1771863586,
-        "narHash": "sha256-MvFHm4qhy6CwN2EIXZFkQl35RXlLgTjf7YMkVKae3E4=",
-        "owner": "midnightntwrk",
-        "repo": "midnight-ledger",
-        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
-        "type": "github"
+        "lastModified": 1772033882,
+        "narHash": "sha256-6DmtdfNGkP3HB4vz1t480LQDHRqbIe58IYFcRSbHnFg=",
+        "ref": "refs/heads/JosephDenman/parameterized-curves-ocrt",
+        "rev": "e1907c130ee4d9448f91bf8b18bc9106b8726e85",
+        "revCount": 774,
+        "type": "git",
+        "url": "file:///Users/josephdenman/IdeaProjects/midnight-ledger"
       },
       "original": {
-        "owner": "midnightntwrk",
-        "repo": "midnight-ledger",
-        "rev": "d36f02ce5988db16c3520fef7ab7cfd1d3231af5",
-        "type": "github"
+        "type": "git",
+        "url": "file:///Users/josephdenman/IdeaProjects/midnight-ledger"
       }
     },
     "root": {

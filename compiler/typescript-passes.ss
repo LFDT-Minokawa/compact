@@ -319,9 +319,6 @@
            "convertFieldToBytes"
            "convertBytesToField"
            "convertBytesToUint"
-           "addField"
-           "subField"
-           "mulField"
            ))
       (define (compact-stdlib name)
         (unless (member name compact-stdlib-entries)
@@ -1262,7 +1259,7 @@
                   [(tboolean ,src)
                    "__compactRuntime.CompactTypeBoolean"]
                   [(tfield ,src)
-                   "__compactRuntime.CompactTypeField"]
+                   "__compactRuntime.FieldElement"]
                   [(tunsigned ,src ,nat)
                    (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)" nat (byte-length nat))]
                   [(tbytes ,src ,len)
@@ -1271,7 +1268,7 @@
                    (case opaque-type
                      [("string") (format "__compactRuntime.CompactTypeOpaqueString")]
                      [("Uint8Array") (format "__compactRuntime.CompactTypeOpaqueUint8Array")]
-                     [("JubjubPoint") (format "__compactRuntime.CompactTypeJubjubPoint")]
+                     [("JubjubPoint") (format "__compactRuntime.JubjubPoint")]
                      ; FIXME: what should happen with other opaque types?
                      [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                   [(tvector ,src ,len ,type)
@@ -1349,7 +1346,7 @@
                 (let ([type (subst-tcontract type)])
                   (nanopass-case (Ltypescript Type) type
                     [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
-                    [(tfield ,src) (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
+                    [(tfield ,src) (format "~a instanceof __compactRuntime.FieldElement" var)]
                     [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
                     [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
                     [(topaque ,src ,opaque-type) "true"]
@@ -2063,48 +2060,59 @@
                           2 "});"
                           q*))
                       q*))
-                (print-Q 2
-                  (apply make-Qconcat/src src
-                    (make-Qconcat
-                      (make-Qconcat/src (id-src internal-id) (format "~a" uname))
-                      "("
-                      (make-Qargs pure? q-formal*)
-                      ")"
-                      0 "{")
-                    2 (format "const ~a = " result)
-                    (make-Qconcat
-                      (native-entry-function native-entry)
-                      "("
-                      (apply (make-Qsep ",")
-                             (fold-right
-                               (let ([ht (make-hashtable symbol-hash eq?)])
-                                 (lambda (maybe-type-param type q*)
-                                   (if (and maybe-type-param (not (hashtable-contains? ht maybe-type-param)))
-                                       (begin
-                                         (hashtable-set! ht maybe-type-param #t)
-                                         (cons
-                                           (type->descriptor-name type)
-                                           q*))
-                                       q*)))
-                               (let ([arg-q* (map (lambda (arg)
-                                                    (let ([var-name (arg->id arg)])
-                                                      (make-Qconcat/src
-                                                        (id-src var-name)
-                                                        (format-id-reference var-name))))
-                                                  arg*)])
-                                 (if (eq? (native-entry-class native-entry) 'witness)
-                                     (cons "context" arg-q*)
-                                     arg-q*))
-                               (native-entry-maybe-type-param* native-entry)
-                               (append
-                                 (map arg->type arg*)
-                                 (list type))))
-                      ")")
-                    ";"
-                    (maybe-add-trascript-push
-                      (list
-                        2 "return " result ";"
-                        0 "}"))))))
+                (let* ([all-args
+                        (fold-right
+                          (let ([ht (make-hashtable symbol-hash eq?)])
+                            (lambda (maybe-type-param type q*)
+                              (if (and maybe-type-param (not (hashtable-contains? ht maybe-type-param)))
+                                  (begin
+                                    (hashtable-set! ht maybe-type-param #t)
+                                    (cons
+                                      (type->descriptor-name type)
+                                      q*))
+                                  q*)))
+                          (let ([arg-q* (map (lambda (arg)
+                                               (let ([var-name (arg->id arg)])
+                                                 (make-Qconcat/src
+                                                   (id-src var-name)
+                                                   (format-id-reference var-name))))
+                                             arg*)])
+                            (if (eq? (native-entry-class native-entry) 'witness)
+                                (cons "context" arg-q*)
+                                arg-q*))
+                          (native-entry-maybe-type-param* native-entry)
+                          (append
+                            (map arg->type arg*)
+                            (list type)))]
+                       [func-name (native-entry-function native-entry)]
+                       [call-expr
+                        (cond
+                          ;; Method call on first arg: ".method" → arg0.method(arg1, ...)
+                          [(char=? (string-ref func-name 0) #\.)
+                           (if (null? (cdr all-args))
+                               (make-Qconcat (car all-args) func-name "()")
+                               (make-Qconcat (car all-args) func-name "(" (apply (make-Qsep ",") (cdr all-args)) ")"))]
+                          ;; Property access on first arg: "@prop" → arg0.prop
+                          [(char=? (string-ref func-name 0) #\@)
+                           (make-Qconcat (car all-args) "." (substring func-name 1 (string-length func-name)))]
+                          ;; Normal function call (unchanged)
+                          [else
+                           (make-Qconcat func-name "(" (apply (make-Qsep ",") all-args) ")")])])
+                  (print-Q 2
+                    (apply make-Qconcat/src src
+                      (make-Qconcat
+                        (make-Qconcat/src (id-src internal-id) (format "~a" uname))
+                        "("
+                        (make-Qargs pure? q-formal*)
+                        ")"
+                        0 "{")
+                      2 (format "const ~a = " result)
+                      call-expr
+                      ";"
+                      (maybe-add-trascript-push
+                        (list
+                          2 "return " result ";"
+                          0 "}")))))))
             (newline))
 
           (define (print-external-witness src internal-id uname arg* type external-name)
@@ -2744,6 +2752,9 @@
                          (printf "}\n"))
                        elt-name*
                        type*)]
+                    [(tfield ,src)
+                     (print-indent indent)
+                     (printf "if (x~s.value !== y~:*~s.value) { return false; }\n" i)]
                     [else
                      (print-indent indent)
                      (printf "if (x~s !== y~:*~s) { return false; }\n" i)])))))
@@ -2757,7 +2768,7 @@
         )
       [(quote ,src ,datum)
        (cond
-         [(field? datum) (format "~dn" datum)]
+         [(field? datum) (format "__compactRuntime.FieldElement.create(~dn)" datum)]
          [(boolean? datum) (if datum "true" "false")]
          [(bytevector? datum)
           (parenthesize level (precedence new)
@@ -2774,7 +2785,7 @@
            (let ([type (subst-tcontract type)])
              (nanopass-case (Ltypescript Type) type
                [(tboolean ,src) "false"]
-               [(tfield ,src) "0n"]
+               [(tfield ,src) "__compactRuntime.FieldElement.zero()"]
                [(tunsigned ,src ,nat) "0n"]
                [(tbytes ,src ,len)
                 (parenthesize level (precedence new)
@@ -2783,7 +2794,7 @@
                 (case opaque-type
                   [("string") "''"]
                   [("Uint8Array") "new Uint8Array(0)"]
-                  [("JubjubPoint") "({x: 0n, y: 1n})"]
+                  [("JubjubPoint") "__compactRuntime.JubjubPoint.create(0n, 1n)"]
                   ; FIXME: what should happen with other opaque types?
                   [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                [(tvector ,src ,len ,type)
@@ -2876,38 +2887,26 @@
            (format "((e, i) => e.slice(i, i+~d))(" len)
            ((make-Qsep ",") expr (make-Qconcat "Number(" index ")"))
            ")"))]
-      [(+ ,src ,mbits ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
+      [(+ ,src ,mbits ,[Expr : expr1 (precedence call) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
        (guard (not mbits))
        (parenthesize level (precedence call)
-         (make-Qconcat
-           (compact-stdlib "addField")
-           "("
-           ((make-Qsep ",") expr1 expr2)
-           ")"))]
+         (make-Qconcat expr1 ".add(" expr2 ")"))]
       [(+ ,src ,mbits ,[Expr : expr1 (precedence +) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 +) outer-pure? -> * expr2])
        (parenthesize level (precedence +)
          ; infer-type guarantees that the result is in range via range analysis
          (make-Qconcat expr1 0 "+" 0 expr2))]
-      [(- ,src ,mbits ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
+      [(- ,src ,mbits ,[Expr : expr1 (precedence call) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
        (guard (not mbits))
        (parenthesize level (precedence call)
-         (make-Qconcat
-           (compact-stdlib "subField")
-           "("
-           ((make-Qsep ",") expr1 expr2)
-           ")"))]
+         (make-Qconcat expr1 ".sub(" expr2 ")"))]
       [(- ,src ,mbits ,[Expr : expr1 (precedence -) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 -) outer-pure? -> * expr2])
        (parenthesize level (precedence -)
          ; infer-type guarantees that the result isn't negative by inserting a run-time check
          (make-Qconcat expr1 0 "-" 0 expr2))]
-      [(* ,src ,mbits ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
+      [(* ,src ,mbits ,[Expr : expr1 (precedence call) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
        (guard (not mbits))
        (parenthesize level (precedence call)
-         (make-Qconcat
-           (compact-stdlib "mulField")
-           "("
-           ((make-Qsep ",") expr1 expr2)
-           ")"))]
+         (make-Qconcat expr1 ".mul(" expr2 ")"))]
       [(* ,src ,mbits ,[Expr : expr1 (precedence *) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 *) outer-pure? -> * expr2])
        (parenthesize level (precedence *)
          ; infer-type guarantees that the result is in range via range analysis
@@ -2926,50 +2925,73 @@
          (make-Qconcat expr1 0 ">=" 0 expr2))]
       [(== ,src ,type ,expr1 ,expr2)
        (if (nanopass-case (Ltypescript Type) (de-alias type)
-             [(tboolean ,src) #t]
+             ;; Types with .equals() method — use structural comparison
              [(tfield ,src) #t]
-             [(topaque ,src ,opaque-type) #t]
-             [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
+             [(topaque ,src ,opaque-type) (string=? opaque-type "JubjubPoint")]
              [else #f])
-           (parenthesize level (precedence ==)
-             (make-Qconcat
-               (Expr expr1 (precedence ==) outer-pure?)
-               0 "==="
-               0 (Expr expr2 (precedence add1 ==) outer-pure?)))
+           ;; Use .equals() for NativeFieldElement and JubjubPoint
            (parenthesize level (precedence call)
-             (let ([equal-name (unique-global-name "equal")])
-               (build-equal-helper! type equal-name)
-               (make-Qconcat
-                 "this."
-                 equal-name
-                 "("
-                 ((make-Qsep ",")
-                  (Expr expr1 (precedence add1 comma) outer-pure?)
-                  (Expr expr2 (precedence add1 comma) outer-pure?))
-                 ")"))))]
+             (make-Qconcat
+               (Expr expr1 (precedence call) outer-pure?)
+               ".equals("
+               (Expr expr2 (precedence add1 comma) outer-pure?)
+               ")"))
+           (if (nanopass-case (Ltypescript Type) (de-alias type)
+                 [(tboolean ,src) #t]
+                 [(topaque ,src ,opaque-type) #t]
+                 [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
+                 [else #f])
+               (parenthesize level (precedence ==)
+                 (make-Qconcat
+                   (Expr expr1 (precedence ==) outer-pure?)
+                   0 "==="
+                   0 (Expr expr2 (precedence add1 ==) outer-pure?)))
+               (parenthesize level (precedence call)
+                 (let ([equal-name (unique-global-name "equal")])
+                   (build-equal-helper! type equal-name)
+                   (make-Qconcat
+                     "this."
+                     equal-name
+                     "("
+                     ((make-Qsep ",")
+                      (Expr expr1 (precedence add1 comma) outer-pure?)
+                      (Expr expr2 (precedence add1 comma) outer-pure?))
+                     ")")))))]
       [(!= ,src ,type ,expr1 ,expr2)
        (if (nanopass-case (Ltypescript Type) (de-alias type)
-             [(tboolean ,src) #t]
+             ;; Types with .equals() method — use structural comparison
              [(tfield ,src) #t]
-             [(topaque ,src ,opaque-type) #t]
-             [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
+             [(topaque ,src ,opaque-type) (string=? opaque-type "JubjubPoint")]
              [else #f])
-           (parenthesize level (precedence ==)
-             (make-Qconcat
-               (Expr expr1 (precedence ==) outer-pure?)
-               0 "!=="
-               0 (Expr expr2 (precedence add1 ==) outer-pure?)))
+           ;; Use !.equals() for NativeFieldElement and JubjubPoint
            (parenthesize level (precedence not)
-             (let ([equal-name (unique-global-name "equal")])
-               (build-equal-helper! type equal-name)
-               (make-Qconcat
-                 "!this."
-                 equal-name
-                 "("
-                 ((make-Qsep ",")
-                  (Expr expr1 (precedence add1 comma) outer-pure?)
-                  (Expr expr2 (precedence add1 comma) outer-pure?))
-                 ")"))))]
+             (make-Qconcat
+               "!"
+               (Expr expr1 (precedence call) outer-pure?)
+               ".equals("
+               (Expr expr2 (precedence add1 comma) outer-pure?)
+               ")"))
+           (if (nanopass-case (Ltypescript Type) (de-alias type)
+                 [(tboolean ,src) #t]
+                 [(topaque ,src ,opaque-type) #t]
+                 [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
+                 [else #f])
+               (parenthesize level (precedence ==)
+                 (make-Qconcat
+                   (Expr expr1 (precedence ==) outer-pure?)
+                   0 "!=="
+                   0 (Expr expr2 (precedence add1 ==) outer-pure?)))
+               (parenthesize level (precedence not)
+                 (let ([equal-name (unique-global-name "equal")])
+                   (build-equal-helper! type equal-name)
+                   (make-Qconcat
+                     "!this."
+                     equal-name
+                     "("
+                     ((make-Qsep ",")
+                      (Expr expr1 (precedence add1 comma) outer-pure?)
+                      (Expr expr2 (precedence add1 comma) outer-pure?))
+                     ")")))))]
       [(map ,src ,len ,[Function : fun0 outer-pure? -> * fun]
             ,[Map-Argument : map-arg (precedence add1 comma) outer-pure? -> * expr byte-ref?]
             ,[Map-Argument : map-arg* (precedence add1 comma) outer-pure? -> * expr* byte-ref?*]
@@ -3304,7 +3326,7 @@
                  (map cdr subst*)))))
       [,tvar-name (symbol->string tvar-name)]
       [(tboolean ,src) "boolean"]
-      [(tfield ,src) "bigint"]
+      [(tfield ,src) "__compactRuntime.FieldElement"]
       [(tunsigned ,src ,nat) "bigint"]
       [(tbytes ,src ,len) "Uint8Array"]
       [(topaque ,src ,opaque-type)
