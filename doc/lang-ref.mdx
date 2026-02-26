@@ -1675,11 +1675,10 @@ Iteration can also be accomplished via
 
 ### `return` statements
 
-!!!!!!!! TBD this is a mess and needs to be cleaned up
-
-A `return` statement can be used to exit immediately from a circuit or the
-constructor, if any, and return to the caller either an explicit return value,
-i.e., the value of `expression` in this form of `return`:
+A `return` statement can be used to exit from the closest enclosing
+[anonymous circuit](#circuit-and-witness-calls) circuit, if any, or otherwise from
+the enclosing constructor or named circuit, and to return to the caller either
+an explicit return value, i.e., the value of `expression` in this form of `return`:
 
 ```compact
 return expression;
@@ -1691,79 +1690,25 @@ or the default value `[]` in this form of `return`:
 return;
 ```
 
-Each `return` statement returns from the closest enclosing
-[anonymous circuit](#circuit-and-witness-calls) circuit, if any, and
-otherwise from the enclosing named circuit or constructor.
+A circuit or constructor body can also exit without an explicit `return` statement:
+any path through the body that does not end in an explicit `return` statement is
+treated as if ended with `return;`.
 
-A `return` statement is well-typed if the type of `expression` (in the
-first form of `return`) and `[]` (in the second form of `return`)
-is a subtype the expected return type.
-If the `return` form exits from an anonymous circuit, the expected
-type is the declared or inferred return type of the circuit.
-Otherwise, if the `return` form exits from a named circuit, the expected
-type is the declared type of the circuit.
-Otherwise, the `return` form must exit from the constructor, in which
-case the expected return type is `[]`.
+A `return` statement is always well-typed if it exits from an anonymous circuit
+without a declared return type.
+Otherwise, a `return` statement is well-typed if the type of `expression`, or
+`[]` if no `expression` is present, is a subtype the expected return type.
+If the `return` form exits from a named circuit or an anonymous circuit
+with a declared return type, the expected type is the declared return type,
+while if it exits from the constructor, the expected return type is `[]`.
 
-`expression` in the
-first form or `[]` in the second is a subtype of the return type of
-the circuit type of the circuit
-or constructor to which it belongs.
-Similarly, a `return` statement of the form `return;` is well-typed if
-the implicity type `T = []` is a subtype of `R`.
+An implication of these rules is that it is a static error to exit without an
+explicit return value from a circuit with a declared return type other than `[]`.
 
-
-For purposes of discussing the static typing of `return`, it is useful to treat
-the second form, `return;`, as an abbreviation for `return [];`.
-
-
-, and it is useful to treat any path through a circuit or the
-constructor that does not end in an explicit return as if ended with
-`return [];`.
-
-With these simplifications, it suffices to describe the typing and evaluation
-rules for `return expression;`.
-
-The typing of `return expression;` requires simply that `T` be a subtype of
-`R`, where `T` is the type of `expression` and `R` is the type of the circuit or
-implicit type `[]` of the constructor to which it belongs.
-
-!!!!!!!! TBD:
-
-A return form immediately exits from the circuit or constructor to which it
-belongs 
-
-
-The typing of a `return` statement requires that `R` be a subset of `T`
-where `R` is the return type of the enclosing circuit (immediately enclosing
-if it appears nested within an [anonymous circuit](#circuit-and-witness-calls))
-or the implicit return type `[]` of the enclosing constructor.
-
-takes into account (1) the type `T` of
-`expression`, where `T = []` in the first form of `return`, and (2) the
-return type `R` of the enclosing circuit
-(immediately enclosing if it appears nested within
-an [anonymous circuit](#circuit-and-witness-calls)) or the implicit return
-type `R = []` of the enclosing constructor.
-
-
-
-For a `return` statement of form `return expression;` it is a static error if
-the type of `expression` is not a [subtype](#subtyping-and-least-upper-bounds)
-of the declared return type `R` of the immediately enclosing circuit (accounting
-for [anonymous circuits](#circuit-and-witness-calls) or constructor if one exists.
-
-For a `return` statement
-of the form `return;`, it is a static type error if the return type `R` is not
-[].
-
-If the return type `R` is `[]` the `return` statement can be dropped. However,
-for return types other than `[]` it is a static type error if there exists a
-path in a circuit block that does not have a `return` statement, for example,
-`export circuit foo(c: Boolean): Boolean { return ((x) : Boolean => { if (c)
-return x; })(c);}` causes a static type error since the `else` branch of the
-`if` statements has type `[]`. It is a static type error to have a statement
-after a `return` statement in a same block.
+When a `return` statement is evaluated, the `expression`, if present, is evaluated
+first, the circuit or constructor returns immediately without evaluating any
+subsequent statements, and it returns to the caller the value of `expression` or
+`[]` if no `expression` is present.
 
 ### Expression sequences
 
