@@ -1705,8 +1705,8 @@ while if it exits from the constructor, the expected return type is `[]`.
 An implication of these rules is that it is a static error to exit without an
 explicit return value from a circuit with a declared return type other than `[]`.
 
-When a `return` statement is evaluated, the `expression`, if present, is evaluated
-first, the circuit or constructor returns immediately without evaluating any
+When a `return` statement is evaluated, the `expression`, if present, is evaluated,
+the circuit or constructor exits immediately without evaluating any
 subsequent statements, and it returns to the caller the value of `expression` or
 `[]` if no `expression` is present.
 
