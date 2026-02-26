@@ -34,7 +34,10 @@
 ;;; limitations under the License.
 
 (library (parser)
-  (export parse-file parse-file/token-stream parser-keywords keywordReservedForFutureUse parser-passes)
+  (export parse-file parse-file/token-stream
+          parser-keywords keywordReservedForFutureUse
+          keyword-group-words keyword-group-desc
+          parser-passes)
   (import (except (chezscheme) errorf)
           (utils)
           (streams)
@@ -52,92 +55,120 @@
 
   (define parse-sfd (make-parameter #f))
 
+  (define-syntax define-keyword-group
+    (syntax-rules (DESCRIPTION)
+      [(_ name (DESCRIPTION desc ...) (word ...))
+       (define-syntax name (identifier-syntax (list '(word ...) '(desc ...))))]
+      [(_ name (word ...))
+       (define-syntax name (identifier-syntax (list '(word ...) '())))]))
+
+  ;; accessor helpers
+  (define (keyword-group-words kg) (car kg))
+  (define (keyword-group-desc  kg) (cadr kg))
+
   ; NB: check this list regularly.  ideally, we would generate it automatically.
-  (define keywordBoolean '(
-    false
-    true))
-  (define keywordImport '(
-    export
-    from
-    import
-    module))
-  (define keywordControl '(
-    as
-    assert
-    circuit
-    const
-    constructor
-    contract
-    default
-    disclose
-    else
-    enum
-    fold
-    for
-    if
-    include
-    ledger
-    map
-    new
-    of
-    pad
-    pragma
-    prefix
-    pure
-    return
-    sealed
-    slice
-    struct
-    type
-    witness))
-  (define keywordDataTypes '(
-    Boolean
-    Bytes
-    Field
-    Opaque
-    Uint
-    Vector))
-  (define-syntax keywordReservedForFutureUse (identifier-syntax '(
-    await
-    break
-    case
-    catch
-    class
-    continue
-    debugger
-    delete
-    do
-    extends
-    finally
-    function
-    implements
-    in
-    instanceof
-    interface
-    let
-    null
-    package
-    private
-    protected
-    public
-    static
-    super
-    switch
-    this ; use as an identifier can cause problems with generated Javascript code, so we reserve
-    throw
-    try
-    typeof
-    var
-    void
-    while
-    with
-    yield)))
+  (define-keyword-group keywordBoolean
+    (DESCRIPTION "Boolean literal values.")
+    (false
+     true))
+
+  (define-keyword-group keywordImport
+    (DESCRIPTION "Keywords related to the module system.")
+    (export
+     from
+     import
+     module))
+
+  (define-keyword-group keywordControl
+    (DESCRIPTION "Keywords used in control flow and declarations.")
+    (as
+     assert
+     circuit
+     const
+     constructor
+     contract
+     default
+     disclose
+     else
+     enum
+     fold
+     for
+     if
+     include
+     ledger
+     map
+     new
+     of
+     pad
+     pragma
+     prefix
+     pure
+     return
+     sealed
+     slice
+     struct
+     type
+     witness))
+
+  (define-keyword-group keywordDataTypes
+    (DESCRIPTION "Built-in data type keywords.")
+    (Boolean
+     Bytes
+     Field
+     Opaque
+     Uint
+     Vector))
+
+  (define-keyword-group keywordReservedForFutureUse
+    (DESCRIPTION "Reserved keywords that may be used in future versions of the language."
+                 "Using these as identifiers is not allowed.")
+    (await
+     break
+     case
+     catch
+     class
+     continue
+     debugger
+     delete
+     do
+     extends
+     finally
+     function
+     implements
+     in
+     instanceof
+     interface
+     let
+     null
+     package
+     private
+     protected
+     public
+     static
+     super
+     switch
+     this ; use as an identifier can cause problems with generated Javascript code, so we reserve
+     throw
+     try
+     typeof
+     var
+     void
+     while
+     with
+     yield))
+
   (define (parser-keywords)
     `((keywordBoolean ,keywordBoolean)
       (keywordImport ,keywordImport)
       (keywordControl ,keywordControl)
       (keywordDataTypes ,keywordDataTypes)))
-  (define all-keywords (append keywordBoolean keywordImport keywordDataTypes keywordControl keywordReservedForFutureUse))
+
+  (define all-keywords
+    (append (keyword-group-words keywordBoolean)
+            (keyword-group-words keywordImport)
+            (keyword-group-words keywordDataTypes)
+            (keyword-group-words keywordControl)
+            (keyword-group-words keywordReservedForFutureUse)))
 
   (define keyword?
     (let ([ht (make-hashtable symbol-hash eq?)])
@@ -156,7 +187,7 @@
          (not (string-prefix? "__compact" (symbol->string x)))))
 
   (module (define-grammar is sat sat/what parse-consumed-all? parse-result-value grammar-trace)
-    (meta define seen-keywords (box keywordReservedForFutureUse))
+    (meta define seen-keywords (box (car keywordReservedForFutureUse)))
     (module ()
       (define-syntax a (lambda (x) #`'#,(datum->syntax #'* seen-keywords)))
       (define symbol<? (lambda (x y) (string<? (symbol->string x) (symbol->string y))))
@@ -865,7 +896,7 @@
           (cond
             [(eq? (token-type token) 'eof) "end of file"]
             [(and (eq? (token-type token) 'id)
-                  (memq (token-value token) keywordReservedForFutureUse))
+                  (memq (token-value token) (car keywordReservedForFutureUse)))
              (format "keyword ~s (which is reserved for future use)" (token-string token))]
             [(and (eq? (token-type token) 'id)
                   (memq (token-value token) all-keywords))

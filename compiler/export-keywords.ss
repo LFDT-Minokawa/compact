@@ -49,12 +49,14 @@
                  (begin
                    (fprintf (current-error-port) "usage: ~a [ mode ] [ output-path ]\n       where mode can be 0 for parser keywords in json or 1 for all keywords in html\n" (car (command-line)))
                    (exit 1))))]
-      [else (fprintf (current-error-port) "usage: ~a [ mode [ output-path ] ]\n" (car (command-line)))
+      [else (fprintf (current-error-port) "usage: ~a [ mode ] [ output-path ] \n       where mode can be 0 for parser keywords in json or 1 for all keywords in html\n" (car (command-line)))
             (exit 1)])))
 
-; KD := tuple (name of group of keywords , keywords list)
+; KD := tuple (name of group of keywords , keyword-group)
+; where keyword-group = (words description)
 (define (kd-name  kd) (car kd))
-(define (kd-words kd) (cadr kd))
+(define (kd-words kd) (keyword-group-words (cadr kd)))
+(define (kd-desc  kd) (keyword-group-desc  (cadr kd)))
 
 ;; get input
 (define input-kd
@@ -85,12 +87,18 @@
 
 ;; HTML utils
 (define (html-keyword word)
-  (format "      <li>~a</li>" word))
+  (format "        <li>~a</li>" word))
+
+(define (html-desc desc)
+  (if (null? desc)
+      ""
+      (format "    <p>~{~a~^ ~}</p>\n" desc)))
 
 (define (html-group kd)
-  (format "    <h2>~a</h2>\n    <ul>\n~{~a~^\n~}\n    </ul>"
-          (kd-name kd)
-          (map html-keyword (kd-words kd))))
+  (string-append
+    (format "    <h2>~a</h2>\n" (kd-name kd))
+    (html-desc (kd-desc kd))
+    (format "    <ul>\n~{~a~^\n~}\n    </ul>" (map html-keyword (kd-words kd)))))
 
 (define (html-page body)
   (string-append
