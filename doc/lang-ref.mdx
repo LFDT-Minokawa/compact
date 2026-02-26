@@ -1735,7 +1735,37 @@ The syntax of Compact expressions is summarized by the following grammar snippet
 <tr><td><em>struct-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr>
 <tr><td><em>term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr-seq</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
-!!!!!!!! TBD describe how the structure of grammar unambiguously expresses precedence, associativity, and restrictions
+!!!!!!!! TBD verify description of how the structure of grammar unambiguously expresses
+precedence, associativity, and restrictions. It's the four paragraphs below -- Kent
+
+The structure of the expression grammar unambiguously encodes precedence,
+associativity, and syntactic restrictions without requiring separate precedence
+or associativity tables.
+
+Precedence. Each subscripted nonterminal `expr_n` represents a precedence level:
+higher subscripts bind more tightly. For example, `expr_6` (multiplication) binds
+more tightly than `expr_5` (addition), which in turn binds more tightly than `expr_2`
+(equality). Each level falls through to the next higher level via a production
+like `expr_5 → expr_6`, so an operator at level `n` has its operands parsed at level
+`n+1` or higher, ensuring that higher-precedence operators are grouped first.
+
+Associativity. Left-associative operators are expressed by left-recursive
+productions: for instance, `expr_5 → expr_5 + expr_6` makes addition
+left-associative, since the left operand is at the same level while the right
+operand is at a higher level. Right-associative operators such as assignment `=`
+and the ternary conditional `? :` are expressed by right-recursive productions:
+`expr_0 = expr`, where the right operand refers back to the top-level expr.
+Non-associative operators such as the relational operators `<`, `<=`, `>=`, `>` have
+both operands at a strictly higher level (`expr_4` on both sides of `expr_3`),
+preventing chaining like `a < b < c`.
+
+Restrictions. The separation between `expr-seq` and `expr` restricts where the comma
+operator (expression sequencing) can appear: only at the top level of a
+parenthesized group or statement context, never inside a subexpression.
+Similarly, assignment and ternary operators live at the `expr` level and cannot
+appear as operands of binary arithmetic or comparison operators without explicit
+parentheses. The unary `!` operator at `expr_7` applies only to `expr_7` and higher,
+preventing ambiguous combinations like `!a + b` from being parsed as `!(a + b)`.
 
 Every Compact expression must be well-typed (free from static type errors).
 If any expression within a program contains a type error, the Compact compiler
