@@ -136,9 +136,10 @@ Others, specifically keywords reserved by JavaScript and TypeScript, are conside
 reserved for future use in Compact, e.g., `self` and `class`.
 Still others, specifically all and every identifier that begin with `__compact`,
 are reserved for use by the compiler.
-[A comprehensive list of keywords and reserved words](all-keywords.mdx) is available.
+A comprehensive list of keywords and reserved words is given
+in [keywords and reserved words](all-keywods.mdx).
 
-!!!!!!! TBD for the docs team, idk how to add a page to the sidebar
+!!!!!!! TBD for the docs team, idk how to add a page to the left sidebar
 
 The remaining identifiers can be used to name specific instances of various kinds
 of entities, including modules, types, generic parameters, ledger fields, function
@@ -202,7 +203,7 @@ block, so the reference to `answer` in `answer != 42` evaluates to `12`.
 In addition to having a scope, every binding also has a lifetime.
 For circuit and witness bindings, the lifetime is effectively permanent, i.e.,
 the binding is always available for use whenever the program is run.
-On the other hand 
+On the other hand
 
 The lifetimes of ledger-field bindings begin when they are first initialized
 and are effectively permanant from that point on; although the value of a
@@ -1417,7 +1418,7 @@ constructor(v: Field) {
 }
 ```
 
-The return type of the constructor is always `[]`. 
+The return type of the constructor is always `[]`.
 Any attempt to return another type of value using `return expression;` where the
 type of `expression` is something other than `[]`, is a static error.
 
@@ -2684,3 +2685,15 @@ Program-defined types are represented in TypeScript as follows:
   where `A`, `B`, ... are the TypeScript representations of the Compact types.
 
 Note that other `Opaque` types are currently not supported.
+
+## Formal grammar
+
+See [here](compact-grammar.mdx).
+
+## Keywords and reserved words
+
+See [here](all-keywords.mdx).
+
+## Explicit disclosure in Compact
+
+See [here](explicit-disclosure.mdx).
