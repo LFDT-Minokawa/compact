@@ -25,7 +25,7 @@
   inputs = {
     zkir = {
       # dependency for compact-runtime release
-      # this is using a tag to pull in the correct zkir version from ledger-7.0.0 release
+      # this is using a tag to pull in the correct zkir version from the ledger
       # if for releasing the runtime, running nix flake update causes errors for authorization of cargo, use
       # the commit hash instead of the tag for this.
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
