@@ -66,7 +66,7 @@ jobs:
       # The commit, event_file, and event_name inputs are required for
       # workflow_run to associate results with the correct PR.
       - name: Publish Test Summary
-        uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f # v2.22.0
+        uses: EnricoMi/publish-unit-test-result-action@c950f6fb443cb5af20a377fd0dfaa78838901040 # v2.23.0
         with:
           check_name: Compactc E2E Tests Results
           files: artifacts/junit/test-report.xml
