@@ -1923,17 +1923,6 @@ are as follows:
 - structure types: the struct with all fields set to the default value of their
   type
 - enumeration types: the first value listed in the declaration
-- `Boolean`: the value of the literal `false`
-- `Uint<0..n>` and `Uint<n>`: `0`
-- `Field`: `0`
-- `[T, ...]` where `T, ...` is a sequence of zero or more types: the tuple with
-  the corresponding length, each of the default value of the corresponding type
-- `Bytes<n>`: the byte array of length `n` with all zero bytes
-- `Opaque<"string">`: an empty string, i.e., `""`
-- `Opaque<"Uint8Array">`: a zero-length `Uint8Array`, i.e., `new Uint8Array(0)`
-- structure types: the struct with all fields set to the default value of their
-  type
-- enumeration types: the first value listed in the declaration
 - alias types: the default value of the underlying type
 - `Counter`: `0`
 - `Set<T>`, for any Compact type `T`: an empty set
