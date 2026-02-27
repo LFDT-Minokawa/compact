@@ -1753,44 +1753,6 @@ The first section below discusses how the grammar reflects the rules
 for precedence and associativity of operators, and the remaining sections
 describe the typing and evaluation rules for each kind of expression.
 
-!!!!!!!! TBD rearrange the sections as follows:
-!!! Precedence and associativity
-!!! Parenthesized expressions
-
-!!! Expression sequences
-
-!!! Literals
-!!! Default values of a type
-!!! Variable references
-
-!!! Conditional expressions
-!!! Relational comparison expressions
-!!! Short-circuit logical expressions
-!!! Boolean negation expressions
-
-!!! Binary arithmetic expressions
-
-!!! Tuple creation
-!!! Tuple element access
-!!! Bytes creation
-!!! Slices
-
-!!! Structure creation
-!!! Structure member access
-
-!!! Type cast expressions
-
-!!! Circuit and witness calls
-
-!!! Map and fold expressions
-
-!!! Ledger state operations
-!!! Ledger assignment expressions
-
-!!! Asserts
-
-!!! Discloses
-  
 
 ### Precedence and associativity
 
@@ -1835,6 +1797,15 @@ embedded in a higher-precedence expression; this does not result in any
 ambiguity because the operand is not exposed on the left or right side of the
 expression where it can be confused as an operand of some other operator.
 
+### Parenthesized expressions
+
+Compact allows parenthesized expressions of the form `(e)`, where `e` is an
+expression.  They can be used to control the order of evaluation.
+
+The type of the parenthesized expression is the type of the subexpression.
+
+Its value is the value of the subexpression.
+
 ### Expression sequences
 
 An expression sequence (`expr-seq` in the grammar above) is a comma-separated
@@ -1859,6 +1830,91 @@ left to right, and its value is the value of the last subexpression.
 The values of the other subexpressions are ignored; these other subexpressions
 are evaluated solely for their effects.
 
+### Literals
+
+Compact has syntax for boolean, numeric, and string literal expressions.
+
+
+__Boolean literals__ are the reserved words `true` and `false`. The static type
+of a boolean literal is `Boolean`. It evaluates to one of the two boolean
+values.
+
+__Numeric literals__ are non-negative decimal integers.  They are either the
+number `0` or a sequence of digits starting with a non-zero digit.  The static
+type of a natural number literal `n` is `Uint<0..n>`.
+
+There is an implementation-defined maximum unsigned integer value.  A numeric
+literal larger than this value will have an invalid static type `Uint<0..n>` for
+some `n` larger than the maximum unsigned integer.  This expression will be a
+static type error unless the literal is smaller than the maximum `Field` value
+and is used in a type cast expression of the form `e as Field`.
+
+A natural number literal evaluates to the unsigned integer value that it
+denotes.
+
+__String literals__ use TypeScript string literal syntax. Note that they can
+therefore be enclosed in either single (`'`) or double (`"`) quotes, and they
+can contain escaped characters. Strings are represented by their UTF-8 encoding.
+The **length** of a string is the length of its UTF-8 encoding. The static type
+of a string literal is `Bytes<n>` where `n` is the length of the string. It
+evaluates to a byte array containing its UTF-8 encoding.
+
+In addition, the expression `pad(n, s)` is a string literal, where `pad` is a
+reserved word, `n` is a natural number literal and `s` is a string literal whose
+length must be less than or equal to `n`. The static type of a padded string
+literal `pad(n, s)` is `Bytes<n>`. It evaluates to a byte array containing the
+UTF-8 encoding of `s`, followed by `0` bytes up to the padded length `n`.
+
+### Default values of a type
+
+Every Compact type and ledger-state type has a default value.
+
+The expression `default<T>`, where `T` is a Compact type or a ledger-state type,
+has static type `T`. It evaluates to the default value of that type.
+
+Note that default value expressions can have ledger-state types.
+
+!!!!!!!! TBD check this for accuracy -- Parisa
+
+Every type in Compact has a *default value* of that type.  The default values
+are as follows:
+
+- `Boolean`: the value of the literal `false`
+- `Uint<0..n>` and `Uint<n>`: `0`
+- `Field`: `0`
+- `[T, ...]` where `T, ...` is a sequence of zero or more types: the tuple with
+  the corresponding length, each of the default value of the corresponding type
+- `Bytes<n>`: the byte array of length `n` with all zero bytes
+- `Opaque<"string">`: an empty string, i.e., `""`
+- `Opaque<"Uint8Array">`: a zero-length `Uint8Array`, i.e., `new Uint8Array(0)`
+- structure types: the struct with all fields set to the default value of their
+  type
+- enumeration types: the first value listed in the declaration
+
+### Variable references
+
+The syntax of Compact identifiers is the same as the syntax of TypeScript
+identifiers.  A variable is an identifier that is bound as a parameter in a
+circuit declaration or else as a constant in a `const` binding statement.
+
+__Circuit parameters__ are bound by circuit declarations. The static type of a
+circuit parameter reference is the declared static type given by the parameter
+declaration's type annotation. It evaluates to the value of the corresponding
+argument expression that was passed to the circuit call.
+
+__Constants__ are bound by `const` binding statements. If the binding statement
+has a type annotation, then the constant reference's static type is the declared
+static type given by the type annotation, and the type of the right-hand side
+initializer expression must be a subtype of the declared type. If the binding
+statement does not have a type annotation, then the constant reference's static
+type is the inferred static type (that is, the type of the binding statement's
+initializer expression). A constant reference evaluates to the value of the
+binding statement's initializer expression.
+
+Note that constant references can have ledger-state types because they can be
+initialized with a ledger-state type's default value.
+
+
 ### Conditional expressions
 
 Compact supports conditional expressions of the form `e0 ? e1 : e2` where `e0`,
@@ -1882,52 +1938,6 @@ evaluated:
   value of the entire expression
 
 The evaluation rules ensure that only one of `e1` and `e2` is evaluated.
-
-### Ledger assignment expressions
-
-!!!!!!!! TBD Kent needs to review and revise as necessary
-
-Compact has ledger assignment statements.  They have the form `lhs op e` where
-`lhs` is a ledger expression as defined in the section **Ledger expressions**
-above, `op` is one of the assignment operators `=` (assignment), `+=` (addition
-assignment), or `-=` (subtraction assignment), and `e` is an expression.
-
-`lhs = e` is shorthand for `lhs.write(e)`.  `lhs += e` is shorthand for
-`lhs.increment(e)`.  `lhs -= e` is shorthand for `lhs.decrement(e)`.
-
-Ledger assignment statements are type checked exactly as if they were their
-longer equivalent invoking a ledger-state operation.
-
-They are evaluated exactly as if their longer equivalent were evaluated as a
-ledger expression.
-
-### Short-circuit logical expressions
-
-!!!!!!!! TBD Kent needs to review and revise as necessary
-
-Compact supports short-circuit logical expressions of the form `e0 op e1`
-where `e0` and `e1` are expressions and `op` is one of the logical operators
-**or** (`||`) or **and** (`&&`).
-
-Logical expressions require the type of the left subexpression to be `Boolean`.
-The type of the right subexpression must be a supertype of `Boolean`.  The only
-supertype of `Boolean` is `Boolean` itself.  The entire expression will have the
-same type as the type of the right subexpression.
-
-Logical expressions are evaluated by first evaluating the left subexpression.
-Then, the value of that expression determines the value of the entire
-expression as follows:
-
-- For or, if the value of the left subexpression is `false` then the right
-  subexpression is evaluated and its value is the value of the entire
-  expression.  Otherwise, the right subexpression is *not* evaluated and the
-  value of the left subexpression, implicitly cast to the type of the entire
-  expression, is the value of the entire expression.
-- For and, if the left subexpression is `true` then the right subexpression is
-  evaluated and its value is the value of the entire expression.  Otherwise,
-  the right subexpression is *not* evaluated and the value of the left
-  subexpression, implicitly cast to the type of the entire expression, is the
-  value of the entire expression.
 
 ### Relational comparison expressions
 
@@ -1994,107 +2004,47 @@ The integer values of the operands are compared according to the relational
 operation.  Both operands will have unsigned integer types due to the static
 typing rules.
 
-### Type cast expressions
+### Short-circuit logical expressions
 
-Values of one type can be cast to another, when allowed, via a *cast*, which
-takes the following form:
+!!!!!!!! TBD Kent needs to review and revise as necessary
 
-The effects of casting an expression `e` of type `T` to another type `U` depend
-on the specific types involved.
-For some types `T` and `U`, the cast is not allowed, which is a static error.
-Even if the cast is allowed, some values of type `T` might not be representable
-as values of type `U`.
-In such cases, a run-time check of the value of `e` is required and can result
-in a run-time error.
-In cases where the run-time representation of `T` is different from the run-time
-representation of `U`, the value of `e` must be converted at run time from the
-one representation to the other.
+Compact supports short-circuit logical expressions of the form `e0 op e1`
+where `e0` and `e1` are expressions and `op` is one of the logical operators
+**or** (`||`) or **and** (`&&`).
 
-The type of any (allowed) cast `e as T` is, naturally, `T`.
+Logical expressions require the type of the left subexpression to be `Boolean`.
+The type of the right subexpression must be a supertype of `Boolean`.  The only
+supertype of `Boolean` is `Boolean` itself.  The entire expression will have the
+same type as the type of the right subexpression.
 
-Evaluation of a cast proceeds by evaluation of its subexpression, followed by
-any checks and conversions required by the cast.
-If a check fails, a run-time error is reported.
+Logical expressions are evaluated by first evaluating the left subexpression.
+Then, the value of that expression determines the value of the entire
+expression as follows:
 
-TypeScript casts of the form `<T>e` are not supported in Compact.
+- For or, if the value of the left subexpression is `false` then the right
+  subexpression is evaluated and its value is the value of the entire
+  expression.  Otherwise, the right subexpression is *not* evaluated and the
+  value of the left subexpression, implicitly cast to the type of the entire
+  expression, is the value of the entire expression.
+- For and, if the left subexpression is `true` then the right subexpression is
+  evaluated and its value is the value of the entire expression.  Otherwise,
+  the right subexpression is *not* evaluated and the value of the left
+  subexpression, implicitly cast to the type of the entire expression, is the
+  value of the entire expression.
 
-The following rules govern when casts are allowed, when casts might cause run-time
-errors, and casts might require run-time conversions.
-Any cast not covered by one of the rules is not allowed.
+### Boolean negation expressions
 
-!!!!!!!! TBD verify all of these claims -- Parisa
+Compact has unary boolean negation expressions of the form `!e` where `e` is an
+expression.
 
-In meeting convo: Do we have all the cases for downcast? check the code in analysis pass to see if it does
-what the claims say. the downcast isn't correct, even the example isn't correct.
+A boolean negation expression is type checked by checking the type of the
+subexpression.  It is a type error if this type is not `Boolean`.  The type of
+the expression will be `Boolean`.
 
-#### Upcasts
-
-- Upcasts, i.e., casts from a type to a (supertype)[subtyping-and-least-upper-bounds]
-  (e.g., from `Vector<3, Uint<8>>` to `Vector<3, Uint<16>>`), are always allowed
-  (but never required), never result in run-time errors, and, except in the case
-  where the type and the supertype are the same, might require run-time conversions.
-
-!!!!!!!! TBD Might want to mention other impliciations of this rule, such as rules for casting tuples to vectors and back
-
-#### Downcasts of `Field` and `Uint` types
-
-- `Uint` downcasts, i.e., casts from `Uint<m>` to `Uint<n>`, `m > n`, are always
-   allowed, always require run-time checks, and might require run-time conversions.
-   The same applies to `Field` to `Uint` casts where the maximum value of the
-   `Uint` type exceeds the maximum `Field` value, as well as `Uint` to `Field` casts
-   where the maximum value of the `Uint` type is less than or equal to the maximum
-   `Field` value.
-
-#### Casts of `Boolean` to and from `Field` and `Uint`:
-
-- Casts from `Boolean` to `Field` or `Uint<0..m>` are always allowed, sometimes
-  require run-time checks, and require a run-time conversion (of `false` to `0`
-  and `true` to `1`).
-  A run-time check is required for `Uint<0..1>`.
-- Casts from `Field` or `Uint<0..m>` to `Boolean` are always allowed, cannot
-  result in run-time errors, and require a simple run-time conversion (of `0` to
-  `false` and any other value to `true`).
-
-#### Casts of Enum types to and from `Field` and `Uint`:
-
-- Casts from enum types with `n` elements to `Field` or `Uint<0..m>` are
-  always allowed, sometimes require run-time checks, and might require a run-time
-  conversion.
-  A run-time check is required for `Uint<0..m>`, `m <= n`.
-- Casts from `Field` or `Uint<0..m>` to an enum type with `n` elements are
-  always allowed, sometimes requires a run-time checks, and might require a run-time
-  conversion.
-  A run-time check is required for `Field` and `Uint<0..m>`, `m > n + 1`.
-
-#### Casts of `Bytes` to and from `Field` and `Uint`:
-
-- Casts from `Bytes<m>`, `m != 0`, to `Field` or `Uint<0..k>` are always allowed,
-  require a run-time check, and require a run-time conversion.
-  That is, the bytes value of the expression is converted into a `Field` or
-  `Uint<0..m>` with the least-significant byte of the result corresponding to the
-  first byte in the bytes value.
-  A run-time error occurs if the result exceeds the maximum value of `Field`
-  or `Uint<0..m>`.
-- Casts from `Field` or `Uint<0..k>` to `Bytes<m>`, `m != 0`, are always allowed,
-  require a run-time check, and require a run-time conversion.
-  That is, the integer value of the expression is converted into bytes value
-  with the first byte of the bytes value corresponding to the least-significant
-  byte of the integer.
-  A run-time error occurs if the result does not fit in `m` bytes.
-
-#### Casts of `Bytes` to and from `Vector` and tuple types:
-
-- Casts from `Bytes<m>` to `Vector<m, Field>` or `Vector<m, Uint<0..k>>`,
-  `k >= 256`, or `[U1, ..., Um]`, where each `Ui = Uint<0..j>` for some j >= are allowed, cannot cause a run-time error, but do require a
-  run-time conversion.
-- Casts from `Bytes<m>` to tuple type `[U1, ..., Um]`, where each `Ui` is
-  `Uint<0..j>` for some `j >= 256` are allowed, cannot cause a run-time error,
-  but do require a run-time conversion.
-- Casts from tuple type `[U1, ..., Um]` to `Bytes<m>`, where each `Ui` is
-  `Uint<0..j>` for some `j < 256` are allowed, cannot cause a run-time error,
-  but do require a run-time conversion.
-- Casts from `Vector<m, Uint<0..k>>`, `k < 256`, to `Bytes<m>` are allowed,
-  cannot cause a run-time error, but do require a run-time conversion.
+Negation expressions are evaluated by evaluating the subexpression.  The value
+of the expression will be `true` if the value of the subexpression is `false`
+and vice versa.  The subexpression will have a boolean value because the
+expression is well-typed.
 
 ### Binary arithmetic expressions
 
@@ -2135,19 +2085,23 @@ differs for `Field` and `Uint` operations:
 The static typing rules imply that if `Field` arithmetic semantics is desired,
 then at least one of the operands must have static type `Field`.
 
-### Boolean negation expressions
+### Tuple creation
 
-Compact has unary boolean negation expressions of the form `!e` where `e` is an
-expression.
+Tuple values are created with expressions of the form `[e, ...]` where `e, ...`
+is a sequence of zero or more comma-separated argument expressions.  A non-empty
+sequence can have an optional trailing comma.  The *length* of a tuple is the
+number of subexpressions in the tuple creation expression.
 
-A boolean negation expression is type checked by checking the type of the
-subexpression.  It is a type error if this type is not `Boolean`.  The type of
-the expression will be `Boolean`.
+The static type of a tuple creation expression is `[T, ...]` with the number of
+types matches length of the tuple and each type `T` is the type of the
+corresponding expression.
 
-Negation expressions are evaluated by evaluating the subexpression.  The value
-of the expression will be `true` if the value of the subexpression is `false`
-and vice versa.  The subexpression will have a boolean value because the
-expression is well-typed.
+It is evaluated by evaluating the subexpressions from left to right.  Its value
+is a tuple whose length is the number of subexpressions and whose elements are
+the subexpression values.
+
+### Bytes creation
+
 
 ### Tuple element access
 
@@ -2165,6 +2119,100 @@ value of the expression will be the element value at the given zero-based
 index.  The subexpression will have a tuple value and the element access will
 not be out of bounds, because the expression is well-typed.
 
+### Slices
+
+
+### Structure creation
+
+Structure values are created with structure creation expressions.  The
+expression `S {f, ...}` is a structure creation expression, where `S` is a
+structure type and `f, ...` is a sequence of zero or more comma-separated field
+value specifiers.
+
+A field value specifier can be one of three things:
+
+* A **positional** field value is an expression.  Evaluating the expression
+  gives the value for the field.  Positional field values must be given in the
+  order that fields are declared in the corresponding structure declaration.
+* A **named** field value is of the form `id: e` where `id` is a field name and
+  `e` is an expression.  Evaluating the expression gives the value for the
+  corresponding named field.  Named fields can appear in any order.  If named
+  and positional fields are mixed, all the named fields must appear after all
+  the positional fields.
+* A **spread** expression is of the form `...e` where `...` is the literal three
+  dots (ellipsis) token and `e` is an expression.  Evaluating the expression
+  must give a value of the same structure type as the one being created.  The
+  fields of the created structure are given values from the spread structure as
+  described below.  If there is a spread expression, it must occur as the first
+  field value specifier and all other specifiers must be named field values.
+
+The examples below demonstrate the use of positional and spread field values:
+
+```compact
+struct S { a: Uint<32>, b: Boolean, c: Bytes<8> }
+circuit f(x: Uint<32>, y: Boolean, z: Bytes<8>): S {
+  const s1 = S { c: z, a: x, b: y };
+  // Alternatively, s1 can be created with the positional syntax S { x, y, z }
+  // or a mix of positional and named field values S { x, c: z, b: y }.
+
+  const s2 = S { ...s1, b: true };
+  // s2 is created using the spread syntax.  So, s2 has the same field values
+  // as s1 except that b is true.
+
+  const s3 = S { ...s2, c: 'abcdefgh' };
+  // s3 is also created using the spread syntax.  s3 has the same field values
+  // as s2 except that c is 'abcdefgh'.
+
+  return s3;
+}
+```
+
+The structure type must come from a structure declaration in scope.  If the
+structure is generic, then it must be explicitly specialized with generic
+arguments enclosed in angle brackets.  Generic structures must be fully
+specialized: the number of generic arguments must match the number of generic
+parameters.
+
+The static type of a non-generic structure creation expression is the named
+structure type.
+
+The generic arguments to a generic structure can be types, natural number
+literals, or the names of generic parameters in scope.  A generic structure
+creation expression is type checked by substituting the generic arguments for
+the generic parameters in the structure's definition.  The static type of a
+generic structure creation expression is a structure with the same name as the
+generic type and field types obtained by substituting the generic arguments for
+the generic parameters in the structure's declaration.
+
+**If there is no spread field specifier:** It is a static error if the number of
+field specifiers does not match the number of fields in the corresponding
+structure declaration (a value must be given for every field).  It is a static
+error if a named field specifier occurs before a positional field specifier.  It
+is a static error if a field name occurs more than once, and it is a static
+error if a field name occurs that is not the name of a field in the
+corresponding structure declaration.  It is a static type error if the type of a
+positional field subexpression is not a subtype of the declared type of the
+(positionally) corresponding field in the structure declaration.  It is a static
+type error if the type of a named field subexpression is not a subtype of the
+declared type of the corresponding (named) field in the structure declaration.
+
+**If there is a spread field specifier:** It is a static error if the spread
+field specifier does not come first in the sequence.  It is a static type error
+if the type of the spread subexpression is not the same type as structure to be
+created.  It is a static error if there are any positional field specifiers.  It
+is a static error if a field name occurs that is not the name of a field in the
+corresponding structure declaration.  It is a static type error if the type of a
+named field subexpression is not a subtype of the declared type of the
+corresponding (named) field in the structure declaration.
+
+A structure creation expression is evaluated by evaluating the field specifier
+subexpressions in order from left to right.  The result is a structure value
+whose fields have values based on the corresponding field specifier: if there is
+a positional or named field specifier for the field, the field value is the
+value of the subexpression, otherwise there must be a spread expression and the
+field value is the value of the corresponding field in the (structure) value of
+the spread subexpression.
+
 ### Structure member access
 
 An
@@ -2181,67 +2229,6 @@ Member access expressions are evaluated by evaluating the subexpression.  The
 value of the expression will be the member value with the given name.  The
 subexpression will have a structure value and the name will exist, because the
 expression is well-typed.
-
-### Ledger state operations
-
-A Compact program interacts with its public state by invoking operations upon
-the ledger or ledger-state types.  There are two different forms of ledger
-calls.
-
-__Kernel operations__ are operations that do not depend on specific ledger
-state.  They can be invoked by expressions of the form `k.op(e, ...)`, where
-`k` is the name of a ledger field declared to have the special ledger-state type `Kernel`,
-`op` is the name of a builtin kernel operation and
-`e, ...` is a comma separated sequence of zero or more argument expressions.
-The `CompactStandardLibrary` predefines the ledger field name `kernel` to have
-ledger type `Kernel`, so for example, the built-in `self` operation can be called
-from a circuit as follows:
-
-```compact
-import CompactStandardLibrary;
-circuit f(): ContractAddress {
-  return kernel.self();
-}
-```
-
-__Ledger state operations__ are operations on the program's public ledger-state.
-They are invoked by expressions of the form `member.op(e, ...)....`,
-where `member` is a ledger field name ([declared via a `ledger` field declaration](#declaring-and-maintaining-public-state))
-and `.op(e, ...)....` are a sequence of zero or more ledger
-state operation invocations, where each `op` is the name of a ledger-state
-operation and each `e, ...` is a sequence of zero or more comma-separated
-argument expressions.
-
-Note that ledger-state operations can be chained, because the result of a ledger
-state operation might itself have a ledger-state type.  Kernel operations cannot
-be chained, because the kernel is not a ledger-state type and is not returned
-by any operation.
-
-The static type of a kernel operation expression is the return type of the
-corresponding kernel operation according to the ledger data types reference.
-
-The static type of a ledger-state operation expression is the return type of the
-corresponding ledger-state operation according to the ledger data types reference.  Note
-that this might be a Compact type or it might be a ledger-state type.  Values of
-ledger-state types can have ledger-state operations invoked (immediately) on them, but
-any other use would be a static type error.
-
-Kernel operations are evaluated by evaluating the argument subexpressions in
-order from left to right and then invoking the corresponding kernel operation
-with the argument values.
-
-A ledger-state operation `member` (that is not followed by a ledger
-accessor) is implicitly an invocation of the `read` operation.  It is evaluated
-as if it were `member.read()`.
-
-A ledger-state operation `member.op(e, ...)` is evaluated by evaluating the
-argument subexpressions from left to right, and then invoking the operation
-`op` on the public ledger member `member` with the argument values.
-
-A ledger-state operation `adt.op(e, ...)` where `adt` is itself a ledger-state
-operation is evaluated by first evaluating `adt`, then evaluating the argument
-subexpressions from left to right, and then invoking the operation `op` on the
-ledger-state value of `adt` with the argument values.
 
 ### Circuit and witness calls
 
@@ -2418,117 +2405,186 @@ value and to the *i*th element of the corresponding input vector values.  The
 result is the `n`th (final) accumulator value where `n` is the length of the
 input vectors.
 
-### Slices
+### Type cast expressions
 
+Values of one type can be cast to another, when allowed, via a *cast*, which
+takes the following form:
 
-### Tuple creation
+The effects of casting an expression `e` of type `T` to another type `U` depend
+on the specific types involved.
+For some types `T` and `U`, the cast is not allowed, which is a static error.
+Even if the cast is allowed, some values of type `T` might not be representable
+as values of type `U`.
+In such cases, a run-time check of the value of `e` is required and can result
+in a run-time error.
+In cases where the run-time representation of `T` is different from the run-time
+representation of `U`, the value of `e` must be converted at run time from the
+one representation to the other.
 
-Tuple values are created with expressions of the form `[e, ...]` where `e, ...`
-is a sequence of zero or more comma-separated argument expressions.  A non-empty
-sequence can have an optional trailing comma.  The *length* of a tuple is the
-number of subexpressions in the tuple creation expression.
+The type of any (allowed) cast `e as T` is, naturally, `T`.
 
-The static type of a tuple creation expression is `[T, ...]` with the number of
-types matches length of the tuple and each type `T` is the type of the
-corresponding expression.
+Evaluation of a cast proceeds by evaluation of its subexpression, followed by
+any checks and conversions required by the cast.
+If a check fails, a run-time error is reported.
 
-It is evaluated by evaluating the subexpressions from left to right.  Its value
-is a tuple whose length is the number of subexpressions and whose elements are
-the subexpression values.
+TypeScript casts of the form `<T>e` are not supported in Compact.
 
-### Bytes creation
+The following rules govern when casts are allowed, when casts might cause run-time
+errors, and casts might require run-time conversions.
+Any cast not covered by one of the rules is not allowed.
 
+!!!!!!!! TBD verify all of these claims -- Parisa
 
-### Structure creation
+In meeting convo: Do we have all the cases for downcast? check the code in analysis pass to see if it does
+what the claims say. the downcast isn't correct, even the example isn't correct.
 
-Structure values are created with structure creation expressions.  The
-expression `S {f, ...}` is a structure creation expression, where `S` is a
-structure type and `f, ...` is a sequence of zero or more comma-separated field
-value specifiers.
+#### Upcasts
 
-A field value specifier can be one of three things:
+- Upcasts, i.e., casts from a type to a (supertype)[subtyping-and-least-upper-bounds]
+  (e.g., from `Vector<3, Uint<8>>` to `Vector<3, Uint<16>>`), are always allowed
+  (but never required), never result in run-time errors, and, except in the case
+  where the type and the supertype are the same, might require run-time conversions.
 
-* A **positional** field value is an expression.  Evaluating the expression
-  gives the value for the field.  Positional field values must be given in the
-  order that fields are declared in the corresponding structure declaration.
-* A **named** field value is of the form `id: e` where `id` is a field name and
-  `e` is an expression.  Evaluating the expression gives the value for the
-  corresponding named field.  Named fields can appear in any order.  If named
-  and positional fields are mixed, all the named fields must appear after all
-  the positional fields.
-* A **spread** expression is of the form `...e` where `...` is the literal three
-  dots (ellipsis) token and `e` is an expression.  Evaluating the expression
-  must give a value of the same structure type as the one being created.  The
-  fields of the created structure are given values from the spread structure as
-  described below.  If there is a spread expression, it must occur as the first
-  field value specifier and all other specifiers must be named field values.
+!!!!!!!! TBD Might want to mention other impliciations of this rule, such as rules for casting tuples to vectors and back
 
-The examples below demonstrate the use of positional and spread field values:
+#### Downcasts of `Field` and `Uint` types
+
+- `Uint` downcasts, i.e., casts from `Uint<m>` to `Uint<n>`, `m > n`, are always
+   allowed, always require run-time checks, and might require run-time conversions.
+   The same applies to `Field` to `Uint` casts where the maximum value of the
+   `Uint` type exceeds the maximum `Field` value, as well as `Uint` to `Field` casts
+   where the maximum value of the `Uint` type is less than or equal to the maximum
+   `Field` value.
+
+#### Casts of `Boolean` to and from `Field` and `Uint`:
+
+- Casts from `Boolean` to `Field` or `Uint<0..m>` are always allowed, sometimes
+  require run-time checks, and require a run-time conversion (of `false` to `0`
+  and `true` to `1`).
+  A run-time check is required for `Uint<0..1>`.
+- Casts from `Field` or `Uint<0..m>` to `Boolean` are always allowed, cannot
+  result in run-time errors, and require a simple run-time conversion (of `0` to
+  `false` and any other value to `true`).
+
+#### Casts of Enum types to and from `Field` and `Uint`:
+
+- Casts from enum types with `n` elements to `Field` or `Uint<0..m>` are
+  always allowed, sometimes require run-time checks, and might require a run-time
+  conversion.
+  A run-time check is required for `Uint<0..m>`, `m <= n`.
+- Casts from `Field` or `Uint<0..m>` to an enum type with `n` elements are
+  always allowed, sometimes requires a run-time checks, and might require a run-time
+  conversion.
+  A run-time check is required for `Field` and `Uint<0..m>`, `m > n + 1`.
+
+#### Casts of `Bytes` to and from `Field` and `Uint`:
+
+- Casts from `Bytes<m>`, `m != 0`, to `Field` or `Uint<0..k>` are always allowed,
+  require a run-time check, and require a run-time conversion.
+  That is, the bytes value of the expression is converted into a `Field` or
+  `Uint<0..m>` with the least-significant byte of the result corresponding to the
+  first byte in the bytes value.
+  A run-time error occurs if the result exceeds the maximum value of `Field`
+  or `Uint<0..m>`.
+- Casts from `Field` or `Uint<0..k>` to `Bytes<m>`, `m != 0`, are always allowed,
+  require a run-time check, and require a run-time conversion.
+  That is, the integer value of the expression is converted into bytes value
+  with the first byte of the bytes value corresponding to the least-significant
+  byte of the integer.
+  A run-time error occurs if the result does not fit in `m` bytes.
+
+#### Casts of `Bytes` to and from `Vector` and tuple types:
+
+- Casts from `Bytes<m>` to `Vector<m, Field>` or `Vector<m, Uint<0..k>>`,
+  `k >= 256`, or `[U1, ..., Um]`, where each `Ui = Uint<0..j>` for some j >= are allowed, cannot cause a run-time error, but do require a
+  run-time conversion.
+- Casts from `Bytes<m>` to tuple type `[U1, ..., Um]`, where each `Ui` is
+  `Uint<0..j>` for some `j >= 256` are allowed, cannot cause a run-time error,
+  but do require a run-time conversion.
+- Casts from tuple type `[U1, ..., Um]` to `Bytes<m>`, where each `Ui` is
+  `Uint<0..j>` for some `j < 256` are allowed, cannot cause a run-time error,
+  but do require a run-time conversion.
+- Casts from `Vector<m, Uint<0..k>>`, `k < 256`, to `Bytes<m>` are allowed,
+  cannot cause a run-time error, but do require a run-time conversion.
+
+### Ledger state operations
+
+A Compact program interacts with its public state by invoking operations upon
+the ledger or ledger-state types.  There are two different forms of ledger
+calls.
+
+__Kernel operations__ are operations that do not depend on specific ledger
+state.  They can be invoked by expressions of the form `k.op(e, ...)`, where
+`k` is the name of a ledger field declared to have the special ledger-state type `Kernel`,
+`op` is the name of a builtin kernel operation and
+`e, ...` is a comma separated sequence of zero or more argument expressions.
+The `CompactStandardLibrary` predefines the ledger field name `kernel` to have
+ledger type `Kernel`, so for example, the built-in `self` operation can be called
+from a circuit as follows:
 
 ```compact
-struct S { a: Uint<32>, b: Boolean, c: Bytes<8> }
-circuit f(x: Uint<32>, y: Boolean, z: Bytes<8>): S {
-  const s1 = S { c: z, a: x, b: y };
-  // Alternatively, s1 can be created with the positional syntax S { x, y, z }
-  // or a mix of positional and named field values S { x, c: z, b: y }.
-
-  const s2 = S { ...s1, b: true };
-  // s2 is created using the spread syntax.  So, s2 has the same field values
-  // as s1 except that b is true.
-
-  const s3 = S { ...s2, c: 'abcdefgh' };
-  // s3 is also created using the spread syntax.  s3 has the same field values
-  // as s2 except that c is 'abcdefgh'.
-
-  return s3;
+import CompactStandardLibrary;
+circuit f(): ContractAddress {
+  return kernel.self();
 }
 ```
 
-The structure type must come from a structure declaration in scope.  If the
-structure is generic, then it must be explicitly specialized with generic
-arguments enclosed in angle brackets.  Generic structures must be fully
-specialized: the number of generic arguments must match the number of generic
-parameters.
+__Ledger state operations__ are operations on the program's public ledger-state.
+They are invoked by expressions of the form `member.op(e, ...)....`,
+where `member` is a ledger field name ([declared via a `ledger` field declaration](#declaring-and-maintaining-public-state))
+and `.op(e, ...)....` are a sequence of zero or more ledger
+state operation invocations, where each `op` is the name of a ledger-state
+operation and each `e, ...` is a sequence of zero or more comma-separated
+argument expressions.
 
-The static type of a non-generic structure creation expression is the named
-structure type.
+Note that ledger-state operations can be chained, because the result of a ledger
+state operation might itself have a ledger-state type.  Kernel operations cannot
+be chained, because the kernel is not a ledger-state type and is not returned
+by any operation.
 
-The generic arguments to a generic structure can be types, natural number
-literals, or the names of generic parameters in scope.  A generic structure
-creation expression is type checked by substituting the generic arguments for
-the generic parameters in the structure's definition.  The static type of a
-generic structure creation expression is a structure with the same name as the
-generic type and field types obtained by substituting the generic arguments for
-the generic parameters in the structure's declaration.
+The static type of a kernel operation expression is the return type of the
+corresponding kernel operation according to the ledger data types reference.
 
-**If there is no spread field specifier:** It is a static error if the number of
-field specifiers does not match the number of fields in the corresponding
-structure declaration (a value must be given for every field).  It is a static
-error if a named field specifier occurs before a positional field specifier.  It
-is a static error if a field name occurs more than once, and it is a static
-error if a field name occurs that is not the name of a field in the
-corresponding structure declaration.  It is a static type error if the type of a
-positional field subexpression is not a subtype of the declared type of the
-(positionally) corresponding field in the structure declaration.  It is a static
-type error if the type of a named field subexpression is not a subtype of the
-declared type of the corresponding (named) field in the structure declaration.
+The static type of a ledger-state operation expression is the return type of the
+corresponding ledger-state operation according to the ledger data types reference.  Note
+that this might be a Compact type or it might be a ledger-state type.  Values of
+ledger-state types can have ledger-state operations invoked (immediately) on them, but
+any other use would be a static type error.
 
-**If there is a spread field specifier:** It is a static error if the spread
-field specifier does not come first in the sequence.  It is a static type error
-if the type of the spread subexpression is not the same type as structure to be
-created.  It is a static error if there are any positional field specifiers.  It
-is a static error if a field name occurs that is not the name of a field in the
-corresponding structure declaration.  It is a static type error if the type of a
-named field subexpression is not a subtype of the declared type of the
-corresponding (named) field in the structure declaration.
+Kernel operations are evaluated by evaluating the argument subexpressions in
+order from left to right and then invoking the corresponding kernel operation
+with the argument values.
 
-A structure creation expression is evaluated by evaluating the field specifier
-subexpressions in order from left to right.  The result is a structure value
-whose fields have values based on the corresponding field specifier: if there is
-a positional or named field specifier for the field, the field value is the
-value of the subexpression, otherwise there must be a spread expression and the
-field value is the value of the corresponding field in the (structure) value of
-the spread subexpression.
+A ledger-state operation `member` (that is not followed by a ledger
+accessor) is implicitly an invocation of the `read` operation.  It is evaluated
+as if it were `member.read()`.
+
+A ledger-state operation `member.op(e, ...)` is evaluated by evaluating the
+argument subexpressions from left to right, and then invoking the operation
+`op` on the public ledger member `member` with the argument values.
+
+A ledger-state operation `adt.op(e, ...)` where `adt` is itself a ledger-state
+operation is evaluated by first evaluating `adt`, then evaluating the argument
+subexpressions from left to right, and then invoking the operation `op` on the
+ledger-state value of `adt` with the argument values.
+
+### Ledger assignment expressions
+
+!!!!!!!! TBD Kent needs to review and revise as necessary
+
+Compact has ledger assignment statements.  They have the form `lhs op e` where
+`lhs` is a ledger expression as defined in the section **Ledger expressions**
+above, `op` is one of the assignment operators `=` (assignment), `+=` (addition
+assignment), or `-=` (subtraction assignment), and `e` is an expression.
+
+`lhs = e` is shorthand for `lhs.write(e)`.  `lhs += e` is shorthand for
+`lhs.increment(e)`.  `lhs -= e` is shorthand for `lhs.decrement(e)`.
+
+Ledger assignment statements are type checked exactly as if they were their
+longer equivalent invoking a ledger-state operation.
+
+They are evaluated exactly as if their longer equivalent were evaluated as a
+ledger expression.
 
 ### Asserts
 
@@ -2540,100 +2596,6 @@ Each assertion is checked at runtime and constrained in-circuit.
 
 ### Discloses
 
-
-### Variable references
-
-The syntax of Compact identifiers is the same as the syntax of TypeScript
-identifiers.  A variable is an identifier that is bound as a parameter in a
-circuit declaration or else as a constant in a `const` binding statement.
-
-__Circuit parameters__ are bound by circuit declarations. The static type of a
-circuit parameter reference is the declared static type given by the parameter
-declaration's type annotation. It evaluates to the value of the corresponding
-argument expression that was passed to the circuit call.
-
-__Constants__ are bound by `const` binding statements. If the binding statement
-has a type annotation, then the constant reference's static type is the declared
-static type given by the type annotation, and the type of the right-hand side
-initializer expression must be a subtype of the declared type. If the binding
-statement does not have a type annotation, then the constant reference's static
-type is the inferred static type (that is, the type of the binding statement's
-initializer expression). A constant reference evaluates to the value of the
-binding statement's initializer expression.
-
-Note that constant references can have ledger-state types because they can be
-initialized with a ledger-state type's default value.
-
-### Literals
-
-Compact has syntax for boolean, numeric, and string literal expressions.
-
-
-__Boolean literals__ are the reserved words `true` and `false`. The static type
-of a boolean literal is `Boolean`. It evaluates to one of the two boolean
-values.
-
-__Numeric literals__ are non-negative decimal integers.  They are either the
-number `0` or a sequence of digits starting with a non-zero digit.  The static
-type of a natural number literal `n` is `Uint<0..n>`.
-
-There is an implementation-defined maximum unsigned integer value.  A numeric
-literal larger than this value will have an invalid static type `Uint<0..n>` for
-some `n` larger than the maximum unsigned integer.  This expression will be a
-static type error unless the literal is smaller than the maximum `Field` value
-and is used in a type cast expression of the form `e as Field`.
-
-A natural number literal evaluates to the unsigned integer value that it
-denotes.
-
-__String literals__ use TypeScript string literal syntax. Note that they can
-therefore be enclosed in either single (`'`) or double (`"`) quotes, and they
-can contain escaped characters. Strings are represented by their UTF-8 encoding.
-The **length** of a string is the length of its UTF-8 encoding. The static type
-of a string literal is `Bytes<n>` where `n` is the length of the string. It
-evaluates to a byte array containing its UTF-8 encoding.
-
-In addition, the expression `pad(n, s)` is a string literal, where `pad` is a
-reserved word, `n` is a natural number literal and `s` is a string literal whose
-length must be less than or equal to `n`. The static type of a padded string
-literal `pad(n, s)` is `Bytes<n>`. It evaluates to a byte array containing the
-UTF-8 encoding of `s`, followed by `0` bytes up to the padded length `n`.
-
-### Default values of a type
-
-Every Compact type and ledger-state type has a default value.
-
-The expression `default<T>`, where `T` is a Compact type or a ledger-state type,
-has static type `T`. It evaluates to the default value of that type.
-
-Note that default value expressions can have ledger-state types.
-
-!!!!!!!! TBD check this for accuracy -- Parisa
-
-Every type in Compact has a *default value* of that type.  The default values
-are as follows:
-
-- `Boolean`: the value of the literal `false`
-- `Uint<0..n>` and `Uint<n>`: `0`
-- `Field`: `0`
-- `[T, ...]` where `T, ...` is a sequence of zero or more types: the tuple with
-  the corresponding length, each of the default value of the corresponding type
-- `Bytes<n>`: the byte array of length `n` with all zero bytes
-- `Opaque<"string">`: an empty string, i.e., `""`
-- `Opaque<"Uint8Array">`: a zero-length `Uint8Array`, i.e., `new Uint8Array(0)`
-- structure types: the struct with all fields set to the default value of their
-  type
-- enumeration types: the first value listed in the declaration
-
-
-### Parenthesized expressions
-
-Compact allows parenthesized expressions of the form `(e)`, where `e` is an
-expression.  They can be used to control the order of evaluation.
-
-The type of the parenthesized expression is the type of the subexpression.
-
-Its value is the value of the subexpression.
 
 ## Runtime representations and type/bounds checks
 
