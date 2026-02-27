@@ -734,16 +734,16 @@
        (lambda (src kwd langle tsize rangle lparen expr comma index rparen)
          (with-output-language (Lparser Expression)
            `(tuple-slice ,src ,kwd ,langle ,tsize ,rangle ,lparen ,expr ,comma ,index ,rparen)))]
-      [term-tuple :: src #\[ (SEP* tuple/bytes-arg #\, #t) #\] =>
-       (lambda (src lbracket tuple/bytes-arg-sep* rbracket)
-         (let-values ([(tuple/bytes-arg* sep*) (split-sep tuple/bytes-arg-sep*)])
+      [term-tuple :: src #\[ (SEP* tuple-arg #\, #t) #\] =>
+       (lambda (src lbracket tuple-arg-sep* rbracket)
+         (let-values ([(tuple-arg* sep*) (split-sep tuple-arg-sep*)])
            (with-output-language (Lparser Expression)
-             `(tuple ,src ,lbracket (,tuple/bytes-arg* ...) (,sep* ...) ,rbracket))))]
-      [term-bytes :: src (KEYWORD Bytes) #\[ (SEP* tuple/bytes-arg #\, #t) #\] =>
-       (lambda (src kwd lbracket tuple/bytes-arg-sep* rbracket)
-         (let-values ([(tuple/bytes-arg* sep*) (split-sep tuple/bytes-arg-sep*)])
+             `(tuple ,src ,lbracket (,tuple-arg* ...) (,sep* ...) ,rbracket))))]
+      [term-bytes :: src (KEYWORD Bytes) #\[ (SEP* tuple-arg #\, #t) #\] =>
+       (lambda (src kwd lbracket bytes-arg-sep* rbracket)
+         (let-values ([(bytes-arg* sep*) (split-sep bytes-arg-sep*)])
            (with-output-language (Lparser Expression)
-             `(bytes ,src ,kwd ,lbracket (,tuple/bytes-arg* ...) (,sep* ...) ,rbracket))))]
+             `(bytes ,src ,kwd ,lbracket (,bytes-arg* ...) (,sep* ...) ,rbracket))))]
       [term-struct :: src tref #\{ (SEP* struct-arg #\, #t) #\} =>
        (lambda (src tref lbrace new-field-sep* rbrace)
          (let-values ([(new-field* sep*) (split-sep new-field-sep*)])
@@ -791,7 +791,7 @@
        (lambda (src lparen expr rparen)
          (with-output-language (Lparser Expression)
            `(parenthesized ,src ,lparen ,expr ,rparen)))])
-    (Tuple-argument (tuple/bytes-arg)
+    (Tuple-argument (tuple-arg bytes-arg)
       [tuple-arg-expression :: src expr =>
        (lambda (src expr)
          (with-output-language (Lparser Tuple-Argument)
@@ -800,25 +800,6 @@
        (lambda (src dotdotdot expr)
          (with-output-language (Lparser Tuple-Argument)
            `(spread ,src ,dotdotdot ,expr)))])
-    ;; TODO clean up comment
-    ;; @Kent I added this to see whether I like separating the meta-var to get
-    ;; two grammars (one for tuple-arg and another --which is the exact same
-    ;; grammar-- for bytes-arg).  Then I decided to try renaming the meta-var
-    ;; to indicate it's used for both cases.  I do like not repeating the
-    ;; exact same grammar twice and not having to reproduce a grammar twice
-    ;; since how the html is generated it doesn't pick up the grammar for
-    ;; two meta-vars if a grammar has two meta-vars.  On the other hand,
-    ;; I'm not a big fan of the long name but maybe that's OK.  LMK which
-    ;; you prefer.
-    ;; (Bytes-argument (bytes-arg)
-    ;;   [bytes-arg-expression :: src expr =>
-    ;;    (lambda (src expr)
-    ;;      (with-output-language (Lparser Tuple-Argument)
-    ;;        `(single ,src ,expr)))]
-    ;;   [bytes-arg-spread :: src "..." expr =>
-    ;;    (lambda (src dotdotdot expr)
-    ;;      (with-output-language (Lparser Tuple-Argument)
-    ;;        `(spread ,src ,dotdotdot ,expr)))])
     (Structure-argument (struct-arg)
       [struct-arg-positional :: src expr =>
        (lambda (src expr)
