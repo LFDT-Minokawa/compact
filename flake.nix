@@ -31,7 +31,7 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0";
+      url = "github:midnightntwrk/midnight-ledger/ledger-7.0.0"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v2 = {
@@ -47,7 +47,7 @@
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/4a396df8f0596a8f721881dd74c6c9ad16fd057d";
+      url = "github:midnightntwrk/midnight-ledger/4a396df8f0596a8f721881dd74c6c9ad16fd057d"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
