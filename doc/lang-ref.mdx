@@ -1817,6 +1817,8 @@ expression where it can be confused as an operand of some other operator.
 
 ### Parenthesized expressions
 
+!!!!!!!! TBD Kent needs to review and revise as necessary
+
 Compact allows parenthesized expressions of the form `(e)`, where `e` is an
 expression.  They can be used to control the order of evaluation.
 
@@ -1849,6 +1851,8 @@ The values of the other subexpressions are ignored; these other subexpressions
 are evaluated solely for their effects.
 
 ### Literals
+
+!!!!!!!! TBD Kent needs to review and revise as necessary
 
 Compact has syntax for boolean, numeric, and string literal expressions.
 
@@ -1911,6 +1915,8 @@ are as follows:
 
 ### Variable references
 
+!!!!!!!! TBD Kent needs to review and revise as necessary
+
 The syntax of Compact identifiers is the same as the syntax of TypeScript
 identifiers.  A variable is an identifier that is bound as a parameter in a
 circuit declaration or else as a constant in a `const` binding statement.
@@ -1958,6 +1964,8 @@ evaluated:
 The evaluation rules ensure that only one of `e1` and `e2` is evaluated.
 
 ### Relational comparison expressions
+
+!!!!!!!! TBD Kent needs to review and revise as necessary
 
 Relational comparison expressions are of the form `e0 op e1` where `e0`
 and `e1` are expressions and `op` is one of Compact's relational operators.
@@ -2052,6 +2060,8 @@ expression as follows:
 
 ### Boolean negation expressions
 
+!!!!!!!! TBD Kent needs to review and revise as necessary
+
 Compact has unary boolean negation expressions of the form `!e` where `e` is an
 expression.
 
@@ -2065,6 +2075,8 @@ and vice versa.  The subexpression will have a boolean value because the
 expression is well-typed.
 
 ### Binary arithmetic expressions
+
+!!!!!!!! TBD Kent needs to review and revise as necessary
 
 Binary arithmetic expressions are of the form `e0 op e1` where `e0` and `e1`
 are expressions and `op` is one of Compact's binary arithmetic operators.  The
@@ -2105,6 +2117,8 @@ then at least one of the operands must have static type `Field`.
 
 ### Tuple creation
 
+!!!!!!!! TBD Kent needs to review and revise as necessary
+
 Tuple values are created with expressions of the form `[e, ...]` where `e, ...`
 is a sequence of zero or more comma-separated argument expressions.  A non-empty
 sequence can have an optional trailing comma.  The *length* of a tuple is the
@@ -2120,8 +2134,12 @@ the subexpression values.
 
 ### Bytes creation
 
+!!!!!!!! TBD Kent needs write
+
 
 ### Tuple element access
+
+!!!!!!!! TBD Kent needs to review and revise as necessary
 
 An expression of the form `e[n]` where `e` is an
 expression and `n` is a numeric literal is a tuple element access.
@@ -2139,8 +2157,12 @@ not be out of bounds, because the expression is well-typed.
 
 ### Slices
 
+!!!!!!!! TBD Kent needs to write
+
 
 ### Structure creation
+
+!!!!!!!! TBD Kent needs to review and revise as necessary
 
 Structure values are created with structure creation expressions.  The
 expression `S {f, ...}` is a structure creation expression, where `S` is a
@@ -2233,6 +2255,8 @@ the spread subexpression.
 
 ### Structure member access
 
+!!!!!!!! TBD Kent needs to review and revise as necessary
+
 An
 expression of the form `e.id` where `e` is an expression and `id` is the name of
 a structure member is a structure member access.
@@ -2249,6 +2273,8 @@ subexpression will have a structure value and the name will exist, because the
 expression is well-typed.
 
 ### Circuit and witness calls
+
+!!!!!!!! TBD Kent needs to review and revise as necessary
 
 <table className="lang-ref-table"><tbody><tr><td><em>fun</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gargs</em></a><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>arrow-parameter-list</em>&nbsp;&nbsp;<em>return-type</em><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#statements"><em>block</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>arrow-parameter-list</em>&nbsp;&nbsp;<em>return-type</em><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#expressions"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
 <tr><td><em>arrow-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>optionally-typed-pattern</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>optionally-typed-pattern</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
@@ -2368,6 +2394,8 @@ the TypeScript or JavaScript witness function with the argument values.  The
 value of a witness call is the value returned by the witness function.
 
 ### Map and fold expressions
+
+!!!!!!!! TBD Kent needs to review and revise as necessary
 
 Compact supports expressions that perform the higher-order operations _map_ and
 (left) _fold_ over tuples that have a vector type (not arbitrary tuples).
@@ -2527,6 +2555,8 @@ what the claims say. the downcast isn't correct, even the example isn't correct.
 
 ### Ledger state operations
 
+!!!!!!!! TBD Kent needs to review and revise as necessary
+
 A Compact program interacts with its public state by invoking operations upon
 the ledger or ledger-state types.  There are two different forms of ledger
 calls.
@@ -2606,6 +2636,8 @@ ledger expression.
 
 ### Asserts
 
+!!!!!!!! TBD Kent needs to review and revise as necessary
+
 An assertion has the form `assert(e, "msg")` where `e` is an expression and `msg` is a string message.
 `e` must have a Boolean type, otherwise it is a static type error.  If `e` evaluates to `true`, the assertion
 succeeds. If `e` evaluates to `false`, the assertion fails with the message `msg`.
@@ -2613,6 +2645,8 @@ succeeds. If `e` evaluates to `false`, the assertion fails with the message `msg
 Each assertion is checked at runtime and constrained in-circuit.
 
 ### Discloses
+
+!!!!!!!! TBD Kent needs write
 
 
 ## Runtime representations and type/bounds checks
