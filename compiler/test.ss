@@ -66330,6 +66330,185 @@ groups than for single tests.
 
   (test
     '(
+      "type Sometype = Boolean;"
+      "export circuit foo(): Sometype {"
+      "  return default<Sometype>;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(false);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Sometype = Boolean;"
+      "export circuit foo(): Sometype {"
+      "  return default<Sometype>;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(false);"
+        "});"
+        ))
+    )
+
+  ; check default values of ledger-state types using resetToDefault
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger field1: Counter;"
+      "ledger field2: Set<Boolean>;"
+      "ledger field3: List<Boolean>;"
+      "ledger field4: Map<Boolean, Boolean>;"
+      "ledger field5: MerkleTree<2, Boolean>;"
+      "ledger field6: HistoricMerkleTree<2, Boolean>;"
+      ""
+      "export circuit resetToDefault_counter(): [] {"
+      "  field1.resetToDefault();"
+      "  assert (field1 != 0, 'the default is 0');"
+      "}"
+      ""
+      "export circuit resetToDefault_set(): [] {"
+      "  field2.resetToDefault();"
+      "  assert (!field2.isEmpty(), 'the default is empty');"
+      "}"
+      ""
+      "export circuit resetToDefault_list(): [] {"
+      "  field3.resetToDefault();"
+      "  assert (!field3.isEmpty(), 'the default is empty');"
+      "}"
+      ""
+      "export circuit resetToDefault_map(): [] {"
+      "  field4.resetToDefault();"
+      "  assert (!field4.isEmpty(), 'the default is empty');"
+      "}"
+      ""
+      "export circuit resetToDefault_merkletree(): [] {"
+      "  field5.resetToDefault();"
+      "  assert (field5.isFull(), 'the default is empty');"
+      "}"
+      ""
+      "export circuit resetToDefault_historicmerkletree(): [] {"
+      "  field6.resetToDefault();"
+      "  assert (field6.isFull(), 'the default is empty');"
+      "}"
+      ""
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_counter(Ctxt)).toThrow('failed assert: the default is 0');"
+        "});"
+        "test('check 2', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_set(Ctxt)).toThrow('failed assert: the default is empty');"
+        "});"
+        "test('check 3', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_list(Ctxt)).toThrow('failed assert: the default is empty');"
+        "});"
+        "test('check 4', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_map(Ctxt)).toThrow('failed assert: the default is empty');"
+        "});"
+        "test('check 5', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_merkletree(Ctxt)).toThrow('failed assert: the default is empty');"
+        "});"
+        "test('check 6', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_historicmerkletree(Ctxt)).toThrow('failed assert: the default is empty');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger field0: Map<Boolean, Field>;"
+      "export ledger field1: Map<Boolean, Counter>;"
+      "export ledger field2: Map<Boolean, Set<Boolean>>;"
+      "export ledger field3: Map<Boolean, List<Boolean>>;"
+      "export ledger field4: Map<Boolean, Map<Boolean, Boolean>>;"
+      "export ledger field5: Map<Boolean, MerkleTree<2, Boolean>>;"
+      "export ledger field6: Map<Boolean, HistoricMerkleTree<2, Boolean>>;"
+      ""
+      "export circuit identity(q: Field): Field {"
+      "  return q;"
+      "}"
+      ""
+      "export circuit init0(b: Boolean): [] {"
+      "  field0.insert(disclose(b), default<Field>);"
+      "}"
+      ""
+      "export circuit init(b: Boolean): [] {"
+      "  field1.insert(disclose(b), default<Counter>);"
+      "  field2.insert(disclose(b), default<Set<Boolean>>);"
+      "  field3.insert(disclose(b), default<List<Boolean>>);"
+      "  field4.insert(disclose(b), default<Map<Boolean, Boolean>>);"
+      "  field5.insert(disclose(b), default<MerkleTree<2, Boolean>>);"
+      "  field6.insert(disclose(b), default<HistoricMerkleTree<2, Boolean>>);"
+      "}"
+      ""
+      "export circuit update(b: Boolean, n: Uint<16>): [] {"
+      "  field1.lookup(disclose(b)) += disclose(n);"
+      "}"
+      ""
+      "export circuit get(b: Boolean): [Uint<64>, Boolean, Boolean, Boolean, Boolean, Boolean] {"
+      "  return [ field1.lookup(disclose(b))"
+      "         , field2.lookup(disclose(b)).isEmpty()"
+      "         , field3.lookup(disclose(b)).isEmpty()"
+      "         , field4.lookup(disclose(b)).isEmpty()"
+      "         , !field5.lookup(disclose(b)).isFull()"
+      "         , !field6.lookup(disclose(b)).isFull() ];"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  let tmp;"
+        "  tmp = C.circuits.identity(Ctxt, 73n);"
+        "  expect(tmp.result).toEqual(73n);"
+        "  tmp = C.circuits.init0(tmp.context, true);"
+        ; field0 = true, 0
+        "  expect(tmp.result).toEqual([]);"
+        "  tmp = C.circuits.init(tmp.context, true);"
+        ; fields 1 to 6 set to true and default of each type
+        "  expect(tmp.result).toEqual([]);"
+        "  tmp = C.circuits.update(tmp.context, true, 7n);"
+        ; field1 = true, 7
+        "  expect(tmp.result).toEqual([]);"
+        "  tmp = C.circuits.get(tmp.context, true);"
+        ; tests that default<Counter> is 0
+        "  expect(tmp.result).toEqual([7n, true, true, true, true, true]);"
+        "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(): [] { const x = default<Kernel>; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 38" "default is not defined for ADT type Kernel" ()))
+    )
+
+  (test
+    '(
       "import CompactStandardLibrary;"
       "export { Maybe }"
       "export circuit foo(x: Maybe<Boolean>): Boolean {"
