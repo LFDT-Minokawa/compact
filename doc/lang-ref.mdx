@@ -1493,19 +1493,16 @@ Compact program by the Compact compiler.
 
 A `block` is a group of statements enclosed in braces:
 
-<table className="lang-ref-table"><tbody><tr><td><em>stmt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>stmt<sub>0</sub></em></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody><tr><td><em>block</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>stmt</em> &mldr; <em>stmt</em>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr></tbody></table>
 
 A block can be used in place of a single statement anywhere a single statement
-is allowed, which is useful for allowing multiple statements to evaluated by the
+is allowed, which is useful for allowing multiple statements to be evaluated by the
 `then` and `else` parts of an `if` statement or the body of a `for`.
 
 The body of every circuit definition and the body of the constructor, if any,
 is always a block.
 The right-hand side of the arrow in an anonymous circuit can be either a block
 or an expression.
-
-Blocks can also appear in place of an expression on the right-hand side of the
-arrow in an anonymous circuit, and blocks
 
 The statements within a block occupy a nested scope: `const` bindings created by
 `const` statements within the block are not visible outside the block, and they can
