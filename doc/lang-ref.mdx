@@ -1489,19 +1489,40 @@ circuit will be present in the `PureCircuits` type declaration and via the
 `pureCircuits` constant in the TypeScript module produced for a (correct)
 Compact program by the Compact compiler.
 
+## Blocks
+
+A `block` is a group of statements enclosed in braces:
+
+<table className="lang-ref-table"><tbody><tr><td><em>stmt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>stmt<sub>0</sub></em></td></tr></tbody></table>
+
+A block can be used in place of a single statement anywhere a single statement
+is allowed, which is useful for allowing multiple statements to evaluated by the
+`then` and `else` parts of an `if` statement or the body of a `for`.
+
+The body of every circuit definition and the body of the constructor, if any,
+is always a block.
+The right-hand side of the arrow in an anonymous circuit can be either a block
+or an expression.
+
+Blocks can also appear in place of an expression on the right-hand side of the
+arrow in an anonymous circuit, and blocks
+
+The statements within a block occupy a nested scope: `const` bindings created by
+`const` statements within the block are not visible outside the block, and they can
+shadow identifier bindings with the same names that exist outside the block.
+
+A block is well-typed if the statements within it are well-typed.
+
+A block is evaluated by evaluating the statements in sequence.
+
 ## Statements
 
-Statements are the basic building blocks of circuit and constructor bodies.
 The syntax of Compact statements is summarized by the following grammar snippet:
 
-<table className="lang-ref-table"><tbody><tr><td><em>block</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>stmt</em> &mldr; <em>stmt</em>&nbsp;&nbsp;<b><tt>}</tt></b></td></tr>
-<tr><td><em>stmt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>stmt<sub>0</sub></em></td></tr>
+<table className="lang-ref-table"><tbody><tr><td><em>stmt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>stmt<sub>0</sub></em></td></tr>
 <tr><td><em>stmt<sub>0</sub></em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#const-binding-statement"><em>cbinding</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#const-binding-statement"><em>cbinding</em></a> &nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>if</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt<sub>0</sub></em>&nbsp;&nbsp;<b><tt>else</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>..</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>for</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<b><tt>const</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>of</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>)</tt></b>&nbsp;&nbsp;<em>stmt</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<a href="#expression-sequence"><em>expr-seq</em></a>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>return</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>block</em></td></tr></tbody></table>
 
-!!!!!!!! TDB describe blocks (syntax, typing, and sematics)
-!!!!!!!! TDB probably put the block production after the stmt0 productions
-
-The snipped shows that a statement (`stmt`) is either a one-armed `if` expression
+The snippet shows that a statement (`stmt`) is either a one-armed `if` expression
 or some other kinf of statement (`stmt0`).
 This structure is used to enforce the restriction that the *then* part of a
 two-armed cannot be a one-armed `if` expression.
