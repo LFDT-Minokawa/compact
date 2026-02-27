@@ -1424,7 +1424,7 @@ type of `expression` is something other than `[]`, is a static error.
 
 ## Circuits
 
-!!!!!!!! TBD
+!!!!!!!! TBD Kent needs to review and revise as necessary
 
 !!!!!!!! TBD not every circuit is compiled to a zk circuits, and TypeScript is also generated.
 
@@ -1735,10 +1735,68 @@ The syntax of Compact expressions is summarized by the following grammar snippet
 <tr><td><em>struct-arg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>...</tt></b>&nbsp;&nbsp;<em>expr</em></td></tr>
 <tr><td><em>term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr-seq</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
+Every Compact expression must be well-typed (free from static type errors).
+If any expression within a program contains a type error, the Compact compiler
+reports the error and does not produce any target code (TypeScript or Zkir)
+for the program.
+The static type of a well-typed expression is either a Compact type or a
+ledger-state type.
+
+Every Compact expression either evaluates to a value or raises an exception,
+and it might have have an effect.
+The evaluation of an expression is defined in terms of the evaluation of its
+subexpressions.
+If the evaluation of a subexpression raises an exception, then the evaluation of
+the containing expression will stop and raise the same exception.
+
+The first section below discusses how the grammar reflects the rules
+for precedence and associativity of operators, and the remaining sections
+describe the typing and evaluation rules for each kind of expression.
+
+!!!!!!!! TBD rearrange the sections as follows:
+!!! Precedence and associativity
+!!! Parenthesized expressions
+
+!!! Expression sequences
+
+!!! Literals
+!!! Default values of a type
+!!! Variable references
+
+!!! Conditional expressions
+!!! Relational comparison expressions
+!!! Short-circuit logical expressions
+!!! Boolean negation expressions
+
+!!! Binary arithmetic expressions
+
+!!! Tuple creation
+!!! Tuple element access
+!!! Bytes creation
+!!! Slices
+
+!!! Structure creation
+!!! Structure member access
+
+!!! Type cast expressions
+
+!!! Circuit and witness calls
+
+!!! Map and fold expressions
+
+!!! Ledger state operations
+!!! Ledger assignment expressions
+
+!!! Asserts
+
+!!! Discloses
+  
+
+### Precedence and associativity
+
 The structure of the expression grammar unambiguously reflects the precedence
 and associativity of operators.
 
-Precedence.
 Each subscripted nonterminal `expr_n` represents a precedence level, with higher
 subscripts representing higher levels of precedence.
 For example, `expr_6` (multiplication) binds more tightly than `expr_5` (addition)
@@ -1751,7 +1809,6 @@ One can still write `x * (y + z)` because an `expr_6` can be a `term` (via the
 "fall through" productions `expr_6 → expr_7`, `expr_7 → expr_8`, and so on),
 and a term can be a parenthesized `expr-seq`.
 
-Associativity.
 The grammar enforces associativity by allowing either the left or right
 operand of an operator to be at the same precedence level while requiring
 the other to be at a higher level.
@@ -1777,20 +1834,6 @@ In fact, the grammar has many examples where a lower precedence expression is
 embedded in a higher-precedence expression; this does not result in any
 ambiguity because the operand is not exposed on the left or right side of the
 expression where it can be confused as an operand of some other operator.
-
-Every Compact expression must be well-typed (free from static type errors).
-If any expression within a program contains a type error, the Compact compiler
-reports the error and does not produce any target code (TypeScript or Zkir)
-for the program.
-The static type of a well-typed expression is either a Compact type or a
-ledger-state type.
-
-Every Compact expression either evaluates to a value or raises an exception,
-and it might have have an effect.
-The evaluation of an expression is defined in terms of the evaluation of its
-subexpressions.
-If the evaluation of a subexpression raises an exception, then the evaluation of
-the containing expression will stop and raise the same exception.
 
 ### Expression sequences
 
@@ -1818,14 +1861,12 @@ are evaluated solely for their effects.
 
 ### Conditional expressions
 
-!!!!!!!! TBD
-
 Compact supports conditional expressions of the form `e0 ? e1 : e2` where `e0`,
 `e1`, and `e2` are expressions.
 
 Conditional expressions require the type of `e0` to be `Boolean`.  The types of
-`e1` and `e2` must be in the subtype relation.  That is, either the type of
-`e1` is a subtype of the type of `e2` or else the type of `e2` is a subtype of
+`e1` and `e2` must be in the subtype relation.  That is, the type of
+`e1` is a subtype of the type of `e2` or the type of `e2` is a subtype of
 the type of `e1`.
 
 The type of the entire expression is the type of `e2` if `e1` is a subtype of
@@ -1844,6 +1885,8 @@ The evaluation rules ensure that only one of `e1` and `e2` is evaluated.
 
 ### Ledger assignment expressions
 
+!!!!!!!! TBD Kent needs to review and revise as necessary
+
 Compact has ledger assignment statements.  They have the form `lhs op e` where
 `lhs` is a ledger expression as defined in the section **Ledger expressions**
 above, `op` is one of the assignment operators `=` (assignment), `+=` (addition
@@ -1859,6 +1902,8 @@ They are evaluated exactly as if their longer equivalent were evaluated as a
 ledger expression.
 
 ### Short-circuit logical expressions
+
+!!!!!!!! TBD Kent needs to review and revise as necessary
 
 Compact supports short-circuit logical expressions of the form `e0 op e1`
 where `e0` and `e1` are expressions and `op` is one of the logical operators
