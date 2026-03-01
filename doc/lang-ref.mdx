@@ -2143,25 +2143,46 @@ then at least one of the operands must have static type `Field`.
 
 ### Tuple creation
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
+New tuple values are created with expressions of the form `[tuple-arg, ...]` where
+`tuple-arg, ...` is a sequence of zero or more comma-separated tuple
+arguments.
+A non-empty sequence can have an optional trailing comma.
+Each tuple argument is either an expression or a *spread*.
 
-Tuple values are created with expressions of the form `[e, ...]` where `e, ...`
-is a sequence of zero or more comma-separated argument expressions.  A non-empty
-sequence can have an optional trailing comma.  The *length* of a tuple is the
-number of subexpressions in the tuple creation expression.
+If a tuple argument is an expression `expr` of type `T`, it contributes a single
+element of type `T` to the new tuple: the value of `expr`.
 
-The static type of a tuple creation expression is `[T, ...]` with the number of
-types matches length of the tuple and each type `T` is the type of the
-corresponding expression.
+If a tuple argument is a spread `... expr`, the type `T` of `expr` must be
+a tuple type, a Vector type, or a Bytes type.
+Otherwise, it is a static error.
 
-It is evaluated by evaluating the subexpressions from left to right.  Its value
-is a tuple whose length is the number of subexpressions and whose elements are
-the subexpression values.
+If `expr` has a tuple type `[U, ...]` of length *n*, the spread contributes
+`n` new elements of type `U, ...` to to the new tuple, i.e., the elements
+of the tuple value of `expr`.
+If `expr` has a Vector type `Vector<n, U>`, the spread contributes
+`n` new elements of type `U` to to the new tuple, i.e., the elements
+of the Vector value of `expr`.
+If `expr` has a Bytes type `Bytes<n>`, the spread contributes `n` new elements of
+type `Uint<8>` to to the new tuple, i.e., the elements of the bytes value
+of `expr`.
+
+The type of a tuple-creation expression is the tuple type whose elements are
+the types contributed by each of the tuple arguments in order.
+
+A tuple-creation expression is evaluated by evaluating the tuple arguments from
+left to right and creating a new tuple whose elements are the values contributed
+by each of the tuple arguments in order.
+The length of the new tuple is the total number of contributed elements,
+which can be less than or greater than number of tuple arguments.
 
 ### Bytes creation
 
-!!!!!!!! TBD Kent needs write
-
+New Bytes values are created with expressions of the form
+`Bytes [tuple-arg, ...]`.
+Bytes creation is essentially the same as [tuple creation](tuple-creation)
+except that the types of the contributed elements must all be subtypes of `Uint<8>`
+(if not, it is static error), and the result is a new Bytes value of type
+`Bytes<n>` where `n` is the number of contributed elements.
 
 ### Tuple element access
 
