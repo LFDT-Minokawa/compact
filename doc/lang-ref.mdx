@@ -396,7 +396,7 @@ The following are the primitive types of Compact:
   rules for the corresponding tuple type.
 
 - `Bytes<n>`, where `n` is a natural number literal or a generic size parameter,
-  is the type of _byte array_ values of length `n`.
+  is the type of _byte vectors_ of length `n`.
   `Bytes` types with different lengths are different types.
   `Bytes` types are used in the Compact standard library for hashing.
   String literals in Compact also have a `Bytes` type, where `n` is the number
@@ -1668,7 +1668,7 @@ This restriction is motivated by the need for the compiler to generate
 finite proving circuits.
 
 Compact supports two kinds of `for` statements.
-The first iterates over vectors, tuples, and bytes values and takes the
+The first iterates over vectors, tuples, and byte-vectors and takes the
 following form:
 
 ```compact
@@ -1902,20 +1902,20 @@ The type of `<numeric literal> as Field` is `Field`, and its value is the
 field value `n`.
 
 __String literals__ can be either simple string literals or `pad` expressions.
-String literals produce bytes values; Compact has no dedicated String type.
+String literals produce byte vectors; Compact has no dedicated String type.
 
 Simple string literals use TypeScript string literal syntax.
 They can be enclosed in either single (`'`) or double (`"`) quotes, and they can
 contain escaped characters.
 The length `n` of a simple string literal is the length of its UTF-8 encoding.
-The static type of a string literal is `Bytes<n>`, and its value is a bytes
-value containing its UTF-8 encoding.
+The static type of a string literal is `Bytes<n>`, and its value is a
+byte vector containing its UTF-8 encoding.
 
 A `pad` expression `pad(n, s)` is also a string literal, where `pad` is a reserved
 word, `n` is a natural number literal, and `s` is a simple string literal whose
 length must be less than or equal to `n`.
 The static type of a padded string literal `pad(n, s)` is `Bytes<n>`, and its
-value is a bytes value containing the UTF-8 encoding of `s` followed by `0`
+value is a byte vector containing the UTF-8 encoding of `s` followed by `0`
 bytes up to the padded length `n`.
 
 ### Default values of a type
@@ -1935,7 +1935,7 @@ are as follows:
 - `Field`: `0`
 - `[T, ...]` where `T, ...` is a sequence of zero or more types: the tuple with
   the corresponding length, each of the default value of the corresponding type
-- `Bytes<n>`: the byte array of length `n` with all zero bytes
+- `Bytes<n>`: the byte vector of length `n` with all zero bytes
 - `Opaque<"string">`: an empty string, i.e., `""`
 - `Opaque<"Uint8Array">`: a zero-length `Uint8Array`, i.e., `new Uint8Array(0)`
 - structure types: the struct with all fields set to the default value of their
@@ -2181,7 +2181,7 @@ If `expr` has a Vector type `Vector<n, U>`, the spread contributes
 `n` new elements of type `U` to to the new tuple, i.e., the elements
 of the Vector value of `expr`.
 If `expr` has a Bytes type `Bytes<n>`, the spread contributes `n` new elements of
-type `Uint<8>` to to the new tuple, i.e., the elements of the bytes value
+type `Uint<8>` to to the new tuple, i.e., the elements of the byte-vector value
 of `expr`.
 
 The type of a tuple-creation expression is the tuple type whose elements are
@@ -2193,13 +2193,13 @@ by each of the tuple arguments in order.
 The length of the new tuple is the total number of contributed elements,
 which can be less than or greater than number of tuple arguments.
 
-### Bytes creation
+### Byte-vector creation
 
-New Bytes values are created with expressions of the form
+New byte vectors are created with expressions of the form
 `Bytes [tuple-arg, ...]`.
 Bytes creation is essentially the same as [tuple creation](tuple-creation)
 except that the types of the contributed elements must all be subtypes of `Uint<8>`
-(if not, it is static error), and the result is a new Bytes value of type
+(if not, it is static error), and the result is a new byte vector of type
 `Bytes<n>` where `n` is the number of contributed elements.
 
 ### Tuple element access
@@ -2592,15 +2592,15 @@ what the claims say. the downcast isn't correct, even the example isn't correct.
 
 - Casts from `Bytes<m>`, `m != 0`, to `Field` or `Uint<0..k>` are always allowed,
   require a run-time check, and require a run-time conversion.
-  That is, the bytes value of the expression is converted into a `Field` or
+  That is, the byte-vector value of the expression is converted into a `Field` or
   `Uint<0..m>` with the least-significant byte of the result corresponding to the
-  first byte in the bytes value.
+  first byte in the byte vector.
   A run-time error occurs if the result exceeds the maximum value of `Field`
   or `Uint<0..m>`.
 - Casts from `Field` or `Uint<0..k>` to `Bytes<m>`, `m != 0`, are always allowed,
   require a run-time check, and require a run-time conversion.
-  That is, the integer value of the expression is converted into bytes value
-  with the first byte of the bytes value corresponding to the least-significant
+  That is, the integer value of the expression is converted into a byte vector
+  with the first byte of the byte vector corresponding to the least-significant
   byte of the integer.
   A run-time error occurs if the result does not fit in `m` bytes.
 
