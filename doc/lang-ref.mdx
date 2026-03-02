@@ -1830,14 +1830,19 @@ expression where it can be confused as an operand of some other operator.
 
 ### Parenthesized expressions
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
-
 Compact allows parenthesized expressions of the form `(e)`, where `e` is an
-expression.  They can be used to control the order of evaluation.
+expression.
+They can be used to control the order of operations or simply to make the default
+order of operations to be explicit.
 
-The type of the parenthesized expression is the type of the subexpression.
+For example, `x + y * z` computes the product of `y` and `z` and adds `x` to the
+result, because `*` has higher precedence than `+`.
+`x + (y * z)` computes the same thing but more makes the order of operations more
+clear, while `(x + y) * z` computes something different: the sum of `x` and `y`
+and multiplies it by `z`.
 
-Its value is the value of the subexpression.
+The type of the parenthesized expression is the type of the embedded expression,
+and its value is the value of the subexpression.
 
 ### Expression sequences
 
@@ -1856,7 +1861,7 @@ is permitted, the expression sequence can be wrapped in parentheses:
 (expression, ..., expression)
 ```
 
-The type of an expression sequence is the type of its last expression.
+The type of an expression sequence is the type of its last subexpression.
 
 An expression sequence is evaluated by evaluating the subexpressions from
 left to right, and its value is the value of the last subexpression.
@@ -1869,36 +1874,52 @@ are evaluated solely for their effects.
 
 Compact has syntax for boolean, numeric, and string literal expressions.
 
+A __Boolean literal__ is one of the reserved words `true` or `false`.
+The static type of a boolean literal is `Boolean` and evaluates to the
+corresponding boolean value.
 
-__Boolean literals__ are the reserved words `true` and `false`. The static type
-of a boolean literal is `Boolean`. It evaluates to one of the two boolean
-values.
+A __numeric literal__ is a non-negative integer written in decimal, binary,
+octal, or hexadecimal notation as follows:
 
-__Numeric literals__ are non-negative decimal integers.  They are either the
-number `0` or a sequence of digits starting with a non-zero digit.  The static
-type of a natural number literal `n` is `Uint<0..n>`.
+- decimal: either the single digit `0` or the a sequence of digits starting
+  with a non-zero digit, e.g., `0` or `7091`;
+- binary: the prefix `0b` or `0B` followed by one or more binary digits
+  (`0` or `1`), e.g., `0b1101001`;
+- octal: the prefix `0o` or `0O` followed by one or more octal digits (`0-7`),
+  e.g., `0o5073`;
+  or
+- hexadecimal: the prefix `0x` or `0X` followed by one or more hexadecimal
+  digits (`0-9`, `a-f`, `A-F`), e.g., `0x8f0a`.
 
-There is an implementation-defined maximum unsigned integer value.  A numeric
-literal larger than this value will have an invalid static type `Uint<0..n>` for
-some `n` larger than the maximum unsigned integer.  This expression will be a
-static type error unless the literal is smaller than the maximum `Field` value
-and is used in a type cast expression of the form `e as Field`.
+It is a static error if the number `n` denoted by a numeric literal exceeds the
+maximum unsigned value and the maximum field value.
 
-A natural number literal evaluates to the unsigned integer value that it
-denotes.
+If `n` does not exceed the maximum representable unsigned integer, the literal's
+type is `Uint<0..k>`, `k = n + 1` and its value is the unsigned integer `n`.
 
-__String literals__ use TypeScript string literal syntax. Note that they can
-therefore be enclosed in either single (`'`) or double (`"`) quotes, and they
-can contain escaped characters. Strings are represented by their UTF-8 encoding.
-The **length** of a string is the length of its UTF-8 encoding. The static type
-of a string literal is `Bytes<n>` where `n` is the length of the string. It
-evaluates to a byte array containing its UTF-8 encoding.
+If `n` exceeds the maximum representable unsigned integer but not the
+maximum representable field value, the literal must be directly cast to
+`Field`, i.e., `<numeric literal> as Field`.
+Otherwise it is a static error.
+The type of `<numeric literal> as Field` is `Field` and its value is the
+field value `n`.
 
-In addition, the expression `pad(n, s)` is a string literal, where `pad` is a
-reserved word, `n` is a natural number literal and `s` is a string literal whose
-length must be less than or equal to `n`. The static type of a padded string
-literal `pad(n, s)` is `Bytes<n>`. It evaluates to a byte array containing the
-UTF-8 encoding of `s`, followed by `0` bytes up to the padded length `n`.
+__String literals__ can be either simple string literals or `pad` expressions.
+String literals produce bytes values; Compact has no dedicated String type.
+
+Simple string literals use TypeScript string literal syntax.
+They can be enclosed in either single (`'`) or double (`"`) quotes, and they can
+contain escaped characters.
+The **length** of a simple string literal is the length of its UTF-8 encoding.
+The static type of a string literal is `Bytes<n>` where `n` is the length of the
+string, and its value is a bytes value containing its UTF-8 encoding.
+
+A `pad` expression `pad(n, s)` is also a string literal, where `pad` is a reserved
+word, `n` is a natural number literal, and `s` is a simple string literal whose
+length must be less than or equal to `n`.
+The static type of a padded string literal `pad(n, s)` is `Bytes<n>` and its
+value is a bytes value containing the UTF-8 encoding of `s` followed by `0`
+bytes up to the padded length `n`.
 
 ### Default values of a type
 
