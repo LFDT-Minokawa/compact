@@ -96,6 +96,10 @@ prints the language version supported by the compiler and exits.
 
 prints the runtime version required by the compiler and exits.
 
+**--ledger-version**
+
+prints the ledger version required by the compiler and exits.
+
 **--vscode**
 
 causes the compiler to omit newlines from error messages, so that they are rendered

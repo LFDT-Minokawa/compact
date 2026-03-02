@@ -17,36 +17,30 @@
 
 (library (ledger-version)
   (export ledger-version-strings)
-  (import (chezscheme))
+  (import (except (chezscheme) errorf))
+  (import (utils))
 
   (define ledger-version-strings
     (let-syntax ([a (lambda (x)
-                      ;; Extract the substring between the last slash and the last double quote.
-                      ;; This will not fail gracefully if it doesn't see the slash or double quote.
-                      (define (version-substring str)
-                        (let ([end (let loop ([i (1- (string-length str))])
-                                     (if (char=? (string-ref str i) #\") i (loop (1- i))))])
-                          (let loop ([i end])
-                            (if (char=? (string-ref str i) #\/)
-                                (substring str (1+ i) end)
-                                (loop (1- i))))))
-
                       ;; Grep flake.nix for an end of line comment matching `# key`.  Allow only one.
                       (define (grep-for key)
-                        (let* ([ip (car (process (string-append "grep 'url =.*# " key "[[:space:]]*$' flake.nix")))]
-                               [lines (let loop ([line (get-line ip)] [lines '()])
-                                        (if (eof-object? line)
-                                            (reverse lines)
-                                            (loop (get-line ip) (cons line lines))))])
-                          (cond
-                            [(null? lines) (errorf 'grep "No ledger version for ~s\n" key)]
-                            [(not (null? (cdr lines))) (errorf 'grep "More than one ledger version for ~s\n" key)]
-                            [else (car lines)])))
-
+                        (let-values ([(stdout stderr) (shell (format "grep 'url = .* # ~a *$' flake.nix | sed -e 's:.*midnight-ledger/\\(.*\\)\";.*:\\1:'" key))])
+                          (assertf (string=? stderr "")
+                            "grep/sed pipeline produced nonempty stderr for key ~a:\n ~a"
+                            key stderr)
+                          (let ([ip (open-input-string stdout)])
+                            (let ([version-string (get-line ip)])
+                              (assertf (not (eof-object? version-string))
+                                       "grep/sed pipeline failed to find a match for key ~a" key)
+                              (assertf (not (string=? version-string ""))
+                                       "grep/sed pipline found an empty vesion string for key ~a" key)
+                              (assertf (eof-object? (get-line ip))
+                                       "grep/sed pipeline found more than one match for key ~a" key)
+                              version-string))))
                       ;; List of keys.
                       (define keys '("zkir-v2" "zkir-v3"))
 
                       #`'#,(map (lambda (key)
-                                  (cons key (version-substring (grep-for key))))
-                             keys))])
+                                  (cons key (grep-for key)))
+                                keys))])
       a)))
