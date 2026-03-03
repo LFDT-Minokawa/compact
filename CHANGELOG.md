@@ -5,8 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased toolchain 0.29.108, language 0.21.101, runtime 0.14.102]
+## [Unreleased toolchain 0.29.109, language 0.21.101, runtime 0.14.102]
 
+### Changed
+
+- The compiler binary can now report `--ledger-version` (and
+  `--feature-zkir-v3 --ledger-version`).  This is the version of the ledger that
+  is targeted by the generated code and used to produce the generated prover and
+  verifier keys.
+
+## [Unreleased toolchain 0.29.108, language 0.21.101, runtime 0.14.102]
 
 ### Fixed
 

@@ -31,7 +31,7 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.0-rc.5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.0-rc.5"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v3 = {
@@ -47,7 +47,7 @@
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-typed-inputs";
+      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-typed-inputs"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
@@ -220,15 +220,16 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.29.107"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.29.109"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
-              ./test-center
               ./compiler
-              ./third_party/compiler
               ./examples
-              ./srcMaps
+              ./flake.nix
               ./runtime/extract-version.ss
               ./runtime/package.json
+              ./srcMaps
+              ./test-center
+              ./third_party/compiler
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
@@ -298,13 +299,14 @@
             name = "compactc-binary-nixos";
             version = "0.0.1";
             src = inclusive.lib.inclusive ./. [
-              ./test-center
               ./compiler
-              ./third_party/compiler
               ./examples
-              ./srcMaps
+              ./flake.nix
               ./runtime/extract-version.ss
               ./runtime/package.json
+              ./srcMaps
+              ./test-center
+              ./third_party/compiler
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
