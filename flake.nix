@@ -299,13 +299,14 @@
             name = "compactc-binary-nixos";
             version = "0.0.1";
             src = inclusive.lib.inclusive ./. [
-              ./test-center
               ./compiler
-              ./third_party/compiler
               ./examples
-              ./srcMaps
+              ./flake.nix
               ./runtime/extract-version.ss
               ./runtime/package.json
+              ./srcMaps
+              ./test-center
+              ./third_party/compiler
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
