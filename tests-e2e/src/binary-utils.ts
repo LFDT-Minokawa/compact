@@ -23,6 +23,7 @@ import { expectFiles } from './files-assertions';
 
 export enum Arguments {
     SKIP_ZK = '--skip-zk',
+    FEATURE_V3 = '--feature-zkir-v3',
     TRACE_PASSES = '--trace-passes',
     HELP = '--help',
     VERSION = '--version',

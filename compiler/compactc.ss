@@ -40,6 +40,9 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --language-version prints the language version and exits.
 
+  --ledger-version prints the ledger version and exits.  The ledger version
+    is the version of the ledger that is expected by the generated code.
+
   --runtime-version prints the runtime version and exits.  The runtime version
     is the version of the Compact runtime JavaScript package that is used by
     generated contract code.
@@ -85,6 +88,7 @@ The following flags, if present, affect the compiler's behavior as follows:
     [((flags [(--help) $ (begin (print-help) (exit))]
              [(--version) $ (begin (print-compiler-version) (exit))]
              [(--language-version) $ (begin (print-language-version) (exit))]
+             [(--ledger-version) $ (begin (print-ledger-version ?--feature-zkir-v3) (exit))]
              [(--runtime-version) $ (begin (print-runtime-version) (exit))]
              [(--vscode)]
              [(--skip-zk)]
@@ -110,7 +114,9 @@ The following flags, if present, affect the compiler's behavior as follows:
     [((flags [(--help) $ (begin (print-help) (exit))]
              [(--version) $ (begin (print-compiler-version) (exit))]
              [(--language-version) $ (begin (print-language-version) (exit))]
-             [(--runtime-version) $ (begin (print-runtime-version) (exit))])
+             [(--ledger-version) $ (begin (print-ledger-version ?--feature-zkir-v3) (exit))]
+             [(--runtime-version) $ (begin (print-runtime-version) (exit))]
+             [(--feature-zkir-v3)])
       (string arg) ...)
      (print-usage #t)
      (exit 1)]))
