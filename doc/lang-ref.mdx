@@ -820,7 +820,22 @@ circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {
 
 A compact program is a sequence of zero or more program elements.
 
-<table className="lang-ref-table"><tbody><tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pelt</em> &mldr; <em>pelt</em></td></tr><tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-exports-and-imports"><em>module-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#exports"><em>export-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>import-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>include-form</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enum-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>contract-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#type-aliases"><em>type-alias-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state-management"><em>witness-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ledger-declaration</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>constructor-definition</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>circuit-definition</em></a></td></tr></tbody></table>
+<table className="lang-ref-table"><tbody>
+<tr><td><em>program</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pelt</em> &mldr; <em>pelt</em></td></tr>
+<tr><td><em>pelt</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#pragmas"><em>pragma-form</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#modules-exports-and-imports"><em>module-definition</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#exports"><em>export-form</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#imports"><em>import-form</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#include-files"><em>include-form</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#structure-types"><em>struct-declaration</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#enumeration-types"><em>enum-declaration</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-types"><em>contract-declaration</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#type-aliases"><em>type-alias-declaration</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-witnesses-for-private-state-management"><em>witness-declaration</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#declaring-and-maintaining-public-state"><em>ledger-declaration</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#contract-constructor"><em>constructor-definition</em></a></td></tr>
+<tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#circuits"><em>circuit-definition</em></a></td></tr>
+</tbody></table>
 
 Briefly:
 
@@ -1420,6 +1435,11 @@ constructor(v: Field) {
 }
 ```
 
+Each constructor parameter must be explicitly typed.
+The type of each variable binding arising from the binding of identifiers in
+each parameter pattern to the corresponding pieces of the input is the type of
+the corresonding part of the declared type's structure.
+
 The return type of the constructor is always `[]`.
 Any attempt to return another type of value using `return expression;` where the
 type of `expression` is something other than `[]`, is a static error.
@@ -1464,6 +1484,20 @@ the `block` that constitutes the body of the circuit.
 Each parameter must be explicitly typed, and at the point of every call to the
 circuit, the type of the corresponding argument expression must be a subtype of
 that type.
+The type of each variable binding arising from the binding of identifiers in
+each parameter pattern to the corresponding pieces of the input is the type of
+the corresonding part of the declared type's structure.
+For example, in the body of `sumStruct` below:
+
+```compact
+struct S { x: Uint<16>, y: Uint<32> }
+circuit sumStruct({x, y}: S): Field {
+  return x + y;
+}
+```
+
+The variable binding established for `x` by the pattern `{x, y}` has type
+`Uint<16>`, and the variable binding for `y` has type `Uint<32>`.
 
 Every named circuit's return type must be explicitly declared, and it is a
 static error if the circuit can return a value that is not a subtype of that
@@ -1580,7 +1614,7 @@ in the syntax specified by the following grammar snippet:
 <tr><td><em>typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pattern</em>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr>
 </tbody></table>
 
-A `const` statement is typed by typing each its `cbinding` subforms.
+A `const` statement is typed by typing each of its `cbinding` subforms.
 A `cbinding` subform is typed by typing the expression on the right-hand side
 of the `=`.
 If a type `T` is included on the left-hand side, the type of the expression
@@ -1590,8 +1624,38 @@ the type of the expression.
 For example, it is a static error if the pattern implies that the expression's
 value is a tuple when the type is actually, say, `Field`.
 
-The scope of each variable bound by a `const` statement is the entirety
-of the innermost block containing the `const` statement.
+The type of each variable binding arising from the binding of identifiers in each
+pattern to the corresponding pieces of the input is the type of the corresonding
+part of the structure of the declared type, if present, otherwise of the inferred
+type.
+For example, in the following code, the binding for `x` has type `Boolean`, and
+the binding for `y` has type `[Uint<64>, Uint<64>]`:
+
+!!!!!!!! TBD test this
+
+```compact
+witness w(): [Boolean, [Uint<16>, Uint<32>]];
+circuit foo(): [Uint<64>, Uint<64>] {
+  const [x, y]: [Boolean, [Uint<64>, Uint<64>]] = w();
+  return x ? y : [0, 0];
+}
+```
+
+while in the following, `x` still has type `Boolean` but `y` has (the inferred)
+type `[Uint<16>, Uint<64>]`.
+
+!!!!!!!! TBD test this
+
+```compact
+witness w(): [Boolean, [Uint<16>, Uint<32>]];
+circuit foo(): [Uint<64>, Uint<64>] {
+  const [x, y] = w();
+  return x ? y : [0, 0];
+}
+```
+
+Except where shadowed, the scope of each variable bound by a `const` statement
+is the entirety of the innermost block containing the `const` statement.
 It must not be referenced, however, before it is given a binding.
 Any attempt to do so is a static error.
 For example, the reference to `x` on the first line of the body in the
@@ -2445,6 +2509,11 @@ Type checking a function call depends on the form of the underlying function.
 
   - If there is no type annotation for a parameter, the parameter's type is
     inferred as the type of the corresponding argument expression.
+
+  The type of each variable binding arising from the binding of identifiers in
+  each parameter pattern to the corresponding pieces of the corresponding argument
+  is the type of the corresonding part of the structure of the declared type,
+  if present, otherwise of the inferred type.
 
   If there is a return type annotation, then the circuit's body is type checked
   under the assumption that the parameters have their declared or inferred
