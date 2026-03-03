@@ -1,4 +1,4 @@
-name: Build, test and release compactc
+name: Build, test and release compact toolchain
 
 on:
   workflow_dispatch:
@@ -354,7 +354,7 @@ jobs:
     uses: ./.github/workflows/compute-release-notes.yml
     secrets: inherit
     with:
-      version: ${{ needs.setup.outputs.release_notes_file }}
+      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       branch: ${{ needs.setup.outputs.branch }}
       release_notes_branch: ${{ inputs.release_notes_branch }}
       release_notes_pr_description: ${{ inputs.release_notes_pr_description }}
