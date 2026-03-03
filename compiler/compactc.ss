@@ -40,12 +40,12 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --language-version prints the language version and exits.
 
+  --ledger-version prints the ledger version and exits.  The ledger version
+    is the version of the ledger that is expected by the generated code.
+
   --runtime-version prints the runtime version and exits.  The runtime version
     is the version of the Compact runtime JavaScript package that is used by
     generated contract code.
-
-  --ledger-version prints the ledger version and exits.  The ledger version
-    is the version of the ledger that is expected by the generated code.
 
   --vscode causes error messages to be printed on a single line so they are
     rendered properly within the VS Code extension for Compact.
