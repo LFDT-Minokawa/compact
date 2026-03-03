@@ -10,18 +10,21 @@ on:
       branch:
         description: 'Branch to use for release'
         required: true
-        type: string
-        default: 'main'
-      skip_macos_intel:
-        description: 'Skip MacOS Intel build'
+        type: choice
+        default: 'release/midnight'
+        options:
+          - main
+          - release/midnight
+      include_macos_intel:
+        description: 'Include MacOS Intel build'
         required: true
         type: boolean
-        default: false
+        default: true
       docs:
-        description: 'Create branch with documentation'
+        description: 'Create branch with documentation in midnight-docs'
         required: true
         type: boolean
-        default: false
+        default: true
       docs_branch:
         description: 'Branch to merge with in midnight-docs'
         required: true
@@ -31,7 +34,27 @@ on:
         description: 'PR description for docs'
         required: true
         type: string
-        default: 'Example PR description for midnight-docs'
+        default: 'Compact toolchain docs copied to midnight-docs'
+      include_release_notes:
+        description: 'Include release notes in artifact zip files'
+        required: true
+        type: boolean
+        default: true
+      create_release_notes:
+        description: 'Create branch for release notes in midnight-docs'
+        required: true
+        type: boolean
+        default: true
+      release_notes_branch:
+        description: 'Branch to merge with in midnight-docs'
+        required: true
+        type: string
+        default: 'main'
+      release_notes_pr_description:
+        description: 'PR description for release notes'
+        required: true
+        type: string
+        default: 'Compact toolchain release notes copied to midnight-docs'
       create_release:
         description: 'Create a release?'
         required: false
@@ -56,6 +79,8 @@ jobs:
       linux_x86: ${{ steps.linux_x86.outputs.name }}
       macos_arm: ${{ steps.macos_arm.outputs.name }}
       macos_x86: ${{ steps.macos_x86.outputs.name }}
+      release_notes_file: ${{ steps.release_notes.outputs.file }}
+      release_notes_flag: ${{ steps.release_notes_flag.outputs.include }}
     steps:
       - name: Determine branch
         id: set_branch
@@ -90,6 +115,23 @@ jobs:
       - name: Set linux x86 name
         id: macos_x86
         run: echo "name=x86_64-darwin" >> "$GITHUB_OUTPUT"
+
+      - name: Compute release notes path
+        id: release_notes
+        run: |
+          VERSION="${{ inputs.version }}"
+          # Strip leading 'v' if present
+          CLEAN_VERSION="${VERSION#v}"
+          echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
+
+      - name: Set release notes include flag
+        id: release_notes_flag
+        run: |
+          if [ "${{ inputs.include_release_notes }}" = "true" ] && [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "include=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "include=false" >> "$GITHUB_OUTPUT"
+          fi
 
   check-docs:
     name: Check if documentation is updated
@@ -143,6 +185,8 @@ jobs:
       platform: ubuntu-24.04-arm
       architecture: ${{ needs.setup.outputs.linux_arm }}
       buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
+      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       skipCache: false
 
   build-release-intel-linux:
@@ -157,6 +201,8 @@ jobs:
       platform: ubuntu-latest
       architecture: ${{ needs.setup.outputs.linux_x86 }}
       buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
+      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       skipCache: false
 
   build-release-arm-macos:
@@ -171,13 +217,15 @@ jobs:
       platform: macos-latest-xlarge
       architecture: ${{ needs.setup.outputs.macos_arm }}
       buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
+      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       skipCache: false
 
   build-release-intel-macos:
     name: Build compactc binary for macOS x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
     needs: [ setup, check-docs ]
-    if: ${{ !inputs.skip_macos_intel && github.event_name != 'schedule' }}
+    if: ${{ inputs.include_macos_intel && github.event_name != 'schedule' }}
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -186,6 +234,8 @@ jobs:
       platform: macos-15-intel
       architecture: ${{ needs.setup.outputs.macos_x86 }}
       buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
+      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       skipCache: true
 
   test-arm-linux:
@@ -276,14 +326,15 @@ jobs:
         if: ${{ inputs.create_release && github.event_name != 'schedule' }}
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
-          repository: midnight-ntwrk/artifacts
+          repository: midnightntwrk/compact
           tag_name: compactc-${{ inputs.version || github.ref_name }}
-          name: Compactc ${{ inputs.version || github.ref_name }}
+          name: Compact toolchain ${{ inputs.version || github.ref_name }}
           draft: false
           prerelease: false
           files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
           token: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
-          body: Compactc ${{ inputs.version || github.ref_name }}
+          body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
+          body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
   generate-docs-after-release:
     if: ${{ inputs.docs }}
@@ -295,3 +346,15 @@ jobs:
       branch: ${{ needs.setup.outputs.branch }}
       docs_branch: ${{ inputs.docs_branch }}
       pr_description: ${{ inputs.pr_description }}
+
+  copy-release-notes-to-midnight-docs:
+    if: ${{ inputs.create_release_notes }}
+    name: Create branch in midnight-docs for release notes
+    needs: [ setup, make-release ]
+    uses: ./.github/workflows/compute-release-notes.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.setup.outputs.release_notes_file }}
+      branch: ${{ needs.setup.outputs.branch }}
+      release_notes_branch: ${{ inputs.release_notes_branch }}
+      release_notes_pr_description: ${{ inputs.release_notes_pr_description }}

@@ -1,0 +1,53 @@
+name: Copy release notes to midnight-docs
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.2.3 or v1.2.3-rc.1)'
+        required: true
+        type: string
+      branch:
+        description: 'Branch to grab release notes from'
+        required: true
+        type: choice
+        default: 'release/midnight'
+        options:
+          - main
+          - release/midnight
+      release_notes_branch:
+        description: 'Branch to merge with in midnight-docs'
+        required: true
+        type: string
+        default: 'main'
+      release_notes_pr_description:
+        description: 'PR description for release notes'
+        required: true
+        type: string
+        default: 'Compact toolchain release notes copied to midnight-docs'
+
+jobs:
+  setup:
+    name: Setup the variable
+    runs-on: ubuntu-latest
+    outputs:
+      release_notes_file: ${{ steps.release_notes.outputs.file }}
+    steps:
+      - name: Compute release notes path
+        id: release_notes
+        run: |
+          VERSION="${{ inputs.version }}"
+          # Strip leading 'v' if present
+          CLEAN_VERSION="${VERSION#v}"
+          echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
+
+  copy-release-notes:
+    name: Create branch in midnight-docs
+    needs: [ setup ]
+    uses: ./.github/workflows/compute-release-notes.yml
+    secrets: inherit #if inherit does not work we need to uncomment below
+    with:
+      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
+      branch: ${{ inputs.branch }}
+      release_notes_branch: ${{ inputs.release_notes_branch }}
+      release_notes_pr_description: ${{ inputs.release_notes_pr_description }}

@@ -31,6 +31,16 @@ on:
         description: 'Skip nix cache'
         required: true
         type: boolean
+      include_release_notes:
+        description: 'Include release notes in zipped files'
+        required: true
+        type: boolean
+        default: true
+      release_notes_file:
+        description: 'Path to release notes file'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   build:
@@ -78,7 +88,16 @@ jobs:
       - name: Create binary for specific system
         run: |
           ${{ inputs.buildCommand }}
-          zip --junk-paths ${{ env.ARTIFACT_NAME }}.zip result/**/**
+          if [ "${{ inputs.include_release_notes }}" = "true" ] && [ -n "${{ inputs.release_notes_file }}" ]; then
+            if [ -f "${{ inputs.release_notes_file }}" ]; then
+              zip --junk-paths ${{ env.ARTIFACT_NAME }}.zip result/**/** "${{ inputs.release_notes_file }}"
+            else
+              echo "::error::Release notes file not found: ${{ inputs.release_notes_file }}"
+              exit 1
+            fi
+          else
+            zip --junk-paths ${{ env.ARTIFACT_NAME }}.zip result/**/**
+          fi
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

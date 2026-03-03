@@ -7,7 +7,7 @@ on:
         description: 'Branch to grab docs from'
         required: true
         type: string
-        default: 'main'
+        default: 'release/midnight'
       docs_branch:
         description: 'Branch to merge with in midnight-docs'
         required: true
@@ -114,5 +114,5 @@ jobs:
             --repo midnightntwrk/midnight-docs \
             --base ${{ inputs.docs_branch }} \
             --head "compact-docs-update-${{ github.run_id }}" \
-            --title "compact - ${{ inputs.pr_description }}" \
+            --title "${{ inputs.pr_description }}" \
             --body 'PR: ${{ inputs.pr_description }}'
