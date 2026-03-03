@@ -5,8 +5,9 @@ on:
     inputs:
       release_notes_file:
         description: 'Release notes file'
-        required: true
+        required: false
         type: string
+        default: ''
       branch:
         description: 'Branch to grab release notes from'
         required: true
