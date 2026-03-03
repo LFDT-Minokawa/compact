@@ -3142,6 +3142,9 @@
       [(= (,var-name* ...) (contract-call ,src ,[BWD-Triv : test] ,elt-name (,[BWD-Triv : triv] ,primitive-type) ,[BWD-Triv : triv*] ...))
        (cons `(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...)) stmt*)]
       [(= (,var-name* ...) (default ,opaque-type))
+       (guard (andmap (lambda (var-name) (not (hashtable-contains? ref-ht var-name))) var-name*))
+       stmt*]
+      [(= (,var-name* ...) (default ,opaque-type))
        (cons `(= (,var-name* ...) (default ,opaque-type)) stmt*)]
       [(= (,var-name1 ,var-name2) (field->bytes ,src ,test ,len ,triv))
        (guard

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased toolchain 0.29.110, language 0.21.101, runtime 0.14.102]
+
+### Fixed
+
+- There was an unreleased bug in ZKIR circuits (not in JS) where the
+  representation of the default `JubjubPoint` was wrong.  Fixing this entailed
+  allowing `default` in compiler IR from `Lflattened` and downstream in both
+  ZKIR v2 and v3 backends.
+
 ## [Unreleased toolchain 0.29.109, language 0.21.101, runtime 0.14.102]
 
 ### Changed
