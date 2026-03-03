@@ -15,7 +15,7 @@ on:
         options:
           - main
           - release/midnight
-          - issue-153
+          - issue-153 # todo drop this
       include_macos_intel:
         description: 'Include MacOS Intel build'
         required: true
