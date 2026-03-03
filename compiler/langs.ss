@@ -1000,6 +1000,7 @@
       (assert src test mesg)            => (assert test #f mesg))
     (Rhs (rhs)
       triv
+      (default type)
       (+ mbits triv1 triv2)
       (- mbits triv1 triv2)
       (* mbits triv1 triv2)
@@ -1024,7 +1025,6 @@
       (downcast-unsigned src test nat triv)   => (downcast-unsigned test nat triv))
     (Triv (triv test)
       var-name
-      (default type)
       (quote datum)                          => datum
       )
     (Tuple-Argument (tuple-arg)
@@ -1082,6 +1082,7 @@
          (= var-name single)          =>  (= var-name 2 single)))
     (Rhs (rhs)
       (- triv
+         (default type)
          (+ mbits triv1 triv2)
          (- mbits triv1 triv2)
          (* mbits triv1 triv2)
@@ -1115,8 +1116,8 @@
          (vector->bytes triv triv* ...)          => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
          (downcast-unsigned src test nat triv)   => (downcast-unsigned test nat triv)))
     (Multiple (multiple)
-      (+ (call src test function-name triv* ...) =>
-           (call test function-name #f triv* ...)
+      (+ (call src test function-name triv* ...) => (call test function-name #f triv* ...)
+         (default opaque-type)
          (field->bytes src test len triv)        => (field->bytes test len #f triv)
          (bytes->vector triv)                    => (bytes->vector #f triv) ; triv holds one field's worth of bytes
          (public-ledger src test ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
@@ -1124,8 +1125,7 @@
          (contract-call src test elt-name (triv primitive-type) triv* ...) =>
            (contract-call test elt-name 4 (triv primitive-type) #f triv* ...)))
     (Triv (triv test)
-      (- (quote datum)
-         (default type))
+      (- (quote datum))
       (+ nat))
     (Tuple-Argument (tuple-arg)
       (- (single src triv)
