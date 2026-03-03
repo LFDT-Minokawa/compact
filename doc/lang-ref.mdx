@@ -1833,9 +1833,9 @@ The syntax of Compact expressions is summarized by the following grammar snippet
 <tr><td><em>term</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>true</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>false</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>pad</tt></b>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a>&nbsp;&nbsp;<b><tt>,</tt></b>&nbsp;&nbsp;<a href="#string-literal"><em>str</em></a>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>default</tt></b>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a>&nbsp;&nbsp;<b><tt>></tt></b></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>expr-seq</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr></tbody></table>
 
 Every Compact expression must be well-typed (free from static type errors).
-If any expression within a program contains a type error, the Compact compiler
-reports the error and does not produce any target code (TypeScript or Zkir)
-for the program.
+If any expression within a program contains a static type error, it is a static
+error: the Compact compiler reports the error and does not produce any target code
+(TypeScript or Zkir) for the program.
 The static type of a well-typed expression is either a Compact type or a
 ledger-state type.
 
@@ -2188,7 +2188,7 @@ Compact has unary boolean negation expressions of the form `!e` where `e` is an
 expression.
 
 A boolean negation expression is type checked by checking the type of the
-subexpression.  It is a type error if this type is not `Boolean`.  The type of
+subexpression.  It is a static error if this type is not `Boolean`.  The type of
 the expression will be `Boolean`.
 
 Negation expressions are evaluated by evaluating the subexpression.  The value
@@ -2217,7 +2217,7 @@ depend on the types of the subexpressions as follows:
   - For subtract, the result will have type `Uint<0..m>`
   - For multiply, the result will have type `Uint<0..m*n>`
 
-For arithmetic operations with `Uint` result types, it is a static type error if
+For arithmetic operations with `Uint` result types, it is a static error if
 the result's bound would be greater than the maximum unsigned integer.
 
 Arithmetic expressions are evaluated by first evaluating the subexpressions in
@@ -2288,8 +2288,8 @@ An expression of the form `e[n]` where `e` is an
 expression and `n` is a numeric literal is a tuple element access.
 
 Tuple element accesses are type checked by checking the type of the
-subexpression.  It is a type error if this type is not a tuple type `[T, ...]`.
-It is a type error if the length of the tuple is less than or equal to the
+subexpression.  It is a static error if this type is not a tuple type `[T, ...]`.
+It is a static error if the length of the tuple is less than or equal to the
 numeric literal in the expression.  The type of the expression is the
 corresponding element type `T` at position `n` in the tuple type.
 
@@ -2373,18 +2373,18 @@ structure declaration (a value must be given for every field).  It is a static
 error if a named field specifier occurs before a positional field specifier.  It
 is a static error if a field name occurs more than once, and it is a static
 error if a field name occurs that is not the name of a field in the
-corresponding structure declaration.  It is a static type error if the type of a
+corresponding structure declaration.  It is a static error if the type of a
 positional field subexpression is not a subtype of the declared type of the
 (positionally) corresponding field in the structure declaration.  It is a static
-type error if the type of a named field subexpression is not a subtype of the
+error if the type of a named field subexpression is not a subtype of the
 declared type of the corresponding (named) field in the structure declaration.
 
 **If there is a spread field specifier:** It is a static error if the spread
-field specifier does not come first in the sequence.  It is a static type error
+field specifier does not come first in the sequence.  It is a static error
 if the type of the spread subexpression is not the same type as structure to be
 created.  It is a static error if there are any positional field specifiers.  It
 is a static error if a field name occurs that is not the name of a field in the
-corresponding structure declaration.  It is a static type error if the type of a
+corresponding structure declaration.  It is a static error if the type of a
 named field subexpression is not a subtype of the declared type of the
 corresponding (named) field in the structure declaration.
 
@@ -2405,8 +2405,8 @@ expression of the form `e.id` where `e` is an expression and `id` is the name of
 a structure member is a structure member access.
 
 Member access expressions are type checked by checking the type of the
-subexpression.  It is a type error if this type is not a structure type.  It is
-a type error if the structure type does not contain a member with the same name
+subexpression.  It is a static error if this type is not a structure type.  It is
+a static error if the structure type does not contain a member with the same name
 as the name in the expression.  The type of the expression is the type of the
 corresponding named member of the subexpression's structure type.
 
@@ -2493,8 +2493,8 @@ Type checking a function call depends on the form of the underlying function.
   of declared parameters is the same as the number of argument expressions, and
   if the declared type of each parameter is a supertype of the corresponding
   argument expression.  If exactly one candidate is compatible, the call is made
-  to that candidate.  It is a static type error otherwise (if there is not
-  exactly one compatible candidate).
+  to that candidate.  It is a static error if there is not
+  exactly one compatible candidate.
 
   The static type of a call to a named function is the return type of the called
   function.
@@ -2503,7 +2503,7 @@ Type checking a function call depends on the form of the underlying function.
   type checked, and parameters that do not have type annotations will have types
   inferred.  The argument subexpressions are type checked and then:
 
-  - If there is a type annotation for a parameter, it is a static type error if
+  - If there is a type annotation for a parameter, it is a static error if
     the type of the corresponding argument expression is not a subtype of the
     type annotation.
 
@@ -2517,7 +2517,7 @@ Type checking a function call depends on the form of the underlying function.
 
   If there is a return type annotation, then the circuit's body is type checked
   under the assumption that the parameters have their declared or inferred
-  types.  It is a static type error if there is a returned subexpression whose
+  types.  It is a static error if there is a returned subexpression whose
   static type is not a subtype of the return type annotation.  A return
   statement of the form `return;` is type checked as if it returned a value of
   type `[]`.  Every control flow path through a body that does not explicitly
@@ -2745,7 +2745,7 @@ The static type of a ledger-state operation expression is the return type of the
 corresponding ledger-state operation according to the ledger data types reference.  Note
 that this might be a Compact type or it might be a ledger-state type.  Values of
 ledger-state types can have ledger-state operations invoked (immediately) on them, but
-any other use would be a static type error.
+any other use would be a static error.
 
 Kernel operations are evaluated by evaluating the argument subexpressions in
 order from left to right and then invoking the corresponding kernel operation
@@ -2784,17 +2784,104 @@ ledger expression.
 
 ### Asserts
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
+An assertion has the form `assert(e, "msg")` where `e` is an expression and `msg`
+is a string message.
+`e` must have a Boolean type, otherwise it is a static error.
 
-An assertion has the form `assert(e, "msg")` where `e` is an expression and `msg` is a string message.
-`e` must have a Boolean type, otherwise it is a static type error.  If `e` evaluates to `true`, the assertion
-succeeds. If `e` evaluates to `false`, the assertion fails with the message `msg`.
+The type of every `assert` form is `[]`.
+
+Evaluation form proceeds by evaluating `e`.
+If the value of `e` is true (the assertion succeeds), the `assert` form produces
+the value `[]`.
+If, however, the value of `e` is false (the assertion fails), the `assert` form
+halts computation of the enclosing top-level circuit or constructor with the
+message `msg`.
 
 Each assertion is checked at runtime and constrained in-circuit.
 
-### Discloses
+### Explicit disclosure
 
-!!!!!!!! TBD Kent needs write
+Private data can enter a Compact contract via the arguments to exported circuits
+and via the return values of witnesses.
+Compact supports *selective disclosure*, in which the contract decides which
+private data, if any, should be disclosed in the transcripts and public state
+of the contract, and how that private data should be encoded.
+
+Compact itself has no information about the nature of any private data and whether
+and how it is necessary to disclose it, the decision to to so rests with the
+contract developer.
+Compact does, however, require that such disclosure be explicitly declared to
+prevent unintentional disclosure, so that privacy is the default and disclosure
+is the exception.
+
+The mechanism for explicitly declaring disclosure is simple: disclosure of private
+data (exported circuit arguments, witness return values, and anything derived from
+private data) must be acknowledged by wrapping an expression whose value contains
+private data in a `disclose()` wrapper before storing it in the public state, returing
+it from an exported circuit, or using it in conditional expressions that might
+affect what is stored in the public state or or returned from an exported circuit.
+
+For example, the following contract attempts to disclose privata data without
+explictly declaring the disclosure when it stores the value of the exported
+parameter `x` into the ledger field `F`:
+
+```compact
+ledger F: Uint<16>;
+export circuit setf(x: Uint<16>): [] {
+  F = x;
+}
+```
+
+Compiling this program produces the following error message in Version 1.0 of
+the Compact compiler:
+
+```compact
+Exception: testfile.compact line 3 char 5:
+  potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      the value of parameter x of exported circuit setf at line 2 char 21
+    nature of the disclosure:
+      ledger operation might disclose the witness value
+    via this path through the program:
+      the right-hand side of = at line 3 char 5
+```
+
+The remedy in this case is simple: wrap the reference to `x` in a `disclose()`
+wrapper.
+
+```compact
+ledger F: Uint<16>;
+export circuit setf(x: Uint<16>): [] {
+  F = disclose(x);
+}
+```
+
+The `disclose()` wrapper does not cause disclosure in itself; in fact, it has no
+effect other than telling the compiler that it is okay to disclose the value of
+the wrapped expression.
+Equivalently, it tells the compiler to pretend that the value of the wrapped
+expression does not contain witness data whether it actually does or not.
+
+The compiler works hard to ensure there are no false alarms and also to provide
+precise and accurate information about the nature of the disclosure and how it
+occurs.
+
+Often, the same value is disclosed along different paths, and the nature of the
+disclosure might be more obscure, particularly if it involves indirect disclosure
+via conditional expressions.
+Detailed advice about how to understand and remedy disclosures is beyond the
+scope of this document, but a few things are worth noting:
+- It is often sufficient to correct first disclosure issue reported at a given
+  disclosure if multiple disclosures are listed.
+- Whenever feasible, the `disclose()` wrapper should be placed as close to
+  the actual disclosure site as possible.
+- When disclosing a hashed or otherwise obfuscated variant of witness data,
+  place the disclosure somewhere on the path between input and disclosure
+  *after* the obfuscation to help prevent disclosure of the unobfuscated 
+  input.
+
+More details are given in
+[Explicit Disclosure in Compact: The Midnight "Witness Protection Program"](explicit-disclosure.mdx).
 
 ## Runtime representations and type/bounds checks
 

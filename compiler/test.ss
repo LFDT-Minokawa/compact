@@ -64006,6 +64006,27 @@ groups than for single tests.
     (succeeds)
     )
 
+  (test
+    '(
+      "ledger F: Uint<16>;"
+      "export circuit setf(x: Uint<16>): [] {"
+      "  F = x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit setf at line 2 char 21" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 3 char 5"))))
+    )
+
+  (test
+    '(
+      "ledger F: Uint<16>;"
+      "export circuit setf(x: Uint<16>): [] {"
+      "  F = disclose(x);"
+      "}"
+      )
+    (succeeds)
+    )
   )
 
 (with-parameter-values ([zkir-v3 #f #t])
