@@ -37954,7 +37954,7 @@ groups than for single tests.
       "  return q;"
       "}"
       )
-        (returns
+    (returns
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
