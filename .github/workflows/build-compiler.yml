@@ -118,7 +118,7 @@ jobs:
           zip -r compiler-coverage.zip coverage*
 
       - name: Upload Artifact - coverage report
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: Coverage Report
           path: compiler-coverage.zip
@@ -134,14 +134,14 @@ jobs:
       # via the workflow_run trigger. This two-workflow pattern is necessary
       # so that fork PRs can have test results posted as PR comments.
       - name: Upload CTRF test results
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: test-results-ctrf-summary
           path: tests-e2e/reports/ctrf-report.json
 
       - name: Upload Junit test results
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: test-results-junit-summary
@@ -150,7 +150,7 @@ jobs:
       # The event file is needed by the reporting workflow to associate
       # test results with the correct PR.
       - name: Upload event file
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: event-file
