@@ -138,15 +138,15 @@
           (hashtable-cell instance-table info* default)))
       (define-record-type info-fun
         (nongenerative)
-        (fields seqno src kind type-param* pelt p instance-table renamed?)
+        (fields seqno src kind type-param* pelt p instance-table)
         (protocol
           (lambda (new)
-            (lambda (seqno src kind type-param* pelt p renamed?)
-              (new seqno src kind type-param* pelt p (make-instance-table) renamed?)))))
+            (lambda (seqno src kind type-param* pelt p)
+              (new seqno src kind type-param* pelt p (make-instance-table))))))
       (module ()
         (record-writer (record-type-descriptor info-fun)
           (lambda (x p wr)
-            (fprintf p "#[info-fun ~s ~s ~s ~s]" (info-fun-seqno x) (format-source-object (info-fun-src x)) (info-fun-kind x) (info-fun-renamed? x)))))
+            (fprintf p "#[info-fun ~s ~s ~s]" (info-fun-seqno x) (format-source-object (info-fun-src x)) (info-fun-kind x)))))
       (define-record-type ecdecl-circuit
         (nongenerative)
         (fields function-name pure? type* type))
@@ -171,8 +171,8 @@
         ; an Info-free-tvar represents a generic parameter name in an exported struct definition.
         ; Info-free-tvars can therefore appear only in the type parameters for an Info-struct
         (Info-free-tvar tvar-name)
-        ; Info-circuit-alias supports renaming / fixup
-        (Info-circuit-alias aliased-name info)
+        ; Info-fixup-alias supports renaming / fixup
+        (Info-fixup-alias aliased-name info)
         )
       (define-record-type exportit
         (nongenerative)
@@ -196,32 +196,8 @@
       (define outer-module-rib (make-hashtable equal-hash equal?))
       (define outer-module-next-seqno '(0 -1))
       (define Cell-ADT-env #f)
-      (define (complain-about-shadowed-renamings! p src sym info)
-        ; this should be removed when we retire the version of fixup-compactc that
-        ; camelCases standard library circuit and ledger operators names.
-        (when (renaming-table)
-          (unless (stdlib-src? src)
-            (let loop ([p p])
-              (unless (eq? p empty-env)
-                (cond
-                  [(hashtable-ref (env-rib p) sym #f) =>
-                   (lambda (src.info)
-                     (let ([info (cdr src.info)])
-                       (Info-case info
-                         [(Info-functions name info-fun+)
-                          (for-each
-                            (lambda (info-fun)
-                              (when (info-fun-renamed? info-fun)
-                                (source-warningf src
-                                  "existing binding of ~s may lead to unintended shadowing of renamed standard-library circuit ~:*~s"
-                                  sym)))
-                            info-fun+)
-                          (loop (env-p p))]
-                         [else (void)])))]
-                  [else (loop (env-p p))]))))))
       (define (env-insert! p src sym info)
         (assert (env? p))
-        (complain-about-shadowed-renamings! p src sym info)
         (let ([a (hashtable-cell (env-rib p) sym #f)])
           (if (cdr a)
               (let ([info^ (cddr a)])
@@ -233,7 +209,6 @@
                           (Info-case info^
                             [(Info-functions name old-info-fun+)
                              (Info-functions name (append info-fun+ old-info-fun+))]
-                            [(Info-circuit-alias aliased-name info^) (retry info^)]
                             [else #f]))]
                        [else #f]) =>
                      (lambda (info) (set-cdr! (cdr a) info))]
@@ -435,33 +410,46 @@
         ; inferencer to decide which if any to choose and, in case there is
         ; no suitable candidate, to list the generic-instantiation failures among
         ; the unsuitable candidates in the resulting error message.
-        (define (compatible-type-parameters? type-param* info*)
-          (and (= (length info*) (length type-param*))
-               (andmap (lambda (type-param info)
-                         (nanopass-case (Lpreexpand Type-Param) type-param
-                           [(nat-valued ,src^ ,tvar-name)
-                            (Info-case info
-                              [(Info-size src size) #t]
-                              [else #f])]
-                           [(type-valued ,src^ ,tvar-name)
-                            (Info-case info
-                              [(Info-type src type) #t]
-                              [else #f])]
-                           ; this is not presently reachable, since only adt definitions use
-                           ; type-param kind non-adt-type-valued
-                           [(non-adt-type-valued ,src^ ,tvar-name)
-                            (Info-case info
-                              [(Info-type src type) (not (public-adt? type))]
-                              [else #f])]))
-                       type-param*
-                       info*)))
+        (define (compatible-type-parameters? info-fun)
+          (let ([type-param* (info-fun-type-param* info-fun)])
+            (and (= (length info*) (length type-param*))
+                 (andmap (lambda (type-param info)
+                           (nanopass-case (Lpreexpand Type-Param) type-param
+                             [(nat-valued ,src^ ,tvar-name)
+                              (Info-case info
+                                         [(Info-size src size) #t]
+                                         [else #f])]
+                             [(type-valued ,src^ ,tvar-name)
+                              (Info-case info
+                                         [(Info-type src type) #t]
+                                         [else #f])]
+                             ; this is not presently reachable, since only adt definitions use
+                             ; type-param kind non-adt-type-valued
+                             [(non-adt-type-valued ,src^ ,tvar-name)
+                              (Info-case info
+                                         [(Info-type src type) (not (public-adt? type))]
+                                         [else #f])]))
+                         type-param*
+                         info*))))
         (define-record-type generic-failure
           (nongenerative)
-          (fields src kind*))
-        (define (return id+* symbolic-function-name+* generic-failure*)
+          (fields src kind*)
+          (protocol
+            (lambda (new)
+              (lambda (info-fun)
+                (new
+                  (info-fun-src info-fun)
+                  (map (lambda (type-param)
+                         (nanopass-case (Lpreexpand Type-Param) type-param
+                           [(nat-valued ,src ,tvar-name) 'size]
+                           [(type-valued ,src ,tvar-name) 'type]
+                           ; currently not reachable since functions don't employ this kind of type-param
+                           [(non-adt-type-valued ,src ,tvar-name) 'non-adt-type]))
+                       (info-fun-type-param* info-fun)))))))
+        (define (return id+* generic-failure*)
           (with-output-language (Lexpanded Function)
             `(fref ,src ,function-name
-                   (([,symbolic-function-name+* ,id+*] ...) ...)
+                   ((,id+* ...) ...)
                    (,(map (lambda (info)
                             (Info-case info
                               [(Info-type src type) type]
@@ -473,6 +461,20 @@
                      ,(map generic-failure-kind* generic-failure*)
                      ...)
                     ...))))
+        (define (find-functions function-name)
+          (let outer ([p p] [rinfo-functions* '()] [rmaybe-alias* '()])
+            (cond
+              [(eq? p empty-env) (values rinfo-functions* rmaybe-alias* #f)]
+              [(begin (assert (env? p)) (hashtable-ref (env-rib p) function-name #f)) =>
+               (lambda (src.info)
+                 (let retry ([info (cdr src.info)] [maybe-alias #f])
+                   (Info-case info
+                     [(Info-functions name info-fun+)
+                      (outer (env-p p) (cons info rinfo-functions*) (cons maybe-alias rmaybe-alias*))]
+                     [(Info-fixup-alias aliased-name info)
+                      (retry info aliased-name)]
+                     [else (values rinfo-functions* rmaybe-alias* info)])))]
+              [else (outer (env-p p) rinfo-functions* rmaybe-alias*)])))
         (define fun-visited?
           ; the same info-fun can appear in an outer contour and an inner contour due
           ; to module import.  Consider:
@@ -491,47 +493,39 @@
             (lambda (info-fun)
               (let ([a (eq-hashtable-cell ht info-fun #f)])
                 (or (cdr a) (begin (set-cdr! a #t) #f))))))
-        (let outer ([p p] [seen? #f] [id+* '()] [symbolic-function-name+* '()] [generic-failure* '()])
-          (cond
-            [(eq? p empty-env)
-             (when (and (null? id+*) (null? generic-failure*)) (source-errorf src "unbound identifier ~s" function-name))
-             ; each generic-failure = (src . string) e.g., (src . "<type, size>")
-             (return (reverse id+*) (reverse symbolic-function-name+*) generic-failure*)]
-            [(begin (assert (env? p)) (hashtable-ref (env-rib p) function-name #f)) =>
-             (lambda (src.info)
-               (let retry ([info (cdr src.info)] [symbolic-function-name function-name])
-                 (Info-case info
-                   [(Info-functions name info-fun+)
-                    (let inner ([info-fun* info-fun+] [id* '()] [symbolic-function-name* '()] [generic-failure* generic-failure*])
-                      (if (null? info-fun*)
-                          (outer (env-p p) #t
-                                 (if (null? id*) id+* (cons id* id+*))
-                                 (if (null? symbolic-function-name*) symbolic-function-name+* (cons symbolic-function-name* symbolic-function-name+*))
-                                 generic-failure*)
-                          (let ([info-fun (car info-fun*)]
-                                [info-fun* (cdr info-fun*)])
-                            (if (fun-visited? info-fun)
-                                (inner info-fun* id* symbolic-function-name* generic-failure*)
-                                (if (compatible-type-parameters? (info-fun-type-param* info-fun) info*)
-                                    (let ([id (make/register-frob src name info-fun info* #f)])
-                                      (inner info-fun* (cons id id*) (cons symbolic-function-name symbolic-function-name*) generic-failure*))
-                                    (inner info-fun* id* symbolic-function-name*
-                                           (cons (make-generic-failure
-                                                   (info-fun-src info-fun)
-                                                   (map (lambda (type-param)
-                                                          (nanopass-case (Lpreexpand Type-Param) type-param
-                                                            [(nat-valued ,src ,tvar-name) 'size]
-                                                            [(type-valued ,src ,tvar-name) 'type]
-                                                            ; currently not reachable since functions don't employ this kind of type-param
-                                                            [(non-adt-type-valued ,src ,tvar-name) 'non-adt-type]))
-                                                        (info-fun-type-param* info-fun)))
-                                                 generic-failure*)))))))]
-                   [(Info-circuit-alias aliased-name info)
-                    (retry info aliased-name)]
-                   [else (if seen?
-                             (return (reverse id+*) (reverse symbolic-function-name+*) generic-failure*)
-                             (context-oops src function-name info))])))]
-            [else (outer (env-p p) seen? id+* symbolic-function-name+* generic-failure*)])))
+        (let-values ([(rinfo-functions* rmaybe-alias* maybe-info) (find-functions function-name)])
+          (let ([alias-name (ormap values rmaybe-alias*)])
+            (when alias-name
+              (if (renaming-table)
+                  (if (andmap (lambda (x) (eq? x alias-name)) rmaybe-alias*)
+                      (let-values ([(^rinfo-functions* ^rmaybe-alias* ^maybe-info) (find-functions alias-name)])
+                        (assert (or (not (null? ^rinfo-functions*)) ^maybe-info))
+                        (if (equal? ^rinfo-functions* rinfo-functions*)
+                            (record-alias! src function-name alias-name)
+                            (source-warningf src "not renaming reference of ~s to ~s because ~1:*~s has other bindings in scope"
+                                             function-name
+                                             alias-name)))
+                      (source-warningf src "not renaming reference of ~s to ~s because ~2:*~s has other bindings in scope"
+                                       function-name
+                                       alias-name))
+                  (record-alias! src function-name alias-name))))
+          (let loop ([info-functions* (reverse rinfo-functions*)] [rid+* '()] [generic-failure* '()])
+            (if (null? info-functions*)
+                (if (and (null? rid+*) (null? generic-failure*))
+                    (if maybe-info
+                        (context-oops src function-name maybe-info)
+                        (source-errorf src "unbound identifier ~s" function-name))
+                    (return (reverse rid+*) generic-failure*))
+                (Info-case (car info-functions*)
+                  [(Info-functions name info-fun+)
+                   (define (register info-fun) (make/register-frob src name info-fun info* #f))
+                   (let-values ([(compatible* incompatible*) (partition compatible-type-parameters? (remp fun-visited? info-fun+))])
+                     (loop (cdr info-functions*)
+                           (if (null? compatible*)
+                               rid+*
+                               (cons (maplr register compatible*) rid+*))
+                           (append (map make-generic-failure incompatible*) generic-failure*)))]
+                  [else (assertf cannot-happen "find-functions should return only Info-functions infos")])))))
       (define-syntax Info-lookup
         (syntax-rules ()
           [(_ (p ?src ?name) clause ...)
@@ -555,37 +549,49 @@
           [(Info-type-alias src nominal? type-name type-param* type p) "type alias"]
           [(Info-ledger ledger-field-name) "ledger field"]
           [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p) "ledger ADT type"]
-          [(Info-circuit-alias aliased-name info) "function"]))
-      (define (handle-type-ref src tvar-name info* info)
+          [(Info-fixup-alias aliased-name info) (describe-info info)]))
+      (define (handle-type-ref src tvar-name info* p info)
         (with-output-language (Lexpanded Type)
           (with-type-cycle-check src info tvar-name
             (lambda ()
-              (Info-case info
-                [(Info-type src^ type)
-                 (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 type]
-                [(Info-free-tvar tvar-name)
-                 (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 tvar-name]
-                [(Info-contract src contract-name ecdecl-circuit* p)
-                 (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 (let ([Type (lambda (type) (Type type p))])
-                   `(tcontract ,src ,contract-name
-                      (,(map ecdecl-circuit-function-name ecdecl-circuit*)
-                       ,(map ecdecl-circuit-pure? ecdecl-circuit*)
-                       (,(map (lambda (type*) (map Type type*)) (map ecdecl-circuit-type* ecdecl-circuit*)) ...)
-                       ,(map Type (map ecdecl-circuit-type ecdecl-circuit*)))
-                      ...))]
-                [(Info-enum src^ enum-name elt-name elt-name*)
-                 (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 `(tenum ,src ,enum-name ,elt-name ,elt-name* ...)]
-                [(Info-struct src^ struct-name type-param* elt-name* type* p)
-                 (apply-struct src src^ struct-name type-param* elt-name* type* p info*)]
-                [(Info-type-alias src^ nominal? type-name type-param* type p)
-                 (apply-type-alias src src^ nominal? type-name type-param* type p info*)]
-                [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
-                 (apply-ledger-ADT src adt-name type-param* vm-expr adt-op* adt-rt-op* p info*)]
-                [else (context-oops src tvar-name info)])))))
+              (let retry ([info info])
+                (Info-case info
+                  [(Info-type src^ type)
+                   (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
+                   type]
+                  [(Info-free-tvar tvar-name)
+                   (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
+                   tvar-name]
+                  [(Info-contract src contract-name ecdecl-circuit* p)
+                   (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
+                   (let ([Type (lambda (type) (Type type p))])
+                     `(tcontract ,src ,contract-name
+                        (,(map ecdecl-circuit-function-name ecdecl-circuit*)
+                         ,(map ecdecl-circuit-pure? ecdecl-circuit*)
+                         (,(map (lambda (type*) (map Type type*)) (map ecdecl-circuit-type* ecdecl-circuit*)) ...)
+                         ,(map Type (map ecdecl-circuit-type ecdecl-circuit*)))
+                        ...))]
+                  [(Info-enum src^ enum-name elt-name elt-name*)
+                   (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
+                   `(tenum ,src ,enum-name ,elt-name ,elt-name* ...)]
+                  [(Info-struct src^ struct-name type-param* elt-name* type* p)
+                   (apply-struct src src^ struct-name type-param* elt-name* type* p info*)]
+                  [(Info-type-alias src^ nominal? type-name type-param* type p)
+                   (apply-type-alias src src^ nominal? type-name type-param* type p info*)]
+                  [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
+                   (apply-ledger-ADT src adt-name type-param* vm-expr adt-op* adt-rt-op* p info*)]
+                  [(Info-fixup-alias aliased-name info)
+                   (if (renaming-table)
+                       (let ([info^ (lookup/no-error p aliased-name)])
+                         (assertf info^ "aliased name ~s is not found in the environment" tvar-name)
+                         (if (eq? info^ info)
+                             (record-alias! src tvar-name aliased-name)
+                             (source-warningf src "not renaming reference of ~s to ~s because this would cause the reference to be captured by an existing local binding for ~:*~s"
+                                              tvar-name
+                                              aliased-name)))
+                       (record-alias! src tvar-name aliased-name))
+                   (retry info)]
+                  [else (context-oops src tvar-name info)]))))))
       (define (context-oops src name info)
         (source-errorf src "invalid context for reference to ~a name ~s"
                        (describe-info info)
@@ -601,8 +607,10 @@
                                         (values name info)
                                         (values (add-prefix name)
                                                 (Info-case info
-                                                  [(Info-circuit-alias aliased-name info)
-                                                   (Info-circuit-alias (add-prefix aliased-name) info)]
+                                                  [(Info-fixup-alias aliased-name info)
+                                                   (let ([prefix-aliased-name (add-prefix aliased-name)])
+                                                     (env-insert! p src prefix-aliased-name info)
+                                                     (Info-fixup-alias prefix-aliased-name info))]
                                                   [else info])))])
             (env-insert! p src name info)))
         (let* ([module-name (if (symbol? import-name) import-name (string->symbol (path-last import-name)))]
@@ -624,9 +632,11 @@
                                                                 (ledger-adt-definitions))
                                                           (map (lambda (a)
                                                                  (let ([old-name (car a)] [new-name (cdr a)])
-                                                                   (with-output-language (Lpreexpand Circuit-Alias-Definition)
-                                                                     `(circuit-alias ,old-name ,new-name))))
-                                                               stdlib-circuit-aliases))
+                                                                   (with-output-language (Lpreexpand Fixup-Alias-Definition)
+                                                                     `(fixup-alias ,old-name ,new-name))))
+                                                               (append
+                                                                 stdlib-type-aliases
+                                                                 stdlib-circuit-aliases)))
                                                   empty-env
                                                   outer-module-next-seqno
                                                   #f
@@ -718,7 +728,7 @@
                                  [(Info-size src size) "generic parameter"]
                                  [(Info-var id) "variable"] ; can't happen at present
                                  [(Info-bogus) "variable"] ; can't happen at present
-                                 [(Info-circuit-alias aliased-name info)
+                                 [(Info-fixup-alias aliased-name info)
                                   (record-alias! src name aliased-name)
                                   #f]
                                  [else #f]) =>
@@ -731,10 +741,7 @@
                   unresolved-export*)
                 (let ([pelt (car pelt*)] [pelt* (cdr pelt*)] [seqno (car seqno*)] [seqno* (cdr seqno*)])
                   (define (handle-fun src kind pelt exported? name type-param*)
-                    (let* ([renamed? (and (stdlib-src? src)
-                                          (memp (lambda (a) (eq? (cdr a) name)) stdlib-circuit-aliases)
-                                          #t)]
-                           [info-fun (make-info-fun (reverse seqno) src kind type-param* pelt p renamed?)]
+                    (let* ([info-fun (make-info-fun (reverse seqno) src kind type-param* pelt p)]
                            [info (Info-functions name (list info-fun))])
                       (set! all-info-funs (cons (cons info-fun name) all-info-funs))
                       (env-insert! p src name info)
@@ -811,9 +818,9 @@
                                  ; this case can't happen: these appear only in the ledger.ss output, which exports all
                                  export*)
                              unresolved-export*))]
-                    [(circuit-alias ,function-name^ ,function-name)
+                    [(fixup-alias ,function-name^ ,function-name)
                      (let ([src (make-source-object (assert (stdlib-sfd)) 0 0 1 1)]
-                           [info (Info-circuit-alias function-name (assert (lookup/no-error p function-name)))])
+                           [info (Info-fixup-alias function-name (assert (lookup/no-error p function-name)))])
                        (env-insert! p src function-name^ info)
                        (loop pelt* seqno*
                              (cons (make-exportit src function-name^ info) export*)
@@ -966,7 +973,7 @@
                                 (id-exported?-set! id #t)
                                 (set! exported-other* (cons (cons export-name id) exported-other*)))))
                           info-fun+)]
-                       [(Info-circuit-alias aliased-name info) (retry src export-name info)]
+                       [(Info-fixup-alias aliased-name info) (retry src export-name info)]
                        [(Info-struct src^ struct-name type-param* elt-name* type* p^)
                         (unless (already-exported? src export-name info)
                           (set! exported-type*
@@ -1076,7 +1083,7 @@
                                          p)
                               (set! Cell-ADT-env p)
                               p))])
-                 (handle-type-ref src 'Cell (list (Info-type src type)) (lookup p src '__compact_Cell)))))]
+                 (handle-type-ref src 'Cell (list (Info-type src type)) p (lookup p src '__compact_Cell)))))]
       [(constructor ,src (,[arg*] ...) ,expr)
        (let ([var-id* (map arg->id arg*)] [p (add-rib p)])
          (for-each
@@ -1187,7 +1194,7 @@
        `(ttuple ,src ,type* ...)])
     (Type-Ref->Type : Type-Ref (ir p) -> Type ()
       [(type-ref ,src ,tvar-name ,[Type-Argument->info : targ* p -> * info*] ...)
-       (handle-type-ref src tvar-name info* (lookup p src tvar-name))])
+       (handle-type-ref src tvar-name info* p (lookup p src tvar-name))])
     (Type-Size->nat : Type-Size (ir p default) -> * (nat)
       [(type-size ,src ,nat) nat]
       [(type-size-ref ,src ,tsize-name)
@@ -1206,7 +1213,7 @@
            [(Info-size src^^ size)
             (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
             (Info-size src size)]
-           [else (Info-type src (handle-type-ref src tvar-name info* info))]))]
+           [else (Info-type src (handle-type-ref src tvar-name info* p info))]))]
       [(targ-type ,src ,type) (Info-type src (Type type p))])
   )
 
@@ -1682,15 +1689,15 @@
               (and (= (length arg-type*) nactual)
                    (andmap subtype? actual-type* arg-type*)))))
         (nanopass-case (Lexpanded Function) fun
-          [(fref ,src^ ,symbolic-function-name (([,symbolic-function-name** ,function-name**] ...) ...)
+          [(fref ,src^ ,symbolic-function-name ((,function-name** ...) ...)
                  (,generic-value* ...)
                  ((,src* ,generic-kind** ...) ...))
-           (define-record-type blob (nongenerative) (fields name symbolic-name arg-type* return-type))
+           (define-record-type blob (nongenerative) (fields name arg-type* return-type))
            (define (blob<? blob1 blob2)
              (source-object<?
                (id-src (blob-name blob1))
                (id-src (blob-name blob2))))
-           (let outer ([function-name** function-name**] [symbolic-function-name** symbolic-function-name**] [arg-incompatible-blob** '()] [fold-incompatible-blob** '()])
+           (let outer ([function-name** function-name**] [arg-incompatible-blob** '()] [fold-incompatible-blob** '()])
              (if (null? function-name**)
                  (let ()
                    (define (functions-are ls)
@@ -1746,16 +1753,13 @@
                               (functions-are fold-incompatible*)
                               fold-incompatible*)))))
                  (let ([function-name* (car function-name**)]
-                       [function-name** (cdr function-name**)]
-                       [symbolic-function-name* (car symbolic-function-name**)]
-                       [symbolic-function-name** (cdr symbolic-function-name**)])
-                   (let ([blob* (map (lambda (function-name symbolic-function-name)
+                       [function-name** (cdr function-name**)])
+                   (let ([blob* (map (lambda (function-name)
                                        (Idtype-case (get-idtype src function-name)
                                          [(Idtype-Function kind arg-name* arg-type* return-type)
-                                          (make-blob function-name symbolic-function-name arg-type* return-type)]
+                                          (make-blob function-name arg-type* return-type)]
                                          [else (assert cannot-happen)]))
-                                     function-name*
-                                     symbolic-function-name*)])
+                                     function-name*)])
                      (let*-values ([(arg-compatible-blob* arg-incompatible-blob*)
                                     (partition (lambda (x) (compatible-args? (blob-arg-type* x))) blob*)]
                                    [(compatible-blob* fold-incompatible-blob*)
@@ -1764,13 +1768,11 @@
                                         (values arg-compatible-blob* '()))])
                        (cond
                          [(null? compatible-blob*)
-                          (outer function-name** symbolic-function-name**
+                          (outer function-name**
                                  (cons arg-incompatible-blob* arg-incompatible-blob**)
                                  (cons fold-incompatible-blob* fold-incompatible-blob**))]
                          [(null? (cdr compatible-blob*))
                           (let ([blob (car compatible-blob*)])
-                            (unless (eq? (blob-symbolic-name blob) symbolic-function-name)
-                              (record-alias! src^ symbolic-function-name (blob-symbolic-name blob)))
                             (build-call
                               (blob-arg-type* blob)
                               (blob-return-type blob)

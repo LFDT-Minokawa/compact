@@ -404,7 +404,7 @@
     (Program-Element (pelt)
       (+ ndecl
          adt-defn
-         circuit-alias-defn))
+         fixup-alias-defn))
     (Native-Declaration (ndecl)
       (+ (native src exported? function-name native-entry (type-param* ...) (arg* ...) type) =>
            (native function-name (type-param* ...) (arg* 0 ...) 4 type)))
@@ -424,9 +424,9 @@
          (ledger-op-class nat nat^)))
     (ADT-Op-Condition (adt-op-cond)
       (+ (= tvar-name type)))
-    (Circuit-Alias-Definition (circuit-alias-defn)
-      ; (circuit-alias alias-name actual-name)
-      (+ (circuit-alias function-name^ function-name)))
+    (Fixup-Alias-Definition (fixup-alias-defn)
+      ; (fixup-alias alias-name actual-name)
+      (+ (fixup-alias function-name^ function-name)))
     )
 
   (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
@@ -493,12 +493,12 @@
          enumdef
          tdefn
          adt-defn
-         circuit-alias-defn)
+         fixup-alias-defn)
       (+ export-tdefn))
     (ADT-Definition (adt-defn)
       (- (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...))))
-    (Circuit-Alias-Definition (circuit-alias-defn)
-      (- (circuit-alias function-name^ function-name)))
+    (Fixup-Alias-Definition (fixup-alias-defn)
+      (- (fixup-alias function-name^ function-name)))
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration src exported? sealed? ledger-field-name type))
       (+ (public-ledger-declaration src ledger-field-name type) =>
@@ -569,7 +569,7 @@
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
-      (+ (fref src symbolic-function-name (([symbolic-function-name** function-name**] ...) ...)
+      (+ (fref src symbolic-function-name ((function-name** ...) ...)
                (generic-value* ...)
                ((src* generic-kind** ...) ...)) =>
            (fref ((function-name** ...) ...))))

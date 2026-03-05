@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased toolchain 0.29.111, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- The fixup tool now replaces references to the old standard-library type names
+  `CurvePoint` and `NativePoint` with `JubJubPoint`.  It also does a better job
+  of renaming standard-library circuits when it is safe to do so and explaining
+  why it is not safe when it is not.
+
+### Internal notes
+
+- The expand-modules-and-types code for function lookup is more more modular and
+  easier to read.
+
 ## [Unreleased toolchain 0.29.110, language 0.21.101, runtime 0.14.102]
 
 ### Fixed
