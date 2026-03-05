@@ -2917,10 +2917,17 @@
          (make-Qconcat expr1 0 "<" 0 expr2))]
       [(<= ,src ,mbits ,[Expr : expr1 (precedence <=) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 <=) outer-pure? -> * expr2])
        (parenthesize level (precedence <=)
-         (make-Qconcat expr1 0 "<=" 0 expr2))]
+         ; FIXME this is a hacky way to ensure the order of evaluation of expr1 and exp2
+         ; matches in typescript and zkir.  This needs to be changed to
+         ; (make-Qconcat expr1 0 "<=" 0 expr2)
+         ; and then add a pass early in the compiler that fixes the order instead of patching
+         ; this case and the next one
+         (make-Qconcat expr2 0 ">=" 0 expr1))]
       [(> ,src ,mbits ,[Expr : expr1 (precedence >) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 >) outer-pure? -> * expr2])
        (parenthesize level (precedence >)
-         (make-Qconcat expr1 0 ">" 0 expr2))]
+         ; FIXME revert this back to (make-Qconcat expr1 0 ">" 0 expr2) once
+         ; a pass to fix the order is added
+         (make-Qconcat expr2 0 "<" 0 expr1))]
       [(>= ,src ,mbits ,[Expr : expr1 (precedence >=) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 >=) outer-pure? -> * expr2])
        (parenthesize level (precedence >=)
          (make-Qconcat expr1 0 ">=" 0 expr2))]
