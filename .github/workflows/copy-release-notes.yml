@@ -19,7 +19,6 @@ on:
         options:
           - main
           - release/midnight
-          - issue-153 #drop this
       release_notes_branch:
         description: 'Branch to merge with in midnight-docs'
         required: true

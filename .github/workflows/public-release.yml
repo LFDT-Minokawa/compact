@@ -19,7 +19,6 @@ on:
         options:
           - main
           - release/midnight
-          - issue-153 # todo drop this
       docs:
         description: 'Create branch with documentation in midnight-docs'
         required: true
