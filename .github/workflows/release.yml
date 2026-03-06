@@ -1,4 +1,4 @@
-name: Build, test and release compact toolchain
+name: Build, test and internal release compact toolchain
 
 on:
   workflow_dispatch:
@@ -39,26 +39,6 @@ on:
       include_release_notes:
         description: 'Include release notes in artifact zip files'
         required: true
-        type: boolean
-        default: true
-      create_release_notes:
-        description: 'Create branch for release notes in midnight-docs'
-        required: true
-        type: boolean
-        default: true
-      release_notes_branch:
-        description: 'Branch to merge with in midnight-docs'
-        required: true
-        type: string
-        default: 'main'
-      release_notes_pr_description:
-        description: 'PR description for release notes'
-        required: true
-        type: string
-        default: 'Compact toolchain release notes copied to midnight-docs'
-      create_release:
-        description: 'Create a release?'
-        required: false
         type: boolean
         default: true
 
@@ -145,7 +125,7 @@ jobs:
 
   check-release-notes-exist:
     name: Check if release notes file exists
-    if: ${{ inputs.create_release_notes && github.event_name == 'workflow_dispatch' }}
+    if: ${{ inputs.include_release_notes && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     needs: [ setup ]
     steps:
@@ -165,43 +145,11 @@ jobs:
   check-docs:
     name: Check if documentation is updated
     if: ${{ inputs.docs && github.event_name == 'workflow_dispatch' }}
-    runs-on: ubuntu-latest
     needs: [ setup ]
-    steps:
-      - name: Checkout compactc repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ needs.setup.outputs.branch }}
-
-      - name: Check compiler and language versions in internal documentation
-        run: |
-          # check compiler version
-          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
-          DOCS_COMPILER=$(grep -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
-
-          echo "Compiler version: $COMPILER_VERSION"
-          echo "Compiler version in docs: $DOCS_COMPILER"
-
-          if [ "$COMPILER_VERSION" != "$DOCS_COMPILER" ]; then
-            echo "Compiler version mismatch, please update"
-            exit 1
-          fi
-
-          echo "Compiler versions match"
-
-          # check language version
-          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
-          DOCS_LANGUAGE=$(grep -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
-
-          echo "Language version: $LANGUAGE_VERSION"
-          echo "Language version in docs: $DOCS_LANGUAGE"
-
-          if [ "$LANGUAGE_VERSION" != "$DOCS_LANGUAGE" ]; then
-            echo "Language versions mismatch, please update"
-            exit 1
-          fi
-
-          echo "Language versions match"
+    uses: ./.github/workflows/check-docs.yml
+    secrets: inherit
+    with:
+      branch: ${{ needs.setup.outputs.branch }}
 
   build-release-arm-linux:
     name: Build compactc binary for Linux aarch64 (Arm)
@@ -318,7 +266,7 @@ jobs:
 
   make-release:
     name: Create GitHub release associated with tag
-    if: ${{ inputs.create_release && github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     needs: [ setup, test-arm-linux, test-intel-linux, test-arm-macos, test-intel-macos ]
     steps:
@@ -355,7 +303,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
-          repository: midnightntwrk/compact
+          repository: midnight-ntwrk/artifacts
           tag_name: compactc-${{ inputs.version || github.ref_name }}
           name: Compact toolchain ${{ inputs.version || github.ref_name }}
           draft: false
@@ -375,18 +323,7 @@ jobs:
       branch: ${{ needs.setup.outputs.branch }}
       docs_branch: ${{ inputs.docs_branch }}
       pr_description: ${{ inputs.pr_description }}
-
-  copy-release-notes-to-midnight-docs:
-    if: ${{ inputs.create_release_notes && github.event_name == 'workflow_dispatch' }}
-    name: Create branch in midnight-docs for release notes
-    needs: [ setup, check-release-notes-exist, make-release ]
-    uses: ./.github/workflows/compute-release-notes.yml
-    secrets: inherit
-    with:
-      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
-      branch: ${{ needs.setup.outputs.branch }}
-      release_notes_branch: ${{ inputs.release_notes_branch }}
-      release_notes_pr_description: ${{ inputs.release_notes_pr_description }}
+      draft_pr: true
 
   release-build-gate:
     name: Release build check

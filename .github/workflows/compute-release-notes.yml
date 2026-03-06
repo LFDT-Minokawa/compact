@@ -8,6 +8,14 @@ on:
         required: false
         type: string
         default: ''
+      toolchain_version:
+        description: 'Toolchain version (e.g. v1.2.3)'
+        required: true
+        type: string
+      language_version:
+        description: 'Language version (e.g. v1.2.3)'
+        required: true
+        type: string
       branch:
         description: 'Branch to grab release notes from'
         required: true
@@ -51,15 +59,45 @@ jobs:
           token: ${{ secrets.MIDNIGHTCI_REPO }}
           path: midnight-docs
 
+      - name: Update DynamicListCompact.js in midnight-docs
+        run: |
+          TOOLCHAIN_VERSION="${{ inputs.toolchain_version }}"
+          LANGUAGE_VERSION="${{ inputs.language_version }}"
+          RELEASE_NOTES_FILENAME=$(basename "${{ inputs.release_notes_file }}" .md)
+          TODAY=$(date +'%d %B %Y')
+
+          DYNAMIC_LIST="midnight-docs/src/components/DynamicListCompact.js"
+
+          # Change existing LATEST entry to UNSUPPORTED
+          sed -i "s/status: 'LATEST'/status: 'UNSUPPORTED'/" "$DYNAMIC_LIST"
+
+          # Build the new entry
+          NEW_ENTRY="  {\n\
+            version: '${TOOLCHAIN_VERSION#v}',\n\
+            compactVersion: '${LANGUAGE_VERSION#v}',\n\
+            status: 'LATEST',\n\
+            date: '${TODAY}',\n\
+            summary: 'Summary of Release ${TOOLCHAIN_VERSION#v}',\n\
+            details: [],\n\
+            artifacts: [],\n\
+            link: '/relnotes/compact/${RELEASE_NOTES_FILENAME}',\n\
+          },"
+
+          # Insert the new entry at the top of the releases array (after "const releases = [")
+          sed -i "/^const releases = \[$/a\\${NEW_ENTRY}" "$DYNAMIC_LIST"
+
+          echo "Updated DynamicListCompact.js:"
+          echo "  - Added new release entry for toolchain ${TOOLCHAIN_VERSION}"
+          echo "  - Changed previous LATEST to UNSUPPORTED"
+
       - name: Copy release notes and push
         run: |
           FILENAME=$(basename ${{ inputs.release_notes_file }})
-          cp compactc/${{ inputs.release_notes_file }} midnight-docs/docs/relnotes/compact/${FILENAME}
+          cp compact/${{ inputs.release_notes_file }} midnight-docs/docs/relnotes/compact/${FILENAME}
 
           cd midnight-docs
           git config user.name "midnight-ci"
           git config user.email "ci@midnight.network"
-
           git checkout -b compact-release-notes-${{ github.run_id }}
           git add .
           git commit -m "Add Compact toolchain release notes"

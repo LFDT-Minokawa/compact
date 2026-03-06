@@ -3,8 +3,12 @@ name: Copy release notes to midnight-docs
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release version (e.g. v1.2.3 or v1.2.3-rc.1)'
+      toolchain_version:
+        description: 'Toolchain version (e.g. v1.2.3)'
+        required: true
+        type: string
+      language_version:
+        description: 'Language version (e.g. v1.2.3)'
         required: true
         type: string
       branch:
@@ -15,6 +19,7 @@ on:
         options:
           - main
           - release/midnight
+          - issue-153 #drop this
       release_notes_branch:
         description: 'Branch to merge with in midnight-docs'
         required: true
@@ -33,12 +38,30 @@ jobs:
     outputs:
       release_notes_file: ${{ steps.release_notes.outputs.file }}
     steps:
+      - name: Check format of compiler and language versions
+        run: |
+          TOOLCHAIN="${{ inputs.toolchain_version }}"
+          LANGUAGE="${{ inputs.language_version }}"
+
+          if [[ ! "$TOOLCHAIN" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::toolchain version must match v*.*.* format (e.g. v1.2.3), got: $TOOLCHAIN"
+            exit 1
+          fi
+
+          if [[ ! "$LANGUAGE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::language_version must match v*.*.* format (e.g. v1.2.3), got: $LANGUAGE"
+            exit 1
+          fi
+
+          echo "Toolchain version format is valid: $TOOLCHAIN"
+          echo "Language version format is valid: $LANGUAGE"
+
       - name: Compute release notes path
         id: release_notes
         run: |
-          VERSION="${{ inputs.version }}"
+          TOOLCHAIN="${{ inputs.toolchain_version }}"
           # Strip leading 'v' if present
-          CLEAN_VERSION="${VERSION#v}"
+          CLEAN_VERSION="${TOOLCHAIN#v}"
           echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
 
   copy-release-notes:
@@ -49,5 +72,7 @@ jobs:
     with:
       release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       branch: ${{ inputs.branch }}
+      toolchain_version: ${{ inputs.toolchain_version }}
+      language_version: ${{ inputs.language_version }}
       release_notes_branch: ${{ inputs.release_notes_branch }}
       release_notes_pr_description: ${{ inputs.release_notes_pr_description }}

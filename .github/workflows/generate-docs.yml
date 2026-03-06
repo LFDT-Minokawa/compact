@@ -18,6 +18,11 @@ on:
         required: true
         type: string
         default: 'Example PR description for midnight-docs'
+      draft_pr:
+        description: 'Create PR as draft'
+        required: false
+        type: boolean
+        default: false
     secrets:
       MIDNIGHTCI_PACKAGES_READ:
         required: true
@@ -52,7 +57,7 @@ jobs:
       - name: Checkout compactc repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ needs.setup.outputs.branch }}
+          ref: ${{ inputs.branch }}
 
       - name: Setup .npmrc
         run: |
@@ -110,9 +115,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
         run: |
+          DRAFT_FLAG=""
+          if [ "${{ inputs.draft_pr }}" = "true" ]; then
+            DRAFT_FLAG="--draft"
+          fi
           gh pr create \
             --repo midnightntwrk/midnight-docs \
             --base ${{ inputs.docs_branch }} \
             --head "compact-docs-update-${{ github.run_id }}" \
             --title "${{ inputs.pr_description }}" \
-            --body 'PR: ${{ inputs.pr_description }}'
+            --body 'PR: ${{ inputs.pr_description }}' \
+            $DRAFT_FLAG

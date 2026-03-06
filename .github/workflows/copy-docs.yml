@@ -21,6 +21,11 @@ on:
         required: true
         type: string
         default: 'Compact toolchain docs copied to midnight-docs'
+      draft_pr:
+        description: 'Create PR as draft'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   copy-docs:
@@ -31,3 +36,4 @@ jobs:
       branch: ${{ inputs.branch }}
       docs_branch: ${{ inputs.docs_branch }}
       pr_description: ${{ inputs.pr_description }}
+      draft_pr: ${{ inputs.draft_pr }}
