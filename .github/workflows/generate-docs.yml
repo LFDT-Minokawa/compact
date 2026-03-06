@@ -97,15 +97,16 @@ jobs:
 
           git checkout -b compact-docs-update-${{ github.run_id }}
 
-          cp ../doc/ledger-adt.mdx docs/_develop/_reference/compact
-          cp ../doc/lang-ref.mdx docs/_develop/_reference/compact
-          cp ../doc/api/CompactStandardLibrary/exports.md docs/_develop/_reference/compact/compact-std-library
-          cp ../doc/api/CompactStandardLibrary/README.md docs/_develop/_reference/compact/compact-std-library
-          cp ../doc/compiler-usage.md docs/_develop/_reference/tools/compiler-usage.mdx
-          cp -r ../doc/api/runtime/. ./docs/_develop/_reference/midnight-api/compact-runtime
-          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./docs/_develop/_reference/midnight-api/compact-runtime/README.md
+          cp ../doc/ledger-adt.mdx docs/compact/data-types
+          cp ../doc/lang-ref.mdx docs/compact/reference
+          cp ../doc/api/CompactStandardLibrary/exports.md docs/compact/standard-library
+          cp ../doc/api/CompactStandardLibrary/README.md docs/compact/standard-library
+          cp ../doc/compiler-usage.md docs/compilation-and-tooling/compiler-usage.mdx
+          cp -r ../doc/api/runtime/. ./api-reference/compact-runtime
+          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./api-reference/compact-runtime/README.md
           cp -r ../doc/Compact.html ./static/language/compact.html
           cp -r ../doc/ledger-adt.mdx ./static/language/ledger-adt.mdx
+          # cp -r ../doc/all-keywords.html ./static/language/all-keywords.html
 
           git add .
           git commit -m "Update compact documentation"
