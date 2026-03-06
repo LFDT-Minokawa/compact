@@ -247,19 +247,20 @@ Various entities, specifically
 [circuit definitions](#circuits),
 and
 [witness declarations](#declaring-witnesses-for-private-state),
-can have *generic parameters*, i.e., compile-time type and size parameters whose
-values are given at the use site rather than fixed at the point of declaration.
-This allows the same *generic* code to be used with different specific types
-and sizes.
+can have *generic parameters*, i.e., compile-time type and numeric (natural-number)
+parameters whose values are given at the use site rather than fixed at the point
+of declaration.
+This allows the same *generic* code to be used with different specific types,
+bounds, and sizes.
 Except where shadowed, generic parameters are visible thoughout the entire entity.
 In particular, the generic parameters of a module are visible within the program
 elements that appear within the body of the module.
 
 When present, generic parameters are enclosed in angle brackets following the
 name of the generic entity (module, structure, type alias, circuit, or witness).
-Each parameter is either a type name (e.g., `T`) or a hash-prefixed size name
+Each parameter is either a type name (e.g., `T`) or a hash-prefixed numeric name
 (e.g., `#N`).
-Size names are prefixed by `#` to distingish generic size parameters from
+Nat names are prefixed by `#` to distingish generic numeric parameters from
 generic type parameters.
 
 <table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>generic-param</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>generic-param</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
@@ -269,20 +270,21 @@ Generic entities must be *specialized* at the point of use to produce non-generi
 entities at compile time by supplying them with *generic arguments*.
 Any attempt to use a generic entity without specializing it is a static error.
 Generic arguments are also enclosed in angle brackets.
-Each generic argument must be a type or a natural number literal.
+Each generic argument must be a type, a natural number literal, or the type or
+numeric value of a generic parameter.
 
 <table className="lang-ref-table"><tbody><tr><td><em>gargs</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>garg</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>garg</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
 <tr><td><em>garg</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#field-literal"><em>nat</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr></tbody></table>
 
 The syntax of types allows for type references, including references to generic
 parameters, so any generic argument can pass along the value of a generic type
-or size parameter that is visible at the point of specialization.
+or numeric parameter that is visible at the point of specialization.
 
-The `#` used to distinguish generic size parameters from generic type parameters
+The `#` used to distinguish generic numeric parameters from generic type parameters
 need not and must not used at the point of specialization.
 It is a static error, however, if a generic argument supplied for a generic
-parameter is not a size when a size is expected or is a size when a size is not
-expected.
+parameter is not numeric when a numeric value is expected or is not a type when
+a type is expected.
 
 The example below demonstrates the use of two levels of generic parameterization,
 one at the module level and one at the circuit level.
@@ -351,9 +353,9 @@ The following are the primitive types of Compact:
 - `Boolean` is the type of *Boolean* values.  There are only two values of
   `Boolean` type.  They are the values of the expressions `true` and `false`.
 
-- `Uint<m..n>`, where `m` is the literal `0` or generic size parameter bound
+- `Uint<m..n>`, where `m` is the literal `0` or generic numeric parameter bound
   to `0`, and where `n` is a natural number literal or a generic
-  size parameter, is the type of *bounded unsigned integer* values between
+  numeric parameter, is the type of *bounded unsigned integer* values between
   `0` (inclusive) and `n` (exclusive).
   (While the lower bound is currently required to be `0`, this restriction might
   be lifted at some point.)
@@ -366,7 +368,7 @@ The following are the primitive types of Compact:
   of bytes that fits in the scalar field value of the ZK proving system.
   It is a static error whenever a `Uint` type exceeds this maximum value.
 
-- `Uint<n>`, where `n` is a non-zero natural number literal or generic size
+- `Uint<n>`, where `n` is a non-zero natural number literal or generic numeric
   parameter and bound to a non-zero natural number, is the type of
   *sized unsigned integer* values with binary representations using up to `n`
   bits.  This is the same type as `Uint<0..m>` where `m` is equal to `(2^n)-1`.
@@ -387,7 +389,7 @@ The following are the primitive types of Compact:
   element type of the other are also different types, though one of the tuple
   types might be a [subtype of the other](#subtyping-and-least-upper-bounds).
 
-- `Vector<n, T>`, where `n` is a natural number literal or generic size
+- `Vector<n, T>`, where `n` is a natural number literal or generic numeric
   parameter and `T` is a type, is a shorthand notation for the tuple type
   `[T, ...]` with `n` occurrences of the type `T`.
   Note that a vector type and the corresponding tuple type are two different ways
@@ -395,7 +397,7 @@ The following are the primitive types of Compact:
   Unless otherwise specified, type rules for vector types are derived from the
   rules for the corresponding tuple type.
 
-- `Bytes<n>`, where `n` is a natural number literal or a generic size parameter,
+- `Bytes<n>`, where `n` is a natural number literal or a generic numeric parameter,
   is the type of _byte vectors_ of length `n`.
   `Bytes` types with different lengths are different types.
   `Bytes` types are used in the Compact standard library for hashing.
@@ -1757,7 +1759,7 @@ for (const i of start..end) statement
 ```
 
 In this form, each of `start` and `end` must be a literal unsigned integer
-or reference to a generic size parameter, and `end` must be greater than or
+or a generic numeric parameter, and `end` must be greater than or
 equal to `start`.
 Otherwise, it is a static error.
 
@@ -1955,7 +1957,7 @@ octal, or hexadecimal notation as follows:
   digits (`0-9`, `a-f`, `A-F`), e.g., `0x8f0a`.
 
 An occurrence of a numeric literal can arise via specialization of a
-generic module or circuit in which a reference to a generic size parameter
+generic module or circuit in which a reference to a generic numeric parameter
 occurs in an expression context.
 For example, if `foo` is defined as follows:
 
@@ -2280,28 +2282,105 @@ except that the types of the contributed elements must all be subtypes of `Uint<
 (if not, it is static error), and the result is a new byte vector of type
 `Bytes<n>` where `n` is the number of contributed elements.
 
-### Tuple element access
+### Tuple, vector, and byte-vector references
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
+Compact allows references to individual elements of sequence values (tuples,
+vectors, and byte vectors) via the syntax `expr[index]` where `expr` is
+an expression and `index` is a numeric literal, generic numeric parameter reference,
+or an expression that can be reduced to a numeric constant at compile time as
+described below.
 
-An expression of the form `e[n]` where `e` is an
-expression and `n` is a numeric literal is a tuple element access.
+The type of `expr` must be a sequence type, i.e., a tuple type, a vector type,
+or a Bytes type.
+The type of `index` must be `Uint<n>` for any `n`.
+The eventual constant value of `index` must be less than the length of the
+sequence value as determined by its type.
+Violating any of these constraints is a static error.
 
-Tuple element accesses are type checked by checking the type of the
-subexpression.  It is a static error if this type is not a tuple type `[T, ...]`.
-It is a static error if the length of the tuple is less than or equal to the
-numeric literal in the expression.  The type of the expression is the
-corresponding element type `T` at position `n` in the tuple type.
+The unsigned integer value of `index` must be computable at compile time
+via the following rules, or it is a static error.
 
-Tuple element accesses are evaluated by evaluating the subexpression.  The
-value of the expression will be the element value at the given zero-based
-index.  The subexpression will have a tuple value and the element access will
-not be out of bounds, because the expression is well-typed.
+- Any `index` can be a constant, i.e., a numeric literal or a generic numeric
+  parameter reference.
 
-### Slices
+- If the type of `expr` is a tuple type that has a vector type, the rule for
+  vector types below applies, with `expr` treated as having the vector type.
+  If the type of `expr` is a tuple type that does not have a vector type,
+  however, `index` must be a constant.
+  This restriction allows the compiler to compute a type for tuple reference
+  expressions without first attempting to reduce `index` to a numeric value.
+
+- If the type of `expr` a vector or byte-vector type, `index` must be a
+  *constant-valued* expression, where a constant-valued expression is:
+  - a constant,
+  - a reference to a generic numeric parameter,
+  - a reference to a variable bound to a constant-valued expression,
+  - a reference to a variable bound in the header of a `for` loop, or
+  - the result of adding, subtracting, or multiplying two constant-valued
+    expressions.
+
+The type of a byte-vector reference is `Uint<8>`.
+The type of a vector reference where the vector has type `Vector<n, T>` is `T`.
+The type of a tuple reference where the tuple has type `[T1, ..., Tn]` is
+`Ti` if `index` is the constant `i` or the value `i` of a generic numeric
+parameter.
+Otherwise, `[T1, ..., Tn]` must have a vector type `Vector<n, T>` and the
+type of the tuple reference is `T`.
+
+The value of a sequence reference is element `i` (zero-based) of the result
+of evaluating `expr`, where `i` is the (eventually) compile-time constant
+value of `index`.
+
+### Tuple, vector, and byte-vector slices
 
 !!!!!!!! TBD Kent needs to write
 
+*Slicing* a sequence value such as a tuple, vector or byte vector produces a
+subsequence of the original value.
+It is similar to a sequence reference but extracts a sequence of values rather
+than a single value from the sequence value.
+
+Slice expressions take the form `slice<size>(expr, index)`, where `slice`
+is a keyword, `size` is a constant or numeric generic parameter reference, `expr` is
+an expression, and `index` is a numeric literal, a generic numeric
+parameter reference, or an expression that can be reduced to a numeric constant at
+compile time as described above in the section on [Tuple, vector, and byte-vector
+references](tuple-vector-and-byte-vector-references).
+
+The type of a byte-vector slice is `Bytes<k>` where `k` is the constant value of `size`.
+The type of a vector slice where the vector has type `Vector<n, T>` is `Vector<k, T>`.
+The type of a tuple slice where the tuple has type `[T1, ..., Tn]` is the subsequence
+`[Ti, ..., Tj]` starting with element `i` (zero-based) and ending with element
+`j = i + k - 1` of `[T1, ..., Tn]`.
+Otherwise, `[T1, ..., Tn]` must have a vector type `Vector<n, T>` and the
+type of the tuple reference is `Vector<k, T>`.
+
+The value of a `slice` expression is subsequence of the original tuple, vector,
+or byte vector from `i` (zero-based, inclusive) through `i + k` (zero-based,
+exclusive) of the resulting of evaluating `expr`, where `i` is the (eventually)
+compile-time constant value of `index` and `k` is the constant value of `size`.
+
+For example, if `getMiddle` is defined as follows:
+
+!!!!!!!! TBD test this
+
+```compact
+export circuit foo(x: Bytes<5>): Bytes<3> {
+  return slice<3>(x, 1);
+}
+```
+
+The call
+
+```compact
+getMiddle(Bytes[17, 18, 19, 20, 21])
+```
+
+evaluates to the equivalent of
+
+```compact
+Bytes[18, 19, 20]
+```
 
 ### Structure creation
 
