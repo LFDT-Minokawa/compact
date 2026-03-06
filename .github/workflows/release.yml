@@ -21,6 +21,11 @@ on:
         required: true
         type: boolean
         default: true
+      include_release_notes:
+        description: 'Include release notes in artifact zip files'
+        required: true
+        type: boolean
+        default: true
       docs:
         description: 'Create branch with documentation in midnight-docs'
         required: true
@@ -36,11 +41,6 @@ on:
         required: true
         type: string
         default: 'Compact toolchain docs copied to midnight-docs'
-      include_release_notes:
-        description: 'Include release notes in artifact zip files'
-        required: true
-        type: boolean
-        default: true
 
   pull_request:
     branches:
