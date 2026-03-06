@@ -267,10 +267,25 @@ jobs:
 
   make-release:
     name: Create GitHub release associated with tag
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ always() && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     needs: [ setup, test-arm-linux, test-intel-linux, test-arm-macos, test-intel-macos ]
     steps:
+      - name: Verify required builds passed
+        run: |
+          if [ "${{ needs.test-arm-linux.result }}" != "success" ] || \
+             [ "${{ needs.test-intel-linux.result }}" != "success" ] || \
+             [ "${{ needs.test-arm-macos.result }}" != "success" ]; then
+            echo "::error::One or more required builds/tests failed."
+            exit 1
+          fi
+          if [ "${{ needs.test-intel-macos.result }}" != "success" ] && \
+             [ "${{ needs.test-intel-macos.result }}" != "skipped" ]; then
+            echo "::error::Intel macOS build/test failed."
+            exit 1
+          fi
+          echo "All required builds and tests passed."
+
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -297,6 +312,7 @@ jobs:
           name: macos-release-aarch64
 
       - name: Fetch release assets - Macos x86_64 (Intel)
+        if: ${{ needs.test-intel-macos.result == 'success' }}
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: macos-release-x86_64
