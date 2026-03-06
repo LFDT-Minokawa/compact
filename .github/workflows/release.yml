@@ -157,6 +157,47 @@ jobs:
           fi
           echo "Found internal release: $INTERNAL_TAG"
 
+      - name: Verify all architecture assets exist in internal release
+        env:
+          GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+        run: |
+          INTERNAL_TAG="compactc-${{ inputs.internal_version }}"
+
+          EXPECTED_ARCHS=(
+            "aarch64-unknown-linux-musl"
+            "x86_64-unknown-linux-musl"
+            "aarch64-darwin"
+            "x86_64-darwin"
+          )
+
+          ASSETS=$(gh release view "$INTERNAL_TAG" --repo midnight-ntwrk/artifacts --json assets --jq '.assets[].name')
+
+          if [ -z "$ASSETS" ]; then
+            echo "::error::No assets found in internal release '$INTERNAL_TAG'"
+            exit 1
+          fi
+
+          echo "Assets found in release:"
+          echo "$ASSETS"
+          echo ""
+
+          MISSING=0
+          for ARCH in "${EXPECTED_ARCHS[@]}"; do
+            if ! echo "$ASSETS" | grep -q "$ARCH"; then
+              echo "::error::No asset found containing architecture '$ARCH' in release '$INTERNAL_TAG'"
+              MISSING=1
+            else
+              echo "Found asset for architecture: $ARCH"
+            fi
+          done
+
+          if [ "$MISSING" -eq 1 ]; then
+            echo "::error::One or more architecture assets are missing from the internal release."
+            exit 1
+          fi
+
+          echo "All expected architecture assets are present."
+
   make-internal-release-public:
     name: Copy internal release to public repo
     runs-on: ubuntu-latest
@@ -200,13 +241,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
         run: |
-          PUBLIC_TAG="compactc-${{ needs.setup.outputs.public_version }}"
+          PUBLIC_VERSION="${{ needs.setup.outputs.public_version }}"
+          CLEAN_PUBLIC="${PUBLIC_VERSION#v}"
+          PUBLIC_TAG="compactc-${PUBLIC_VERSION}"
           LANGUAGE_VERSION="${{ inputs.language_version }}"
           CLEAN_LANGUAGE="${LANGUAGE_VERSION#v}"
           gh release create "$PUBLIC_TAG" \
             --repo midnightntwrk/compact \
-            --title "Compact toolchain ${{ needs.setup.outputs.public_version }} (Compact language ${CLEAN_LANGUAGE})" \
+            --title "Compact toolchain ${CLEAN_PUBLIC} (Compact language ${CLEAN_LANGUAGE})" \
             --notes-file "${{ needs.setup.outputs.release_notes_file }}" \
+            --latest=false \
             public-assets/*
 
   generate-docs-after-release:
