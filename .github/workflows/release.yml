@@ -125,16 +125,17 @@ jobs:
 
   check-release-notes-exist:
     name: Check if release notes file exists
-    if: ${{ inputs.include_release_notes && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     needs: [ setup ]
     steps:
       - name: Checkout compactc repository
+        if: ${{ inputs.include_release_notes && github.event_name == 'workflow_dispatch' }}
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
       - name: Verify release notes file exists
+        if: ${{ inputs.include_release_notes && github.event_name == 'workflow_dispatch' }}
         run: |
           if [ ! -f "${{ needs.setup.outputs.release_notes_file }}" ]; then
             echo "::error::Release notes file '${{ needs.setup.outputs.release_notes_file }}' not found on branch '${{ needs.setup.outputs.branch }}'"
@@ -154,7 +155,7 @@ jobs:
   build-release-arm-linux:
     name: Build compactc binary for Linux aarch64 (Arm)
     uses: ./.github/workflows/release-build.yml
-    needs: [ setup ]
+    needs: [ setup, check-release-notes-exist ]
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -170,7 +171,7 @@ jobs:
   build-release-intel-linux:
     name: Build compactc binary for Linux x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
-    needs: [ setup ]
+    needs: [ setup, check-release-notes-exist ]
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -186,7 +187,7 @@ jobs:
   build-release-arm-macos:
     name: Build compactc binary for macOS aarch64 (Arm)
     uses: ./.github/workflows/release-build.yml
-    needs: [ setup ]
+    needs: [ setup, check-release-notes-exist ]
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -202,7 +203,7 @@ jobs:
   build-release-intel-macos:
     name: Build compactc binary for macOS x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
-    needs: [ setup ]
+    needs: [ setup, check-release-notes-exist ]
     if: ${{ (github.event_name == 'pull_request') || (inputs.include_macos_intel && github.event_name != 'schedule') }}
     secrets: inherit
     with:
