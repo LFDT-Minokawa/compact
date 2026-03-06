@@ -2023,7 +2023,11 @@
                          [(tunsigned ,src2 ,nat2)
                           (let-values ([(type nat) (if (< nat1 nat2) (values type2 nat2) (values type1 nat1))])
                             (let ([mbits (fxmax 1 (integer-length nat))])
-                              (k mbits (maybe-safecast src type type1 expr1) (maybe-safecast src type type2 expr2))))])]
+                              ; maybe-bind forces the evaluation of expr1 before expr2.
+                              ; this prevents the downstream transformations from changing the evaluation order.
+                              (maybe-bind src type1 expr1
+                                (lambda (expr1)
+                                  (k mbits (maybe-safecast src type type1 expr1) (maybe-safecast src type type2 expr2))))))])]
                      [(talias ,src1 ,nominal1? ,type-name1 ,type1)
                       (T (de-alias type2 #f)
                          [(talias ,src2 ,nominal2? ,type-name2 ,type2)

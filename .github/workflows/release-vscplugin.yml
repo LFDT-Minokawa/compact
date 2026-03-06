@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Install Nix
-        uses: cachix/install-nix-action@2126ae7fc54c9df00dd18f7f18754393182c73cd # v31.9.1
+        uses: cachix/install-nix-action@19effe9fe722874e6d46dd7182e4b8b7a43c4a99 # v31.10.0
         with:
           #github_access_token: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
           nix_path: nixpkgs=channel:nixos-unstable
@@ -41,7 +41,7 @@ jobs:
           nix build .#compact-vscode-extension
 
       - name: Upload plugin
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: compact-vscode-plugin
           path: result/compact-*.vsix

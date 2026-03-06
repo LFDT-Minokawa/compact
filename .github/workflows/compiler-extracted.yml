@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Install Nix
-        uses: cachix/install-nix-action@2126ae7fc54c9df00dd18f7f18754393182c73cd # v31.9.1
+        uses: cachix/install-nix-action@19effe9fe722874e6d46dd7182e4b8b7a43c4a99 # v31.10.0
         with:
           #github_access_token: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
           nix_path: nixpkgs=channel:nixos-unstable
@@ -51,7 +51,7 @@ jobs:
           nix develop .#compiler --command yarn test:extracted
 
       - name: Publish Test Report
-        uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2.5.0
+        uses: dorny/test-reporter@3d76b34a4535afbd0600d347b09a6ee5deb3ed7f # v2.6.0
         if: always()
         with:
           name: Compactc E2E Tests Report

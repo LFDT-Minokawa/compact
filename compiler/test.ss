@@ -79421,6 +79421,41 @@ groups than for single tests.
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger count: Counter;"
+      ""
+      "witness get_a(): Uint<8>;"
+      "witness get_b(): Uint<8>;"
+      ""
+      "export circuit test1(): Boolean {"
+      "  count.increment(1);"
+      "  return disclose(get_a()) > disclose(get_b());"
+      "}"
+      "export circuit test2(): Boolean {"
+      "  count.increment(1);"
+      "  return disclose(get_a()) <= disclose(get_b());"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "const witnesses1 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; } };"
+        "const witnesses2 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; } };"
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, witnesses1, 0);"
+        "  expect(C.circuits.test1(Ctxt).result).toEqual(false);"
+        "  expect(C.circuits.test2(Ctxt).result).toEqual(true);"
+        "});"
+        "test('check 2', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, witnesses2, 0);"
+        "  expect(C.circuits.test1(Ctxt).result).toEqual(true);"
+        "  expect(C.circuits.test2(Ctxt).result).toEqual(false);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
