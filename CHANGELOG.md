@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- It is now a compiler error to pass Compact values containing opaque JS values
+  (`Opaque<'string'>` or `Opaque<'Uint8Array'>`) to the standard library
+  circuits `persistentHash` and `persistentCommit`.  Hashing such values does
+  not work in circuit due to the representation of these types.  Previously,
+  such code would crash the `zkir` process if it tried to generate prover and
+  verifier keys.  Now it is a compiler error instead.
+  
+  This also affects the standard library operation `merkleTreePathRoot` (because
+  it calls `persistentHash` in its implementation), and ledger `MerkleTree`
+  insertion operations, because they implicitly use `persistentHash`.
+  
+  This is a **breaking** change because the error is signaled early, and so it
+  is now an error to use any of these circuits or ADT operations, even for
+  circuits that don't need prover and verifier key generation which would
+  compile successfully before.
+
+## [Unreleased toolchain 0.29.112, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
 - The fixup tool now replaces references to the old standard-library type names
   `CurvePoint` and `NativePoint` with `JubJubPoint`.  It also does a better job
   of renaming standard-library circuits when it is safe to do so and explaining

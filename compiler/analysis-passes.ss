@@ -1294,7 +1294,7 @@
         ; ordinary expression types
         (Idtype-Base type)
         ; circuits, witnesses, and statements
-        (Idtype-Function kind arg-name* arg-type* return-type)
+        (Idtype-Function kind is-native arg-name* arg-type* return-type)
         )
       (module (set-idtype! unset-idtype! get-idtype)
         (define ht (make-eq-hashtable))
@@ -1690,6 +1690,14 @@
                expr
                (with-output-language (Ltypes Expression)
                  `(safe-cast ,src ,declared-type ,actual-type ,expr)))]))
+      (define (contains-js-opaque? type)
+        (nanopass-case (Ltypes Type) type
+          [(topaque ,src ,opaque-type) (or (string=? opaque-type "string") (string=? opaque-type "Uint8Array"))]
+          [(tvector ,src ,len ,type) (contains-js-opaque? type)]
+          [(ttuple ,src ,type* ...) (ormap contains-js-opaque? type*)]
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) (ormap contains-js-opaque? type*)]
+          [(talias ,src ,nominal? ,type-name ,type) (contains-js-opaque? type)]
+          [else #f]))
       (define (do-call src fold? fun actual-type* build-call)
         (define compatible-args?
           (let ([nactual (length actual-type*)])
@@ -1700,11 +1708,16 @@
           [(fref ,src^ ,symbolic-function-name ((,function-name** ...) ...)
                  (,generic-value* ...)
                  ((,src* ,generic-kind** ...) ...))
-           (define-record-type blob (nongenerative) (fields name arg-type* return-type))
+           (define-record-type blob (nongenerative) (fields name is-native arg-type* return-type))
            (define (blob<? blob1 blob2)
              (source-object<?
                (id-src (blob-name blob1))
                (id-src (blob-name blob2))))
+           (define (opaque-hashing-error? symbolic-name blob)
+             (and (blob-is-native blob)
+                  (memq symbolic-name '(persistentHash persistentCommit))
+                  (> (length (blob-arg-type* blob)) 0)
+                  (contains-js-opaque? (car (blob-arg-type* blob)))))
            (let outer ([function-name** function-name**] [arg-incompatible-blob** '()] [fold-incompatible-blob** '()])
              (if (null? function-name**)
                  (let ()
@@ -1764,8 +1777,8 @@
                        [function-name** (cdr function-name**)])
                    (let ([blob* (map (lambda (function-name)
                                        (Idtype-case (get-idtype src function-name)
-                                         [(Idtype-Function kind arg-name* arg-type* return-type)
-                                          (make-blob function-name arg-type* return-type)]
+                                         [(Idtype-Function kind is-native arg-name* arg-type* return-type)
+                                          (make-blob function-name is-native arg-type* return-type)]
                                          [else (assert cannot-happen)]))
                                      function-name*)])
                      (let*-values ([(arg-compatible-blob* arg-incompatible-blob*)
@@ -1781,6 +1794,11 @@
                                  (cons fold-incompatible-blob* fold-incompatible-blob**))]
                          [(null? (cdr compatible-blob*))
                           (let ([blob (car compatible-blob*)])
+                            (when (opaque-hashing-error? symbolic-function-name blob)
+                              (source-errorf src
+                                "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a"
+                                symbolic-function-name
+                                (format-type (car (blob-arg-type* blob)))))
                             (build-call
                               (blob-arg-type* blob)
                               (blob-return-type blob)
@@ -2065,11 +2083,17 @@
                 (nanopass-case (Ltypes ADT-Op) (car adt-op*)
                   [(,ledger-op ,op-class ((,var-name* ,type^* ,discloses?*) ...) ,type ,vm-code)
                    (if (eq? ledger-op elt-name)
-                       (begin
-                         (let ([ndeclared (length type^*)] [nactual (length type*)])
-                           (unless (fx= nactual ndeclared)
-                             (source-errorf src "~s ~s requires ~s argument~:*~p but received ~s"
-                                            adt-name ledger-op ndeclared nactual)))
+                       (let ([ndeclared (length type^*)] [nactual (length type*)])
+                         (unless (fx= nactual ndeclared)
+                           (source-errorf src "~a ~a requires ~a argument~:*~p but received ~a"
+                             adt-name ledger-op ndeclared nactual))
+                         (when (and (memq adt-name '(MerkleTree HistoricMerkleTree))
+                                    (memq ledger-op '(insert insertIndex))
+                                    (> nactual 0)
+                                    (contains-js-opaque? (car type*)))
+                           (source-errorf src
+                             "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a"
+                             adt-name ledger-op (format-type (car type*))))
                          (for-each
                            (lambda (declared-type actual-type i)
                              (unless (subtype? actual-type declared-type)
@@ -2083,7 +2107,7 @@
                                                   ledger-op
                                                   (format-type declared-type)
                                                   (format-type actual-type)))))
-                           type^* type* (enumerate type^*))
+                           type^* type* (iota ndeclared))
                          (values
                            (let ([expr* (map (maybe-safecast src) type^* type* expr*)])
                              (with-output-language (Ltypes Expression)
@@ -2148,19 +2172,19 @@
          `(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,(maplr Program-Element pelt*) ...))])
     (Set-Program-Element-Type! : Program-Element (ir) -> * (void)
       (definitions
-        (define (build-function kind name arg* type)
+        (define (build-function kind is-native name arg* type)
           (let ([var-name* (map arg->name arg*)] [type* (map arg->type arg*)])
-            (set-idtype! name (Idtype-Function kind var-name* type* type)))))
+            (set-idtype! name (Idtype-Function kind is-native var-name* type* type)))))
       [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
-       (build-function 'circuit function-name arg* type)]
+       (build-function 'circuit #f function-name arg* type)]
       [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
-       (build-function 'circuit function-name arg* type)]
+       (build-function (native-entry-class native-entry) #t function-name arg* type)]
       [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
        (when (contains-contract? type)
          (source-errorf src "invalid type ~a for witness ~a return value:\n  witness return values cannot include contract values"
                         (format-type type)
                         (id-sym function-name)))
-       (build-function 'witness function-name arg* type)]
+       (build-function 'witness #f function-name arg* type)]
       [(public-ledger-declaration ,src ,ledger-field-name ,[type])
        (unless (public-adt? type)
          (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
@@ -2324,7 +2348,7 @@
       [(var-ref ,src ,var-name)
        (Idtype-case (get-idtype src var-name)
          [(Idtype-Base type) (check-result-type src `(var-ref ,src ,var-name) type)]
-         [(Idtype-Function kind arg-name* arg-type* return-type)
+         [(Idtype-Function kind is-native arg-name* arg-type* return-type)
           ; can't happen if expand-modules-and-types is doing its job
           (source-errorf src "invalid context for reference to ~s name ~s"
                          kind
@@ -2334,7 +2358,7 @@
          `(ledger-ref ,src ,ledger-field-name)
          (Idtype-case (get-idtype src ledger-field-name)
            [(Idtype-Base type) type]
-           [(Idtype-Function kind arg-name* arg-type* return-type)
+           [(Idtype-Function kind is-native arg-name* arg-type* return-type)
             ; can't happen if expand-modules-and-types is doing its job
             (source-errorf src "invalid context for reference to ~s name ~s"
                            kind
@@ -2391,7 +2415,7 @@
          `(var-ref ,src ,var-name)
          (Idtype-case (get-idtype src var-name)
            [(Idtype-Base type) type]
-           [(Idtype-Function kind arg-name* arg-type* return-type)
+           [(Idtype-Function kind is-native arg-name* arg-type* return-type)
             ; can't happen if expand-modules-and-types is doing its job
             (source-errorf src "invalid context for reference to ~s name ~s"
                            kind
@@ -2401,7 +2425,7 @@
          `(ledger-ref ,src ,ledger-field-name)
          (Idtype-case (get-idtype src ledger-field-name)
            [(Idtype-Base type) type]
-           [(Idtype-Function kind arg-name* arg-type* return-type)
+           [(Idtype-Function kind is-native arg-name* arg-type* return-type)
             ; can't happen if expand-modules-and-types is doing its job
             (source-errorf src "invalid context for reference to ~s name ~s"
                            kind

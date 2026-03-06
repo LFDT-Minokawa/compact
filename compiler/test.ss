@@ -23838,6 +23838,120 @@ groups than for single tests.
         (export-typedef SY (T)
           (tstruct SY (curidx (tunsigned 0))))))
     )
+
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  hash = disclose(persistentHash<Opaque<'string'>>(msg));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(arr: Opaque<'Uint8Array'>): [] {"
+      "  hash = disclose(persistentHash<Opaque<'Uint8Array'>>(arr));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Opaque<\"Uint8Array\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "struct LabeledField {"
+      "  label: Opaque<'string'>;"
+      "  field: Field;"
+      "}"
+      "export circuit fisk(lf: LabeledField): [] {"
+      "  hash = disclose(persistentHash<LabeledField>(lf));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "struct LabeledField<label: Opaque<\"string\">, field: Field>")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(msgs: Vector<10, Opaque<'string'>>): [] {"
+      "  hash = disclose(persistentHash<Vector<10, Opaque<'string'>>>(msgs));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Vector<10, Opaque<\"string\">>")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "new type Messages = Vector<10, Opaque<'string'>>;"
+      "export circuit fisk(msgs: Messages): [] {"
+      "  hash = disclose(persistentHash<Messages>(msgs));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Messages")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  hash = disclose(persistentCommit<Opaque<'string'>>(msg, hash));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentCommit "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger mt: MerkleTree<10, Opaque<'string'>>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  mt.insert(disclose(msg));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 5" "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (MerkleTree insert "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger mt: MerkleTree<10, Opaque<'string'>>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  mt.insertIndex(disclose(msg), 21);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 5" "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (MerkleTree insertIndex "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger mt: HistoricMerkleTree<10, Opaque<'string'>>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  mt.insert(disclose(msg));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 5" "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (HistoricMerkleTree insert "Opaque<\"string\">")))
+    )
 )
 
 ; tests limits for vectors, bytes, and tuples.
@@ -25185,7 +25299,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 37" "~s ~s requires ~s argument~:*~p but received ~s" (__compact_Cell write 1 0)))
+      irritants: '("testfile.compact line 4 char 37" "~a ~a requires ~a argument~:*~p but received ~a" (__compact_Cell write 1 0)))
     )
 
   (test
@@ -25197,7 +25311,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 44" "~s ~s requires ~s argument~:*~p but received ~s" (__compact_Cell read 0 1)))
+      irritants: '("testfile.compact line 4 char 44" "~a ~a requires ~a argument~:*~p but received ~a" (__compact_Cell read 0 1)))
     )
 
   (test
@@ -25221,7 +25335,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 37" "~s ~s requires ~s argument~:*~p but received ~s" (__compact_Cell write 1 2)))
+      irritants: '("testfile.compact line 4 char 37" "~a ~a requires ~a argument~:*~p but received ~a" (__compact_Cell write 1 2)))
     )
 
   (test
@@ -55592,7 +55706,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit three(): [S, Bytes<32>] {"
-      "  return [field0, persistentHash<Opaque<'string'>>(field1)];"
+      "  return [field0, persistentHash<S>(field0)];"
       "}"
      )
     (succeeds)
@@ -62692,7 +62806,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit three(): [S, Bytes<32>] {"
-      "  return [field0, persistentHash<Opaque<'string'>>(field1)];"
+      "  return [field0, persistentHash<S>(field0)];"
       "}"
      )
     (succeeds)
