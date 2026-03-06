@@ -331,7 +331,7 @@ jobs:
           body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
   generate-docs-after-release:
-    if: ${{ inputs.docs && github.event_name == 'workflow_dispatch' }}
+    if: ${{ always() && inputs.docs && github.event_name == 'workflow_dispatch' && needs.make-release.result == 'success' }}
     name: Create branch in midnight-docs with latest documentation
     needs: [ setup, check-docs, make-release ]
     uses: ./.github/workflows/generate-docs.yml
