@@ -32,7 +32,7 @@ on:
         type: string
         default: 'main'
       pr_description:
-        description: 'PR description for docs'
+        description: 'Draft PR description for docs'
         required: true
         type: string
         default: 'Compact toolchain docs copied to midnight-docs'
@@ -110,8 +110,8 @@ jobs:
         id: release_notes
         run: |
           VERSION="${{ inputs.version }}"
-          # Strip leading 'v' if present
-          CLEAN_VERSION="${VERSION#v}"
+          # Extract just the major.minor.patch part (strip leading 'v' and any suffix like -rc.0)
+          CLEAN_VERSION=$(echo "$VERSION" | sed 's/^v//' | sed 's/-.*//')
           echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
 
       - name: Set release notes include flag
