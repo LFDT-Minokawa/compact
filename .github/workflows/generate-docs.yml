@@ -101,7 +101,7 @@ jobs:
           cp ../doc/lang-ref.mdx docs/compact/reference
           cp ../doc/api/CompactStandardLibrary/exports.md docs/compact/standard-library
           cp ../doc/api/CompactStandardLibrary/README.md docs/compact/standard-library
-          cp ../doc/compiler-usage.md docs/compilation-and-tooling/compiler-usage.mdx
+          cp ../doc/compiler-usage.md docs/compact/compilation-and-tooling/compiler-usage.mdx
           cp -r ../doc/api/runtime/. ./api-reference/compact-runtime
           echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./api-reference/compact-runtime/README.md
           cp -r ../doc/Compact.html ./static/language/compact.html
