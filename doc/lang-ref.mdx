@@ -2806,16 +2806,14 @@ what the claims say. the downcast isn't correct, even the example isn't correct.
 
 ### Ledger state operations
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
-
 A Compact program interacts with its public state by invoking operations upon
-the ledger or ledger-state types.  There are two different forms of ledger
-calls.
+the ledger.
+There are two different forms of ledger operations.
 
 __Kernel operations__ are operations that do not depend on specific ledger
 state.  They can be invoked by expressions of the form `k.op(e, ...)`, where
 `k` is the name of a ledger field declared to have the special ledger-state type `Kernel`,
-`op` is the name of a builtin kernel operation and
+`op` is the name of a builtin kernel operation, and
 `e, ...` is a comma separated sequence of zero or more argument expressions.
 The `CompactStandardLibrary` predefines the ledger field name `kernel` to have
 ledger type `Kernel`, so for example, the built-in `self` operation can be called
@@ -2828,62 +2826,64 @@ circuit f(): ContractAddress {
 }
 ```
 
-__Ledger state operations__ are operations on the program's public ledger-state.
-They are invoked by expressions of the form `member.op(e, ...)....`,
-where `member` is a ledger field name ([declared via a `ledger` field declaration](#declaring-and-maintaining-public-state))
-and `.op(e, ...)....` are a sequence of zero or more ledger
-state operation invocations, where each `op` is the name of a ledger-state
-operation and each `e, ...` is a sequence of zero or more comma-separated
-argument expressions.
-
-Note that ledger-state operations can be chained, because the result of a ledger
-state operation might itself have a ledger-state type.  Kernel operations cannot
-be chained, because the kernel is not a ledger-state type and is not returned
-by any operation.
-
 The static type of a kernel operation expression is the return type of the
-corresponding kernel operation according to the ledger data types reference.
-
-The static type of a ledger-state operation expression is the return type of the
-corresponding ledger-state operation according to the ledger data types reference.  Note
-that this might be a Compact type or it might be a ledger-state type.  Values of
-ledger-state types can have ledger-state operations invoked (immediately) on them, but
-any other use would be a static error.
+corresponding kernel operation according to the
+the Compact [ledger data type documentation](./ledger-adt).
 
 Kernel operations are evaluated by evaluating the argument subexpressions in
 order from left to right and then invoking the corresponding kernel operation
 with the argument values.
 
-A ledger-state operation `member` (that is not followed by a ledger
-accessor) is implicitly an invocation of the `read` operation.  It is evaluated
-as if it were `member.read()`.
+__Ledger-state operations__ are operations on the contract's declared public ledger-state.
+In its simplest form, a ledger-state operation is an expression `F.op(e, ...)`, where `F`
+is a ledger field name
+([declared via a `ledger` field declaration](#declaring-and-maintaining-public-state)),
+`op` is the name of a ledger-state operator,
+and each `e` is an expression.
+`F` can also be another ledger-state operation, allowing ledger-state operations
+to be chained when the result of a ledger-state operation might itself have a
+ledger-state type.
+(Kernel operations cannot be chained, because the kernel is not a ledger-state
+type and is not returned by any operation.)
+Compact also supports shorthands for certain ledger-state operations; these are
+described below in [Ledger-state-operation shorthands](ledger-state-operation-shorthands).
 
-A ledger-state operation `member.op(e, ...)` is evaluated by evaluating the
-argument subexpressions from left to right, and then invoking the operation
-`op` on the public ledger member `member` with the argument values.
+The static type of a ledger-state operation is the return type of the
+corresponding ledger-state operation according to the
+the Compact [ledger data type documentation](./ledger-adt).
+This might be a Compact type or it might be a ledger-state type.
+A ledger-state operation whose return type is a ledger-state type *must* be
+chained, i.e., immediately subject to another ledger-state operation.
+It is a static error if this is not the case.
 
-A ledger-state operation `adt.op(e, ...)` where `adt` is itself a ledger-state
-operation is evaluated by first evaluating `adt`, then evaluating the argument
-subexpressions from left to right, and then invoking the operation `op` on the
-ledger-state value of `adt` with the argument values.
+A ledger-state operation `F.op(e, ...)` is evaluated by evaluating `F` if `F`
+is itself a ledger-state operation, then evaluating the argument subexpressions
+from left to right, and then invoking the operation `op` with the argument
+values on the portion of the public ledger state identified by `F`.
 
-### Ledger assignment expressions
+### Ledger-state-operation shorthands
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
+Compact supports several shorthands for common ledger-state operations.
 
-Compact has ledger assignment statements.  They have the form `lhs op e` where
-`lhs` is a ledger expression as defined in the section **Ledger expressions**
-above, `op` is one of the assignment operators `=` (assignment), `+=` (addition
-assignment), or `-=` (subtraction assignment), and `e` is an expression.
+The simplest of these is a shorthand for the ledger-state operation
+`F.read()` where `F` is a ledger-state field name or itself a another
+ledger-state operation.
+If the type of `F` is a ledger-state type that supports the `read`
+operation, `F.read()` can be abbreviated, simply, to `F`.
 
-`lhs = e` is shorthand for `lhs.write(e)`.  `lhs += e` is shorthand for
-`lhs.increment(e)`.  `lhs -= e` is shorthand for `lhs.decrement(e)`.
+The other shorthands all take the form of assignment statements and
+abbreviate the ledger operations `F.write(e)`, `F.increment(e), and
+`F.decrement(e)`, where `e` is an expression.
 
-Ledger assignment statements are type checked exactly as if they were their
-longer equivalent invoking a ledger-state operation.
+If the type of `F` is a ledger-state type that supports the `write`
+operation, `F.write(e)` can be abbreviated `F = e`.
+Similarly, if the type of `F` is a ledger-state type that supports the
+`increment` operation, `F.increment(e)` can be abbreviated `F += e`,
+and if the type of `F` is a ledger-state type that supports the
+`decrement` operation, `F.decrement(e)` can be abbreviated `F -= e`.
 
-They are evaluated exactly as if their longer equivalent were evaluated as a
-ledger expression.
+The typing and evaluation rules for the abbreviations are identical
+to expressions they abbreviate.
 
 ### Asserts
 
