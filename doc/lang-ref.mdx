@@ -2534,14 +2534,11 @@ witness declaration in scope.
 An **anonymous circuit** is an inline circuit definition having the form `(P,
 ...) => body` or `(P, ...): R => body`, where `P, ...` are zero or more
 comma-separated parameter declarations, `R` is an optional return type
-annotation, and `body` is the circuit's body. Each parameter consists of either
-an identifier `x` (the parameter's name) or a [destructured
-pattern](#destructuring-tuples-and-structures) `[x, y]` or `{x, y}` for
-parameters that have a tuple or a structure type, respectively, and an optional
-type annotation `: T` where `T` is a Compact type. The optional return type `R`
-is a Compact type. The body is either a block (a sequence of zero or more
-semicolon-delimited statements enclosed in curly braces (`{ }`)), or an
-expression.
+annotation, and `body` is the circuit's body.
+Each parameter is a [pattern](#patterns-and-destructuring) with an optional type
+annotation `: T` where `T` is a Compact type.
+The optional return type `R` is a Compact type.
+The body is either a [block](#blocks) or an expression.
 
 There is no syntax for generic anonymous circuits.  This is because circuits are
 not first-class values: they cannot be passed around or stored in data
@@ -2550,13 +2547,8 @@ call them, so anonymous generic circuits would have to be immediately
 specialized.  In that case, the programmer can just write the non-generic
 version themselves.
 
-A **parenthesized function** has the form `(f)` where `f` is a function
-expression, that is either a function name, an anonymous circuit, or a
-parenthesized function.
-
-Because functions are not first class, parameter names and constant names are
-not allowed as the function part of a call.  Nor are arbitrary expressions
-allowed, for the same reason.
+A **parenthesized function** has the form `(f)` where `f` is a function expression,
+i.e., a function name, anonymous circuit, or parenthesized function.
 
 Because circuits and witnesses are not first class, parameter names and constant
 names are not allowed as the circuit or witness part of a call.  Nor are
@@ -2584,9 +2576,9 @@ Type checking a function call depends on the form of the underlying function.
   of the generic parameter values, nor with the number and types of the argument
   expressions provided at the call site.  It is compatible if and only if the
   number of generic parameters is the same as the number of generic arguments,
-  each generic argument is of the required kind (a size or a type), the number
+  each generic argument is of the required kind (numeric or type), the number
   of declared parameters is the same as the number of argument expressions, and
-  if the declared type of each parameter is a supertype of the corresponding
+  the declared type of each parameter is a supertype of the corresponding
   argument expression.  If exactly one candidate is compatible, the call is made
   to that candidate.  It is a static error if there is not
   exactly one compatible candidate.
