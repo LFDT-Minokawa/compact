@@ -2384,29 +2384,30 @@ Bytes[18, 19, 20]
 
 ### Structure creation
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
-
 Structure values are created with structure creation expressions.  The
-expression `S {f, ...}` is a structure creation expression, where `S` is a
-structure type and `f, ...` is a sequence of zero or more comma-separated field
-value specifiers.
+expression `T {f, ...}` is a structure creation expression, where `T` is a
+structure type name `S` or specialized generic structure type name `S<garg, ...>`,
+and `f, ...` is a sequence of zero or more comma-separated field-value specifiers.
 
-A field value specifier can be one of three things:
+A field-value specifier can be one of three things:
 
-* A **positional** field value is an expression.  Evaluating the expression
+* A **positional** field-value specifier is an expression.  Evaluating the expression
   gives the value for the field.  Positional field values must be given in the
   order that fields are declared in the corresponding structure declaration.
-* A **named** field value is of the form `id: e` where `id` is a field name and
+* A **named** field-value specifier is of the form `id: e` where `id` is a field name and
   `e` is an expression.  Evaluating the expression gives the value for the
   corresponding named field.  Named fields can appear in any order.  If named
   and positional fields are mixed, all the named fields must appear after all
   the positional fields.
-* A **spread** expression is of the form `...e` where `...` is the literal three
-  dots (ellipsis) token and `e` is an expression.  Evaluating the expression
-  must give a value of the same structure type as the one being created.  The
-  fields of the created structure are given values from the spread structure as
-  described below.  If there is a spread expression, it must occur as the first
-  field value specifier and all other specifiers must be named field values.
+* A **spread** field-value specifier is of the form `...e` where `...` is the
+  literal three dots (ellipsis) token and `e` is an expression.
+  Evaluating the expression must give a value of the same structure type as the
+  one being created.
+  Each field of the created structure is given the value of the corresponding
+  field from the spread structure, if not overridden by a named field value,
+  as described below.
+  If a spread expression is present, it must occur as the first field-value
+  specifier, and all other specifiers must be named field values.
 
 The examples below demonstrate the use of positional and spread field values:
 
@@ -2429,7 +2430,7 @@ circuit f(x: Uint<32>, y: Boolean, z: Bytes<8>): S {
 }
 ```
 
-The structure type must come from a structure declaration in scope.  If the
+The structure type name must be bound to a structure type in scope.  If the
 structure is generic, then it must be explicitly specialized with generic
 arguments enclosed in angle brackets.  Generic structures must be fully
 specialized: the number of generic arguments must match the number of generic
@@ -2439,16 +2440,14 @@ The static type of a non-generic structure creation expression is the named
 structure type.
 
 The generic arguments to a generic structure can be types, natural number
-literals, or the names of generic parameters in scope.  A generic structure
-creation expression is type checked by substituting the generic arguments for
-the generic parameters in the structure's definition.  The static type of a
-generic structure creation expression is a structure with the same name as the
-generic type and field types obtained by substituting the generic arguments for
-the generic parameters in the structure's declaration.
+literals, or the names of generic parameters in scope.
+The static type of a generic structure-creation expression is a structure with
+the same name as the generic type and field types obtained by substituting the
+generic arguments for the generic parameters in the structure's declaration.
 
-**If there is no spread field specifier:** It is a static error if the number of
+**If a spread field specifier is not present:** It is a static error if the number of
 field specifiers does not match the number of fields in the corresponding
-structure declaration (a value must be given for every field).  It is a static
+structure declaration: a value must be given for every field.  It is a static
 error if a named field specifier occurs before a positional field specifier.  It
 is a static error if a field name occurs more than once, and it is a static
 error if a field name occurs that is not the name of a field in the
@@ -2458,9 +2457,9 @@ positional field subexpression is not a subtype of the declared type of the
 error if the type of a named field subexpression is not a subtype of the
 declared type of the corresponding (named) field in the structure declaration.
 
-**If there is a spread field specifier:** It is a static error if the spread
+**If a spread field specifier is present:** It is a static error if the spread
 field specifier does not come first in the sequence.  It is a static error
-if the type of the spread subexpression is not the same type as structure to be
+if the type of the spread subexpression is not the same type as the structure to be
 created.  It is a static error if there are any positional field specifiers.  It
 is a static error if a field name occurs that is not the name of a field in the
 corresponding structure declaration.  It is a static error if the type of a
@@ -2468,7 +2467,7 @@ named field subexpression is not a subtype of the declared type of the
 corresponding (named) field in the structure declaration.
 
 A structure creation expression is evaluated by evaluating the field specifier
-subexpressions in order from left to right.  The result is a structure value
+subexpressions in order from left to right, and its value is a structure value
 whose fields have values based on the corresponding field specifier: if there is
 a positional or named field specifier for the field, the field value is the
 value of the subexpression, otherwise there must be a spread expression and the
@@ -2477,22 +2476,39 @@ the spread subexpression.
 
 ### Structure member access
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
+An expression of the form `e.id` where `e` is an expression with a structure
+type `S` and `id` is an identifier is a structure member access.
+It is a static error if `S` does not have a member named `id`.
 
-An
-expression of the form `e.id` where `e` is an expression and `id` is the name of
-a structure member is a structure member access.
+The type of any structure member access `e.id` where `e` has type `S`
+is the type of the corresponding named member of `S`.
 
-Member access expressions are type checked by checking the type of the
-subexpression.  It is a static error if this type is not a structure type.  It is
-a static error if the structure type does not contain a member with the same name
-as the name in the expression.  The type of the expression is the type of the
-corresponding named member of the subexpression's structure type.
+The value of any structure member access `e.id` is the result of evaluating the
+subexpression `e` and extracting the value of the resulting structure's
+`id` member.
 
-Member access expressions are evaluated by evaluating the subexpression.  The
-value of the expression will be the member value with the given name.  The
-subexpression will have a structure value and the name will exist, because the
-expression is well-typed.
+Some expressions of the form `e.id` can also be 
+[enumeration member accesses](enumeration-member-access) or
+[ledger `read` operations](ledger-state-operations).
+`e.id` is recognized as a structure member access only when the
+type of `e` is a structure type.
+
+### Enumeration member access
+
+An expression of the form `E.id` where `E` is the name of an enumeration
+type and `id` is an identifier is an enumeration member access.
+It is a static error if `E` does not have a member named `id`.
+
+The type of any enumeration member access `E.id` is `E`.
+
+`E.id` is a constant.
+That is, the value of any enumeration member access `E.id` is `E.id`.
+
+Some expressions of the form `e.id` can also be 
+[structure member accesses](enumeration-member-access) or
+[ledger `read` operations](ledger-state-operations).
+`e.id` is recognized as an enumeration member access only when the
+type of `e` is an enumeration type.
 
 ### Circuit and witness calls
 
