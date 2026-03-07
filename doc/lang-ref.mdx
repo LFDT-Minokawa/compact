@@ -2189,7 +2189,7 @@ expression as follows:
 Compact has unary boolean negation expressions of the form `!e` where `e` is an
 expression.
 
-A boolean negation expression is type checked by checking the type of the
+A boolean negation expression is type-checked by checking the type of the
 subexpression.  It is a static error if this type is not `Boolean`.  The type of
 the expression will be `Boolean`.
 
@@ -2512,8 +2512,6 @@ type of `e` is an enumeration type.
 
 ### Circuit and witness calls
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
-
 <table className="lang-ref-table"><tbody><tr><td><em>fun</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gargs</em></a><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>arrow-parameter-list</em>&nbsp;&nbsp;<em>return-type</em><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#statements"><em>block</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>arrow-parameter-list</em>&nbsp;&nbsp;<em>return-type</em><sup>opt</sup>&nbsp;&nbsp;<b><tt>=></tt></b>&nbsp;&nbsp;<a href="#expressions"><em>expr</em></a></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>fun</em>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
 <tr><td><em>arrow-parameter-list</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>(</tt></b>&nbsp;&nbsp;<em>optionally-typed-pattern</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>optionally-typed-pattern</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>)</tt></b></td></tr>
 <tr><td><em>optionally-typed-pattern</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<em>pattern</em></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<em>typed-pattern</em></td></tr>
@@ -2578,17 +2576,15 @@ Type checking a function call depends on the form of the underlying function.
   number of generic parameters is the same as the number of generic arguments,
   each generic argument is of the required kind (numeric or type), the number
   of declared parameters is the same as the number of argument expressions, and
-  the declared type of each parameter is a supertype of the corresponding
-  argument expression.  If exactly one candidate is compatible, the call is made
+  the type of each argument is a subtype of the declared type of the
+  corresponding parameter. If exactly one candidate is compatible, the call is made
   to that candidate.  It is a static error if there is not
   exactly one compatible candidate.
 
-  The static type of a call to a named function is the return type of the called
-  function.
+  The static type of a call to a named function is the declared return type of
+  the called function.
 
-* **For an anonymous circuit:** Parameters that have type annotations will be
-  type checked, and parameters that do not have type annotations will have types
-  inferred.  The argument subexpressions are type checked and then:
+* **For an anonymous circuit:** Parameters are type-checked or inferred as follows:
 
   - If there is a type annotation for a parameter, it is a static error if
     the type of the corresponding argument expression is not a subtype of the
@@ -2597,25 +2593,21 @@ Type checking a function call depends on the form of the underlying function.
   - If there is no type annotation for a parameter, the parameter's type is
     inferred as the type of the corresponding argument expression.
 
-  The type of each variable binding arising from the binding of identifiers in
-  each parameter pattern to the corresponding pieces of the corresponding argument
-  is the type of the corresonding part of the structure of the declared type,
-  if present, otherwise of the inferred type.
+  Within the body of the anoymous circuit, the type of each variable binding arising
+  from the binding of identifiers in each parameter pattern to the corresponding
+  pieces of the corresponding argument is the type of the corresonding part of
+  the structure of the declared or inferred parameter type.
 
-  If there is a return type annotation, then the circuit's body is type checked
-  under the assumption that the parameters have their declared or inferred
-  types.  It is a static error if there is a returned subexpression whose
-  static type is not a subtype of the return type annotation.  A return
-  statement of the form `return;` is type checked as if it returned a value of
-  type `[]`.  Every control flow path through a body that does not explicitly
-  end with a return statement implicitly ends with one of the form `return;`.
+  If there is a return type annotation, it is a static error if the body can
+  return a type of value that is not a subtype of the return type annotation.
+  A return statement of the form `return;` implicitly returns a value of type
+  `[]`, as does every control flow path through a body that does not explicitly
+  end with a return statement.
 
   If there is no return type annotation, then a return type is inferred from the
-  body.  The body is type checked under the assumption that the parameters have
-  their declared or inferred types.  The inferred return type is the least upper
-  bound of the types of all the returned subexpressions, with the same treatment
-  of `return;` and control-flow paths that do not end in an explicit return as
-  described above.
+  body as the least upper bound of the types of the values that can be returned
+  from the body (explicitly or implicitly).
+  It is a static error if these types do not have a least upper bound.
 
   The static type of a call to an anonymous circuit is the declared or inferred
   return type.
@@ -2625,65 +2617,79 @@ right.  Then, if a circuit is being called, the statements in the body of the
 circuit are executed with the parameter names bound to the corresponding
 argument values.  The value of a circuit call is the value returned from the
 execution of the body.  If a witness is being called, the contract will invoke
-the TypeScript or JavaScript witness function with the argument values.  The
+the externally provided witness function with the argument values.  The
 value of a witness call is the value returned by the witness function.
 
 ### Map and fold expressions
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
-
 Compact supports expressions that perform the higher-order operations _map_ and
-(left) _fold_ over tuples that have a vector type (not arbitrary tuples).
+(left) _fold_ over vectors, tuples that have vector types (not arbitrary tuples),
+and byte vectors.
 
 Map expressions have the form `map(f, e, e, ...)` where `map` is a keyword, `f`
-is a circuit or witness taking at least one argument, and the `e`s are
-expressions.  A circuit or witness taking _n_ arguments can be mapped over _n_
-argument vectors by providing _n_ vector subexpressions to the `map`.
+is a circuit or witness taking at least one argument, and each `e` is an expression.
+A circuit or witness taking _n_ arguments can be mapped over _n_ sequence values
+(vectors, tuples that have vector types, or byte-vectors) by providing _n_
+sequence-value subexpressions to the `map`.
 
 Fold expressions have the form `fold(f, init, e, e, ...)` where `fold` is a
-keyword, `f` is a circuit or witness, and `init` and the `e`s are expressions.
+keyword, `f` is a circuit or witness taking at least two arguments, `init`
+is an expression, and each `e` is an expression.
 A circuit or witness taking _n_+1 arguments can be folded over an initial value
-`init` and _n_ vectors by providing _n_ vector subexpressions to the `fold`.
+`init` and _n_ sequence values by providing _n_ sequence-value subexpressions to
+the `fold`.
 
-The syntax of the circuit or witness is given by the grammar production for
-_fun_ in the section **Circuit and witness calls** above.
+A detailed description of the circuit or witness `f` is given in
+[Circuit and witness calls](circuit-and-witness-calls) above.
 
-A map expression is type checked by checking the type of the witness or circuit
-`f` to find its parameter types and its return type `R`.  `f` must have at least
-one parameter.  The map expression must have the same number of vector subexpressions
-as the number of parameters of `f`.  Each of the vector subexpressions
-must have a vector type and all these vector types must have the same length
-`n`.  If the type of the *i*th parameter to `f` is `T`, then the type of the
-*i*th vector subexpression must be `Vector<n, S>` where `S` is a subtype of
-`T`.  The type of entire expression is `Vector<n, R>`.
+A map expression is type-checked by checking the type of the witness or circuit
+`f` to find its declared or inferred parameter types and its declared or
+inferred return type `R`.
+`f` must have at least one parameter, and the map expression must have the same
+number of sequence-value subexpressions as the number of parameters of `f`.
+Each of the sequence-value subexpressions must have a vector or byte-vector type,
+and all these types must have the same length `n`.
+If the type of the *i*th parameter to `f` is `T`, then the *i*th sequence-value
+subexpression must have the vector type `Vector<n, S>` where `S` is a subtype of
+`T`, or it must be the byte-vector type `Bytes<n>` and `Uint<8>` must be a subtype
+of `T`.
+The type of `map` expression is `Vector<n, R>`, regardless of whether the input
+sequence-value subexpressions are vectors, tuples, or byte-vectors.
 
-A fold expression is type checked by checking the type of the witness or circuit
-`f` to find its parameter types and its return type `R`.  `f` must have at least
-two parameters, and the type of the first parameter must be the same type as the
-return type `R`.  The fold expression must have one fewer vector subexpression
-than the number of parameters of `f`.  The subexpression `e` gives the initial
-value for the fold.  It must have a type which is a subtype `R`.  Each of the
-vector subexpressions must have a vector type and all these vector types must
-have the same length `n`.  If the type of the *i*+1th parameter of `f` is `T`
-then the type of the *i*th vector subexpression must be `Vector<n, S>` where `S`
-is a subtype of `T`.  The type of the entire expression is `R`.
+A fold expression is type-checked by checking the type of the witness or circuit
+`f` to find its parameter types and its return type `R`.
+`f` must have at least two parameters, and the type of the first parameter must
+be the same type as the return type `R`.
+The `fold` expression must have one fewer sequence-value subexpression than the
+number of parameters of `f`.
+The first subexpression `init` gives the initial value for the fold.
+It must have a type which is a subtype `R`.
+Each of the sequence-value subexpressions must have a vector or byte-vector type
+and all these types must have the same length `n`.
+If the type of the *i*+1th parameter of `f` is `T`, then the type of the *i*th
+sequence-value subexpression must have the vector type `Vector<n, S>` where `S`
+is a subtype of `T`, or it must be the byte-vector type `Bytes<n>` and `Uint<8>`
+must be a subtype of `T`.
+The type of the entire expression is `R`.
 
-Map expressions are evaluated by evaluating the vector subexpressions from left
-to right.  These values are the input vector values.  The witness or circuit `f`
-is then applied in turn, from index 0 up to index `n`-1, to arguments taken from
-the input vector values.  The result is a vector of length `n` where each *i*th
-element is the result of applying `f` to the *i*th element of the corresponding
-input vector values.
+Map expressions are evaluated by evaluating the sequence-value subexpressions
+from left to right.
+These values are the input sequence values.
+The witness or circuit `f` is then applied in turn, from index 0 up to index
+`n`-1, to arguments taken from the input sequence values.
+The result is a vector of length `n` where each *i*th element is the result of
+applying `f` to the *i*th elements of the corresponding input sequence values.
 
-Fold expressions are evaluated by evaluating the initial value expression `e`
-and then evaluating the vector subexpressions from left to right.  The values of
-the vector expressions are the input vector values.  The witness or circuit `f`
-is then applied in turn, from index 0 up to index `n`-1, to an accumulator value
-argument and arguments taken from the input vector values.  The 0th (initial)
-accumulator value is the value of the expression `e`, and each subsequent
-*i*+1th accumulator value is the result of applying `f` to the *i*th accumulator
-value and to the *i*th element of the corresponding input vector values.  The
-result is the `n`th (final) accumulator value where `n` is the length of the
+Fold expressions are evaluated by evaluating the initial value expression `init` and
+then evaluating the sequence-value subexpressions from left to right.
+The values of the sequence-value expressions are the input sequence values.
+The witness or circuit `f` is then applied in turn, from index 0 up to index `n`-1,
+to an accumulator value argument and arguments taken from the input sequence values.
+The 0th (initial) accumulator value is the value of the expression `init`, and
+each subsequent *i*+1th accumulator value is the result of applying `f` to the
+*i*th accumulator value and to the *i*th elements of the corresponding input
+sequence values.
+The result is the `n`th (final) accumulator value where `n` is the length of the
 input vectors.
 
 ### Type cast expressions
