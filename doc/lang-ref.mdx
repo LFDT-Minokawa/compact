@@ -2185,29 +2185,30 @@ If the subexpression's value is `false`, the value of the Boolean negation expre
 
 ### Binary arithmetic expressions
 
-!!!!!!!! TBD Kent needs to review and revise as necessary
-
-Binary arithmetic expressions are of the form `e0 op e1` where `e0` and `e1`
+Binary arithmetic expressions have the form `e0 op e1`, where `e0` and `e1`
 are expressions and `op` is one of Compact's binary arithmetic operators.  The
 binary arithmetic operators are **add** (`+`), **subtract** (`-`) and
 **multiply** (`*`).
 
 Arithmetic expressions require the type of both subexpressions to be numeric
-types, that is, either a `Field` or a `Uint`.  The type of the result will
-depend on the types of the subexpressions as follows:
+types, that is, either a `Field`, a `Uint`, or a type alias for a `Field` or
+a `Uint`.
+Putting aside type aliases for now, the type of the result depends on the
+types of the subexpressions as follows:
 
-- If either subexpression has type `Field`, the result will have type `Field`
-- Otherwise the left subexpression will have type `Uint<0..m>` and the right
-  subexpression will have type `Uint<0..n>` for some bounds `m` and `n`. The
-  type of the result depends on the operation as follows:
-  - For add, the result will have type `Uint<0..m+n>`
-  - For subtract, the result will have type `Uint<0..m>`
-  - For multiply, the result will have type `Uint<0..m*n>`
+- If either subexpression has type `Field`, the result has type `Field`.
+- Otherwise the left subexpression has type `Uint<0..m>`,
+  and the right subexpression has type `Uint<0..n>`
+  for some bounds `m` and `n`.
+  The type of the result depends on the operation as follows:
+  - for add, the result has type `Uint<0..m+n>`,
+  - for subtract, the result has type `Uint<0..m>`, and
+  - for multiply, the result has type `Uint<0..m*n>`.
 
 For arithmetic operations with `Uint` result types, it is a static error if
 the result's bound would be greater than the maximum unsigned integer.
 
-Arithmetic expressions are evaluated by first evaluating the subexpressions in
+Evaluating an arithmetic expression involves first evaluating the subexpressions in
 order from left to right.  Integer addition, subtraction, or multiplication is
 then used on the subexpression values.  The overflow and underflow behavior
 differs for `Field` and `Uint` operations:
@@ -2216,13 +2217,39 @@ differs for `Field` and `Uint` operations:
   of an arithmetic operation whose result is a `Field` is the actual arithmetic
   value modulo `k`, where `k` is one more than the maximum field value.
 - `Uint` addition and multiplication cannot overflow: the static type of the
-  result will always be large enough to hold the result value
+  result is always large enough to hold the result value.
 - `Uint` subtraction checks if the value of the right subexpression is greater
-  than the value of the left subexpression.  If so, it is a runtime error (the
-  result would be negative).  Otherwise the unsigned subtraction is performed.
+  than the value of the left subexpression.  If so, it is a runtime error, since
+  the result would be negative.  Otherwise the unsigned subtraction is performed.
 
 The static typing rules imply that if `Field` arithmetic semantics is desired,
 then at least one of the operands must have static type `Field`.
+
+If the type of either subexpression is a structural type alias for a `Field` or
+`Uint` it is treated identically to that `Field` or `Uint`, both in type checking
+and evaluation.
+
+On the other hand, if the type of either subexpression is a nominal type alias
+`T` for a `Field` or a `Uint`, the type of the other subexpression must also have
+type `T`, and the type of the result also has type `T`.
+Evaluation proceeds as if the two operands had the underlying `Field` or `Uint`
+type with the value cast back to `T`, which can result in a run-time error if
+`T` is a nominal alias for a type `Uint<0..n>` and the value is not less than `n`.
+For example:
+
+!!!!!!!! TBD test this
+
+```compact
+new type Feet = Uint<32>;
+circuit foo(x: Feet, y: Feet, scale: Uint<32>): Feet {
+  return (x + y) * (scale as Feet);
+}
+```
+
+computes the sum of `x` and `y` multipled by `scale`.
+If the value of this computation fits in 32 bits, `foo` returns the value.
+Otherwise, the enclosing top-level circuit or constructor halts with a
+message indicating that the cast of the value to `Feet` failed.
 
 ### Tuple creation
 
