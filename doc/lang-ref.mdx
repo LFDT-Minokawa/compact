@@ -17,7 +17,7 @@ kinds of program elements:
 - module and import forms for management of namespaces and separate files,
 - declarations of program-defined types,
 - declarations of the data that the contract stores in the public ledger,
-- declarations of *witnesses*, which are functions supplied by the TypeScript runner, and
+- declarations of *witnesses*, which are callback functions supplied by the TypeScript runner, and
 - definitions of *circuits*, which are functions serving as the operational core of a smart contract, and
 - the definition of at most one *constructor*, which is a function used to intialize the public ledger.
 
@@ -32,7 +32,7 @@ Compact deviates intentionally from TypeScript, however, in several important wa
   Compact as well as preventing external application of a Compact circuit with
   more or fewer than the declared number of arguments.
 - Compact provides namespace management via static rather than dynamic modules, and
-  these modules can be parameterized via generic parameters, which include size as
+  these modules can be parameterized via compile-time generic parameters, which include size as
   well as type parameters.
 - Because every Compact program must compile into a set of finite proving circuits,
   all Compact types have sizes that are fixed at compile time, loops are bounded either
@@ -44,9 +44,10 @@ Compact deviates intentionally from TypeScript, however, in several important wa
 - Compact distinguishes certain values as potentially containing private data that
   should typically be protected, and it requires explicit declaration of the
   disclosure of any potential private data via `disclose()` wrappers.
-  The basics of this are discussed in the description of `disclose`, and a
-  more thorough description and discussion appears in the separate document
-  [Explicit disclosure in Compact](explicit-disclosure.mdx).
+  The basics of this are discussed in the
+  [description of `disclose`](#explicit-disclosure), and a more thorough description
+  and discussion appears in the separate document
+  [Explicit disclosure in Compact](explicit-disclosure).
 
 Like TypeScript, Compact compiles into JavaScript, but it also produces a TypeScript
 definition file so that it effectively also compiles into TypeScript.
@@ -55,7 +56,7 @@ rather than simply producing TypeScript for three reasons:
 - to allow compiled Compact programs to be used without requiring an additional
   TypeScript compilation step,
 - to permit the generated code to check function argument counts without disabling
-  argument-type checks when called from TypeScript, and
+  compile-time argument-type checks when called from TypeScript, and
 - so that it can generate a sourcemap file that properly maps elements of the
   generated JavaScript code (e.g., variable bindings and references) to the corresponding
   elements of the source Compact code.
@@ -65,21 +66,21 @@ on-chain execution, the Compact compiler also produces proving circuits in a
 zero-knowledge intermediate language (*zkir*), and it uses a zkir compiler to
 produce proving keys for each such circuit.
 
-Finally, the compact compiler also produces a contract info file that contains
-information about the program, including version numbers and the types of the
-contract's exported circuits.
+Finally, the compact compiler also produces a JSON-formatted contract info file that contains
+information about the program and its compiled representation, including version numbers and the types and
+characteristics of the contract's exported circuits.
 
 This document explains each syntactic category individually.  It starts by
 introducing the building blocks that are used in various contexts: identifiers,
-constants, types, generic parameters, patterns, and arguments.  Then it describes
+constants, types, generic parameters, and patterns.  Then it describes
 the structure of Compact programs, each kind of program element, and the
 statements and expressions that can appear within circuit and constructor
-definitions.
+bodies.
 Finally, it discusses the TypeScript target.
 
-[Writing a contract](writing.mdx) provides a small example of what a
+[Writing a contract](writing) provides a small example of what a
 Compact program looks like.  It also introduces the basic building blocks of a
-Compact contract.  [The full grammar of Compact](compact-grammar.mdx) is provided
+Compact contract.  [The full grammar of Compact](compact-grammar) is provided
 separately.
 
 ## Notation
@@ -134,12 +135,10 @@ Of these, some are used as *keywords* in the syntax of the Compact language, e.g
 `module`, `import`, `circuit`, and `for`.
 Others, specifically keywords reserved by JavaScript and TypeScript, are considered
 reserved for future use in Compact, e.g., `self` and `class`.
-Still others, specifically all and every identifier that begin with `__compact`,
+Still others, specifically every identifier that begins with `__compact`,
 are reserved for use by the compiler.
 A comprehensive list of keywords and reserved words is given
-in [keywords and reserved words](all-keywods.mdx).
-
-!!!!!!! TBD for the docs team, idk how to add a page to the left sidebar
+in [keywords and reserved words](compact-keywords).
 
 The remaining identifiers can be used to name specific instances of various kinds
 of entities, including modules, types, generic parameters, ledger fields, function
@@ -203,7 +202,6 @@ block, so the reference to `answer` in `answer != 42` evaluates to `12`.
 In addition to having a scope, every binding also has a lifetime.
 For circuit and witness bindings, the lifetime is effectively permanent, i.e.,
 the binding is always available for use whenever the program is run.
-On the other hand
 
 The lifetimes of ledger-field bindings begin when they are first initialized
 and are effectively permanant from that point on; although the value of a
@@ -212,36 +210,37 @@ ledger field's location in the (replicated) public state of a contract never
 changes.
 
 On the other hand, bindings for module names, type names, and generic
-parameters exist only when a program is compiled, i.e., they help determine
+parameters are live only when a program is compiled, i.e., they help determine
 the structure of the program and the shape of the data used by the program
-but are not needed and do not exist once the program has been compiled.
+but are not needed once the program has been compiled.
 (TypeScript bindings for type names exported from the program's top level
 do live on, however, in the generated TypeScript definition file.)
 
 Variable bindings, i.e., bindings of circuit parameters, constructor parameters,
 and local variables bound by `const` statements and `for` loops, have dynamic
 lifetimes.
-That is, the bindings of a circuit or constructor's parameters start to exist when
-the circuit or constructor is called and cease to exist when the circuit or
-constructor exits, a variable binding established by a `const` statement
-starts to exist when the `const` statement is evaluated and cease to exist when
-the block containing the `const` statement exits, and a `const` binding established
-by the `const` subform of a `for`-loop header starts to exist on each iteration
-of the loop and ceases to exist when that iteration has ended.
+The bindings of a circuit's or constructor's parameters start a new lifetime
+when the circuit or constructor is called that ends when the circuit or constructor
+exits.
+A variable binding established by a `const` statement starts a new lifetime when
+the `const` statement is evaluated that ends when the block containing the `const`
+statement exits.
+A `const` binding established by the `const` subform of a `for`-loop header starts
+a new lifetime on each iteration of the loop that ends when that iteration ends.
 
-A parameter or `const` binding might have multiple lifetimes, because a circuit
-might be called multiple times, a block might be evaluated multiple times, and a
-`for` loop might be evaluated multiple times and/or have multiple iterations.
-Variables in Compact are immutable: they have the same value over the entire
-lifetime of each binding of the variable.
-Thus, they are referred to as variables not because their value can vary over
+Variable bindings can have multiple lifetimes, because a circuit might be called
+multiple times, a block might be evaluated multiple times, and a `for` loop might
+be evaluated multiple times and/or have multiple iterations.
+Variables in Compact are immutable, however: they have the same value over the
+entire lifetime of the variable's binding.
+Thus, they are referred to as variables not because their values can vary over
 any single lifetime but because they can have different values in different
 lifetimes.
 
 ## Generic parameters and arguments
 
 Various entities, specifically
-[Module declarations](#modules-exports-and-imports),
+[module declarations](#modules-exports-and-imports),
 [structure declarations](#structure-types),
 [type-alias declarations](#type-aliases),
 [circuit definitions](#circuits),
@@ -258,9 +257,9 @@ elements that appear within the body of the module.
 
 When present, generic parameters are enclosed in angle brackets following the
 name of the generic entity (module, structure, type alias, circuit, or witness).
-Each parameter is either a type name (e.g., `T`) or a hash-prefixed numeric name
+Each parameter is either a type name (e.g., `T`) or a hash-prefixed natural-number name
 (e.g., `#N`).
-Nat names are prefixed by `#` to distingish generic numeric parameters from
+Generic natural-number parameters are prefixed by `#` to distingish them from
 generic type parameters.
 
 <table className="lang-ref-table"><tbody><tr><td><em>gparams</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>\<</tt></b>&nbsp;&nbsp;<em>generic-param</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>generic-param</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>></tt></b></td></tr>
@@ -278,9 +277,9 @@ numeric value of a generic parameter.
 
 The syntax of types allows for type references, including references to generic
 parameters, so any generic argument can pass along the value of a generic type
-or numeric parameter that is visible at the point of specialization.
+or natural-number parameter that is visible at the point of specialization.
 
-The `#` used to distinguish generic numeric parameters from generic type parameters
+The `#` used to distinguish generic natural-number parameters from generic type parameters
 need not and must not used at the point of specialization.
 It is a static error, however, if a generic argument supplied for a generic
 parameter is not numeric when a numeric value is expected or is not a type when
@@ -333,13 +332,13 @@ and references to generic type parameters in scope.
 When the term "type" occurs in this document without any other qualifier, it means
 either a primitive type, ledger-state type, a program-defined type, or a generic type
 parameter in scope.
-The use of ledger-state types is, at present, limited to typing the result of using
-`default` to obtain the default value of the type, and only constant bindings
+The use of ledger-state types is, at present, limited to typing the result of
+`default<T>` to obtain the default value of type `T`, and only constant bindings
 can have a ledger-state type.
 
 A generic type is not a valid type and so cannot, for example, be used as the
 type of a parameter or return value.
-Any attempt to do do is a static error.
+Any attempt to do so is a static error.
 As with any other generic entity, it must be specialized at the point of use.
 
 ### Primitive types
@@ -353,9 +352,9 @@ The following are the primitive types of Compact:
 - `Boolean` is the type of *Boolean* values.  There are only two values of
   `Boolean` type.  They are the values of the expressions `true` and `false`.
 
-- `Uint<m..n>`, where `m` is the literal `0` or generic numeric parameter bound
+- `Uint<m..n>`, where `m` is the literal `0` or generic natural-number parameter bound
   to `0`, and where `n` is a natural number literal or a generic
-  numeric parameter, is the type of *bounded unsigned integer* values between
+  natural-number parameter, is the type of *bounded unsigned integer* values between
   `0` (inclusive) and `n` (exclusive).
   (While the lower bound is currently required to be `0`, this restriction might
   be lifted at some point.)
@@ -368,7 +367,7 @@ The following are the primitive types of Compact:
   of bytes that fits in the scalar field value of the ZK proving system.
   It is a static error whenever a `Uint` type exceeds this maximum value.
 
-- `Uint<n>`, where `n` is a non-zero natural number literal or generic numeric
+- `Uint<n>`, where `n` is a non-zero natural number literal or generic natural-number
   parameter and bound to a non-zero natural number, is the type of
   *sized unsigned integer* values with binary representations using up to `n`
   bits.  This is the same type as `Uint<0..m>` where `m` is equal to `(2^n)-1`.
@@ -389,7 +388,7 @@ The following are the primitive types of Compact:
   element type of the other are also different types, though one of the tuple
   types might be a [subtype of the other](#subtyping-and-least-upper-bounds).
 
-- `Vector<n, T>`, where `n` is a natural number literal or generic numeric
+- `Vector<n, T>`, where `n` is a natural number literal or generic natural-number
   parameter and `T` is a type, is a shorthand notation for the tuple type
   `[T, ...]` with `n` occurrences of the type `T`.
   Note that a vector type and the corresponding tuple type are two different ways
@@ -397,7 +396,7 @@ The following are the primitive types of Compact:
   Unless otherwise specified, type rules for vector types are derived from the
   rules for the corresponding tuple type.
 
-- `Bytes<n>`, where `n` is a natural number literal or a generic numeric parameter,
+- `Bytes<n>`, where `n` is a natural number literal or a generic natural-number parameter,
   is the type of _byte vectors_ of length `n`.
   `Bytes` types with different lengths are different types.
   `Bytes` types are used in the Compact standard library for hashing.
@@ -980,7 +979,7 @@ a pathname ending in a directory separator, a definition for a module named
 - (b) at `{prefix/}M.compact` relative to the directory of the importing
   file or to one of the directories in the compact path.
 Details on the search order and the mechanism for setting the compact path are
-given in [Compiler Usage](compiler-usage.md).
+given in [Compiler Usage](reference/tools/compiler-usage.md).
 
 In any of these cases, it is a static error if `M.compact` is not found, if it
 does not contain a definition for a module named `M`, or if it contains anything
@@ -1122,7 +1121,7 @@ string literal specifying a filesystem pathname for file to be included:
 of the including file, or one that is relative to one of the directories in the
 compact path.
 Details on the search order and the mechanism for setting the compact path are
-given in [Compiler Usage](compiler-usage.md).
+given in [Compiler Usage](reference/tools/compiler-usage.md).
 
 It is a static error if the file is not present or cannot be read.
 If present and readable, the file must contain a sequence of syntactically
@@ -1757,7 +1756,7 @@ for (const i of start..end) statement
 ```
 
 In this form, each of `start` and `end` must be a literal unsigned integer
-or a generic numeric parameter, and `end` must be greater than or
+or a generic natural-number parameter, and `end` must be greater than or
 equal to `start`.
 Otherwise, it is a static error.
 
@@ -1955,7 +1954,7 @@ octal, or hexadecimal notation as follows:
   digits (`0-9`, `a-f`, `A-F`), e.g., `0x8f0a`.
 
 An occurrence of a numeric literal can arise via specialization of a
-generic module or circuit in which a reference to a generic numeric parameter
+generic module or circuit in which a reference to a generic natural-number parameter
 occurs in an expression context.
 For example, if `foo` is defined as follows:
 
@@ -2289,7 +2288,7 @@ which can be less than or greater than number of tuple arguments.
 
 New byte vectors are created with expressions of the form
 `Bytes [tuple-arg, ...]`.
-Bytes creation is essentially the same as [tuple creation](tuple-creation)
+Bytes creation is essentially the same as [tuple creation](#tuple-creation)
 except that the types of the contributed elements must all be subtypes of `Uint<8>`
 (if not, it is static error), and the result is a new byte vector of type
 `Bytes<n>` where `n` is the number of contributed elements.
@@ -2298,7 +2297,7 @@ except that the types of the contributed elements must all be subtypes of `Uint<
 
 Compact allows references to individual elements of sequence values (tuples,
 vectors, and byte vectors) via the syntax `expr[index]` where `expr` is
-an expression and `index` is a numeric literal, generic numeric parameter reference,
+an expression and `index` is a numeric literal, generic natural-number parameter reference,
 or an expression that can be reduced to a numeric constant at compile time as
 described below.
 
@@ -2312,7 +2311,7 @@ Violating any of these constraints is a static error.
 The unsigned integer value of `index` must be computable at compile time
 via the following rules, or it is a static error.
 
-- Any `index` can be a constant, i.e., a numeric literal or a generic numeric
+- Any `index` can be a constant, i.e., a numeric literal or a generic natural-number
   parameter reference.
 
 - If the type of `expr` is a tuple type that has a vector type, the rule for
@@ -2325,7 +2324,7 @@ via the following rules, or it is a static error.
 - If the type of `expr` a vector or byte-vector type, `index` must be a
   *constant-valued* expression, where a constant-valued expression is:
   - a constant,
-  - a reference to a generic numeric parameter,
+  - a reference to a generic natural-number parameter,
   - a reference to a variable bound to a constant-valued expression,
   - a reference to a variable bound in the header of a `for` loop, or
   - the result of adding, subtracting, or multiplying two constant-valued
@@ -2334,7 +2333,7 @@ via the following rules, or it is a static error.
 The type of a byte-vector reference is `Uint<8>`.
 The type of a vector reference where the vector has type `Vector<n, T>` is `T`.
 The type of a tuple reference where the tuple has type `[T1, ..., Tn]` is
-`Ti` if `index` is the constant `i` or the value `i` of a generic numeric
+`Ti` if `index` is the constant `i` or the value `i` of a generic natural-number
 parameter.
 Otherwise, `[T1, ..., Tn]` must have a vector type `Vector<n, T>` and the
 type of the tuple reference is `T`.
@@ -2352,10 +2351,10 @@ than a single value from the sequence value.
 
 Slice expressions take the form `slice<size>(expr, index)`, where `slice`
 is a keyword, `size` is a constant or numeric generic parameter reference, `expr` is
-an expression, and `index` is a numeric literal, a generic numeric
+an expression, and `index` is a numeric literal, a generic natural-number
 parameter reference, or an expression that can be reduced to a numeric constant at
 compile time as described above in the section on [Tuple, vector, and byte-vector
-references](tuple-vector-and-byte-vector-references).
+references](#tuple-vector-and-byte-vector-references).
 
 The type of a byte-vector slice is `Bytes<k>` where `k` is the constant value of `size`.
 The type of a vector slice where the vector has type `Vector<n, T>` is `Vector<k, T>`.
@@ -2498,8 +2497,8 @@ subexpression `e` and extracting the value of the resulting structure's
 `id` member.
 
 Some expressions of the form `e.id` can also be 
-[enumeration member accesses](enumeration-member-access) or
-[ledger `read` operations](ledger-state-operations).
+[enumeration member accesses](#enumeration-member-access) or
+[ledger `read` operations](#ledger-state-operations).
 `e.id` is recognized as a structure member access only when the
 type of `e` is a structure type.
 
@@ -2515,8 +2514,8 @@ The type of any enumeration member access `E.id` is `E`.
 That is, the value of any enumeration member access `E.id` is `E.id`.
 
 Some expressions of the form `e.id` can also be 
-[structure member accesses](enumeration-member-access) or
-[ledger `read` operations](ledger-state-operations).
+[structure member accesses](#enumeration-member-access) or
+[ledger `read` operations](#ledger-state-operations).
 `e.id` is recognized as an enumeration member access only when the
 type of `e` is an enumeration type.
 
@@ -2650,7 +2649,7 @@ A circuit or witness taking _n_+1 arguments can be folded over an initial value
 the `fold`.
 
 A detailed description of the circuit or witness `f` is given in
-[Circuit and witness calls](circuit-and-witness-calls) above.
+[Circuit and witness calls](#circuit-and-witness-calls) above.
 
 A map expression is type-checked by checking the type of the witness or circuit
 `f` to find its declared or inferred parameter types and its declared or
@@ -2846,7 +2845,7 @@ ledger-state type.
 (Kernel operations cannot be chained, because the kernel is not a ledger-state
 type and is not returned by any operation.)
 Compact also supports shorthands for certain ledger-state operations; these are
-described below in [Ledger-state-operation shorthands](ledger-state-operation-shorthands).
+described below in [Ledger-state-operation shorthands](#ledger-state-operation-shorthands).
 
 The static type of a ledger-state operation is the return type of the
 corresponding ledger-state operation according to the
@@ -2984,7 +2983,7 @@ scope of this document, but a few things are worth noting:
   input.
 
 More details are given in
-[Explicit Disclosure in Compact: The Midnight "Witness Protection Program"](explicit-disclosure.mdx).
+[Explicit Disclosure in Compact: The Midnight "Witness Protection Program"](explicit-disclosure).
 
 ## Runtime representations and type/bounds checks
 
@@ -3125,14 +3124,32 @@ Program-defined types are represented in TypeScript as follows:
 
 Note that other `Opaque` types are currently not supported.
 
-## Formal grammar
+## External resources
 
-See [here](compact-grammar.mdx).
+### Compact formal grammar
 
-## Keywords and reserved words
+See [here](compact-grammar).
 
-See [here](all-keywords.mdx).
+### Compact keywords and reserved words
 
-## Explicit disclosure in Compact
+See [here](compact-keywords).
 
-See [here](explicit-disclosure.mdx).
+### Compact ledger-state types and operations
+
+See [here](ledger-adt).
+
+### Runtime API
+
+See [here](/docs/develop/reference/midnight-api/compact-runtime/README.md)
+
+### Compiler usage
+
+See [here](reference/tools/compiler-usage).
+
+### Explicit disclosure in Compact
+
+See [here](explicit-disclosure).
+
+### Writing a contract in Compact
+
+See [here](writing).

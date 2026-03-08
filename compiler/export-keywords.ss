@@ -18,52 +18,20 @@
 
 (import (parser) (chezscheme))
 
-;; To generate the list of parser keywords run the command:
-;; scheme --program ./compiler/export-keywords.ss
-;; or
-;; scheme --program ./compiler/export-keywords.ss 0
-;; or if you want to specify the path:
-;; scheme --program ./compiler/export-keywords.ss 0 <path>
-;;
-;; To generate the list of all keywords run the command:
-;; scheme --program ./compiler/export-keywords.ss 1
-;; or if you want to specify the path:
-;; scheme --program ./compiler/export-keywords.ss 1 <path>
-;;
-(define-values (mode out-path)
+(define out-path
   (let ([args (cdr (command-line))])
     (case (length args)
-      [(0) (values 0 "editor-support/vsc/compact/tests/resources/keywords.json")]
-      [(1) (let ([m (string->number (car args))])
-             (if (and m (or (= m 0) (= m 1)))
-                 (values m
-                         (if (= m 1)
-                             "doc/all-keywords.html"
-                             "editor-support/vsc/compact/tests/resources/keywords.json"))
-                 (begin
-                   (fprintf (current-error-port) "usage: ~a [ mode ] [ output-path ]\n       where mode can be 0 for parser keywords in json or 1 for all keywords in html\n" (car (command-line)))
-                   (exit 1))))]
-      [(2) (let ([m (string->number (car args))])
-             (if (and m (or (= m 0) (= m 1)))
-                 (values m (cadr args))
-                 (begin
-                   (fprintf (current-error-port) "usage: ~a [ mode ] [ output-path ]\n       where mode can be 0 for parser keywords in json or 1 for all keywords in html\n" (car (command-line)))
-                   (exit 1))))]
-      [else (fprintf (current-error-port) "usage: ~a [ mode ] [ output-path ] \n       where mode can be 0 for parser keywords in json or 1 for all keywords in html\n" (car (command-line)))
+      [(0) "editor-support/vsc/compact/tests/resources/keywords.json"]
+      [(1) (car args)]
+      [else (fprintf (current-error-port) "usage: ~a [ output-path ]\n" (car (command-line)))
             (exit 1)])))
 
-; KD := tuple (name of group of keywords , keyword-group)
-; where keyword-group = (words description)
+; KD := tuple (name of group of keywords , keywords list)
 (define (kd-name  kd) (car kd))
-(define (kd-words kd) (keyword-group-words (cadr kd)))
-(define (kd-desc  kd) (keyword-group-desc  (cadr kd)))
+(define (kd-words kd) (cadr kd))
 
 ;; get input
-(define input-kd
-  (if (= mode 1)
-      (append (parser-keywords)
-              `((keywordReservedForFutureUse ,keywordReservedForFutureUse)))
-      (parser-keywords)))
+(define input-kd (parser-keywords))
 
 ;; JSON utils
 (define (json-str str sep)
@@ -85,39 +53,6 @@
     (format "~{~a~^,\n~}"
             (map kd->json kds))))
 
-;; HTML utils
-(define (html-keyword word)
-  (format "        <li>~a</li>" word))
-
-(define (html-desc desc)
-  (if (null? desc)
-      ""
-      (format "    <p>~{~a~^ ~}</p>\n" desc)))
-
-(define (html-group kd)
-  (string-append
-    (format "    <h2>~a</h2>\n" (kd-name kd))
-    (html-desc (kd-desc kd))
-    (format "    <ul>\n~{~a~^\n~}\n    </ul>" (map html-keyword (kd-words kd)))))
-
-(define (html-page body)
-  (string-append
-    "<!DOCTYPE html>\n"
-    "<html>\n"
-    "<head>\n"
-    "  <meta charset=\"UTF-8\">\n"
-    "  <title>Keywords</title>\n"
-    "</head>\n"
-    "<body>\n"
-    "  <h1>Keywords</h1>\n"
-    body
-    "\n</body>\n"
-    "</html>"))
-
-(define (kds->html kds)
-  (html-page
-    (format "~{~a~^\n~}" (map html-group kds))))
-
 ;; file IO
 (define (write-to-file fname content)
   (let ([outFile (open-output-file fname 'replace)])
@@ -125,10 +60,5 @@
     (newline outFile)
     (close-output-port outFile)))
 
-;; write keywords
-(define (kds->output kds mode)
-  (if (= mode 1)
-      (kds->html kds)
-      (kds->json kds)))
-
-(write-to-file out-path (kds->output input-kd mode))
+; write keywords to JSON file
+(write-to-file out-path (kds->json input-kd))

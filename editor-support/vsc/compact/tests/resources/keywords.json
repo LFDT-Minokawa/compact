@@ -1,6 +1,6 @@
 {
   "keywordBoolean": "false|true",
-  "keywordImport": "export|from|import|module",
-  "keywordControl": "as|assert|circuit|const|constructor|contract|default|disclose|else|enum|fold|for|if|include|ledger|map|new|of|pad|pragma|prefix|pure|return|sealed|slice|struct|type|witness",
+  "keywordImport": "export|from|import|module|prefix",
+  "keywordControl": "as|assert|circuit|const|constructor|contract|default|disclose|else|enum|fold|for|if|include|ledger|map|new|of|pad|pragma|pure|return|sealed|slice|struct|type|witness",
   "keywordDataTypes": "Boolean|Bytes|Field|Opaque|Uint|Vector"
 }

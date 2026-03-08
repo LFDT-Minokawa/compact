@@ -35,8 +35,7 @@
 
 (library (parser)
   (export parse-file parse-file/token-stream
-          parser-keywords keywordReservedForFutureUse
-          keyword-group-words keyword-group-desc
+          parser-keywords
           parser-passes)
   (import (except (chezscheme) errorf)
           (utils)
@@ -56,31 +55,28 @@
   (define parse-sfd (make-parameter #f))
 
   (define-syntax define-keyword-group
-    (syntax-rules (DESCRIPTION)
-      [(_ name (DESCRIPTION desc ...) (word ...))
-       (define-syntax name (identifier-syntax (list '(word ...) '(desc ...))))]
-      [(_ name (word ...))
-       (define-syntax name (identifier-syntax (list '(word ...) '())))]))
-
-  ;; accessor helpers
-  (define (keyword-group-words kg) (car kg))
-  (define (keyword-group-desc  kg) (cadr kg))
+    (syntax-rules (TITLE)
+      [(_ name (TITLE title) (word ...))
+       (define-syntax name (identifier-syntax (cons title '(word ...))))]))
+  (define-syntax keyword-group-title (syntax-rules () [(_ kg) (car kg)]))
+  (define-syntax keyword-group-words (syntax-rules () [(_ kg) (cdr kg)]))
 
   ; NB: check this list regularly.  ideally, we would generate it automatically.
   (define-keyword-group keywordBoolean
-    (DESCRIPTION "Boolean literal values.")
+    (TITLE "Boolean literals")
     (false
      true))
 
   (define-keyword-group keywordImport
-    (DESCRIPTION "Keywords related to the module system.")
+    (TITLE "Module-related keywords")
     (export
      from
      import
-     module))
+     module
+     prefix))
 
   (define-keyword-group keywordControl
-    (DESCRIPTION "Keywords used in control flow and declarations.")
+    (TITLE "Statement and expression keywords")
     (as
      assert
      circuit
@@ -101,7 +97,6 @@
      of
      pad
      pragma
-     prefix
      pure
      return
      sealed
@@ -111,7 +106,7 @@
      witness))
 
   (define-keyword-group keywordDataTypes
-    (DESCRIPTION "Built-in data type keywords.")
+    (TITLE "Built-in data type keywords.")
     (Boolean
      Bytes
      Field
@@ -120,8 +115,7 @@
      Vector))
 
   (define-keyword-group keywordReservedForFutureUse
-    (DESCRIPTION "Reserved keywords that may be used in future versions of the language."
-                 "Using these as identifiers is not allowed.")
+    (TITLE "Keywords reserved for future use")
     (await
      break
      case
@@ -158,16 +152,16 @@
      yield))
 
   (define (parser-keywords)
-    `((keywordBoolean ,keywordBoolean)
-      (keywordImport ,keywordImport)
-      (keywordControl ,keywordControl)
-      (keywordDataTypes ,keywordDataTypes)))
+    `((keywordBoolean ,(keyword-group-words keywordBoolean))
+      (keywordImport ,(keyword-group-words keywordImport))
+      (keywordControl ,(keyword-group-words keywordControl))
+      (keywordDataTypes ,(keyword-group-words keywordDataTypes))))
 
   (define all-keywords
-    (append (keyword-group-words keywordBoolean)
-            (keyword-group-words keywordImport)
+    (append (keyword-group-words keywordImport)
             (keyword-group-words keywordDataTypes)
             (keyword-group-words keywordControl)
+            (keyword-group-words keywordBoolean)
             (keyword-group-words keywordReservedForFutureUse)))
 
   (define keyword?
@@ -187,7 +181,7 @@
          (not (string-prefix? "__compact" (symbol->string x)))))
 
   (module (define-grammar is sat sat/what parse-consumed-all? parse-result-value grammar-trace)
-    (meta define seen-keywords (box (car keywordReservedForFutureUse)))
+    (meta define seen-keywords (box (keyword-group-words keywordReservedForFutureUse)))
     (module ()
       (define-syntax a (lambda (x) #`'#,(datum->syntax #'* seen-keywords)))
       (define symbol<? (lambda (x y) (string<? (symbol->string x) (symbol->string y))))
@@ -877,7 +871,7 @@
           (cond
             [(eq? (token-type token) 'eof) "end of file"]
             [(and (eq? (token-type token) 'id)
-                  (memq (token-value token) (car keywordReservedForFutureUse)))
+                  (memq (token-value token) (keyword-group-words keywordReservedForFutureUse)))
              (format "keyword ~s (which is reserved for future use)" (token-string token))]
             [(and (eq? (token-type token) 'id)
                   (memq (token-value token) all-keywords))
@@ -947,4 +941,22 @@
 
   (define-passes parser-passes
     (parse-file        Lsrc))
+
+  (meta begin
+    (with-output-to-file "doc/compact-keywords.mdx"
+      (lambda ()
+        (define (do-group kd)
+          (let ([words (keyword-group-words kd)])
+            (assert (equal? (sort (lambda (x y) (string<? (symbol->string x) (symbol->string y))) words) words))
+            (printf "\n## ~a\n\n" (keyword-group-title kd))
+            (for-each
+              (lambda (keyword) (printf "- ~a\n" (symbol->string keyword)))
+              words)))
+        (printf "# Compact keywords\n")
+        (do-group keywordImport)
+        (do-group keywordControl)
+        (do-group keywordDataTypes)
+        (do-group keywordBoolean)
+        (do-group keywordReservedForFutureUse))
+      'replace))
 )
