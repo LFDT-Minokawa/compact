@@ -353,19 +353,20 @@ The following are the primitive types of Compact:
   `Boolean` type.  They are the values of the expressions `true` and `false`.
 
 - `Uint<m..n>`, where `m` is the literal `0` or generic natural-number parameter bound
-  to `0`, and where `n` is a natural number literal or a generic
+  to `0`, and where `n` is a positive natural number literal or a generic
   natural-number parameter, is the type of *bounded unsigned integer* values between
   `0` (inclusive) and `n` (exclusive).
   (While the lower bound is currently required to be `0`, this restriction might
   be lifted at some point.)
   `Uint` types with different upper bounds are different types,
-  although the one with the lower bound is a [subtype of the
-  other](#subtyping-and-least-upper-bounds).
-  In practice, there is a (large) maximum unsigned integer value determined by
-  the zero-knowledge (ZK) proving system.
-  Specifically, the maximum unsigned integer is `(256^k)-1` where `k` is the number
-  of bytes that fits in the scalar field value of the ZK proving system.
-  It is a static error whenever a `Uint` type exceeds this maximum value.
+  although the one with the lower bound is a
+  [subtype of the other](#subtyping-and-least-upper-bounds).
+  The compiler and run-time system might impose a limit on the range of supported
+  unsigned integer values.
+  If so, it is a static error whenever a `Uint` type includes values that exceed
+  this limit.
+  The current limit, if any, is given in
+  [Implementation-specific limits](#implementation-specific-limits).
 
 - `Uint<n>`, where `n` is a non-zero natural number literal or generic natural-number
   parameter and bound to a non-zero natural number, is the type of
@@ -378,6 +379,8 @@ The following are the primitive types of Compact:
   not true.
 
 - `Field` is the type of elements in the scalar prime field of the ZK proving system.
+  The current maximum field value is given in
+  [Implementation-specific limits](#implementation-specific-limits).
 
 - `[T, ...]`, where `T, ...` are zero or more comma-separated types, is the type
   of *tuple* values with element types `T, ...`.
@@ -3123,6 +3126,24 @@ Program-defined types are represented in TypeScript as follows:
   where `A`, `B`, ... are the TypeScript representations of the Compact types.
 
 Note that other `Opaque` types are currently not supported.
+
+## Implementation-specific limits
+
+Compact compiler version 1.0 limits certain datatype values and sizes:
+
+- The maximum value of a `Field` value is 
+52435875175126190479447740508185965837690552500527637822603658699938581184512.
+This value is dictated by the scalar field size of the ZK proving system.
+- The maximum value of a `Uint` value is
+452312848583266388373324160190187140051835877600158453279131187530910662655.
+This value is `(256^k)-1` where `k` is the number of bytes that fits in
+a scalar field value of the ZK proving system.
+- The maximum length of a vector or byte-vector is `2^24 = 16777216`.
+This value is chosen as a reasonable upper bound that helps prevent the compiler
+from looping indefinitely on programs that operate on excessively large vector
+and byte-vector types.
+
+These limits may change in future versions of the compiler.
 
 ## External resources
 
