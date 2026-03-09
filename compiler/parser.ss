@@ -222,6 +222,17 @@
                (and (memq (token-type x) '(punctuation binop))
                     (equal? (token-value x) '?k))))]))
     (meta define (constant->html const)
+      (define (html-text-string x)
+        (define (html-text-char c)
+          (case c
+            [(#\<) "&lt;"]
+            [(#\>) "&gt;"]
+            [(#\&) "&amp;"]
+            [(#\{) "\\{"]   ; specific to mdx
+            [(#\|) "\\|"]   ; specific to mdx
+            [(#\return) ""]
+            [else c]))
+        (format "~{~a~}" (map html-text-char (if (string? x) (string->list x) (list x)))))
       (format "<b><tt>~a</tt></b>"
         (cond
           [(pair? const)
@@ -229,7 +240,7 @@
                         (= (length const) 2)
                         (eq? (car const) 'KEYWORD)))
            (cadr const)]
-          [else const])))
+          [else (html-text-string const)])))
     (define (src0) (make-source-object (parse-sfd) 0 0 1 1))
     (define (make-src bsrc esrc)
       (if (eq? bsrc esrc)
