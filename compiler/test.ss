@@ -63950,30 +63950,6 @@ groups than for single tests.
     (succeeds)
     )
 
-  ; bad test
-  ;; (test
-  ;;   '(
-  ;;     "for (const i of <vector>) <statement>"
-  ;;     ""
-  ;;     "for (const i of <lower>..<upper>) <statement>"
-  ;;     )
-  ;;   (succeeds)
-  ;;   )
-
-  ; bad test
-  ;; (test
-    ;; '(
-    ;;   "if (testexpr)"
-    ;;   "  <statement>"
-    ;;   ""
-    ;;   "if (testexpr)"
-    ;;   "  <statement>"
-    ;;   "else"
-    ;;   "  <statement>"
-    ;;   )
-    ;; (succeeds)
-    ;; )
-
   (test
     '(
       "import CompactStandardLibrary;"
@@ -64026,6 +64002,95 @@ groups than for single tests.
       "}"
       )
     (succeeds)
+    )
+
+  (test
+    '(
+      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "circuit foo(): [Uint<64>, Uint<64>] {"
+      "  const [x, y]: [Boolean, [Uint<64>, Uint<64>]] = w();"
+      "  return x ? y : [0, 0];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "circuit foo(): [Uint<64>, Uint<64>] {"
+      "  const [x, y] = w();"
+      "  return x ? y : [0, 0];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "circuit foo(): [Uint<64>, Uint<64>] {"
+      "  const [x, y] = w();"
+      "  return x ? y : [0, 0];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "circuit foo(a: Uint<16>): Field {"
+      "  const y = x + a;"
+      "  const x = 7;"
+      "  return y;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 13" "identifier ~s might be referenced before it is assigned" (x)))
+    )
+
+  (test
+    '(
+      "circuit foo<#N>(): Uint<16> {"
+      "  return N;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "circuit foo(): Uint<16> {"
+      "  return 17;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "new type Feet = Uint<32>;"
+      "circuit foo(x: Feet, y: Feet, scale: Uint<32>): Feet {"
+      "  return (x + y) * (scale as Feet);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit getMiddle(x: Bytes<5>): Bytes<3> {"
+      "  return slice<3>(x, 1);"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.getMiddle(Ctxt, new Uint8Array([17, 18, 19, 20, 21])).result).toEqual(new Uint8Array([18, 19, 20]));"
+        "});"
+        ))
     )
   )
 

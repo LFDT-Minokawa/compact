@@ -1633,8 +1633,6 @@ type.
 For example, in the following code, the binding for `x` has type `Boolean`, and
 the binding for `y` has type `[Uint<64>, Uint<64>]`:
 
-!!!!!!!! TBD test this
-
 ```compact
 witness w(): [Boolean, [Uint<16>, Uint<32>]];
 circuit foo(): [Uint<64>, Uint<64>] {
@@ -1645,8 +1643,6 @@ circuit foo(): [Uint<64>, Uint<64>] {
 
 while in the following, `x` still has type `Boolean` but `y` has (the inferred)
 type `[Uint<16>, Uint<64>]`.
-
-!!!!!!!! TBD test this
 
 ```compact
 witness w(): [Boolean, [Uint<16>, Uint<32>]];
@@ -1664,9 +1660,10 @@ For example, the reference to `x` on the first line of the body in the
 definition of `foo` below is a static error:
 
 ```compact
-circuit foo(x: Uint<16>): Field {
-  return x;
+circuit foo(a: Uint<16>): Field {
+  const y = x + a;
   const x = 7;
+  return y;
 }
 ```
 
@@ -1961,10 +1958,8 @@ generic module or circuit in which a reference to a generic natural-number param
 occurs in an expression context.
 For example, if `foo` is defined as follows:
 
-!!!!!!!! TBD test this
-
 ```compact
-circuit foo<#N>(): Unsigned<16> {
+circuit foo<#N>(): Uint<16> {
   return N;
 }
 ```
@@ -1972,10 +1967,8 @@ circuit foo<#N>(): Unsigned<16> {
 the call `foo<17>()`, at least in effect, gives rise to a copy of `foo` in
 which `N` has been replaced by `17`.
 
-!!!!!!!! TBD test this
-
 ```compact
-circuit foo(): Unsigned<16> {
+circuit foo(): Uint<16> {
   return 17;
 }
 ```
@@ -2239,8 +2232,6 @@ type with the value cast back to `T`, which can result in a run-time error if
 `T` is a nominal alias for a type `Uint<0..n>` and the value is not less than `n`.
 For example:
 
-!!!!!!!! TBD test this
-
 ```compact
 new type Feet = Uint<32>;
 circuit foo(x: Feet, y: Feet, scale: Uint<32>): Feet {
@@ -2374,10 +2365,8 @@ compile-time constant value of `index` and `k` is the constant value of `size`.
 
 For example, if `getMiddle` is defined as follows:
 
-!!!!!!!! TBD test this
-
 ```compact
-export circuit foo(x: Bytes<5>): Bytes<3> {
+export circuit getMiddle(x: Bytes<5>): Bytes<3> {
   return slice<3>(x, 1);
 }
 ```
