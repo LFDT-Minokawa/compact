@@ -353,9 +353,9 @@ The following are the primitive types of Compact:
   `Boolean` type.  They are the values of the expressions `true` and `false`.
 
 - `Uint<m..n>`, where `m` is the literal `0` or generic natural-number parameter bound
-  to `0`, and where `n` is a positive natural number literal or a generic
-  natural-number parameter, is the type of *bounded unsigned integer* values between
-  `0` (inclusive) and `n` (exclusive).
+  to `0`, and where `n` is a non-zero natural number literal or a generic
+  natural-number parameter bound to a non-zero natural number, is the type of
+  *bounded unsigned integer* values between `0` (inclusive) and `n` (exclusive).
   (While the lower bound is currently required to be `0`, this restriction might
   be lifted at some point.)
   `Uint` types with different upper bounds are different types,
@@ -369,16 +369,17 @@ The following are the primitive types of Compact:
   [Implementation-specific limits](#implementation-specific-limits).
 
 - `Uint<n>`, where `n` is a non-zero natural number literal or generic natural-number
-  parameter and bound to a non-zero natural number, is the type of
+  parameter bound to a non-zero natural number, is the type of
   *sized unsigned integer* values with binary representations using up to `n`
-  bits.  This is the same type as `Uint<0..m>` where `m` is equal to `(2^n)-1`.
+  bits.  This is the same type as `Uint<0..m>` where `m` is equal to `2^n`.
   Sized integer types can be seen as a convenience for programmers.  `Uint<32>`,
   for example, can be more obvious and less error-prone than the equivalent
   `Uint<0..4294967295>`.  Any Compact program that uses sized integer types can
   be rewritten to one that uses only bounded integer types, but the converse is
   not true.
 
-- `Field` is the type of elements in the scalar prime field of the ZK proving system.
+- `Field` represents the set of unsigned integer values up to the maximum value of
+  the scalar prime field of the ZK proving system.
   The current maximum field value is given in
   [Implementation-specific limits](#implementation-specific-limits).
 
@@ -408,7 +409,6 @@ The following are the primitive types of Compact:
 
 - `Opaque<s>`, where `s` is a string literal, is the type of _opaque_ values
   with tag `s`.
-  The syntax of string literals in Compact is the same as in TypeScript.
   `Opaque` types with different tags are different types.
   Opaque values can be manipulated in witnesses but they are opaque to circuits.
   They are represented in circuits as their hash.
@@ -982,7 +982,7 @@ a pathname ending in a directory separator, a definition for a module named
 - (b) at `{prefix/}M.compact` relative to the directory of the importing
   file or to one of the directories in the compact path.
 Details on the search order and the mechanism for setting the compact path are
-given in [Compiler Usage](reference/tools/compiler-usage.md).
+given in [Compiler Usage](../compilation-and-tooling/compiler-usage).
 
 In any of these cases, it is a static error if `M.compact` is not found, if it
 does not contain a definition for a module named `M`, or if it contains anything
@@ -1124,7 +1124,7 @@ string literal specifying a filesystem pathname for file to be included:
 of the including file, or one that is relative to one of the directories in the
 compact path.
 Details on the search order and the mechanism for setting the compact path are
-given in [Compiler Usage](reference/tools/compiler-usage.md).
+given in [Compiler Usage](../compilation-and-tooling/compiler-usage).
 
 It is a static error if the file is not present or cannot be read.
 If present and readable, the file must contain a sequence of syntactically
@@ -1298,7 +1298,7 @@ not have the same value when the proof is checked as when the transaction is
 created, the proof fails and the transaction is rejected.
 
 A comprehensive description of ledger-state types and operations can be found in
-the Compact [ledger data type documentation](./ledger-adt).
+the Compact [ledger data type documentation](ledger-adt).
 
 ### Nested state types in the `Map` type
 
@@ -2830,7 +2830,7 @@ circuit f(): ContractAddress {
 
 The static type of a kernel operation expression is the return type of the
 corresponding kernel operation according to the
-the Compact [ledger data type documentation](./ledger-adt).
+the Compact [ledger data type documentation](ledger-adt).
 
 Kernel operations are evaluated by evaluating the argument subexpressions in
 order from left to right and then invoking the corresponding kernel operation
@@ -2852,7 +2852,7 @@ described below in [Ledger-state-operation shorthands](#ledger-state-operation-s
 
 The static type of a ledger-state operation is the return type of the
 corresponding ledger-state operation according to the
-the Compact [ledger data type documentation](./ledger-adt).
+the Compact [ledger data type documentation](ledger-adt).
 This might be a Compact type or it might be a ledger-state type.
 A ledger-state operation whose return type is a ledger-state type *must* be
 chained, i.e., immediately subject to another ledger-state operation.
@@ -3102,7 +3102,7 @@ additional first parameter of type `runtime.CircuitContext<T>`, and their result
 type `R` is wrapped in `runtime.CircuitResults<T, R>`. For `Witnesses`, they
 receive an additional first parameter of type `runtime.WitnessContext<Ledger,
 T>`, and their result type `R` is wrapped in `[T, R]`. See the [runtime API
-docs](/docs/develop/reference/midnight-api/compact-runtime/README.md) for the
+docs](/api-reference/compact-runtime) for the
 details of these types. This wrapping makes the entirety of the contract code
 *functional*, ensuring calls have no hidden side effects.
 
@@ -3161,11 +3161,11 @@ See [here](ledger-adt).
 
 ### Runtime API
 
-See [here](/docs/develop/reference/midnight-api/compact-runtime/README.md)
+See [here](/api-reference/compact-runtime)
 
 ### Compiler usage
 
-See [here](reference/tools/compiler-usage).
+See [here](../compilation-and-tooling/compiler-usage).
 
 ### Explicit disclosure in Compact
 
@@ -3173,4 +3173,4 @@ See [here](explicit-disclosure).
 
 ### Writing a contract in Compact
 
-See [here](writing).
+See [here](../writing).
