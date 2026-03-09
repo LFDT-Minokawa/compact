@@ -34,6 +34,7 @@
                  <a>
                  <sup>
                  <em>
+                 <b>
                  <span>
                  <table>
                  <tr>
@@ -47,7 +48,7 @@
         [(#\>) "&gt;"]
         [(#\&) "&amp;"]
         [(#\{) "\\{"]   ; specific to mdx
-        [(#\{) "\\|"]   ; specific to mdx
+        [(#\|) "\\|"]   ; specific to mdx
         [(#\return) ""]
         [else c]))
     (define (html-text fmt . args)
@@ -78,29 +79,33 @@
         [(_ () b1 b2 ...)
          (begin
            (printf "# ")
-           b1 b2 ...)]))
+           b1 b2 ...
+           (newline))]))
     (define-syntax <h2>
       (syntax-rules ()
         [(_ () b1 b2 ...)
          (begin
            (printf "## ")
-           b1 b2 ...)]))
+           b1 b2 ...
+           (newline))]))
     (define-syntax <h3>
       (syntax-rules ()
         [(_ () b1 b2 ...)
          (begin
            (printf "### ")
-           b1 b2 ...)]))
+           b1 b2 ...
+           (newline))]))
     (define-syntax <h4>
       (syntax-rules ()
         [(_ () b1 b2 ...)
          (begin
            (printf "#### ")
-           b1 b2 ...)]))
+           b1 b2 ...
+           (newline))]))
     (define-syntax <p>
       (syntax-rules ()
         [(_ () b1 b2 ...)
-         (begin (newline) b1 b2 ...)]))
+         (begin (void) b1 b2 ... (newline))]))
     (define-syntax <a>
       (syntax-rules ()
         [(_ ([?href text]) b1 b2 ...)
@@ -121,6 +126,11 @@
         [(_ () b1 b2 ...)
          ; FIXME
          (begin (printf "*") b1 b2 ... (printf "*"))]))
+    (define-syntax <b>
+      (syntax-rules ()
+        [(_ () b1 b2 ...)
+         ; FIXME
+         (begin (printf "**") b1 b2 ... (printf "**"))]))
     (define-syntax <span>
       (syntax-rules ()
         [(_ (ignore ...) b1 b2 ...)
@@ -165,7 +175,7 @@
             (printf "|~{ ~a |~}\n" (map (lambda (w) (make-string w #\space)) w*))
             (printf "|~{~a|~}\n" (map (lambda (w) (make-string (fx+ w 2) #\-)) w*))
             (for-each (lambda (row) (printf "|~{ ~a |~}\n" row)) row*)
-            (printf "</div>\n")))
+            (printf "</div>\n\n")))
         (define-syntax <table>
           (syntax-rules ()
             [(_ () b1 b2 ...)

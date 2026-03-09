@@ -225,15 +225,14 @@
       (define (html-text-string x)
         (define (html-text-char c)
           (case c
-            [(#\<) "&lt;"]
-            [(#\>) "&gt;"]
-            [(#\&) "&amp;"]
-            [(#\{) "\\{"]   ; specific to mdx
-            [(#\|) "\\|"]   ; specific to mdx
+            ; [(#\<) "&lt;"]  ; html
+            ; [(#\>) "&gt;"]  ; html
+            ; [(#\&) "&amp;"] ; html
+            [(#\|) "\\|"]   ; mdx
             [(#\return) ""]
             [else c]))
         (format "~{~a~}" (map html-text-char (if (string? x) (string->list x) (list x)))))
-      (format "<b><tt>~a</tt></b>"
+      (format "`~a`"
         (cond
           [(pair? const)
            (assert (and (list? const)
@@ -282,29 +281,41 @@
     (GRAMMAR "Compact Grammar"
              (EVAL (let () (import (language-version)) (format "Compact language version ~a." language-version-string)))
              (HTML
-               "Notational note: In the grammar productions below, ellipses are used to specify repetition."
-               "The notation <em>X</em> ... <em>X</em>, where <em>X</em> is a grammar symbol, represents zero or more occurrences of <em>X</em>."
-               "The notation <em>X</em> <b><tt>,</tt></b> ... <b><tt>,</tt></b> <em>X</em>, where <em>X</em> is a grammar symbol and <b><tt>,</tt></b> is a separator, represents zero or more occurrences of <em>X</em> separated by <b><tt>,</tt></b>."
-               "In either case, when the ellipsis is marked with the superscript 1, the notation represents a sequence containing at least one <em>X</em>."
-               "When such a sequence is followed by <em>,</em><sup>opt</sup>, an optional trailing separator is allowed, but only if there is at least one <em>X</em>."
-               "For example, <em>id</em> &mldr; <em>id</em> represents zero or more <em>id</em>s, and <em>expr</em> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <em>expr</em> <b><tt>,</tt></b><sup>opt</sup> represents one or more comma-separated <em>expr</em>s possibly followed by an extra comma."
-               "There are two separators: comma and semicolon."))
+               "Notational note: In the grammar below, terminals are in `monospaced` font."
+               "Non-terminals are in *emphasized* font."
+               "Alternation is indicated by a vertical bar (`|`)."
+               "Optional items are indicated by the superscript <sup>opt</sup>."
+               "Repetition is specified by ellipses."
+               "The notation *X* &mldr; *X*, where *X* is a grammar symbol, represents zero"
+               "or more occurrences of *X*."
+               "The notation *X* `,` &mldr; `,` *X*, where *X* is a grammar symbol and"
+               "`,` is a literal comma, represents zero or more occurrences of *X*"
+               "separated by commas."
+               "In either case, when the ellipsis is marked with the superscript 1,"
+               "the notation represents a sequence containing at least one *X*."
+               "When such a sequence is followed by *,*<sup>opt</sup>, an optional"
+               "trailing comma is allowed, but only if there is at least one *X*."
+               "For example, *id* &mldr; *id* represents zero or more *id*s, and"
+               "*expr* `,` &mldr;&sup1; `,` *expr* `,`<sup>opt</sup> represents one"
+               "or more comma-separated *expr*s possibly followed by an extra comma."
+               "The rules involving commas apply equally to semicolons, i.e., apply when"
+               "`,` is replaced by `;`."))
     (TERMINALS
       (end-of-file (eof)
         (DESCRIPTION
-          ("end of file")))
+          ("End of file.")))
       (identifier (id module-name function-name struct-name enum-name contract-name tvar-name type-name)
         (DESCRIPTION
-          ("identifiers have the same syntax as Typescript identifiers")))
+          ("Identifiers have the same syntax as Typescript identifiers.")))
       (field-literal (nat)
         (DESCRIPTION
-          ("a field literal is 0 or a natural number formed from a sequence of digits starting with 1-9, e.g. 723, whose value does not exceed the maximum field value")))
+          ("A field literal is 0 or a natural number formed from a sequence of digits starting with 1-9, e.g. 723, whose value does not exceed the maximum field value.")))
       (string-literal (str file)
         (DESCRIPTION
-          ("a string literal has the same syntax as a Typescript string")))
+          ("A string literal has the same syntax as a Typescript string.")))
       (version-literal (version)
         (DESCRIPTION
-          ("a version literal takes the form nat or nat.nat or nat.nat.nat, e.g., 1.2 or 1.2.3, representing major, minor, and bugfix versions"))))
+          ("A version literal takes the form nat or nat.nat or nat.nat.nat, e.g., 1.2 or 1.2.3, representing major, minor, and bugfix versions."))))
     (Compact (program)
       [program :: src (K* pelt) eof =>
        (lambda (src pelt* eof)
