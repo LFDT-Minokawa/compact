@@ -110,26 +110,27 @@
       (syntax-rules ()
         [(_ ([?href text]) b1 b2 ...)
          (eq? (datum ?href) 'href)
-         ; FIXME
-         (begin b1 b2 ...)]
+         (begin
+           (printf "[")
+           b1 b2 ...
+           (printf "](~a)" text))]
         [(_ ([?name text]) b1 b2 ...)
          (eq? (datum ?name) 'name)
-         ; FIXME
-         (begin b1 b2 ...)]))
+         (begin
+           (printf "<a name=\"~a\">" text)
+           b1 b2 ...
+           (printf "</a>"))]))
     (define-syntax <sup>
       (syntax-rules ()
         [(_ () b1 b2 ...)
-         ; FIXME
          (begin (printf "<sup>") b1 b2 ... (printf "</sup>"))]))
     (define-syntax <em>
       (syntax-rules ()
         [(_ () b1 b2 ...)
-         ; FIXME
          (begin (printf "*") b1 b2 ... (printf "*"))]))
     (define-syntax <b>
       (syntax-rules ()
         [(_ () b1 b2 ...)
-         ; FIXME
          (begin (printf "**") b1 b2 ... (printf "**"))]))
     (define-syntax <span>
       (syntax-rules ()

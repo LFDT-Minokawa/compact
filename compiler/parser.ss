@@ -221,6 +221,31 @@
              (lambda (x)
                (and (memq (token-type x) '(punctuation binop))
                     (equal? (token-value x) '?k))))]))
+    #|
+    (import (html))
+    (meta define render-extension "html")
+    (meta define (constant->html const)
+      (define (html-text-string x)
+        (define (html-text-char c)
+          (case c
+            [(#\<) "&lt;"]  ; html
+            [(#\>) "&gt;"]  ; html
+            [(#\&) "&amp;"] ; html
+            ; [(#\|) "\\|"]   ; mdx
+            [(#\return) ""]
+            [else c]))
+        (format "~{~a~}" (map html-text-char (if (string? x) (string->list x) (list x)))))
+      (format "<tt>~a</tt>"
+        (cond
+          [(pair? const)
+           (assert (and (list? const)
+                        (= (length const) 2)
+                        (eq? (car const) 'KEYWORD)))
+           (cadr const)]
+          [else (html-text-string const)])))
+    |#
+    (import (markdown))
+    (meta define render-extension "mdx")
     (meta define (constant->html const)
       (define (html-text-string x)
         (define (html-text-char c)
@@ -278,9 +303,9 @@
 
   (define-grammar Compact
     (options (html-directory "doc") (first-match #f))
-    (GRAMMAR "Compact Grammar"
+    (GRAMMAR "Compact grammar"
              (EVAL (let () (import (language-version)) (format "Compact language version ~a." language-version-string)))
-             (HTML
+             (PRE
                "Notational note: In the grammar below, terminals are in `monospaced` font."
                "Non-terminals are in *emphasized* font."
                "Alternation is indicated by a vertical bar (`|`)."

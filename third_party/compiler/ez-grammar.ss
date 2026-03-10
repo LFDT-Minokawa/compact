@@ -39,6 +39,12 @@
 ;;;    meta (suppress-constant? syntax-object) -> boolean
 ;;;    meta (constant->parser constant) -> parser
 ;;;    meta (constant->html constant) -> html representation of constant
+;;;    meta render-extension -> string extension for "html" filenames
+;;;    module %html
+;;;
+;;; %html should support the features from the (html) library's %html module
+;;; that the renderer uses, but it doesn't actually have to produce HTML.
+;;; It could, for example, produce LaTeX or Markdown.
 
 ;;; This code also expects the lexical scope to include some operations on
 ;;; source objects, which should encapsulate both starting and ending file
@@ -394,9 +400,9 @@
         (protocol (lambda (new) (lambda (id) ((new #f) id)))))
       (define paragraph?
         (lambda (x)
-          (syntax-case x (include HTML EVAL)
+          (syntax-case x (include PRE EVAL)
             [(include filename) (string? (datum filename))]
-            [(HTML str ...) (andmap string? (datum (str ...)))]
+            [(PRE str ...) (andmap string? (datum (str ...)))]
             [(EVAL expr) #t]
             [(str ...) (andmap string? (datum (str ...)))]
             [else #f])))
@@ -601,7 +607,6 @@
         (or (hashtable-ref env id #f)
             (syntax-error id "unrecognized terminal or nonterminal")))
       (define (render-html name grammar htmlfn env)
-        (import (markdown))
         (import %html)
         (define (separators sep ls)
           (if (null? ls)
@@ -613,11 +618,11 @@
         (define (render-paragraph hard-leading-newline?)
           (lambda (paragraph)
             (<p> ()
-              (syntax-case paragraph (include HTML EVAL)
+              (syntax-case paragraph (include PRE EVAL)
                 [(include filename)
                  (string? (datum filename))
                  (display-string (call-with-port (open-input-file (datum filename)) get-string-all))]
-                [(HTML sentence ...)
+                [(PRE sentence ...)
                  (andmap string? (datum (sentence ...)))
                  (let ([sentence* (datum (sentence ...))])
                    (unless (null? sentence*)
@@ -687,9 +692,9 @@
                         [alias* (terminal-alias* term)])
                     (<h4> ()
                       (<a> ([name term])
-                        (printf "~a " term)
-                        (<span> ([style "font-weight: normal"]) 
-                          (printf "(~{~a~^, ~})" (map format-alias alias*))))))
+                        (printf "~a" term))
+                      (<span> ([style "font-weight: normal"]) 
+                        (printf " (~{~a~^, ~})" (map format-alias alias*)))))
                   (newline)
                   (for-each (render-paragraph #f) (terminal-paragraph* term)))
                 (terminal-clause-term* clause))
@@ -697,9 +702,9 @@
                     [alias* (map format-alias (clause-alias* clause))])
                 (<h4> ()
                   (<a> ([name nonterm])
-                    (printf "~a " (subscriptize nonterm))
-                    (<span> ([style "font-weight: normal"]) 
-                      (printf "(~{~a~^, ~})" (map format-alias alias*)))))
+                    (printf "~a" (subscriptize nonterm)))
+                  (<span> ([style "font-weight: normal"]) 
+                    (printf " (~{~a~^, ~})" (map format-alias alias*))))
                 (newline)
                 (for-each (render-paragraph #f) (clause-before-paragraph* clause))
                 (<table> ()
@@ -915,7 +920,7 @@
                       (mkdir htmldir))))
                 (for-each
                   (lambda (init-nt)
-                    (let ([htmlfn (format "~a/~a.html" htmldir (syntax->datum init-nt))])
+                    (let ([htmlfn (format "~a/~(~a~).~a" htmldir (syntax->datum init-nt) render-extension)])
                       (render-html init-nt grammar htmlfn env)))
                   #'(init-nt ...)))
               (with-syntax ([((lhs rhs) ...) (map nt-helper nonterminal-clause*)])
