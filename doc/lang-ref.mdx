@@ -2716,20 +2716,12 @@ The following rules govern when casts are allowed, when casts might cause run-ti
 errors, and casts might require run-time conversions.
 Any cast not covered by one of the rules is not allowed.
 
-!!!!!!!! TBD verify all of these claims -- Parisa
-
-!!!!!!!! TBD mention of cast of state-ledger types ?
-
-!!!!!!!! TBD ??? In meeting convo: Do we have all the cases for downcast? check the code in analysis pass to see if it does what the claims say. the downcast isn't correct, even the example isn't correct.
-
 #### Upcasts
 
 - Upcasts, i.e., casts from a type to a (supertype)[subtyping-and-least-upper-bounds]
   (e.g., from `Vector<3, Uint<8>>` to `Vector<3, Uint<16>>`), are always allowed
   (but never required), never result in run-time errors, and, except in the case
   where the type and the supertype are the same, might require run-time conversions.
-
-!!!!!!!! TBD Might want to mention other impliciations of this rule, such as rules for casting tuples to vectors and back
 
 #### Downcasts of `Field` and `Uint` types
 
@@ -3032,8 +3024,6 @@ representation length in bytes (almost always 1).
 
 ## TypeScript target
 
-!!!!!!!! TBD Parisa should check this section to verify it matches reality
- 
 When compiled, a contract generates several artifacts. Key to these
 are the exported circuits from the contract's top level. These are
 divided into two categories: [pure circuits and impure circuits](#pure-and-impure-circuits).
