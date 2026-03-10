@@ -250,7 +250,7 @@ Various entities, specifically
 [type-alias declarations](#type-aliases),
 [circuit definitions](#circuits),
 and
-[witness declarations](#declaring-witnesses-for-private-state),
+[witness declarations](#declaring-witnesses-for-private-state-management),
 can have *generic parameters*, i.e., compile-time type and numeric (natural-number)
 parameters whose values are given at the use site rather than fixed at the point
 of declaration.
@@ -1457,7 +1457,7 @@ that circuits cannot be recursive, either directly or indirectly.
 
 Compact supports two kinds of circuits: named circuits and anonymous circuits.
 Named circuits are described here, and anonymous circuits are described
-in [Circuits and witness calls](#circuits-and-witness-calls).
+in [Circuit and witness calls](#circuit-and-witness-calls).
 
 Named circuit definitions have the following syntax:
 
@@ -1687,7 +1687,7 @@ expression as described earlier in
 (Patterns and destructuring)[patterns-and-destructuring].
 
 Any variable bound by `const` may not be reused within a block, although a
-`const` binding in a nested block might [shadow it](#scope-and-binding).
+`const` binding in a nested block might [shadow it](#identifiers-bindings-and-scope).
 Variables are immutable, although the same variable might take on different values
 at different times if is contined within a block of code that is evaluated more
 than once, such as would be the case for the body of a `circuit` that is called
