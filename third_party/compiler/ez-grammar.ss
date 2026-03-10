@@ -920,7 +920,7 @@
                       (mkdir htmldir))))
                 (for-each
                   (lambda (init-nt)
-                    (let ([htmlfn (format "~a/~(~a~).~a" htmldir (syntax->datum init-nt) render-extension)])
+                    (let ([htmlfn (format "~a/~(~a~)-grammar.~a" htmldir (syntax->datum init-nt) render-extension)])
                       (render-html init-nt grammar htmlfn env)))
                   #'(init-nt ...)))
               (with-syntax ([((lhs rhs) ...) (map nt-helper nonterminal-clause*)])
