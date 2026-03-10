@@ -421,7 +421,7 @@ They can also define structural and nominal aliases for existing types.
 
 #### Structure types
 
-Structure types are defined via a `struct` declaration with the following form:
+Structure types are defined via `struct` declarations with the following form:
 
 <table className="lang-ref-table"><tbody><tr><td><em>struct-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>typed-identifier</em> <b><tt>;</tt></b> &mldr; <b><tt>;</tt></b> <em>typed-identifier</em> <b><tt>;</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr><tr><td>&nbsp;</td><td>|</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>struct</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>struct-name</em></a>&nbsp;&nbsp;<a href="#generic-parameters-and-arguments"><em>gparams</em></a><sup>opt</sup>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<em>typed-identifier</em> <b><tt>,</tt></b> &mldr; <b><tt>,</tt></b> <em>typed-identifier</em> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr>
 <tr><td><em>typed-identifier</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a>&nbsp;&nbsp;<b><tt>:</tt></b>&nbsp;&nbsp;<a href="#primitive-types"><em>type</em></a></td></tr></tbody></table>
@@ -523,23 +523,14 @@ export circuit doesntWork(s: Even): Odd {
 }
 ```
 
-Values of structure types are created with **structure-creation** expressions.
-These consist of the structure type (specialized if generic),
-followed by a sequence of field values enclosed in curly braces (`{ }`).
-Element values can be given positionally, in the same order as they are declared
-in the `struct` declaration; or they can be named using the element names from
-the declaration.
-Named element values can appear in any order.
-Positional and named element values can be mixed in the same structure creation
-expression, but all the positional ones must come before any of the named ones.
-See [Structure creation](#structure-creation) for the details.
-
-Using the example declarations above, structure values could be created with
-`Thing {[0, 1, 2], true}` or `NumberAnd<Uint<8>> { item: 255, num: 0 }`.
+Values of structure types are created with
+[**structure-creation** expressions](#structure-creation)
+and accessed via
+[**structure-member-access** expressions](#structure-member-access).
 
 #### Enumeration types
 
-Enumeration types are defined via a `enum` declaration with the following form:
+Enumeration types are defined via `enum` declarations with the following form:
 
 <table className="lang-ref-table"><tbody><tr><td><em>enum-declaration</em>&nbsp;</td><td>&rarr;</td><td>&nbsp;&nbsp;<b><tt>export</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>enum</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>enum-name</em></a>&nbsp;&nbsp;<b><tt>\{</tt></b>&nbsp;&nbsp;<a href="#identifier"><em>id</em></a> <b><tt>,</tt></b> &mldr;&sup1; <b><tt>,</tt></b> <a href="#identifier"><em>id</em></a> <b><tt>,</tt></b><sup>opt</sup>&nbsp;&nbsp;<b><tt>}</tt></b>&nbsp;&nbsp;<b><tt>;</tt></b><sup>opt</sup></td></tr></tbody></table>
 
@@ -561,9 +552,9 @@ names (in the same order) and distinct otherwise.
 
 #### Contract types
 
-As of this writing, declarations of contracts and the cross-contract calls they
-support are not yet fully implemented, but the keyword `contract` used to
-declare contracts is reserved for this use.
+Compact 1.0 does not fully implement declarations of contracts and the
+cross-contract calls they support, but the keyword `contract` used to declare
+contracts is reserved for this use.
 
 #### Type aliases
 
@@ -575,22 +566,28 @@ Within the scope of a type-alias declaration of *type-name* for *type*, *type-na
 is itself a type.
 Type aliases are either structural or nominal, depending on whether the optional
 `new` modifier is present:
+
 - A type alias *type-name* for *type* declared without the optional `new` modifier
   is a structural type alias, i.e., *type-name* is the same type and is fully
-  interchangeable with `type`.
+  interchangeable with *type*.
 - A type alias *type-name* for *type* declared with the optional `new` modifier is
   a nominal type alias, i.e., *type-name* is a distinct type compatible with *type*
   but neither a subtype of nor a supertype of *type* (or any other type).
 
 Any nominal type alias *type-name* for some type *type* is compatible with
 *type* in the following senses:
+
 - values of type *type-name* have the same representation as values of type *type*
 - values of type *type-name* can be used by primitive operations that require
   a value of type *type*
 - values of type *type-name* can be cast explicitly to *type*, and
 - values of type *type* can be cast explicitly to type *type-name*.
-For example, within the scope of `type V3U16 = Vector<3,
-Uint<16>>`, a value of type `V3U16` can be referenced or sliced just like a vector
+
+For example, within the scope of
+```compact
+new type V3U16 = Vector<3, Uint<16>>
+```
+a value of type `V3U16` can be referenced or sliced just like a vector
 of type `Vector<3, Uint<16>>`, but it cannot, for example, be passed to a function
 that expects a value of type `Vector<3, Uint<16>>` without an explicit cast.
 
