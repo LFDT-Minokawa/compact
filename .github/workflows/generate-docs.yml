@@ -7,7 +7,7 @@ on:
         description: 'Branch to grab docs from'
         required: true
         type: string
-        default: 'main'
+        default: 'release/midnight'
       docs_branch:
         description: 'Branch to merge with in midnight-docs'
         required: true
@@ -18,6 +18,11 @@ on:
         required: true
         type: string
         default: 'Example PR description for midnight-docs'
+      draft_pr:
+        description: 'Create PR as draft'
+        required: false
+        type: boolean
+        default: false
     secrets:
       MIDNIGHTCI_PACKAGES_READ:
         required: true
@@ -33,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest-16-core-x64
     steps:
       - name: Install Nix
-        uses: cachix/install-nix-action@2126ae7fc54c9df00dd18f7f18754393182c73cd # v31.9.1
+        uses: cachix/install-nix-action@19effe9fe722874e6d46dd7182e4b8b7a43c4a99 # v31.10.0
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
@@ -52,7 +57,7 @@ jobs:
       - name: Checkout compactc repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ needs.setup.outputs.branch }}
+          ref: ${{ inputs.branch }}
 
       - name: Setup .npmrc
         run: |
@@ -92,15 +97,16 @@ jobs:
 
           git checkout -b compact-docs-update-${{ github.run_id }}
 
-          cp ../doc/ledger-adt.mdx docs/_develop/_reference/compact
-          cp ../doc/lang-ref.mdx docs/_develop/_reference/compact
-          cp ../doc/api/CompactStandardLibrary/exports.md docs/_develop/_reference/compact/compact-std-library
-          cp ../doc/api/CompactStandardLibrary/README.md docs/_develop/_reference/compact/compact-std-library
-          cp ../doc/compiler-usage.md docs/_develop/_reference/tools/compiler-usage.mdx
-          cp -r ../doc/api/runtime/. ./docs/_develop/_reference/midnight-api/compact-runtime
-          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./docs/_develop/_reference/midnight-api/compact-runtime/README.md
+          cp ../doc/ledger-adt.mdx docs/compact/data-types
+          cp ../doc/lang-ref.mdx docs/compact/reference
+          cp ../doc/api/CompactStandardLibrary/exports.md docs/compact/standard-library
+          cp ../doc/api/CompactStandardLibrary/README.md docs/compact/standard-library
+          cp ../doc/compiler-usage.md docs/compact/compilation-and-tooling/compiler-usage.mdx
+          cp -r ../doc/api/runtime/. ./api-reference/compact-runtime
+          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./api-reference/compact-runtime/README.md
           cp -r ../doc/Compact.html ./static/language/compact.html
           cp -r ../doc/ledger-adt.mdx ./static/language/ledger-adt.mdx
+          # cp -r ../doc/all-keywords.html ./static/language/all-keywords.html
 
           git add .
           git commit -m "Update compact documentation"
@@ -110,9 +116,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
         run: |
+          DRAFT_FLAG=""
+          if [ "${{ inputs.draft_pr }}" = "true" ]; then
+            DRAFT_FLAG="--draft"
+          fi
           gh pr create \
             --repo midnightntwrk/midnight-docs \
             --base ${{ inputs.docs_branch }} \
             --head "compact-docs-update-${{ github.run_id }}" \
-            --title "compact - ${{ inputs.pr_description }}" \
-            --body 'PR: ${{ inputs.pr_description }}'
+            --title "${{ inputs.pr_description }}" \
+            --body 'PR: ${{ inputs.pr_description }}' \
+            $DRAFT_FLAG

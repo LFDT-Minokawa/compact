@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased toolchain 0.29.112, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- It is now a compiler error to pass Compact values containing opaque JS values
+  (`Opaque<'string'>` or `Opaque<'Uint8Array'>`) to the standard library
+  circuits `persistentHash` and `persistentCommit`.  Hashing such values does
+  not work in circuit due to the representation of these types.  Previously,
+  such code would crash the `zkir` process if it tried to generate prover and
+  verifier keys.  Now it is a compiler error instead.
+  
+  This also affects the standard library operation `merkleTreePathRoot` (because
+  it calls `persistentHash` in its implementation), and ledger `MerkleTree`
+  insertion operations, because they implicitly use `persistentHash`.
+  
+  This is a **breaking** change because the error is signaled early, and so it
+  is now an error to use any of these circuits or ADT operations, even for
+  circuits that don't need prover and verifier key generation which would
+  compile successfully before.
+
+## [Unreleased toolchain 0.29.112, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- The fixup tool now replaces references to the old standard-library type names
+  `CurvePoint` and `NativePoint` with `JubJubPoint`.  It also does a better job
+  of renaming standard-library circuits when it is safe to do so and explaining
+  why when it is not safe to do so.
+
+### Internal notes
+
+- The expand-modules-and-types code for function lookup is more modular and
+  easier to read.
+
+## [Unreleased toolchain 0.29.111, language 0.21.101, runtime 0.14.102]
+
+### Fixed
+
+- The `<=` and `>` operand evaluation order in the proof circuit is incorrect
+  (right-to-left rather than left-to-right).  It also differs from the evaluation
+  order in the generated JavaScript code, which can result in proof failures
+  when the operands are non-trivial.  This fix modifies the common upstream path
+  `infer-types` to enforce the correct evaluation order.
+
+## [Unreleased toolchain 0.29.110, language 0.21.101, runtime 0.14.102]
+
+### Fixed
+
+- There was an unreleased bug in ZKIR circuits (not in JS) where the
+  representation of the default `JubjubPoint` was wrong.  Fixing this entailed
+  allowing `default` in compiler IR from `Lflattened` and downstream in both
+  ZKIR v2 and v3 backends.
+
 ## [Unreleased toolchain 0.29.109, language 0.21.101, runtime 0.14.102]
 
 ### Changed

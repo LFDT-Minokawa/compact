@@ -3674,13 +3674,6 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "ledger A: Map<Field, Field>;"
       "module M2 {"
-      " // For now, at least, choosing not to warn about existing bindings for new"
-      " // names since doing so in a way that makes sense, particularly in the face"
-      " // of function overloading is complicated and expensive.  So no error for"
-      " // the following even though it shadows the new standard library binding for"
-      " // persistentHash, and no error for the refererence to persistent_hash below"
-      " // even though renaming it will have the effect of changing it to a reference"
-      " // to the local rather than standard-library binding"
       "  circuit persistentHash<a>(x: a): Bytes<32> { return default<Bytes<32>>; }"
       "  export circuit public_key(sk: Bytes<32>): Bytes<32> {"
       "    return persistent_hash<Vector<2, Bytes<32>>>([pad(32, 'welcome:pk:'), sk]);"
@@ -3689,7 +3682,7 @@ groups than for single tests.
       )
     (warning
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 11 char 3" "existing binding of ~s may lead to unintended shadowing of renamed standard-library circuit ~:*~s" (persistentHash)))
+      irritants: '("testfile.compact line 6 char 12" "not renaming reference of ~s to ~s because ~1:*~s has other bindings in scope" (persistent_hash persistentHash)))
     (output-file "compiler/testdir/fixup/testfile.compact"
       '(
         "import CompactStandardLibrary;"
@@ -3697,18 +3690,11 @@ groups than for single tests.
         "ledger A: Map<Field, Field>;"
         ""
         "module M2 {"
-        "  // For now, at least, choosing not to warn about existing bindings for new"
-        "  // names since doing so in a way that makes sense, particularly in the face"
-        "  // of function overloading is complicated and expensive.  So no error for"
-        "  // the following even though it shadows the new standard library binding for"
-        "  // persistentHash, and no error for the refererence to persistent_hash below"
-        "  // even though renaming it will have the effect of changing it to a reference"
-        "  // to the local rather than standard-library binding"
         "  circuit persistentHash<a>(x: a): Bytes<32> {"
         "    return default<Bytes<32>>;"
         "  }"
         "  export circuit public_key(sk: Bytes<32>): Bytes<32> {"
-        "    return persistentHash<Vector<2, Bytes<32>>>([pad(32, 'welcome:pk:'), sk]);"
+        "    return persistent_hash<Vector<2, Bytes<32>>>([pad(32, 'welcome:pk:'), sk]);"
         "  }"
         "}"))
     (returns
@@ -3725,7 +3711,7 @@ groups than for single tests.
                (tbytes 32)
             (block
               (return
-                (call (fref persistentHash (tvector 2 (tbytes 32)))
+                (call (fref persistent_hash (tvector 2 (tbytes 32)))
                   (tuple
                     #vu8(119 101 108 99 111 109 101 58 112 107 58 0 0 0 0 0 0 0
                          0 0 0 0 0 0 0 0 0 0 0 0 0 0)
@@ -3768,6 +3754,9 @@ groups than for single tests.
       "  }"
       "}"
       )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 12" "not renaming reference of ~s to ~s because ~2:*~s has other bindings in scope" (persistent_hash persistentHash)))
     (output-file "compiler/testdir/fixup/testfile.compact"
       '(
         "import CompactStandardLibrary;"
@@ -3847,6 +3836,276 @@ groups than for single tests.
         (circuit #t #f B () ([x (tunsigned 0 8)])
              (tfield)
           (block (return (call (fref A 12) x))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
+      "  return constructNativePoint(CurvePoint, NativePoint);"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "export circuit foo(x: JubjubPoint): JubjubPoint {"
+        "  const NativePoint = jubjubPointX(x), CurvePoint = jubjubPointY(x);"
+        "  return constructJubjubPoint(CurvePoint, NativePoint);"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "")
+        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
+             (type-ref JubjubPoint)
+          (block
+            (const ([NativePoint (tundeclared) (call jubjubPointX x)]
+                    [CurvePoint (tundeclared) (call jubjubPointY x)]))
+            (return
+              (call constructJubjubPoint CurvePoint NativePoint))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const std$NativePoint = std$nativePointX(x), std$CurvePoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(std$CurvePoint, std$NativePoint);"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary prefix std$;"
+        ""
+        "export circuit foo(x: std$JubjubPoint): std$JubjubPoint {"
+        "  const std$NativePoint = std$jubjubPointX(x), std$CurvePoint = std$jubjubPointY(x);"
+        "  return std$constructJubjubPoint(std$CurvePoint, std$NativePoint);"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "std$")
+        (circuit #t #f foo () ([x (type-ref std$JubjubPoint)])
+             (type-ref std$JubjubPoint)
+          (block
+            (const ([std$NativePoint (tundeclared) (call std$jubjubPointX x)]
+                    [std$CurvePoint (tundeclared) (call std$jubjubPointY x)]))
+            (return
+              (call std$constructJubjubPoint std$CurvePoint std$NativePoint))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
+      "  const JubjubPoint = NativePoint;"
+      "  return constructNativePoint(CurvePoint, JubjubPoint);"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "export circuit foo(x: JubjubPoint): JubjubPoint {"
+        "  const NativePoint = jubjubPointX(x), CurvePoint = jubjubPointY(x);"
+        "  const JubjubPoint = NativePoint;"
+        "  return constructJubjubPoint(CurvePoint, JubjubPoint);"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "")
+        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
+             (type-ref JubjubPoint)
+          (block
+            (const ([NativePoint (tundeclared) (call jubjubPointX x)]
+                    [CurvePoint (tundeclared) (call jubjubPointY x)]))
+            (const ([JubjubPoint (tundeclared) NativePoint]))
+            (return
+              (call constructJubjubPoint CurvePoint JubjubPoint))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const JubjubPoint = NativePointY(x);"
+      "  return constructNativePoint(JubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
+      "}"
+      )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 49" "not renaming reference of ~s to ~s because this would cause the reference to be captured by an existing local binding for ~:*~s" (NativePoint JubjubPoint)))
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "export circuit foo(x: JubjubPoint): JubjubPoint {"
+        "  const JubjubPoint = jubjubPointY(x);"
+        "  return constructJubjubPoint(JubjubPoint, ((x: NativePoint) => jubjubPointX(x))(x));"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "")
+        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
+             (type-ref JubjubPoint)
+          (block
+            (const ([JubjubPoint (tundeclared) (call jubjubPointY x)]))
+            (return
+              (call constructJubjubPoint
+                JubjubPoint
+                (call (circuit ([x (type-ref NativePoint)])
+                           (tundeclared)
+                        (block (return (call jubjubPointX x))))
+                  x)))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const constructJubjubPoint = NativePointY(x);"
+      "  return constructNativePoint(constructJubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
+      "}"
+      )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "not renaming reference of ~s to ~s because ~1:*~s has other bindings in scope" (constructNativePoint constructJubjubPoint)))
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "export circuit foo(x: JubjubPoint): JubjubPoint {"
+        "  const constructJubjubPoint = jubjubPointY(x);"
+        "  return constructNativePoint(constructJubjubPoint, ((x: JubjubPoint) => jubjubPointX(x))(x));"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "")
+        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
+             (type-ref JubjubPoint)
+          (block
+            (const ([constructJubjubPoint (tundeclared) (call jubjubPointY x)]))
+            (return
+              (call constructNativePoint
+                constructJubjubPoint
+                (call (circuit ([x (type-ref JubjubPoint)])
+                           (tundeclared)
+                        (block (return (call jubjubPointX x))))
+                  x)))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const std$JubjubPoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(std$JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
+      "}"
+      )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 57" "not renaming reference of ~s to ~s because this would cause the reference to be captured by an existing local binding for ~:*~s" (std$NativePoint std$JubjubPoint)))
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary prefix std$;"
+        ""
+        "export circuit foo(x: std$JubjubPoint): std$JubjubPoint {"
+        "  const std$JubjubPoint = std$jubjubPointY(x);"
+        "  return std$constructJubjubPoint(std$JubjubPoint, ((x: std$NativePoint) => std$jubjubPointX(x))(x));"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "std$")
+        (circuit #t #f foo () ([x (type-ref std$JubjubPoint)])
+             (type-ref std$JubjubPoint)
+          (block
+            (const ([std$JubjubPoint (tundeclared) (call std$jubjubPointY x)]))
+            (return
+              (call std$constructJubjubPoint
+                std$JubjubPoint
+                (call (circuit ([x (type-ref std$NativePoint)])
+                           (tundeclared)
+                        (block (return (call std$jubjubPointX x))))
+                  x)))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const JubjubPoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary prefix std$;"
+        ""
+        "export circuit foo(x: std$JubjubPoint): std$JubjubPoint {"
+        "  const JubjubPoint = std$jubjubPointY(x);"
+        "  return std$constructJubjubPoint(JubjubPoint, ((x: std$JubjubPoint) => std$jubjubPointX(x))(x));"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "std$")
+        (circuit #t #f foo () ([x (type-ref std$JubjubPoint)])
+             (type-ref std$JubjubPoint)
+          (block
+            (const ([JubjubPoint (tundeclared) (call std$jubjubPointY x)]))
+            (return
+              (call std$constructJubjubPoint
+                JubjubPoint
+                (call (circuit ([x (type-ref std$JubjubPoint)])
+                           (tundeclared)
+                        (block (return (call std$jubjubPointX x))))
+                  x)))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo<T>(x: T): CurvePoint {"
+      "  const a = nativePointX(x), b = NativePointY(x);"
+      "  return constructNativePoint(a, b);"
+      "}"
+      "circuit bar(x: NativePoint): CurvePoint {"
+      "  return foo<NativePoint>(x);"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "circuit foo<T>(x: T): JubjubPoint {"
+        "  const a = jubjubPointX(x), b = jubjubPointY(x);"
+        "  return constructJubjubPoint(a, b);"
+        "}"
+        ""
+        "circuit bar(x: JubjubPoint): JubjubPoint {"
+        "  return foo<JubjubPoint>(x);"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "")
+        (circuit #f #f foo (T) ([x (type-ref T)])
+             (type-ref JubjubPoint)
+          (block
+            (const ([a (tundeclared) (call jubjubPointX x)]
+                    [b (tundeclared) (call jubjubPointY x)]))
+            (return (call constructJubjubPoint a b))))
+        (circuit #f #f bar () ([x (type-ref JubjubPoint)])
+             (type-ref JubjubPoint)
+          (block
+            (return (call (fref foo (type-ref JubjubPoint)) x))))))
     )
 )
 
@@ -10099,7 +10358,7 @@ groups than for single tests.
         (circuit %S.0 ([%q.3 (tfield)]) (tfield) %q.3)
         (circuit %T.1 ([%q.4 (tfield)])
              (tfield)
-          (call (fref ((%S.2 %S.0))) %q.4))))
+          (call (fref ((%S.0 %S.2))) %q.4))))
   )
 
   (test
@@ -10286,16 +10545,16 @@ groups than for single tests.
           (call (fref ((%W.10))) (call (fref ((%S.14))) %q.23)))
         (circuit %foo1.0 ([%x.24 (tfield)])
              (tboolean)
-          (call (fref ((%T.18 %T.16))) %x.24))
+          (call (fref ((%T.16 %T.18))) %x.24))
         (circuit %foo2.1 ([%x.25 (tfield)])
              (tfield)
-          (call (fref ((%T.22 %T.20))) %x.25))
+          (call (fref ((%T.20 %T.22))) %x.25))
         (circuit %foo3.2 ([%x.26 (tboolean)])
              (tboolean)
-          (call (fref ((%T.18 %T.16))) %x.26))
+          (call (fref ((%T.16 %T.18))) %x.26))
         (circuit %foo4.3 ([%x.27 (tboolean)])
              (tfield)
-          (call (fref ((%T.22 %T.20))) %x.27))))
+          (call (fref ((%T.20 %T.22))) %x.27))))
     )
 
   (test
@@ -13491,6 +13750,186 @@ groups than for single tests.
        irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
      ))
   )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
+      "  return constructNativePoint(CurvePoint, NativePoint);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 53" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const std$NativePoint = std$nativePointX(x), std$CurvePoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(std$CurvePoint, std$NativePoint);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 41" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$CurvePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 27" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$nativePointX std$jubjubPointX))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 65" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePointY std$jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$constructNativePoint std$constructJubjubPoint)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
+      "  const JubjubPoint = NativePoint;"
+      "  return constructNativePoint(CurvePoint, JubjubPoint);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 53" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const JubjubPoint = NativePointY(x);"
+      "  return constructNativePoint(JubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 49" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 65" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const constructJubjubPoint = NativePointY(x);"
+      "  return constructNativePoint(constructJubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 32" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 58" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 74" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const std$JubjubPoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(std$JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 41" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$CurvePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 27" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePointY std$jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$constructNativePoint std$constructJubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 57" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 77" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$nativePointX std$jubjubPointX)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const JubjubPoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 41" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$CurvePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePointY std$jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$constructNativePoint std$constructJubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 53" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 73" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$nativePointX std$jubjubPointX)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo<T>(x: T): JubjubPoint {"
+      "  const a = jubjubPointX(x), b = jubjubPointY(x);"
+      "  return constructJubjubPoint(a, b);"
+      "}"
+      "circuit bar(x: JubjubPoint): JubjubPoint {"
+      "  return foo<NativePoint>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 14" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint)))
+    )
 )
 
 (run-tests infer-types
@@ -23402,6 +23841,120 @@ groups than for single tests.
         (export-typedef SY (T)
           (tstruct SY (curidx (tunsigned 0))))))
     )
+
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  hash = disclose(persistentHash<Opaque<'string'>>(msg));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(arr: Opaque<'Uint8Array'>): [] {"
+      "  hash = disclose(persistentHash<Opaque<'Uint8Array'>>(arr));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Opaque<\"Uint8Array\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "struct LabeledField {"
+      "  label: Opaque<'string'>;"
+      "  field: Field;"
+      "}"
+      "export circuit fisk(lf: LabeledField): [] {"
+      "  hash = disclose(persistentHash<LabeledField>(lf));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "struct LabeledField<label: Opaque<\"string\">, field: Field>")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(msgs: Vector<10, Opaque<'string'>>): [] {"
+      "  hash = disclose(persistentHash<Vector<10, Opaque<'string'>>>(msgs));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Vector<10, Opaque<\"string\">>")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "new type Messages = Vector<10, Opaque<'string'>>;"
+      "export circuit fisk(msgs: Messages): [] {"
+      "  hash = disclose(persistentHash<Messages>(msgs));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Messages")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  hash = disclose(persistentCommit<Opaque<'string'>>(msg, hash));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentCommit "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger mt: MerkleTree<10, Opaque<'string'>>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  mt.insert(disclose(msg));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 5" "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (MerkleTree insert "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger mt: MerkleTree<10, Opaque<'string'>>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  mt.insertIndex(disclose(msg), 21);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 5" "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (MerkleTree insertIndex "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger mt: HistoricMerkleTree<10, Opaque<'string'>>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  mt.insert(disclose(msg));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 5" "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (HistoricMerkleTree insert "Opaque<\"string\">")))
+    )
 )
 
 ; tests limits for vectors, bytes, and tuples.
@@ -24749,7 +25302,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 37" "~s ~s requires ~s argument~:*~p but received ~s" (__compact_Cell write 1 0)))
+      irritants: '("testfile.compact line 4 char 37" "~a ~a requires ~a argument~:*~p but received ~a" (__compact_Cell write 1 0)))
     )
 
   (test
@@ -24761,7 +25314,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 44" "~s ~s requires ~s argument~:*~p but received ~s" (__compact_Cell read 0 1)))
+      irritants: '("testfile.compact line 4 char 44" "~a ~a requires ~a argument~:*~p but received ~a" (__compact_Cell read 0 1)))
     )
 
   (test
@@ -24785,7 +25338,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 37" "~s ~s requires ~s argument~:*~p but received ~s" (__compact_Cell write 1 2)))
+      irritants: '("testfile.compact line 4 char 37" "~a ~a requires ~a argument~:*~p but received ~a" (__compact_Cell write 1 2)))
     )
 
   (test
@@ -38089,57 +38642,65 @@ groups than for single tests.
           (= %t.76 (public-ledger #t %field5.6 (5) resetToDefault))
           (= %t.77 (public-ledger #t %field6.7 (6) resetToDefault))
           (= %value.78 (public-ledger #t %kernel.0 () self))
-          (= %tmp.79
+          (= %t.79
+             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
+          (= %tmp.80
              (new (tstruct Either
                     (is_left (tboolean))
                     (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                     (right (tstruct ContractAddress (bytes (tbytes 32)))))
                #f
-               (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+               %t.79
                %value.78))
-          (= %t.80
-             (public-ledger #t %field7.8 (7) writeCoin %ci.14 %tmp.79))
-          (= %t.81 (public-ledger #t %field8.9 (8) resetToDefault))
-          (= %value.82 (public-ledger #t %kernel.0 () self))
-          (= %tmp.83
-             (new (tstruct Either
-                    (is_left (tboolean))
-                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-               #f
-               (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               %value.82))
+          (= %t.81
+             (public-ledger #t %field7.8 (7) writeCoin %ci.14 %tmp.80))
+          (= %t.82 (public-ledger #t %field8.9 (8) resetToDefault))
+          (= %value.83 (public-ledger #t %kernel.0 () self))
           (= %t.84
-             (public-ledger #t %field8.9 (8) insertCoin %ci.14 %tmp.83))
-          (= %t.85 (public-ledger #t %field9.10 (9) resetToDefault))
-          (= %value.86 (public-ledger #t %kernel.0 () self))
-          (= %tmp.87
+             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
+          (= %tmp.85
              (new (tstruct Either
                     (is_left (tboolean))
                     (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                     (right (tstruct ContractAddress (bytes (tbytes 32)))))
                #f
-               (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               %value.86))
-          (= %t.88
+               %t.84
+               %value.83))
+          (= %t.86
+             (public-ledger #t %field8.9 (8) insertCoin %ci.14 %tmp.85))
+          (= %t.87 (public-ledger #t %field9.10 (9) resetToDefault))
+          (= %value.88 (public-ledger #t %kernel.0 () self))
+          (= %t.89
+             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
+          (= %tmp.90
+             (new (tstruct Either
+                    (is_left (tboolean))
+                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
+               #f
+               %t.89
+               %value.88))
+          (= %t.91
              (public-ledger #t %field9.10 (9) insertCoin
                %x.13
                %ci.14
-               %tmp.87))
-          (= %t.89 (public-ledger #t %field10.11 (10) resetToDefault))
-          (= %value.90 (public-ledger #t %kernel.0 () self))
-          (= %tmp.91
+               %tmp.90))
+          (= %t.92 (public-ledger #t %field10.11 (10) resetToDefault))
+          (= %value.93 (public-ledger #t %kernel.0 () self))
+          (= %t.94
+             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
+          (= %tmp.95
              (new (tstruct Either
                     (is_left (tboolean))
                     (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                     (right (tstruct ContractAddress (bytes (tbytes 32)))))
                #f
-               (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               %value.90))
-          (= %t.92
+               %t.94
+               %value.93))
+          (= %t.96
              (public-ledger #t %field10.11 (10) pushFrontCoin
                %ci.14
-               %tmp.91))
+               %tmp.95))
           %q.22)))
     )
 
@@ -46068,6 +46629,40 @@ groups than for single tests.
           (= %t.1 (== %ix.0 0))
           (%t.1))))
     )
+  ;; Unused `default`.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger impure: Boolean;"
+      "export circuit fisk(pt: JubjubPoint): JubjubPoint {"
+      "  impure = true;"
+      "  const pt0 = default<JubjubPoint>;"
+      "  const pt1 = ecAdd(pt, pt);"
+      "  return pt1;"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration
+          ((%impure.1
+             (0)
+             (__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))
+        (native %ecAdd.2 ((argument
+                            (%a.3 %a.4)
+                            (ty ((afield) (afield)) ((tfield) (tfield))))
+                          (argument
+                            (%b.5 %b.6)
+                            (ty ((afield) (afield)) ((tfield) (tfield)))))
+             (ty ((afield) (afield)) ((tfield) (tfield))))
+        (circuit %fisk.7 ((argument
+                            (%pt.8 %pt.9)
+                            (ty ((afield) (afield)) ((tfield) (tfield)))))
+             (ty ((afield) (afield)) ((tfield) (tfield)))
+          (= () (public-ledger 1 %impure.1 (0) write 1))
+          (= (%pt1.10 %pt1.11)
+             (call 1 %ecAdd.2 %pt.8 %pt.9 %pt.8 %pt.9))
+          (%pt1.10 %pt1.11)))))
 )
 
 (run-tests print-zkir
@@ -55114,7 +55709,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit three(): [S, Bytes<32>] {"
-      "  return [field0, persistentHash<Opaque<'string'>>(field1)];"
+      "  return [field0, persistentHash<S>(field0)];"
       "}"
      )
     (succeeds)
@@ -57273,7 +57868,50 @@ groups than for single tests.
         "  ]"
         "}"))
     )
-)
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger impure: Boolean;"
+      "export circuit fisk(): JubjubPoint {"
+      "  impure = true;"
+      "  const pt = default<JubjubPoint>;"
+      "  return ecAdd(pt, pt);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/fisk.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 0,"
+        "  \"instructions\": ["
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
+        "    { \"op\": \"ec_add\", \"a_x\": 2, \"a_y\": 0, \"b_x\": 2, \"b_y\": 0 },"
+        "    { \"op\": \"output\", \"var\": 5 },"
+        "    { \"op\": \"output\", \"var\": 6 }"
+        "  ]"
+        "}"))
+    )
+  )
 
 (parameterize ([feature-zkir-v3 #t])
 (run-tests print-zkir-v3
@@ -57721,7 +58359,7 @@ groups than for single tests.
         "    { \"op\": \"encode\", \"outputs\": [\"%t.4\", \"%ingore.5\"], \"input\": \"%p2.1\" },"
         "    { \"op\": \"transient_hash\", \"output\": \"%t.6\", \"inputs\": [\"%t.2\", \"%t.4\"] },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.7\", \"a\": \"%p1.0\", \"scalar\": \"%t.6\" },"
-        "    { \"op\": \"ec_mul_generator\", \"outputs\": \"%t.8\", \"scalar\": \"0x11\" },"
+        "    { \"op\": \"ec_mul_generator\", \"output\": \"%t.8\", \"scalar\": \"0x11\" },"
         "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.7\", \"b\": \"%t.8\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
@@ -62171,7 +62809,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit three(): [S, Bytes<32>] {"
-      "  return [field0, persistentHash<Opaque<'string'>>(field1)];"
+      "  return [field0, persistentHash<S>(field0)];"
       "}"
      )
     (succeeds)
@@ -63614,6 +64252,32 @@ groups than for single tests.
         "    { \"op\": \"private_input\", \"type\": \"Point<Jubjub>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.2\", \"a\": \"%t.1\", \"scalar\": \"%scalar.0\" },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger impure: Boolean;"
+      "export circuit fisk(): JubjubPoint {"
+      "  impure = true;"
+      "  const pt = default<JubjubPoint>;"
+      "  return ecAdd(pt, pt);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/fisk.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%pt.0\", \"inputs\": [\"0x00\", \"0x01\"] },"
+        "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%pt.0\", \"b\": \"%pt.0\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
         "}"))
     )
@@ -78873,6 +79537,41 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger count: Counter;"
+      ""
+      "witness get_a(): Uint<8>;"
+      "witness get_b(): Uint<8>;"
+      ""
+      "export circuit test1(): Boolean {"
+      "  count.increment(1);"
+      "  return disclose(get_a()) > disclose(get_b());"
+      "}"
+      "export circuit test2(): Boolean {"
+      "  count.increment(1);"
+      "  return disclose(get_a()) <= disclose(get_b());"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "const witnesses1 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; } };"
+        "const witnesses2 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; } };"
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, witnesses1, 0);"
+        "  expect(C.circuits.test1(Ctxt).result).toEqual(false);"
+        "  expect(C.circuits.test2(Ctxt).result).toEqual(true);"
+        "});"
+        "test('check 2', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, witnesses2, 0);"
+        "  expect(C.circuits.test1(Ctxt).result).toEqual(true);"
+        "  expect(C.circuits.test2(Ctxt).result).toEqual(false);"
+        "});"
+        ))
     )
 )
 

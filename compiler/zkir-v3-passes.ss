@@ -665,6 +665,10 @@
          (code-generator var-name* src test triv* instr*))]
       [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...))
        (source-errorf src "cross-contract calls are not yet supported")]
+      [(= (,var-name) (default ,opaque-type))
+       (assert (string=? opaque-type "JubjubPoint"))
+       (with-output-language (Lzkir Instruction)
+         (cons `(decode "Point<Jubjub>" ,var-name 0 1) instr*))]
       [(= (,var-name0 ,var-name1) (field->bytes ,src ,test ,len ,triv))
        ;; TODO(kmillikin): this needs to respect test because `constrain_bits` can fail.
        (with-output-language (Lzkir Instruction)
@@ -882,7 +886,7 @@
       [(ec_mul ,[* outp] ,[* inp0] ,[* inp1])
        `((op . "ec_mul") (output . ,outp) (a . ,inp0) (scalar . ,inp1))]
       [(ec_mul_generator ,[* outp] ,[* inp])
-       `((op . "ec_mul_generator") (outputs . ,outp) (scalar . ,inp))]
+       `((op . "ec_mul_generator") (output . ,outp) (scalar . ,inp))]
       [(encode ,outp0 ,outp1 ,[* inp])
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
          `((op . "encode") (outputs . ,(vector outp0 outp1)) (input . ,inp)))]

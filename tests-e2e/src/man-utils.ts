@@ -17,6 +17,7 @@ import { isRelease } from './test-utils';
 import { getFileContent } from './file-utils';
 
 export const VERSION_REGEX = /(\d+)\.(\d+).(\d+)/;
+export const LEDGER_VERSION_REGEX = /([\w]+-)?(\d+)\.(\d+)\.(\d+)(-[\w.]+)?/;
 
 export const HELP_REGEX = new RegExp(
     `${compilerUsageMessageHeader()} <flag> ... <source-pathname> <target-directory-pathname>\n.*--help displays detailed usage information`,

@@ -39,7 +39,7 @@ describe('[JubJubPoint] [PM-21110] Switch from the CurvePoint to JubjubPoint', (
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_one.compact line 19 char 21: unbound identifier CurvePoint',
+                'Exception: example_one.compact line 19 char 21: apparent use of an old standard-library / ledger operator name CurvePoint: the new name is JubjubPoint',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
@@ -52,7 +52,8 @@ describe('[JubJubPoint] [PM-21110] Switch from the CurvePoint to JubjubPoint', (
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_two.compact line 19 char 27: unbound identifier CurvePoint',
+                'Exception: example_two.compact line 19 char 27: apparent use of an old standard-library / ledger operator name CurvePoint: the new name is JubjubPoint\n' +
+                'Exception: example_two.compact line 19 char 48: apparent use of an old standard-library / ledger operator name CurvePoint: the new name is JubjubPoint',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
@@ -78,7 +79,7 @@ describe('[JubJubPoint] [PM-21110] Switch from the CurvePoint to JubjubPoint', (
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_four.compact line 19 char 21: unbound identifier NativePoint',
+                'Exception: example_four.compact line 19 char 21: apparent use of an old standard-library / ledger operator name NativePoint: the new name is JubjubPoint',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();

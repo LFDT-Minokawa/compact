@@ -1,42 +1,51 @@
-name: Build, test and release compactc
+name: Build, test and internal release compact toolchain
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. v1.2.3 or v1.2.3-rc.1)'
+        description: 'Toolchain version (e.g. v1.2.3-rc.1, v1.2.3-alpha.0)'
         required: true
         type: string
       branch:
         description: 'Branch to use for release'
         required: true
-        type: string
-        default: 'main'
-      skip_macos_intel:
-        description: 'Skip MacOS Intel build'
+        type: choice
+        default: 'release/midnight'
+        options:
+          - main
+          - release/midnight
+      include_macos_intel:
+        description: 'Include MacOS Intel build'
         required: true
         type: boolean
-        default: false
+        default: true
+      include_release_notes:
+        description: 'Include release notes in artifact zip files'
+        required: true
+        type: boolean
+        default: true
       docs:
-        description: 'Create branch with documentation'
+        description: 'Create branch with documentation in midnight-docs'
         required: true
         type: boolean
-        default: false
+        default: true
       docs_branch:
         description: 'Branch to merge with in midnight-docs'
         required: true
         type: string
         default: 'main'
       pr_description:
-        description: 'PR description for docs'
+        description: 'Draft PR description for docs'
         required: true
         type: string
-        default: 'Example PR description for midnight-docs'
-      create_release:
-        description: 'Create a release?'
-        required: false
-        type: boolean
-        default: true
+        default: 'Compact toolchain docs copied to midnight-docs'
+
+  pull_request:
+    branches:
+      - main
+      - release/midnight
+    types: [labeled, synchronize]
 
   schedule:
     - cron: '0 */12 * * *'
@@ -47,6 +56,9 @@ concurrency:
 
 jobs:
   setup:
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'run-release-workflow')
     name: Setup the variables
     runs-on: ubuntu-latest
     outputs:
@@ -56,6 +68,8 @@ jobs:
       linux_x86: ${{ steps.linux_x86.outputs.name }}
       macos_arm: ${{ steps.macos_arm.outputs.name }}
       macos_x86: ${{ steps.macos_x86.outputs.name }}
+      release_notes_file: ${{ steps.release_notes.outputs.file }}
+      release_notes_flag: ${{ steps.release_notes_flag.outputs.include }}
     steps:
       - name: Determine branch
         id: set_branch
@@ -91,50 +105,66 @@ jobs:
         id: macos_x86
         run: echo "name=x86_64-darwin" >> "$GITHUB_OUTPUT"
 
-  check-docs:
-    name: Check if documentation is updated
+      - name: Compute release notes path
+        id: release_notes
+        run: |
+          VERSION="${{ inputs.version }}"
+          # Extract just the major.minor.patch part (strip leading 'v' and any suffix like -rc.0)
+          CLEAN_VERSION=$(echo "$VERSION" | sed 's/^v//' | sed 's/-.*//')
+          echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
+
+      - name: Set release notes include flag
+        id: release_notes_flag
+        run: |
+          if [ "${{ inputs.include_release_notes }}" = "true" ] && [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "include=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "include=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check format of internal release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          INTERNAL="${{ inputs.version }}"
+          if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-.+$ ]]; then
+            echo "::error::version must match v*.*.*-* format (e.g. v1.2.3-rc.1), got: $INTERNAL"
+            exit 1
+          fi
+          echo "Internal version format is valid: $INTERNAL"
+
+  check-release-notes-exist:
+    name: Check if release notes file exists
     runs-on: ubuntu-latest
     needs: [ setup ]
     steps:
       - name: Checkout compactc repository
+        if: ${{ inputs.include_release_notes && github.event_name == 'workflow_dispatch' }}
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
-      - name: Check compiler and language versions in internal documentation
+      - name: Verify release notes file exists
+        if: ${{ inputs.include_release_notes && github.event_name == 'workflow_dispatch' }}
         run: |
-          # check compiler version
-          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
-          DOCS_COMPILER=$(grep -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
-
-          echo "Compiler version: $COMPILER_VERSION"
-          echo "Compiler version in docs: $DOCS_COMPILER"
-
-          if [ "$COMPILER_VERSION" != "$DOCS_COMPILER" ]; then
-            echo "Compiler version mismatch, please update"
+          if [ ! -f "${{ needs.setup.outputs.release_notes_file }}" ]; then
+            echo "::error::Release notes file '${{ needs.setup.outputs.release_notes_file }}' not found on branch '${{ needs.setup.outputs.branch }}'"
             exit 1
           fi
+          echo "Release notes file found: ${{ needs.setup.outputs.release_notes_file }}"
 
-          echo "Compiler versions match"
-
-          # check language version
-          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
-          DOCS_LANGUAGE=$(grep -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
-
-          echo "Language version: $LANGUAGE_VERSION"
-          echo "Language version in docs: $DOCS_LANGUAGE"
-
-          if [ "$LANGUAGE_VERSION" != "$DOCS_LANGUAGE" ]; then
-            echo "Language versions mismatch, please update"
-            exit 1
-          fi
-
-          echo "Language versions match"
+  check-docs:
+    name: Check if documentation is updated
+    if: ${{ inputs.docs && github.event_name == 'workflow_dispatch' }}
+    needs: [ setup ]
+    uses: ./.github/workflows/check-docs.yml
+    secrets: inherit
+    with:
+      branch: ${{ needs.setup.outputs.branch }}
 
   build-release-arm-linux:
     name: Build compactc binary for Linux aarch64 (Arm)
     uses: ./.github/workflows/release-build.yml
-    needs: [ setup, check-docs ]
+    needs: [ setup, check-release-notes-exist ]
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -143,12 +173,14 @@ jobs:
       platform: ubuntu-24.04-arm
       architecture: ${{ needs.setup.outputs.linux_arm }}
       buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
+      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       skipCache: false
 
   build-release-intel-linux:
     name: Build compactc binary for Linux x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
-    needs: [ setup, check-docs ]
+    needs: [ setup, check-release-notes-exist ]
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -157,12 +189,14 @@ jobs:
       platform: ubuntu-latest
       architecture: ${{ needs.setup.outputs.linux_x86 }}
       buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
+      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       skipCache: false
 
   build-release-arm-macos:
     name: Build compactc binary for macOS aarch64 (Arm)
     uses: ./.github/workflows/release-build.yml
-    needs: [ setup, check-docs ]
+    needs: [ setup, check-release-notes-exist ]
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -171,13 +205,15 @@ jobs:
       platform: macos-latest-xlarge
       architecture: ${{ needs.setup.outputs.macos_arm }}
       buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
+      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       skipCache: false
 
   build-release-intel-macos:
     name: Build compactc binary for macOS x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
-    needs: [ setup, check-docs ]
-    if: ${{ !inputs.skip_macos_intel && github.event_name != 'schedule' }}
+    needs: [ setup, check-release-notes-exist ]
+    if: ${{ (github.event_name == 'pull_request') || (inputs.include_macos_intel && github.event_name != 'schedule') }}
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -186,6 +222,8 @@ jobs:
       platform: macos-15-intel
       architecture: ${{ needs.setup.outputs.macos_x86 }}
       buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
+      release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       skipCache: true
 
   test-arm-linux:
@@ -238,60 +276,112 @@ jobs:
 
   make-release:
     name: Create GitHub release associated with tag
+    if: ${{ always() && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     needs: [ setup, test-arm-linux, test-intel-linux, test-arm-macos, test-intel-macos ]
     steps:
+      - name: Verify required builds passed
+        run: |
+          if [ "${{ needs.test-arm-linux.result }}" != "success" ] || \
+             [ "${{ needs.test-intel-linux.result }}" != "success" ] || \
+             [ "${{ needs.test-arm-macos.result }}" != "success" ]; then
+            echo "::error::One or more required builds/tests failed."
+            exit 1
+          fi
+          if [ "${{ needs.test-intel-macos.result }}" != "success" ] && \
+             [ "${{ needs.test-intel-macos.result }}" != "skipped" ]; then
+            echo "::error::Intel macOS build/test failed."
+            exit 1
+          fi
+          echo "All required builds and tests passed."
+
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
       - name: Create and push tag
-        if: ${{ inputs.create_release && github.event_name != 'schedule' }}
         run: |
           git tag ${{ inputs.version }}
           git push origin ${{ inputs.version }}
 
       - name: Fetch release assets - Linux aarch64 (Arm)
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: linux-release-aarch64
 
       - name: Fetch release assets - Linux x86_64 (Intel)
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: linux-release-x86_64
 
       - name: Fetch release assets - Macos aarch64 (Arm)
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: macos-release-aarch64
 
       - name: Fetch release assets - Macos x86_64 (Intel)
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        if: ${{ needs.test-intel-macos.result == 'success' }}
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: macos-release-x86_64
 
       - name: Create Release
-        if: ${{ inputs.create_release && github.event_name != 'schedule' }}
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           repository: midnight-ntwrk/artifacts
           tag_name: compactc-${{ inputs.version || github.ref_name }}
-          name: Compactc ${{ inputs.version || github.ref_name }}
+          name: Compact toolchain ${{ inputs.version || github.ref_name }}
           draft: false
           prerelease: false
           files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
           token: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
-          body: Compactc ${{ inputs.version || github.ref_name }}
+          body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
+          body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
   generate-docs-after-release:
-    if: ${{ inputs.docs }}
+    if: ${{ always() && inputs.docs && github.event_name == 'workflow_dispatch' && needs.make-release.result == 'success' }}
     name: Create branch in midnight-docs with latest documentation
-    needs: [ setup, make-release ]
+    needs: [ setup, check-docs, make-release ]
     uses: ./.github/workflows/generate-docs.yml
     secrets: inherit
     with:
       branch: ${{ needs.setup.outputs.branch }}
       docs_branch: ${{ inputs.docs_branch }}
       pr_description: ${{ inputs.pr_description }}
+      draft_pr: true
+
+  release-build-gate:
+    name: Release build check
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    needs: [ setup, test-arm-linux, test-intel-linux, test-arm-macos, test-intel-macos ]
+    steps:
+      - name: Check build results
+        run: |
+          HAS_LABEL="${{ contains(github.event.pull_request.labels.*.name, 'run-release-workflow') }}"
+
+          if [ "$HAS_LABEL" != "true" ]; then
+            echo "::error::The 'run-release-workflow' label is required. Add it to trigger the build and test parts of the release workflow."
+            exit 1
+          fi
+
+          if [ "${{ needs.setup.result }}" != "success" ]; then
+            echo "::error::Setup job did not succeed (result: ${{ needs.setup.result }})."
+            exit 1
+          fi
+
+          if [ "${{ needs.test-arm-linux.result }}" != "success" ] || \
+             [ "${{ needs.test-intel-linux.result }}" != "success" ] || \
+             [ "${{ needs.test-arm-macos.result }}" != "success" ]; then
+            echo "::error::One or more required builds/tests failed or were skipped."
+            exit 1
+          fi
+
+          if [ "${{ needs.test-intel-macos.result }}" != "success" ] && \
+             [ "${{ needs.test-intel-macos.result }}" != "skipped" ]; then
+            echo "::error::Intel macOS build/test failed."
+            exit 1
+          fi
+
+          echo "All release builds and tests passed."
