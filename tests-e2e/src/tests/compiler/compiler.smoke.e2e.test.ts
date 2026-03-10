@@ -37,6 +37,7 @@ import {
     tsFiles,
     VERSION_REGEX,
     zkirFiles,
+    LEDGER_VERSION_REGEX,
 } from '@';
 
 describe('[Smoke] Compiler', () => {
@@ -77,6 +78,24 @@ describe('[Smoke] Compiler', () => {
         const result: Result = await compile([Arguments.LANGUAGE_VERSION]);
 
         expectCompilerResult(result).toBeSuccess('', VERSION_REGEX);
+    });
+
+    test('should get runtime version', async () => {
+        const result: Result = await compile([Arguments.RUNTIME_VERSION]);
+
+        expectCompilerResult(result).toBeSuccess('', VERSION_REGEX);
+    });
+
+    test('should get ledger version', async () => {
+        const result: Result = await compile([Arguments.LEDGER_VERSION]);
+
+        expectCompilerResult(result).toBeSuccess('', LEDGER_VERSION_REGEX);
+    });
+
+    test('should get first version only (ledger), when passing multiple ones', async () => {
+        const result: Result = await compile([Arguments.LEDGER_VERSION]);
+
+        expectCompilerResult(result).toBeSuccess('', LEDGER_VERSION_REGEX);
     });
 
     test('should get first argument only - version then help', async () => {

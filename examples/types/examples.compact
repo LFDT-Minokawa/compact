@@ -527,3 +527,21 @@ new type t39_qualified = QualifiedShieldedCoinInfo;
 export circuit test39(): [t39_coin_info, t39_qualified] {
   return [default<t39_coin_info>, default<t39_qualified>];
 }
+
+// Test 40: Types with generic Uint
+export type UX<#n> = Uint<n>;
+export type UY<#n> = Uint<0..n>;
+export struct SX<#n, T> { curidx: Uint<n> }
+export struct SY<#n, T> { curidx: Uint<0..n> }
+
+export circuit test40(): [] {
+  const a: UX<2> = 1;
+  const b: UY<2> = 1;
+  const c: SX<1, Field> = default<SX<1, Field>>;
+  const d: SY<1, Field> = default<SY<1, Field>>;
+  
+  const e: UX<248> = 1;
+  const f: UY<99999999999999999999999999999999999999999999999999999999999999999999999999> = 1;
+  const g: SX<248, Field> = default<SX<248, Field>>;
+  const h: SY<99999999999999999999999999999999999999999999999999999999999999999999999999, Field> = default<SY<99999999999999999999999999999999999999999999999999999999999999999999999999, Field>>;
+}

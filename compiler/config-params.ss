@@ -15,7 +15,7 @@
 
 (library (config-params)
   (export)
-  (import (chezscheme))
+  (import (except (chezscheme) errorf) (utils))
 
   (define-syntax export-parameter
     (syntax-rules ()
@@ -29,17 +29,7 @@
   (export-parameter skip-zk #t)
 
   ; default source path
-  (export-parameter compact-path
-    (let ()
-      (define (split-search-path str)
-        (let ([n (string-length str)])
-          (let f ([i 0] [j 0])
-            (if (fx= j n)
-                (if (fx= i j) '() (list (substring str i j)))
-                (if (char=? (string-ref str j) (if (directory-separator? #\\) #\; #\:))
-                    (cons (substring str i j) (f (fx+ j 1) (fx+ j 1)))
-                    (f i (fx+ j 1)))))))
-      (split-search-path (or (getenv "COMPACT_PATH") ""))))
+  (export-parameter compact-path (split-search-path (or (getenv "COMPACT_PATH") "")))
 
   ; formatter
   (export-parameter format-line-length 100)
@@ -47,6 +37,8 @@
   ; debugging
   (export-parameter trace-passes #f)
 
+  (export-parameter trace-search #f)
+
   ; feature flags
-  (export-parameter zkir-v3 #f)
+  (export-parameter feature-zkir-v3 #f)
 )

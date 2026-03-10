@@ -148,5 +148,109 @@ describe('[Types] [PM-19636] Define type aliases and new disjoint types for exis
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
+
+        test('example 10 - Uint type with 0', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_ten.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_ten.compact line 16 char 22: Uint width 0 is not between 1 and the maximum Uint width 248 (inclusive)',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
+
+        test('example 11 - Uint type with range starting 0', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_eleven.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_eleven.compact line 16 char 22: range end for Uint type is 0 but must be at least 1 (the range end is exclusive)',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
+
+        test('example 12 - Uint type in struct, starting with 0', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_twelve.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_twelve.compact line 16 char 35: Uint width 0 is not between 1 and the maximum Uint width 248 (inclusive)',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
+
+        test('example 13 - Uint type with range in struct, starting with 0', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_thirteen.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_thirteen.compact line 16 char 35: range end for Uint type is 0 but must be at least 1 (the range end is exclusive)',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
+
+        test('example 14 - Uint type with 249', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_fourteen.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_fourteen.compact line 16 char 22: Uint width 249 is not between 1 and the maximum Uint width 248 (inclusive)',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
+
+        test('example 15 - Uint type with range ending 2^248', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_fifteen.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_fifteen.compact line 16 char 22: range end; 999999999999999999999999999999999999999999999999999999999999999999999999999; for Uint type exceeds the limit of; 452312848583266388373324160190187140051835877600158453279131187530910662656 (2^248); (the range end is exclusive)',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
+
+        test('example 16 - Uint type in struct, ending with 249', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_sixteen.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_sixteen.compact line 16 char 35: Uint width 249 is not between 1 and the maximum Uint width 248 (inclusive)',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
+
+        test('example 17 - Uint type with range in struct, ending with ending 2^248', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_seventeen.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_seventeen.compact line 16 char 35: range end; 999999999999999999999999999999999999999999999999999999999999999999999999999; for Uint type exceeds the limit of; 452312848583266388373324160190187140051835877600158453279131187530910662656 (2^248); (the range end is exclusive)',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
     });
 });

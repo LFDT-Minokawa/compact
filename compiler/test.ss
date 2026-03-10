@@ -806,7 +806,8 @@ groups than for single tests.
                   (let* ([source-path* (registered-source-pathnames)]
                          [source-dir*
                            (map (lambda (s)
-                                  (let ([s (path-parent s)])
+                                  (let* ([s (if (string-prefix? "./" s) (substring s 2 (string-length s)) s)]
+                                         [s (path-parent s)])
                                     (assert (not (string-prefix? "/" s)))
                                     (assert (not (string-prefix? "." s)))
                                     (format "~a/src/~a" test-root s)))
@@ -3673,13 +3674,6 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "ledger A: Map<Field, Field>;"
       "module M2 {"
-      " // For now, at least, choosing not to warn about existing bindings for new"
-      " // names since doing so in a way that makes sense, particularly in the face"
-      " // of function overloading is complicated and expensive.  So no error for"
-      " // the following even though it shadows the new standard library binding for"
-      " // persistentHash, and no error for the refererence to persistent_hash below"
-      " // even though renaming it will have the effect of changing it to a reference"
-      " // to the local rather than standard-library binding"
       "  circuit persistentHash<a>(x: a): Bytes<32> { return default<Bytes<32>>; }"
       "  export circuit public_key(sk: Bytes<32>): Bytes<32> {"
       "    return persistent_hash<Vector<2, Bytes<32>>>([pad(32, 'welcome:pk:'), sk]);"
@@ -3688,7 +3682,7 @@ groups than for single tests.
       )
     (warning
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 11 char 3" "existing binding of ~s may lead to unintended shadowing of renamed standard-library circuit ~:*~s" (persistentHash)))
+      irritants: '("testfile.compact line 6 char 12" "not renaming reference of ~s to ~s because ~1:*~s has other bindings in scope" (persistent_hash persistentHash)))
     (output-file "compiler/testdir/fixup/testfile.compact"
       '(
         "import CompactStandardLibrary;"
@@ -3696,18 +3690,11 @@ groups than for single tests.
         "ledger A: Map<Field, Field>;"
         ""
         "module M2 {"
-        "  // For now, at least, choosing not to warn about existing bindings for new"
-        "  // names since doing so in a way that makes sense, particularly in the face"
-        "  // of function overloading is complicated and expensive.  So no error for"
-        "  // the following even though it shadows the new standard library binding for"
-        "  // persistentHash, and no error for the refererence to persistent_hash below"
-        "  // even though renaming it will have the effect of changing it to a reference"
-        "  // to the local rather than standard-library binding"
         "  circuit persistentHash<a>(x: a): Bytes<32> {"
         "    return default<Bytes<32>>;"
         "  }"
         "  export circuit public_key(sk: Bytes<32>): Bytes<32> {"
-        "    return persistentHash<Vector<2, Bytes<32>>>([pad(32, 'welcome:pk:'), sk]);"
+        "    return persistent_hash<Vector<2, Bytes<32>>>([pad(32, 'welcome:pk:'), sk]);"
         "  }"
         "}"))
     (returns
@@ -3724,7 +3711,7 @@ groups than for single tests.
                (tbytes 32)
             (block
               (return
-                (call (fref persistentHash (tvector 2 (tbytes 32)))
+                (call (fref persistent_hash (tvector 2 (tbytes 32)))
                   (tuple
                     #vu8(119 101 108 99 111 109 101 58 112 107 58 0 0 0 0 0 0 0
                          0 0 0 0 0 0 0 0 0 0 0 0 0 0)
@@ -3767,6 +3754,9 @@ groups than for single tests.
       "  }"
       "}"
       )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 12" "not renaming reference of ~s to ~s because ~2:*~s has other bindings in scope" (persistent_hash persistentHash)))
     (output-file "compiler/testdir/fixup/testfile.compact"
       '(
         "import CompactStandardLibrary;"
@@ -3846,6 +3836,276 @@ groups than for single tests.
         (circuit #t #f B () ([x (tunsigned 0 8)])
              (tfield)
           (block (return (call (fref A 12) x))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
+      "  return constructNativePoint(CurvePoint, NativePoint);"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "export circuit foo(x: JubjubPoint): JubjubPoint {"
+        "  const NativePoint = jubjubPointX(x), CurvePoint = jubjubPointY(x);"
+        "  return constructJubjubPoint(CurvePoint, NativePoint);"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "")
+        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
+             (type-ref JubjubPoint)
+          (block
+            (const ([NativePoint (tundeclared) (call jubjubPointX x)]
+                    [CurvePoint (tundeclared) (call jubjubPointY x)]))
+            (return
+              (call constructJubjubPoint CurvePoint NativePoint))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const std$NativePoint = std$nativePointX(x), std$CurvePoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(std$CurvePoint, std$NativePoint);"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary prefix std$;"
+        ""
+        "export circuit foo(x: std$JubjubPoint): std$JubjubPoint {"
+        "  const std$NativePoint = std$jubjubPointX(x), std$CurvePoint = std$jubjubPointY(x);"
+        "  return std$constructJubjubPoint(std$CurvePoint, std$NativePoint);"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "std$")
+        (circuit #t #f foo () ([x (type-ref std$JubjubPoint)])
+             (type-ref std$JubjubPoint)
+          (block
+            (const ([std$NativePoint (tundeclared) (call std$jubjubPointX x)]
+                    [std$CurvePoint (tundeclared) (call std$jubjubPointY x)]))
+            (return
+              (call std$constructJubjubPoint std$CurvePoint std$NativePoint))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
+      "  const JubjubPoint = NativePoint;"
+      "  return constructNativePoint(CurvePoint, JubjubPoint);"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "export circuit foo(x: JubjubPoint): JubjubPoint {"
+        "  const NativePoint = jubjubPointX(x), CurvePoint = jubjubPointY(x);"
+        "  const JubjubPoint = NativePoint;"
+        "  return constructJubjubPoint(CurvePoint, JubjubPoint);"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "")
+        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
+             (type-ref JubjubPoint)
+          (block
+            (const ([NativePoint (tundeclared) (call jubjubPointX x)]
+                    [CurvePoint (tundeclared) (call jubjubPointY x)]))
+            (const ([JubjubPoint (tundeclared) NativePoint]))
+            (return
+              (call constructJubjubPoint CurvePoint JubjubPoint))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const JubjubPoint = NativePointY(x);"
+      "  return constructNativePoint(JubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
+      "}"
+      )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 49" "not renaming reference of ~s to ~s because this would cause the reference to be captured by an existing local binding for ~:*~s" (NativePoint JubjubPoint)))
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "export circuit foo(x: JubjubPoint): JubjubPoint {"
+        "  const JubjubPoint = jubjubPointY(x);"
+        "  return constructJubjubPoint(JubjubPoint, ((x: NativePoint) => jubjubPointX(x))(x));"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "")
+        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
+             (type-ref JubjubPoint)
+          (block
+            (const ([JubjubPoint (tundeclared) (call jubjubPointY x)]))
+            (return
+              (call constructJubjubPoint
+                JubjubPoint
+                (call (circuit ([x (type-ref NativePoint)])
+                           (tundeclared)
+                        (block (return (call jubjubPointX x))))
+                  x)))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const constructJubjubPoint = NativePointY(x);"
+      "  return constructNativePoint(constructJubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
+      "}"
+      )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "not renaming reference of ~s to ~s because ~1:*~s has other bindings in scope" (constructNativePoint constructJubjubPoint)))
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "export circuit foo(x: JubjubPoint): JubjubPoint {"
+        "  const constructJubjubPoint = jubjubPointY(x);"
+        "  return constructNativePoint(constructJubjubPoint, ((x: JubjubPoint) => jubjubPointX(x))(x));"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "")
+        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
+             (type-ref JubjubPoint)
+          (block
+            (const ([constructJubjubPoint (tundeclared) (call jubjubPointY x)]))
+            (return
+              (call constructNativePoint
+                constructJubjubPoint
+                (call (circuit ([x (type-ref JubjubPoint)])
+                           (tundeclared)
+                        (block (return (call jubjubPointX x))))
+                  x)))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const std$JubjubPoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(std$JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
+      "}"
+      )
+    (warning
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 57" "not renaming reference of ~s to ~s because this would cause the reference to be captured by an existing local binding for ~:*~s" (std$NativePoint std$JubjubPoint)))
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary prefix std$;"
+        ""
+        "export circuit foo(x: std$JubjubPoint): std$JubjubPoint {"
+        "  const std$JubjubPoint = std$jubjubPointY(x);"
+        "  return std$constructJubjubPoint(std$JubjubPoint, ((x: std$NativePoint) => std$jubjubPointX(x))(x));"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "std$")
+        (circuit #t #f foo () ([x (type-ref std$JubjubPoint)])
+             (type-ref std$JubjubPoint)
+          (block
+            (const ([std$JubjubPoint (tundeclared) (call std$jubjubPointY x)]))
+            (return
+              (call std$constructJubjubPoint
+                std$JubjubPoint
+                (call (circuit ([x (type-ref std$NativePoint)])
+                           (tundeclared)
+                        (block (return (call std$jubjubPointX x))))
+                  x)))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const JubjubPoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary prefix std$;"
+        ""
+        "export circuit foo(x: std$JubjubPoint): std$JubjubPoint {"
+        "  const JubjubPoint = std$jubjubPointY(x);"
+        "  return std$constructJubjubPoint(JubjubPoint, ((x: std$JubjubPoint) => std$jubjubPointX(x))(x));"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "std$")
+        (circuit #t #f foo () ([x (type-ref std$JubjubPoint)])
+             (type-ref std$JubjubPoint)
+          (block
+            (const ([JubjubPoint (tundeclared) (call std$jubjubPointY x)]))
+            (return
+              (call std$constructJubjubPoint
+                JubjubPoint
+                (call (circuit ([x (type-ref std$JubjubPoint)])
+                           (tundeclared)
+                        (block (return (call std$jubjubPointX x))))
+                  x)))))))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo<T>(x: T): CurvePoint {"
+      "  const a = nativePointX(x), b = NativePointY(x);"
+      "  return constructNativePoint(a, b);"
+      "}"
+      "circuit bar(x: NativePoint): CurvePoint {"
+      "  return foo<NativePoint>(x);"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "import CompactStandardLibrary;"
+        ""
+        "circuit foo<T>(x: T): JubjubPoint {"
+        "  const a = jubjubPointX(x), b = jubjubPointY(x);"
+        "  return constructJubjubPoint(a, b);"
+        "}"
+        ""
+        "circuit bar(x: JubjubPoint): JubjubPoint {"
+        "  return foo<JubjubPoint>(x);"
+        "}"))
+    (returns
+      (program
+        (import CompactStandardLibrary () "")
+        (circuit #f #f foo (T) ([x (type-ref T)])
+             (type-ref JubjubPoint)
+          (block
+            (const ([a (tundeclared) (call jubjubPointX x)]
+                    [b (tundeclared) (call jubjubPointY x)]))
+            (return (call constructJubjubPoint a b))))
+        (circuit #f #f bar () ([x (type-ref JubjubPoint)])
+             (type-ref JubjubPoint)
+          (block
+            (return (call (fref foo (type-ref JubjubPoint)) x))))))
     )
 )
 
@@ -6743,40 +7003,40 @@ groups than for single tests.
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
 
-  (with-compact-path
-    (cons "test-center" (compact-path))
-    (test
-      '(
-        "include 'compact/simple';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () () (tfield) (block (return 42)))))
-      ))
+ (with-compact-path '("test-center")
+  (test
+    '(
+      "include 'compact/simple';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () () (tfield) (block (return 42)))))
+    )
+  )
 
-  (with-compact-path
-    (cons* "test-center/compact" "test-center/compact2" (compact-path))
-    (test
-      '(
-        "include 'foo';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () () (tfield) (block (return 42)))))
-      ))
+ (with-compact-path '("test-center/compact" "test-center/compact2")
+  (test
+    '(
+      "include 'foo';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () () (tfield) (block (return 42)))))
+    )
+  )
 
-  (with-compact-path
-    (cons* "test-center/compact2" "test-center/compact" (compact-path))
-    (test
-      '(
-        "include 'foo';"
-        )
-      (returns
-        (program
-          (circuit #f #f foo () ([x (tfield)])
-                   (tboolean)
-                   (block (return (== x 0))))))
-      ))
+ (with-compact-path '("test-center/compact2" "test-center/compact")
+  (test
+    '(
+      "include 'foo';"
+      )
+    (returns
+      (program
+        (circuit #f #f foo () ([x (tfield)])
+                 (tboolean)
+                 (block (return (== x 0))))))
+    )
+  )
 
   (test
     `(
@@ -6787,17 +7047,15 @@ groups than for single tests.
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
 
-  (with-compact-path
-    (cons "test-center/compact" (compact-path))
-    (test
-      '(
-        "// presumably not present..."
-        "include '/foo';"
-        )
-      (oops
-        message: "~a:\n  ~?"
-        irritants: '("testfile.compact line 2 char 1" "failed to locate file ~s" ("/foo.compact")))
-      ))
+  (test
+    '(
+      "// presumably not present..."
+      "include '/foo';"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "failed to locate file ~s" ("/foo.compact")))
+    )
 
   (test
     "test-center/compact/multiple.compact"
@@ -6831,26 +7089,31 @@ groups than for single tests.
       irritants: '("test-center/compact/loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "include 'test-center/compact/loop';"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
+      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("./test-center/compact/loop.compact")))
     )
+  )
 
-  (test
-    '(
-      "module M {"
-      "  include 'test-center/compact/loop';"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("loop.compact line 16 char 1" "include cycle involving ~s" ("test-center/compact/loop.compact")))
-    )
+  (test-group
+    ((create-file "loop.compact" '("include 'loop';")))
+    ((create-file "testfile.compact"
+       '(
+         "module M {"
+         "  include 'loop';"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("loop.compact line 1 char 1" "include cycle involving ~s" ("compiler/testdir/loop.compact")))
+     ))
 
+ (with-compact-path '(".")
   (test
     '(
       "module M {"
@@ -6864,7 +7127,9 @@ groups than for single tests.
           (circuit #f #f foo () () (tfield) (block (return 42)))
           (export foo))))
     )
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "include 'test-center/compact/foo';"
@@ -6880,7 +7145,9 @@ groups than for single tests.
           (circuit #f #f foo () () (tfield) (block (return 42)))
           (export foo))))
     )
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "module M {"
@@ -6896,16 +7163,7 @@ groups than for single tests.
           (export foo))
         (circuit #f #f foo () () (tfield) (block (return 42)))))
     )
-
-  (test-group
-    ((create-file "included.compact" '())
-     (succeeds)
-     )
-    ((create-file "including.compact"
-       '(
-         "include 'compiler/testdir/included';"
-         ))
-     (returns (program))))
+  )
 
   (test-group
     ((create-file "included.compact" '())
@@ -6915,7 +7173,19 @@ groups than for single tests.
        '(
          "include 'included';"
          ))
-     (returns (program))))
+     (returns (program))
+     ))
+
+  (test-group
+    ((create-file "included.compact" '())
+     (succeeds)
+     )
+    ((create-file "including.compact"
+       '(
+         "include 'included';"
+         ))
+     (returns (program))
+     ))
 
   (test-group
     ((create-file "included.compact" '())
@@ -6926,7 +7196,7 @@ groups than for single tests.
      )
     ((create-file "including.compact"
        '(
-         "include 'compiler/testdir/included';"
+         "include 'included';"
          ))
      (oops
        message: "error ~a: ~a"
@@ -6942,6 +7212,88 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 1" "failed to locate file ~s: possibly replace include with import CompactStandardLibrary" ("std.compact")))
     )
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/a.compact"
+       '(
+         "export type A = Field;"
+         ))
+     (succeeds))
+    ((create-file "project/b.compact"
+       '(
+         "include 'a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (returns
+       (program
+         (typedef #t #f A () (tfield))
+         (circuit #t #f foo () ([x (type-ref A)])
+              (type-ref A)
+           (block (return (+ x 5))))))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("a.compact")))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("compiler/testdir/a.compact")))
+     ))
+
+  ; issue 139
+ (with-compact-path '(".")
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "include 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
+     ))
+  )
 )
 
 (run-tests expand-const
@@ -10006,7 +10358,7 @@ groups than for single tests.
         (circuit %S.0 ([%q.3 (tfield)]) (tfield) %q.3)
         (circuit %T.1 ([%q.4 (tfield)])
              (tfield)
-          (call (fref ((%S.2 %S.0))) %q.4))))
+          (call (fref ((%S.0 %S.2))) %q.4))))
   )
 
   (test
@@ -10193,16 +10545,16 @@ groups than for single tests.
           (call (fref ((%W.10))) (call (fref ((%S.14))) %q.23)))
         (circuit %foo1.0 ([%x.24 (tfield)])
              (tboolean)
-          (call (fref ((%T.18 %T.16))) %x.24))
+          (call (fref ((%T.16 %T.18))) %x.24))
         (circuit %foo2.1 ([%x.25 (tfield)])
              (tfield)
-          (call (fref ((%T.22 %T.20))) %x.25))
+          (call (fref ((%T.20 %T.22))) %x.25))
         (circuit %foo3.2 ([%x.26 (tboolean)])
              (tboolean)
-          (call (fref ((%T.18 %T.16))) %x.26))
+          (call (fref ((%T.16 %T.18))) %x.26))
         (circuit %foo4.3 ([%x.27 (tboolean)])
              (tfield)
-          (call (fref ((%T.22 %T.20))) %x.27))))
+          (call (fref ((%T.20 %T.22))) %x.27))))
     )
 
   (test
@@ -11754,7 +12106,7 @@ groups than for single tests.
             (x (tstruct B (x (tstruct C (x (tvector 3 T))))))))
         (export-typedef B (T)
           (tstruct B (x (tstruct C (x (tvector 3 T))))))
-        (export-typedef C (T) (tstruct C (x (tvector 0 T))))
+        (export-typedef C (T) (tstruct C (x (tvector 1 T))))
         (circuit %foo.0 ([%x.1 (tstruct C
                                  (x (tvector
                                       3
@@ -13314,6 +13666,269 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 23" "range end for Uint type is ~d but must be at least 1 (the range end is exclusive)" (0)))
+    )
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/a.compact"
+       '(
+         "module a {"
+         " export type A = Field;"
+         "}"
+         ))
+     (succeeds))
+    ((create-file "project/b.compact"
+       '(
+         "import a;"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (returns
+       (program ((foo %foo.0))
+         (circuit %foo.0 ([%x.1 (talias #f A (tfield))])
+              (talias #f A (tfield))
+           (+ %x.1 5))))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import a;"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("a.compact")))
+     ))
+
+  ; issue 139
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("b.compact line 1 char 1" "failed to locate file ~s" ("compiler/testdir/a.compact")))
+     ))
+
+  ; issue 139
+ (with-compact-path '(".")
+  (test-group
+    ((create-file "a.compact"
+       '(
+         "oops"
+         )))
+    ((create-file "project/b.compact"
+       '(
+         "import 'compiler/testdir/a';"
+         "export circuit foo(x: A): A {"
+         "  return x + 5;"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
+     ))
+  )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
+      "  return constructNativePoint(CurvePoint, NativePoint);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 53" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const std$NativePoint = std$nativePointX(x), std$CurvePoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(std$CurvePoint, std$NativePoint);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 41" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$CurvePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 27" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$nativePointX std$jubjubPointX))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 65" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePointY std$jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$constructNativePoint std$constructJubjubPoint)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
+      "  const JubjubPoint = NativePoint;"
+      "  return constructNativePoint(CurvePoint, JubjubPoint);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 53" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const JubjubPoint = NativePointY(x);"
+      "  return constructNativePoint(JubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 49" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 65" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: NativePoint): CurvePoint {"
+      "  const constructJubjubPoint = NativePointY(x);"
+      "  return constructNativePoint(constructJubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 32" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 58" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 74" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const std$JubjubPoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(std$JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 41" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$CurvePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 27" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePointY std$jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$constructNativePoint std$constructJubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 57" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 77" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$nativePointX std$jubjubPointX)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary prefix std$;"
+      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
+      "  const JubjubPoint = std$NativePointY(x);"
+      "  return std$constructNativePoint(JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 41" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$CurvePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePointY std$jubjubPointY))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$constructNativePoint std$constructJubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 53" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 73" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$nativePointX std$jubjubPointX)))
+    )
+
+  ; issue 116
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo<T>(x: T): JubjubPoint {"
+      "  const a = jubjubPointX(x), b = jubjubPointY(x);"
+      "  return constructJubjubPoint(a, b);"
+      "}"
+      "circuit bar(x: JubjubPoint): JubjubPoint {"
+      "  return foo<NativePoint>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 14" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint)))
     )
 )
 
@@ -16719,74 +17334,59 @@ groups than for single tests.
 
   (test
     '(
-      "import {NativePoint, ecAdd} from CompactStandardLibrary;"
-      "circuit foo(x: Bytes<32>, y: NativePoint): NativePoint {"
+      "import {JubjubPoint, ecAdd} from CompactStandardLibrary;"
+      "circuit foo(x: Bytes<32>, y: JubjubPoint): JubjubPoint {"
       "  return ecAdd(x, y);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, NativePoint)\n      declared argument types for function at <standard library>:\n        (NativePoint, NativePoint)" #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
 
   (test
     '(
-      "import {NativePoint, ecAdd} from CompactStandardLibrary;"
-      "export struct NonNativePoint {"
+      "import {JubjubPoint, ecAdd} from CompactStandardLibrary;"
+      "export struct NonJubjubPoint {"
       "  x: Field;"
       "  y: Field;"
       "}"
-      "circuit foo(x: NonNativePoint, y: NativePoint): NativePoint {"
+      "circuit foo(x: NonJubjubPoint, y: JubjubPoint): JubjubPoint {"
       "  return ecAdd(x, y);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonNativePoint<x: Field, y: Field>, NativePoint)\n      declared argument types for function at <standard library>:\n        (NativePoint, NativePoint)" #f)))
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonJubjubPoint<x: Field, y: Field>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
       )
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (native %ecAdd.1 ([%a.2 (talias #t NativePoint
-                                    (tstruct SimplePoint
-                                      (x (tfield))
-                                      (y (tfield))))]
-                             [%b.3 (talias #t NativePoint
-                                    (tstruct SimplePoint
-                                      (x (tfield))
-                                      (y (tfield))))])
-             (talias #t NativePoint
-               (tstruct SimplePoint
-                 (x (tfield))
-                 (y (tfield)))))
-        (native %ecMul.4 ([%a.5 (talias #t NativePoint
-                                    (tstruct SimplePoint
-                                      (x (tfield))
-                                      (y (tfield))))]
-                             [%b.6 (tfield)])
-             (talias #t NativePoint
-               (tstruct SimplePoint
-                 (x (tfield))
-                 (y (tfield)))))
-        (circuit %foo.7 ([%c.8 (talias #t NativePoint
-                                  (tstruct SimplePoint
-                                    (x (tfield))
-                                    (y (tfield))))])
-             (talias #t NativePoint
-               (tstruct SimplePoint
-                 (x (tfield))
-                 (y (tfield))))
+        (native %ecAdd.1 ([%a.2 (talias #t JubjubPoint
+                                  (topaque "JubjubPoint"))]
+                          [%b.3 (talias #t JubjubPoint
+                                  (topaque "JubjubPoint"))])
+             (talias #t JubjubPoint (topaque "JubjubPoint")))
+        (native %ecMul.4 ([%a.5 (talias #t JubjubPoint
+                                  (topaque "JubjubPoint"))]
+                          [%b.6 (tfield)])
+             (talias #t JubjubPoint (topaque "JubjubPoint")))
+        (circuit %foo.7 ([%c.8 (talias #t JubjubPoint
+                                 (topaque "JubjubPoint"))])
+             (talias #t JubjubPoint (topaque "JubjubPoint"))
           (call %ecAdd.1
             %c.8
-            (call %ecMul.4 %c.8 (safe-cast (tfield) (tunsigned 3) 3))))))
+            (call %ecMul.4
+              %c.8
+              (safe-cast (tfield) (tunsigned 3) 3))))))
     )
 
   (test
@@ -23220,6 +23820,136 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 10" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "[]" "circuit bar")))
     )
+
+  (test
+    '(
+      "export type UX<#n> = Uint<n>;"
+      "export type UY<#n> = Uint<0..n>;"
+      "export struct SX<#n, T> { curidx: Uint<n> }"
+      "export struct SY<#n, T> { curidx: Uint<0..n> }"
+      )
+    (returns
+      (program
+        (export-typedef UX () (talias #f UX (tunsigned 1)))
+        (export-typedef UY () (talias #f UY (tunsigned 0)))
+        (export-typedef SX (T) (tstruct SX (curidx (tunsigned 1))))
+        (export-typedef SY (T)
+          (tstruct SY (curidx (tunsigned 0))))))
+    )
+
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  hash = disclose(persistentHash<Opaque<'string'>>(msg));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(arr: Opaque<'Uint8Array'>): [] {"
+      "  hash = disclose(persistentHash<Opaque<'Uint8Array'>>(arr));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Opaque<\"Uint8Array\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "struct LabeledField {"
+      "  label: Opaque<'string'>;"
+      "  field: Field;"
+      "}"
+      "export circuit fisk(lf: LabeledField): [] {"
+      "  hash = disclose(persistentHash<LabeledField>(lf));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "struct LabeledField<label: Opaque<\"string\">, field: Field>")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(msgs: Vector<10, Opaque<'string'>>): [] {"
+      "  hash = disclose(persistentHash<Vector<10, Opaque<'string'>>>(msgs));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Vector<10, Opaque<\"string\">>")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "new type Messages = Vector<10, Opaque<'string'>>;"
+      "export circuit fisk(msgs: Messages): [] {"
+      "  hash = disclose(persistentHash<Messages>(msgs));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentHash "Messages")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  hash = disclose(persistentCommit<Opaque<'string'>>(msg, hash));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (persistentCommit "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger mt: MerkleTree<10, Opaque<'string'>>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  mt.insert(disclose(msg));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 5" "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (MerkleTree insert "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger mt: MerkleTree<10, Opaque<'string'>>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  mt.insertIndex(disclose(msg), 21);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 5" "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (MerkleTree insertIndex "Opaque<\"string\">")))
+    )
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger mt: HistoricMerkleTree<10, Opaque<'string'>>;"
+      "export circuit fisk(msg: Opaque<'string'>): [] {"
+      "  mt.insert(disclose(msg));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 5" "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (HistoricMerkleTree insert "Opaque<\"string\">")))
+    )
 )
 
 ; tests limits for vectors, bytes, and tuples.
@@ -24567,7 +25297,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 37" "~s ~s requires ~s argument~:*~p but received ~s" (__compact_Cell write 1 0)))
+      irritants: '("testfile.compact line 4 char 37" "~a ~a requires ~a argument~:*~p but received ~a" (__compact_Cell write 1 0)))
     )
 
   (test
@@ -24579,7 +25309,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 44" "~s ~s requires ~s argument~:*~p but received ~s" (__compact_Cell read 0 1)))
+      irritants: '("testfile.compact line 4 char 44" "~a ~a requires ~a argument~:*~p but received ~a" (__compact_Cell read 0 1)))
     )
 
   (test
@@ -24603,7 +25333,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 37" "~s ~s requires ~s argument~:*~p but received ~s" (__compact_Cell write 1 2)))
+      irritants: '("testfile.compact line 4 char 37" "~a ~a requires ~a argument~:*~p but received ~a" (__compact_Cell write 1 2)))
     )
 
   (test
@@ -31180,7 +31910,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness W(): Boolean;"
-      "export circuit foo(): NativePoint {"
+      "export circuit foo(): JubjubPoint {"
       "  return hashToCurve<Boolean>(W());"
       "}"
       )
@@ -31193,7 +31923,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "witness W(): Boolean;"
-      "export circuit foo(): NativePoint {"
+      "export circuit foo(): JubjubPoint {"
       "  return disclose(hashToCurve<Boolean>(W()));"
       "}"
       )
@@ -37907,57 +38637,65 @@ groups than for single tests.
           (= %t.76 (public-ledger #t %field5.6 (5) resetToDefault))
           (= %t.77 (public-ledger #t %field6.7 (6) resetToDefault))
           (= %value.78 (public-ledger #t %kernel.0 () self))
-          (= %tmp.79
+          (= %t.79
+             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
+          (= %tmp.80
              (new (tstruct Either
                     (is_left (tboolean))
                     (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                     (right (tstruct ContractAddress (bytes (tbytes 32)))))
                #f
-               (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+               %t.79
                %value.78))
-          (= %t.80
-             (public-ledger #t %field7.8 (7) writeCoin %ci.14 %tmp.79))
-          (= %t.81 (public-ledger #t %field8.9 (8) resetToDefault))
-          (= %value.82 (public-ledger #t %kernel.0 () self))
-          (= %tmp.83
-             (new (tstruct Either
-                    (is_left (tboolean))
-                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-               #f
-               (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               %value.82))
+          (= %t.81
+             (public-ledger #t %field7.8 (7) writeCoin %ci.14 %tmp.80))
+          (= %t.82 (public-ledger #t %field8.9 (8) resetToDefault))
+          (= %value.83 (public-ledger #t %kernel.0 () self))
           (= %t.84
-             (public-ledger #t %field8.9 (8) insertCoin %ci.14 %tmp.83))
-          (= %t.85 (public-ledger #t %field9.10 (9) resetToDefault))
-          (= %value.86 (public-ledger #t %kernel.0 () self))
-          (= %tmp.87
+             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
+          (= %tmp.85
              (new (tstruct Either
                     (is_left (tboolean))
                     (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                     (right (tstruct ContractAddress (bytes (tbytes 32)))))
                #f
-               (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               %value.86))
-          (= %t.88
+               %t.84
+               %value.83))
+          (= %t.86
+             (public-ledger #t %field8.9 (8) insertCoin %ci.14 %tmp.85))
+          (= %t.87 (public-ledger #t %field9.10 (9) resetToDefault))
+          (= %value.88 (public-ledger #t %kernel.0 () self))
+          (= %t.89
+             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
+          (= %tmp.90
+             (new (tstruct Either
+                    (is_left (tboolean))
+                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
+               #f
+               %t.89
+               %value.88))
+          (= %t.91
              (public-ledger #t %field9.10 (9) insertCoin
                %x.13
                %ci.14
-               %tmp.87))
-          (= %t.89 (public-ledger #t %field10.11 (10) resetToDefault))
-          (= %value.90 (public-ledger #t %kernel.0 () self))
-          (= %tmp.91
+               %tmp.90))
+          (= %t.92 (public-ledger #t %field10.11 (10) resetToDefault))
+          (= %value.93 (public-ledger #t %kernel.0 () self))
+          (= %t.94
+             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
+          (= %tmp.95
              (new (tstruct Either
                     (is_left (tboolean))
                     (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                     (right (tstruct ContractAddress (bytes (tbytes 32)))))
                #f
-               (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               %value.90))
-          (= %t.92
+               %t.94
+               %value.93))
+          (= %t.96
              (public-ledger #t %field10.11 (10) pushFrontCoin
                %ci.14
-               %tmp.91))
+               %tmp.95))
           %q.22)))
     )
 
@@ -45886,6 +46624,40 @@ groups than for single tests.
           (= %t.1 (== %ix.0 0))
           (%t.1))))
     )
+  ;; Unused `default`.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger impure: Boolean;"
+      "export circuit fisk(pt: JubjubPoint): JubjubPoint {"
+      "  impure = true;"
+      "  const pt0 = default<JubjubPoint>;"
+      "  const pt1 = ecAdd(pt, pt);"
+      "  return pt1;"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration
+          ((%impure.1
+             (0)
+             (__compact_Cell (ty ((abytes 1)) ((tfield 1)))))))
+        (native %ecAdd.2 ((argument
+                            (%a.3 %a.4)
+                            (ty ((afield) (afield)) ((tfield) (tfield))))
+                          (argument
+                            (%b.5 %b.6)
+                            (ty ((afield) (afield)) ((tfield) (tfield)))))
+             (ty ((afield) (afield)) ((tfield) (tfield))))
+        (circuit %fisk.7 ((argument
+                            (%pt.8 %pt.9)
+                            (ty ((afield) (afield)) ((tfield) (tfield)))))
+             (ty ((afield) (afield)) ((tfield) (tfield)))
+          (= () (public-ledger 1 %impure.1 (0) write 1))
+          (= (%pt1.10 %pt1.11)
+             (call 1 %ecAdd.2 %pt.8 %pt.9 %pt.8 %pt.9))
+          (%pt1.10 %pt1.11)))))
 )
 
 (run-tests print-zkir
@@ -46549,8 +47321,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(p1: NativePoint, p2: NativePoint): NativePoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([p1.x, p2.x])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "export circuit foo(p1: JubjubPoint, p2: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
@@ -46998,6 +47770,7 @@ groups than for single tests.
         "}"))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -47032,6 +47805,7 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+  )
 
   (test
     '(
@@ -51644,7 +52418,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  impure = true;"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
@@ -52477,7 +53251,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(x: Boolean): NativePoint {"
+      "export circuit foo(x: Boolean): JubjubPoint {"
       "  impure = true;"
       "  return hashToCurve<Boolean>(x);"
       "}"
@@ -54930,7 +55704,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit three(): [S, Bytes<32>] {"
-      "  return [field0, persistentHash<Opaque<'string'>>(field1)];"
+      "  return [field0, persistentHash<S>(field0)];"
       "}"
      )
     (succeeds)
@@ -57089,9 +57863,52 @@ groups than for single tests.
         "  ]"
         "}"))
     )
-)
 
-(parameterize ([zkir-v3 #t])
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger impure: Boolean;"
+      "export circuit fisk(): JubjubPoint {"
+      "  impure = true;"
+      "  const pt = default<JubjubPoint>;"
+      "  return ecAdd(pt, pt);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/fisk.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 0,"
+        "  \"instructions\": ["
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
+        "    { \"op\": \"ec_add\", \"a_x\": 2, \"a_y\": 0, \"b_x\": 2, \"b_y\": 0 },"
+        "    { \"op\": \"output\", \"var\": 5 },"
+        "    { \"op\": \"output\", \"var\": 6 }"
+        "  ]"
+        "}"))
+    )
+  )
+
+(parameterize ([feature-zkir-v3 #t])
 (run-tests print-zkir-v3
   (test
     "examples/tiny.compact"
@@ -57156,9 +57973,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
@@ -57181,9 +57998,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
@@ -57207,9 +58024,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 16 },"
@@ -57232,9 +58049,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 16 },"
@@ -57258,9 +58075,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
@@ -57307,9 +58124,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
@@ -57321,9 +58138,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
@@ -57353,9 +58170,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%a.0\""
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
@@ -57393,7 +58210,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -57410,9 +58227,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
@@ -57441,12 +58258,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%x.1\","
-        "    \"%y.2\","
-        "    \"%z.3\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 8 },"
@@ -57487,9 +58304,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
@@ -57502,9 +58319,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 32 },"
@@ -57519,35 +58336,34 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(p1: NativePoint, p2: NativePoint): NativePoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([p1.x, p2.x])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "export circuit foo(p1: JubjubPoint, p2: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)])), ecMulGenerator(17)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
       "}"
       )
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%p1.0\","
-        "    \"%p1.1\","
-        "    \"%p2.2\","
-        "    \"%p2.3\""
+        "    { \"name\": \"%p1.0\", \"type\": \"Point<Jubjub>\" },"
+        "    { \"name\": \"%p2.1\", \"type\": \"Point<Jubjub>\" }"
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"transient_hash\", \"output\": \"%t.4\", \"inputs\": [\"%p1.0\", \"%p2.2\"] },"
-        "    { \"op\": \"ec_mul\", \"outputs\": [\"%t.5\", \"%t.6\"], \"a_x\": \"%p1.0\", \"a_y\": \"%p1.1\", \"scalar\": \"%t.4\" },"
-        "    { \"op\": \"ec_mul_generator\", \"outputs\": [\"%t.7\", \"%t.8\"], \"scalar\": \"0x11\" },"
-        "    { \"op\": \"ec_add\", \"outputs\": [\"%t.9\", \"%t.10\"], \"a_x\": \"%t.5\", \"a_y\": \"%t.6\", \"b_x\": \"%t.7\", \"b_y\": \"%t.8\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.11\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.12\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%t.11\", \"%t.12\"] },"
-        "    { \"op\": \"hash_to_curve\", \"outputs\": [\"%t.13\", \"%t.14\"], \"inputs\": [\"%t.11\", \"%t.12\"] },"
-        "    { \"op\": \"ec_add\", \"outputs\": [\"%t.15\", \"%t.16\"], \"a_x\": \"%t.9\", \"a_y\": \"%t.10\", \"b_x\": \"%t.13\", \"b_y\": \"%t.14\" },"
-        "    { \"op\": \"hash_to_curve\", \"outputs\": [\"%t.17\", \"%t.18\"], \"inputs\": [] },"
-        "    { \"op\": \"ec_add\", \"outputs\": [\"%t.19\", \"%t.20\"], \"a_x\": \"%t.15\", \"a_y\": \"%t.16\", \"b_x\": \"%t.17\", \"b_y\": \"%t.18\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.19\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.20\" }"
+        "    { \"op\": \"encode\", \"outputs\": [\"%t.2\", \"%ingore.3\"], \"input\": \"%p1.0\" },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%t.4\", \"%ingore.5\"], \"input\": \"%p2.1\" },"
+        "    { \"op\": \"transient_hash\", \"output\": \"%t.6\", \"inputs\": [\"%t.2\", \"%t.4\"] },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.7\", \"a\": \"%p1.0\", \"scalar\": \"%t.6\" },"
+        "    { \"op\": \"ec_mul_generator\", \"output\": \"%t.8\", \"scalar\": \"0x11\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.7\", \"b\": \"%t.8\" },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%t.10\", \"%t.11\"] },"
+        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.12\", \"inputs\": [\"%t.10\", \"%t.11\"] },"
+        "    { \"op\": \"add\", \"output\": \"%t.13\", \"a\": \"%t.9\", \"b\": \"%t.12\" },"
+        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.14\", \"inputs\": [] },"
+        "    { \"op\": \"add\", \"output\": \"%t.15\", \"a\": \"%t.13\", \"b\": \"%t.14\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.15\" }"
         "  ]"
         "}"))
     )
@@ -57588,9 +58404,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57601,13 +58417,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -57616,9 +58432,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57629,10 +58445,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57644,13 +58460,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -57679,9 +58495,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57692,11 +58508,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57708,9 +58524,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57736,9 +58552,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -57754,6 +58570,7 @@ groups than for single tests.
         "}"))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -57763,7 +58580,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -57771,6 +58588,7 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+  )
 
   (test
     '(
@@ -57785,7 +58603,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -57812,9 +58630,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -57842,9 +58660,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -57877,9 +58695,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -57924,9 +58742,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -57951,10 +58769,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -57986,22 +58804,22 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%nv.0\","
-        "    \"%nv.1\","
-        "    \"%nv.2\","
-        "    \"%nv.3\","
-        "    \"%nv.4\","
-        "    \"%nv.5\","
-        "    \"%nv.6\","
-        "    \"%bv.7\","
-        "    \"%bv.8\","
-        "    \"%bv.9\","
-        "    \"%bv.10\","
-        "    \"%bv.11\","
-        "    \"%bv.12\","
-        "    \"%bv.13\""
+        "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -58067,22 +58885,22 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%nv.0\","
-        "    \"%nv.1\","
-        "    \"%nv.2\","
-        "    \"%nv.3\","
-        "    \"%nv.4\","
-        "    \"%nv.5\","
-        "    \"%nv.6\","
-        "    \"%bv.7\","
-        "    \"%bv.8\","
-        "    \"%bv.9\","
-        "    \"%bv.10\","
-        "    \"%bv.11\","
-        "    \"%bv.12\","
-        "    \"%bv.13\""
+        "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -58149,22 +58967,22 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%nv.0\","
-        "    \"%nv.1\","
-        "    \"%nv.2\","
-        "    \"%nv.3\","
-        "    \"%nv.4\","
-        "    \"%nv.5\","
-        "    \"%nv.6\","
-        "    \"%bv.7\","
-        "    \"%bv.8\","
-        "    \"%bv.9\","
-        "    \"%bv.10\","
-        "    \"%bv.11\","
-        "    \"%bv.12\","
-        "    \"%bv.13\""
+        "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -58269,14 +59087,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.0\", \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 248 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%t.2\", \"divisor\": \"%t.0\", \"modulus\": \"%t.1\", \"bits\": 248 },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
@@ -58301,22 +59119,22 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%nv.0\","
-        "    \"%nv.1\","
-        "    \"%nv.2\","
-        "    \"%nv.3\","
-        "    \"%nv.4\","
-        "    \"%nv.5\","
-        "    \"%nv.6\","
-        "    \"%bv.7\","
-        "    \"%bv.8\","
-        "    \"%bv.9\","
-        "    \"%bv.10\","
-        "    \"%bv.11\","
-        "    \"%bv.12\","
-        "    \"%bv.13\""
+        "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%nv.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -58387,7 +59205,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58410,7 +59228,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58436,7 +59254,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58461,15 +59279,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.3\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" },"
         "    { \"op\": \"output\", \"val\": \"%t.3\" }"
         "  ]"
@@ -58490,15 +59308,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.3\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" },"
         "    { \"op\": \"output\", \"val\": \"%t.3\" }"
         "  ]"
@@ -58519,7 +59337,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58541,9 +59359,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58570,9 +59388,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58602,9 +59420,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58640,9 +59458,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58664,9 +59482,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58689,11 +59507,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 2 },"
@@ -58719,10 +59537,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
@@ -58768,10 +59586,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58784,9 +59602,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58797,9 +59615,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58810,9 +59628,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58835,7 +59653,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58862,7 +59680,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -58884,9 +59702,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -58910,9 +59728,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -58934,9 +59752,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -58958,9 +59776,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -58982,9 +59800,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -59008,9 +59826,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -59035,9 +59853,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59062,10 +59880,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
@@ -59092,11 +59910,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59120,11 +59938,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59148,11 +59966,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59176,11 +59994,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59205,9 +60023,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59238,9 +60056,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59265,9 +60083,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%arg.0\", \"bits\": 40 },"
@@ -59289,10 +60107,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\","
-        "    \"%arg.1\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%arg.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%arg.0\", \"bits\": 72 },"
@@ -59316,9 +60134,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%arg.0\" },"
@@ -59341,9 +60159,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.1\", \"a\": \"%arg.0\", \"b\": \"0x03\", \"bits\": 2 },"
@@ -59366,9 +60184,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59392,9 +60210,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59417,9 +60235,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%arg.0\""
+        "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59443,9 +60261,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -59469,11 +60287,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x08\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.0\" }"
         "  ]"
@@ -59495,16 +60313,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 248 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\", \"0x80\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%x.0\", \"%x.1\", \"0x10\", \"0x00\", \"0xa2\", \"0x40\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -59537,25 +60355,25 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\","
-        "    \"%foo.1\","
-        "    \"%foo.2\","
-        "    \"%foo.3\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%foo.1\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%foo.2\", \"bits\": 248 },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%foo.3\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.4\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.5\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.6\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.4\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.6\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%t.4\", \"%t.5\", \"%t.6\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%t.6\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.7\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.8\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.9\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.7\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.8\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.9\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%q.7\", \"%q.8\", \"%q.9\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.10\", \"a\": \"%q.7\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.11\", \"a\": \"%q.8\", \"b\": \"0x00\" },"
@@ -59564,8 +60382,8 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%t.14\", \"bit\": \"%t.12\", \"a\": \"%t.13\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.15\", \"bit\": \"%t.14\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.15\" },"
-        "    { \"op\": \"private_input\", \"output\": \"%tmp.16\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.17\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%tmp.16\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.16\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.17\" }"
         "  ]"
@@ -59598,25 +60416,25 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\","
-        "    \"%foo.1\","
-        "    \"%foo.2\","
-        "    \"%foo.3\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%foo.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%foo.1\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%foo.2\", \"bits\": 248 },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%foo.3\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.4\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.5\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.6\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.4\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.6\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%t.4\", \"%t.5\", \"%t.6\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%t.6\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.7\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.8\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.9\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.7\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.8\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.9\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%q.7\", \"%q.8\", \"%q.9\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.10\", \"a\": \"%q.7\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.11\", \"a\": \"%q.8\", \"b\": \"0x00\" },"
@@ -59625,8 +60443,8 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%t.14\", \"bit\": \"%t.12\", \"a\": \"%t.13\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.15\", \"bit\": \"%t.14\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.15\" },"
-        "    { \"op\": \"private_input\", \"output\": \"%tmp.16\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.17\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%tmp.16\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.16\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.17\" }"
         "  ]"
@@ -59645,7 +60463,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59667,7 +60485,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59689,7 +60507,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59711,7 +60529,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59733,7 +60551,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59756,7 +60574,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59778,7 +60596,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59800,7 +60618,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59835,7 +60653,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59866,7 +60684,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -59899,10 +60717,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
@@ -59926,10 +60744,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -59956,10 +60774,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%x.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -60038,23 +60856,23 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%y.2\","
-        "    \"%y.3\","
-        "    \"%y.4\","
-        "    \"%y.5\","
-        "    \"%y.6\","
-        "    \"%y.7\","
-        "    \"%y.8\","
-        "    \"%y.9\","
-        "    \"%ci.10\","
-        "    \"%ci.11\","
-        "    \"%ci.12\","
-        "    \"%ci.13\","
-        "    \"%ci.14\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%ci.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%ci.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%ci.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%ci.13\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%ci.14\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.1\", \"bits\": 8 },"
@@ -60074,21 +60892,21 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x0e\", \"0x05\", \"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x0f\", \"0x02\", \"0xa1\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.15\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.15\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x04\", \"0x01\", \"0x0d\", \"0x01\", \"0x01\", \"%t.15\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.15\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%q.16\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.16\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x0c\", \"0x01\", \"0x01\", \"%q.16\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x11\", \"0x02\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.17\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x02\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.17\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.18\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.18\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x0d\", \"0x01\", \"0x08\", \"%t.18\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.19\", \"a\": \"%t.18\", \"b\": \"0x00\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.19\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.20\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.20\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.20\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.21\", \"bit\": \"%t.20\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.21\" },"
@@ -60098,27 +60916,27 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%tmp.23\", \"a\": \"%x.0\", \"b\": \"0x02\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.23\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.24\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.24\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x0d\", \"0x01\", \"0x08\", \"%t.24\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.25\", \"a\": \"%t.24\", \"b\": \"0x03\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.25\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\", \"0x19\", \"0xa1\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.26\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.26\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x0d\", \"0x01\", \"0x08\", \"%t.26\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.27\", \"a\": \"%t.26\", \"b\": \"0x02\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.27\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.28\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.28\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x02\", \"0x0d\", \"0x01\", \"0x01\", \"%t.28\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.29\", \"bit\": \"%t.28\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.29\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.30\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.30\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.30\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.30\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.31\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.31\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.31\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.32\", \"bit\": \"%t.31\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.32\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.33\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.33\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.23\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.33\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.33\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x03\", \"0x11\", \"0x02\", \"0x91\"] },"
@@ -60126,32 +60944,32 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x04\", \"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x05\", \"0x11\", \"0x23\", \"0xa4\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x06\", \"0x11\", \"0x33\", \"0xa4\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x02\", \"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x32\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0a\", \"0x11\", \"0x00\", \"0xa2\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.34\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.35\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.34\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.35\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.34\", \"%value.35\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.36\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.34\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.37\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.35\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.38\", \"%hash.39\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.36\", \"%data.37\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x07\", \"0x33\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.38\", \"%hash.39\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x08\", \"0x11\", \"0x02\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.40\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.41\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.40\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.41\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.40\", \"%value.41\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.42\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.40\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.43\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.41\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.44\", \"%hash.45\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.42\", \"%data.43\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x08\", \"0x34\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.44\", \"%hash.45\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x09\", \"0x11\", \"0x02\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.46\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.47\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.46\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.47\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.46\", \"%value.47\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.48\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.46\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.49\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.47\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.50\", \"%hash.51\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.48\", \"%data.49\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x09\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x35\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.50\", \"%hash.51\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x91\", \"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x0a\", \"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.52\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%value.53\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.52\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.53\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.52\", \"%value.53\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.54\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.52\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.55\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.53\" },"
@@ -60166,7 +60984,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  impure = true;"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
@@ -60175,17 +60993,43 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%c.0\","
-        "    \"%c.1\""
+        "    { \"name\": \"%c.0\", \"type\": \"Point<Jubjub>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"ec_mul\", \"outputs\": [\"%t.2\", \"%t.3\"], \"a_x\": \"%c.0\", \"a_y\": \"%c.1\", \"scalar\": \"0x03\" },"
-        "    { \"op\": \"ec_add\", \"outputs\": [\"%t.4\", \"%t.5\"], \"a_x\": \"%c.0\", \"a_y\": \"%c.1\", \"b_x\": \"%t.2\", \"b_y\": \"%t.3\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.4\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.5\" }"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.1\", \"a\": \"%c.0\", \"scalar\": \"0x03\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"b\": \"%t.1\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger impure: Boolean;"
+      "witness point(): JubjubPoint;"
+      "export circuit foo(): JubjubPoint {"
+      "  impure = true;"
+      "  const c = point();"
+      "  return disclose(ecAdd(c, ecMul(c, 3)));"
+      "}"
+     )
+    (output-file "compiler/testdir/zkir/foo.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"private_input\", \"type\": \"Point<Jubjub>\", \"output\": \"%c.0\", \"guard\": null },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.1\", \"a\": \"%c.0\", \"scalar\": \"0x03\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"b\": \"%t.1\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
         "}"))
     )
@@ -60208,10 +61052,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -60224,10 +61068,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60256,10 +61100,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -60272,10 +61116,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60304,12 +61148,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\","
-        "    \"%q.3\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -60325,14 +61169,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\","
-        "    \"%q.3\","
-        "    \"%q.4\","
-        "    \"%q.5\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.5\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60365,13 +61209,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\","
-        "    \"%q.3\","
-        "    \"%q.4\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.4\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -60394,12 +61238,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\","
-        "    \"%q.3\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.2\", \"bits\": 12 },"
@@ -60443,11 +61287,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
@@ -60467,11 +61311,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -60487,11 +61331,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
@@ -60528,11 +61372,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60566,11 +61410,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\","
-        "    \"%q.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
@@ -60601,11 +61445,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"-0x01\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.0\" }"
         "  ]"
@@ -60631,21 +61475,21 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%eval.0\","
-        "    \"%arguments.1\","
-        "    \"%witnesses.2\""
+        "    { \"name\": \"%eval.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%arguments.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%witnesses.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%eval.0\", \"b\": \"%arguments.1\" },"
         "    { \"op\": \"add\", \"output\": \"%x.4\", \"a\": \"%t.3\", \"b\": \"%witnesses.2\" },"
         "    { \"op\": \"add\", \"output\": \"%x.5\", \"a\": \"%x.4\", \"b\": \"0x07\" },"
         "    { \"op\": \"add\", \"output\": \"%x.6\", \"a\": \"%x.5\", \"b\": \"0x03\" },"
-        "    { \"op\": \"private_input\", \"output\": \"%t.7\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.7\", \"guard\": null },"
         "    { \"op\": \"add\", \"output\": \"%t.8\", \"a\": \"%t.7\", \"b\": \"0x05\" },"
         "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.8\", \"b\": \"0x02\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.10\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.10\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.11\", \"a\": \"%t.9\", \"b\": \"%t.10\" },"
         "    { \"op\": \"output\", \"val\": \"%t.11\" }"
@@ -60680,9 +61524,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%my_guess.0\""
+        "    { \"name\": \"%my_guess.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60706,9 +61550,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 12 },"
@@ -60733,9 +61577,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 12 },"
@@ -60751,7 +61595,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "export circuit foo(x: Boolean): NativePoint {"
+      "export circuit foo(x: Boolean): JubjubPoint {"
       "  impure = true;"
       "  return hashToCurve<Boolean>(x);"
       "}"
@@ -60760,16 +61604,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"hash_to_curve\", \"outputs\": [\"%t.1\", \"%t.2\"], \"inputs\": [\"%x.0\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.1\", \"inputs\": [\"%x.0\"] },"
+        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
         "}"))
     )
@@ -60796,7 +61639,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60826,7 +61669,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60854,7 +61697,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -60932,9 +61775,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.1\", \"%hash.2\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"0x6d646e3a6c68\", \"%x.0\"] },"
@@ -60963,12 +61806,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\", \"0x80\", \"0x01\", \"0x01\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"0x00\", \"0x00\", \"0x31\", \"0x31\", \"0x18\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x05\", \"0x40\", \"0x08\", \"0x12\", \"0x04\", \"0x32\", \"0x32\", \"0x60\", \"-0x01\", \"0x14\", \"0xa2\", \"0x40\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0d\", \"0x01\", \"0x08\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.0\" }"
         "  ]"
@@ -60993,7 +61836,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -61025,7 +61868,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -61034,8 +61877,8 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x05\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x09\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.0\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x03\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x12\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0x16\", \"0x26\", \"0x13\", \"0x02\", \"0x0b\", \"0x10\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"0x00\", \"0x00\", \"0x0d\", \"0x02\", \"0x01\", \"-0x02\", \"%t.0\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.0\" },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
@@ -61085,10 +61928,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61101,15 +61944,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -61184,10 +62027,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61200,18 +62043,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.3\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.4\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.5\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.4\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x04\", \"0x01\", \"0x0a\", \"0x01\", \"0x01\", \"%t.2\", \"%t.3\", \"%t.4\", \"%t.5\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" },"
         "    { \"op\": \"output\", \"val\": \"%t.3\" },"
@@ -61243,9 +62086,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61256,11 +62099,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\","
-        "    \"%q.2\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61272,15 +62115,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -61318,9 +62161,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61331,10 +62174,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%k.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%k.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61346,13 +62189,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -61361,13 +62204,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -61423,9 +62266,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
@@ -61435,11 +62278,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n1.0\","
-        "    \"%n2.1\","
-        "    \"%n3.2\""
+        "    { \"name\": \"%n1.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n2.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n3.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%n1.0\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n2.1\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%n3.2\", \"0x91\", \"0xa2\"] }"
@@ -61449,9 +62292,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%n.0\""
+        "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
@@ -61524,9 +62367,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61537,10 +62380,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61551,11 +62394,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\","
-        "    \"%k.2\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%k.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61567,14 +62410,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x52\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -61583,14 +62426,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%b.0\","
-        "    \"%n.1\""
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x52\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -61676,9 +62519,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -61704,9 +62547,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%q.0\""
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -61774,19 +62617,19 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%qcoin.0\","
-        "    \"%qcoin.1\","
-        "    \"%qcoin.2\","
-        "    \"%qcoin.3\","
-        "    \"%qcoin.4\","
-        "    \"%qcoin.5\","
-        "    \"%coin.6\","
-        "    \"%coin.7\","
-        "    \"%coin.8\","
-        "    \"%coin.9\","
-        "    \"%coin.10\""
+        "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.10\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.0\", \"bits\": 8 },"
@@ -61801,16 +62644,16 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.10\", \"bits\": 128 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"private_input\", \"output\": \"%value.11\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.11\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"output\": \"%value.12\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.12\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.12\", \"bits\": 248 }"
         "  ]"
         "}"))
-    ;; (output-file "compiler/testdir/zkir/bar.zkir"
-    ;;              "compiler/testdir/zkir/foo.zkir")
-    ;; (output-file "compiler/testdir/zkir/M2$bar.zkir"
-    ;;              "compiler/testdir/zkir/foo.zkir")
+    (output-file "compiler/testdir/zkir/bar.zkir"
+                 "compiler/testdir/zkir/foo.zkir")
+    (output-file "compiler/testdir/zkir/M2$bar.zkir"
+                 "compiler/testdir/zkir/foo.zkir")
     )
 
   (test
@@ -61874,19 +62717,19 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%qcoin.0\","
-        "    \"%qcoin.1\","
-        "    \"%qcoin.2\","
-        "    \"%qcoin.3\","
-        "    \"%qcoin.4\","
-        "    \"%qcoin.5\","
-        "    \"%coin.6\","
-        "    \"%coin.7\","
-        "    \"%coin.8\","
-        "    \"%coin.9\","
-        "    \"%coin.10\""
+        "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%qcoin.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.10\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.0\", \"bits\": 8 },"
@@ -61901,9 +62744,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.10\", \"bits\": 128 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"private_input\", \"output\": \"%value.11\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.11\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"output\": \"%value.12\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.12\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.12\", \"bits\": 248 }"
         "  ]"
         "}"))
@@ -61933,7 +62776,7 @@ groups than for single tests.
      )
     (returns
       (program
-        (circuit (init) (%b.0 %n.1)
+        (circuit (init) ((%b.0 "Scalar<BLS12-381>") (%n.1 "Scalar<BLS12-381>"))
           (constrain_to_boolean %b.0)
           (constrain_bits %n.1 16)
           (impact 1 112 1 1 0 16 1 1 1 %b.0 17 2 145 161)
@@ -61961,7 +62804,7 @@ groups than for single tests.
       "}"
       ""
       "export circuit three(): [S, Bytes<32>] {"
-      "  return [field0, persistentHash<Opaque<'string'>>(field1)];"
+      "  return [field0, persistentHash<S>(field0)];"
       "}"
      )
     (succeeds)
@@ -62099,9 +62942,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.1\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -62125,10 +62968,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.2\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -62154,11 +62997,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\","
-        "    \"%z.2\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.3\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -62188,10 +63031,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.2\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -62216,10 +63059,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 4 },"
@@ -62244,10 +63087,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 4 },"
@@ -62318,9 +63161,13 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit (foo) (%v.0 %v.1 %v.2 %v.3 %v.4)
+        (circuit (foo) ((%v.0 "Scalar<BLS12-381>")
+                        (%v.1 "Scalar<BLS12-381>")
+                        (%v.2 "Scalar<BLS12-381>")
+                        (%v.3 "Scalar<BLS12-381>")
+                        (%v.4 "Scalar<BLS12-381>"))
           (impact 1 16 1 1 1 0 17 1 1 -2 %v.3 145)
-          (public_input %t.5)
+          (public_input "Scalar<BLS12-381>" %t.5)
           (impact 1 48 80 1 1 0 12 1 -2 %t.5)
           (output %t.5))))
     )
@@ -62335,7 +63182,11 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit (foo) (%v.10 %v.0 %v.1 %v.4 %v.7)
+        (circuit (foo) ((%v.10 "Scalar<BLS12-381>")
+                        (%v.0 "Scalar<BLS12-381>")
+                        (%v.1 "Scalar<BLS12-381>")
+                        (%v.4 "Scalar<BLS12-381>")
+                        (%v.7 "Scalar<BLS12-381>"))
           (constrain_bits %v.10 16)
           (constrain_bits %v.0 16)
           (constrain_bits %v.1 16)
@@ -62377,7 +63228,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -62403,15 +63254,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%bv.0\""
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.1\", \"val\": \"%bv.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.1\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x01\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -62434,9 +63285,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%bv.0\""
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 40 },"
@@ -62446,11 +63297,11 @@ groups than for single tests.
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.7\", \"%tmp.8\"], \"val\": \"%quo.5\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.9\", \"val\": \"%quo.7\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x05\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.2\", \"%tmp.4\", \"%tmp.6\", \"%tmp.8\", \"%tmp.9\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.10\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.11\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.12\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.13\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.14\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.12\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.13\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.14\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x05\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.10\", \"%t.11\", \"%t.12\", \"%t.13\", \"%t.14\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.10\" },"
         "    { \"op\": \"output\", \"val\": \"%t.11\" },"
@@ -62477,9 +63328,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%bv.0\""
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 248 },"
@@ -62515,37 +63366,37 @@ groups than for single tests.
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.59\", \"%tmp.60\"], \"val\": \"%quo.57\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.61\", \"val\": \"%quo.59\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x1f\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.2\", \"%tmp.4\", \"%tmp.6\", \"%tmp.8\", \"%tmp.10\", \"%tmp.12\", \"%tmp.14\", \"%tmp.16\", \"%tmp.18\", \"%tmp.20\", \"%tmp.22\", \"%tmp.24\", \"%tmp.26\", \"%tmp.28\", \"%tmp.30\", \"%tmp.32\", \"%tmp.34\", \"%tmp.36\", \"%tmp.38\", \"%tmp.40\", \"%tmp.42\", \"%tmp.44\", \"%tmp.46\", \"%tmp.48\", \"%tmp.50\", \"%tmp.52\", \"%tmp.54\", \"%tmp.56\", \"%tmp.58\", \"%tmp.60\", \"%tmp.61\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.62\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.63\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.64\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.65\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.66\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.67\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.68\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.69\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.70\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.71\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.72\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.73\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.74\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.75\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.76\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.77\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.78\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.79\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.80\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.81\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.82\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.83\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.84\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.85\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.86\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.87\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.88\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.89\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.90\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.91\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.92\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.62\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.63\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.64\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.65\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.66\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.67\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.68\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.69\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.70\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.71\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.72\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.73\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.74\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.75\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.76\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.77\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.78\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.79\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.80\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.81\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.82\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.83\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.84\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.85\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.86\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.87\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.88\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.89\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.90\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.91\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.92\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x1f\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.62\", \"%t.63\", \"%t.64\", \"%t.65\", \"%t.66\", \"%t.67\", \"%t.68\", \"%t.69\", \"%t.70\", \"%t.71\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.62\" },"
         "    { \"op\": \"output\", \"val\": \"%t.63\" },"
@@ -62598,10 +63449,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%bv.0\","
-        "    \"%bv.1\""
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%bv.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 40 },"
@@ -62643,42 +63494,42 @@ groups than for single tests.
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.69\", \"%tmp.70\"], \"val\": \"%quo.67\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.71\", \"val\": \"%quo.69\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x24\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.12\", \"%tmp.14\", \"%tmp.16\", \"%tmp.18\", \"%tmp.20\", \"%tmp.22\", \"%tmp.24\", \"%tmp.26\", \"%tmp.28\", \"%tmp.30\", \"%tmp.32\", \"%tmp.34\", \"%tmp.36\", \"%tmp.38\", \"%tmp.40\", \"%tmp.42\", \"%tmp.44\", \"%tmp.46\", \"%tmp.48\", \"%tmp.50\", \"%tmp.52\", \"%tmp.54\", \"%tmp.56\", \"%tmp.58\", \"%tmp.60\", \"%tmp.62\", \"%tmp.64\", \"%tmp.66\", \"%tmp.68\", \"%tmp.70\", \"%tmp.71\", \"%tmp.3\", \"%tmp.5\", \"%tmp.7\", \"%tmp.9\", \"%tmp.10\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.72\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.73\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.74\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.75\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.76\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.77\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.78\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.79\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.80\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.81\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.82\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.83\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.84\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.85\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.86\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.87\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.88\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.89\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.90\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.91\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.92\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.93\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.94\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.95\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.96\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.97\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.98\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.99\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.100\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.101\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.102\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.103\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.104\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.105\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.106\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.107\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.72\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.73\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.74\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.75\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.76\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.77\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.78\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.79\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.80\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.81\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.82\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.83\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.84\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.85\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.86\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.87\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.88\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.89\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.90\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.91\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.92\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.93\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.94\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.95\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.96\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.97\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.98\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.99\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.100\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.101\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.102\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.103\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.104\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.105\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.106\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.107\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x24\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\", \"%t.93\", \"%t.94\", \"%t.95\", \"%t.96\", \"%t.97\", \"%t.98\", \"%t.99\", \"%t.100\", \"%t.101\", \"%t.102\", \"%t.103\", \"%t.104\", \"%t.105\", \"%t.106\", \"%t.107\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.72\" },"
         "    { \"op\": \"output\", \"val\": \"%t.73\" },"
@@ -62736,7 +63587,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
@@ -62762,15 +63613,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%v.0\""
+        "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.1\", \"val\": \"%v.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.1\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x01\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
@@ -62793,13 +63644,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%v.0\","
-        "    \"%v.1\","
-        "    \"%v.2\","
-        "    \"%v.3\","
-        "    \"%v.4\""
+        "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.4\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
@@ -62812,7 +63663,7 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.7\", \"divisor\": \"%div.6\", \"modulus\": \"%v.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.8\", \"divisor\": \"%div.7\", \"modulus\": \"%v.0\", \"bits\": 8 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x05\", \"%tmp.8\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.9\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.9\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x05\", \"%t.9\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.9\" }"
         "  ]"
@@ -62835,39 +63686,39 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%v.0\","
-        "    \"%v.1\","
-        "    \"%v.2\","
-        "    \"%v.3\","
-        "    \"%v.4\","
-        "    \"%v.5\","
-        "    \"%v.6\","
-        "    \"%v.7\","
-        "    \"%v.8\","
-        "    \"%v.9\","
-        "    \"%v.10\","
-        "    \"%v.11\","
-        "    \"%v.12\","
-        "    \"%v.13\","
-        "    \"%v.14\","
-        "    \"%v.15\","
-        "    \"%v.16\","
-        "    \"%v.17\","
-        "    \"%v.18\","
-        "    \"%v.19\","
-        "    \"%v.20\","
-        "    \"%v.21\","
-        "    \"%v.22\","
-        "    \"%v.23\","
-        "    \"%v.24\","
-        "    \"%v.25\","
-        "    \"%v.26\","
-        "    \"%v.27\","
-        "    \"%v.28\","
-        "    \"%v.29\","
-        "    \"%v.30\""
+        "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.13\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.14\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.15\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.16\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.17\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.18\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.19\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.20\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.21\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.22\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.23\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.24\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.25\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.26\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.27\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.28\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.29\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.30\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
@@ -62932,7 +63783,7 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.59\", \"divisor\": \"%div.58\", \"modulus\": \"%v.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.60\", \"divisor\": \"%div.59\", \"modulus\": \"%v.0\", \"bits\": 8 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x1f\", \"%tmp.60\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.61\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.61\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x1f\", \"%t.61\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.61\" }"
         "  ]"
@@ -62955,69 +63806,69 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%v.0\","
-        "    \"%v.1\","
-        "    \"%v.2\","
-        "    \"%v.3\","
-        "    \"%v.4\","
-        "    \"%v.5\","
-        "    \"%v.6\","
-        "    \"%v.7\","
-        "    \"%v.8\","
-        "    \"%v.9\","
-        "    \"%v.10\","
-        "    \"%v.11\","
-        "    \"%v.12\","
-        "    \"%v.13\","
-        "    \"%v.14\","
-        "    \"%v.15\","
-        "    \"%v.16\","
-        "    \"%v.17\","
-        "    \"%v.18\","
-        "    \"%v.19\","
-        "    \"%v.20\","
-        "    \"%v.21\","
-        "    \"%v.22\","
-        "    \"%v.23\","
-        "    \"%v.24\","
-        "    \"%v.25\","
-        "    \"%v.26\","
-        "    \"%v.27\","
-        "    \"%v.28\","
-        "    \"%v.29\","
-        "    \"%v.30\","
-        "    \"%v.31\","
-        "    \"%v.32\","
-        "    \"%v.33\","
-        "    \"%v.34\","
-        "    \"%v.35\","
-        "    \"%v.36\","
-        "    \"%v.37\","
-        "    \"%v.38\","
-        "    \"%v.39\","
-        "    \"%v.40\","
-        "    \"%v.41\","
-        "    \"%v.42\","
-        "    \"%v.43\","
-        "    \"%v.44\","
-        "    \"%v.45\","
-        "    \"%v.46\","
-        "    \"%v.47\","
-        "    \"%v.48\","
-        "    \"%v.49\","
-        "    \"%v.50\","
-        "    \"%v.51\","
-        "    \"%v.52\","
-        "    \"%v.53\","
-        "    \"%v.54\","
-        "    \"%v.55\","
-        "    \"%v.56\","
-        "    \"%v.57\","
-        "    \"%v.58\","
-        "    \"%v.59\","
-        "    \"%v.60\""
+        "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.11\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.12\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.13\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.14\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.15\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.16\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.17\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.18\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.19\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.20\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.21\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.22\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.23\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.24\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.25\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.26\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.27\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.28\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.29\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.30\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.31\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.32\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.33\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.34\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.35\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.36\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.37\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.38\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.39\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.40\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.41\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.42\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.43\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.44\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.45\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.46\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.47\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.48\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.49\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.50\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.51\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.52\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.53\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.54\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.55\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.56\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.57\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.58\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.59\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%v.60\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
@@ -63141,8 +63992,8 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.118\", \"divisor\": \"%div.117\", \"modulus\": \"%v.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.119\", \"divisor\": \"%div.118\", \"modulus\": \"%v.0\", \"bits\": 8 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x3d\", \"%tmp.89\", \"%tmp.119\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.120\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.121\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.120\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.121\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x3d\", \"%t.120\", \"%t.121\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.120\" },"
         "    { \"op\": \"output\", \"val\": \"%t.121\" }"
@@ -63165,9 +64016,9 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%param1.0\""
+        "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.0\", \"bits\": 8 },"
@@ -63194,18 +64045,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%param1.0\","
-        "    \"%param1.1\","
-        "    \"%param1.2\","
-        "    \"%param1.3\","
-        "    \"%param1.4\","
-        "    \"%param1.5\","
-        "    \"%param1.6\","
-        "    \"%param1.7\","
-        "    \"%param1.8\","
-        "    \"%param1.9\""
+        "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.9\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.0\", \"bits\": 8 },"
@@ -63256,18 +64107,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%param1.0\","
-        "    \"%param1.1\","
-        "    \"%param1.2\","
-        "    \"%param1.3\","
-        "    \"%param1.4\","
-        "    \"%param1.5\","
-        "    \"%param1.6\","
-        "    \"%param1.7\","
-        "    \"%param1.8\","
-        "    \"%param1.9\""
+        "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%param1.9\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.0\", \"bits\": 8 },"
@@ -63290,7 +64141,7 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.17\", \"divisor\": \"%div.16\", \"modulus\": \"%param1.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.18\", \"divisor\": \"%div.17\", \"modulus\": \"%param1.0\", \"bits\": 8 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x0a\", \"%tmp.18\", \"0x91\"] },"
-        "    { \"op\": \"public_input\", \"output\": \"%t.19\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.19\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x0a\", \"%t.19\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.19\" }"
         "  ]"
@@ -63319,11 +64170,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"0xe803\", \"0x50\", \"0x01\", \"-0x02\", \"0xd007\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.0\" }"
         "  ]"
@@ -63332,12 +64183,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"0xe803\", \"0x50\", \"0x01\", \"-0x02\", \"%x.0\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -63346,12 +64197,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%x.0\", \"0x50\", \"0x01\", \"-0x02\", \"0xe803\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.1\" }"
         "  ]"
@@ -63360,19 +64211,72 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
+        "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    \"%x.0\","
-        "    \"%y.1\""
+        "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"public_input\", \"output\": \"%t.2\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%x.0\", \"0x50\", \"0x01\", \"-0x02\", \"%y.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"val\": \"%t.2\" }"
         "  ]"
         "}"))
     )
-  )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger impure: Boolean;"
+      "witness point(): JubjubPoint;"
+      "export circuit gris(scalar: Field): JubjubPoint {"
+      "  impure = true;"
+      "  return disclose(ecMul(point(), scalar));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/gris.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%scalar.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"private_input\", \"type\": \"Point<Jubjub>\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.2\", \"a\": \"%t.1\", \"scalar\": \"%scalar.0\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger impure: Boolean;"
+      "export circuit fisk(): JubjubPoint {"
+      "  impure = true;"
+      "  const pt = default<JubjubPoint>;"
+      "  return ecAdd(pt, pt);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/fisk.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%pt.0\", \"inputs\": [\"0x00\", \"0x01\"] },"
+        "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%pt.0\", \"b\": \"%pt.0\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "  ]"
+        "}"))
+    )
+)
 )
 
 ; tests of code snippets in lang-ref
@@ -64094,7 +64998,7 @@ groups than for single tests.
     )
   )
 
-(with-parameter-values ([zkir-v3 #f #t])
+(with-parameter-values ([feature-zkir-v3 #f #t])
 (run-tests print-typescript
   (test-group
     ((create-file "C1.compact"
@@ -64303,6 +65207,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -64322,6 +65229,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -64381,6 +65289,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -64400,6 +65311,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -64471,6 +65383,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -64490,6 +65405,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -64561,6 +65477,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
@@ -64580,6 +65499,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -64832,6 +65752,7 @@ groups than for single tests.
         ))
     )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo }"
@@ -64844,8 +65765,10 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt).result).toEqual([]);"
         "});"
         ))
-    )
+    ) 
+  )
 
+ (with-compact-path '(".")
   (test
     '(
       "export { foo };"
@@ -64859,6 +65782,7 @@ groups than for single tests.
         "});"
         ))
     )
+  )
 
   (test
     '(
@@ -66892,6 +67816,12 @@ groups than for single tests.
         "  clear(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, Maybe<bigint>>;"
+        "  clear(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  public_key(sk_0: Uint8Array): Uint8Array;"
         "}"
@@ -66915,6 +67845,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>, v_0: bigint): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -67095,6 +68026,11 @@ groups than for single tests.
         "      }"
         "    };"
         "    this.impureCircuits = {"
+        "      set: this.circuits.set,"
+        "      get: this.circuits.get,"
+        "      clear: this.circuits.clear"
+        "    };"
+        "    this.provableCircuits = {"
         "      set: this.circuits.set,"
         "      get: this.circuits.get,"
         "      clear: this.circuits.clear"
@@ -67428,7 +68364,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -67559,10 +68495,10 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(c: NativePoint): NativePoint {"
+      "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3));"
       "}"
-      "export circuit bar(x: Field): NativePoint {"
+      "export circuit bar(x: Field): JubjubPoint {"
       "  return ecMulGenerator(x);"
       "}"
       )
@@ -67856,6 +68792,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  uno(q_0: Q<bigint>): bigint;"
         "}"
@@ -67875,6 +68814,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -67918,6 +68858,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  uno(q_0: Q<bigint>): bigint;"
         "}"
@@ -67937,6 +68880,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -67972,6 +68916,10 @@ groups than for single tests.
         "  hello(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, string>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  hello(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, string>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -67991,6 +68939,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>, x_0: string): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -68043,6 +68992,13 @@ groups than for single tests.
         "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "            eval_0: bigint,"
+        "            arguments_0: bigint,"
+        "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  functions(Maybe_0: Maybe<bigint>): bigint;"
         "  finalize(): bigint;"
@@ -68073,6 +69029,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>,"
         "               witnesses_0: bigint): __compactRuntime.ConstructorResult<PS>;"
@@ -68185,7 +69142,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(x: Boolean): NativePoint {"
+      "export circuit foo(x: Boolean): JubjubPoint {"
       "  return hashToCurve<Boolean>(x);"
       "}"
       )
@@ -68781,6 +69738,14 @@ groups than for single tests.
         "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  init0(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
+        "  ismember(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, boolean>;"
+        "  init1(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
+        "  update(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  identity(q_0: bigint): bigint;"
         "}"
@@ -68818,6 +69783,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -69080,6 +70046,15 @@ groups than for single tests.
         "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  init(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): __compactRuntime.CircuitResults<PS, []>;"
+        "  put(context: __compactRuntime.CircuitContext<PS>,"
+        "      b_0: boolean,"
+        "      n_0: bigint,"
+        "      q_0: bigint): __compactRuntime.CircuitResults<PS, []>;"
+        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -69115,6 +70090,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -69739,6 +70715,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -69794,6 +70773,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -70712,6 +71692,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  foo(): Commitment<any>;"
         "}"
@@ -70731,6 +71714,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -77999,6 +78983,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -78017,6 +79005,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -78055,6 +79044,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -78074,6 +79067,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -78112,6 +79106,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -78131,6 +79129,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -78167,6 +79166,9 @@ groups than for single tests.
         "export type ImpureCircuits<PS> = {"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
         "export type PureCircuits = {"
         "  foo(x_0: U32): bigint;"
         "}"
@@ -78186,6 +79188,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -78227,6 +79230,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): __compactRuntime.CircuitResults<PS, S>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): __compactRuntime.CircuitResults<PS, S>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -78246,6 +79253,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -78310,6 +79318,10 @@ groups than for single tests.
         "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
+        "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): __compactRuntime.CircuitResults<PS, bigint>;"
+        "}"
+        ""
         "export type PureCircuits = {"
         "}"
         ""
@@ -78329,6 +79341,7 @@ groups than for single tests.
         "  witnesses: W;"
         "  circuits: Circuits<PS>;"
         "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
         "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
         "}"
@@ -79324,20 +80337,21 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "ledger F: NativePoint;"
+      "ledger F: JubjubPoint;"
       ""
-      "export circuit foo(np: NativePoint): [Field, Field] {"
-      "  F = disclose(np);"
+      "export circuit foo(pt: JubjubPoint): [Field, Field] {"
+      "  F = disclose(pt);"
       "  const q = F;"
-      "  return [nativePointY(q), nativePointX(q)];"
+      "  return [jubjubPointY(q), jubjubPointX(q)];"
       "}"
       )
     (stage-javascript
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  // NB: assumes the representation of NativePoint current as of the creation of this test"
-        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual([7n, 3n]);"
+        "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
+        "  const p = runtime.ecMulGenerator(1n);"
+        "  expect(C.circuits.foo(Ctxt, p).result).toEqual([p.y, p.x]);"
         "});"
         ))
     )
@@ -79345,20 +80359,21 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "ledger F: NativePoint;"
+      "ledger F: JubjubPoint;"
       ""
-      "export circuit foo(np: NativePoint): NativePoint {"
-      "  F = disclose(np);"
+      "export circuit foo(pt: JubjubPoint): JubjubPoint {"
+      "  F = disclose(pt);"
       "  const q = F;"
-      "  return constructNativePoint(nativePointY(q), nativePointX(q));"
+      "  return constructJubjubPoint(jubjubPointX(q), jubjubPointY(q));"
       "}"
       )
     (stage-javascript
       `(
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  // NB: assumes the representation of NativePoint current as of the creation of this test"
-        "  expect(C.circuits.foo(Ctxt, {x: 3n, y: 7n}).result).toEqual({x: 7n, y: 3n});"
+        "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
+        "  const p = runtime.ecMulGenerator(1n);"
+        "  expect(C.circuits.foo(Ctxt, p).result).toEqual({ x: p.x, y: p.y });"
         "});"
         ))
     )
@@ -79370,7 +80385,140 @@ groups than for single tests.
       "export struct SX<#n, T> { curidx: Uint<n> }"
       "export struct SY<#n, T> { curidx: Uint<0..n> }"
       )
-    (output-file "compiler/testdir/contract/index.d.ts" #f)
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type UX = bigint;"
+        ""
+        "export type UY = bigint;"
+        ""
+        "export type SX<T> = { curidx: bigint };"
+        ""
+        "export type SY<T> = { curidx: bigint };"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "}"
+        ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger count: Counter;"
+      ""
+      "witness get_a(): Uint<8>;"
+      "witness get_b(): Uint<8>;"
+      ""
+      "export circuit test1(): Boolean {"
+      "  count.increment(1);"
+      "  return disclose(get_a()) > disclose(get_b());"
+      "}"
+      "export circuit test2(): Boolean {"
+      "  count.increment(1);"
+      "  return disclose(get_a()) <= disclose(get_b());"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "const witnesses1 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; } };"
+        "const witnesses2 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; } };"
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, witnesses1, 0);"
+        "  expect(C.circuits.test1(Ctxt).result).toEqual(false);"
+        "  expect(C.circuits.test2(Ctxt).result).toEqual(true);"
+        "});"
+        "test('check 2', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, witnesses2, 0);"
+        "  expect(C.circuits.test1(Ctxt).result).toEqual(true);"
+        "  expect(C.circuits.test2(Ctxt).result).toEqual(false);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export type UX<#n> = Uint<n>;"
+      "export type UY<#n> = Uint<0..n>;"
+      "export struct SX<#n, T> { curidx: Uint<n> }"
+      "export struct SY<#n, T> { curidx: Uint<0..n> }"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type UX = bigint;"
+        ""
+        "export type UY = bigint;"
+        ""
+        "export type SX<T> = { curidx: bigint };"
+        ""
+        "export type SY<T> = { curidx: bigint };"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "}"
+        ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
     )
 )
 

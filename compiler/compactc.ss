@@ -40,6 +40,9 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --language-version prints the language version and exits.
 
+  --ledger-version prints the ledger version and exits.  The ledger version
+    is the version of the ledger that is expected by the generated code.
+
   --runtime-version prints the runtime version and exits.  The runtime version
     is the version of the Compact runtime JavaScript package that is used by
     generated contract code.
@@ -62,6 +65,18 @@ The following flags, if present, affect the compiler's behavior as follows:
     target-directory pathnames, but this value might not be appropriate for the
     deployed structure of the application.
 
+  --compact-path <search list> sets the compact path, overriding the default
+    value, which is the value of the environment variable COMPACT_PATH, if
+    it is set, and empty otherwise.  <search list> should be a colon-separated
+    (semicolon-separated under Windows) sequence of directory pathnames.
+    The compact path controls where the compiler looks for include and external
+    module files with non-absolute pathnames.  It always looks first relative
+    to the directory of the including or importing file, then in each directory
+    in the compact path from left to right.
+
+  --trace-search causes the compiler to print a sequence of messages saying
+    where it is looking for each included file and imported module source file.
+
   --trace-passes causes the compiler to print tracing information that is
     generally useful only to compiler developers.
 "))
@@ -73,13 +88,16 @@ The following flags, if present, affect the compiler's behavior as follows:
     [((flags [(--help) $ (begin (print-help) (exit))]
              [(--version) $ (begin (print-compiler-version) (exit))]
              [(--language-version) $ (begin (print-language-version) (exit))]
+             [(--ledger-version) $ (begin (print-ledger-version ?--feature-zkir-v3) (exit))]
              [(--runtime-version) $ (begin (print-runtime-version) (exit))]
              [(--vscode)]
              [(--skip-zk)]
              [(--no-communications-commitment)]
              [(--sourceRoot) (string source-root)]
+             [(--compact-path) (string search-list)]
+             [(--trace-search)]
              [(--trace-passes)]
-             [(--zkir-v3)])
+             [(--feature-zkir-v3)])
       (string source-pathname)
       (string target-directory-pathname))
      (check-pathname source-pathname)
@@ -87,14 +105,18 @@ The following flags, if present, affect the compiler's behavior as follows:
      (parameterize ([trace-passes ?--trace-passes]
                     [skip-zk ?--skip-zk]
                     [no-communications-commitment ?--no-communications-commitment]
-                    [zkir-v3 ?--zkir-v3])
+                    [feature-zkir-v3 ?--feature-zkir-v3]
+                    [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
+                    [trace-search ?--trace-search])
        (when source-root (register-source-root! source-root))
        (handle-exceptions ?--vscode
          (generate-everything source-pathname target-directory-pathname)))]
     [((flags [(--help) $ (begin (print-help) (exit))]
              [(--version) $ (begin (print-compiler-version) (exit))]
              [(--language-version) $ (begin (print-language-version) (exit))]
-             [(--runtime-version) $ (begin (print-runtime-version) (exit))])
+             [(--ledger-version) $ (begin (print-ledger-version ?--feature-zkir-v3) (exit))]
+             [(--runtime-version) $ (begin (print-runtime-version) (exit))]
+             [(--feature-zkir-v3)])
       (string arg) ...)
      (print-usage #t)
      (exit 1)]))

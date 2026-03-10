@@ -23,10 +23,13 @@ import { expectFiles } from './files-assertions';
 
 export enum Arguments {
     SKIP_ZK = '--skip-zk',
+    FEATURE_V3 = '--feature-zkir-v3',
     TRACE_PASSES = '--trace-passes',
     HELP = '--help',
     VERSION = '--version',
     LANGUAGE_VERSION = '--language-version',
+    LEDGER_VERSION = '--ledger-version',
+    RUNTIME_VERSION = '--runtime-version',
     VSCODE = '--vscode',
     LINES_LENGTH = '--line-length',
 }

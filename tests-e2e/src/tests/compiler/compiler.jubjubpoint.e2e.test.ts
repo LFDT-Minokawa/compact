@@ -17,9 +17,9 @@ import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
-describe('[CurvePoint] [PM-21110] Switch from the CurvePoint to NativePoint', () => {
-    const CONTRACTS_ROOT = buildPathTo('/nativepoint/');
-    const CONTRACTS_NEGATIVE_ROOT = buildPathTo('/nativepoint/negative/');
+describe('[JubJubPoint] [PM-21110] Switch from the CurvePoint to JubjubPoint', () => {
+    const CONTRACTS_ROOT = buildPathTo('/jubjubpoint/');
+    const CONTRACTS_NEGATIVE_ROOT = buildPathTo('/jubjubpoint/negative/');
 
     test('example contract should be compiled successfully', async () => {
         const filePath = CONTRACTS_ROOT + 'examples.compact';
@@ -39,7 +39,7 @@ describe('[CurvePoint] [PM-21110] Switch from the CurvePoint to NativePoint', ()
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_one.compact line 19 char 21: unbound identifier CurvePoint',
+                'Exception: example_one.compact line 19 char 21: apparent use of an old standard-library / ledger operator name CurvePoint: the new name is JubjubPoint',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
@@ -52,7 +52,34 @@ describe('[CurvePoint] [PM-21110] Switch from the CurvePoint to NativePoint', ()
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_two.compact line 19 char 27: unbound identifier CurvePoint',
+                'Exception: example_two.compact line 19 char 27: apparent use of an old standard-library / ledger operator name CurvePoint: the new name is JubjubPoint\n' +
+                'Exception: example_two.compact line 19 char 48: apparent use of an old standard-library / ledger operator name CurvePoint: the new name is JubjubPoint',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
+
+        test('example 3 - treat JubjubPoint as a struct', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_three.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_three.compact line 23 char 14: expected structure type, received JubjubPoint',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
+
+        test('example 4 - use deprecated NativePoint in assignment', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_four.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_four.compact line 19 char 21: apparent use of an old standard-library / ledger operator name NativePoint: the new name is JubjubPoint',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();

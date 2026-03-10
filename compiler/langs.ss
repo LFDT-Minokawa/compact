@@ -404,7 +404,7 @@
     (Program-Element (pelt)
       (+ ndecl
          adt-defn
-         circuit-alias-defn))
+         fixup-alias-defn))
     (Native-Declaration (ndecl)
       (+ (native src exported? function-name native-entry (type-param* ...) (arg* ...) type) =>
            (native function-name (type-param* ...) (arg* 0 ...) 4 type)))
@@ -424,9 +424,9 @@
          (ledger-op-class nat nat^)))
     (ADT-Op-Condition (adt-op-cond)
       (+ (= tvar-name type)))
-    (Circuit-Alias-Definition (circuit-alias-defn)
-      ; (circuit-alias alias-name actual-name)
-      (+ (circuit-alias function-name^ function-name)))
+    (Fixup-Alias-Definition (fixup-alias-defn)
+      ; (fixup-alias alias-name actual-name)
+      (+ (fixup-alias function-name^ function-name)))
     )
 
   (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
@@ -493,12 +493,12 @@
          enumdef
          tdefn
          adt-defn
-         circuit-alias-defn)
+         fixup-alias-defn)
       (+ export-tdefn))
     (ADT-Definition (adt-defn)
       (- (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...))))
-    (Circuit-Alias-Definition (circuit-alias-defn)
-      (- (circuit-alias function-name^ function-name)))
+    (Fixup-Alias-Definition (fixup-alias-defn)
+      (- (fixup-alias function-name^ function-name)))
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration src exported? sealed? ledger-field-name type))
       (+ (public-ledger-declaration src ledger-field-name type) =>
@@ -569,7 +569,7 @@
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
-      (+ (fref src symbolic-function-name (([symbolic-function-name** function-name**] ...) ...)
+      (+ (fref src symbolic-function-name ((function-name** ...) ...)
                (generic-value* ...)
                ((src* generic-kind** ...) ...)) =>
            (fref ((function-name** ...) ...))))
@@ -1000,6 +1000,7 @@
       (assert src test mesg)            => (assert test #f mesg))
     (Rhs (rhs)
       triv
+      (default type)
       (+ mbits triv1 triv2)
       (- mbits triv1 triv2)
       (* mbits triv1 triv2)
@@ -1024,7 +1025,6 @@
       (downcast-unsigned src test nat triv)   => (downcast-unsigned test nat triv))
     (Triv (triv test)
       var-name
-      (default type)
       (quote datum)                          => datum
       )
     (Tuple-Argument (tuple-arg)
@@ -1082,6 +1082,7 @@
          (= var-name single)          =>  (= var-name 2 single)))
     (Rhs (rhs)
       (- triv
+         (default type)
          (+ mbits triv1 triv2)
          (- mbits triv1 triv2)
          (* mbits triv1 triv2)
@@ -1115,8 +1116,8 @@
          (vector->bytes triv triv* ...)          => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
          (downcast-unsigned src test nat triv)   => (downcast-unsigned test nat triv)))
     (Multiple (multiple)
-      (+ (call src test function-name triv* ...) =>
-           (call test function-name #f triv* ...)
+      (+ (call src test function-name triv* ...) => (call test function-name #f triv* ...)
+         (default opaque-type)
          (field->bytes src test len triv)        => (field->bytes test len #f triv)
          (bytes->vector triv)                    => (bytes->vector #f triv) ; triv holds one field's worth of bytes
          (public-ledger src test ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
@@ -1124,8 +1125,7 @@
          (contract-call src test elt-name (triv primitive-type) triv* ...) =>
            (contract-call test elt-name 4 (triv primitive-type) #f triv* ...)))
     (Triv (triv test)
-      (- (quote datum)
-         (default type))
+      (- (quote datum))
       (+ nat))
     (Tuple-Argument (tuple-arg)
       (- (single src triv)
@@ -1138,7 +1138,8 @@
          (abytes nat)
          (afield)
          (aadt)
-         (acontract)))
+         (acontract)
+         (anative opaque-type)))
     (Type (type)
       (- (tboolean src)
          (tfield src)
@@ -1167,12 +1168,13 @@
       (source-object (src))
       (id (var-name))
       (symbol (name))
+      (string (zkir-type))
       (Lflattened-Alignment (alignment)))
     (Program (p)
       (program src cdefn* ...) => (program #f cdefn* ...))
     (Circuit-Definition (cdefn)
-      (circuit src (name* ...) (var-name* ...) instr* ...) =>
-        (circuit (name* ...) (var-name* ...) #f instr* ...))
+      (circuit src (name* ...) ((var-name* zkir-type*) ...) instr* ...) =>
+        (circuit (name* ...) ((var-name* zkir-type*) 0 ...) #f instr* ...))
     (Instruction (instr)
       (add outp inp0 inp1)
       (assert inp)
@@ -1181,21 +1183,22 @@
       (constrain_eq inp0 inp1)
       (constrain_to_boolean inp)
       (copy outp inp)
+      (decode zkir-type outp inp* ...)
       (div_mod_power_of_two outp0 outp1 inp imm)  ;; outps=(quotient remainder)
-      (ec_add outp0 outp1 inp0 inp1 inp2 inp3)
-      (ec_mul outp0 outp1 inp0 inp1 inp2)
-      (ec_mul_generator outp0 outp1 inp)
-      (hash_to_curve outp0 outp1 inp* ...)
+      (ec_mul outp inp0 inp1)
+      (ec_mul_generator outp0 inp)
+      (encode outp0 outp1 inp)
+      (hash_to_curve outp inp* ...)
       (impact inp inp* ...)
       (less_than outp inp0 inp1 imm)
       (mul outp inp0 inp1)
       (neg outp inp)
       (output inp)
       (persistent_hash outp0 outp1 (alignment* ...) inp* ...)
-      (private_input outp)
-      (private_input outp inp)
-      (public_input outp)
-      (public_input outp inp)
+      (private_input zkir-type outp)
+      (private_input zkir-type outp inp)
+      (public_input zkir-type outp)
+      (public_input zkir-type outp inp)
       (reconstitute_field outp inp0 inp1 imm)
       (test_eq outp inp0 inp1)
       (transient_hash outp inp* ...))

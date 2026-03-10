@@ -1,5 +1,3 @@
-#!chezscheme
-
 ;;; This file is part of Compact.
 ;;; Copyright (C) 2025 Midnight Foundation
 ;;; SPDX-License-Identifier: Apache-2.0
@@ -14,6 +12,8 @@
 ;;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
+
+#!chezscheme
 
 (library (runtime-version)
   (export runtime-version-string)

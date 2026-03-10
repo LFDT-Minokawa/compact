@@ -199,6 +199,16 @@
                   (print-gate "hash_to_curve" `[inputs ,args*])
                   (new-var! (car res*) #f)
                   (new-var! (cadr res*) #f)))
+              (register-handler! 'jubjubPointX
+                (lambda (align res* a1 a2)
+                  (bind-var! (car res*) a1)))
+              (register-handler! 'jubjubPointY
+                (lambda (align res* a1 a2)
+                  (bind-var! (car res*) a2)))
+              (register-handler! 'constructJubjubPoint
+                (lambda (align res* a1 a2)
+                  (bind-var! (car res*) a1)
+                  (bind-var! (cadr res*) a2)))
               (register-handler! 'transientCommit
                 ;; First n-1 args are the object being committed.
                 ;; Final arg is commitment nonce.
@@ -360,6 +370,10 @@
                [else (assert cannot-happen)]))]
           [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...))
            (source-errorf src "cross-contract calls are not yet supported")]
+          [(= (,var-name1 ,var-name2) (default ,opaque-type))
+           (guard (string=? opaque-type "JubjubPoint"))
+           (bind-var! var-name1 (literal 0))
+           (bind-var! var-name2 (literal 1))]
           [(= (,var-name* ...) (bytes->vector ,[* triv]))
            (assert (not (null? var-name*)))
            (let loop ([var-name* var-name*] [triv triv])

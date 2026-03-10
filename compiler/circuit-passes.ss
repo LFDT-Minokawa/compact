@@ -20,6 +20,7 @@
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
+          (config-params)
           (nanopass)
           (langs)
           (pass-helpers))
@@ -2215,7 +2216,13 @@
                 [(tfield ,src) (cons `(afield) a*)]
                 [(tunsigned ,src ,nat) (cons `(abytes ,(ceiling (/ (bitwise-length nat) 8))) a*)]
                 [(tbytes ,src ,len) (cons `(abytes ,len) a*)]
-                [(topaque ,src ,opaque-type) (cons `(acompress) a*)]
+                [(topaque ,src ,opaque-type)
+                 (case opaque-type
+                   [("JubjubPoint")
+                    (if (feature-zkir-v3)
+                        (cons `(anative ,opaque-type) a*)
+                        (cons* `(afield) `(afield) a*))]
+                   [else (cons `(acompress) a*)])]
                 [(tvector ,src ,len ,type)
                  (let ([a^* (f type '())])
                    (do ([len len (- len 1)] [a* a* (append a^* a*)])
@@ -2315,6 +2322,11 @@
       [(tstruct ,src ,struct-name (,elt-name* ,[Type->Wump : type -> * wump*]) ...)
        (Wump-struct elt-name* wump*)]
       [(tunknown) (assert cannot-happen)]
+      [(topaque ,src ,opaque-type)
+       (guard (string=? opaque-type "JubjubPoint") (not (feature-zkir-v3)))
+       (Wump-bytes
+         (with-output-language (Lflattened Primitive-Type)
+           (list `(tfield) `(tfield))))]
       [else (Wump-single (Single-Type ir))])
     (Type : Type (ir) -> Type ()
       [else (build-type ir (wump->elts (Type->Wump ir)))])
@@ -2336,6 +2348,53 @@
       [,triv
        (hashtable-set! var-ht var-name (Triv triv))
        '()]
+      [(default ,type)
+       (letrec ([trivial (lambda (wump) (values wump '()))]
+                [do-type
+                  (lambda (type)
+                    (nanopass-case (Lcircuit Type) type
+                      [(tboolean ,src) (trivial (Wump-single 0))]
+                      [(tfield ,src) (trivial (Wump-single 0))]
+                      [(tunsigned ,src ,nat) (trivial (Wump-single 0))]
+                      [(tbytes ,src ,len)
+                       (trivial (Wump-bytes
+                                  (make-list
+                                    (quotient (+ len (- (field-bytes) 1)) (field-bytes))
+                                    0)))]
+                      [(topaque ,src ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
+                       (with-output-language (Lflattened Statement)
+                         (let ([t1 (make-new-id var-name)])
+                           (if (feature-zkir-v3)
+                               (values
+                                 (Wump-single t1)
+                                 (list `(= (,t1) (default ,opaque-type))))
+                               (let ([t2 (make-new-id var-name)])
+                                 (values
+                                   (Wump-vector (list (Wump-single t1) (Wump-single t2)))
+                                   (list `(= (,t1 ,t2) (default ,opaque-type))))))))]
+                      [(topaque ,src ,opaque-type) (trivial (Wump-single 0))]
+                      [(tvector ,src ,len ,type)
+                       (let-values ([(wump stmt*) (do-type type)])
+                         (values (Wump-vector (make-list len wump)) stmt*))]
+                      [(ttuple ,src ,type* ...)
+                       (let-values ([(wump* stmt*) (do-types type*)])
+                         (values (Wump-vector wump*) stmt*))]
+                      [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                       (let-values ([(wump* stmt*) (do-types type*)])
+                         (values (Wump-struct elt-name* wump*) stmt*))]
+                      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
+                       (trivial (Wump-single 0))]
+                      [else (assert cannot-happen)]))]
+                [do-types
+                  (lambda (type*)
+                    (if (null? type*)
+                        (values '() '())
+                        (let-values ([(wump instr0*) (do-type (car type*))]
+                                     [(wump* instr1*) (do-types (cdr type*))])
+                          (values (cons wump wump*) (append instr0* instr1*)))))])
+         (let-values ([(wump stmt*) (do-type type)])
+           (hashtable-set! var-ht var-name wump)
+           stmt*))]
       [(+ ,mbits ,[Single-Triv : triv1] ,[Single-Triv : triv2])
        (hashtable-set! var-ht var-name (Wump-single var-name))
        (with-output-language (Lflattened Statement)
@@ -2566,27 +2625,6 @@
                         (cons
                           (bytevector-uint-ref datum i (endianness little) j)
                           elt*)))))))])]
-      [(default ,type)
-       (let dowump ([type type])
-         (nanopass-case (Lcircuit Type) type
-           [(tboolean ,src) (Wump-single 0)]
-           [(tfield ,src) (Wump-single 0)]
-           [(tunsigned ,src ,nat) (Wump-single 0)]
-           [(tbytes ,src ,len)
-            (Wump-bytes
-              (make-list
-                (quotient (+ len (- (field-bytes) 1)) (field-bytes))
-                0))]
-           [(topaque ,src ,opaque-type) (Wump-single 0)]
-           [(tvector ,src ,len ,type)
-            (Wump-vector (make-list len (dowump type)))]
-           [(ttuple ,src ,type* ...)
-            (Wump-vector (map dowump type*))]
-           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-            (Wump-struct elt-name* (map dowump type*))]
-           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
-            (Wump-single 0)]
-           [else (assert cannot-happen)]))]
       [else (assert cannot-happen)])
     (Tuple-Argument : Tuple-Argument (ir) -> * (wump*)
       [(single ,src ,[* wump]) (list wump)]
@@ -2841,6 +2879,9 @@
       [(contract-call ,src ,[FWD-Triv : test] ,elt-name (,[FWD-Triv : triv] ,primitive-type) ,[FWD-Triv : triv*] ...)
        (with-output-language (Lflattened Statement)
          (cons `(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...)) rstmt*))]
+      [(default ,opaque-type)
+       (with-output-language (Lflattened Statement)
+         (cons `(= (,var-name* ...) (default ,opaque-type)) rstmt*))]
       [(field->bytes ,src ,[FWD-Triv : test] ,len ,[FWD-Triv : triv])
        (assert (fx= (length var-name*) 2))
        (assert (not (= len 0)))
@@ -3100,6 +3141,11 @@
        (cons `(= (,var-name* ...) (call ,src ,test ,function-name ,triv* ...)) stmt*)]
       [(= (,var-name* ...) (contract-call ,src ,[BWD-Triv : test] ,elt-name (,[BWD-Triv : triv] ,primitive-type) ,[BWD-Triv : triv*] ...))
        (cons `(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...)) stmt*)]
+      [(= (,var-name* ...) (default ,opaque-type))
+       (guard (andmap (lambda (var-name) (not (hashtable-contains? ref-ht var-name))) var-name*))
+       stmt*]
+      [(= (,var-name* ...) (default ,opaque-type))
+       (cons `(= (,var-name* ...) (default ,opaque-type)) stmt*)]
       [(= (,var-name1 ,var-name2) (field->bytes ,src ,test ,len ,triv))
        (guard
          (>= len (field-bytes))
@@ -3387,6 +3433,17 @@
                       (loop (cdr elt-name*) (cdr type**) (cdr type*)))))]
            [else (source-errorf src "expected primitive type tcontract for contract call, received ~a"
                                 (format-primitive-type primitive-type))]))]
+      [(= (,var-name* ...) (default ,opaque-type))
+       (guard (string=? opaque-type "JubjubPoint"))
+       (with-output-language (Lflattened Primitive-Type)
+         (if (feature-zkir-v3)
+             (begin
+               (assert (= (length var-name*) 1))
+               (set-idtype! (car var-name*) (Idtype-Base `(topaque "JubjubPoint"))))
+             (begin
+               (assert (= (length var-name*) 2))
+               (set-idtype! (car var-name*) (Idtype-Base `(tfield)))
+               (set-idtype! (cadr var-name*) (Idtype-Base `(tfield))))))]
       [(= (,var-name1 ,var-name2) (field->bytes ,src ,test ,len ,[* type]))
        (verify-test src test)
        (check-tfield (format "argument to field->bytes at ~a" (format-source-object src)) type)

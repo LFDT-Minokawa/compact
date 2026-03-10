@@ -7,7 +7,7 @@ on:
         description: 'Branch to grab docs from'
         required: true
         type: string
-        default: 'main'
+        default: 'release/midnight'
       docs_branch:
         description: 'Branch to merge with in midnight-docs'
         required: true
@@ -18,6 +18,11 @@ on:
         required: true
         type: string
         default: 'Example PR description for midnight-docs'
+      draft_pr:
+        description: 'Create PR as draft'
+        required: false
+        type: boolean
+        default: false
     secrets:
       MIDNIGHTCI_PACKAGES_READ:
         required: true
@@ -33,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest-16-core-x64
     steps:
       - name: Install Nix
-        uses: cachix/install-nix-action@v31
+        uses: cachix/install-nix-action@19effe9fe722874e6d46dd7182e4b8b7a43c4a99 # v31.10.0
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
@@ -42,7 +47,7 @@ jobs:
             accept-flake-config = true
 
       - name: Cache Nix
-        uses: input-output-hk/actions/attic@latest
+        uses: input-output-hk/actions/attic@8663542d03a41382d97ee344a4e3955280db5f95 # latest
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           endpoint: https://attic.ci.iog.io
@@ -50,9 +55,9 @@ jobs:
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
       - name: Checkout compactc repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ needs.setup.outputs.branch }}
+          ref: ${{ inputs.branch }}
 
       - name: Setup .npmrc
         run: |
@@ -77,7 +82,7 @@ jobs:
           nix develop --command bash -c "cd ./runtime ; npm run build ; npm run generate-docs"
 
       - name: Checkout docs repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: "midnightntwrk/midnight-docs"
           token: ${{ secrets.MIDNIGHTCI_REPO }}
@@ -92,15 +97,16 @@ jobs:
 
           git checkout -b compact-docs-update-${{ github.run_id }}
 
-          cp ../doc/ledger-adt.mdx docs/_develop/_reference/compact
-          cp ../doc/lang-ref.mdx docs/_develop/_reference/compact
-          cp ../doc/api/CompactStandardLibrary/exports.md docs/_develop/_reference/compact/compact-std-library
-          cp ../doc/api/CompactStandardLibrary/README.md docs/_develop/_reference/compact/compact-std-library
-          cp ../doc/compiler-usage.md docs/_develop/_reference/tools/compiler-usage.mdx
-          cp -r ../doc/api/runtime/. ./docs/_develop/_reference/midnight-api/compact-runtime
-          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./docs/_develop/_reference/midnight-api/compact-runtime/README.md
+          cp ../doc/ledger-adt.mdx docs/compact/data-types
+          cp ../doc/lang-ref.mdx docs/compact/reference
+          cp ../doc/api/CompactStandardLibrary/exports.md docs/compact/standard-library
+          cp ../doc/api/CompactStandardLibrary/README.md docs/compact/standard-library
+          cp ../doc/compiler-usage.md docs/compact/compilation-and-tooling/compiler-usage.mdx
+          cp -r ../doc/api/runtime/. ./api-reference/compact-runtime
+          echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./api-reference/compact-runtime/README.md
           cp -r ../doc/Compact.html ./static/language/compact.html
           cp -r ../doc/ledger-adt.mdx ./static/language/ledger-adt.mdx
+          # cp -r ../doc/all-keywords.html ./static/language/all-keywords.html
 
           git add .
           git commit -m "Update compact documentation"
@@ -110,9 +116,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
         run: |
+          DRAFT_FLAG=""
+          if [ "${{ inputs.draft_pr }}" = "true" ]; then
+            DRAFT_FLAG="--draft"
+          fi
           gh pr create \
             --repo midnightntwrk/midnight-docs \
             --base ${{ inputs.docs_branch }} \
             --head "compact-docs-update-${{ github.run_id }}" \
-            --title "compact - ${{ inputs.pr_description }}" \
-            --body 'PR: ${{ inputs.pr_description }}'
+            --title "${{ inputs.pr_description }}" \
+            --body 'PR: ${{ inputs.pr_description }}' \
+            $DRAFT_FLAG
