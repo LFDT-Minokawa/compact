@@ -5,7 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased toolchain 0.29.112, language 0.21.101, runtime 0.14.102]
+## [Unreleased toolchain 0.29.114, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- The language reference `doc/lang-ref.mdx` is now largely up-to-date with
+  the Compact 0.21.0 language.
+- The HTML version of the formal grammar in `doc/Compact.html` has been
+  replaced with a markdown (mdx) version in `doc/compact-grammar.mdx`.
+
+### Added
+
+- A list of Compact's keywords and reserved words, including those reserved
+  for future use, is given in `doc/compact-keywords.mdx`.
+
+## [Unreleased toolchain 0.29.113, language 0.21.101, runtime 0.14.102]
 
 ### Changed
 
