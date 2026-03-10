@@ -231,7 +231,6 @@
             [(#\<) "&lt;"]  ; html
             [(#\>) "&gt;"]  ; html
             [(#\&) "&amp;"] ; html
-            ; [(#\|) "\\|"]   ; mdx
             [(#\return) ""]
             [else c]))
         (format "~{~a~}" (map html-text-char (if (string? x) (string->list x) (list x)))))
@@ -250,9 +249,6 @@
       (define (html-text-string x)
         (define (html-text-char c)
           (case c
-            ; [(#\<) "&lt;"]  ; html
-            ; [(#\>) "&gt;"]  ; html
-            ; [(#\&) "&amp;"] ; html
             [(#\|) "\\|"]   ; mdx
             [(#\return) ""]
             [else c]))
@@ -311,17 +307,17 @@
                "Alternation is indicated by a vertical bar (`|`)."
                "Optional items are indicated by the superscript <sup>opt</sup>."
                "Repetition is specified by ellipses."
-               "The notation *X* &mldr; *X*, where *X* is a grammar symbol, represents zero"
+               "The notation *X* ⋯ *X*, where *X* is a grammar symbol, represents zero"
                "or more occurrences of *X*."
-               "The notation *X* `,` &mldr; `,` *X*, where *X* is a grammar symbol and"
+               "The notation *X* `,` ⋯ `,` *X*, where *X* is a grammar symbol and"
                "`,` is a literal comma, represents zero or more occurrences of *X*"
                "separated by commas."
                "In either case, when the ellipsis is marked with the superscript 1,"
                "the notation represents a sequence containing at least one *X*."
                "When such a sequence is followed by *,*<sup>opt</sup>, an optional"
                "trailing comma is allowed, but only if there is at least one *X*."
-               "For example, *id* &mldr; *id* represents zero or more *id*s, and"
-               "*expr* `,` &mldr;&sup1; `,` *expr* `,`<sup>opt</sup> represents one"
+               "For example, *id* ⋯ *id* represents zero or more *id*s, and"
+               "*expr* `,` ⋯¹`,` *expr* `,`<sup>opt</sup> represents one"
                "or more comma-separated *expr*s possibly followed by an extra comma."
                "The rules involving commas apply equally to semicolons, i.e., apply when"
                "`,` is replaced by `;`."))

@@ -650,7 +650,7 @@
             [(sep-elt? x)
              (let ([one (format-elt (sep-elt-elt x))]
                    [sep (constant->html (syntax->datum (sep-elt-sep x)))])
-               (format "~a ~a &mldr;~@[~*&sup1;~] ~2:*~a ~2:*~a ~2*~@[~2:*~a<sup>opt</sup>~]" one sep (sep-elt-+? x) (sep-elt-permit-trailing-sep? x)))]
+               (format "~a ~a ⋯~@[~*¹~] ~2:*~a ~2:*~a ~2*~@[~2:*~a<sup>opt</sup>~]" one sep (sep-elt-+? x) (sep-elt-permit-trailing-sep? x)))]
             [(opt-elt? x)
              (with-output-to-string
                (lambda ()
@@ -658,7 +658,7 @@
                  (<sup> () (display-string "opt"))))]
             [(kleene-elt? x)
              (let ([one (format-elt (kleene-elt-elt x))])
-               (format "~a &mldr;~@[~*&sup1;~] ~2:*~a" one (kleene-elt-+? x)))]
+               (format "~a ⋯~@[~*¹~] ~2:*~a" one (kleene-elt-+? x)))]
             [(constant-elt? x)
              (with-output-to-string
                (lambda ()
