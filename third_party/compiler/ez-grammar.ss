@@ -41,6 +41,7 @@
 ;;;    meta (constant->html constant) -> html representation of constant
 ;;;    meta render-extension -> string extension for "html" filenames
 ;;;    module %html
+;;;    meta print-copyright => prints grammar copyright notice to stdout
 ;;;
 ;;; %html should support the features from the (html) library's %html module
 ;;; that the renderer uses, but it doesn't actually have to produce HTML.
@@ -743,6 +744,7 @@
                 (<meta> ([http-equiv "Content-Type"]
                          [content "text/html;charset=utf-8"]))
                   (<title> () (html-text "~a" (syntax->datum name))))
+              (print-copyright)
               (<h1> () (if (grammar-title grammar)
                            (html-text (grammar-title grammar))
                            (printf "Grammar for ~a" (syntax->datum name))))
