@@ -21512,7 +21512,6 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 7" "cannot cast from type ~a to type ~a" ("[Boolean, Boolean, Boolean, Boolean]" "Bytes<4>")))
     )
 
-  ; tests for writing lang ref for patterns
   (test
     '(
       "circuit unroll<T>([a, [b, c], d]: [T, [T, T], T]) : [T, T, T, T] {"
@@ -22672,7 +22671,6 @@ groups than for single tests.
       )
     (succeeds))
 
-  ; tests for writing lang ref of return
   (test
     '(
       "export circuit foo(): [] {}"
@@ -64281,6 +64279,725 @@ groups than for single tests.
 )
 )
 
+; tests of code snippets in lang-ref
+(run-tests print-typescript
+  ; change: " --> ' for message of assert
+  (test
+    '(
+      "circuit c(): Field {"
+      "  const answer = 42;"
+      "  {"
+      "    const answer = 12;"
+      "    assert(answer != 42, 'shadowing did not work!');"
+      "  }"
+      "  return answer; // returns 42 (the outer 'answer')"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module M<T, #N> {"
+      "  export circuit foo<A>(x: T, v: Vector<N, A>): Vector<N, [A, T]> {"
+      "    return map((y) => [y, x], v);"
+      "  }"
+      "}"
+      "import M<Boolean, 3>;"
+      "export circuit bar1(): Vector<3, [Uint<8>, Boolean]> {"
+      "  return foo<Uint<8>>(true, [101, 103, 107]);"
+      "}"
+      "export circuit bar2(): Vector<3, [Boolean, Boolean]> {"
+      "  return foo<Boolean>(false, [true, false, true]);"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.bar1(Ctxt).result).toEqual([[101n, true], [103n, true], [107n, true]]);"
+        "  expect(C.circuits.bar2(Ctxt).result).toEqual([[true, false], [false, false], [true, false]]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "struct Thing {"
+      "  triple: Vector<3, Field>,"
+      "  flag: Boolean,"
+      "}"
+      ""
+      "struct NumberAnd<T> {"
+      "  num: Uint<32>;"
+      "  item: T"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct NumberAnd {"
+      "  num: Uint<32>;"
+      "  item: Uint<8>"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module M {"
+      "  struct NumberAnd {"
+      "    num: Uint<32>;"
+      "    item: Uint<8>"
+      "  }"
+      "  export circuit bar(x: NumberAnd): NumberAnd {"
+      "    return x;"
+      "  }"
+      "}"
+      "import M;"
+      "struct NumberAnd<T> {"
+      "  num: Uint<32>;"
+      "  item: T"
+      "}"
+      "export circuit foo(x: NumberAnd<Uint<8>>): NumberAnd<Uint<8>> {"
+      "  return bar(x);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct Even {"
+      "  predecessor: Odd"
+      "}"
+      ""
+      "struct Odd {"
+      "  predecessor: Even"
+      "}"
+      ""
+      "export circuit doesntWork(s: Even): Odd {"
+      "  return s.predecessor;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 16" "cycle involving ~a~?" ("type" "~#[~; ~a~;s ~a and ~a~:;s~@{~#[~; and~] ~a~^,~}~]" (Odd Even))))
+    )
+
+  (test
+    '(
+      "enum Arrow { up, down, left, right };"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "type V3<T> = Vector<3, T>;"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "new type VField<#N> = Vector<N, Field>;"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "circuit sumTuple(x: [Field, Field]): Field {"
+      "  const a = x[0], b = x[1];"
+      "  return a + b;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "circuit sumTuple(x: [Field, Field]): Field {"
+      "  const [a, b] = x;"
+      "  return a + b;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "circuit sumTuple([a, b]: [Field, Field]): Field {"
+      "  return a + b;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumStruct({x, y}: S): Field {"
+      "  return x + y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumStruct({y, x}: S): Field {"
+      "  return x + y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumStruct({x: a, y}: S): Field {"
+      "  return a + y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumTupleStruct([{x: a1, y: b1}, {x: a2, y: b2}]: [S, S]): Field {"
+      "  return a1 + b1 + a2 + b2;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumSomeYs([{y: b1}, , {y: b3}]: [S, S, S]): Field {"
+      "  return b1 + b3;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumStruct({x, y}: [Field, Field]): Field {"
+      "  return x + y;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 19" "expected structure type, received ~a" ("[Field, Field]")))
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumSomeYs([{y: b1}, , , {y: b3}]: [S, S, S]): Field {"
+      "  return b1 + b3;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 19" "index ~d is out-of-bounds for a ~a of length ~d" (3 "tuple" 3)))
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumSomeYs([{y: b1}, , {z: b3}]: [S, S, S]): Field {"
+      "  return b1 + b3;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 31" "structure ~s has no field named ~s" (S z)))
+    )
+
+  (test
+    '(
+      "struct S { x: Uint<16>, y: Uint<32> }"
+      "circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {"
+      "  return b1 + b3;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test-group
+    ((create-file "M.compact"
+       '(
+         "module M {"
+         "  export { G };"
+         "  export struct S { x: Uint<16>, y: Boolean }"
+         "  circuit G(x: S): Boolean {"
+         "    return x.y;"
+         "  }"
+         "}"
+         ))
+      (succeeds))
+    ((create-file "test1.compact"
+       '(
+         "import M;"
+         "export { G };"
+         ))
+     (succeeds))
+    )
+
+  (test
+    '(
+      "module Runner {"
+      "  export circuit start(): [] {}"
+      "  export circuit stop(): [] {}"
+      "}"
+      "module UseRunner1 {"
+      "  import Runner;"
+      "  // start and stop are now in scope"
+      "}"
+      "module UseRunner2 {"
+      "  import { start } from Runner;"
+      "  // start is now in scope, but not stop"
+      "}"
+      "module UseRunner3 {"
+      "  import Runner prefix Runner$;"
+      "  // Runner$start and Runner$stop are now in scope, but not stop or run"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module Identity<T> {"
+      "  export { id }"
+      "  circuit id(x: T): T {"
+      "    return x;"
+      "  }"
+      "}"
+      "import Identity<Field>;"
+      "// id is now in scope, specialized to type Field"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export { F };"
+      "  export struct S { x: Uint<16>, y: Boolean }"
+      "  circuit F(x: S): Boolean {"
+      "    return x.y;"
+      "  }"
+      "}"
+      "import M;"
+      "export { F };"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module M {"
+      "  export { G };"
+      "  export struct S { x: Uint<16>, y: Boolean }"
+      "  circuit G(x: S): Boolean {"
+      "    return x.y;"
+      "  }"
+      "}"
+      "import M;"
+      "export { G };"
+      )
+    (succeeds)
+    )
+
+  (test-group
+    ((create-file "M.compact"
+       '(
+         "module M {"
+         "  export { F };"
+         "  export struct S { x: Uint<16>, y: Boolean }"
+         "  circuit F(x: S): Boolean {"
+         "    return x.y;"
+         "  }"
+         "}"
+         ))
+      (succeeds))
+    ((create-file "A/M.compact"
+       '(
+         "module M {"
+         "  export { F };"
+         "  export struct S { x: Uint<16>, y: Boolean }"
+         "  circuit F(x: S): Boolean {"
+         "    return x.y;"
+         "  }"
+         "}"
+         ))
+      (succeeds))
+    ((create-file "test.compact"
+       '(
+         "module M {"
+         "  export { F };"
+         "  export struct S { x: Uint<16>, y: Boolean }"
+         "  circuit F(x: S): Boolean {"
+         "    return x.y;"
+         "  }"
+         "}"
+         "import M prefix M1$;"
+         "import 'M' prefix M2$;"
+         "import 'A/M' prefix M3$;"
+         ""
+         "export { M1$F, M2$F, M3$F };"
+         ))
+     (succeeds))
+    )
+
+  (test
+    '(
+      "export struct S<#n, T> { v: Vector<n, T>; curidx: Uint<0..n> }"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "witness W(x: Uint<16>): Bytes<32>;"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger val: Field;"
+      "export ledger cnt: Counter;"
+      "sealed ledger u8list: List<Uint<8>>;"
+      "export sealed ledger mapping: Map<Boolean, Field>;"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "ledger F: Uint<16>;"
+      "export circuit putF(x: Uint<16>): [] {"
+      "  F.write(disclose(x));"
+      "}"
+      "export circuit getF(): Uint<16> {"
+      "  return F.read();"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "ledger F: Uint<16>;"
+      "export circuit putF(x: Uint<16>): [] {"
+      "  F = disclose(x);"
+      "}"
+      "export circuit getF(): Uint<16> {"
+      "  return F;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Counter;"
+      "export circuit incrF(): [] {"
+      "  F += 1;"
+      "}"
+      "export circuit decrF(): [] {"
+      "  F -= 1;"
+      "}"
+      "export circuit getF(): Uint<64> {"
+      "  return F;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "ledger F: Uint<64>;"
+      "export circuit incrF(): [] {"
+      "  F = F + 1 as Uint<64>;"
+      "}"
+      "export circuit decrF(): [] {"
+      "  F = F - 1;"
+      "}"
+      "export circuit getF(): Uint<64> {"
+      "  return F;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger fld: Map<Boolean, Map<Field, Counter>>;"
+      ""
+      "export circuit initNestedMap(b: Boolean): [] {"
+      "  fld.insert(disclose(b), default<Map<Field, Counter>>);"
+      "}"
+      ""
+      "export circuit initNestedCounter(b: Boolean, n: Field): [] {"
+      "  fld.lookup(b).insert(disclose(n), default<Counter>);"
+      "}"
+      ""
+      "export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {"
+      "  fld.lookup(b).lookup(n).increment(disclose(k));"
+      "}"
+      ""
+      "export circuit readNestedCounter1(b: Boolean, n: Field): Uint<64> {"
+      "  return fld.lookup(b).lookup(n).read();"
+      "}"
+      ""
+      "export circuit readNestedCounter2(b: Boolean, n: Field): Uint<64> {"
+      "  return fld.lookup(b).lookup(n);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger fld: Map<Boolean, Map<Field, Counter>>;"
+      ""
+      "export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {"
+      "  fld.lookup(b); // ERROR: incomplete chain of indirects"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 6" "incomplete chain of ledger indirects: final result must be a regular type, but received ADT type ~a" ("Map<Field, Counter>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger fld: Map<Boolean, Map<Field, Counter>>;"
+      ""
+      "export circuit initNestedMap(b: Boolean): [] {"
+      "  const t = default<Map<Field, Counter>>;"
+      "  fld.insert(disclose(b), t);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "sealed ledger field1: Uint<32>;"
+      "export sealed ledger field2: Uint<32>;"
+      ""
+      "circuit init(x: Uint<32>): [] {"
+      "  field2 = disclose(x);"
+      "}"
+      ""
+      "constructor(x: Uint<16>) {"
+      "  field1 = 2 * disclose(x);"
+      "  init(x);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "module PublicState {"
+      "  enum STATE { unset, set }"
+      "  ledger state: STATE;"
+      "  ledger value: Field;"
+      "  export circuit init(v: Field): [] {"
+      "    value = disclose(v);"
+      "    state = STATE.set;"
+      "  }"
+      "}"
+      ""
+      "import PublicState;"
+      ""
+      "constructor(v: Field) {"
+      "  init(v);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "pure circuit c(a: Field): Field {"
+      "  return a;"
+      "}"
+      ""
+      "export pure circuit c(a: Field): Field {"
+      "  return a;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(): ContractAddress {"
+      "  return kernel.self();"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "struct S { a: Uint<32>, b: Boolean, c: Bytes<8> }"
+      "circuit f(x: Uint<32>, y: Boolean, z: Bytes<8>): S {"
+      "  const s1 = S { c: z, a: x, b: y };"
+      "  // Alternatively, s1 can be created with the positional syntax S { x, y, z }"
+      "  // or a mix of positional and named field values S { x, c: z, b: y }."
+      ""
+      "  const s2 = S { ...s1, b: true };"
+      "  // s2 is created using the spread syntax.  So, s2 has the same field values"
+      "  // as s1 except that b is true."
+      ""
+      "  const s3 = S { ...s2, c: 'abcdefgh' };"
+      "  // s3 is also created using the spread syntax.  s3 has the same field values"
+      "  // as s2 except that c is 'abcdefgh'."
+      ""
+      "  return s3;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "ledger F: Uint<16>;"
+      "export circuit setf(x: Uint<16>): [] {"
+      "  F = x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit setf at line 2 char 21" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 3 char 5"))))
+    )
+
+  (test
+    '(
+      "ledger F: Uint<16>;"
+      "export circuit setf(x: Uint<16>): [] {"
+      "  F = disclose(x);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "circuit foo(): [Uint<64>, Uint<64>] {"
+      "  const [x, y]: [Boolean, [Uint<64>, Uint<64>]] = w();"
+      "  return x ? y : [0, 0];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "circuit foo(): [Uint<64>, Uint<64>] {"
+      "  const [x, y] = w();"
+      "  return x ? y : [0, 0];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "circuit foo(): [Uint<64>, Uint<64>] {"
+      "  const [x, y] = w();"
+      "  return x ? y : [0, 0];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "circuit foo(a: Uint<16>): Field {"
+      "  const y = x + a;"
+      "  const x = 7;"
+      "  return y;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 13" "identifier ~s might be referenced before it is assigned" (x)))
+    )
+
+  (test
+    '(
+      "circuit foo<#N>(): Uint<16> {"
+      "  return N;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "circuit foo(): Uint<16> {"
+      "  return 17;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "new type Feet = Uint<32>;"
+      "circuit foo(x: Feet, y: Feet, scale: Uint<32>): Feet {"
+      "  return (x + y) * (scale as Feet);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit getMiddle(x: Bytes<5>): Bytes<3> {"
+      "  return slice<3>(x, 1);"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.getMiddle(Ctxt, new Uint8Array([17, 18, 19, 20, 21])).result).toEqual(new Uint8Array([18, 19, 20]));"
+        "});"
+        ))
+    )
+  )
+
 (with-parameter-values ([feature-zkir-v3 #f #t])
 (run-tests print-typescript
   (test-group
@@ -66619,6 +67336,185 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt).result).toEqual({a: [{a: [0n, 0n], b: false}, {a: [0n, 0n], b: false}, {a: [0n, 0n], b: false}], c: false});"
         "});"
         ))
+    )
+
+  (test
+    '(
+      "type Sometype = Boolean;"
+      "export circuit foo(): Sometype {"
+      "  return default<Sometype>;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(false);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Sometype = Boolean;"
+      "export circuit foo(): Sometype {"
+      "  return default<Sometype>;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(false);"
+        "});"
+        ))
+    )
+
+  ; check default values of ledger-state types using resetToDefault
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger field1: Counter;"
+      "ledger field2: Set<Boolean>;"
+      "ledger field3: List<Boolean>;"
+      "ledger field4: Map<Boolean, Boolean>;"
+      "ledger field5: MerkleTree<2, Boolean>;"
+      "ledger field6: HistoricMerkleTree<2, Boolean>;"
+      ""
+      "export circuit resetToDefault_counter(): [] {"
+      "  field1.resetToDefault();"
+      "  assert (field1 != 0, 'the default is 0');"
+      "}"
+      ""
+      "export circuit resetToDefault_set(): [] {"
+      "  field2.resetToDefault();"
+      "  assert (!field2.isEmpty(), 'the default is empty');"
+      "}"
+      ""
+      "export circuit resetToDefault_list(): [] {"
+      "  field3.resetToDefault();"
+      "  assert (!field3.isEmpty(), 'the default is empty');"
+      "}"
+      ""
+      "export circuit resetToDefault_map(): [] {"
+      "  field4.resetToDefault();"
+      "  assert (!field4.isEmpty(), 'the default is empty');"
+      "}"
+      ""
+      "export circuit resetToDefault_merkletree(): [] {"
+      "  field5.resetToDefault();"
+      "  assert (field5.isFull(), 'the default is empty');"
+      "}"
+      ""
+      "export circuit resetToDefault_historicmerkletree(): [] {"
+      "  field6.resetToDefault();"
+      "  assert (field6.isFull(), 'the default is empty');"
+      "}"
+      ""
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_counter(Ctxt)).toThrow('failed assert: the default is 0');"
+        "});"
+        "test('check 2', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_set(Ctxt)).toThrow('failed assert: the default is empty');"
+        "});"
+        "test('check 3', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_list(Ctxt)).toThrow('failed assert: the default is empty');"
+        "});"
+        "test('check 4', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_map(Ctxt)).toThrow('failed assert: the default is empty');"
+        "});"
+        "test('check 5', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_merkletree(Ctxt)).toThrow('failed assert: the default is empty');"
+        "});"
+        "test('check 6', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.resetToDefault_historicmerkletree(Ctxt)).toThrow('failed assert: the default is empty');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger field0: Map<Boolean, Field>;"
+      "export ledger field1: Map<Boolean, Counter>;"
+      "export ledger field2: Map<Boolean, Set<Boolean>>;"
+      "export ledger field3: Map<Boolean, List<Boolean>>;"
+      "export ledger field4: Map<Boolean, Map<Boolean, Boolean>>;"
+      "export ledger field5: Map<Boolean, MerkleTree<2, Boolean>>;"
+      "export ledger field6: Map<Boolean, HistoricMerkleTree<2, Boolean>>;"
+      ""
+      "export circuit identity(q: Field): Field {"
+      "  return q;"
+      "}"
+      ""
+      "export circuit init0(b: Boolean): [] {"
+      "  field0.insert(disclose(b), default<Field>);"
+      "}"
+      ""
+      "export circuit init(b: Boolean): [] {"
+      "  field1.insert(disclose(b), default<Counter>);"
+      "  field2.insert(disclose(b), default<Set<Boolean>>);"
+      "  field3.insert(disclose(b), default<List<Boolean>>);"
+      "  field4.insert(disclose(b), default<Map<Boolean, Boolean>>);"
+      "  field5.insert(disclose(b), default<MerkleTree<2, Boolean>>);"
+      "  field6.insert(disclose(b), default<HistoricMerkleTree<2, Boolean>>);"
+      "}"
+      ""
+      "export circuit update(b: Boolean, n: Uint<16>): [] {"
+      "  field1.lookup(disclose(b)) += disclose(n);"
+      "}"
+      ""
+      "export circuit get(b: Boolean): [Uint<64>, Boolean, Boolean, Boolean, Boolean, Boolean] {"
+      "  return [ field1.lookup(disclose(b))"
+      "         , field2.lookup(disclose(b)).isEmpty()"
+      "         , field3.lookup(disclose(b)).isEmpty()"
+      "         , field4.lookup(disclose(b)).isEmpty()"
+      "         , !field5.lookup(disclose(b)).isFull()"
+      "         , !field6.lookup(disclose(b)).isFull() ];"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  let tmp;"
+        "  tmp = C.circuits.identity(Ctxt, 73n);"
+        "  expect(tmp.result).toEqual(73n);"
+        "  tmp = C.circuits.init0(tmp.context, true);"
+        ; field0 = true, 0
+        "  expect(tmp.result).toEqual([]);"
+        "  tmp = C.circuits.init(tmp.context, true);"
+        ; fields 1 to 6 set to true and default of each type
+        "  expect(tmp.result).toEqual([]);"
+        "  tmp = C.circuits.update(tmp.context, true, 7n);"
+        ; field1 = true, 7
+        "  expect(tmp.result).toEqual([]);"
+        "  tmp = C.circuits.get(tmp.context, true);"
+        ; tests that default<Counter> is 0
+        "  expect(tmp.result).toEqual([7n, true, true, true, true, true]);"
+        "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(): [] { const x = default<Kernel>; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 38" "default is not defined for ADT type Kernel" ()))
     )
 
   (test
@@ -79570,6 +80466,7 @@ groups than for single tests.
         "});"
         ))
     )
+
 )
 
 (run-javascript)

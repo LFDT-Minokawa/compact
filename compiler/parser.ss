@@ -34,7 +34,9 @@
 ;;; limitations under the License.
 
 (library (parser)
-  (export parse-file parse-file/token-stream parser-keywords parser-passes)
+  (export parse-file parse-file/token-stream
+          parser-keywords
+          parser-passes)
   (import (except (chezscheme) errorf)
           (utils)
           (streams)
@@ -52,92 +54,115 @@
 
   (define parse-sfd (make-parameter #f))
 
+  (define-syntax define-keyword-group
+    (syntax-rules (TITLE)
+      [(_ name (TITLE title) (word ...))
+       (define-syntax name (identifier-syntax (cons title '(word ...))))]))
+  (define-syntax keyword-group-title (syntax-rules () [(_ kg) (car kg)]))
+  (define-syntax keyword-group-words (syntax-rules () [(_ kg) (cdr kg)]))
+
   ; NB: check this list regularly.  ideally, we would generate it automatically.
-  (define keywordBoolean '(
-    false
-    true))
-  (define keywordImport '(
-    export
-    from
-    import
-    module))
-  (define keywordControl '(
-    as
-    assert
-    circuit
-    const
-    constructor
-    contract
-    default
-    disclose
-    else
-    enum
-    fold
-    for
-    if
-    include
-    ledger
-    map
-    new
-    of
-    pad
-    pragma
-    prefix
-    pure
-    return
-    sealed
-    slice
-    struct
-    type
-    witness))
-  (define keywordDataTypes '(
-    Boolean
-    Bytes
-    Field
-    Opaque
-    Uint
-    Vector))
-  (define-syntax keywordReservedForFutureUse (identifier-syntax '(
-    await
-    break
-    case
-    catch
-    class
-    continue
-    debugger
-    delete
-    do
-    extends
-    finally
-    function
-    implements
-    in
-    instanceof
-    interface
-    let
-    null
-    package
-    private
-    protected
-    public
-    static
-    super
-    switch
-    this ; use as an identifier can cause problems with generated Javascript code, so we reserve
-    throw
-    try
-    typeof
-    var
-    void
-    while
-    with
-    yield)))
+  (define-keyword-group keywordBoolean
+    (TITLE "Boolean literals")
+    (false
+     true))
+
+  (define-keyword-group keywordImport
+    (TITLE "Module-related keywords")
+    (export
+     from
+     import
+     module
+     prefix))
+
+  (define-keyword-group keywordControl
+    (TITLE "Statement and expression keywords")
+    (as
+     assert
+     circuit
+     const
+     constructor
+     contract
+     default
+     disclose
+     else
+     enum
+     fold
+     for
+     if
+     include
+     ledger
+     map
+     new
+     of
+     pad
+     pragma
+     pure
+     return
+     sealed
+     slice
+     struct
+     type
+     witness))
+
+  (define-keyword-group keywordDataTypes
+    (TITLE "Built-in data type keywords.")
+    (Boolean
+     Bytes
+     Field
+     Opaque
+     Uint
+     Vector))
+
+  (define-keyword-group keywordReservedForFutureUse
+    (TITLE "Keywords reserved for future use")
+    (await
+     break
+     case
+     catch
+     class
+     continue
+     debugger
+     delete
+     do
+     extends
+     finally
+     function
+     implements
+     in
+     instanceof
+     interface
+     let
+     null
+     package
+     private
+     protected
+     public
+     static
+     super
+     switch
+     this ; use as an identifier can cause problems with generated Javascript code, so we reserve
+     throw
+     try
+     typeof
+     var
+     void
+     while
+     with
+     yield))
+
   (define (parser-keywords)
-    `((keywordBoolean ,keywordBoolean)
-      (keywordImport ,keywordImport)
-      (keywordControl ,keywordControl)
-      (keywordDataTypes ,keywordDataTypes)))
-  (define all-keywords (append keywordBoolean keywordImport keywordDataTypes keywordControl keywordReservedForFutureUse))
+    `((keywordBoolean ,(keyword-group-words keywordBoolean))
+      (keywordImport ,(keyword-group-words keywordImport))
+      (keywordControl ,(keyword-group-words keywordControl))
+      (keywordDataTypes ,(keyword-group-words keywordDataTypes))))
+
+  (define all-keywords
+    (append (keyword-group-words keywordImport)
+            (keyword-group-words keywordDataTypes)
+            (keyword-group-words keywordControl)
+            (keyword-group-words keywordBoolean)
+            (keyword-group-words keywordReservedForFutureUse)))
 
   (define keyword?
     (let ([ht (make-hashtable symbol-hash eq?)])
@@ -156,7 +181,7 @@
          (not (string-prefix? "__compact" (symbol->string x)))))
 
   (module (define-grammar is sat sat/what parse-consumed-all? parse-result-value grammar-trace)
-    (meta define seen-keywords (box keywordReservedForFutureUse))
+    (meta define seen-keywords (box (keyword-group-words keywordReservedForFutureUse)))
     (module ()
       (define-syntax a (lambda (x) #`'#,(datum->syntax #'* seen-keywords)))
       (define symbol<? (lambda (x y) (string<? (symbol->string x) (symbol->string y))))
@@ -196,15 +221,52 @@
              (lambda (x)
                (and (memq (token-type x) '(punctuation binop))
                     (equal? (token-value x) '?k))))]))
+    #|
+    (import (html))
+    (meta define render-extension "html")
     (meta define (constant->html const)
-      (format "<b><tt>~a</tt></b>"
+      (define (html-text-string x)
+        (define (html-text-char c)
+          (case c
+            [(#\<) "&lt;"]  ; html
+            [(#\>) "&gt;"]  ; html
+            [(#\&) "&amp;"] ; html
+            [(#\return) ""]
+            [else c]))
+        (format "~{~a~}" (map html-text-char (if (string? x) (string->list x) (list x)))))
+      (format "<tt>~a</tt>"
         (cond
           [(pair? const)
            (assert (and (list? const)
                         (= (length const) 2)
                         (eq? (car const) 'KEYWORD)))
            (cadr const)]
-          [else const])))
+          [else (html-text-string const)])))
+    |#
+    (import (markdown))
+    (meta define render-extension "mdx")
+    (meta define (print-copyright)
+      (printf "---\n")
+      (printf "SPDX-License-Identifier: Apache-2.0\n")
+      (printf "copyright: This file is part of midnight-docs. Copyright (C) 2025 Midnight Foundation. Licensed under the Apache License, Version 2.0 (the \"License\"); You may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.\n")
+      (printf "title: Compact grammar\n")
+      (printf "---\n\n"))
+    (meta define (constant->html const)
+      (define (html-text-string x)
+        (define (html-text-char c)
+          (case c
+            [(#\|) "\\|"]   ; mdx
+            [(#\return) ""]
+            [else c]))
+        (format "~{~a~}" (map html-text-char (if (string? x) (string->list x) (list x)))))
+      (format "`~a`"
+        (cond
+          [(pair? const)
+           (assert (and (list? const)
+                        (= (length const) 2)
+                        (eq? (car const) 'KEYWORD)))
+           (cadr const)]
+          [else (html-text-string const)])))
     (define (src0) (make-source-object (parse-sfd) 0 0 1 1))
     (define (make-src bsrc esrc)
       (if (eq? bsrc esrc)
@@ -243,51 +305,65 @@
 
   (define-grammar Compact
     (options (html-directory "doc") (first-match #f))
-    (GRAMMAR "Compact Grammar"
+    (GRAMMAR "Compact grammar"
              (EVAL (let () (import (language-version)) (format "Compact language version ~a." language-version-string)))
-             (HTML
-               "Notational note: In the grammar productions below, ellipses are used to specify repetition."
-               "The notation <em>X</em> ... <em>X</em>, where <em>X</em> is a grammar symbol, represents zero or more occurrences of <em>X</em>."
-               "The notation <em>X</em> <em>s</em> ... <em>s</em> <em>X</em>, where <em>X</em> is a grammar symbol and <em>s</em> is a separator such as a comma or or semicolon, represents zero or more occurrences of <em>X</em> separated by <em>s</em>."
-               "In either case, when the ellipsis is marked with the superscript 1, the notation represents a sequence containing at least one <em>X</em>."
-               "When such a sequence is followed by <em>s</em><sup>opt</sup>, an optional trailing separator is allowed, but only if there is at least one <em>X</em>."
-               "For example, id &mldr; id represents zero or more ids, and expr , &mldr;&sup1; , expr ,<sup>opt</sup> represents one or more comma-separated exprs possibly followed by an extra comma."))
+             (PRE
+               "Notational note: In the grammar below, terminals are in `monospaced` font."
+               "Non-terminals are in *emphasized* font."
+               "Alternation is indicated by a vertical bar (`|`)."
+               "Optional items are indicated by the superscript <sup>opt</sup>."
+               "Repetition is specified by ellipses."
+               "The notation *X* ⋯ *X*, where *X* is a grammar symbol, represents zero"
+               "or more occurrences of *X*."
+               "The notation *X* `,` ⋯ `,` *X*, where *X* is a grammar symbol and"
+               "`,` is a literal comma, represents zero or more occurrences of *X*"
+               "separated by commas."
+               "In either case, when the ellipsis is marked with the superscript 1,"
+               "the notation represents a sequence containing at least one *X*."
+               "When such a sequence is followed by *,*<sup>opt</sup>, an optional"
+               "trailing comma is allowed, but only if there is at least one *X*."
+               "For example, *id* ⋯ *id* represents zero or more *id*s, and"
+               "*expr* `,` ⋯¹`,` *expr* `,`<sup>opt</sup> represents one"
+               "or more comma-separated *expr*s possibly followed by an extra comma."
+               "The rules involving commas apply equally to semicolons, i.e., apply when"
+               "`,` is replaced by `;`."))
     (TERMINALS
       (end-of-file (eof)
         (DESCRIPTION
-          ("end of file")))
+          ("End of file.")))
       (identifier (id module-name function-name struct-name enum-name contract-name tvar-name type-name)
         (DESCRIPTION
-          ("identifiers have the same syntax as Typescript identifiers")))
+          ("Identifiers have the same syntax as Typescript identifiers.")))
       (field-literal (nat)
         (DESCRIPTION
-          ("a field literal is 0 or a natural number formed from a sequence of digits starting with 1-9, e.g. 723, whose value does not exceed the maximum field value")))
+          ("A field literal is 0 or a natural number formed from a sequence of digits starting with 1-9, e.g. 723, whose value does not exceed the maximum field value.")))
       (string-literal (str file)
         (DESCRIPTION
-          ("a string literal has the same syntax as a Typescript string")))
+          ("A string literal has the same syntax as a Typescript string.")))
       (version-literal (version)
         (DESCRIPTION
-          ("a version literal takes the form nat or nat.nat or nat.nat.nat, e.g., 1.2 or 1.2.3, representing major, minor, and bugfix versions"))))
+          ("A version literal takes the form nat or nat.nat or nat.nat.nat, e.g., 1.2 or 1.2.3, representing major, minor, and bugfix versions."))))
     (Compact (program)
       [program :: src (K* pelt) eof =>
        (lambda (src pelt* eof)
          (with-output-language (Lparser Program)
            `(program ,src ,pelt* ... ,eof)))])
     (Program-element (pelt)
-      [program-element-pragma :: pragma => values]
-      [program-element-include :: incld => values]
-      [program-element-module-definition :: mdefn => values]
-      [program-element-import-declaration :: idecl => values]
-      [program-element-export-declaration :: xdecl => values]
-      [program-element-ledger-declaration :: ldecl => values]
-      [program-element-ledger-constructor :: lconstructor => values]
-      [program-element-circuit-definition :: cdefn => values]
-      [program-element-witness-declaration :: wdecl => values]
-      [program-element-contract-declaration :: ecdecl => values]
-      [program-element-struct-declaration :: struct => values]
-      [program-element-enum-declaration :: enumdef => values]
-      [program-element-type-declaration :: tdefn => values])
-    (Pragma (pragma)
+      [program-element-pragma :: pragma-form => values]
+      [program-element-module-definition :: module-definition => values]
+      [program-element-import-declaration :: import-form => values]
+      [program-element-export-declaration :: export-form => values]
+      [program-element-include :: include-form => values]
+      [program-element-struct-declaration :: struct-declaration => values]
+      [program-element-enum-declaration :: enum-declaration => values]
+      [program-element-contract-declaration :: contract-declaration => values]
+      [program-element-type-declaration :: type-alias-declaration => values]
+      [program-element-ledger-declaration :: ledger-declaration => values]
+      [program-element-witness-declaration :: witness-declaration => values]
+      [program-element-ledger-constructor :: constructor-definition => values]
+      [program-element-circuit-definition :: circuit-definition => values]
+      )
+    (Pragma (pragma-form)
       [pragma :: src (KEYWORD pragma) id version-expr #\; =>
        (lambda (src kwd id ve semicolon)
          (define-pass lversion : (Lparser Version-Expression) (ir) -> Lversion ()
@@ -340,12 +416,12 @@
     (Version-atom (version-atom)
       [version-term-nat :: nat => values]
       [version-term-version :: version => values])
-    (Include (incld)
+    (Include (include-form)
       [include :: src (KEYWORD include) file #\; =>
         (lambda (src kwd file semicolon)
           (with-output-language (Lparser Include)
             `(include ,src ,kwd ,file ,semicolon)))])
-    (Module-definition (mdefn)
+    (Module-definition (module-definition)
       [module-definition :: src (OPT (KEYWORD export) #f) (KEYWORD module) module-name (OPT gparams #f) #\{ (K* pelt) #\} =>
        (lambda (src kwd-export? kwd module-name generic-param-list? lbrace pelt* rbrace)
          (with-output-language (Lparser Module-Definition)
@@ -365,7 +441,7 @@
        (lambda (src tvar-name)
          (with-output-language (Lparser Generic-Param)
            `(type-valued ,src ,tvar-name)))])
-    (Import-declaration (idecl)
+    (Import-declaration (import-form)
       [import-declaration :: src (KEYWORD import) (OPT import-selection #f) import-name (OPT gargs #f) (OPT import-prefix #f) #\; =>
        (lambda (src kwd import-selection? module-name generic-arg-list? prefix semicolon)
          (with-output-language (Lparser Import-Declaration)
@@ -408,69 +484,69 @@
        (lambda (src type)
          (with-output-language (Lparser Generic-Arg)
            `(generic-arg-type ,src ,type)))])
-    (Export-declaration (xdecl)
+    (Export-declaration (export-form)
       [export-declaration :: src (KEYWORD export) #\{ (SEP* id #\, #t) #\} (OPT #\; #f) =>
        (lambda (src kwd lbrace id-sep* rbrace semicolon?)
          (with-output-language (Lparser Export-Declaration)
            (let-values ([(id* sep*) (split-sep id-sep*)])
              `(export ,src ,kwd ,lbrace (,id* ...) (,sep* ...) ,rbrace ,semicolon?))))])
-    (Ledger-declaration (ldecl)
+    (Ledger-declaration (ledger-declaration)
       [public-ledger-declaration :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD sealed) #f) (KEYWORD ledger) id #\: type #\; =>
        (lambda (src kwd-export? kwd-sealed? kwd id colon type semicolon)
          (with-output-language (Lparser Ledger-Declaration)
            `(public-ledger-declaration ,src ,kwd-export? ,kwd-sealed? ,kwd ,id ,colon ,type ,semicolon)))])
-    (Constructor (lconstructor)
-      [ledger-constructor :: src (KEYWORD constructor) pattern-parameter-list block =>
-       (lambda (src kwd pattern-param-list blck)
-         (with-output-language (Lparser Ledger-Constructor)
-           `(constructor ,src ,kwd ,pattern-param-list ,blck)))])
-    (Circuit-definition (cdefn)
-      [circuit-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD pure) #f) (KEYWORD circuit) function-name (OPT gparams #f) pattern-parameter-list #\: type block =>
-       (lambda (src kwd-export? kwd-pure? kwd function-name generic-param-list? pattern-param-list colon type block)
-         (with-output-language (Lparser Circuit-Definition)
-           `(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))])
-    (Witness-declaration (wdecl)
+    (Witness-declaration (witness-declaration)
       [witness-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD witness) id (OPT gparams #f) simple-parameter-list #\: type #\; =>
        (lambda (src kwd-export? kwd id generic-param-list? simple-param-list colon type semicolon)
          (with-output-language (Lparser Witness-Declaration)
            `(witness ,src ,kwd-export? ,kwd ,id ,generic-param-list? ,simple-param-list (,colon ,type) ,semicolon)))])
-    (External-contract-declaration (ecdecl)
-      [contract-declaration/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD contract) contract-name #\{ (SEP* ecdecl-circuit #\; #t) #\} (OPT #\; #f) =>
-       (lambda (src kwd-export? kwd contract-name lbrace ecdecl-circuit-sep* rbrace semicolon?)
-         (with-output-language (Lparser External-Contract-Declaration)
-           (let-values ([(ecdecl-circuit* sep*) (split-sep ecdecl-circuit-sep*)])
-             `(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,ecdecl-circuit* ...) (,sep* ...) ,rbrace ,semicolon?))))]
-      [contract-declaration/commas :: src (OPT (KEYWORD export) #f) (KEYWORD contract) contract-name #\{ (SEP* ecdecl-circuit #\, #t) #\} (OPT #\; #f) =>
-       (lambda (src kwd-export? kwd contract-name lbrace ecdecl-circuit-sep* rbrace semicolon?)
-         (with-output-language (Lparser External-Contract-Declaration)
-           (let-values ([(ecdecl-circuit* sep*) (split-sep ecdecl-circuit-sep*)])
-             `(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,ecdecl-circuit* ...) (,sep* ...) ,rbrace ,semicolon?))))])
-    (External-contract-circuit (ecdecl-circuit)
-      [external-contract-circuit :: src (OPT (KEYWORD pure) #f) (KEYWORD circuit) id simple-parameter-list #\: type =>
-       (lambda (src kwd-pure? kwd id simple-param-list colon type)
-         (with-output-language (Lparser External-Contract-Circuit)
-           `(,src ,kwd-pure? ,kwd ,id ,simple-param-list (,colon ,type))))])
-    (Structure-definition (struct)
-      [structure-definition/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-identifier #\; #t) #\} (OPT #\; #f) =>
+    (Constructor (constructor-definition)
+      [ledger-constructor :: src (KEYWORD constructor) pattern-parameter-list block =>
+       (lambda (src kwd pattern-param-list blck)
+         (with-output-language (Lparser Ledger-Constructor)
+           `(constructor ,src ,kwd ,pattern-param-list ,blck)))])
+    (Circuit-definition (circuit-definition)
+      [circuit-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD pure) #f) (KEYWORD circuit) function-name (OPT gparams #f) pattern-parameter-list #\: type block =>
+       (lambda (src kwd-export? kwd-pure? kwd function-name generic-param-list? pattern-param-list colon type block)
+         (with-output-language (Lparser Circuit-Definition)
+           `(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))])
+    (Structure-declaration (struct-declaration)
+      [structure-declaration/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-identifier #\; #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd struct-name generic-param-list? lbrace arg-sep* rbrace semicolon?)
          (with-output-language (Lparser Structure-Definition)
            (let-values ([(arg* sep*) (split-sep arg-sep*)])
              `(struct ,src ,kwd-export? ,kwd ,struct-name ,generic-param-list? ,lbrace (,arg* ...) (,sep* ...) ,rbrace ,semicolon?))))]
-      [structure-definition/commas :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-identifier #\, #t) #\} (OPT #\; #f) =>
+      [structure-declaration/commas :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-identifier #\, #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd struct-name generic-param-list? lbrace arg-sep* rbrace semicolon?)
          (with-output-language (Lparser Structure-Definition)
            (let-values ([(arg* sep*) (split-sep arg-sep*)])
              `(struct ,src ,kwd-export? ,kwd ,struct-name ,generic-param-list? ,lbrace (,arg* ...) (,sep* ...) ,rbrace ,semicolon?))))])
-    (Enum-definition (enumdef)
-      [enum-definition :: src (OPT (KEYWORD export) #f) (KEYWORD enum) enum-name #\{ (SEP+ id #\, #t) #\} (OPT #\; #f) =>
+    (Enum-declaration (enum-declaration)
+      [enum-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD enum) enum-name #\{ (SEP+ id #\, #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd enum-name lbrace elt-name-sep+ rbrace semicolon?)
          (assert (not (null? elt-name-sep+)))
          (with-output-language (Lparser Enum-Definition)
            (let-values ([(elt-name+ sep*) (split-sep elt-name-sep+)])
              `(enum ,src ,kwd-export? ,kwd ,enum-name ,lbrace (,(car elt-name+) ,(cdr elt-name+) ...) (,sep* ...) ,rbrace ,semicolon?))))])
-    (Type-definition (tdefn)
+    (External-contract-declaration (contract-declaration)
+      [contract-declaration/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD contract) contract-name #\{ (SEP* circuit-declaration #\; #t) #\} (OPT #\; #f) =>
+       (lambda (src kwd-export? kwd contract-name lbrace circuit-declaration-sep* rbrace semicolon?)
+         (with-output-language (Lparser External-Contract-Declaration)
+           (let-values ([(circuit-declaration* sep*) (split-sep circuit-declaration-sep*)])
+             `(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,circuit-declaration* ...) (,sep* ...) ,rbrace ,semicolon?))))]
+      [contract-declaration/commas :: src (OPT (KEYWORD export) #f) (KEYWORD contract) contract-name #\{ (SEP* circuit-declaration #\, #t) #\} (OPT #\; #f) =>
+       (lambda (src kwd-export? kwd contract-name lbrace circuit-declaration-sep* rbrace semicolon?)
+         (with-output-language (Lparser External-Contract-Declaration)
+           (let-values ([(circuit-declaration* sep*) (split-sep circuit-declaration-sep*)])
+             `(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,circuit-declaration* ...) (,sep* ...) ,rbrace ,semicolon?))))])
+    (External-contract-circuit (circuit-declaration)
+      [external-contract-circuit :: src (OPT (KEYWORD pure) #f) (KEYWORD circuit) id simple-parameter-list #\: type =>
+       (lambda (src kwd-pure? kwd id simple-param-list colon type)
+         (with-output-language (Lparser External-Contract-Circuit)
+           `(,src ,kwd-pure? ,kwd ,id ,simple-param-list (,colon ,type))))])
+    (Type-declaration (type-alias-declaration)
       ; FIXME: consider eliminating struct syntax and supporting { x: type, ... } as a type
-      [type-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD new) #f) (KEYWORD type) type-name (OPT gparams #f) #\= type #\; =>
+      [type-declaration :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD new) #f) (KEYWORD type) type-name (OPT gparams #f) #\= type #\; =>
        (lambda (src kwd-export? kwd-new? kwd type-name generic-param-list? op type semicolon)
          (with-output-language (Lparser Type-Definition)
            `(typedef ,src ,kwd-export? ,kwd-new? ,kwd ,type-name ,generic-param-list? ,op ,type ,semicolon)))])
@@ -561,14 +637,11 @@
        (lambda (src expr semicolon)
          (with-output-language (Lparser Statement)
            `(statement-expression ,src ,expr ,semicolon)))]
-      [statement-return-value :: src (KEYWORD return) expr-seq #\; =>
-       (lambda (src kwd expr semicolon)
+      [statement-const :: src (KEYWORD const) (SEP+ cbinding #\, #f) #\; =>
+       (lambda (src kwd cbinding-sep+ semicolon)
          (with-output-language (Lparser Statement)
-           `(return ,src ,kwd ,expr ,semicolon)))]
-      [statement-return-no-value :: src (KEYWORD return) #\; =>
-       (lambda (src kwd semicolon)
-         (with-output-language (Lparser Statement)
-           `(return ,src ,kwd ,semicolon)))]
+           (let-values ([(cbinding+ sep*) (split-sep cbinding-sep+)])
+             `(const ,src ,kwd (,(car cbinding+) ,(cdr cbinding+) ...) (,sep* ...) ,semicolon))))]
       [statement-if :: src (KEYWORD if) #\( expr-seq #\) stmt0 (KEYWORD else) stmt =>
        (lambda (src kwd lparen expr rparen stmt1 kwd-else stmt2)
          (with-output-language (Lparser Statement)
@@ -581,11 +654,14 @@
        (lambda (src kwd lparen kwd-const id kwd-of expr rparen stmt)
          (with-output-language (Lparser Statement)
            `(for ,src ,kwd ,lparen ,kwd-const ,id ,kwd-of ,expr ,rparen ,stmt)))]
-      [statement-const :: src (KEYWORD const) (SEP+ cbinding #\, #f) #\; =>
-       (lambda (src kwd cbinding-sep+ semicolon)
+      [statement-return-value :: src (KEYWORD return) expr-seq #\; =>
+       (lambda (src kwd expr semicolon)
          (with-output-language (Lparser Statement)
-           (let-values ([(cbinding+ sep*) (split-sep cbinding-sep+)])
-             `(const ,src ,kwd (,(car cbinding+) ,(cdr cbinding+) ...) (,sep* ...) ,semicolon))))]
+           `(return ,src ,kwd ,expr ,semicolon)))]
+      [statement-return-no-value :: src (KEYWORD return) #\; =>
+       (lambda (src kwd semicolon)
+         (with-output-language (Lparser Statement)
+           `(return ,src ,kwd ,semicolon)))]
       [statement-block :: block =>
        (lambda (block) block)])
     (Pattern (pattern)
@@ -600,9 +676,6 @@
          (let-values ([(pattern-struct-elt* sep*) (split-sep pattern-struct-elt-sep*)])
            (with-output-language (Lparser Pattern)
              `(struct ,src ,lbrace (,pattern-struct-elt* ...) (,sep* ...) ,rbrace))))])
-    (Pattern-tuple-element (pattern-tuple-elt)
-      [pattern-tuple-elt-nada :: => (lambda () #f)]
-      [pattern-tuple-elt-pattern :: pattern => values])
     (Pattern-struct-element (pattern-struct-elt)
       [pattern-struct-elt-id :: id => values]
       [pattern-struct-elt-pattern :: id #\: pattern =>
@@ -709,7 +782,7 @@
          (let-values ([(tuple-arg* sep*) (split-sep tuple-arg-sep*)])
            (with-output-language (Lparser Expression)
              `(tuple ,src ,lbracket (,tuple-arg* ...) (,sep* ...) ,rbracket))))]
-      [term-bytes :: src (KEYWORD Bytes) #\[ (SEP* bytes-arg #\, #t) #\] =>
+      [term-bytes :: src (KEYWORD Bytes) #\[ (SEP* tuple-arg #\, #t) #\] =>
        (lambda (src kwd lbracket bytes-arg-sep* rbracket)
          (let-values ([(bytes-arg* sep*) (split-sep bytes-arg-sep*)])
            (with-output-language (Lparser Expression)
@@ -847,7 +920,7 @@
           (cond
             [(eq? (token-type token) 'eof) "end of file"]
             [(and (eq? (token-type token) 'id)
-                  (memq (token-value token) keywordReservedForFutureUse))
+                  (memq (token-value token) (keyword-group-words keywordReservedForFutureUse)))
              (format "keyword ~s (which is reserved for future use)" (token-string token))]
             [(and (eq? (token-type token) 'id)
                   (memq (token-value token) all-keywords))
@@ -917,4 +990,27 @@
 
   (define-passes parser-passes
     (parse-file        Lsrc))
+
+  (meta begin
+    (with-output-to-file "doc/compact-keywords.mdx"
+      (lambda ()
+        (define (do-group kd)
+          (let ([words (keyword-group-words kd)])
+            (assert (equal? (sort (lambda (x y) (string<? (symbol->string x) (symbol->string y))) words) words))
+            (printf "\n## ~a\n\n" (keyword-group-title kd))
+            (for-each
+              (lambda (keyword) (printf "- ~a\n" (symbol->string keyword)))
+              words)))
+        (printf "---\n")
+        (printf "SPDX-License-Identifier: Apache-2.0\n")
+        (printf "copyright: This file is part of midnight-docs. Copyright (C) 2025 Midnight Foundation. Licensed under the Apache License, Version 2.0 (the \"License\"); You may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.\n")
+        (printf "title: Compact keywords\n")
+        (printf "---\n\n")
+        (printf "# Compact keywords\n")
+        (do-group keywordImport)
+        (do-group keywordControl)
+        (do-group keywordDataTypes)
+        (do-group keywordBoolean)
+        (do-group keywordReservedForFutureUse))
+      'replace))
 )

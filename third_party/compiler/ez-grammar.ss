@@ -39,6 +39,13 @@
 ;;;    meta (suppress-constant? syntax-object) -> boolean
 ;;;    meta (constant->parser constant) -> parser
 ;;;    meta (constant->html constant) -> html representation of constant
+;;;    meta render-extension -> string extension for "html" filenames
+;;;    module %html
+;;;    meta print-copyright => prints grammar copyright notice to stdout
+;;;
+;;; %html should support the features from the (html) library's %html module
+;;; that the renderer uses, but it doesn't actually have to produce HTML.
+;;; It could, for example, produce LaTeX or Markdown.
 
 ;;; This code also expects the lexical scope to include some operations on
 ;;; source objects, which should encapsulate both starting and ending file
@@ -394,9 +401,9 @@
         (protocol (lambda (new) (lambda (id) ((new #f) id)))))
       (define paragraph?
         (lambda (x)
-          (syntax-case x (include HTML EVAL)
+          (syntax-case x (include PRE EVAL)
             [(include filename) (string? (datum filename))]
-            [(HTML str ...) (andmap string? (datum (str ...)))]
+            [(PRE str ...) (andmap string? (datum (str ...)))]
             [(EVAL expr) #t]
             [(str ...) (andmap string? (datum (str ...)))]
             [else #f])))
@@ -601,7 +608,6 @@
         (or (hashtable-ref env id #f)
             (syntax-error id "unrecognized terminal or nonterminal")))
       (define (render-html name grammar htmlfn env)
-        (import (html))
         (import %html)
         (define (separators sep ls)
           (if (null? ls)
@@ -613,11 +619,11 @@
         (define (render-paragraph hard-leading-newline?)
           (lambda (paragraph)
             (<p> ()
-              (syntax-case paragraph (include HTML EVAL)
+              (syntax-case paragraph (include PRE EVAL)
                 [(include filename)
                  (string? (datum filename))
                  (display-string (call-with-port (open-input-file (datum filename)) get-string-all))]
-                [(HTML sentence ...)
+                [(PRE sentence ...)
                  (andmap string? (datum (sentence ...)))
                  (let ([sentence* (datum (sentence ...))])
                    (unless (null? sentence*)
@@ -645,7 +651,7 @@
             [(sep-elt? x)
              (let ([one (format-elt (sep-elt-elt x))]
                    [sep (constant->html (syntax->datum (sep-elt-sep x)))])
-               (format "~a ~a &mldr;~@[~*&sup1;~] ~2:*~a ~2:*~a ~2*~@[~2:*~a<sup>opt</sup>~]" one sep (sep-elt-+? x) (sep-elt-permit-trailing-sep? x)))]
+               (format "~a ~a ⋯~@[~*¹~] ~2:*~a ~2:*~a ~2*~@[~2:*~a<sup>opt</sup>~]" one sep (sep-elt-+? x) (sep-elt-permit-trailing-sep? x)))]
             [(opt-elt? x)
              (with-output-to-string
                (lambda ()
@@ -653,7 +659,7 @@
                  (<sup> () (display-string "opt"))))]
             [(kleene-elt? x)
              (let ([one (format-elt (kleene-elt-elt x))])
-               (format "~a &mldr;~@[~*&sup1;~] ~2:*~a" one (kleene-elt-+? x)))]
+               (format "~a ⋯~@[~*¹~] ~2:*~a" one (kleene-elt-+? x)))]
             [(constant-elt? x)
              (with-output-to-string
                (lambda ()
@@ -664,12 +670,17 @@
                  (<a> ([href (format "#~a" (syntax->datum (lookup (id-elt-id x) env)))])
                    (<em> () (display-string (subscriptize (format "~a" (syntax->datum (id-elt-id x)))))))))]
             [else (errorf 'format-elt "unexpected elt ~s" x)]))
-        (define (render-elt x) (nbsp) (nbsp) (display-string (format-elt x)))
+        (define (render-elt x) (display-string (format-elt x)))
         (define (render-production prod)
           (let ([elt* (production-elt* prod)])
             (if (null? elt*)
-                (begin (nbsp) (nbsp) (write-char #\() (<em> () (printf "empty")) (write-char #\)))
-                (for-each render-elt elt*))))
+                (begin (write-char #\() (<em> () (printf "empty")) (write-char #\)))
+                (let loop ([elt* elt*])
+                  (render-elt (car elt*))
+                  (let ([elt* (cdr elt*)])
+                    (unless (null? elt*)
+                      (display-string " ")
+                      (loop elt*)))))))
         (define (render-clause clause)
           (define (format-alias alias)
             (with-output-to-string
@@ -682,7 +693,9 @@
                         [alias* (terminal-alias* term)])
                     (<h4> ()
                       (<a> ([name term])
-                        (printf "~a <span style=\"font-weight: normal\">(~{~a~^, ~})</span>" term (map format-alias alias*)))))
+                        (printf "~a" term))
+                      (<span> ([style "font-weight: normal"]) 
+                        (printf " (~{~a~^, ~})" (map format-alias alias*)))))
                   (newline)
                   (for-each (render-paragraph #f) (terminal-paragraph* term)))
                 (terminal-clause-term* clause))
@@ -690,21 +703,32 @@
                     [alias* (map format-alias (clause-alias* clause))])
                 (<h4> ()
                   (<a> ([name nonterm])
-                    (printf "~a <span style=\"font-weight: normal\">(~{~a~^, ~})</span>" (subscriptize nonterm) alias*)))
+                    (printf "~a" (subscriptize nonterm)))
+                  (<span> ([style "font-weight: normal"]) 
+                    (printf " (~{~a~^, ~})" (map format-alias alias*))))
                 (newline)
                 (for-each (render-paragraph #f) (clause-before-paragraph* clause))
                 (<table> ()
                   (let ([lhs (subscriptize (if (null? alias*) nonterm (car alias*)))])
-                    (let loop ([prod* (or (nonterminal-clause-prod* clause) '())] [lhs lhs])
+                    (let loop ([prod* (or (nonterminal-clause-prod* clause) '())] [lhs lhs] [first? #t])
                       (unless (null? prod*)
                         (let ([prod (car prod*)])
                           (<tr> ()
-                            (<td> () (display-string lhs) (nbsp))
-                            (<td> () (display-string "&rarr;"))
+                            (<td> () (display-string lhs))
+                            (<td> () (if first? (display-string "&xrarr;") (html-text "|")))
                             (<td> () (render-production prod))
                             (unless (null? (production-paragraph* prod))
                               (<td> () (for-each (render-paragraph #t) (production-paragraph* prod))))))
-                        (loop (cdr prod*) "")))))
+                        (loop (cdr prod*) "" #f)))
+                    (when (and (not (null? alias*)) (not (null? (cdr alias*))))
+                      (let ([first-alias (car alias*)])
+                        (for-each
+                          (lambda (alias)
+                            (<tr> ()
+                              (<td> () (display-string alias))
+                              (<td> () (display-string "&xrarr;"))
+                              (<td> () (display-string first-alias))))
+                          (cdr alias*))))))
                 (for-each (render-paragraph #f) (clause-after-paragraph* clause)))))
         (define (render-section section)
           (unless (section-suppressed? section)
@@ -716,22 +740,17 @@
           (lambda ()
             (<doctype>)
             (<html> ()
-              (newline)
               (<head> ()
-                (newline)
                 (<meta> ([http-equiv "Content-Type"]
                          [content "text/html;charset=utf-8"]))
-                  (newline)
-                  (<title> () (html-text "~a" (syntax->datum name)))
-                  (newline))
-              (newline)
+                  (<title> () (html-text "~a" (syntax->datum name))))
+              (print-copyright)
               (<h1> () (if (grammar-title grammar)
                            (html-text (grammar-title grammar))
                            (printf "Grammar for ~a" (syntax->datum name))))
               (newline)
               (for-each (render-paragraph #f) (grammar-paragraph* grammar))
-              (for-each render-section (grammar-section* grammar))
-              (newline)))
+              (for-each render-section (grammar-section* grammar))))
           'replace))
       (module (parse-grammar)
         (define parse-elt
@@ -903,7 +922,7 @@
                       (mkdir htmldir))))
                 (for-each
                   (lambda (init-nt)
-                    (let ([htmlfn (format "~a/~a.html" htmldir (syntax->datum init-nt))])
+                    (let ([htmlfn (format "~a/~(~a~)-grammar.~a" htmldir (syntax->datum init-nt) render-extension)])
                       (render-html init-nt grammar htmlfn env)))
                   #'(init-nt ...)))
               (with-syntax ([((lhs rhs) ...) (map nt-helper nonterminal-clause*)])
