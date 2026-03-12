@@ -66849,7 +66849,7 @@ groups than for single tests.
         "});"
         "test('check 2b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.baz(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow('range error at testfile.compact line 1 char 53: the integer value of 9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4 is greater than the maximum value of a Field');"
+        "  expect(() => C.circuits.baz(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow('range error at testfile.compact line 1 char 53: byte value 0x090807060504030201090807060504030201090807060504030201090807060504030201090807060504030201090807060504030201090807060504 exceeds maximum value 52435875175126190479447740508185965837690552500527637822603658699938581184512 of Field type');"
         "});"
         ))
     )
@@ -78255,7 +78255,7 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         ,(format "  expect(C.circuits.foo(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).result).toEqual(~dn);" #x09080706)
         "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow('range error at testfile.compact line 3 char 7: the integer value of 9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4 is greater than the maximum value of a Field');"
+        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow('range error at testfile.compact line 3 char 7: byte value 0x090807060504030201090807060504030201090807060504030201090807060504030201090807060504030201090807060504030201090807060504 exceeds maximum value 52435875175126190479447740508185965837690552500527637822603658699938581184512 of Field type');"
         "});"
         ))
     )
@@ -78274,7 +78274,7 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         ,(format "  expect(C.circuits.foo(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).result).toEqual(~dn);" #x09080706)
         "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow('range error at testfile.compact line 3 char 7: the integer value of 9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4 is greater than the maximum value of Uint<0..4294967296>');"
+        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow('range error at testfile.compact line 3 char 7: byte value 0x090807060504030201090807060504030201090807060504030201090807060504030201090807060504030201090807060504030201090807060504 exceeds maximum value 4294967295 of target Uint type');"
         "});"
         ))
     )

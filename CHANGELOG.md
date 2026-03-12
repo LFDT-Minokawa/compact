@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.30.101, language 0.22.0, runtime 0.15.101]
+
+- Changes the format of the first argument passed to `convertBytesToUint` in `print-typescript` 
+- Improves format of error messages for `convertBytesToUint` and `convertBytesToField`
+- Changes the type of `maxval` to `bigint` to avoid JavaScript silently losing precision
+  when comparing `x > maxval` for larg `Uint`s
+
 ## [Toolchain 0.30.0, language 0.22.0, runtime 0.15.0]
 
 This release includes all changes for compiler versions in the range between
