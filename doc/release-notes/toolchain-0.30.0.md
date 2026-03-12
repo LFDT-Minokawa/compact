@@ -100,6 +100,7 @@ The Compact standard library type `NativePoint` has been renamed to `JubjubPoint
 ### `NativePoint` is renamed to `JubjubPoint`
 
 **What changed**: The standard library type `NativePoint` has been renamed to `JubjubPoint` and there are corresponding name changes for standard library circuits for creating and accessing curve points.
+
 **What breaks**: Code that uses the old name will no longer compile.
 
 The native ZK-efficient elliptic curve used in the Midnight network is [Jubjub](https://github.com/zkcrypto/jubjub).  The name `NativePoint` is changed to `JubjubPoint` to more clearly reflect the reality.
@@ -112,7 +113,8 @@ The Compact runtime's types `NativePoint` and `CompactTypeNativePoint` have been
 
 ### It is a compiler error to use `persistentHash` or `persistentCommit` on opaque JavaScript values
 
-**What changed**: It is now a compiler error to use the standard libary circuits `persistentHash` or `persistentCommit` directly or indirectly (e.g., via a standard library circuit that uses `persistentHash` in its implementation) on Compact values that containing opaque JavaScript values (`Opaque<'string'>` or `Opaque<'Uint8Array'>`).  This also affects the standard library operation `merkleTreePathRoot` and ledger ADT `MerkleTree` and `HistoricMerkleTree` insertion operations.
+**What changed**: It is now a compiler error to use the standard libary circuits `persistentHash` or `persistentCommit` directly or indirectly (e.g., via a standard library circuit that uses `persistentHash` in its implementation) on Compact values that contaib opaque JavaScript values (`Opaque<'string'>` or `Opaque<'Uint8Array'>`).  This also affects the standard library operation `merkleTreePathRoot` and ledger ADT `MerkleTree` and `HistoricMerkleTree` insertion operations.
+
 **What breaks**: Some code that previously compiled will now be a compiler error.
 
 Values containing `Opaque<'string'>` or `Opaque<'Uint8Array'>` cannot be correctly hashed in a ZK proof using `persistentHash` or `persistentCommit`.  This would fail, in the form of a Rust crash, when the compiler tried to generate prover and verifier keys.
@@ -124,6 +126,7 @@ This is a breaking change because previously it was possible to hash such values
 ### New search order for included files and modules imported from files
 
 **What changed**: The Compact compiler and fixup tool's search order for include and external module files has been changed.  It still uses the `COMPACT_PATH` environment variable but it has changed as described below.
+
 **What breaks**: The new search order might find a different file than intended or it might fail to find a file at all.
 
 The previous implementation did not distinguish between relative and absolute paths, with some unfortunate consequences.  For relative paths, it would effectively first look for the included or imported file relative to the directory where the command was invoked.  For absolute paths, if they were not found it would append the path to the directory of the including file and to each of the directories in `COMPACT_PATH` in turn, thus treating them as relative paths.
