@@ -2756,6 +2756,10 @@ input vectors.
 Values of one type can be cast to another, when allowed, via a *cast*, which
 takes the following form:
 
+```compact
+expression as type
+```
+
 The effects of casting an expression `e` of type `T` to another type `U` depend
 on the specific types involved.
 For some types `T` and `U`, the cast is not allowed, which is a static error.
@@ -2773,7 +2777,7 @@ Evaluation of a cast proceeds by evaluation of its subexpression, followed by
 any checks and conversions required by the cast.
 If a check fails, a run-time error is reported.
 
-TypeScript casts of the form `<T>e` are not supported in Compact.
+TypeScript casts of the form `<type>expression` are not supported in Compact.
 
 The following rules govern when casts are allowed, when casts might cause run-time
 errors, and casts might require run-time conversions.
