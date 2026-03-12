@@ -23,7 +23,7 @@ kinds of program elements:
 - module and import forms for management of namespaces and separate files,
 - declarations of program-defined types,
 - declarations of the data that the contract stores in the public ledger,
-- declarations of *witnesses*, which are callback functions supplied by the TypeScript runner, and
+- declarations of *witnesses*, which are callback functions supplied by the TypeScript runner,
 - definitions of *circuits*, which are functions serving as the operational core of a smart contract, and
 - the definition of at most one *constructor*, which is a function used to intialize the public ledger.
 
@@ -38,7 +38,8 @@ Compact deviates intentionally from TypeScript, however, in several important wa
   Compact as well as preventing external application of a Compact circuit with
   more or fewer than the declared number of arguments.
 - Compact provides namespace management via static rather than dynamic modules, and
-  these modules can be parameterized via compile-time generic parameters, which include size as
+  these modules can be parameterized via compile-time
+  [generic parameters](#generic-parameters-and-arguments), which include size as
   well as type parameters.
 - Because every Compact program must compile into a set of finite proving circuits,
   all Compact types have sizes that are fixed at compile time, loops are bounded either
@@ -56,7 +57,7 @@ Compact deviates intentionally from TypeScript, however, in several important wa
   [Explicit disclosure in Compact](explicit-disclosure).
 
 Like TypeScript, Compact compiles into JavaScript, but it also produces a TypeScript
-definition file so that it effectively also compiles into TypeScript.
+definition file so it effectively also compiles into TypeScript.
 It produces separate TypeScript definition files and JavaScript implementation files
 rather than simply producing TypeScript for three reasons:
 - to allow compiled Compact programs to be used without requiring an additional
@@ -135,8 +136,8 @@ the grammar snippets are described in
 Each nonterminal name appearing in the grammar snippets represents a
 sequence of tokens that comprise some structured piece of a program.
 For example, the terminal name *expr* matches any sequence of tokens
-that can be interpreted as an expression, such as `3 + x` or
-`a ? b : c`.
+that can be interpreted as an expression, such as *3* `+` *x* or
+*a* `?` *b* `:` *c*.
 The set of structures represented by each nonterminal name is given
 in the various sections of this reference manual along with typing
 and evaluation rules where appropriate.
@@ -247,14 +248,14 @@ circuit c(): Field {
 }
 ```
 
-The identifier `c` is bound to the circuit named `c`, and this binding is visible
-throughout the contract, though no references to `c` appear in the example.
-The first (outer) binding of the identifier `answer` to the value `42` is visible
-throughout the body of `c` except where shadowed by the second (inner) binding of
-`answer` within in the inner block, so the reference to `answer` in `return answer`
-evaluates to `42`.
-The second (inner) binding of `answer` to `42` is visible throughout the inner
-block, so the reference to `answer` in `answer != 42` evaluates to `12`.
+The identifier *c* is bound to the circuit named *c*, and this binding is visible
+throughout the contract, though no references to *c* appear in the example.
+The first (outer) binding of the identifier *answer* to the value *42* is visible
+throughout the body of *c* except where shadowed by the second (inner) binding of
+*answer* within in the inner block, so the reference to *answer* in `return` *answer*
+evaluates to *42*.
+The second (inner) binding of *answer* to *42* is visible throughout the inner
+block, so the reference to *answer* in *answer* `!=` *42* evaluates to *12*.
 
 In addition to having a scope, every binding also has a lifetime.
 For circuit and witness bindings, the lifetime is effectively permanent, i.e.,
@@ -314,8 +315,8 @@ elements that appear within the body of the module.
 
 When present, generic parameters are enclosed in angle brackets following the
 name of the generic entity (module, structure, type alias, circuit, or witness).
-Each parameter is either a type name (e.g., `T`) or a hash-prefixed natural-number name
-(e.g., `#N`).
+Each parameter is either a type name (e.g., *T*) or a hash-prefixed natural-number name
+(e.g., `#`*N*).
 Generic natural-number parameters are prefixed by `#` to distingish them from
 generic type parameters.
 
@@ -335,7 +336,7 @@ parameters, so any generic argument can pass along the value of a generic type
 or natural-number parameter that is visible at the point of specialization.
 
 The `#` used to distinguish generic natural-number parameters from generic type parameters
-need not and must not used at the point of specialization.
+need not and must not be used at the point of specialization.
 It is a static error, however, if a generic argument supplied for a generic
 parameter is not numeric when a numeric value is expected or is not a type when
 a type is expected.
@@ -358,10 +359,10 @@ export circuit bar2(): Vector<3, [Boolean, Boolean]> {
 }
 ```
 
-The body of circuit `foo` is generic with respect to the module's type parameters
-`T` and `N` as well as to the circuit's own parameter `A`.
+The body of circuit *foo* is generic with respect to the module's type parameters
+*T* and *N* as well as to the circuit's own parameter *A*.
 The module is specialized at the point of import, while the circuit is specialized
-at the point of call (in both `bar1` and `bar2`).
+at the point of call (in both *bar1* and *bar2*).
 
 ## Compact types
 
