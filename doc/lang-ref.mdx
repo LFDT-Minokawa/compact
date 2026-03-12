@@ -2786,6 +2786,21 @@ Any cast not covered by one of the rules is not allowed.
   (but never required), never result in run-time errors, and, except in the case
   where the type and the supertype are the same, might require run-time conversions.
 
+This rule has three implications:
+
+- Tuple-to-vector upcasts: if a tuple type `[T, ...]` has a vector type `Vector<n, S>`
+  (i.e., `S` is the least upper bound of the element types), then the tuple is a subtype
+  of that vector type and can be used where the vector type is expected without an
+  explicit cast. For example, values of type `[Uint<8>, Uint<16>]` can be used where a
+  value of type `Vector<2, Uint<16>>` are required.
+- Vector-to-tuple upcasts: a vector type `Vector<n, T>` is a subtype of any tuple type
+  `[S, ...]` of length `n` where `T` is a subtype of each `S`, so a vector can be used where
+  such a tuple is expected without an explicit cast. For example, values of type
+  `Vector<2, Uint<8>>` can be used where values of type `[Uint<16>, Uint<16>]` are required.
+- Since `Vector<n, T>` is the same type as the tuple `[T, ..., T]` with `n` occurrences of `T`,
+  casts between a vector type and its equivalent tuple type are always upcasts in both
+  directions.
+
 #### Downcasts of `Field` and `Uint` types
 
 - `Uint` downcasts, i.e., casts from `Uint<m>` to `Uint<n>`, `m > n`, are always
