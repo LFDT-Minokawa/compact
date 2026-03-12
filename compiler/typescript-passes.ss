@@ -3107,7 +3107,7 @@
             (make-Qconcat
               (compact-stdlib "convertBytesToUint")
               "("
-              ((make-Qsep ",") (format "~d" nat^) (format "~d" len) expr (format "'~a'" (format-source-object src)))
+              ((make-Qsep ",") (format "~dn" nat^) (format "~d" len) expr (format "'~a'" (format-source-object src)))
               ")")]
            [else (assert cannot-happen)]))]
       [(vector->bytes ,src ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
