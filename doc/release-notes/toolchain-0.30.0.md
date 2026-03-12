@@ -1,219 +1,163 @@
-## [Toolchain 0.30.0, language 0.22.0, runtime 0.15.0]
+# Compact toolchain 0.30.0
 
-This release includes all changes for compiler versions in the range between
-0.29.100 and 0.30.0; language versions in the range between 0.21.100 and 0.22.0;
-and Compact runtime versions in the range between 0.14.100 and 0.15.0.
+* **Date**: 2026-03-16
+* **Language version:** 0.22.0
+* **Compact runtime version:** 0.15.0
+* **Environment**: Preview Testnet at time of release. For the full compatibility matrix, see the [release notes overview](https://docs.midnight.network/relnotes/overview)
 
-## [Unreleased toolchain 0.29.114, language 0.21.101, runtime 0.14.102]
+## High-level summary
 
-### Changed
+In version 0.30, the Compact toolchain now targets Midnight ledger version 8.  Previous toolchain versions (e.g., 0.28 and 0.29) targeted ledger version 7.  If you are compiling contracts for a ledger 8 blockchain, you should use Compact toolchain 0.30 or later.  Earlier versions might work but these are untested and usupported, and have known bugs.  If you are compiling contracts for a ledger 7 blockchain, you must use Compact toolchain 0.29 or an earlier compatible one.
 
-- The language reference `doc/lang-ref.mdx` is now largely up-to-date with
-  the Compact 0.21.0 language.
-- The HTML version of the formal grammar in `doc/Compact.html` has been
-  replaced with a markdown (mdx) version in `doc/compact-grammar.mdx`.
+## Audience
 
-### Added
+These release notes are intended for Compact smart contract developers and for DApp developers who use the Compact runtime.
 
-- A list of Compact's keywords and reserved words, including those reserved
-  for future use, is given in `doc/compact-keywords.mdx`.
+## What changed
 
-## [Unreleased toolchain 0.29.113, language 0.21.101, runtime 0.14.102]
+This release targets the new version of the Midnight ledger, version 8.0.  The primary advantage is that this version of the blockchain has fiexes for a number of bugs that were affecting users.  In addition:
 
-### Changed
+- The compiler supports `--ledger-version` and `--runtime-version` flags
+- The compiler and fixup tool now support `--compact-path` and `--trace-search` flags
+- The standard library `NativePoint` type is renamed to `JubjubPoint`
+- It is a compiler error to use `persistentHash` and `persistentCommit` on JavaScript opaque values
+- There is a new search order for include files and modules imported from files
+- The language reference is now largely up to date with the current version of the language
+- The release notes are included in the release itself
 
-- It is now a compiler error to pass Compact values containing opaque JS values
-  (`Opaque<'string'>` or `Opaque<'Uint8Array'>`) to the standard library
-  circuits `persistentHash` and `persistentCommit`.  Hashing such values does
-  not work in circuit due to the representation of these types.  Previously,
-  such code would crash the `zkir` process if it tried to generate prover and
-  verifier keys.  Now it is a compiler error instead.
-  
-  This also affects the standard library operation `merkleTreePathRoot` (because
-  it calls `persistentHash` in its implementation), and ledger `MerkleTree`
-  insertion operations, because they implicitly use `persistentHash`.
-  
-  This is a **breaking** change because the error is signaled early, and so it
-  is now an error to use any of these circuits or ADT operations, even for
-  circuits that don't need prover and verifier key generation which would
-  compile successfully before.
+## New features
 
-## [Unreleased toolchain 0.29.112, language 0.21.101, runtime 0.14.102]
+The compiler now supports `--ledger-version` and `--runtime-version` flags.  The compiler and fixup tool now support `--compact-path` and `--trace-search` flags.  The release notes are now included in the release itself.
 
-### Changed
+### Ledger and runtime version flags
 
-- The fixup tool now replaces references to the old standard-library type names
-  `CurvePoint` and `NativePoint` with `JubJubPoint`.  It also does a better job
-  of renaming standard-library circuits when it is safe to do so and explaining
-  why when it is not safe to do so.
+**Description**: The compiler binary can now report the Midnight ledger version it targets, via a new `--ledger-version` flag.  It can also now report the Compact runtime version that it will import in generated JavaScript code, via a new `--runtime-version` flag.
 
-### Internal notes
+Compact smart contracts are currently compiled for a specific version of the Midnight ledger.  The ledger version determines, for example, the format of the public state and the format of prover and verifier keys.  Smart contracts will not in general work with a different ledger major version number than the one that they were compiled for.
 
-- The expand-modules-and-types code for function lookup is more modular and
-  easier to read.
+The compiler can report the ledger version it targets with a new `--ledger-version` flag, for instance:
 
-## [Unreleased toolchain 0.29.111, language 0.21.101, runtime 0.14.102]
+```
+$ compact compile --ledger-version
+ledger-8.0.0
+```
 
-### Fixed
+The ledger version will correspond to a tag (or possibly a Git commit hash or branch name) from the [Midnight ledger](https://github.com/midnightntwrk/midnight-ledger) GitHub repository.
 
-- The `<=` and `>` operand evaluation order in the proof circuit is incorrect
-  (right-to-left rather than left-to-right).  It also differs from the evaluation
-  order in the generated JavaScript code, which can result in proof failures
-  when the operands are non-trivial.  This fix modifies the common upstream path
-  `infer-types` to enforce the correct evaluation order.
+Compiler-generated JavaScript code imports a specific version of the Compact runtime to provide core language features.  Until it reaches version 1.0, the Compact runtime may have breaking changes in new minor version numbers, so it is important to configure DApps to use the correct Compact runtime version.  The generated JavaScript code will verify that it is using the expected version.
 
-## [Unreleased toolchain 0.29.110, language 0.21.101, runtime 0.14.102]
+The compiler can report the Compact runtime version that will be imported with a new `--runtime-version` flag, for instance:
 
-### Fixed
+```
+$ compact compile --runtime-version
+0.15.0
+```
 
-- There was an unreleased bug in ZKIR circuits (not in JS) where the
-  representation of the default `JubjubPoint` was wrong.  Fixing this entailed
-  allowing `default` in compiler IR from `Lflattened` and downstream in both
-  ZKIR v2 and v3 backends.
+The Compact runtime package is [available from npm](https://www.npmjs.com/package/@midnight-ntwrk/compact-runtime).
 
-## [Unreleased toolchain 0.29.109, language 0.21.101, runtime 0.14.102]
+Other Compact toolchain tools, such as the `format` and `fixup` tools, do not depend on the ledger or runtime version so they will not understand these flags.
 
-### Changed
+### Search path flags
 
-- The compiler binary can now report `--ledger-version` (and
-  `--feature-zkir-v3 --ledger-version`).  This is the version of the ledger that
-  is targeted by the generated code and used to produce the generated prover and
-  verifier keys.
+**Description**: The compiler and fixup tool now support a `--compact-path` flag whose value is a search path.  If this flag is set, its value is used as the search path and the `COMPACT_PATH` environment variable is ignored.  Both tools support a new `--trace-search` flag that will show on standard error the search order for included and imported files.
 
-## [Unreleased toolchain 0.29.108, language 0.21.101, runtime 0.14.102]
+### Release notes distributed with the release
 
-### Fixed
+**Description**: the release notes are distributed in the release `.zip` file as a Markdown document.  They were previously available in from the [Midnight developer documentation](https://docs.midnight.network/relnotes/compact), in the [Compact release repository](https://github.com/midnightntwrk/compact/releases), and in the [Minokawa project's Compact repository](https://github.com/LFDT-Minokawa/compact/tree/main/doc/release-notes).  Now they are also included in the `.zip` file artifacts that form the release.
 
-- Type declarations of `Uint<n>` and `Uint<0..n>` where `n` is a free type variable
-  are now accepted by the compiler.
+The Compact devtools will unzip the artifacts into a subdirectory of its artifact directory.  The devtools artifact directory is `.compact` in your home directory by default, but it can be changed by the `COMPACT_DIRECTORY` environment variable or the `--directory` command line flag to the `compact` devtool command.
 
-## [Unreleased toolchain 0.29.107, language 0.21.101, runtime 0.14.102]
+So for example, for Apple silicon macOS, and if the default artifact directory is used, the release notes for this release will be found in `~/.compact/versions/0.30.0/aarch64-darwin/toolchain-0.30.0.md`.
 
-### Changed
+## Improvements
 
-- The ZKIR v3 format, behind the feature flag `--feature-zkir-v3`, has changed
-  so that:
-  - circuit inputs are correctly typed as either `Scalar<BLS12-381>` or
-    `Point<Jubjub>` (before they were always scalars, with `encode` instructions
-    for curve points), and
-  - `private_input` and `public_input` instructions are typed (before they
-    always read scalars, with `encode` instructions for curve points)
+The language reference document has been extensively revised so it now describes the current version of the language.  The generated TypeScript code now distinguishes circuits that have prover and verifier keys from other impure circuits.
 
-## [Unreleased toolchain 0.29.106, language 0.21.101, runtime 0.14.102]
+**Improvement**: Up to date language reference
 
-### Changed
+The language reference found at https://docs.midnight.network/compact/reference/lang-ref is now largely up to date with the current version of the language.
 
-- The Compact compiler now targets `midnight-ledger` version 8.0.0.  The Compact
-  runtime now imports `onchain-runtime-v3` (instead of `-v2`) at version
-  compatible with 3.0.0-rc.2.
+This is a substantial rewrite and improvement of the document.
 
-## [Unreleased toolchain 0.29.105, language 0.21.101, runtime 0.14.101]
+**Improvement**: `ProvableCircuits`
 
-### Fixed
+**Description**: The generated TypeScript code now includes a `ProvableCircuits<PS>` type and a `provableCircuits` field on the `Contract` class.  `ProvableCircuits` contains only the circuits that have prover and verifier keys.
 
-- [Breaking Change] The search order for include and external module files
-  specified with non-absolute paths has been fixed so that (a) the compiler looks
-  first relative to the directory of the including or importing file, and (b)
-  the compiler does not automatically look in the directory where the compiler
-  was invoked.
+Previously there were only `ImpureCircuits` and `PureCircuits` in the TypeScript code.  Impure ones were those that used the public ledger state or called witness functions, and pure ones were the rest.  Midnight.js was using the `ImpureCircuits` type to get a list of the circuits that needed a proof.  However, an impure circuit that is only impure because it calls witness functions (that is, it does not use the public ledger state) does not need a proof and trying to create one would fail.
 
-### Added
+The generated TypeScript code now makes a finer distinction.  `ProvableCircuits` are the ones that need a proof.  They are always impure, so they are also included in the `ImpureCircuits` type.  Therefore, this is a **non-breaking** change.
 
-- compactc and fixup-compact support two new options: --compact-path to
-  set the compact path and --trace-search to cause the compiler to say where
-  it looks for include and external module files.  If the `--compact-path`
-  command-line option is present, the environment variable `COMPACT_PATH`
-  is ignored.
+This change enables a bugfix in Midnight.js.
 
-## [Unreleased toolchain 0.29.104, language 0.21.101, runtime 0.14.101]
+## Deprecations
 
-### Added
+None.
 
-- The generated TypeScript now includes a `ProvableCircuits<PS>` type and a
-  `provableCircuits` field on the `Contract` class.  `ProvableCircuits` contains
-  only the circuits that have verifier keys (i.e., circuits that appear in the
-  flattened circuit IR and produce ZKIR files).  This distinguishes them from
-  impure circuits that only call witnesses without touching the ledger.
+## Breaking changes
 
-### Fixed
+The Compact standard library type `NativePoint` has been renamed to `JubjubPoint`.  It is now a compiler error to use `persistentHash` or `persistentCommit` on opaque JavaScript values.  The search order for include and external module files has been changed.
 
-- `setOperation` is now emitted only for provable circuits (those in
-  `proof-circuit-name*`) rather than for all impure circuits.  Previously,
-  witness-only impure circuits caused the runtime to look
-  for a verifier key that does not exist.
+### `NativePoint` is renamed to `JubjubPoint`
 
-## [Unreleased toolchain 0.29.103, language 0.21.101, runtime 0.14.101]
+**What changed**: The standard library type `NativePoint` has been renamed to `JubjubPoint` and there are corresponding name changes for standard library circuits for creating and accessing curve points.
 
-### Changed
+**What breaks**: Code that uses the old name will no longer compile.
 
-- The standard library type `NativePoint` has been removed.  The standard
-  library type `JubjubPoint` is now a `new type` alias for
-  `Opaque<'JubjubPoint'>`.  This way `Opaque<'JubjubPoint'>` isn't really
-  hidden, but it's not shown in error messages.
-- `NativePoint` circuits in the standard library and the corresponding
-  same-named functions in the Compact runtime have been renamed, and they now
-  take or produce `JubjubPoint` values.
-  - `nativePointX` -> `jubjubPointX`
-  - `nativePointY` -> `jubjubPointY`
-  - `constructNativePoint` -> `constructJubjubPoint`
-- Signatures of elliptic curve operations in the standard library now use
-  `JubjubPoint` in place of `NativePoint`.
+The native ZK-efficient elliptic curve used in the Midnight network is [Jubjub](https://github.com/zkcrypto/jubjub).  The name `NativePoint` is changed to `JubjubPoint` to more clearly reflect the reality.
 
-### Internal notes
+The standard library circuits `nativePointX`, `nativePointY`, and `constructNativePoint` have correspondingly been renamed to `jubjubPointX`, `jubjubPointY`, and `constructJubjubPoint`.
 
-- The `compact fixup` tool can do these renamings except it cannot currently
-  rename types (e.g. `NativePoint` to `JubjubPoint`).
+The Compact runtime's types `NativePoint` and `CompactTypeNativePoint` have been changed to `JubjubPoint` and `CompactTypeJubjubPoint`.  The runtime also has new functions `jubjubPointX`, `jubjubPointY`, and `constructJubjubPoint` that correspond to the Compact circuits of the same name.  Previously versions of these were implemented only in the Compact standard library and not reflected in the Compact runtime.
 
-## [Unreleased toolchain 0.29.102, language 0.21.100, runtime 0.14.100]
+**Required actions**: Rename code that uses these identifiers.  The `compact fixup` tool can apply the renamings to Compact code.  Update a DApp's TypeScript or JavaScript implementation manually if necessary.
 
-### Added
+### It is a compiler error to use `persistentHash` or `persistentCommit` on opaque JavaScript values
 
-- There is a new builtin type `Opaque<'JubjubPoint'>`.  Unlike the other opaque
-  types, this is intended to be a crypto backend (ZKIR) native type (not a JS
-  type).  The standard library exports the type `JubjubPoint` which is a
-  (transparent) `type` alias for the opaque type.
+**What changed**: It is now a compiler error to use the standard libary circuits `persistentHash` or `persistentCommit` directly or indirectly (e.g., via a standard library circuit that uses `persistentHash` in its implementation) on Compact values that contaib opaque JavaScript values (`Opaque<'string'>` or `Opaque<'Uint8Array'>`).  This also affects the standard library operation `merkleTreePathRoot` and ledger ADT `MerkleTree` and `HistoricMerkleTree` insertion operations.
 
-### Changed
+**What breaks**: Some code that previously compiled will now be a compiler error.
 
-- The standard library's (opaque) `new type` alias `NativePoint` now has
-  underlying type `Opaque<'JubjubPoint'>`.
-- The Compact runtime's types `CompactTypeNativePoint` and `NativePoint` are
-  renamed to `CompactTypeJubjubPoint` and `JubjubPoint`.
-- The runtime has TS (instead of Compact) implementations of the now-builtin
-  `NativePointX` and `NativePointY` circuits.
-- The feature flag `--zkir-v3` is changed to `--feature-zkir-v3` to fit a
-  proposed standard naming convention, and to make crystal clear that it is
-  still an experimental feature.
+Values containing `Opaque<'string'>` or `Opaque<'Uint8Array'>` cannot be correctly hashed in a ZK proof using `persistentHash` or `persistentCommit`.  This would fail, in the form of a Rust crash, when the compiler tried to generate prover and verifier keys.
 
-### Internal notes
+It is now a compiler error instead of a Rust crash.
 
-- When the flag `--feature-zkir-v3` is enabled, `Opaque<'JubjubPoint'>` is
-  represented natively in ZKIR v3.  Without the flag, it is still represented as
-  a pair of field elements in ZKIR v2.
-- This is implemented as a "pseudo"-alignment tag after flattening.  The tag
-  looks like `(anative "JubjubPoint")` and it's interpreted as a `midnight-zk`
-  JubjubPoint for ZKIR operations, converted to a pair of field values for
-  the Impact code embedded in the ZKIR circuit.
-- ZKIR v3 has new `encode` and `decode` gates for converting from ZKIR
-  representations to Impact representations and back.
-- ZKIR v3's `ec_add` has been eliminated; regular `add` is polymorphic,
-  operating on either a pair of scalars or a pair of Jubjub curve points.
-- ZKIR v3 has type annotations on circuit inputs and on `decode` instructions.
-- ZKIR v3 has two types: `Scalar<BLS12-381>` and `Point<Jubjub>`.
-- For both ZKIR v3 and ZKIR v2 modes, the JS representation of is still as a pair
-  of field elements.
+This is a breaking change because previously it was possible to hash such values in pure circuits which will now be a compiler error.
 
-## [Unreleased toolchain version 0.29.101, language version 0.21.0]
+### New search order for included files and modules imported from files
 
-### Changed
+**What changed**: The Compact compiler and fixup tool's search order for include and external module files has been changed.  It still uses the `COMPACT_PATH` environment variable but it has changed as described below.
 
-- In the formal grammar, the `stmt0` grammar production for one-armed
-  `if` expressions has been removed.  It was unnecessary and made the grammar
-  ambiguous.
+**What breaks**: The new search order might find a different file than intended or it might fail to find a file at all.
 
-## [Unreleased toolchain 0.29.100, language 0.21.0]
+The previous implementation did not distinguish between relative and absolute paths, with some unfortunate consequences.  For relative paths, it would effectively first look for the included or imported file relative to the directory where the command was invoked.  For absolute paths, if they were not found it would append the path to the directory of the including file and to each of the directories in `COMPACT_PATH` in turn, thus treating them as relative paths.
 
-### Changed
+**Required actions**: With this change, relative paths will no longer be automatically looked for in the directory where the command was invoked.  If this is intended, a workaround is to make the path absolute or else to add the invocation directory to `COMPACT_PATH` and make sure an unintended path is not found relative to the including or importing file.
 
-The compiler binary can now report `--runtime-version`, the version of the
-Compact runtime JS package that it will import in generated contract code.
+And absolute paths will no longer be found relative to the directory of the importing or including file, or by searching `COMPACT_PATH`.  A workaround for this is to remove the prefix that makes the path absolute (i.e., the directory separator or drive specifier) so that it is treated as a relative path.
+
+## Known issues
+
+None.
+
+## Links and references
+
+- The [Compact documentation portal](https://docs.midnight.network/compact),
+  including the [language reference](https://docs.midnight.network/compact/lang-ref) and
+  the [standard library documentation](https://docs.midnight.network/compact/compact-std-library)
+- The [Compact runtime TypeScript API](https://docs.midnight.network/api-reference/compact-runtime) for DApps
+- [Compact compiler usage](https://docs.midnight.network/compact/reference/tools/compiler-usage)
+- The [open-source project](https://github.com/LFDT-Minokawa/compact) on GitHub for bug reports and feature requests
+
+## Fixed defect list
+
+The following defects are fixed by updating to Compact toolchain 0.30.  These are not necessarily bugs in Compact, they are often bugs in other components of the Midnight network.
+
+- [Issue #40: It should be a compiler error to pass `Opaque`-typed values to certain standard library circuits](https://github.com/LFDT-Minokawa/compact/issues/40)
+- [Issue #81: Constraint count doubled for `Vector<32, Uint<8>>` to `Bytes<32>` cast in `v0.28.0`](https://github.com/LFDT-Minokawa/compact/issues/81)
+- [Issue #107: Circuit calls fails with NullifiersNEClaimedNullifiers](https://github.com/LFDT-Minokawa/compact/issues/107)
+- [Issue #110: Circuit call fails with AllCommitmentsSubsetCheckFailure](https://github.com/LFDT-Minokawa/compact/issues/110)
+- [Issue #117: Cannot mint shielded tokens in contract constructor](https://github.com/LFDT-Minokawa/compact/issues/117)
+- [Issue #139: compactc search order for include and module files is unintuitive and possibly unsafe](https://github.com/LFDT-Minokawa/compact/issues/139)
+- [Issue #151: Circuit call fails when using `sendUnshielded` and `receiveUnshielded`](https://github.com/LFDT-Minokawa/compact/issues/151)
+- [Issue #155: Type declarations containing unspecialized generic Uint fail](https://github.com/LFDT-Minokawa/compact/issues/155)
+- [Issue #187: Operand-swapping comparison operators (> and <=) fail ZKIR verification for unequal operands](https://github.com/LFDT-Minokawa/compact/issues/187)
