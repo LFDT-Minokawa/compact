@@ -61,6 +61,14 @@ Other Compact toolchain tools, such as the `format` and `fixup` tools, do not de
 
 **Description**: The compiler and fixup tool now support a `--compact-path` flag whose value is a search path.  If this flag is set, its value is used as the search path and the `COMPACT_PATH` environment variable is ignored.  Both tools support a new `--trace-search` flag that will show on standard error the search order for included and imported files.
 
+### Release notes distributed with the release
+
+**Description**: the release notes are distributed in the release `.zip` file as a Markdown document.  They were previously available in from the [Midnight developer documentation](https://docs.midnight.network/relnotes/compact), in the [Compact release repository](https://github.com/midnightntwrk/compact/releases), and in the [Minokawa project's Compact repository](https://github.com/LFDT-Minokawa/compact/tree/main/doc/release-notes).  Now they are also included in the `.zip` file artifacts that form the release.
+
+The Compact devtools will unzip the artifacts into a subdirectory of its artifact directory.  The devtools artifact directory is `.compact` in your home directory by default, but it can be changed by the `COMPACT_DIRECTORY` environment variable or the `--directory` command line flag to the `compact` devtool command.
+
+So for example, for Apple silicon macOS, and if the default artifact directory is used, the release notes for this release will be found in `~/.compact/versions/0.30.0/aarch64-darwin/toolchain-0.30.0.md`.
+
 ## Improvements
 
 The generated TypeScript code now distinguishes circuits that have prover and verifier keys from other impure circuits.
