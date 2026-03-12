@@ -65156,8 +65156,8 @@ groups than for single tests.
   ; cast test: Bytes --> Uint (cast-from-bytes)
   (test
     '(
-      "export circuit foo(b: Bytes<2>): Uint<0..65536> {"
-      "  return b as Uint<0..65536>;"
+      "export circuit foo(b: Bytes<2>): Uint<0..256> {"
+      "  return b as Uint<0..256>;"
       "}"
       )
     (stage-javascript
@@ -65166,9 +65166,13 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  expect(C.circuits.foo(Ctxt, new Uint8Array([0x03, 0x00])).result).toEqual(3n);"
         "});"
+        "test('Bytes to Uint: exceed maxval', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x01]))).toThrow(/range error at testfile.compact line 2 char 10: the integer value of 0,1 is greater than the maximum value of Uint<0..256>/);"
+        "});"
         "test('Bytes to Uint: max value succeeds', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0xFF, 0xFF])).result).toEqual(65535n);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0xFF, 0x00])).result).toEqual(255n);"
         "});"
         )))
 
