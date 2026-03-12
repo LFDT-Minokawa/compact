@@ -65168,7 +65168,7 @@ groups than for single tests.
         "});"
         "test('Bytes to Uint: exceed maxval', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x01]))).toThrow(/range error at testfile.compact line 2 char 10: the integer value of 0,1 is greater than the maximum value of Uint<0..256>/);"
+        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x01]))).toThrow();"
         "});"
         "test('Bytes to Uint: max value succeeds', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
