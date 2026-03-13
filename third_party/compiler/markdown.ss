@@ -19,28 +19,28 @@
 ;;; DEALINGS IN THE SOFTWARE.
 
 (library (markdown)
-  (export %html)
+  (export %markdown)
   (import (chezscheme))
-  (module %html (<doctype>
-                 <html>
-                 <head>
-                 <meta>
-                 <title>
-                 <h1>
-                 <h2>
-                 <h3>
-                 <h4>
-                 <p>
-                 <a>
-                 <sup>
-                 <em>
-                 <b>
-                 <span>
-                 <table>
-                 <tr>
-                 <td>
-                 html-text nbsp
-                )
+  (module %markdown (<doctype>
+                     <html>
+                     <head>
+                     <meta>
+                     <title>
+                     <h1>
+                     <h2>
+                     <h3>
+                     <h4>
+                     <p>
+                     <a>
+                     <sup>
+                     <em>
+                     <b>
+                     <span>
+                     <table>
+                     <tr>
+                     <td>
+                     html-text nbsp
+                     )
     (define (<doctype>) (void))
     (define (html-text-char c)
       (case c

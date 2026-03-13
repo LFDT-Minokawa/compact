@@ -251,7 +251,26 @@
         [(eq? const 'eof) ""]
         [else (format "<tt>~a</tt>" (html-text-string const))]))
     |#
-    (import (markdown))
+    (module %html (<a>)
+      (import (markdown))
+      ; %markdown's <a> actually does what one would expect.  for targeting
+      ; our docusaurus site, which doesn't handle anything but section anchors
+      ; properly, we want the link to refer to the section header, so we
+      ; lower-case the tag in hrefs and suppress insertion of the anchor
+      ; at the point of definition.
+      (define-syntax <a>
+        (syntax-rules ()
+          [(_ ([?href text]) b1 b2 ...)
+           (eq? (datum ?href) 'href)
+           (begin
+             (printf "[")
+             b1 b2 ...
+             (printf "](~(~a~))" text))]
+          [(_ ([?name text]) b1 b2 ...)
+           (eq? (datum ?name) 'name)
+           (begin (void) b1 b2 ...)]))
+      ; provide the %markdown versions of all the other tags
+      (export (import (except %markdown <a>))))
     (meta define render-extension "mdx")
     (meta define (print-copyright)
       (printf "---\n")
@@ -354,7 +373,10 @@
           ("A string literal has the same syntax as a Typescript string.")))
       (version-literal (version)
         (DESCRIPTION
-          ("A version literal takes the form nat or nat.nat or nat.nat.nat, e.g., 1.2 or 1.2.3, representing major, minor, and bugfix versions."))))
+          ("A version literal takes the form nat.nat representing major and minor"
+           "versions or nat.nat.nat representing major, minor, and bugfix versions."
+           "Where version literals are allowed, a plain nat representing just the"
+           "major version is also allowed."))))
     (Compact (program)
       [program :: src (K* program-element) eof =>
        (lambda (src pelt* eof)
