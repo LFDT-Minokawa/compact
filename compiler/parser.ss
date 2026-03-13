@@ -1028,7 +1028,7 @@
   (meta begin
     (let ()
       (import (snippet-helpers))
-      (write-mdx-file (snippets) lang-ref-proto lang-ref-mdx))
+      (insert-requested-snippets (snippets) lang-ref-proto lang-ref-mdx))
     (with-output-to-file "doc/compact-keywords.mdx"
       (lambda ()
         (define (do-group kd)

@@ -23,7 +23,7 @@ kinds of program elements:
 - module and import forms for management of namespaces and separate files,
 - declarations of program-defined types,
 - declarations of the data that the contract stores in the public ledger,
-- declarations of *witnesses*, which are callback functions supplied by the TypeScript runner, and
+- declarations of *witnesses*, which are callback functions supplied by the TypeScript runner,
 - definitions of *circuits*, which are functions serving as the operational core of a smart contract, and
 - the definition of at most one *constructor*, which is a function used to intialize the public ledger.
 
@@ -38,7 +38,8 @@ Compact deviates intentionally from TypeScript, however, in several important wa
   Compact as well as preventing external application of a Compact circuit with
   more or fewer than the declared number of arguments.
 - Compact provides namespace management via static rather than dynamic modules, and
-  these modules can be parameterized via compile-time generic parameters, which include size as
+  these modules can be parameterized via compile-time
+  [generic parameters](#generic-parameters-and-arguments), which include size as
   well as type parameters.
 - Because every Compact program must compile into a set of finite proving circuits,
   all Compact types have sizes that are fixed at compile time, loops are bounded either
@@ -56,7 +57,7 @@ Compact deviates intentionally from TypeScript, however, in several important wa
   [Explicit disclosure in Compact](explicit-disclosure).
 
 Like TypeScript, Compact compiles into JavaScript, but it also produces a TypeScript
-definition file so that it effectively also compiles into TypeScript.
+definition file so it effectively also compiles into TypeScript.
 It produces separate TypeScript definition files and JavaScript implementation files
 rather than simply producing TypeScript for three reasons:
 - to allow compiled Compact programs to be used without requiring an additional
@@ -345,7 +346,7 @@ parameters, so any generic argument can pass along the value of a generic type
 or natural-number parameter that is visible at the point of specialization.
 
 The `#` used to distinguish generic natural-number parameters from generic type parameters
-need not and must not used at the point of specialization.
+need not and must not be used at the point of specialization.
 It is a static error, however, if a generic argument supplied for a generic
 parameter is not numeric when a numeric value is expected or is not a type when
 a type is expected.

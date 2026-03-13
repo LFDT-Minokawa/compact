@@ -16,7 +16,7 @@
 ;;; limitations under the License.
 
 (library (snippet-helpers)
-  (export get-requested-snippets write-mdx-file)
+  (export get-requested-snippets insert-requested-snippets)
   (import (chezscheme)
           (state-case))
 
@@ -132,15 +132,15 @@
                             [else (loop line-number^)]))))
                     (lambda () (f current-anchor line-number))))))))))
   
-  (define (write-mdx-file snippet* proto-file mdx-file)
+  (define (insert-requested-snippets snippet* proto-file output-file)
     (define (put-line op line) (fprintf op "~a\n" line))
-    (fluid-let ([who 'write-mdx-file]
+    (fluid-let ([who 'insert-requested-snippets]
                 [anchor-ht (make-hashtable string-hash string=?)])
       (call-with-port
         (open-input-file proto-file)
         (lambda (ip)
           (call-with-port
-            (open-output-file mdx-file 'replace)
+            (open-output-file output-file 'replace)
             (lambda (op)
               (let outer ([snippet* snippet*] [line-number 0])
                 (let ([line (get-line ip)] [line-number (fx+ line-number 1)])
