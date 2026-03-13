@@ -3003,6 +3003,10 @@
          (or (and (subtype? type^ type)
                   (maybe-safecast src type type^ expr))
              (T type
+                [(topaque ,src1 ,opaque-type) (guard (string=? opaque-type "JubjubScalar"))
+                 (T type^
+                    [(tfield ,src2) `(safe-cast ,src ,type ,type^ ,expr)]
+                    [(tunsigned ,src2 ,nat) `(safe-cast ,src ,type ,type^ ,expr)])]
                 [(tfield ,src1)
                  (T type^
                     [(tbytes ,src2 ,len2)

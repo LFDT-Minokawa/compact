@@ -2222,6 +2222,7 @@
                     (if (feature-zkir-v3)
                         (cons `(anative ,opaque-type) a*)
                         (cons* `(afield) `(afield) a*))]
+                   [("JubjubScalar") (cons `(afield) a*)]
                    [else (cons `(acompress) a*)])]
                 [(tvector ,src ,len ,type)
                  (let ([a^* (f type '())])
@@ -3256,14 +3257,17 @@
         (T primitive-type1
            [(tfield)
             (T primitive-type2
-               [(tfield) #t])]
+               [(tfield) #t]
+               [(topaque ,opaque-type) (string=? opaque-type "JubjubScalar")])]
            [(tfield ,nat1)
             (T primitive-type2
                [(tfield ,nat2) (<= nat1 nat2)]
                [(tfield) #t]
-               ; tfield value 0 of type (tfield 0) is produced by default<Opaque<"type">>
-               [(topaque ,opaque-type2) (eqv? nat1 0)]
-               ; default<public-adt> is the only value of type public-adt and is represented by 0
+               [(topaque ,opaque-type)
+                (or (string=? opaque-type "JubjubScalar")
+                    ;; tfield value 0 of type (tfield 0) is produced by default<Opaque<"type">>
+                    (eqv? nat1 0))]
+               ;; default<public-adt> is the only value of type public-adt and is represented by 0
                [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
                 (eqv? nat1 0)])]
            [(topaque ,opaque-type1)
