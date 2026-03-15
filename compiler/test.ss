@@ -64759,10 +64759,13 @@ groups than for single tests.
       "  fld.lookup(b).insert(disclose(n), default<Counter>);"
       "}"
       ""
-      "export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {"
+      "export circuit incrementNestedCounter1(b: Boolean, n: Field, k: Uint<16>): [] {"
       "  fld.lookup(b).lookup(n).increment(disclose(k));"
       "}"
       ""
+      "export circuit incrementNestedCounter2(b: Boolean, n: Field, k: Uint<16>): [] {"
+      "  fld.lookup(b).lookup(n) += disclose(k);"
+      "}"
       "export circuit readNestedCounter1(b: Boolean, n: Field): Uint<64> {"
       "  return fld.lookup(b).lookup(n).read();"
       "}"
@@ -64996,6 +64999,471 @@ groups than for single tests.
         "});"
         ))
     )
+
+  ; cast test: Boolean --> Field
+  (test
+    '(
+      "export circuit foo(b: Boolean): Field {"
+      "  return b as Field;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Boolean to Field: true -> 1n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, true).result).toEqual(1n);"
+        "});"
+        "test('Boolean to Field: false -> 0n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, false).result).toEqual(0n);"
+        "});"
+        )))
+
+  ; cast test: Boolean --> Uint<0..2> (nat=1, wide enough for 1)
+  (test
+    '(
+      "export circuit foo(b: Boolean): Uint<0..2> {"
+      "  return b as Uint<0..2>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Boolean to Uint<0..2>: true -> 1n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, true).result).toEqual(1n);"
+        "});"
+        "test('Boolean to Uint<0..2>: false -> 0n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, false).result).toEqual(0n);"
+        "});"
+        )))
+
+  ; cast test: Boolean --> Uint<0..1> (nat=0, only value is 0, true branch downcast-unsigned)
+  (test
+    '(
+      "export circuit foo(b: Boolean): Uint<0..1> {"
+      "  return b as Uint<0..1>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Boolean to Uint<0..1>: false -> 0n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, false).result).toEqual(0n);"
+        "});"
+        "test('Boolean to Uint<0..1>: true throws (1 > 0)', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, true)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Field --> Boolean
+  (test
+    '(
+      "export circuit foo(f: Field): Boolean {"
+      "  return f as Boolean;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Field to Boolean: 0n -> false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0n).result).toEqual(false);"
+        "});"
+        "test('Field to Boolean: 1n -> true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 1n).result).toEqual(true);"
+        "});"
+        "test('Field to Boolean: 99n -> true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 99n).result).toEqual(true);"
+        "});"
+        )))
+
+  ; cast test: Uint --> Boolean
+  (test
+    '(
+      "export circuit foo(u: Uint<0..256>): Boolean {"
+      "  return u as Boolean;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint to Boolean: 0n -> false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0n).result).toEqual(false);"
+        "});"
+        "test('Uint to Boolean: 5n -> true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 5n).result).toEqual(true);"
+        "});"
+        )))
+
+  ; cast test: Uint downcast (Uint<0..256> --> Uint<0..10>)
+  (test
+    '(
+      "export circuit foo(u: Uint<0..256>): Uint<0..10> {"
+      "  return u as Uint<0..10>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint downcast: in-range value succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 9n).result).toEqual(9n);"
+        "});"
+        "test('Uint downcast: out-of-range value throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 10n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Field --> Uint (downcast-unsigned)
+  (test
+    '(
+      "export circuit foo(f: Field): Uint<0..10> {"
+      "  return f as Uint<0..10>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Field to Uint: in-range value succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 7n).result).toEqual(7n);"
+        "});"
+        "test('Field to Uint: out-of-range value throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 10n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Bytes --> Field (cast-from-bytes)
+  (test
+    '(
+      "export circuit foo(b: Bytes<2>): Field {"
+      "  return b as Field;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Bytes to Field: little-endian conversion', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0x01, 0x02])).result).toEqual(0x0201n);"
+        "});"
+        "test('Bytes to Field: zero bytes -> 0n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x00])).result).toEqual(0n);"
+        "});"
+        )))
+
+  ; cast test: Bytes --> Uint (cast-from-bytes)
+  (test
+    '(
+      "export circuit foo(b: Bytes<2>): Uint<0..256> {"
+      "  return b as Uint<0..256>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Bytes to Uint: little-endian conversion', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0x03, 0x00])).result).toEqual(3n);"
+        "});"
+        "test('Bytes to Uint: exceed maxval', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x01]))).toThrow();"
+        "});"
+        "test('Bytes to Uint: max value succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0xFF, 0x00])).result).toEqual(255n);"
+        "});"
+        )))
+
+  ; cast test: Field --> Bytes (field->bytes)
+  (test
+    '(
+      "export circuit foo(f: Field): Bytes<2> {"
+      "  return f as Bytes<2>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Field to Bytes: little-endian conversion', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0x0201n).result).toEqual(new Uint8Array([0x01, 0x02]));"
+        "});"
+        "test('Field to Bytes: value too large for target throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 0x010000n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Uint --> Bytes (field->bytes via safe-cast to Field first)
+  (test
+    '(
+      "export circuit foo(u: Uint<0..256>): Bytes<1> {"
+      "  return u as Bytes<1>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint to Bytes: value fits', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 42n).result).toEqual(new Uint8Array([42]));"
+        "});"
+        "test('Uint to Bytes: value too large for target throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 256n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Vector<m, Uint<0..k>> k<256 --> Bytes<m> (vector->bytes)
+  (test
+    '(
+      "export circuit foo(v: Vector<3, Uint<0..256>>): Bytes<3> {"
+      "  return v as Bytes<3>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Vector of Uint<0..256> to Bytes', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [1n, 2n, 3n]).result).toEqual(new Uint8Array([1, 2, 3]));"
+        "});"
+        )))
+
+  ; cast test: Tuple of Uint<0..k> k<256 --> Bytes<m> (vector->bytes)
+  (test
+    '(
+      "export circuit foo(t: [Uint<0..128>, Uint<0..256>]): Bytes<2> {"
+      "  return t as Bytes<2>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Tuple of Uint subtypes to Bytes', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [10n, 20n]).result).toEqual(new Uint8Array([10, 20]));"
+        "});"
+        )))
+
+  ; cast test: Bytes<m> --> Vector<m, Uint<0..256>> (bytes->vector + safe-cast)
+  (test
+    '(
+      "export circuit foo(b: Bytes<3>): Vector<3, Uint<0..256>> {"
+      "  return b as Vector<3, Uint<0..256>>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Bytes to Vector of Uint<0..256>', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([10, 20, 30])).result).toEqual([10n, 20n, 30n]);"
+        "});"
+        )))
+
+  ; cast test: Bytes<m> --> Vector<m, Field> (bytes->vector + safe-cast to Field)
+  (test
+    '(
+      "export circuit foo(b: Bytes<2>): Vector<2, Field> {"
+      "  return b as Vector<2, Field>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Bytes to Vector of Field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0x01, 0x02])).result).toEqual([1n, 2n]);"
+        "});"
+        )))
+
+  ; cast test: Bytes<m> --> Tuple [U1...Um] where each Ui >= Uint<0..256> (bytes->vector + safe-cast)
+  (test
+    '(
+      "export circuit foo(b: Bytes<2>): [Uint<0..512>, Uint<0..1024>] {"
+      "  return b as [Uint<0..512>, Uint<0..1024>];"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Bytes to Tuple of Uint supertypes', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([5, 10])).result).toEqual([5n, 10n]);"
+        "});"
+        )))
+
+  ; cast test: Enum --> Field (cast-from-enum, Field always wide enough, no check)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(c: Color): Field {"
+      "  return c as Field;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Enum to Field: red -> 0n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0).result).toEqual(0n);"
+        "});"
+        "test('Enum to Field: blue -> 2n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 2).result).toEqual(2n);"
+        "});"
+        )))
+
+  ; cast test: Enum --> Uint wide enough (nat >= maxval, no runtime check)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(c: Color): Uint<0..4> {"
+      "  return c as Uint<0..4>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Enum to wide Uint: no runtime check', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 2).result).toEqual(2n);"
+        "});"
+        )))
+
+  ; cast test: Enum --> Uint too narrow (nat < maxval, runtime check)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(c: Color): Uint<0..2> {"
+      "  return c as Uint<0..2>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Enum to narrow Uint: in-range succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 1).result).toEqual(1n);"
+        "});"
+        "test('Enum to narrow Uint: out-of-range throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 2)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Field --> Enum (cast-to-enum, always needs check since Field is unbounded)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(f: Field): Color {"
+      "  return f as Color;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Field to Enum: valid value succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 1n).result).toEqual(1);"
+        "});"
+        "test('Field to Enum: out-of-range throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 3n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Uint --> Enum where Uint is too wide (nat > maxval, runtime check)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(u: Uint<0..4>): Color {"
+      "  return u as Color;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint to Enum: valid value succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0n).result).toEqual(0);"
+        "});"
+        "test('Uint to Enum: out-of-range throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 3n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Uint --> Enum where Uint fits entirely (nat <= maxval, no check)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(u: Uint<0..3>): Color {"
+      "  return u as Color;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint to Enum: fits entirely, no check needed', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 2n).result).toEqual(2);"
+        "});"
+        )))
+
+  ; cast test: upcast Uint<0..10> --> Uint<0..100> (safe-cast, zero cost)
+  (test
+    '(
+      "export circuit foo(u: Uint<0..10>): Uint<0..100> {"
+      "  return u as Uint<0..100>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint upcast: zero cost, value preserved', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 9n).result).toEqual(9n);"
+        "});"
+        )))
+
+  ; cast test: upcast Uint<0..10> --> Field (safe-cast, zero cost)
+  (test
+    '(
+      "export circuit foo(u: Uint<0..10>): Field {"
+      "  return u as Field;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint upcast to Field: zero cost, value preserved', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 7n).result).toEqual(7n);"
+        "});"
+        )))
+
+  ; cast test: upcast Vector<2, Uint<0..10>> --> Vector<2, Uint<0..100>> (safe-cast, zero cost)
+  (test
+    '(
+      "export circuit foo(v: Vector<2, Uint<0..10>>): Vector<2, Uint<0..100>> {"
+      "  return v as Vector<2, Uint<0..100>>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Vector upcast: zero cost, values preserved', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [3n, 7n]).result).toEqual([3n, 7n]);"
+        "});"
+        )))
+
+  ; cast test: large field literal as Field (compile-time erasure, no runtime node)
+  (test
+    `(
+      "export circuit foo(): Field {"
+      ,(string-append "  return 52435875175126190479447740508185965837690552500527637822603658699938581184512 as Field;")
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('Large field literal: compile-time erasure', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        ,(string-append "  expect(C.circuits.foo(Ctxt).result).toEqual(52435875175126190479447740508185965837690552500527637822603658699938581184512n);")
+        "});"
+        )))
+
   )
 
 (with-parameter-values ([feature-zkir-v3 #f #t])

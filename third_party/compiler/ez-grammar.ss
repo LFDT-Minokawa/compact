@@ -583,8 +583,15 @@
                                                                          (#,(production-receiver prod) bsrc esrc #,@t* #,@u*)))))))
                                                         haves))
                                                 clause*)))))))))))))))))
+      (define (make-alias-hashtable)
+        (make-hashtable
+          (lambda (x) (symbol-hash (syntax->datum x)))
+          (lambda (x y) (eq? (syntax->datum x) (syntax->datum y)))))
+      (define (lookup id env)
+        (or (hashtable-ref env id #f)
+            (syntax-error id "unrecognized terminal or nonterminal")))
       (define (make-env tclause* clause*)
-        (let ([env (make-hashtable (lambda (x) (symbol-hash (syntax->datum x))) free-identifier=?)])
+        (let ([env (make-alias-hashtable)])
           (define (insert parser)
             (lambda (name)
               (let ([a (hashtable-cell env name #f)])
@@ -604,41 +611,8 @@
                 (for-each (insert id) (cons id (clause-alias* clause)))))
             clause*)
           env))
-      (define (lookup id env)
-        (or (hashtable-ref env id #f)
-            (syntax-error id "unrecognized terminal or nonterminal")))
-      (define (render-html name grammar htmlfn env)
+      (module (render-html create-snippets)
         (import %html)
-        (define (separators sep ls)
-          (if (null? ls)
-              ""
-              (apply string-append
-                (cons (car ls)
-                  (map (lambda (s) (format "~a~a" sep s)) (cdr ls)))))) 
-        ; NB: ignoring hard-leading-newline at least for now
-        (define (render-paragraph hard-leading-newline?)
-          (lambda (paragraph)
-            (<p> ()
-              (syntax-case paragraph (include PRE EVAL)
-                [(include filename)
-                 (string? (datum filename))
-                 (display-string (call-with-port (open-input-file (datum filename)) get-string-all))]
-                [(PRE sentence ...)
-                 (andmap string? (datum (sentence ...)))
-                 (let ([sentence* (datum (sentence ...))])
-                   (unless (null? sentence*)
-                     (printf "~a\n" (separators " " sentence*))))]
-                [(EVAL expr)
-                 (let ([s (eval (datum expr))])
-                   (unless (string? s)
-                     (errorf #f "non-string value from eval of EVAL expr ~s" (datum expr)))
-                   (unless (string=? s "")
-                     (printf "~a\n" s)))]
-                [(sentence ...)
-                 (andmap string? (datum (sentence ...)))
-                 (let ([sentence* (datum (sentence ...))])
-                   (unless (null? sentence*)
-                     (printf "~a\n" (separators " " (map (lambda (x) (with-output-to-string (lambda () (html-text "~a" x)))) sentence*)))))]))))
         (define (subscriptize x)
           (if (string? x)
               (let ([n (string-length x)])
@@ -646,32 +620,44 @@
                     (format "~a<sub>~a</sub>" (substring x 0 (fx- n 1)) (string-ref x (fx- n 1)))
                     x))
               x))
-        (define (format-elt x)
-          (cond
-            [(sep-elt? x)
-             (let ([one (format-elt (sep-elt-elt x))]
-                   [sep (constant->html (syntax->datum (sep-elt-sep x)))])
-               (format "~a ~a ⋯~@[~*¹~] ~2:*~a ~2:*~a ~2*~@[~2:*~a<sup>opt</sup>~]" one sep (sep-elt-+? x) (sep-elt-permit-trailing-sep? x)))]
-            [(opt-elt? x)
-             (with-output-to-string
-               (lambda ()
-                 (printf "~a" (format-elt (opt-elt-elt x)))
-                 (<sup> () (display-string "opt"))))]
-            [(kleene-elt? x)
-             (let ([one (format-elt (kleene-elt-elt x))])
-               (format "~a ⋯~@[~*¹~] ~2:*~a" one (kleene-elt-+? x)))]
-            [(constant-elt? x)
-             (with-output-to-string
-               (lambda ()
-                 (display-string (constant->html (syntax->datum (constant-elt-k x))))))]
-            [(id-elt? x)
-             (with-output-to-string
-               (lambda ()
-                 (<a> ([href (format "#~a" (syntax->datum (lookup (id-elt-id x) env)))])
-                   (<em> () (display-string (subscriptize (format "~a" (syntax->datum (id-elt-id x)))))))))]
-            [else (errorf 'format-elt "unexpected elt ~s" x)]))
-        (define (render-elt x) (display-string (format-elt x)))
-        (define (render-production prod)
+        (define (nonterminal-aliases clause)
+          (let ([alias* (clause-alias* clause)])
+            (if (null? alias*)
+                (list (clause-id clause))
+                alias*)))
+        (define (render-alias alias)
+          (<em> () (display-string (subscriptize (format "~a" (syntax->datum alias))))))
+        (define (format-alias alias)
+          (with-output-to-string
+            (lambda ()
+              (render-alias alias))))
+        (define (render-alias/link alias env)
+          (<a> ([href (format "#~a" (syntax->datum (lookup alias env)))])
+            (render-alias alias)))
+        (define (render-production prod env)
+          (define (render-elt x)
+            (define (format-elt x)
+              (cond
+                [(sep-elt? x)
+                 (let ([one (format-elt (sep-elt-elt x))]
+                       [sep (constant->html (syntax->datum (sep-elt-sep x)))])
+                   (format "~a ~a ⋯~@[~*¹~] ~2:*~a ~2:*~a ~2*~@[~2:*~a<sup>opt</sup>~]" one sep (sep-elt-+? x) (sep-elt-permit-trailing-sep? x)))]
+                [(opt-elt? x)
+                 (with-output-to-string
+                   (lambda ()
+                     (printf "~a" (format-elt (opt-elt-elt x)))
+                     (<sup> () (display-string "opt"))))]
+                [(kleene-elt? x)
+                 (let ([one (format-elt (kleene-elt-elt x))])
+                   (format "~a ⋯~@[~*¹~] ~2:*~a" one (kleene-elt-+? x)))]
+                [(constant-elt? x)
+                 (constant->html (syntax->datum (constant-elt-k x)))]
+                [(id-elt? x)
+                 (with-output-to-string
+                   (lambda ()
+                     (render-alias/link (id-elt-id x) env)))]
+                [else (errorf 'format-elt "unexpected elt ~s" x)]))
+            (display-string (format-elt x)))
           (let ([elt* (production-elt* prod)])
             (if (null? elt*)
                 (begin (write-char #\() (<em> () (printf "empty")) (write-char #\)))
@@ -681,77 +667,273 @@
                     (unless (null? elt*)
                       (display-string " ")
                       (loop elt*)))))))
-        (define (render-clause clause)
-          (define (format-alias alias)
-            (with-output-to-string
-              (lambda ()
-                (<em> () (display-string (subscriptize (format "~a" (syntax->datum alias))))))))
-          (if (terminal-clause? clause)
-              (for-each
-                (lambda (term)
-                  (let ([term (format "~a" (syntax->datum (terminal-parser term)))]
-                        [alias* (terminal-alias* term)])
-                    (<h4> ()
-                      (<a> ([name term])
-                        (printf "~a" term))
-                      (<span> ([style "font-weight: normal"]) 
-                        (printf " (~{~a~^, ~})" (map format-alias alias*)))))
+        (define (render-html name grammar htmlfn env)
+          (define (separators sep ls)
+            (if (null? ls)
+                ""
+                (apply string-append
+                  (cons (car ls)
+                    (map (lambda (s) (format "~a~a" sep s)) (cdr ls)))))) 
+          ; NB: ignoring hard-leading-newline at least for now
+          (define (render-paragraph hard-leading-newline?)
+            (lambda (paragraph)
+              (<p> ()
+                (syntax-case paragraph (include PRE EVAL)
+                  [(include filename)
+                   (string? (datum filename))
+                   (display-string (call-with-port (open-input-file (datum filename)) get-string-all))]
+                  [(PRE sentence ...)
+                   (andmap string? (datum (sentence ...)))
+                   (let ([sentence* (datum (sentence ...))])
+                     (unless (null? sentence*)
+                       (printf "~a\n" (separators " " sentence*))))]
+                  [(EVAL expr)
+                   (let ([s (eval (datum expr))])
+                     (unless (string? s)
+                       (errorf #f "non-string value from eval of EVAL expr ~s" (datum expr)))
+                     (unless (string=? s "")
+                       (printf "~a\n" s)))]
+                  [(sentence ...)
+                   (andmap string? (datum (sentence ...)))
+                   (let ([sentence* (datum (sentence ...))])
+                     (unless (null? sentence*)
+                       (printf "~a\n" (separators " " (map (lambda (x) (with-output-to-string (lambda () (html-text "~a" x)))) sentence*)))))]))))
+          (define (render-clause clause)
+            (if (terminal-clause? clause)
+                (for-each
+                  (lambda (term)
+                    (let ([term (format "~a" (syntax->datum (terminal-parser term)))]
+                          [alias* (terminal-alias* term)])
+                      (<h4> ()
+                        (<a> ([name (format "~a" term)])
+                          (printf "~a" term)))
+                      (<p> () (printf "~{~a~^, ~}" (map format-alias alias*))))
+                    (newline)
+                    (for-each (render-paragraph #f) (terminal-paragraph* term)))
+                  (terminal-clause-term* clause))
+                (let ([nonterm (format "~a" (syntax->datum (clause-id clause)))]
+                      [alias* (nonterminal-aliases clause)])
+                  (<h4> ()
+                    (<a> ([name (format "~a" nonterm)])
+                      (printf "~a" (subscriptize nonterm))))
                   (newline)
-                  (for-each (render-paragraph #f) (terminal-paragraph* term)))
-                (terminal-clause-term* clause))
-              (let ([nonterm (format "~a" (syntax->datum (clause-id clause)))]
-                    [alias* (map format-alias (clause-alias* clause))])
-                (<h4> ()
-                  (<a> ([name nonterm])
-                    (printf "~a" (subscriptize nonterm)))
-                  (<span> ([style "font-weight: normal"]) 
-                    (printf " (~{~a~^, ~})" (map format-alias alias*))))
-                (newline)
-                (for-each (render-paragraph #f) (clause-before-paragraph* clause))
-                (<table> ()
-                  (let ([lhs (subscriptize (if (null? alias*) nonterm (car alias*)))])
-                    (let loop ([prod* (or (nonterminal-clause-prod* clause) '())] [lhs lhs] [first? #t])
-                      (unless (null? prod*)
-                        (let ([prod (car prod*)])
-                          (<tr> ()
-                            (<td> () (display-string lhs))
-                            (<td> () (if first? (display-string "&xrarr;") (html-text "|")))
-                            (<td> () (render-production prod))
-                            (unless (null? (production-paragraph* prod))
-                              (<td> () (for-each (render-paragraph #t) (production-paragraph* prod))))))
-                        (loop (cdr prod*) "" #f)))
-                    (when (and (not (null? alias*)) (not (null? (cdr alias*))))
-                      (let ([first-alias (car alias*)])
-                        (for-each
-                          (lambda (alias)
+                  (for-each (render-paragraph #f) (clause-before-paragraph* clause))
+                  (<table> ()
+                    (let ([primary-alias (car alias*)] [secondary-alias* (cdr alias*)])
+                      (let loop ([prod* (nonterminal-clause-prod* clause)] [first? #t])
+                        (unless (null? prod*)
+                          (let ([prod (car prod*)])
                             (<tr> ()
-                              (<td> () (display-string alias))
-                              (<td> () (display-string "&xrarr;"))
-                              (<td> () (display-string first-alias))))
-                          (cdr alias*))))))
-                (for-each (render-paragraph #f) (clause-after-paragraph* clause)))))
-        (define (render-section section)
-          (unless (section-suppressed? section)
-            (when (section-title section)
-              (<h2> () (display-string (section-title section))))
-            (for-each (render-paragraph #f) (section-paragraph* section))
-            (for-each render-clause (section-clause* section))))
-        (with-output-to-file htmlfn
-          (lambda ()
-            (<doctype>)
-            (<html> ()
-              (<head> ()
-                (<meta> ([http-equiv "Content-Type"]
-                         [content "text/html;charset=utf-8"]))
-                  (<title> () (html-text "~a" (syntax->datum name))))
-              (print-copyright)
-              (<h1> () (if (grammar-title grammar)
-                           (html-text (grammar-title grammar))
-                           (printf "Grammar for ~a" (syntax->datum name))))
-              (newline)
-              (for-each (render-paragraph #f) (grammar-paragraph* grammar))
-              (for-each render-section (grammar-section* grammar))))
-          'replace))
+                              (<td> () (when first? (render-alias primary-alias)))
+                              (<td> () (if first? (display-string "&xrarr;") (html-text "|")))
+                              (<td> () (render-production prod env))
+                              (unless (null? (production-paragraph* prod))
+                                (<td> () (for-each (render-paragraph #t) (production-paragraph* prod))))))
+                          (loop (cdr prod*) #f)))
+                      (for-each
+                        (lambda (secondary-alias)
+                          (<tr> ()
+                            (<td> () (render-alias secondary-alias))
+                            (<td> () (display-string "&xrarr;"))
+                            (<td> () (render-alias/link primary-alias env))))
+                        secondary-alias*)))
+                  (for-each (render-paragraph #f) (clause-after-paragraph* clause)))))
+          (define (render-section section)
+            (unless (section-suppressed? section)
+              (when (section-title section)
+                (<h2> () (display-string (section-title section))))
+              (for-each (render-paragraph #f) (section-paragraph* section))
+              (for-each render-clause (section-clause* section))))
+          (with-output-to-file htmlfn
+            (lambda ()
+              (<doctype>)
+              (<html> ()
+                (<head> ()
+                  (<meta> ([http-equiv "Content-Type"]
+                           [content "text/html;charset=utf-8"]))
+                    (<title> () (html-text "~a" (syntax->datum name))))
+                (print-copyright)
+                (<h1> () (if (grammar-title grammar)
+                             (html-text (grammar-title grammar))
+                             (printf "Grammar for ~a" (syntax->datum name))))
+                (newline)
+                (for-each (render-paragraph #f) (grammar-paragraph* grammar))
+                (for-each render-section (grammar-section* grammar))))
+            'replace))
+        (define (create-snippets directive* grammar)
+          (define-record-type snippet-request
+            (nongenerative)
+            (fields anchor (mutable alias*)))
+          (let ([env (make-alias-hashtable)]
+                [snippet-request-ht (make-alias-hashtable)])
+            (define (process-directive snippet-request* directive)
+              (define (record-anchor! anchor alias*)
+                (for-each
+                  (lambda (alias)
+                    (let ([a (hashtable-cell env alias #f)])
+                      (unless (cdr a)
+                        (set-cdr! a anchor))))
+                  alias*))
+              (syntax-case directive ()
+                [(?anchor-here anchor alias ...)
+                 (and (eq? #'?anchor-here 'anchor-here) (string? #'anchor) (andmap symbol? #'(alias ...)))
+                 (begin
+                   (record-anchor! #'anchor #'(alias ...))
+                   snippet-request*)]
+                [(?request-snippet anchor alias ...)
+                 (and (eq? #'?request-snippet 'request-snippet) (string? #'anchor) (andmap symbol? #'(alias ...)))
+                 (let ([alias* #'(alias ...)])
+                   (record-anchor! #'anchor alias*)
+                   (let ([req (make-snippet-request #'anchor #'(alias ...))])
+                     (for-each
+                       (lambda (alias) (hashtable-set! snippet-request-ht alias req))
+                       alias*)
+                     (cons req snippet-request*)))]
+                [else (errorf 'create-snippets "malformed snippet request ~s" directive)]))
+            (let ([snippet-request* (reverse (fold-left process-directive '() directive*))])
+              ; see if any terminal aliases are left out
+              (for-each
+                (lambda (section)
+                  (for-each
+                    (lambda (clause)
+                      (for-each
+                        (lambda (term)
+                          (for-each
+                            (lambda (alias)
+                              (unless (hashtable-contains? env alias)
+                                (hashtable-set! env alias "")
+                                (warningf 'create-snippets "unrequested terminal name ~s" alias)))
+                            (terminal-alias* term)))
+                        (terminal-clause-term* clause)))
+                    (filter terminal-clause? (section-clause* section))))
+                (grammar-section* grammar))
+              ; (1) create a table mapping aliases to nonterminal records
+              ; (2) go through the snippet-requests in order looking for references
+              ;     in any of the request's aliases' nonterminal productions to
+              ;     aliases that have not been seen and add them and their
+              ;     transitive closure to the request.
+              (let ([nonterminal-ht (make-alias-hashtable)])
+                (for-each
+                  (lambda (section)
+                    (for-each
+                      (lambda (clause)
+                        (let-values ([(primary-alias secondary-alias*)
+                                      (let ([alias* (nonterminal-aliases clause)])
+                                        (values (car alias*) (cdr alias*)))])
+                          (hashtable-set! nonterminal-ht primary-alias clause)
+                          (let ([link-prod (make-production #f (list (make-id-elt primary-alias)) #'void)])
+                            (for-each
+                              (lambda (secondary-alias)
+                                (hashtable-set! nonterminal-ht secondary-alias 
+                                  (make-nonterminal-clause
+                                    (clause-id clause) (list secondary-alias) '() '()
+                                    (list link-prod))))
+                              secondary-alias*))))
+                      (filter nonterminal-clause? (section-clause* section))))
+                  (grammar-section* grammar))
+                (for-each
+                  (lambda (req)
+                    (let ([worklist (snippet-request-alias* req)] [ralias* '()])
+                      (let loop ()
+                        (if (null? worklist)
+                            (snippet-request-alias*-set! req (reverse ralias*))
+                            (let ([alias (car worklist)])
+                              (set! worklist (cdr worklist))
+                              (set! ralias* (cons alias ralias*))
+                              (for-each
+                                (lambda (prod)
+                                  (define (handle-elt x)
+                                    (cond
+                                      [(sep-elt? x) (handle-elt (sep-elt-elt x))]
+                                      [(opt-elt? x) (handle-elt (opt-elt-elt x))]
+                                      [(kleene-elt? x) (handle-elt (kleene-elt-elt x))]
+                                      [(constant-elt? x) (void)]
+                                      [(id-elt? x)
+                                       (let ([alias (syntax->datum (id-elt-id x))])
+                                         (unless (hashtable-contains? env alias)
+                                           (hashtable-set! env alias (snippet-request-anchor req))
+                                           (hashtable-set! snippet-request-ht alias req)
+                                           (set! worklist (cons alias worklist))))]
+                                      [else (errorf 'handle-elt "unexpected elt ~s" x)]))
+                                  (for-each handle-elt (reverse (production-elt* prod))))
+                                (nonterminal-clause-prod*
+                                  (or (hashtable-ref nonterminal-ht alias #f)
+                                      (errorf 'create-snippets
+                                              "unrecognized nonterminal name ~s from snippet request"
+                                              alias))))
+                              (loop))))))
+                  snippet-request*))
+              ; see if any nonterminal aliases are left out
+              (for-each
+                (lambda (section)
+                  (for-each
+                    (lambda (clause)
+                      (for-each
+                        (lambda (alias)
+                          (unless (hashtable-contains? env alias)
+                            (hashtable-set! env alias "")
+                            (warningf 'create-snippets "unrequested nonterminal name ~s" alias)))
+                        (nonterminal-aliases clause)))
+                    (filter nonterminal-clause? (section-clause* section))))
+                (grammar-section* grammar))
+              ; create a thunk for each nonterminal that prints one row for each of the nonterminals productions
+              (let ([nonterminal-snippets (make-alias-hashtable)])
+                (for-each
+                  (lambda (section)
+                    (for-each
+                      (lambda (clause)
+                        (when (nonterminal-clause? clause)
+                          (let-values ([(primary-alias secondary-alias*)
+                                        (let ([alias* (nonterminal-aliases clause)])
+                                          (values (car alias*) (cdr alias*)))])
+                            (hashtable-set! nonterminal-snippets primary-alias
+                              (lambda ()
+                                (define (render-error c)
+                                  (errorf 'create-snippets
+                                          "error occurred while rendering snippet: ~a"
+                                          (with-output-to-string (display-condition c))))
+                                (let ([prod* (nonterminal-clause-prod* clause)])
+                                  (when (null? prod*) (errorf 'create-snippets "can't yet handle empty list of productions"))
+                                  (let ([prod (car prod*)] [prod* (cdr prod*)])
+                                    (<tr> ()
+                                      (<td> () (render-alias primary-alias))
+                                      (<td> () (display-string "&xrarr;"))
+                                      (<td> () (render-production prod env)))
+                                    (for-each
+                                      (lambda (prod)
+                                        (<tr> ()
+                                          (<td> () (void))
+                                          (<td> () (html-text "|"))
+                                          (<td> () (render-production prod env))))
+                                      prod*)))))
+                            (for-each
+                              (lambda (secondary-alias)
+                                (hashtable-set! nonterminal-snippets secondary-alias
+                                  (lambda ()
+                                    (<tr> ()
+                                      (<td> () (render-alias secondary-alias))
+                                      (<td> () (display-string "&xrarr;"))
+                                      (<td> () (render-alias/link primary-alias env))))))
+                              secondary-alias*))))
+                      (section-clause* section)))
+                  (grammar-section* grammar))
+                ; put together groups of snippets into formatted tables and provide
+                ; it back to the parser
+                (snippets
+                  (map (lambda (req)
+                         (with-output-to-string
+                           (lambda ()
+                             (<table> ()
+                               (for-each
+                                 (lambda (alias)
+                                   (let ([th (hashtable-ref nonterminal-snippets alias #f)])
+                                     (unless th
+                                       (errorf 'create-snippets
+                                               "unrecognized nonterminal name ~s from snippet request"
+                                               alias))
+                                     (th)))
+                                 (snippet-request-alias* req))))))
+                       snippet-request*)))))))
       (module (parse-grammar)
         (define parse-elt
           (lambda (elt)
@@ -924,7 +1106,8 @@
                   (lambda (init-nt)
                     (let ([htmlfn (format "~a/~(~a~)-grammar.~a" htmldir (syntax->datum init-nt) render-extension)])
                       (render-html init-nt grammar htmlfn env)))
-                  #'(init-nt ...)))
+                  #'(init-nt ...))
+                (unless (null? requested-snippets) (create-snippets requested-snippets grammar)))
               (with-syntax ([((lhs rhs) ...) (map nt-helper nonterminal-clause*)])
                 #'(module (init-nt ...)
                     (module M (init-nt ...) (define lhs rhs) ...)
