@@ -2279,7 +2279,7 @@ Compact supports conditional expressions of the form
 where *e<sub>0</sub>*, *e<sub>1</sub>*, and *e<sub>2</sub>* are expressions.
 
 The type of *e<sub>0</sub>* must be `Boolean`.
-The types of *e<sub>1</sub>* and *e<sub>2</sub>* must be in a subtype relation.
+The types of *e<sub>1</sub>* and *e<sub>2</sub>* must be related.
 That is, the type of *e<sub>1</sub>* must be a subtype of the type of *e<sub>2</sub>*,
 or the type of *e<sub>2</sub>* must be a subtype of the type of *e<sub>1</sub>*.
 
@@ -2301,59 +2301,65 @@ is evaluated.
 
 ### Relational comparison expressions
 
-Relational comparison expressions are of the form `e0 op e1` where `e0`
-and `e1` are expressions and `op` is one of Compact's relational operators.
+Relational comparison expressions take the form *e<sub>0</sub>* `op` *e<sub>1</sub>*
+where *e<sub>0</sub>* and *e<sub>1</sub>* are expressions and `op` is one of
+Compact's relational operators.
 The relational operators are **equals** (`==`), **not equals** (`!=`), **less
 than** (`<`), **greater than** (`>`), **less than or equals** (`<=`), and
 **greater than or equals** (`>=`).
 
-Equals and not equals require the types of the subexpressions to be in the
-subtype relation.
-That is, the type of the first subexpression must be a subtype of the type of
-the second subexpression, or the type of the second subexpression must be
-a subtype of the type of the first subexpression.
+Equals and not equals require the types of *e<sub>1</sub>* and *e<sub>2</sub>*
+to be related.
+That is, the type of *e<sub>1</sub>* must be a subtype of the type of *e<sub>2</sub>*,
+or the type of *e<sub>2</sub>* must be a subtype of the type of *e<sub>1</sub>*.
 
 Less than, greater than, less than or equals, and greater than or equals require
-the type of both subexpressions to be unsigned integer types.  (Values of type
-`Field` cannot be compared with these operators.)
+the types of *e<sub>1</sub>* and *e<sub>2</sub>* to be unsigned integer types.
+(Values of type `Field` cannot be compared with these operators.)
 
 The type of the result is `Boolean`.
 
-Relational comparison expressions are evaluated by evaluating the subexpressions
-in order from left to right.
-Then the comparison is performed as described below.
+A relational comparison expression *e<sub>0</sub>* `op` *e<sub>1</sub>* is
+evaluated by evaluating *e<sub>0</sub>*, then evaluating *e<sub>1</sub>*, then
+comparing the resulting values as described below.
 
 **Equals and not equals**
 
 Equality depends on the types of the operands according to the following rules.
-The rules implicitly do not and need not cover cases where one operand is not a
-subtype of the other.
+The rules need not and therefore do not cover cases where one operand is not a subtype of
+the other.
 For example, if one operand has type `Boolean`, so does the other; if one
 operand has a `Bytes` type of length `n`, so does the other; and if one
 has a specific structure type, so does the other.
 
 - **`Boolean` == `Boolean`:**
-  The values are equal if both are `true` or both are `false`.
+  the values are equal if both are `true` or both are `false`.
 - **`Uint` or `Field` == `Uint` or `Field`:**
-  The values are equal if the integer values are equal.
-- **`Bytes`**
-  The values are equal if the corresponding bytes at each index are equal.
+  the values are equal if the integer values are equal.
+- **`Bytes`:**
+  the values are equal if the corresponding bytes at each index are equal.
 - **`Tuple` and `Vector`:**
-  The values are equal if the corresponding values at each index are equal.
+  the values are equal if the corresponding values at each index are equal.
 - **Structure types:**
-  The values are equal if the corresponding members are equal.
+  the values are equal if the corresponding members are equal.
 - **Enumeration types:**
-  The values are equal if they are the same enumeration member.
+  the values are equal if they are the same enumeration member.
 - **`Opaque types:`**
-  The values are equal if the runtime values are equal according to JavaScript's
+  the values are equal if the runtime values are equal according to JavaScript's
   strict equality (`===`) operator.
 
-Otherwise the operands are not equal.
+Otherwise the values are not equal.
+
+For *equal*, the relational comparison expression evaluates to `true` if the
+values are equal; otherwise it evaluates to `false`.
+Likewise, for *not equals*, the relational comparison expression evaluates to
+`false` if the values are equal; otherwise it evaluates to `true`.
 
 **Less than, greater than, less than or equals, and greater than or equals**
 
-The unsigned integer values of the operands are compared according to the
-corresponding relational operation.
+The values are compared according to the corresponding relational operation.
+The relational comparison expression evaluates to `true` if the relation holds;
+otherwise it evaluates to `false`.
 
 ### Short-circuit logical expressions
 
