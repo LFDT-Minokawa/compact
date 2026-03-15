@@ -1936,8 +1936,8 @@ are evaluated solely for their effects.
 Compact has syntax for Boolean, numeric, and string literal expressions.
 
 A __Boolean literal__ is one of the reserved words `true` or `false`.
-The static type of a boolean literal is `Boolean` and its value is the
-corresponding boolean value.
+The static type of a Boolean literal is `Boolean` and its value is the
+corresponding Boolean value.
 
 A __numeric literal__ is a non-negative integer written in decimal, binary,
 octal, or hexadecimal notation as follows:
@@ -2065,9 +2065,9 @@ The type of the entire expression is the type of *e<sub>2</sub>* if *e<sub>1</su
 is a subtype of *e<sub>2</sub>* and the type of *e<sub>1</sub>* if *e<sub>2</sub>*
 is a subtype of *e<sub>1</sub>*.
 
-Conditional expressions are evaluated by first evaluating *e<sub>0</sub>*.
-The value *v* of that expression determines which of the other subexpressions is
-evaluated:
+A conditional expression *e<sub>0</sub>* `?` *e<sub>1</sub>* `:` *e<sub>2</sub>*
+is evaluated by first evaluating *e<sub>0</sub>*.  The value *v* of *e<sub>0</sub>*
+determines which of the other subexpressions is evaluated:
 
 - if *v* is `true`, then *e<sub>1</sub>* is evaluated and its value is the
   value of the entire expression
@@ -2079,8 +2079,8 @@ is evaluated.
 
 ### Relational comparison expressions
 
-Relational comparison expressions take the form *e<sub>0</sub>* `op` *e<sub>1</sub>*
-where *e<sub>0</sub>* and *e<sub>1</sub>* are expressions and `op` is one of
+Relational comparison expressions take the form *e<sub>1</sub> op e<sub>2</sub>*
+where *e<sub>1</sub>* and *e<sub>2</sub>* are expressions and *op* is one of
 Compact's relational operators.
 The relational operators are **equals** (`==`), **not equals** (`!=`), **less
 than** (`<`), **greater than** (`>`), **less than or equals** (`<=`), and
@@ -2097,8 +2097,8 @@ the types of *e<sub>1</sub>* and *e<sub>2</sub>* to be unsigned integer types.
 
 The type of the result is `Boolean`.
 
-A relational comparison expression *e<sub>0</sub>* `op` *e<sub>1</sub>* is
-evaluated by evaluating *e<sub>0</sub>*, then evaluating *e<sub>1</sub>*, then
+A relational comparison expression *e<sub>1</sub> op e<sub>2</sub>* is
+evaluated by evaluating *e<sub>1</sub>*, then evaluating *e<sub>2</sub>*, then
 comparing the resulting values as described below.
 
 **Equals and not equals**
@@ -2107,7 +2107,7 @@ Equality depends on the types of the operands according to the following rules.
 The rules need not and therefore do not cover cases where one operand is not a subtype of
 the other.
 For example, if one operand has type `Boolean`, so does the other; if one
-operand has a `Bytes` type of length `n`, so does the other; and if one
+operand has a `Bytes` type of length *n*, so does the other; and if one
 has a specific structure type, so does the other.
 
 - **`Boolean` == `Boolean`:**
@@ -2141,98 +2141,96 @@ otherwise it evaluates to `false`.
 
 ### Short-circuit logical expressions
 
-Compact supports short-circuit logical expressions of the form `e0 op e1`
-where `e0` and `e1` are expressions and `op` is one of the logical operators
-**or** (`||`) or **and** (`&&`).
+Compact supports short-circuit logical expressions of the form
+*e<sub>1</sub> op e<sub>2</sub>* where *e<sub>1</sub>* and *e<sub>2</sub>*
+are expressions and *op* is one of the logical operators **or** (`||`) or **and**
+(`&&`).
 
 Logical expressions require the types of both subexpressions to be `Boolean`.
 Otherwise it is a static error.
 The logical expression itself also has type `Boolean`.
 
-Logical expressions are evaluated by first evaluating the left subexpression.
-Then, the value of that expression determines the value of the entire
-expression as follows:
+Evaluating *e<sub>1</sub> op e<sub>2</sub>* involves first evaluating
+*e<sub>1</sub>*, then:
 
-- For `||`, if the value of the left subexpression is `true` the right
-  subexpression is *not* evaluated, i.e., short-circuited, and the value
-  of the entire expression is `true`.
-  Otherwise, the right subexpression *is* evaluated, and its value is the
+- For `||`, if *v* is `true`, *e<sub>2</sub>* is *not* evaluated, 
+  and the value of the entire expression is `true`.
+  Otherwise, *e<sub>2</sub>* *is* evaluated, and its value is the
   value of the entire expression.
-- For `&&`, if the value of the left subexpression is `false` the right
-  subexpression is *not* evaluated, i.e., short-circuited, and the value
-  of the entire expression is `false`.
-  Otherwise, the right subexpression *is* evaluated, and its value is the
-  value of the entire expression.
+- For `&&`, if *v* is `false`, *e<sub>2</sub>* is *not* evaluated,
+  and the value of the entire expression is `false`.
+  Otherwise, *e<sub>2</sub>* *is* evaluated, and its value is the value of the
+  entire expression.
 
-These are short circuiting operators because they do not evaluate the second
+These are short-circuiting operators because they do not evaluate the second
 operand if the final value is determined from the first.
 
 ### Boolean negation expressions
 
-Compact supports unary boolean negation expressions of the form `!e` where`e`
+Compact supports unary Boolean negation expressions of the form `!`*e* where *e*
 is an expression.
 
-The type of the subexpression must be of type `Boolean`, otherwise it is a
+The type of *e* must be of type `Boolean`, otherwise it is a
 static error.
 The Boolean-negation expression itself also has type `Boolean`.
 
-Negation expressions are evaluated by first evaluating the subexpression and
-checking its value.
-If the subexpression's value is `true`, the value of the Boolean negation expression is `false`.
-If the subexpression's value is `false`, the value of the Boolean negation expression is `true`.
+A Boolean negation expression `!`*e* is evaluated by evaluating *e* to
+determine its value *v*.
+Then if *v* is `true`, the value of the Boolean negation expression is `false`,
+and If *v* is `false`, the value of the Boolean negation expression is `true`.
 
 ### Binary arithmetic expressions
 
-Binary arithmetic expressions have the form `e0 op e1`, where `e0` and `e1`
-are expressions and `op` is one of Compact's binary arithmetic operators.  The
-binary arithmetic operators are **add** (`+`), **subtract** (`-`) and
+Binary arithmetic expressions have the form *e<sub>1</sub> op e<sub>2</sub>*,
+where *e<sub>1</sub>* and *e<sub>2</sub>* are expressions and *op* is one of
+Compact's binary arithmetic operators.
+The binary arithmetic operators are **add** (`+`), **subtract** (`-`) and
 **multiply** (`*`).
 
-Arithmetic expressions require the type of both subexpressions to be numeric
+Arithmetic expressions require the types of both subexpressions to be numeric
 types, that is, either a `Field`, a `Uint`, or a type alias for a `Field` or
 a `Uint`.
 Putting aside type aliases for now, the type of the result depends on the
 types of the subexpressions as follows:
 
 - If either subexpression has type `Field`, the result has type `Field`.
-- Otherwise the left subexpression has type `Uint<0..m>`,
-  and the right subexpression has type `Uint<0..n>`
-  for some bounds `m` and `n`.
+- Otherwise *e<sub>1</sub>* must have type `Uint<0..`*m*`>`, and
+  *e<sub>2</sub>* must have type `Uint<0..`*n*`>` for some bounds *m* and *n*.
   The type of the result depends on the operation as follows:
-  - for add, the result has type `Uint<0..m+n>`,
-  - for subtract, the result has type `Uint<0..m>`, and
-  - for multiply, the result has type `Uint<0..m*n>`.
+  - for add, the result has type `Uint<0..`*m+n*`>`,
+  - for subtract, the result has type `Uint<0..`*m*`>`, and
+  - for multiply, the result has type `Uint<0..`*m⋅n*`>`.
 
 For arithmetic operations with `Uint` result types, it is a static error if
 the result's bound would be greater than the maximum unsigned integer.
 
-Evaluating an arithmetic expression involves first evaluating the subexpressions in
-order from left to right.  Integer addition, subtraction, or multiplication is
-then used on the subexpression values.  The overflow and underflow behavior
-differs for `Field` and `Uint` operations:
+Evaluating an arithmetic expression *e<sub>1</sub> op e<sub>2</sub>* involves
+first evaluating *e<sub>1</sub>*, then evaluating *e<sub>2</sub>*.
+Integer addition, subtraction, or multiplication is then used on the subexpression
+values.
+The overflow and underflow behavior differs for `Field` (either operand has
+type `Field`) and `Uint` operations (both operands have a `Uint` type):
 
 - `Field` arithmetic overflow and underflow wraps around 0; that is, the result
   of an arithmetic operation whose result is a `Field` is the actual arithmetic
-  value modulo `k`, where `k` is one more than the maximum field value.
+  value modulo *k*, where *k* is one more than the
+  [maximum field value](#implementation-specific-limits).
 - `Uint` addition and multiplication cannot overflow: the static type of the
   result is always large enough to hold the result value.
-- `Uint` subtraction checks if the value of the right subexpression is greater
-  than the value of the left subexpression.  If so, it is a runtime error, since
-  the result would be negative.  Otherwise the unsigned subtraction is performed.
-
-The static typing rules imply that if `Field` arithmetic semantics is desired,
-then at least one of the operands must have static type `Field`.
+- `Uint` subtraction results in a dynamic error if the resulting value would
+  be negative, i.e., if the value of *e<sub>2</sub>* is greater the the value
+  of *e<sub>1</sub>*.
 
 If the type of either subexpression is a structural type alias for a `Field` or
 `Uint` it is treated identically to that `Field` or `Uint`, both in type checking
 and evaluation.
 
 On the other hand, if the type of either subexpression is a nominal type alias
-`T` for a `Field` or a `Uint`, the type of the other subexpression must also have
-type `T`, and the type of the result also has type `T`.
+*T* for a `Field` or a `Uint`, the type of the other subexpression must also have
+type *T*, and the type of the result also has type *T*.
 Evaluation proceeds as if the two operands had the underlying `Field` or `Uint`
-type with the value cast back to `T`, which can result in a run-time error if
-`T` is a nominal alias for a type `Uint<0..n>` and the value is not less than `n`.
+type with the value cast back to *T*, which can result in a run-time error if *T*
+is a nominal alias for a type `Uint<0..`*n*`>` and the value is not less than *n*.
 For example:
 
 ```compact
@@ -2993,7 +2991,7 @@ The TypeScript type representing a Compact type is defined in [Representations
 in TypeScript](#representations-in-typescript).
 
 Compact represents values exactly as TypeScript represents values, i.e., as
-ordinary JavaScript values.  So a Compact boolean is represented at run time
+ordinary JavaScript values.  So a Compact Boolean is represented at run time
 as a JavaScript boolean, a Compact tuple is represented as a JavaScript
 array, and enum values are represented by numbers.
 
