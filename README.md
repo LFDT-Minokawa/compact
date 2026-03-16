@@ -1,4 +1,6 @@
-# Compactc circut compiler
+# Compactc circuit compiler
+
+This project integrates with the Midnight Network.
 
 A [nanopass](https://nanopass.org) framework compiler for cryptographic circuits. Currently targeting [Plonk](https://github.com/ZK-Garage/plonk) from a restricted front-end language.
 
