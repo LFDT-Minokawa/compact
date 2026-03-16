@@ -43,10 +43,7 @@ export function convertBytesToField(n: number, a: Uint8Array, src: string): bigi
   for (let i = n - 1; i >= 0; i -= 1) {
     x = x * 0x100n + BigInt(a[i]);
     if (x > MAX_FIELD) {
-      const hex = Array.from(a.slice(0, n))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-      const msg = `range error at ${src}: byte value 0x${hex} exceeds maximum value ${MAX_FIELD} of Field type`;
+      const msg = `range error at ${src}: byte vector [${Array.from(a.slice(0, n)).join(',')}] exceeds maximum value ${MAX_FIELD} of Field type`;
       throw new CompactError(msg);
     }
   }
@@ -62,10 +59,7 @@ export function convertBytesToUint(maxval: bigint, n: number, a: Uint8Array, src
   for (let i = n - 1; i >= 0; i -= 1) {
     x = x * 0x100n + BigInt(a[i]);
     if (x > maxval) {
-      const hex = Array.from(a.slice(0, n))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-      const msg = `range error at ${src}: byte value 0x${hex} exceeds maximum value ${maxval} of target Uint type`;
+      const msg = `range error at ${src}: byte vector [${Array.from(a.slice(0, n)).join(',')}] exceeds maximum value ${maxval} of target Uint type`;
       throw new CompactError(msg);
     }
   }
