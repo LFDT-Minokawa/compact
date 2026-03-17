@@ -65,7 +65,7 @@ Other Compact toolchain tools, such as the `format` and `fixup` tools, do not de
 
 ### Release notes distributed with the release
 
-**Description**: the release notes are distributed in the release `.zip` file as a Markdown document.  They were previously available in from the [Midnight developer documentation](https://docs.midnight.network/relnotes/compact), in the [Compact release repository](https://github.com/midnightntwrk/compact/releases), and in the [Minokawa project's Compact repository](https://github.com/LFDT-Minokawa/compact/tree/main/doc/release-notes).  Now they are also included in the `.zip` file artifacts that form the release.
+**Description**: the release notes are distributed in the release `.zip` file as a Markdown document.  They were previously available from the [Midnight developer documentation](https://docs.midnight.network/relnotes/compact), in the [Compact release repository](https://github.com/midnightntwrk/compact/releases), and in the [Minokawa project's Compact repository](https://github.com/LFDT-Minokawa/compact/tree/main/doc/release-notes).  Now they are also included in the `.zip` file artifacts that form the release.
 
 The Compact devtools will unzip the artifacts into a subdirectory of its artifact directory.  The devtools artifact directory is `.compact` in your home directory by default, but it can be changed by the `COMPACT_DIRECTORY` environment variable or the `--directory` command line flag to the `compact` devtool command.
 
