@@ -1,13 +1,15 @@
 # Compact toolchain 0.30.0
 
-* **Date**: 2026-03-16
+* **Date**: 2026-03-17
 * **Language version:** 0.22.0
 * **Compact runtime version:** 0.15.0
 * **Environment**: Preview Testnet at time of release. For the full compatibility matrix, see the [release notes overview](https://docs.midnight.network/relnotes/overview)
 
 ## High-level summary
 
-In version 0.30, the Compact toolchain now targets Midnight ledger version 8.  Previous toolchain versions (e.g., 0.28 and 0.29) targeted ledger version 7.  If you are compiling contracts for a ledger 8 blockchain, you should use Compact toolchain 0.30 or later.  Earlier versions might work but these are untested and usupported, and have known bugs.  If you are compiling contracts for a ledger 7 blockchain, you must use Compact toolchain 0.29 or an earlier compatible one.
+In version 0.30, the Compact toolchain now targets Midnight ledger version 8.  Previous toolchain versions (e.g., 0.28 and 0.29) targeted ledger version 7.  If you are compiling contracts for a ledger 8 blockchain, you should use Compact toolchain 0.30 or later.  Earlier versions might work but these are untested and unsupported, and have known bugs.  If you are compiling contracts for a ledger 7 blockchain, you must use Compact toolchain 0.29 or an earlier compatible one.
+
+There is an accompanying Compact devtools release, version 0.5.0.  You **do not** have to update the Compact devtools to use Compact toolchain version 0.30.0.  However, the devtools update comes with some new features.  If you have the devtools already installed, you can update them with the command `compact self update`.  If you do not have the devtools already installed, you can install them with the `curl` command at https://github.com/midnightntwrk/compact/releases/tag/compact-v0.5.0.
 
 ## Audience
 
@@ -15,7 +17,7 @@ These release notes are intended for Compact smart contract developers and for D
 
 ## What changed
 
-This release targets the new version of the Midnight ledger, version 8.0.  The primary advantage is that this version of the blockchain has fiexes for a number of bugs that were affecting users.  In addition:
+This release targets the new version of the Midnight ledger, version 8.0.  The primary advantage is that this version of the blockchain has fixes for a number of bugs that were affecting users.  In addition:
 
 - The compiler supports `--ledger-version` and `--runtime-version` flags
 - The compiler and fixup tool now support `--compact-path` and `--trace-search` flags
@@ -87,7 +89,7 @@ Previously there were only `ImpureCircuits` and `PureCircuits` in the TypeScript
 
 The generated TypeScript code now makes a finer distinction.  `ProvableCircuits` are the ones that need a proof.  They are always impure, so they are also included in the `ImpureCircuits` type.  Therefore, this is a **non-breaking** change.
 
-This change enables a bugfix in Midnight.js.
+This change enables a bug fix in Midnight.js.
 
 ## Deprecations
 
@@ -113,7 +115,7 @@ The Compact runtime's types `NativePoint` and `CompactTypeNativePoint` have been
 
 ### It is a compiler error to use `persistentHash` or `persistentCommit` on opaque JavaScript values
 
-**What changed**: It is now a compiler error to use the standard libary circuits `persistentHash` or `persistentCommit` directly or indirectly (e.g., via a standard library circuit that uses `persistentHash` in its implementation) on Compact values that contaib opaque JavaScript values (`Opaque<'string'>` or `Opaque<'Uint8Array'>`).  This also affects the standard library operation `merkleTreePathRoot` and ledger ADT `MerkleTree` and `HistoricMerkleTree` insertion operations.
+**What changed**: It is now a compiler error to use the standard library circuits `persistentHash` or `persistentCommit` directly or indirectly (e.g., via a standard library circuit that uses `persistentHash` in its implementation) on Compact values that contain opaque JavaScript values (`Opaque<'string'>` or `Opaque<'Uint8Array'>`).  This also affects the standard library operation `merkleTreePathRoot` and ledger ADT `MerkleTree` and `HistoricMerkleTree` insertion operations.
 
 **What breaks**: Some code that previously compiled will now be a compiler error.
 
