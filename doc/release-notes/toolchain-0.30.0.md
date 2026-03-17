@@ -9,7 +9,7 @@
 
 In version 0.30, the Compact toolchain now targets Midnight ledger version 8.  Previous toolchain versions (e.g., 0.28 and 0.29) targeted ledger version 7.  If you are compiling contracts for a ledger 8 blockchain, you should use Compact toolchain 0.30 or later.  Earlier versions might work but these are untested and unsupported, and have known bugs.  If you are compiling contracts for a ledger 7 blockchain, you must use Compact toolchain 0.29 or an earlier compatible one.
 
-There is an accompanying Compact devtools release, version 0.5.0.  You **do not** have to update the Compact devtools to use Compact toolchain version 0.30.0.  However, the devtools update comes with some new features.  If you have the devtools already installed, you can update them with the command `compact self update`.  If you do not have the devtools already installed, you can install them with the `curl` command at https://github.com/midnightntwrk/compact/releases/tag/compact-v0.5.0.
+There is an accompanying Compact devtools release, version 0.5.0.  You **do not** have to update the Compact devtools in order to use Compact toolchain version 0.30.0.  However, the devtools update comes with some new features.  If you have the devtools already installed, you can update them with the command `compact self update`.  If you do not have the devtools already installed, you can install them with the `curl` command at https://github.com/midnightntwrk/compact/releases/tag/compact-v0.5.0.
 
 ## Audience
 
