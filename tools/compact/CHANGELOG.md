@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **latest** toolchain patch version 0.30.x.  Likewise, `compact update 0` will
   update to the latest minor and patch version 0.x.y.
   
-  This change was was contributed (partially) by GitHub user `adamreynolds-io`.
+  This change was contributed (partially) by GitHub user `adamreynolds-io`.
 
 ## [Compact tools 0.4.0]
 
