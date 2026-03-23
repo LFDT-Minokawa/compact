@@ -9,9 +9,9 @@ compactc
 OVERVIEW
 ========
 
-The Compact compiler, **compactc**, takes as input a Compact source
-program in a specified source file and translates it into several
-target files in a specified directory.
+The Compact compiler, **compactc**, takes as input a Compact source program in a
+specified source file and translates it into several target files in a specified
+directory.
 
 SYNOPSYS
 ========
@@ -21,15 +21,17 @@ SYNOPSYS
 DESCRIPTION
 ===========
 
-The flags _flag_ **...** are optional.  They are described under FLAGS later in this document.
+The flags _flag_ **...** are optional.  They are described under FLAGS later in 
+this document.
 
-_sourcepath_ should identify a file containing a Compact source program, and
-_targetpath_ should identify a target directory into which the target files are to be placed.
-The target directory is created if it does not already exist.
+_sourcepath_ should identify a file containing a Compact source
+program, and_targetpath_ should identify a target directory into which the
+target files are to be placed.  The target directory is created if it does not
+already exist.
 
-**compactc** compiles the source file and produces from it the following target files,
-where _sourceroot_ is the name of the file identified by _sourcepath_ without any
-extension.
+**compactc** compiles the source file and produces from it the following target
+files, where _sourceroot_ is the name of the file identified by _sourcepath_
+without any extension.
 
 - a Typescript type-definition file _targetdir_**/contract/index.d.ts**
 
@@ -45,7 +47,8 @@ extension.
   in _targetdir_**/keys/**_circuitname_**.prover** and
   _targetdir_**/keys/**_circuitname_**.verifier**.
 
-Compact source files can include other Compact source files via an **include** form:
+Compact source files can include other Compact source files via an **include**
+form:
 
 **include** '_name_';
 
@@ -64,8 +67,9 @@ under the full pathname _dirpath_**/**_name_**.compact** for each
 _dirpath_ until the file is found or the set of _dirpath_ entries
 is exhausted.
 
-Every Compact source program should import the standard library **CompactStandardLibrary**.
-This is typically done by placing the following line at the top of the program:
+Every Compact source program should import the standard library
+**CompactStandardLibrary**.  This is typically done by placing the following
+line at the top of the program:
 
 **import CompactStandardLibrary;** 
 
@@ -88,8 +92,8 @@ prints the language version and exits.
 
 **--vscode**
 
-causes the compiler to omit newlines from error messages, so that they are rendered
-properly within the VS Code extension for Compact.
+causes the compiler to omit newlines from error messages, so that they are
+rendered properly within the VS Code extension for Compact.
 
 **--skip-zk**
 
@@ -119,8 +123,9 @@ generally useful only to compiler developers.
 EXAMPLES
 ========
 
-Assuming **src/test.compact** contains a well-formed Compact program exporting circuits *foo*
-and *bar*:
+Assuming **src/test.compact** contains a well-formed Compact program containing
+circuits *foo*, *bar*, and *baz* where *foo* and *bar* are exported but *baz* 
+is not and  *foo* touches (reads or writes) a ledger field but *bar* does not
 
 ```
 compactc src/test.compact obj/test
@@ -132,16 +137,18 @@ produces:
 obj/test/contract/index.d.ts
 obj/test/contract/index.js
 obj/test/contract/index.js.map
+obj/test/contract/contract-info.json
 
 obj/test/zkir/foo.zkir
-obj/test/zkir/bar.zkir
 
 obj/test/keys/foo.prover
 obj/test/keys/foo.verifier
-obj/test/keys/bar.prover
-obj/test/keys/bar.verifier
 ```
 
-**compactc --skip-zk src/test.compact obj/test**
+Note that 
+
+```
+compactc --skip-zk src/test.compact obj/test
+```
 
 produces the same, except without the keys.

@@ -95,6 +95,8 @@ jobs:
           cp ../doc/api/CompactStandardLibrary/exports.md docs/develop/reference/compact/compact-std-library
           cp ../doc/api/CompactStandardLibrary/README.md docs/develop/reference/compact/compact-std-library
           cp ../doc/compiler-usage.md docs/develop/reference/tools/compiler-usage.mdx
+          # TODO there are some restructuring happening on docs side.  these need to be adjusted once that's done.
+          # cp ../doc/compiler-usage.md docs/compact/reference/tools/compiler-usage.mdx
           cp -r ../doc/api/runtime/. ./docs/develop/reference/midnight-api/compact-runtime
           echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./docs/develop/reference/midnight-api/compact-runtime/README.md
           cp -r ../doc/Compact.html ./static/language/compact.html
