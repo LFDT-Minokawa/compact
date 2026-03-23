@@ -30,6 +30,83 @@
 
   ; NB: must come after identify-pure-circuits
   (define-pass save-contract-info : Lnodisclose (ir proof-circuit-name*) -> Lnodisclose ()
+    (definitions
+      ; Map an ADT name symbol to its storage-kind string for the "storage" key.
+      (define (adt-name->storage-kind adt-name)
+        (cond
+          [(or (eq? adt-name '__compact_Cell) (eq? adt-name 'Cell)) "cell"]
+          [(eq? adt-name 'Counter)                                   "counter"]
+          [(eq? adt-name 'Set)                                       "set"]
+          [(eq? adt-name 'Map)                                       "map"]
+          [(eq? adt-name 'List)                                      "list"]
+          [(eq? adt-name 'MerkleTree)                                "merkle-tree"]
+          [(eq? adt-name 'HistoricMerkleTree)                        "historic-merkle-tree"]
+          [else                                                       (symbol->string adt-name)]))
+      ; Serialize one adt-arg (Public-Ledger-ADT-Arg: nat or type).
+      (define (adt-arg->json adt-arg)
+        (nanopass-case (Lnodisclose Public-Ledger-ADT-Arg) adt-arg
+          [,nat  nat]
+          [,type (Type type)]))
+      ; Return the ADT-specific key-value pairs for a given ADT name and its args.
+      (define (adt-fields->json adt-name adt-arg*)
+        (cond
+          [(or (eq? adt-name '__compact_Cell) (eq? adt-name 'Cell))
+           (assert (= (length adt-arg*) 1))
+           (list (cons "type" (adt-arg->json (car adt-arg*))))]
+          [(eq? adt-name 'Counter)
+           '()]
+          [(eq? adt-name 'Set)
+           (assert (= (length adt-arg*) 1))
+           (list (cons "element-type" (adt-arg->json (car adt-arg*))))]
+          [(eq? adt-name 'Map)
+           (assert (= (length adt-arg*) 2))
+           (list
+             (cons "key-type"   (adt-arg->json (car adt-arg*)))
+             (cons "value-type" (adt-arg->json (cadr adt-arg*))))]
+          [(or (eq? adt-name 'MerkleTree) (eq? adt-name 'HistoricMerkleTree))
+           (assert (= (length adt-arg*) 2))
+           (list
+             (cons "size"         (adt-arg->json (car adt-arg*)))
+             (cons "element-type" (adt-arg->json (cadr adt-arg*))))]
+          [(eq? adt-name 'List)
+           (assert (= (length adt-arg*) 1))
+           (list (cons "element-type" (adt-arg->json (car adt-arg*))))]
+          [else '()]))
+      ; Flatten a nested Public-Ledger-Array into a flat list of Public-Ledger-Bindings.
+      (define (pl-array->bindings pl-array)
+        (let loop ([pla pl-array] [acc '()])
+          (nanopass-case (Lnodisclose Public-Ledger-Array) pla
+            [(public-ledger-array ,pl-array-elt* ...)
+             (fold-right
+               (lambda (elt acc)
+                 (nanopass-case (Lnodisclose Public-Ledger-Array-Element) elt
+                   [,pl-array    (loop pl-array acc)]
+                   [,public-binding (cons public-binding acc)]))
+               acc
+               pl-array-elt*)])))
+      ; Serialize one Public-Ledger-Binding to a JSON object.
+      (define (ledger-binding->json public-binding)
+        (nanopass-case (Lnodisclose Public-Ledger-Binding) public-binding
+          [(,src ,ledger-field-name (,path-index* ...) ,type)
+           (let* ([name-str   (symbol->string (id-sym ledger-field-name))]
+                  [index-val  (if (= (length path-index*) 1)
+                                  (car path-index*)
+                                  (list->vector path-index*))]
+                  ; Peel off any non-nominal talias wrappers to expose the tadt.
+                  [inner-type (let peel ([t type])
+                                (nanopass-case (Lnodisclose Type) t
+                                  [(talias ,src ,nominal? ,type-name ,wrapped)
+                                   (if nominal? t (peel wrapped))]
+                                  [else t]))])
+             (nanopass-case (Lnodisclose Type) inner-type
+               [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                (append
+                  (list
+                    (cons "name"    name-str)
+                    (cons "index"   index-val)
+                    (cons "storage" (adt-name->storage-kind adt-name)))
+                  (adt-fields->json adt-name adt-arg*))]
+               [else (assert cannot-happen)]))])))
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (let ([op (get-target-port 'contract-info.json)])
@@ -57,7 +134,10 @@
                (list->vector (fold-right Witness '() pelt*)))
              (cons
                "contracts"
-               (list->vector (map symbol->string contract-name*))))))
+               (list->vector (map symbol->string contract-name*)))
+             (cons
+               "ledger"
+               (list->vector (fold-right Ledger '() pelt*))))))
        ir])
     (Witness : Program-Element (ir witness*) -> * (json)
       [(witness ,src ,function-name (,arg* ...) ,type)
@@ -74,6 +154,13 @@
              (Type type)))
          witness*)]
       [else witness*])
+    (Ledger : Program-Element (ir ledger*) -> * (json)
+      [(public-ledger-declaration ,pl-array ,lconstructor)
+       (fold-right
+         (lambda (pb ledger*) (cons (ledger-binding->json pb) ledger*))
+         ledger*
+         (pl-array->bindings pl-array))]
+      [else ledger*])
     (exported-circuit : Program-Element (ir circuit* export-alist) -> * (json)
       (definitions
         (define (external-names id)
@@ -188,6 +275,11 @@
              (cons "name" (symbol->string type-name))
              (cons "type" (Type type)))
            (Type type))]
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       ; ADT types can appear as value types inside ledger ADT args (e.g. Map<F, Map<F,V>>).
+       (append
+         (list (cons "type-name" (adt-name->storage-kind adt-name)))
+         (adt-fields->json adt-name adt-arg*))]
       [else (assert cannot-happen)]))
 
   (define-passes save-contract-info-passes
