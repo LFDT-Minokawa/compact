@@ -969,7 +969,7 @@
         ;; [context, effects, state']
 
 (declare-ledger-adt MerkleTree ([Nat nat] [Type value_type])
-  "a bounded Merkle tree of depth nat where 2 <= nat <= 32 containing values of type value_type"
+  "a bounded Merkle tree of depth nat where 2 `<=` nat `<= 32` containing values of type value_type"
   (initial-value (state-value 'array ((state-value 'merkle-tree nat ())
                                       (state-value 'cell (align 0 8)))))
   (function js-only root () "${rtlib}MerkleTreeDigest"
@@ -1125,7 +1125,7 @@
      (ins [cached #t] [n (length f)]))))
 
 (declare-ledger-adt HistoricMerkleTree ([Nat nat] [Type value_type])
-  "a bounded Merkle tree of depth nat where 2 <= nat <= 32 containing values of type value_type, with history"
+  "a bounded Merkle tree of depth nat where 2 `<=` nat `<=` 32 containing values of type value_type, with history"
   (initial-value (state-value 'array ((state-value 'merkle-tree nat ())
                                       (state-value 'cell (align 0 8))
                                       (state-value 'map ()))))

@@ -143,7 +143,11 @@
     (Block : Block (ir [in-for? #f]) -> Block ()
       [(block ,src ,[stmt*] ...) ir])
     (Statement : Statement (ir [in-for? #f]) -> Statement ()
+      [(for ,src ,var-name ,tsize0 ,tsize1 ,[stmt #t -> stmt]) ir]
       [(for ,src ,var-name ,[expr] ,[stmt #t -> stmt]) ir]
+      [(return ,src)
+       (when in-for? (source-errorf src "return is not supported within for loops"))
+       ir]
       [(return ,src ,[expr])
        (when in-for? (source-errorf src "return is not supported within for loops"))
        ir]))
@@ -174,10 +178,16 @@
       [(const ,src ,var-name ,type ,[expr])
        (unless reachable? (unreachable src))
        #t]
+      [(for ,src ,var-name ,tsize0 ,tsize1 ,stmt)
+       (unless reachable? (unreachable src))
+       (Statement stmt #t)]
       [(for ,src ,var-name ,[expr] ,stmt)
        (unless reachable? (unreachable src))
        (Statement stmt #t)]
       [(return ,src ,[expr])
+       (unless reachable? (unreachable src))
+       #f]
+      [(return ,src)
        (unless reachable? (unreachable src))
        #f]
       [(if ,src ,[expr] ,stmt1 ,stmt2)
@@ -229,8 +239,12 @@
       [else (Statement ir vars)])
     (Statement : Statement (ir vars) -> Statement ()
       [(if ,src ,[expr] ,[SingleStatement : stmt1 vars -> stmt1] ,[SingleStatement : stmt2 vars -> stmt2]) `(if ,src ,expr ,stmt1 ,stmt2)]
-      [(for ,src ,var-name ,[expr] ,[SingleStatement : stmt vars -> stmt]) `(for ,src ,var-name ,expr ,stmt)]
+      [(for ,src ,var-name ,[tsize0] ,[tsize1] ,[SingleStatement : stmt vars -> stmt])
+       `(for ,src ,var-name ,tsize0 ,tsize1 ,stmt)]
+      [(for ,src ,var-name ,[expr] ,[SingleStatement : stmt vars -> stmt])
+       `(for ,src ,var-name ,expr ,stmt)]
       [(statement-expression ,src ,[expr]) `(statement-expression ,src ,expr)]
+      [(return ,src) `(return ,src)]
       [(return ,src ,[expr]) `(return ,src ,expr)]
       [,blck (Block blck)]
       [else (assert cannot-happen)])
@@ -258,11 +272,6 @@
           [(nat-valued ,src ,tvar-name) tvar-name]
           [(type-valued ,src ,tvar-name) tvar-name]))
       )
-    (External-Declaration : External-Declaration (ir) -> External-Declaration ()
-      [(external ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
-       (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
-       (reject-duplicate! src "parameter name" (map arg->sym arg*))
-       ir])
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
       [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
        (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
@@ -322,7 +331,7 @@
                  (with-output-language (Lexpr Expression)
                    `(seq ,src ,expr* ... ,expr))))]))
       (define (circuit-body src blck)
-        (let ([tail (list (with-output-language (Lexpr Expression) `(tuple ,src)))])
+        (let ([tail (list (with-output-language (Lexpr Expression) `(return ,src)))])
           (make-seq src (Statement blck tail))))
       (define block-ends '(dummy))
       )
@@ -334,6 +343,9 @@
        `(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,(circuit-body src blck))])
     (Statement : Statement (ir tail) -> * (tail)
       [(statement-expression ,src ,expr) (cons (Expression expr) tail)]
+      [(return ,src) 
+       (with-output-language (Lexpr Expression)
+         (list `(return ,src)))]
       [(return ,src ,[expr])
        (with-output-language (Lexpr Expression)
          (list `(return ,src ,expr)))]
@@ -368,6 +380,14 @@
                      `(if ,src ,expr0
                           ,(make-seq src tail1)
                           ,(make-seq src tail2))))))))]
+      [(for ,src ,var-name ,[tsize0] ,[tsize1] ,stmt)
+       (with-output-language (Lexpr Expression)
+         (cons
+           `(for ,src ,var-name ,tsize0 ,tsize1
+              ,(let ([tail (list `(tuple ,src))])
+                 (let ([tail (Statement stmt tail)])
+                   (make-seq src tail))))
+           tail))]
       [(for ,src ,var-name ,expr ,stmt)
        (with-output-language (Lexpr Expression)
          (cons

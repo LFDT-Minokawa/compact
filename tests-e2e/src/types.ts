@@ -22,13 +22,21 @@ interface Argument {
     type: Type;
 }
 
-interface Circuit {
+/** Circuit entry from contract-info.json */
+export interface ContractInfoCircuit {
     name: string;
     pure: boolean;
+    proof: boolean;
     arguments: Argument[];
     'result-type': Type;
 }
 
+/** Structure of contract-info.json */
 export interface ContractInfo {
-    circuits: Circuit[];
+    'compiler-version': string;
+    'language-version': string;
+    'runtime-version': string;
+    circuits: ContractInfoCircuit[];
+    witnesses: unknown[];
+    contracts: unknown[];
 }

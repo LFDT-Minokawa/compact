@@ -22,7 +22,7 @@ import {
     expectCompilerResult,
     expectFiles,
     buildPathTo,
-    AssertCircuits,
+    AssertContract,
     Arguments,
 } from '@';
 
@@ -40,11 +40,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract.thatCircuitHasNoKeys('test').thatCircuitHasNoZkir('test');
+                outputContract.thatCircuitIsNotExported('test');
             });
 
             test('when circuit has pure keyword and is using non-exported ledger variable', async () => {
@@ -56,11 +56,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract.thatCircuitHasNoKeys('test1').thatCircuitHasNoZkir('test1');
+                outputContract.thatCircuitIsNotExported('test1');
             });
 
             test('when writing to ledger variable', async () => {
@@ -72,11 +72,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract.thatCircuitHasNoKeys('test').thatCircuitHasNoZkir('test');
+                outputContract.thatCircuitIsNotExported('test');
             });
 
             test('when reading from ledger variable', async () => {
@@ -88,11 +88,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract.thatCircuitHasNoKeys('test').thatCircuitHasNoZkir('test');
+                outputContract.thatCircuitIsNotExported('test');
             });
 
             test('with two circuits - one touching ledger variable, one not', async () => {
@@ -104,15 +104,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract
-                    .thatCircuitHasNoKeys('test')
-                    .thatCircuitHasNoZkir('test')
-                    .thatCircuitHasNoKeys('test1')
-                    .thatCircuitHasNoZkir('test1');
+                outputContract.thatCircuitIsNotExported('test').thatCircuitIsNotExported('test1');
             });
 
             test('with two circuits - one writing to, one reading from ledger variable', async () => {
@@ -124,15 +120,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract
-                    .thatCircuitHasNoKeys('test')
-                    .thatCircuitHasNoZkir('test')
-                    .thatCircuitHasNoKeys('test1')
-                    .thatCircuitHasNoZkir('test1');
+                outputContract.thatCircuitIsNotExported('test').thatCircuitIsNotExported('test1');
             });
 
             test('with two circuits - one writing to, one reading from non-exported ledger variable', async () => {
@@ -144,15 +136,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract
-                    .thatCircuitHasNoKeys('test')
-                    .thatCircuitHasNoZkir('test')
-                    .thatCircuitHasNoKeys('test1')
-                    .thatCircuitHasNoZkir('test1');
+                outputContract.thatCircuitIsNotExported('test').thatCircuitIsNotExported('test1');
             });
         });
     });
@@ -168,11 +156,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
                 expect(outputContract.getPureCircuits()).toStrictEqual(['test']);
 
-                outputContract.thatCircuitHasNoKeys('test').thatCircuitHasNoZkir('test');
+                outputContract.thatCircuitIsPureExported('test');
             });
         });
 
@@ -186,11 +174,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('Compiling 1 circuits:', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test']);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract.thatCircuitHasKeys('test').thatCircuitHasZkir('test');
+                outputContract.thatCircuitIsImpureExported('test');
             });
 
             test('when reading from ledger variable (impure)', async () => {
@@ -202,11 +190,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('Compiling 1 circuits:', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test']);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract.thatCircuitHasKeys('test').thatCircuitHasZkir('test');
+                outputContract.thatCircuitIsImpureExported('test');
             });
 
             test('with two circuits - one touching ledger variable, one not', async () => {
@@ -218,15 +206,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('Compiling 1 circuits:', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test']);
                 expect(outputContract.getPureCircuits()).toStrictEqual(['test1']);
 
-                outputContract
-                    .thatCircuitHasKeys('test')
-                    .thatCircuitHasZkir('test')
-                    .thatCircuitHasNoKeys('test1')
-                    .thatCircuitHasNoZkir('test1');
+                outputContract.thatCircuitIsImpureExported('test').thatCircuitIsPureExported('test1');
             });
 
             test('with two circuits - one writing, one reading from exported ledger variable', async () => {
@@ -238,15 +222,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('Compiling 2 circuits:', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test', 'test1']);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract
-                    .thatCircuitHasKeys('test')
-                    .thatCircuitHasZkir('test')
-                    .thatCircuitHasKeys('test1')
-                    .thatCircuitHasZkir('test1');
+                outputContract.thatCircuitIsImpureExported('test').thatCircuitIsImpureExported('test');
             });
 
             test('when two circuits - one writing, one reading from non-exported ledger variable', async () => {
@@ -258,15 +238,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('Compiling 2 circuits:', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test', 'test1']);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract
-                    .thatCircuitHasKeys('test')
-                    .thatCircuitHasZkir('test')
-                    .thatCircuitHasKeys('test1')
-                    .thatCircuitHasZkir('test1');
+                outputContract.thatCircuitIsImpureExported('test').thatCircuitIsImpureExported('test1');
             });
         });
     });
@@ -282,15 +258,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
                 expect(outputContract.getPureCircuits()).toStrictEqual(['test1']);
 
-                outputContract
-                    .thatCircuitHasNoKeys('test')
-                    .thatCircuitHasNoZkir('test')
-                    .thatCircuitHasNoKeys('test1')
-                    .thatCircuitHasNoZkir('test1');
+                outputContract.thatCircuitIsNotExported('test').thatCircuitIsPureExported('test1');
             });
 
             test('two circuits (both calling witness-like method)', async () => {
@@ -302,15 +274,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test1']);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract
-                    .thatCircuitHasNoKeys('test')
-                    .thatCircuitHasNoZkir('test')
-                    .thatCircuitHasNoKeys('test1')
-                    .thatCircuitHasNoZkir('test1');
+                outputContract.thatCircuitIsNotExported('test').thatCircuitIsImpureNoProofExported('test1');
             });
 
             test('two circuits (both calling non-exported witness)', async () => {
@@ -322,15 +290,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test1']);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract
-                    .thatCircuitHasNoKeys('test')
-                    .thatCircuitHasNoZkir('test')
-                    .thatCircuitHasNoKeys('test1')
-                    .thatCircuitHasNoZkir('test1');
+                outputContract.thatCircuitIsNotExported('test').thatCircuitIsImpureNoProofExported('test1');
             });
 
             test('two circuits (both calling exported witness from module)', async () => {
@@ -342,15 +306,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test1']);
                 expect(outputContract.getPureCircuits()).toStrictEqual([]);
 
-                outputContract
-                    .thatCircuitHasNoKeys('test')
-                    .thatCircuitHasNoZkir('test')
-                    .thatCircuitHasNoKeys('test1')
-                    .thatCircuitHasNoZkir('test1');
+                outputContract.thatCircuitNotInJson('test').thatCircuitIsImpureNoProofExported('test1');
             });
 
             test('two circuits (both with pure keyword, non-exported writing to ledger variable)', async () => {
@@ -362,15 +322,11 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
-                const outputContract = new AssertCircuits().expect(outputDir);
+                const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
                 expect(outputContract.getPureCircuits()).toStrictEqual(['test1']);
 
-                outputContract
-                    .thatCircuitHasNoKeys('test')
-                    .thatCircuitHasNoZkir('test')
-                    .thatCircuitHasNoKeys('test1')
-                    .thatCircuitHasNoZkir('test1');
+                outputContract.thatCircuitNotInJson('test').thatCircuitIsPureExported('test1');
             });
         });
     });

@@ -26,7 +26,7 @@ fn test_compact_invalid_command() {
         None,
         Some("./output/other/err_invalid_command.txt"),
         &[("[USER_DIR]", env::home_dir().unwrap().to_str().unwrap())],
-        Some(1),
+        Some(2),
     );
 }
 

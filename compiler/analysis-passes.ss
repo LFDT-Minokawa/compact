@@ -138,15 +138,15 @@
           (hashtable-cell instance-table info* default)))
       (define-record-type info-fun
         (nongenerative)
-        (fields seqno src kind type-param* pelt p instance-table renamed?)
+        (fields seqno src kind type-param* pelt p instance-table)
         (protocol
           (lambda (new)
-            (lambda (seqno src kind type-param* pelt p renamed?)
-              (new seqno src kind type-param* pelt p (make-instance-table) renamed?)))))
+            (lambda (seqno src kind type-param* pelt p)
+              (new seqno src kind type-param* pelt p (make-instance-table))))))
       (module ()
         (record-writer (record-type-descriptor info-fun)
           (lambda (x p wr)
-            (fprintf p "#[info-fun ~s ~s ~s ~s]" (info-fun-seqno x) (format-source-object (info-fun-src x)) (info-fun-kind x) (info-fun-renamed? x)))))
+            (fprintf p "#[info-fun ~s ~s ~s]" (info-fun-seqno x) (format-source-object (info-fun-src x)) (info-fun-kind x)))))
       (define-record-type ecdecl-circuit
         (nongenerative)
         (fields function-name pure? type* type))
@@ -171,8 +171,8 @@
         ; an Info-free-tvar represents a generic parameter name in an exported struct definition.
         ; Info-free-tvars can therefore appear only in the type parameters for an Info-struct
         (Info-free-tvar tvar-name)
-        ; Info-circuit-alias supports renaming / fixup
-        (Info-circuit-alias aliased-name info)
+        ; Info-fixup-alias supports renaming / fixup
+        (Info-fixup-alias aliased-name info)
         )
       (define-record-type exportit
         (nongenerative)
@@ -196,32 +196,8 @@
       (define outer-module-rib (make-hashtable equal-hash equal?))
       (define outer-module-next-seqno '(0 -1))
       (define Cell-ADT-env #f)
-      (define (complain-about-shadowed-renamings! p src sym info)
-        ; this should be removed when we retire the version of fixup-compactc that
-        ; camelCases standard library circuit and ledger operators names.
-        (when (renaming-table)
-          (unless (stdlib-src? src)
-            (let loop ([p p])
-              (unless (eq? p empty-env)
-                (cond
-                  [(hashtable-ref (env-rib p) sym #f) =>
-                   (lambda (src.info)
-                     (let ([info (cdr src.info)])
-                       (Info-case info
-                         [(Info-functions name info-fun+)
-                          (for-each
-                            (lambda (info-fun)
-                              (when (info-fun-renamed? info-fun)
-                                (source-warningf src
-                                  "existing binding of ~s may lead to unintended shadowing of renamed standard-library circuit ~:*~s"
-                                  sym)))
-                            info-fun+)
-                          (loop (env-p p))]
-                         [else (void)])))]
-                  [else (loop (env-p p))]))))))
       (define (env-insert! p src sym info)
         (assert (env? p))
-        (complain-about-shadowed-renamings! p src sym info)
         (let ([a (hashtable-cell (env-rib p) sym #f)])
           (if (cdr a)
               (let ([info^ (cddr a)])
@@ -233,7 +209,6 @@
                           (Info-case info^
                             [(Info-functions name old-info-fun+)
                              (Info-functions name (append info-fun+ old-info-fun+))]
-                            [(Info-circuit-alias aliased-name info^) (retry info^)]
                             [else #f]))]
                        [else #f]) =>
                      (lambda (info) (set-cdr! (cdr a) info))]
@@ -435,33 +410,46 @@
         ; inferencer to decide which if any to choose and, in case there is
         ; no suitable candidate, to list the generic-instantiation failures among
         ; the unsuitable candidates in the resulting error message.
-        (define (compatible-type-parameters? type-param* info*)
-          (and (= (length info*) (length type-param*))
-               (andmap (lambda (type-param info)
-                         (nanopass-case (Lpreexpand Type-Param) type-param
-                           [(nat-valued ,src^ ,tvar-name)
-                            (Info-case info
-                              [(Info-size src size) #t]
-                              [else #f])]
-                           [(type-valued ,src^ ,tvar-name)
-                            (Info-case info
-                              [(Info-type src type) #t]
-                              [else #f])]
-                           ; this is not presently reachable, since only adt definitions use
-                           ; type-param kind non-adt-type-valued
-                           [(non-adt-type-valued ,src^ ,tvar-name)
-                            (Info-case info
-                              [(Info-type src type) (not (public-adt? type))]
-                              [else #f])]))
-                       type-param*
-                       info*)))
+        (define (compatible-type-parameters? info-fun)
+          (let ([type-param* (info-fun-type-param* info-fun)])
+            (and (= (length info*) (length type-param*))
+                 (andmap (lambda (type-param info)
+                           (nanopass-case (Lpreexpand Type-Param) type-param
+                             [(nat-valued ,src^ ,tvar-name)
+                              (Info-case info
+                                [(Info-size src size) #t]
+                                [else #f])]
+                             [(type-valued ,src^ ,tvar-name)
+                              (Info-case info
+                                [(Info-type src type) #t]
+                                [else #f])]
+                             ; this is not presently reachable, since only adt definitions use
+                             ; type-param kind non-adt-type-valued
+                             [(non-adt-type-valued ,src^ ,tvar-name)
+                              (Info-case info
+                                [(Info-type src type) (not (public-adt? type))]
+                                [else #f])]))
+                         type-param*
+                         info*))))
         (define-record-type generic-failure
           (nongenerative)
-          (fields src kind*))
-        (define (return id+* symbolic-function-name+* generic-failure*)
+          (fields src kind*)
+          (protocol
+            (lambda (new)
+              (lambda (info-fun)
+                (new
+                  (info-fun-src info-fun)
+                  (map (lambda (type-param)
+                         (nanopass-case (Lpreexpand Type-Param) type-param
+                           [(nat-valued ,src ,tvar-name) 'size]
+                           [(type-valued ,src ,tvar-name) 'type]
+                           ; currently not reachable since functions don't employ this kind of type-param
+                           [(non-adt-type-valued ,src ,tvar-name) 'non-adt-type]))
+                       (info-fun-type-param* info-fun)))))))
+        (define (return id+* generic-failure*)
           (with-output-language (Lexpanded Function)
             `(fref ,src ,function-name
-                   (([,symbolic-function-name+* ,id+*] ...) ...)
+                   ((,id+* ...) ...)
                    (,(map (lambda (info)
                             (Info-case info
                               [(Info-type src type) type]
@@ -473,6 +461,22 @@
                      ,(map generic-failure-kind* generic-failure*)
                      ...)
                     ...))))
+        (define (find-functions function-name)
+          ; find-functions finds all of the Info-functions bindings for function-name
+          ; in the environment that are not shadowed by some other binding.
+          (let outer ([p p] [rinfo-functions* '()] [rmaybe-alias* '()])
+            (cond
+              [(eq? p empty-env) (values rinfo-functions* rmaybe-alias* #f)]
+              [(begin (assert (env? p)) (hashtable-ref (env-rib p) function-name #f)) =>
+               (lambda (src.info)
+                 (let retry ([info (cdr src.info)] [maybe-alias #f])
+                   (Info-case info
+                     [(Info-functions name info-fun+)
+                      (outer (env-p p) (cons info rinfo-functions*) (cons maybe-alias rmaybe-alias*))]
+                     [(Info-fixup-alias aliased-name info)
+                      (retry info aliased-name)]
+                     [else (values rinfo-functions* rmaybe-alias* info)])))]
+              [else (outer (env-p p) rinfo-functions* rmaybe-alias*)])))
         (define fun-visited?
           ; the same info-fun can appear in an outer contour and an inner contour due
           ; to module import.  Consider:
@@ -491,47 +495,45 @@
             (lambda (info-fun)
               (let ([a (eq-hashtable-cell ht info-fun #f)])
                 (or (cdr a) (begin (set-cdr! a #t) #f))))))
-        (let outer ([p p] [seen? #f] [id+* '()] [symbolic-function-name+* '()] [generic-failure* '()])
-          (cond
-            [(eq? p empty-env)
-             (when (and (null? id+*) (null? generic-failure*)) (source-errorf src "unbound identifier ~s" function-name))
-             ; each generic-failure = (src . string) e.g., (src . "<type, size>")
-             (return (reverse id+*) (reverse symbolic-function-name+*) generic-failure*)]
-            [(begin (assert (env? p)) (hashtable-ref (env-rib p) function-name #f)) =>
-             (lambda (src.info)
-               (let retry ([info (cdr src.info)] [symbolic-function-name function-name])
-                 (Info-case info
-                   [(Info-functions name info-fun+)
-                    (let inner ([info-fun* info-fun+] [id* '()] [symbolic-function-name* '()] [generic-failure* generic-failure*])
-                      (if (null? info-fun*)
-                          (outer (env-p p) #t
-                                 (if (null? id*) id+* (cons id* id+*))
-                                 (if (null? symbolic-function-name*) symbolic-function-name+* (cons symbolic-function-name* symbolic-function-name+*))
-                                 generic-failure*)
-                          (let ([info-fun (car info-fun*)]
-                                [info-fun* (cdr info-fun*)])
-                            (if (fun-visited? info-fun)
-                                (inner info-fun* id* symbolic-function-name* generic-failure*)
-                                (if (compatible-type-parameters? (info-fun-type-param* info-fun) info*)
-                                    (let ([id (make/register-frob src name info-fun info* #f)])
-                                      (inner info-fun* (cons id id*) (cons symbolic-function-name symbolic-function-name*) generic-failure*))
-                                    (inner info-fun* id* symbolic-function-name*
-                                           (cons (make-generic-failure
-                                                   (info-fun-src info-fun)
-                                                   (map (lambda (type-param)
-                                                          (nanopass-case (Lpreexpand Type-Param) type-param
-                                                            [(nat-valued ,src ,tvar-name) 'size]
-                                                            [(type-valued ,src ,tvar-name) 'type]
-                                                            ; currently not reachable since functions don't employ this kind of type-param
-                                                            [(non-adt-type-valued ,src ,tvar-name) 'non-adt-type]))
-                                                        (info-fun-type-param* info-fun)))
-                                                 generic-failure*)))))))]
-                   [(Info-circuit-alias aliased-name info)
-                    (retry info aliased-name)]
-                   [else (if seen?
-                             (return (reverse id+*) (reverse symbolic-function-name+*) generic-failure*)
-                             (context-oops src function-name info))])))]
-            [else (outer (env-p p) seen? id+* symbolic-function-name+* generic-failure*)])))
+        (let-values ([(rinfo-functions* rmaybe-alias* maybe-info) (find-functions function-name)])
+          ; check to see if any of the function names are renamings of standard-library routines
+          ; (per standard-library-aliases.ss) and if so, record the alias or say why not
+          (let ([alias-name (ormap values rmaybe-alias*)])
+            (when alias-name
+              (if (renaming-table)
+                  (if (andmap (lambda (x) (eq? x alias-name)) rmaybe-alias*)
+                      (let-values ([(^rinfo-functions* ^rmaybe-alias* ^maybe-info) (find-functions alias-name)])
+                        (assert (or (not (null? ^rinfo-functions*)) ^maybe-info))
+                        (if (equal? ^rinfo-functions* rinfo-functions*)
+                            (record-alias! src function-name alias-name)
+                            (source-warningf src "not renaming reference of ~s to ~s because ~1:*~s has other bindings in scope"
+                                             function-name
+                                             alias-name)))
+                      (source-warningf src "not renaming reference of ~s to ~s because ~2:*~s has other bindings in scope"
+                                       function-name
+                                       alias-name))
+                  (record-alias! src function-name alias-name))))
+          ; go through the the Info-functions list from innermost to outermost, pruning
+          ; duplicate function bindings, registering those that are compatible with the
+          ; generic arguments, and collecting a list of those that are not for infer-types.
+          (let loop ([info-functions* (reverse rinfo-functions*)] [rid+* '()] [generic-failure* '()])
+            (if (null? info-functions*)
+                (if (and (null? rid+*) (null? generic-failure*))
+                    (if maybe-info
+                        (context-oops src function-name maybe-info)
+                        (source-errorf src "unbound identifier ~s" function-name))
+                    ; all done; return an `fref` form with the information gathered
+                    (return (reverse rid+*) generic-failure*))
+                (Info-case (car info-functions*)
+                  [(Info-functions name info-fun+)
+                   (define (register info-fun) (make/register-frob src name info-fun info* #f))
+                   (let-values ([(compatible* incompatible*) (partition compatible-type-parameters? (remp fun-visited? info-fun+))])
+                     (loop (cdr info-functions*)
+                           (if (null? compatible*)
+                               rid+*
+                               (cons (maplr register compatible*) rid+*))
+                           (append (map make-generic-failure incompatible*) generic-failure*)))]
+                  [else (assertf cannot-happen "find-functions should return only Info-functions infos")])))))
       (define-syntax Info-lookup
         (syntax-rules ()
           [(_ (p ?src ?name) clause ...)
@@ -555,37 +557,49 @@
           [(Info-type-alias src nominal? type-name type-param* type p) "type alias"]
           [(Info-ledger ledger-field-name) "ledger field"]
           [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p) "ledger ADT type"]
-          [(Info-circuit-alias aliased-name info) "function"]))
-      (define (handle-type-ref src tvar-name info* info)
+          [(Info-fixup-alias aliased-name info) (describe-info info)]))
+      (define (handle-type-ref src tvar-name info* p info)
         (with-output-language (Lexpanded Type)
           (with-type-cycle-check src info tvar-name
             (lambda ()
-              (Info-case info
-                [(Info-type src^ type)
-                 (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 type]
-                [(Info-free-tvar tvar-name)
-                 (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 tvar-name]
-                [(Info-contract src contract-name ecdecl-circuit* p)
-                 (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 (let ([Type (lambda (type) (Type type p))])
-                   `(tcontract ,src ,contract-name
-                      (,(map ecdecl-circuit-function-name ecdecl-circuit*)
-                       ,(map ecdecl-circuit-pure? ecdecl-circuit*)
-                       (,(map (lambda (type*) (map Type type*)) (map ecdecl-circuit-type* ecdecl-circuit*)) ...)
-                       ,(map Type (map ecdecl-circuit-type ecdecl-circuit*)))
-                      ...))]
-                [(Info-enum src^ enum-name elt-name elt-name*)
-                 (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
-                 `(tenum ,src ,enum-name ,elt-name ,elt-name* ...)]
-                [(Info-struct src^ struct-name type-param* elt-name* type* p)
-                 (apply-struct src src^ struct-name type-param* elt-name* type* p info*)]
-                [(Info-type-alias src^ nominal? type-name type-param* type p)
-                 (apply-type-alias src src^ nominal? type-name type-param* type p info*)]
-                [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
-                 (apply-ledger-ADT src adt-name type-param* vm-expr adt-op* adt-rt-op* p info*)]
-                [else (context-oops src tvar-name info)])))))
+              (let retry ([info info])
+                (Info-case info
+                  [(Info-type src^ type)
+                   (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
+                   type]
+                  [(Info-free-tvar tvar-name)
+                   (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
+                   tvar-name]
+                  [(Info-contract src contract-name ecdecl-circuit* p)
+                   (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
+                   (let ([Type (lambda (type) (Type type p))])
+                     `(tcontract ,src ,contract-name
+                        (,(map ecdecl-circuit-function-name ecdecl-circuit*)
+                         ,(map ecdecl-circuit-pure? ecdecl-circuit*)
+                         (,(map (lambda (type*) (map Type type*)) (map ecdecl-circuit-type* ecdecl-circuit*)) ...)
+                         ,(map Type (map ecdecl-circuit-type ecdecl-circuit*)))
+                        ...))]
+                  [(Info-enum src^ enum-name elt-name elt-name*)
+                   (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
+                   `(tenum ,src ,enum-name ,elt-name ,elt-name* ...)]
+                  [(Info-struct src^ struct-name type-param* elt-name* type* p)
+                   (apply-struct src src^ struct-name type-param* elt-name* type* p info*)]
+                  [(Info-type-alias src^ nominal? type-name type-param* type p)
+                   (apply-type-alias src src^ nominal? type-name type-param* type p info*)]
+                  [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
+                   (apply-ledger-ADT src adt-name type-param* vm-expr adt-op* adt-rt-op* p info*)]
+                  [(Info-fixup-alias aliased-name info)
+                   (if (renaming-table)
+                       (let ([info^ (lookup/no-error p aliased-name)])
+                         (assertf info^ "aliased name ~s is not found in the environment" aliased-name)
+                         (if (eq? info^ info)
+                             (record-alias! src tvar-name aliased-name)
+                             (source-warningf src "not renaming reference of ~s to ~s because this would cause the reference to be captured by an existing local binding for ~:*~s"
+                                              tvar-name
+                                              aliased-name)))
+                       (record-alias! src tvar-name aliased-name))
+                   (retry info)]
+                  [else (context-oops src tvar-name info)]))))))
       (define (context-oops src name info)
         (source-errorf src "invalid context for reference to ~a name ~s"
                        (describe-info info)
@@ -601,8 +615,10 @@
                                         (values name info)
                                         (values (add-prefix name)
                                                 (Info-case info
-                                                  [(Info-circuit-alias aliased-name info)
-                                                   (Info-circuit-alias (add-prefix aliased-name) info)]
+                                                  [(Info-fixup-alias aliased-name info)
+                                                   (let ([prefix-aliased-name (add-prefix aliased-name)])
+                                                     (env-insert! p src prefix-aliased-name info)
+                                                     (Info-fixup-alias prefix-aliased-name info))]
                                                   [else info])))])
             (env-insert! p src name info)))
         (let* ([module-name (if (symbol? import-name) import-name (string->symbol (path-last import-name)))]
@@ -613,6 +629,7 @@
                                     (let ([info (Info-module
                                                   '()
                                                   (append standard-library-pelt*
+                                                          (native-declarations)
                                                           (map (lambda (adt-defn)
                                                                   (nanopass-case (Lpreexpand ADT-Definition) adt-defn
                                                                     [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -623,9 +640,11 @@
                                                                 (ledger-adt-definitions))
                                                           (map (lambda (a)
                                                                  (let ([old-name (car a)] [new-name (cdr a)])
-                                                                   (with-output-language (Lpreexpand Circuit-Alias-Definition)
-                                                                     `(circuit-alias ,old-name ,new-name))))
-                                                               stdlib-circuit-aliases))
+                                                                   (with-output-language (Lpreexpand Fixup-Alias-Definition)
+                                                                     `(fixup-alias ,old-name ,new-name))))
+                                                               (append
+                                                                 stdlib-type-aliases
+                                                                 stdlib-circuit-aliases)))
                                                   empty-env
                                                   outer-module-next-seqno
                                                   #f
@@ -717,7 +736,7 @@
                                  [(Info-size src size) "generic parameter"]
                                  [(Info-var id) "variable"] ; can't happen at present
                                  [(Info-bogus) "variable"] ; can't happen at present
-                                 [(Info-circuit-alias aliased-name info)
+                                 [(Info-fixup-alias aliased-name info)
                                   (record-alias! src name aliased-name)
                                   #f]
                                  [else #f]) =>
@@ -730,10 +749,7 @@
                   unresolved-export*)
                 (let ([pelt (car pelt*)] [pelt* (cdr pelt*)] [seqno (car seqno*)] [seqno* (cdr seqno*)])
                   (define (handle-fun src kind pelt exported? name type-param*)
-                    (let* ([renamed? (and (stdlib-src? src)
-                                          (memp (lambda (a) (eq? (cdr a) name)) stdlib-circuit-aliases)
-                                          #t)]
-                           [info-fun (make-info-fun (reverse seqno) src kind type-param* pelt p renamed?)]
+                    (let* ([info-fun (make-info-fun (reverse seqno) src kind type-param* pelt p)]
                            [info (Info-functions name (list info-fun))])
                       (set! all-info-funs (cons (cons info-fun name) all-info-funs))
                       (env-insert! p src name info)
@@ -772,8 +788,8 @@
                      (loop pelt* seqno* export* unresolved-export*)]
                     [(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg ...) ,type ,expr)
                      (handle-fun src 'circuit pelt exported? function-name type-param*)]
-                    [(external ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
-                     (handle-fun src 'external pelt exported? function-name type-param*)]
+                    [(native ,src ,exported? ,function-name ,native-entry (,type-param* ...) (,arg* ...) ,type)
+                     (handle-fun src 'native pelt exported? function-name type-param*)]
                     [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
                      (handle-fun src 'witness pelt exported? function-name type-param*)]
                     [(external-contract ,src ,exported? ,contract-name (,src* ,pure-dcl* ,function-name* ((,src** ,var-name** ,type**) ...) ,type*) ...)
@@ -810,9 +826,9 @@
                                  ; this case can't happen: these appear only in the ledger.ss output, which exports all
                                  export*)
                              unresolved-export*))]
-                    [(circuit-alias ,function-name^ ,function-name)
+                    [(fixup-alias ,function-name^ ,function-name)
                      (let ([src (make-source-object (assert (stdlib-sfd)) 0 0 1 1)]
-                           [info (Info-circuit-alias function-name (assert (lookup/no-error p function-name)))])
+                           [info (Info-fixup-alias function-name (assert (lookup/no-error p function-name)))])
                        (env-insert! p src function-name^ info)
                        (loop pelt* seqno*
                              (cons (make-exportit src function-name^ info) export*)
@@ -902,23 +918,6 @@
                                  adt-rt-op*)])
             (with-output-language (Lexpanded Type)
               `(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))))))
-      (define (get-native-entry src external-name ndeclared)
-        (let ([external-name
-               (cond
-                 [(hashtable-ref native-aliases external-name #f) =>
-                  (lambda (new-external-name)
-                    (record-alias! src external-name new-external-name)
-                    new-external-name)]
-                 [else external-name])])
-          (let ([x (hashtable-ref native-table external-name #f)])
-            (unless x (source-errorf src "unrecognized native entry ~s" external-name))
-            (let ([nexpected (length (native-entry-argument-types x))])
-              (unless (= nexpected ndeclared)
-                (source-errorf src "mismatch between declared argument count ~s and expected argument count ~s for native ~s"
-                               ndeclared
-                               nexpected
-                               external-name)))
-            x)))
       (define (check-length! src what len)
         (unless (len? len)
           (source-errorf src "~a length\n  ~d\n  exceeds the maximum supported length ~d"
@@ -982,7 +981,7 @@
                                 (id-exported?-set! id #t)
                                 (set! exported-other* (cons (cons export-name id) exported-other*)))))
                           info-fun+)]
-                       [(Info-circuit-alias aliased-name info) (retry src export-name info)]
+                       [(Info-fixup-alias aliased-name info) (retry src export-name info)]
                        [(Info-struct src^ struct-name type-param* elt-name* type* p^)
                         (unless (already-exported? src export-name info)
                           (set! exported-type*
@@ -1075,9 +1074,8 @@
              var-id*)
            (when pure-dcl? (id-pure?-set! id #t)))
          `(circuit ,src ,id (,arg* ...) ,type ,(Expression expr p)))]
-      [(external ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type])
-       (let ([native-entry (get-native-entry src function-name (length arg*))])
-         `(external ,src ,id ,native-entry (,arg* ...) ,type))]
+      [(native ,src ,exported? ,function-name ,native-entry (,type-param* ...) (,[arg*] ...) ,[type])
+       `(native ,src ,id ,native-entry (,arg* ...) ,type)]
       [(witness ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type])
        `(witness ,src ,id (,arg* ...) ,type)]
       [(public-ledger-declaration ,src ,exported? ,sealed? ,ledger-field-name ,[type])
@@ -1093,7 +1091,7 @@
                                          p)
                               (set! Cell-ADT-env p)
                               p))])
-                 (handle-type-ref src 'Cell (list (Info-type src type)) (lookup p src '__compact_Cell)))))]
+                 (handle-type-ref src 'Cell (list (Info-type src type)) p (lookup p src '__compact_Cell)))))]
       [(constructor ,src (,[arg*] ...) ,expr)
        (let ([var-id* (map arg->id arg*)] [p (add-rib p)])
          (for-each
@@ -1131,11 +1129,26 @@
            (lambda (id) (env-insert! p src (id-sym id) (Info-var id)))
            var-id*)
          `(let* ,src ([,arg* ,expr*] ...) ,(Expression expr p)))]
+      [(for ,src ,var-name ,[Type-Size->nat : tsize0 p 0 -> * nat0] ,[Type-Size->nat : tsize1 p 0 -> * nat1] ,expr2)
+       (when (> nat0 (max-unsigned))
+         (source-errorf src "start bound ~d is greater than the maximum unsigned integer ~d" nat0 (max-unsigned)))
+       (when (> nat1 (max-unsigned))
+         (source-errorf src "end bound ~d is greater than the maximum unsigned integer ~d" nat1 (max-unsigned)))
+       (let ([n (- nat1 nat0)])
+         (when (< n 0)
+           (source-errorf src "end bound ~d is less than start bound ~s" nat1 nat0))
+         (when (> n (max-bytes/vector-length))
+           (source-errorf src "the difference ~d between end and start bounds exceeds the maximum vector size ~d" n (max-bytes/vector-length)))
+         (let ([expr1 (with-output-language (Lexpanded Expression)
+                         `(tuple ,src ,(map (lambda (i) `(single ,src (quote ,src ,(+ nat0 i)))) (iota n)) ...))])
+           (let ([id (make-source-id src var-name)] [p (add-rib p)])
+             (env-insert! p src var-name (Info-var id))
+             `(for ,src ,id ,expr1 ,(Expression expr2 p)))))]
       [(for ,src ,var-name ,[expr1] ,expr2)
        (let ([id (make-source-id src var-name)] [p (add-rib p)])
          (env-insert! p src var-name (Info-var id))
          `(for ,src ,id ,expr1 ,(Expression expr2 p)))]
-      [(tuple-slice ,src ,[expr] ,[index] ,[Type-Size->nat : tsize p -> * nat])
+      [(tuple-slice ,src ,[expr] ,[index] ,[Type-Size->nat : tsize p 1 -> * nat])
        (check-length! src "slice" nat)
        `(tuple-slice ,src ,expr ,index ,nat)]
       [(elt-ref ,src ,expr ,elt-name^)
@@ -1175,13 +1188,13 @@
     (New-Field : New-Field (ir p) -> New-Field ())
     (Type : Type (ir p) -> Type ()
       [,tref (Type-Ref->Type ir p)]
-      [(tunsigned ,src ,[Type-Size->nat : tsize p -> * nat])
+      [(tunsigned ,src ,[Type-Size->nat : tsize p 1 -> * nat])
        (unless (<= 1 nat (unsigned-bits))
-         (source-errorf src "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)"
-                        nat
-                        (unsigned-bits)))
+          (source-errorf src "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)"
+                         nat
+                         (unsigned-bits)))
        `(tunsigned ,src ,(- (expt 2 nat) 1))]
-      [(tunsigned ,src ,[Type-Size->nat : tsize p -> * nat] ,[Type-Size->nat : tsize^ p -> * nat^])
+      [(tunsigned ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,[Type-Size->nat : tsize^ p 1 -> * nat^])
        (unless (= nat 0)
          (source-errorf src "range start for Uint type is ~d but must be 0" nat))
        (unless (<= 1 nat^)
@@ -1193,10 +1206,10 @@
                         (+ (max-unsigned) 1)
                         (unsigned-bits)))
        `(tunsigned ,src ,(- nat^ 1))]
-      [(tvector ,src ,[Type-Size->nat : tsize p -> * nat] ,[type])
+      [(tvector ,src ,[Type-Size->nat : tsize p 1 -> * nat] ,[type])
        (check-length! src "vector type" nat)
        `(tvector ,src ,nat ,type)]
-      [(tbytes ,src ,[Type-Size->nat : tsize p -> * nat])
+      [(tbytes ,src ,[Type-Size->nat : tsize p 1 -> * nat])
        (check-length! src "bytes type" nat)
        `(tbytes ,src ,nat)]
       [(ttuple ,src ,[type*] ...)
@@ -1204,15 +1217,17 @@
        `(ttuple ,src ,type* ...)])
     (Type-Ref->Type : Type-Ref (ir p) -> Type ()
       [(type-ref ,src ,tvar-name ,[Type-Argument->info : targ* p -> * info*] ...)
-       (handle-type-ref src tvar-name info* (lookup p src tvar-name))])
-    (Type-Size->nat : Type-Size (ir p) -> * (nat)
+       (handle-type-ref src tvar-name info* p (lookup p src tvar-name))])
+    (Type-Size->nat : Type-Size (ir p default) -> * (nat)
       [(type-size ,src ,nat) nat]
       [(type-size-ref ,src ,tsize-name)
        (Info-lookup (p src tsize-name)
          [(Info-size src size) size]
          ; if we find a free tvar here, it's in an exported type where sizes are
-         ; ultimately ignored, so any nat will do
-         [(Info-free-tvar tvar-name) 0])])
+         ; ultimately ignored, so any nat will do.  the default argument takes either
+         ; 1 for Uint range end points and Uint widths
+         ; 0 for everything else
+         [(Info-free-tvar tvar-name) default])])
     (Type-Argument->info : Type-Argument (ir p) -> * (info)
       [(targ-size ,src ,nat) (Info-size src nat)]
       [(targ-type ,src (type-ref ,src^ ,tvar-name ,[Type-Argument->info : targ* p -> * info*] ...))
@@ -1221,7 +1236,7 @@
            [(Info-size src^^ size)
             (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
             (Info-size src size)]
-           [else (Info-type src (handle-type-ref src tvar-name info* info))]))]
+           [else (Info-type src (handle-type-ref src tvar-name info* p info))]))]
       [(targ-type ,src ,type) (Info-type src (Type type p))])
   )
 
@@ -1294,7 +1309,7 @@
         ; ordinary expression types
         (Idtype-Base type)
         ; circuits, witnesses, and statements
-        (Idtype-Function kind arg-name* arg-type* return-type)
+        (Idtype-Function kind is-native arg-name* arg-type* return-type)
         )
       (module (set-idtype! unset-idtype! get-idtype)
         (define ht (make-eq-hashtable))
@@ -1690,6 +1705,14 @@
                expr
                (with-output-language (Ltypes Expression)
                  `(safe-cast ,src ,declared-type ,actual-type ,expr)))]))
+      (define (contains-js-opaque? type)
+        (nanopass-case (Ltypes Type) type
+          [(topaque ,src ,opaque-type) (or (string=? opaque-type "string") (string=? opaque-type "Uint8Array"))]
+          [(tvector ,src ,len ,type) (contains-js-opaque? type)]
+          [(ttuple ,src ,type* ...) (ormap contains-js-opaque? type*)]
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) (ormap contains-js-opaque? type*)]
+          [(talias ,src ,nominal? ,type-name ,type) (contains-js-opaque? type)]
+          [else #f]))
       (define (do-call src fold? fun actual-type* build-call)
         (define compatible-args?
           (let ([nactual (length actual-type*)])
@@ -1697,15 +1720,20 @@
               (and (= (length arg-type*) nactual)
                    (andmap subtype? actual-type* arg-type*)))))
         (nanopass-case (Lexpanded Function) fun
-          [(fref ,src^ ,symbolic-function-name (([,symbolic-function-name** ,function-name**] ...) ...)
+          [(fref ,src^ ,symbolic-function-name ((,function-name** ...) ...)
                  (,generic-value* ...)
                  ((,src* ,generic-kind** ...) ...))
-           (define-record-type blob (nongenerative) (fields name symbolic-name arg-type* return-type))
+           (define-record-type blob (nongenerative) (fields name is-native arg-type* return-type))
            (define (blob<? blob1 blob2)
              (source-object<?
                (id-src (blob-name blob1))
                (id-src (blob-name blob2))))
-           (let outer ([function-name** function-name**] [symbolic-function-name** symbolic-function-name**] [arg-incompatible-blob** '()] [fold-incompatible-blob** '()])
+           (define (opaque-hashing-error? symbolic-name blob)
+             (and (blob-is-native blob)
+                  (memq symbolic-name '(persistentHash persistentCommit))
+                  (> (length (blob-arg-type* blob)) 0)
+                  (contains-js-opaque? (car (blob-arg-type* blob)))))
+           (let outer ([function-name** function-name**] [arg-incompatible-blob** '()] [fold-incompatible-blob** '()])
              (if (null? function-name**)
                  (let ()
                    (define (functions-are ls)
@@ -1761,16 +1789,13 @@
                               (functions-are fold-incompatible*)
                               fold-incompatible*)))))
                  (let ([function-name* (car function-name**)]
-                       [function-name** (cdr function-name**)]
-                       [symbolic-function-name* (car symbolic-function-name**)]
-                       [symbolic-function-name** (cdr symbolic-function-name**)])
-                   (let ([blob* (map (lambda (function-name symbolic-function-name)
+                       [function-name** (cdr function-name**)])
+                   (let ([blob* (map (lambda (function-name)
                                        (Idtype-case (get-idtype src function-name)
-                                         [(Idtype-Function kind arg-name* arg-type* return-type)
-                                          (make-blob function-name symbolic-function-name arg-type* return-type)]
+                                         [(Idtype-Function kind is-native arg-name* arg-type* return-type)
+                                          (make-blob function-name is-native arg-type* return-type)]
                                          [else (assert cannot-happen)]))
-                                     function-name*
-                                     symbolic-function-name*)])
+                                     function-name*)])
                      (let*-values ([(arg-compatible-blob* arg-incompatible-blob*)
                                     (partition (lambda (x) (compatible-args? (blob-arg-type* x))) blob*)]
                                    [(compatible-blob* fold-incompatible-blob*)
@@ -1779,13 +1804,16 @@
                                         (values arg-compatible-blob* '()))])
                        (cond
                          [(null? compatible-blob*)
-                          (outer function-name** symbolic-function-name**
+                          (outer function-name**
                                  (cons arg-incompatible-blob* arg-incompatible-blob**)
                                  (cons fold-incompatible-blob* fold-incompatible-blob**))]
                          [(null? (cdr compatible-blob*))
                           (let ([blob (car compatible-blob*)])
-                            (unless (eq? (blob-symbolic-name blob) symbolic-function-name)
-                              (record-alias! src^ symbolic-function-name (blob-symbolic-name blob)))
+                            (when (opaque-hashing-error? symbolic-function-name blob)
+                              (source-errorf src
+                                "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a"
+                                symbolic-function-name
+                                (format-type (car (blob-arg-type* blob)))))
                             (build-call
                               (blob-arg-type* blob)
                               (blob-return-type blob)
@@ -2028,7 +2056,11 @@
                          [(tunsigned ,src2 ,nat2)
                           (let-values ([(type nat) (if (< nat1 nat2) (values type2 nat2) (values type1 nat1))])
                             (let ([mbits (fxmax 1 (integer-length nat))])
-                              (k mbits (maybe-safecast src type type1 expr1) (maybe-safecast src type type2 expr2))))])]
+                              ; maybe-bind forces the evaluation of expr1 before expr2.
+                              ; this prevents the downstream transformations from changing the evaluation order.
+                              (maybe-bind src type1 expr1
+                                (lambda (expr1)
+                                  (k mbits (maybe-safecast src type type1 expr1) (maybe-safecast src type type2 expr2))))))])]
                      [(talias ,src1 ,nominal1? ,type-name1 ,type1)
                       (T (de-alias type2 #f)
                          [(talias ,src2 ,nominal2? ,type-name2 ,type2)
@@ -2066,11 +2098,17 @@
                 (nanopass-case (Ltypes ADT-Op) (car adt-op*)
                   [(,ledger-op ,op-class ((,var-name* ,type^* ,discloses?*) ...) ,type ,vm-code)
                    (if (eq? ledger-op elt-name)
-                       (begin
-                         (let ([ndeclared (length type^*)] [nactual (length type*)])
-                           (unless (fx= nactual ndeclared)
-                             (source-errorf src "~s ~s requires ~s argument~:*~p but received ~s"
-                                            adt-name ledger-op ndeclared nactual)))
+                       (let ([ndeclared (length type^*)] [nactual (length type*)])
+                         (unless (fx= nactual ndeclared)
+                           (source-errorf src "~a ~a requires ~a argument~:*~p but received ~a"
+                             adt-name ledger-op ndeclared nactual))
+                         (when (and (memq adt-name '(MerkleTree HistoricMerkleTree))
+                                    (memq ledger-op '(insert insertIndex))
+                                    (> nactual 0)
+                                    (contains-js-opaque? (car type*)))
+                           (source-errorf src
+                             "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a"
+                             adt-name ledger-op (format-type (car type*))))
                          (for-each
                            (lambda (declared-type actual-type i)
                              (unless (subtype? actual-type declared-type)
@@ -2084,7 +2122,7 @@
                                                   ledger-op
                                                   (format-type declared-type)
                                                   (format-type actual-type)))))
-                           type^* type* (enumerate type^*))
+                           type^* type* (iota ndeclared))
                          (values
                            (let ([expr* (map (maybe-safecast src) type^* type* expr*)])
                              (with-output-language (Ltypes Expression)
@@ -2149,126 +2187,19 @@
          `(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,(maplr Program-Element pelt*) ...))])
     (Set-Program-Element-Type! : Program-Element (ir) -> * (void)
       (definitions
-        (define (build-function kind name arg* type)
+        (define (build-function kind is-native name arg* type)
           (let ([var-name* (map arg->name arg*)] [type* (map arg->type arg*)])
-            (set-idtype! name (Idtype-Function kind var-name* type* type)))))
+            (set-idtype! name (Idtype-Function kind is-native var-name* type* type)))))
       [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
-       (build-function 'circuit function-name arg* type)]
-      [(external ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
-       (define param-ht (make-hashtable symbol-hash eq?))
-       (define failed-unification #f)
-       (define (format-native-nat native-nat)
-         (native-nat-case native-nat
-           [(native-nat-value n) (format "~d" n)]
-           [(native-nat-param name) (format "~a" name)]))
-       (define (format-native-type native-type)
-         (native-type-case native-type
-           [(native-type-opaque str) (format "Opaque<'~a'>" str)]
-           [(native-type-boolean) "Boolean"]
-           [(native-type-field) "Field"]
-           [(native-type-unsigned native-nat) (format "Uint<~a>" (format-native-nat native-nat))]
-           [(native-type-bytes native-nat) (format "Bytes<~a>" (format-native-nat native-nat))]
-           [(native-type-vector native-nat native-type)
-            (format "Vector<~a, ~a>" (format-native-nat native-nat) (format-native-type native-type))]
-           [(native-type-struct native-type*)
-            (format "Struct<~{~a~^, ~}>" (map format-native-type native-type*))]
-           [(native-type-alias name) (format "~a" name)]
-           ; this can be tested by uncommenting the justfortesting in test.ss and midnight-natives.ss
-           [(native-type-param name) (format "~a" name)]
-           [(native-type-void) "[]"]))
-       (define (verify-native-nat native-nat nat p2?)
-         (native-nat-case native-nat
-           [(native-nat-value n) (= (if p2? (sub1 (expt 2 n)) n) nat)]
-           [(native-nat-param name)
-            (let ([a (hashtable-cell param-ht name #f)])
-              (if (cdr a)
-                  (or (= (cdr a) nat)
-                      (begin
-                        (set! failed-unification (format "~a previously matched to ~a" name (cdr a)))
-                        #f))
-                  (begin
-                    (set-cdr! a nat)
-                    #t)))]))
-       (define (verify-native-type native-type type)
-         (let ([type (de-alias type #f)])
-           (native-type-case native-type
-             [(native-type-boolean)
-              (nanopass-case (Ltypes Type) type
-                [(tboolean ,src) #t]
-                [else #f])]
-             [(native-type-field)
-              (nanopass-case (Ltypes Type) type
-                [(tfield ,src) #t]
-                [else #f])]
-             [(native-type-unsigned native-nat)
-              (nanopass-case (Ltypes Type) type
-                [(tunsigned ,src ,nat) (verify-native-nat native-nat nat #t)]
-                [else #f])]
-             [(native-type-bytes native-nat)
-              (nanopass-case (Ltypes Type) type
-                [(tbytes ,src ,len)
-                 (verify-native-nat native-nat len #f)]
-                [else #f])]
-             [(native-type-vector native-nat native-type)
-              (nanopass-case (Ltypes Type) type
-                [(tvector ,src ,len ,type)
-                 (and (verify-native-nat native-nat len #f)
-                      (verify-native-type native-type type))]
-                [else #f])]
-             [(native-type-struct native-type*)
-              (nanopass-case (Ltypes Type) type
-                [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
-                 (and (= (length type*) (length native-type*))
-                      (andmap verify-native-type native-type* type*))]
-                [else #f])]
-             [(native-type-alias name)
-              (nanopass-case (Ltypes Type) type
-                [(talias ,src^ ,nominal? ,type-name ,type) (eq? type-name name)]
-                [else #f])]
-             [(native-type-param name)
-              (let ([a (hashtable-cell param-ht name #f)])
-                (if (cdr a)
-                    (or (sametype? type (cdr a))
-                        (begin
-                          (set! failed-unification (format "~a previously matched to ~a" name (format-type (cdr a))))
-                          #f))
-                    (begin
-                      (set-cdr! a type)
-                      #t)))]
-             [(native-type-void)
-              (nanopass-case (Ltypes Type) type
-                [(ttuple ,src) #t]
-                [else #f])]
-             [(native-type-opaque string)
-              (nanopass-case (Ltypes Type) type
-                [(topaque ,src ,opaque-type) (string=? string opaque-type)]
-                [else #f])])))
-       (for-each
-         (lambda (native-type type argno)
-           (unless (verify-native-type native-type type)
-             (source-errorf src "mismatch between declared type ~a and expected type ~a for ~:r argument of native ~s~@[ (~a)~]"
-                            (format-type type)
-                            (format-native-type native-type)
-                            (fx+ argno 1)
-                            (id-sym function-name)
-                            failed-unification)))
-         (native-entry-argument-types native-entry)
-         (map arg->type arg*)
-         (enumerate arg*))
-       (let ([native-type (native-entry-result-type native-entry)])
-         (unless (verify-native-type native-type type)
-           (source-errorf src "mismatch between declared type ~a and expected type ~a for return value of native ~a~@[ (~a)~]"
-                          (format-type type)
-                          (format-native-type native-type)
-                          (id-sym function-name)
-                          failed-unification)))
-       (build-function 'circuit function-name arg* type)]
+       (build-function 'circuit #f function-name arg* type)]
+      [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
+       (build-function (native-entry-class native-entry) #t function-name arg* type)]
       [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
        (when (contains-contract? type)
          (source-errorf src "invalid type ~a for witness ~a return value:\n  witness return values cannot include contract values"
                         (format-type type)
                         (id-sym function-name)))
-       (build-function 'witness function-name arg* type)]
+       (build-function 'witness #f function-name arg* type)]
       [(public-ledger-declaration ,src ,ledger-field-name ,[type])
        (unless (public-adt? type)
          (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
@@ -2309,9 +2240,9 @@
            (enumerate arg*)))
        (let-values ([(expr return-type) (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)])
          `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
-    (External-Declaration : External-Declaration (ir) -> External-Declaration ()
-      [(external ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
-       `(external ,src ,function-name ,native-entry (,arg* ...) ,type)])
+    (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
+      [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
+       `(native ,src ,function-name ,native-entry (,arg* ...) ,type)])
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
       [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
        `(witness ,src ,function-name (,arg* ...) ,type)])
@@ -2432,7 +2363,7 @@
       [(var-ref ,src ,var-name)
        (Idtype-case (get-idtype src var-name)
          [(Idtype-Base type) (check-result-type src `(var-ref ,src ,var-name) type)]
-         [(Idtype-Function kind arg-name* arg-type* return-type)
+         [(Idtype-Function kind is-native arg-name* arg-type* return-type)
           ; can't happen if expand-modules-and-types is doing its job
           (source-errorf src "invalid context for reference to ~s name ~s"
                          kind
@@ -2442,7 +2373,7 @@
          `(ledger-ref ,src ,ledger-field-name)
          (Idtype-case (get-idtype src ledger-field-name)
            [(Idtype-Base type) type]
-           [(Idtype-Function kind arg-name* arg-type* return-type)
+           [(Idtype-Function kind is-native arg-name* arg-type* return-type)
             ; can't happen if expand-modules-and-types is doing its job
             (source-errorf src "invalid context for reference to ~s name ~s"
                            kind
@@ -2499,7 +2430,7 @@
          `(var-ref ,src ,var-name)
          (Idtype-case (get-idtype src var-name)
            [(Idtype-Base type) type]
-           [(Idtype-Function kind arg-name* arg-type* return-type)
+           [(Idtype-Function kind is-native arg-name* arg-type* return-type)
             ; can't happen if expand-modules-and-types is doing its job
             (source-errorf src "invalid context for reference to ~s name ~s"
                            kind
@@ -2509,7 +2440,7 @@
          `(ledger-ref ,src ,ledger-field-name)
          (Idtype-case (get-idtype src ledger-field-name)
            [(Idtype-Base type) type]
-           [(Idtype-Function kind arg-name* arg-type* return-type)
+           [(Idtype-Function kind is-native arg-name* arg-type* return-type)
             ; can't happen if expand-modules-and-types is doing its job
             (source-errorf src "invalid context for reference to ~s name ~s"
                            kind
@@ -2828,16 +2759,15 @@
        (let-values ([(expr1 type1) (Care expr1)])
          (let-values ([(len elt-type) (vector-element-type src "for 'of' expression" type1)])
            (set-idtype! var-name (Idtype-Base elt-type))
-           (let-values ([(expr2 type2) (Care expr2)])
+           (let ([expr2 (CareNot expr2)])
              (unset-idtype! var-name)
              (values
                `(fold ,src ,len
                   ,(let ([t (make-temp-id src 't)])
-                     (with-output-language (Ltypes Function)
-                       `(circuit ,src ((,t (ttuple ,src))
-                                       (,var-name ,elt-type))
-                                 (ttuple ,src)
-                                 (seq ,src ,expr2 (var-ref ,src ,t)))))
+                     `(circuit ,src ((,t (ttuple ,src))
+                                     (,var-name ,elt-type))
+                               (ttuple ,src)
+                               (seq ,src ,expr2 (var-ref ,src ,t))))
                   ((tuple ,src) (ttuple ,src))
                   (,expr1 ,type1 ,elt-type))
                (with-output-language (Ltypes Type)
@@ -3181,6 +3111,16 @@
        (values
          `(disclose ,src ,expr)
          type)]
+      [(return ,src)
+       (assert current-return-type)
+       (let ([type (with-output-language (Ltypes Type) `(ttuple ,src))])
+         (unless (subtype? type current-return-type)
+           (source-errorf src "~a is declared to return a value of type ~a, but its body can return without supplying a value"
+                          current-whose-body
+                          (format-type current-return-type)))
+         (values
+           `(return ,src (tuple ,src))
+           type))]
       [(return ,src ,[Care : expr type])
        (assert current-return-type)
        (unless (subtype? type current-return-type)
@@ -3344,7 +3284,7 @@
       (define (ipelt->function-name ipelt)
         (nanopass-case (Loneledger Program-Element) (ipelt-pelt ipelt)
           [(circuit ,src ,function-name (,arg* ...) ,type ,expr) function-name]
-          [(external ,src ,function-name ,native-entry (,arg* ...) ,type) function-name]
+          [(native ,src ,function-name ,native-entry (,arg* ...) ,type) function-name]
           [(witness ,src ,function-name (,arg* ...) ,type) function-name]
           [else #f]))
       (define (exported? ipelt)
@@ -3731,7 +3671,7 @@
             (set-idtype! name (Idtype-Function kind var-name* type* type)))))
       [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
        (build-function 'circuit function-name arg* type)]
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (build-function 'circuit function-name arg* type)]
       [(witness ,src ,function-name (,arg* ...) ,type)
        (build-function 'witness function-name arg* type)]
@@ -4229,7 +4169,7 @@
   (define-pass check-sealed-fields : Lnodca (ir) -> Lnodca ()
     ; this pass complains if a sealed field can be modified by an exported circuit or any
     ; circuit that is reachable from an exported circuit.  we presently assume that no
-    ; witnesses or external circuits can modify any sealed fields.
+    ; witnesses or natives can modify any sealed fields.
     (definitions
       (define-condition-type &sealed-condition &condition
         make-sealed-condition sealed-condition?
@@ -4433,7 +4373,7 @@
   (define-pass identify-pure-circuits : Lnodca (ir) -> Lnodca ()
     ; impure circuits are those that might touch public state, call any witnesses, or
     ; call any other impure circuits.  pure circuits are those that are not impure.
-    ; we presently assume that all external circuits are pure.
+    ; we presently assume that all native circuits are pure.
     (definitions
       (define-condition-type &impure-condition &condition
         make-impure-condition impure-condition?
@@ -4464,9 +4404,9 @@
               [(eq? result 'witness)
                (raise (make-impure-condition calling-function-name src
                         (format "calls witness ~s" (id-sym function-name))))]
-              [(eq? result 'impure-external)
+              [(eq? result 'native-witness)
                (raise (make-impure-condition calling-function-name src
-                        (format "calls impure external ~s" (id-sym function-name))))]
+                        (format "calls native witness ~s" (id-sym function-name))))]
               [(impure-condition? result) (raise-continuable result)]
               [(eq? result 'inprocess-circuit) (assert cannot-happen)] ; should have been caught by reject-recursive-circuits
               [else (assert cannot-happen)]))))
@@ -4484,10 +4424,10 @@
     (record-function-kind! : Program-Element (ir) -> * (void)
       [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
        (eq-hashtable-set! function-ht function-name expr)]
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (eq-hashtable-set! function-ht function-name
          (if (eq? (native-entry-class native-entry) 'witness)
-             'impure-external
+             'native-witness
              (begin
                (id-pure?-set! function-name #t)
                'pure-circuit)))]
@@ -4743,7 +4683,132 @@
                               (find-adt-op adt-op*))])))]))])))]))
 
   (define-pass track-witness-data : Lwithpaths (ir) -> Lwithpaths ()
+    ; track-witness-data is the so-called "witness-protection program" or WPP for short
+    ; that enforces explicit disclosure of witness values, i.e., values that come into a
+    ; contract via the constructor, exported circuit arguments, or witness return values
+    ; and are possibly disclosed (leaked) into the public ledger or (in the case of
+    ; witness return values only) into the output of an exported circuit.
     (definitions
+      ; the WPP is implemented as an abstract interpreter, and instances of the Abs datatype
+      ; represent abstract values.
+      ; invariant: each witness* is sorted by uid with no duplicates.
+      ; struct and tuple fields are tracked individually; array elements are tracked in the aggregate
+      (define-datatype Abs
+        (Abs-atomic witness*)
+        (Abs-boolean true? witness*)
+        (Abs-multiple abs*)
+        (Abs-single abs))
+
+      ; witness record instances represent witness values
+      (define-record-type witness
+        (nongenerative)
+        ; src is the location where a witness value enters the contract
+        ; src already distinguishes witnesses; the uid serves as an inexpensive sorting key and hash value
+        ; info is instance of a Witness-Info datatype
+        ; a path is simply a list pp* of path points; path* is a sorted nonempty list of paths without duplicates
+        ; two witness records can have the same src, uid, and info but different path*
+        (fields src uid info path*)
+        (protocol
+          (lambda (new)
+            (case-lambda
+              [(src uid info) (new src uid info '(()))]
+              [(src uid info path*)
+               (assert (not (null? path*)))
+               ; maintain invariant: path* is always sorted according to path<? and has no duplicates
+               (let ([path* (let ([path* (sort path<? path*)])
+                              (let loop ([path (car path*)] [path* (cdr path*)])
+                                (if (null? path*)
+                                    (list path)
+                                    (let ([path^ (car path*)] [path* (cdr path*)])
+                                      (if (same-path? path^ path)
+                                          (loop path path*)
+                                          (cons path (loop path^ path*)))))))])
+                 (new src uid info path*))]))))
+
+      (define-datatype Witness-Info
+        (Witness-Return-Value function-name)
+        (Constructor-Argument argument-name)
+        (Circuit-Argument function-name argument-name))
+
+      ; path point represents some interesting point along a data-flow path through the contract
+      (define-record-type path-point
+        (nongenerative)
+        ; src is the location of the point
+        ; description is a string describing the point, e.g., "the argument of transientHash"
+        ; exposure is a string describing the conversion, if any, made at the point, e.g., "a hash of",
+        ; and is "" if the point simply passes the unmodified witness value along
+        (fields src description exposure))
+
+      ; instances of the Fun datatype represent the different kinds of functions
+      (define-datatype Fun
+        (Fun-circuit src name var-name* expr uid)
+        (Fun-witness abs)
+        (Fun-native disclosure?* type))
+
+      ; instances of the Cell datatype represent different stages in the processing of a function call
+      (define-datatype Call
+        (Call-unprocessed)
+        (Call-inprocess)
+        (Call-processed abs))
+
+      #|
+      ; printing of abstract values, witnesses, and paths for debugging
+      (module (print-abs)
+        (define (indent op i) (unless (fx= i 0) (fprintf op "~vs" (fx* i 2) i)))
+        (define (print-info op i info)
+          (indent op i)
+          (Witness-Info-case info
+            [(Witness-Return-Value function-name)
+             (fprintf op "Witness-Return-Value ~s\n" (id-sym function-name))]
+            [(Constructor-Argument argument-name)
+             (fprintf op "Constructor-Argument ~s\n" (id-sym argument-name))]
+            [(Circuit-Argument function-name argument-name)
+             (fprintf op "Circuit-Argument ~s ~s\n" (id-sym function-name) (id-sym argument-name))]))
+        (define (print-description op i description)
+          (indent op i)
+          (fprintf op "~a\n" description))
+        (define (print-exposure op i exposure)
+          (indent op i)
+          (fprintf op "~a\n" exposure))
+        (define (print-path-point op i pp)
+          (indent op i)
+          (fprintf op "path-point ~a:\n" (format-source-object (path-point-src pp)))
+          (print-description op (fx+ i 1) (path-point-description pp))
+          (print-exposure op (fx+ i 1) (path-point-exposure pp)))
+        (define (print-path op i pp*)
+          (for-each
+            (lambda (pp) (print-path-point op i pp))
+            pp*))
+        (define (print-paths op i path*)
+          (for-each
+            (lambda (pp* n)
+              (indent op i)
+              (fprintf op "path ~d (length ~d):\n" n (length pp*))
+              (print-path op (fx+ i 1) pp*))
+            path*
+            (enumerate path*)))
+        (define (print-witness op i witness)
+          (indent op i)
+          (fprintf op "witness ~d ~a:\n" (witness-uid witness) (format-source-object (witness-src witness)))
+          (print-info op (fx+ i 1) (witness-info witness))
+          (print-paths op (fx+ i 1) (witness-path* witness)))
+        (define (print-abs op i abs)
+          (indent op i)
+          (Abs-case abs
+            [(Abs-atomic witness*)
+             (fprintf op "Abs-atomic:\n")
+             (for-each (lambda (witness) (print-witness op (fx+ i 1) witness)) witness*)]
+            [(Abs-boolean true? witness*)
+             (fprintf op "Abs-boolean ~a:\n" true?)
+             (for-each (lambda (witness) (print-witness op (fx+ i 1) witness)) witness*)]
+            [(Abs-multiple abs*)
+             (fprintf op "Abs-multiple:\n")
+             (for-each (lambda (abs) (print-abs op (fx+ i 1) abs)) abs*)]
+            [(Abs-single abs)
+             (fprintf op "Abs-single:\n")
+             (print-abs op (fx+ i 1) abs)])))
+      |#
+
       (define (uid-generator)
         (let ([uid 0])
           (lambda ()
@@ -4753,88 +4818,112 @@
       (define next-circuit-uid (uid-generator))
       (define next-witness-uid (uid-generator))
 
-      (define-datatype Witness-Info
-        (Witness-Return-Value function-name)
-        (Constructor-Argument argument-name)
-        (Circuit-Argument function-name argument-name))
+      ; function-ht: function name => Fun record
+      (define function-ht (make-eq-hashtable))
 
-      (define-datatype Path
-        (Path-null)
-        (Path-point src description exposure? path)
-        (Path-join path1 path2))
+      ; for purposes of path points, all standard library routines are treated as if they have
+      ; the same source location
+      (define (same-ppsrc? src1 src2)
+        (or (eq? src1 src2)
+            (and (stdlib-src? src1) (stdlib-src? src2))))
 
-      (define (add-path-point src description exposure? abs)
-        (define (add-to-witness witness)
-          (let ([path (witness-path witness)])
-            (if (let path-member? ([path path])
-                  (Path-case path
-                    [(Path-null) #f]
-                    [(Path-point src^ description^ exposure?^ path)
-                     (or (and (eq? src^ src)
-                              (equal? description^ description)
-                              (equal? exposure?^ exposure?))
-                          (path-member? path))]
-                    [(Path-join path1 path2) (or (path-member? path1) (path-member? path2))]))
-                witness
+      (define (ppsrc<? src1 src2)
+        (and (not (eq? src1 src2))
+             (not (stdlib-src? src1))
+             (or (stdlib-src? src2)
+                 (source-object<? src1 src2))))
+
+      ; add-path-point returns a new abs created adding by a new path point to the
+      ; paths of every witness contained within abs.  if the new path point is the same
+      ; as one already in a path, it is not added to the path.  this leads to faster
+      ; convergence of abstract values to fixed points.  it also leads to simpler though
+      ; less accurate error messages like "a hash of" instead of "a hash of a hash of
+      ; a hash of ...".
+      (define (add-path-point src description exposure abs)
+        ; if a standard library program point doesn't expose anything, there's nothing interesting
+        ; to say about it, so we drop it.
+        (if (and (equal? exposure "") (stdlib-src? src))
+            abs
+            (let ()
+              (define add-to-path
+                (let ([new-pp (make-path-point src description exposure)])
+                  (lambda (pp*)
+                    (if (ormap (lambda (pp)
+                                 (and (same-ppsrc? (path-point-src pp) src)
+                                      (string=? (path-point-description pp) description)
+                                      (string=? (path-point-exposure pp) exposure)))
+                               pp*)
+                        pp*
+                        (cons new-pp pp*)))))
+              (define (add-to-witness witness)
                 (make-witness
                   (witness-src witness)
                   (witness-uid witness)
                   (witness-info witness)
-                  (Path-point src description exposure? path)))))
-          (let add-path-point ([abs abs])
-            (Abs-case abs
-              [(Abs-atomic witness*) (Abs-atomic (map add-to-witness witness*))]
-              [(Abs-boolean true? witness*) (Abs-boolean true? (map add-to-witness witness*))]
-              [(Abs-multiple abs*) (Abs-multiple (map add-path-point abs*))]
-              [(Abs-single abs) (Abs-single (add-path-point abs))])))
+                  (map add-to-path (witness-path* witness))))
+              (let add-path-point ([abs abs])
+                (Abs-case abs
+                  [(Abs-atomic witness*) (Abs-atomic (map add-to-witness witness*))]
+                  [(Abs-boolean true? witness*) (Abs-boolean true? (map add-to-witness witness*))]
+                  [(Abs-multiple abs*) (Abs-multiple (map add-path-point abs*))]
+                  [(Abs-single abs) (Abs-single (add-path-point abs))])))))
 
       (define (add-path-binding var-name abs)
         (if (id-temp? var-name)
             abs
-            (add-path-point (id-src var-name) (format "the binding of ~a" (id-sym var-name)) #f abs)))
+            (add-path-point (id-src var-name) (format "the binding of ~a" (id-sym var-name)) "" abs)))
 
-      (define-record-type witness
-        (nongenerative)
-        ; src already distinguishes witnesses; the uid serves as an inexpensive sorting key and hash value
-        ; two witness records can have the same src, uid, and info but different path
-        (fields src uid info path))
+      (define (same-path-point? pp1 pp2)
+        (and (same-ppsrc? (path-point-src pp1) (path-point-src pp2))
+             (string=? (path-point-description pp1) (path-point-description pp2))
+             (string=? (path-point-exposure pp1) (path-point-exposure pp2))))
 
-      ; abstract values.
-      ; invariant: each witness* is sorted by uid with no duplicates.
-      ; struct and tuple fields are tracked individually; array elements are tracked in the aggregate
-      (define-datatype Abs
-        (Abs-atomic witness*)
-        (Abs-boolean true? witness*)
-        (Abs-multiple abs*)
-        (Abs-single abs))
+      (define (same-path? pp1* pp2*)
+        (and (fx= (length pp1*) (length pp2*))
+             ; paths are ordered and so are equivalent only if pairwise equivalent
+             (andmap same-path-point? pp1* pp2*)))
 
-      ; function-ht: function name => Fun record
-      (define-datatype Fun
-        (Fun-circuit src name var-name* expr uid)
-        (Fun-witness abs)
-        (Fun-external disclosure* type))
+      (define (same-paths? path1* path2*)
+        (and (fx= (length path1*) (length path2*))
+             ; path lists are sorted and so are equivalent only if pairwise equivalent
+             (andmap same-path? path1* path2*)))
 
-      (define function-ht (make-eq-hashtable))
+      ; NB: list<? treats any shorter list as less than any longer list.  this is
+      ; useful for sorting paths (with more direct problems first) and is more
+      ; efficient when the list lengths differ and the comparisons are expensive.
+      ;
+      ; elt-compare should take two arguments and return one of <, >, or = depending on
+      ; whether the first argument is <, >, or = to the second.  list<? could be written
+      ; to use a simple #t/#f less-than predicate, but it would have to call it twice
+      ; for every list element, which would be more expensive for expensive comparisons.
+      (define (list<? elt-compare x1* x2*)
+        (let ([n1 (length x1*)] [n2 (length x2*)])
+          (or (fx< n1 n2)
+              (and (fx= n1 n2)
+                   (let loop ([x1* x1*] [x2* x2*])
+                     (and (not (eq? x1* x2*)) ; quit when lists are null if not sooner
+                          (case (elt-compare (car x1*) (car x2*))
+                            [(<) #t]
+                            [(>) #f]
+                            [else (loop (cdr x1*) (cdr x2*))])))))))
 
-      ; call-ht: circuit uid + abs* => Call record
-      (define-datatype Call
-        (Call-unprocessed)
-        (Call-inprocess)
-        (Call-processed abs))
+      (define (string-compare s1 s2)
+        (cond
+          [(string=? s1 s2) '=]
+          [(string<? s1 s2) '<]
+          [else '>]))
 
-      (define (same-path? pathA pathB)
-        (Path-case pathA
-          [(Path-null) (Path-case pathB [(Path-null) #t] [else #f])]
-          [(Path-point srcA descriptionA exposureA? pathA)
-           (Path-case pathB
-             [(Path-point srcB descriptionB exposureB? pathB)
-              (and (eq? srcA srcB) (string=? descriptionA descriptionB) (equal? exposureA? exposureB?) (same-path? pathA pathB))]
-             [else #f])]
-          [(Path-join pathA1 pathA2)
-           (Path-case pathB
-             [(Path-join pathB1 pathB2)
-              (and (same-path? pathA1 pathB1) (same-path? pathA2 pathB2))]
-             [else #f])]))
+      (define (path<? pp1* pp2*)
+        (define (pp-compare pp1 pp2)
+          (let ([src1 (path-point-src pp1)] [src2 (path-point-src pp2)])
+            (cond
+              [(ppsrc<? src1 src2) '<]
+              [(ppsrc<? src2 src1) '>]
+              [else (case (string-compare (path-point-exposure pp1) (path-point-exposure pp2))
+                      [(<) '<]
+                      [(>) '>]
+                      [else (string-compare (path-point-description pp1) (path-point-description pp2))])])))
+        (list<? pp-compare pp1* pp2*))
 
       (define (merge-witnesses witness1* witness2*)
         ; invariant: witness1* and witness2* are sorted and have no duplicates
@@ -4848,11 +4937,12 @@
                  (let ([uid1 (witness-uid witness1)] [uid2 (witness-uid witness2)]) 
                    (cond
                      [(fx= uid1 uid2)
-                      (cons (let ([path1 (witness-path witness1)] [path2 (witness-path witness2)])
-                              (if (same-path? path1 path2)
-                                  witness1
-                                  (make-witness (witness-src witness1) uid1 (witness-info witness1)
-                                    (Path-join path1 path2))))
+                      (cons (let ([path1* (witness-path* witness1)] [path2* (witness-path* witness2)])
+                              (make-witness
+                                (witness-src witness1)
+                                uid1
+                                (witness-info witness1)
+                                (append path1* path2*)))
                             (merge-witnesses (cdr witness1*) (cdr witness2*)))]
                      [(fx< uid1 uid2) (cons witness1 (merge-witnesses (cdr witness1*) witness2*))]
                      [else (cons witness2 (merge-witnesses witness1* (cdr witness2*)))]))))]))
@@ -4869,7 +4959,7 @@
              (andmap (lambda (witness1 witness2)
                        (or (eq? witness1 witness2)
                            (and (fx= (witness-uid witness1) (witness-uid witness2))
-                                (same-path? (witness-path witness1) (witness-path witness2))
+                                (same-paths? (witness-path* witness1) (witness-path* witness2))
                                 (same-witnesses? (cdr witness1*) (cdr witness2*)))))
                      witness1*
                      witness2*)))
@@ -4984,7 +5074,7 @@
                                                        (add-path-point
                                                          src?
                                                          (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) (id-sym function-name))
-                                                         #f
+                                                         ""
                                                          abs))
                                                      abs*
                                                      (if (= (length abs*) 1) '(#f) (enumerate abs*)))
@@ -5005,19 +5095,19 @@
                        (set-cdr! a (Call-processed abs))
                        abs))))]
             [(Fun-witness abs) abs]
-            [(Fun-external disclosure* type)
-             (assert (fx= (length disclosure*) (length abs*)))
+            [(Fun-native disclosure?* type)
+             (assert (fx= (length disclosure?*) (length abs*)))
              (default-value type
                (fold-left
-                 (lambda (witness* abs disclosure i?)
-                   (if disclosure
+                 (lambda (witness* abs disclosure? i?)
+                   (if disclosure?
                        (merge-witnesses
-                         (abs->witnesses (if src? (add-path-point src? (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) (id-sym function-name)) disclosure abs) abs))
+                         (abs->witnesses (if src? (add-path-point src? (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) (id-sym function-name)) disclosure? abs) abs))
                          witness*)
                        witness*))
                  '()
                  abs*
-                 disclosure*
+                 disclosure?*
                  (if (= (length abs*) 1) '(#f) (enumerate abs*))))])))
 
       (define default-value
@@ -5073,12 +5163,6 @@
         (define-record-type via
           (nongenerative)
           (fields desc* exposure))
-        (define (remove-duplicates via*)
-          (if (null? via*)
-              '()
-              (let ([via (car via*)] [via* (cdr via*)])
-                (define (same-exposure? x) (equal? (via-exposure x) (via-exposure via)))
-                (cons via (remove-duplicates (remp same-exposure? via*))))))
         (parameterize ([parent-src src])
           (for-each
             (lambda (witness)
@@ -5097,22 +5181,28 @@
                                           (id-sym argument-name)
                                           (id-sym function-name)
                                           where)]))]
-                    [via* (remove-duplicates
-                            (let f ([path (witness-path witness)])
-                              (Path-case path
-                                [(Path-null) (list (make-via '() "the witness value"))]
-                                [(Path-point src description exposure? path)
-                                 (map (lambda (via)
-                                        (make-via
-                                          (if (stdlib-src? src)
-                                              (via-desc* via)
-                                              (cons (format "~a at ~a" description (format-source-object src))
-                                                    (via-desc* via)))
-                                          (if exposure?
-                                              (format "~a ~a" exposure? (via-exposure via))
-                                              (via-exposure via))))
-                                      (f path))]
-                                [(Path-join path1 path2) (append (f path1) (f path2))])))])
+                    [via* (map (lambda (pp*)
+                                 (make-via
+                                   (fold-right
+                                     (lambda (pp desc*)
+                                       (let ([src (path-point-src pp)])
+                                         (if (stdlib-src? src)
+                                             desc*
+                                             (cons (format "~a at ~a"
+                                                     (path-point-description pp)
+                                                     (format-source-object src))
+                                                   desc*))))
+                                     '()
+                                     pp*)
+                                   (fold-right
+                                     (lambda (pp exposure)
+                                       (let ([exposure^ (path-point-exposure pp)])
+                                         (if (equal? exposure^ "")
+                                             exposure
+                                             (format "~a ~a" exposure^ exposure))))
+                                     "the witness value"
+                                     pp*)))
+                               (witness-path* witness))])
                 (pending-errorf src
                   "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}"
                   witness-value
@@ -5128,6 +5218,7 @@
             (sort
               (lambda (w1 w2) (source-object<? (witness-src w1) (witness-src w2)))
               witness*))))
+
       (define (de-alias type)
         (nanopass-case (Lwithpaths Type) type
           [(talias ,src ,nominal? ,type-name ,type)
@@ -5146,16 +5237,15 @@
       [(circuit ,src ,function-name ((,var-name* ,type*) ...) ,type ,expr)
        (hashtable-set! function-ht function-name
          (Fun-circuit src function-name var-name* expr (next-circuit-uid)))]
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (hashtable-set! function-ht function-name
-         (Fun-external (native-entry-disclosures native-entry) type))]
+         (Fun-native (native-entry-disclosure* native-entry) type))]
       [(witness ,src ,function-name (,arg* ...) ,type)
        (hashtable-set! function-ht function-name
          (Fun-witness
            (default-value type
              (list (make-witness src (next-witness-uid)
-                     (Witness-Return-Value function-name)
-                     (Path-null))))))]
+                     (Witness-Return-Value function-name))))))]
       [,kdecl (void)]
       [,ldecl (void)]
       [,export-tdefn (void)]
@@ -5165,8 +5255,7 @@
        (when (id-exported? function-name)
          (let ([witness** (maplr (lambda (var-name)
                                    (list (make-witness (id-src var-name) (next-witness-uid)
-                                           (Circuit-Argument function-name var-name)
-                                           (Path-null))))
+                                           (Circuit-Argument function-name var-name))))
                                  var-name*)])
            (handle-call #f function-name (map default-value type* witness**) '() #t)))]
       [(public-ledger-declaration ,pl-array (constructor ,src ((,var-name* ,type*) ...) ,expr))
@@ -5177,8 +5266,7 @@
                 type*
                 (map (lambda (var-name)
                        (list (make-witness (id-src var-name) (next-witness-uid)
-                               (Constructor-Argument var-name)
-                               (Path-null))))
+                               (Constructor-Argument var-name))))
                      var-name*)))
          '()
          #f)]
@@ -5240,12 +5328,16 @@
 
       [(bytes-ref ,src ,type ,[* abs] ,[* abs^])
        (add-witnesses
-         (abs->witnesses abs^)
+         (abs->witnesses
+           (add-path-point src "the bytes-value reference" "the element selected by"
+             abs^))
          abs)]
 
       [(vector-ref ,src ,type ,[* abs] ,[* abs^])
        (add-witnesses
-         (abs->witnesses abs^)
+         (abs->witnesses
+           (add-path-point src "the vector or tuple reference" "the element selected by"
+             abs^))
          (Abs-case abs
            [(Abs-single abs) abs]
            ; Eventually all vector-ref indices must reduce to constants, so this is overly restrictive.
@@ -5261,12 +5353,16 @@
 
       [(bytes-slice ,src ,type ,[* abs] ,[* abs^] ,len)
        (add-witnesses
-         (abs->witnesses abs^)
+         (abs->witnesses
+           (add-path-point src "the bytes-value slice" "the elements selected by"
+             abs^))
          abs)]
 
       [(vector-slice ,src ,type ,[* abs] ,[* abs^] ,len)
        (add-witnesses
-         (abs->witnesses abs^)
+         (abs->witnesses
+           (add-path-point src "the vector or tuple slice" "the elements selected by"
+             abs^))
          (Abs-single
            (Abs-case abs
              [(Abs-single abs) abs]
@@ -5424,7 +5520,7 @@
                                     (if sugar?
                                         (format "the right-hand side of ~a" sugar?)
                                         (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) ledger-op))
-                                    (and (not (string=? discloses? "")) discloses?)
+                                    discloses?
                                     abs))])
                   (unless (null? witness*)
                     (record-leak! src^ "ledger operation" witness*)))))
@@ -5508,6 +5604,7 @@
 
   (define-passes fixup-analysis-passes
     (expand-modules-and-types        Lexpanded)
+    (generate-contract-ht            Lexpanded)
     (infer-types                     Ltypes))
 
   (define-checker check-types/Lnodca Lnodca)

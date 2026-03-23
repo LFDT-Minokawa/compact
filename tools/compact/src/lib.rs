@@ -29,7 +29,8 @@ pub mod utils;
 pub use self::{
     command_line_arguments::{
         CheckCommand, CleanCommand, Command, CommandLineArguments, CompactUpdateConfig,
-        FixupCommand, FormatCommand, ListCommand, SSelf, Target, UpdateCommand,
+        CompileCommand, FixupCommand, FormatCommand, ListCommand, SSelf, Target, UpdateCommand,
+        VersionSpec,
     },
     compact_directory::CompactDirectory,
     compiler::Compiler,

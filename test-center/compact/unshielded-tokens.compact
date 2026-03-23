@@ -54,3 +54,45 @@ export circuit getUnshieldedBalanceGtTest(color: Bytes<32>, amount: Uint<128>): 
 export circuit getUnshieldedBalanceLtTest(color: Bytes<32>, amount: Uint<128>): Boolean {
   return unshieldedBalanceLt(disclose(color), disclose(amount));
 }
+
+// Shielded token test circuits
+
+export circuit mintShieldedToSelfTest(domainSep: Bytes<32>, value: Uint<64>, nonce: Bytes<32>): ShieldedCoinInfo {
+  return mintShieldedToken(disclose(domainSep), disclose(value), disclose(nonce), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+}
+
+export circuit mintShieldedToContractTest(domainSep: Bytes<32>, value: Uint<64>, nonce: Bytes<32>, address: ContractAddress): ShieldedCoinInfo {
+  return mintShieldedToken(disclose(domainSep), disclose(value), disclose(nonce), right<ZswapCoinPublicKey, ContractAddress>(disclose(address)));
+}
+
+export circuit mintShieldedToUserTest(domainSep: Bytes<32>, value: Uint<64>, nonce: Bytes<32>, publicKey: ZswapCoinPublicKey): ShieldedCoinInfo {
+  return mintShieldedToken(disclose(domainSep), disclose(value), disclose(nonce), left<ZswapCoinPublicKey, ContractAddress>(disclose(publicKey)));
+}
+
+export circuit receiveShieldedTest(coin: ShieldedCoinInfo): [] {
+  receiveShielded(disclose(coin));
+}
+
+export circuit sendShieldedToSelfTest(input: QualifiedShieldedCoinInfo, value: Uint<128>): ShieldedSendResult {
+  return sendShielded(disclose(input), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()), disclose(value));
+}
+
+export circuit sendShieldedToContractTest(input: QualifiedShieldedCoinInfo, address: ContractAddress, value: Uint<128>): ShieldedSendResult {
+  return sendShielded(disclose(input), right<ZswapCoinPublicKey, ContractAddress>(disclose(address)), disclose(value));
+}
+
+export circuit sendShieldedToUserTest(input: QualifiedShieldedCoinInfo, publicKey: ZswapCoinPublicKey, value: Uint<128>): ShieldedSendResult {
+  return sendShielded(disclose(input), left<ZswapCoinPublicKey, ContractAddress>(disclose(publicKey)), disclose(value));
+}
+
+export circuit sendImmediateShieldedToSelfTest(input: ShieldedCoinInfo, value: Uint<128>): ShieldedSendResult {
+  return sendImmediateShielded(disclose(input), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()), disclose(value));
+}
+
+export circuit sendImmediateShieldedToContractTest(input: ShieldedCoinInfo, address: ContractAddress, value: Uint<128>): ShieldedSendResult {
+  return sendImmediateShielded(disclose(input), right<ZswapCoinPublicKey, ContractAddress>(disclose(address)), disclose(value));
+}
+
+export circuit sendImmediateShieldedToUserTest(input: ShieldedCoinInfo, publicKey: ZswapCoinPublicKey, value: Uint<128>): ShieldedSendResult {
+  return sendImmediateShielded(disclose(input), left<ZswapCoinPublicKey, ContractAddress>(disclose(publicKey)), disclose(value));
+}

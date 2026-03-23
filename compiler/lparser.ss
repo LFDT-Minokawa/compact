@@ -61,7 +61,6 @@
       ldecl
       lconstructor
       cdefn
-      edecl
       wdecl
       ecdecl
       structdef
@@ -124,10 +123,6 @@
     (Circuit-Definition (cdefn)
       (circuit src (maybe kwd-export?) (maybe kwd-pure?) kwd function-name (maybe generic-param-list?) parg-list return-type blck) =>
         (circuit kwd-export? kwd-pure? function-name generic-param-list? parg-list 4 return-type #f blck)
-      )
-    (External-Declaration (edecl)
-      (external src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) arg-list return-type semicolon) =>
-        (external kwd-export? function-name generic-param-list? arg-list 4 return-type)
       )
     (Witness-Declaration (wdecl)
       (witness src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) arg-list return-type semicolon) =>
@@ -203,7 +198,7 @@
       (const src kwd (cbinding cbinding* ...) (comma* ...) semicolon) => (const #f cbinding #f cbinding* ...)
       (if src kwd lparen expr rparen stmt1 kwd-else stmt2) => (if expr 3 stmt1 3 stmt2)
       (if src kwd lparen expr rparen stmt) => (if expr 3 stmt)
-      (for src kwd lparen kwd-const var-name kwd-of start dotdot end rparen stmt) => (for var-name start end #f stmt)
+      (for src kwd lparen kwd-const var-name kwd-of tsize0 dotdot tsize1 rparen stmt) => (for var-name tsize0 tsize1 #f stmt)
       (for src kwd lparen kwd-const var-name kwd-of expr rparen stmt) => (for var-name expr #f stmt)
       blck
       )

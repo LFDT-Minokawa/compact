@@ -339,7 +339,7 @@
                              ,(circuit-type circuit)
                              ,(circuit-expr circuit))
                           pelt*)))]
-                 [,edecl (cons (External-Declaration edecl) pelt*)]
+                 [,ndecl (cons (Native-Declaration ndecl) pelt*)]
                  [,wdecl (cons (Witness-Declaration wdecl) pelt*)]
                  [,kdecl (cons (Kernel-Declaration kdecl) pelt*)]
                  [,ldecl (cons (Ledger-Declaration ldecl) pelt*)]))
@@ -351,7 +351,7 @@
        (hashtable-set! circuit-ht function-name
          (make-circuit src function-name arg* type expr))]
       [else (void)])
-    (External-Declaration : External-Declaration (ir) -> External-Declaration ())
+    (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ())
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ())
     (Ledger-Declaration : Ledger-Declaration (ir) -> Ledger-Declaration ())
     (Kernel-Declaration : Kernel-Declaration (ir) -> Kernel-Declaration ())
@@ -557,7 +557,7 @@
             (set-idtype! name (Idtype-Function kind var-name* type* type)))))
       [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
        (build-function 'circuit function-name arg* type)]
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (build-function 'circuit function-name arg* type)]
       [(witness ,src ,function-name (,arg* ...) ,type)
        (build-function 'witness function-name arg* type)]
@@ -2256,17 +2256,17 @@
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
-       ; like map but arranges to process external declarations first
-       ; so that their fun-ht entries are available before processing
-       ; any circuits
        `(program ,src ((,export-name* ,name*) ...)
+          ; like map but arranges to process native and witness declarations first
+          ; so that their fun-ht entries are available before processing
+          ; any circuits
           ,(let f ([pelt* pelt*])
              (if (null? pelt*)
                '()
                (let ([pelt (car pelt*)] [pelt* (cdr pelt*)])
                  (cond
-                   [(Lcircuit-External-Declaration? pelt)
-                    (let ([pelt (External-Declaration pelt)])
+                   [(Lcircuit-Native-Declaration? pelt)
+                    (let ([pelt (Native-Declaration pelt)])
                       (cons pelt (f pelt*)))]
                    [(Lcircuit-Witness-Declaration? pelt)
                     (let ([pelt (Witness-Declaration pelt)])
@@ -2282,11 +2282,11 @@
                       (cons (Ledger-Declaration pelt) pelt*))]
                    [else (assert cannot-happen)]))))
           ...)])
-    (External-Declaration : External-Declaration (ir) -> External-Declaration ()
-      [(external ,src ,function-name ,native-entry ((,var-name* ,[Type->Wump : type* -> * wump*]) ...) ,[Type->Wump : type -> * wump])
+    (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
+      [(native ,src ,function-name ,native-entry ((,var-name* ,[Type->Wump : type* -> * wump*]) ...) ,[Type->Wump : type -> * wump])
        (let ([arg* (map do-argument var-name* type* wump*)] [primitive-type* (wump->elts wump)])
          (hashtable-set! fun-ht function-name wump)
-         `(external ,src ,function-name ,native-entry (,arg* ...) ,(build-type type primitive-type*)))])
+         `(native ,src ,function-name ,native-entry (,arg* ...) ,(build-type type primitive-type*)))])
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
       [(witness ,src ,function-name ((,var-name* ,[Type->Wump : type* -> * wump*]) ...) ,[Type->Wump : type -> * wump])
        (let ([arg* (map do-argument var-name* type* wump*)] [primitive-type* (wump->elts wump)])
@@ -2348,6 +2348,53 @@
       [,triv
        (hashtable-set! var-ht var-name (Triv triv))
        '()]
+      [(default ,type)
+       (letrec ([trivial (lambda (wump) (values wump '()))]
+                [do-type
+                  (lambda (type)
+                    (nanopass-case (Lcircuit Type) type
+                      [(tboolean ,src) (trivial (Wump-single 0))]
+                      [(tfield ,src) (trivial (Wump-single 0))]
+                      [(tunsigned ,src ,nat) (trivial (Wump-single 0))]
+                      [(tbytes ,src ,len)
+                       (trivial (Wump-bytes
+                                  (make-list
+                                    (quotient (+ len (- (field-bytes) 1)) (field-bytes))
+                                    0)))]
+                      [(topaque ,src ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
+                       (with-output-language (Lflattened Statement)
+                         (let ([t1 (make-new-id var-name)])
+                           (if (feature-zkir-v3)
+                               (values
+                                 (Wump-single t1)
+                                 (list `(= (,t1) (default ,opaque-type))))
+                               (let ([t2 (make-new-id var-name)])
+                                 (values
+                                   (Wump-vector (list (Wump-single t1) (Wump-single t2)))
+                                   (list `(= (,t1 ,t2) (default ,opaque-type))))))))]
+                      [(topaque ,src ,opaque-type) (trivial (Wump-single 0))]
+                      [(tvector ,src ,len ,type)
+                       (let-values ([(wump stmt*) (do-type type)])
+                         (values (Wump-vector (make-list len wump)) stmt*))]
+                      [(ttuple ,src ,type* ...)
+                       (let-values ([(wump* stmt*) (do-types type*)])
+                         (values (Wump-vector wump*) stmt*))]
+                      [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                       (let-values ([(wump* stmt*) (do-types type*)])
+                         (values (Wump-struct elt-name* wump*) stmt*))]
+                      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
+                       (trivial (Wump-single 0))]
+                      [else (assert cannot-happen)]))]
+                [do-types
+                  (lambda (type*)
+                    (if (null? type*)
+                        (values '() '())
+                        (let-values ([(wump instr0*) (do-type (car type*))]
+                                     [(wump* instr1*) (do-types (cdr type*))])
+                          (values (cons wump wump*) (append instr0* instr1*)))))])
+         (let-values ([(wump stmt*) (do-type type)])
+           (hashtable-set! var-ht var-name wump)
+           stmt*))]
       [(+ ,mbits ,[Single-Triv : triv1] ,[Single-Triv : triv2])
        (hashtable-set! var-ht var-name (Wump-single var-name))
        (with-output-language (Lflattened Statement)
@@ -2523,6 +2570,9 @@
            (with-output-language (Lflattened Statement)
              (list `(= (,var-name* ...)
                        (public-ledger ,src ,test ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op^ ,triv* ...))))))]
+      ; NB: the uses of Single-Triv and Single-Type will probably have to change with the
+      ; replacement of abstract contract values with contract addresses, since a contract address
+      ; might not fit into one field
       [(contract-call ,src ,[Single-Triv : test] ,elt-name (,[Single-Triv : triv] ,type) ,[* wump*] ...)
        (let-values ([(wump var-name*)
                      (wump-fold-right
@@ -2575,27 +2625,6 @@
                         (cons
                           (bytevector-uint-ref datum i (endianness little) j)
                           elt*)))))))])]
-      [(default ,type)
-       (let dowump ([type type])
-         (nanopass-case (Lcircuit Type) type
-           [(tboolean ,src) (Wump-single 0)]
-           [(tfield ,src) (Wump-single 0)]
-           [(tunsigned ,src ,nat) (Wump-single 0)]
-           [(tbytes ,src ,len)
-            (Wump-bytes
-              (make-list
-                (quotient (+ len (- (field-bytes) 1)) (field-bytes))
-                0))]
-           [(topaque ,src ,opaque-type) (Wump-single 0)]
-           [(tvector ,src ,len ,type)
-            (Wump-vector (make-list len (dowump type)))]
-           [(ttuple ,src ,type* ...)
-            (Wump-vector (map dowump type*))]
-           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-            (Wump-struct elt-name* (map dowump type*))]
-           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
-            (Wump-single 0)]
-           [else (assert cannot-happen)]))]
       [else (assert cannot-happen)])
     (Tuple-Argument : Tuple-Argument (ir) -> * (wump*)
       [(single ,src ,[* wump]) (list wump)]
@@ -2847,9 +2876,12 @@
       [(call ,src ,[FWD-Triv : test] ,function-name ,[FWD-Triv : triv*] ...)
        (with-output-language (Lflattened Statement)
          (cons `(= (,var-name* ...) (call ,src ,test ,function-name ,triv* ...)) rstmt*))]
-      [(contract-call ,src ,[FWD-Triv : test] ,elt-name (,triv ,primitive-type) ,[FWD-Triv : triv*] ...)
+      [(contract-call ,src ,[FWD-Triv : test] ,elt-name (,[FWD-Triv : triv] ,primitive-type) ,[FWD-Triv : triv*] ...)
        (with-output-language (Lflattened Statement)
          (cons `(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...)) rstmt*))]
+      [(default ,opaque-type)
+       (with-output-language (Lflattened Statement)
+         (cons `(= (,var-name* ...) (default ,opaque-type)) rstmt*))]
       [(field->bytes ,src ,[FWD-Triv : test] ,len ,[FWD-Triv : triv])
        (assert (fx= (length var-name*) 2))
        (assert (not (= len 0)))
@@ -3107,8 +3139,13 @@
        (cons `(= ,var-name ,single) stmt*)]
       [(= (,var-name* ...) (call ,src ,[BWD-Triv : test] ,function-name ,[BWD-Triv : triv*] ...))
        (cons `(= (,var-name* ...) (call ,src ,test ,function-name ,triv* ...)) stmt*)]
-      [(= (,var-name* ...) (contract-call ,src ,[BWD-Triv : test] ,elt-name (,triv ,primitive-type) ,[BWD-Triv : triv*] ...))
+      [(= (,var-name* ...) (contract-call ,src ,[BWD-Triv : test] ,elt-name (,[BWD-Triv : triv] ,primitive-type) ,[BWD-Triv : triv*] ...))
        (cons `(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...)) stmt*)]
+      [(= (,var-name* ...) (default ,opaque-type))
+       (guard (andmap (lambda (var-name) (not (hashtable-contains? ref-ht var-name))) var-name*))
+       stmt*]
+      [(= (,var-name* ...) (default ,opaque-type))
+       (cons `(= (,var-name* ...) (default ,opaque-type)) stmt*)]
       [(= (,var-name1 ,var-name2) (field->bytes ,src ,test ,len ,triv))
        (guard
          (>= len (field-bytes))
@@ -3187,12 +3224,14 @@
       (define (arg->types arg)
         (nanopass-case (Lflattened Argument) arg
           [(argument (,var-name* ...) ,type) (type->primitive-types type)]))
-      (define (format-type type)
+      (define (format-primitive-type primitive-type)
+        (define (format-type type)
+          (format "(~{~a~^, ~})" (map format-primitive-type (type->primitive-types type))))
         (define (format-adt-arg adt-arg)
           (nanopass-case (Lflattened Public-Ledger-ADT-Arg) adt-arg
             [,nat (format "~d" nat)]
-            [,type (format "(~{~a~^, ~})" (map format-type (type->primitive-types type)))]))
-        (nanopass-case (Lflattened Primitive-Type) type
+            [,type (format-type type)]))
+        (nanopass-case (Lflattened Primitive-Type) primitive-type
           [(tfield) "Field"]
           [(tfield ,nat) (format "Field[~s]" nat)]
           [(topaque ,opaque-type) (format "Opaque<~s>" opaque-type)]
@@ -3207,14 +3246,19 @@
                   elt-name* pure-dcl* type** type*))]
           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
            (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]
-          [else (internal-errorf 'format-type "unexpected primitive type ~s" type)]))
+          [else (internal-errorf 'format-primitive-type "unexpected primitive type ~s" primitive-type)]))
       (define (subtype? type1 type2)
-        (T type1
+        (let ([primitive-type1* (type->primitive-types type1)]
+              [primitive-type2* (type->primitive-types type2)])
+          (and (fx= (length primitive-type1*) (length primitive-type2*))
+               (andmap subprimitivetype? primitive-type1* primitive-type2*))))
+      (define (subprimitivetype? primitive-type1 primitive-type2)
+        (T primitive-type1
            [(tfield)
-            (T type2
+            (T primitive-type2
                [(tfield) #t])]
            [(tfield ,nat1)
-            (T type2
+            (T primitive-type2
                [(tfield ,nat2) (<= nat1 nat2)]
                [(tfield) #t]
                ; tfield value 0 of type (tfield 0) is produced by default<Opaque<"type">>
@@ -3223,11 +3267,11 @@
                [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
                 (eqv? nat1 0)])]
            [(topaque ,opaque-type1)
-            (T type2
+            (T primitive-type2
                [(topaque ,opaque-type2)
                 (string=? opaque-type1 opaque-type2)])]
            [(tcontract ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-            (T type2
+            (T primitive-type2
                [(tcontract ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
                 (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
                   (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
@@ -3244,13 +3288,13 @@
                      (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
            ; this should never presently happen, since no Triv has type public-adt
            [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr1 (,adt-op1* ...))
-            (T type2
+            (T primitive-type2
                [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr2 (,adt-op2* ...))
                 #f])]))
       (define (type-error what declared-type type)
         (source-errorf program-src "mismatch between actual type ~a and expected type ~a for ~a"
-          (format-type type)
-          (format-type declared-type)
+          (format-primitive-type type)
+          (format-primitive-type declared-type)
           what))
       (define-syntax check-tfield
         (syntax-rules ()
@@ -3273,8 +3317,8 @@
                                (<= (fxmax 1 (integer-length nat)) mbits))))
               (source-errorf program-src "mismatched mbits ~s and types ~a and ~a for ~s"
                              mbits
-                             (format-type type1)
-                             (format-type type2)
+                             (format-primitive-type type1)
+                             (format-primitive-type type2)
                              op))
             type1)))
       (define (verify-test src test)
@@ -3284,7 +3328,7 @@
                     [else #f])
             (source-errorf src
                            "expected test to have type Boolean, received ~a"
-                           (format-type type)))))
+                           (format-primitive-type type)))))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -3296,7 +3340,7 @@
            (for-each Program-Element pelt*)
            ir))])
     (Set-Program-Element-Type! : Program-Element (ir) -> * (void)
-      [(external ,src ,function-name ,native-entry (,arg* ...) ,type)
+      [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
        (let ([var-name* (apply append (map arg->names arg*))]
              [arg-type* (apply append (map arg->types arg*))]
              [type* (type->primitive-types type)])
@@ -3317,10 +3361,10 @@
            (for-each Statement stmt*)
            (let ([actual-type* (map Triv triv*)])
              (unless (and (fx= (length actual-type*) (length type*))
-                          (andmap subtype? actual-type* type*))
+                          (andmap subprimitivetype? actual-type* type*))
                (source-errorf src "mismatch between actual return types ~a and declared return types ~a in ~a"
-                 (map format-type actual-type*)
-                 (map format-type type*)
+                 (map format-primitive-type actual-type*)
+                 (map format-primitive-type type*)
                  (symbol->string (id-sym function-name)))))))]
       [else (void)])
     (Statement : Statement (ir) -> * (void)
@@ -3332,7 +3376,7 @@
            (let ([nactual (length actual-type*)])
              (lambda (arg-type*)
                (and (= (length arg-type*) nactual)
-                    (andmap subtype? actual-type* arg-type*)))))
+                    (andmap subprimitivetype? actual-type* arg-type*)))))
          (Idtype-case (get-idtype function-name)
            [(Idtype-Function kind arg-name* arg-type* return-type*)
             (unless (compatible? arg-type*)
@@ -3343,9 +3387,9 @@
                              declared argument types:\n      \
                              ~a: (~{~a~^, ~})"
                 (symbol->string (id-sym function-name))
-                (map format-type actual-type*)
+                (map format-primitive-type actual-type*)
                 (format-source-object (id-src function-name))
-                (map format-type arg-type*)))
+                (map format-primitive-type arg-type*)))
             (for-each
               (lambda (var-name type)
                 (set-idtype! var-name (Idtype-Base type)))
@@ -3373,13 +3417,13 @@
                                            contract-name elt-name ndeclared nactual)))
                         (for-each
                           (lambda (declared-type actual-type i)
-                            (unless (subtype? actual-type declared-type)
+                            (unless (subprimitivetype? actual-type declared-type)
                               (source-errorf src "expected ~:r argument of ~s.~s to have type ~a but received ~a"
                                              (fx1+ i)
                                              contract-name
                                              elt-name
-                                             (format-type declared-type)
-                                             (format-type actual-type))))
+                                             (format-primitive-type declared-type)
+                                             (format-primitive-type actual-type))))
                           declared-type* actual-type* (enumerate declared-type*))
                         (for-each
                           (lambda (var-name type)
@@ -3388,7 +3432,18 @@
                           return-type*))
                       (loop (cdr elt-name*) (cdr type**) (cdr type*)))))]
            [else (source-errorf src "expected primitive type tcontract for contract call, received ~a"
-                                (format-type primitive-type))]))]
+                                (format-primitive-type primitive-type))]))]
+      [(= (,var-name* ...) (default ,opaque-type))
+       (guard (string=? opaque-type "JubjubPoint"))
+       (with-output-language (Lflattened Primitive-Type)
+         (if (feature-zkir-v3)
+             (begin
+               (assert (= (length var-name*) 1))
+               (set-idtype! (car var-name*) (Idtype-Base `(topaque "JubjubPoint"))))
+             (begin
+               (assert (= (length var-name*) 2))
+               (set-idtype! (car var-name*) (Idtype-Base `(tfield)))
+               (set-idtype! (cadr var-name*) (Idtype-Base `(tfield))))))]
       [(= (,var-name1 ,var-name2) (field->bytes ,src ,test ,len ,[* type]))
        (verify-test src test)
        (check-tfield (format "argument to field->bytes at ~a" (format-source-object src)) type)
@@ -3413,7 +3468,7 @@
               (let ([nactual (length actual-type*)])
                 (lambda (arg-type*)
                   (and (= (length arg-type*) nactual)
-                       (andmap subtype? actual-type* arg-type*)))))
+                       (andmap subprimitivetype? actual-type* arg-type*)))))
             (unless (compatible? arg-type*)
               (source-errorf src
                              "incompatible arguments for ledger.~a.~a;\n    \
@@ -3423,8 +3478,8 @@
                              (~{~a~^, ~})"
                          (id-sym ledger-field-name)
                          ledger-op
-                         (map format-type actual-type*)
-                         (map format-type arg-type*)))
+                         (map format-primitive-type actual-type*)
+                         (map format-primitive-type arg-type*)))
             (for-each
               (lambda (var-name type)
                 (set-idtype! var-name (Idtype-Base type)))
@@ -3450,28 +3505,28 @@
                         maybe-nat2
                         (<= (fxmax 1 (integer-length (max maybe-nat1 maybe-nat2))) mbits))
              (source-errorf program-src "incompatible types ~a and ~a for relational operator"
-                (format-type type1)
-                (format-type type2)))
+                (format-primitive-type type1)
+                (format-primitive-type type2)))
              (with-output-language (Lflattened Primitive-Type) `(tfield 1))))]
       [(== ,[* type1] ,[* type2])
-       (unless (or (subtype? type1 type2)
-                   (subtype? type2 type1))
+       (unless (or (subprimitivetype? type1 type2)
+                   (subprimitivetype? type2 type1))
         ; the error message say "equality operator" here rather than "==" to avoid misleading
         ; type-mismatch messages for !=, which gets converted to == earlier in the compiler.
         (source-errorf program-src "incompatible types ~a and ~a for equality operator"
-                 (format-type type1)
-                 (format-type type2)))
+                 (format-primitive-type type1)
+                 (format-primitive-type type2)))
        (with-output-language (Lflattened Primitive-Type) `(tfield 1))]
       [(select ,[* type0] ,[* type1] ,[* type2])
        (unless (nanopass-case (Lflattened Primitive-Type) type0 [(tfield ,nat) (<= nat 1)] [else #f])
          (source-errorf program-src "expected select test to have type Boolean, received ~a"
-                 (format-type type0)))
+                 (format-primitive-type type0)))
        (cond
-         [(subtype? type1 type2) type2]
-         [(subtype? type2 type1) type1]
+         [(subprimitivetype? type1 type2) type2]
+         [(subprimitivetype? type2 type1) type1]
          [else (source-errorf program-src "mismatch between type ~a and type ~a of condition branches"
-                       (format-type type1)
-                       (format-type type2))])
+                       (format-primitive-type type1)
+                       (format-primitive-type type2))])
        type1]
       [(bytes-ref ,[* type] ,nat)
        (unless (< nat (field-bytes))
@@ -3484,18 +3539,18 @@
        (nanopass-case (Lflattened Primitive-Type) type1
          [(tfield ,nat) #t]
          [else (source-errorf src "unexpected ~a of first argument to bytes->field"
-                              (format-type type1))])
+                              (format-primitive-type type1))])
        (nanopass-case (Lflattened Primitive-Type) type2
          [(tfield ,nat) #t]
          [else (source-errorf src "unexpected ~a of second argument to bytes->field"
-                              (format-type type2))])
+                              (format-primitive-type type2))])
        (with-output-language (Lflattened Primitive-Type) `(tfield))]
       [(vector->bytes ,triv ,triv* ...)
        (let* ([triv* (cons triv triv*)] [type* (map Triv triv*)])
          (let ([maybe-nat* (map (lambda (triv type) (check-tfield (format "argument ~a of vector->bytes" triv) type)) triv* type*)])
            (unless (andmap (lambda (maybe-nat) (<= maybe-nat 255)) maybe-nat*)
              (source-errorf program-src "incompatible types (~{~a~^, ~}) for vector->bytes"
-               (map format-type type*)))))
+               (map format-primitive-type type*)))))
        (with-output-language (Lflattened Primitive-Type) `(tfield ,(- (expt 256 (fx+ (length triv*) 1)) 1)))]
       [(downcast-unsigned ,src ,test ,nat ,[* type])
        (verify-test src test)

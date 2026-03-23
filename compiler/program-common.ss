@@ -18,13 +18,17 @@
           print-usage
           print-compiler-version
           print-language-version
+          print-ledger-version
+          print-runtime-version
           check-pathname
           handle-exceptions)
   (import (except (chezscheme) errorf)
           (utils)
           (state-case)
           (compiler-version)
-          (language-version))
+          (language-version)
+          (ledger-version)
+          (runtime-version))
 
   (define usage (make-parameter #f))
 
@@ -46,6 +50,16 @@
     (fprintf (current-output-port)
              "~a\n"
              language-version-string))
+
+  (define (print-runtime-version)
+    (fprintf (current-output-port)
+             "~a\n"
+             runtime-version-string))
+
+  (define (print-ledger-version zkir-v3)
+    (fprintf (current-output-port)
+             "~a\n"
+             (cdr (assoc (if zkir-v3 "zkir-v3" "zkir-v2") ledger-version-strings))))
 
   (define (check-pathname pathname)
     (when (and (>= (string-length pathname) 1)

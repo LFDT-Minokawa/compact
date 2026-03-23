@@ -70,11 +70,6 @@
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
              [parg* (Pattern-Argument-List parg-list)])
          `(circuit ,src ,(and kwd-export? #t) ,(and kwd-pure? #t) ,(token-value function-name) (,type-param* ...) (,parg* ...) ,type ,blck))])
-    (External-Declaration : External-Declaration (ir) -> External-Declaration ()
-      [(external ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,[type] ,semicolon)
-       (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
-             [arg* (Argument-List arg-list)])
-         `(external ,src ,(and kwd-export? #t) ,(token-value function-name) (,type-param* ...) (,arg* ...) ,type))])
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
       [(witness ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,[type] ,semicolon)
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
@@ -139,7 +134,7 @@
       [(statement-expression ,src ,[expr] ,semicolon)
        `(statement-expression ,src ,expr)]
       [(return ,src ,kwd ,semicolon)
-       `(return ,src (tuple ,src))]
+       `(return ,src)]
       [(return ,src ,kwd ,[expr] ,semicolon)
        `(return ,src ,expr)]
       [(const ,src ,kwd (,[cbinding] ,[cbinding*] ...) (,comma* ...) ,semicolon)
@@ -148,17 +143,8 @@
        `(if ,src ,expr ,stmt1 ,stmt2)]
       [(if ,src ,kwd ,lparen ,[expr] ,rparen ,[stmt])
        `(if ,src ,expr ,stmt (statement-expression ,src (tuple ,src)))]
-      [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,start ,dotdot ,end ,rparen ,[stmt])
-       (let ([start (token-value start)] [end (token-value end)])
-         (define for-limit 1000)
-         (when (< end start)
-           (source-errorf src "end bound ~d is less than start bound ~s" end start))
-         (let ([n (- end start)])
-           (when (> n for-limit)
-             (source-errorf src "difference ~s between end and start bounds is greater than the arbitrary compiler limit of ~s; use 'for ... in' syntax instead" (- end start) for-limit))
-           `(for ,src ,(token-value var-name)
-              (tuple ,src ,(map (lambda (i) `(single ,src (quote ,src ,(fx+ start i)))) (iota n)) ...)
-              ,stmt)))]
+      [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,[tsize0] ,dotdot ,[tsize1] ,rparen ,[stmt])
+       `(for ,src ,(token-value var-name) ,tsize0 ,tsize1 ,stmt)]
       [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,[expr] ,rparen ,[stmt])
        `(for ,src ,(token-value var-name) ,expr ,stmt)])
     (Expression : Expression (ir) -> Expression ()

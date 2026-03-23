@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v2';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
 import { MAX_FIELD } from './constants.js';
 import { CompactType, CompactTypeJubjubPoint, JubjubPoint } from './compact-types.js';
 import { CompactError } from './error.js';
@@ -162,12 +162,16 @@ export function upgradeFromTransient(x: bigint): Uint8Array {
   return res;
 }
 
-export function NativePointX(pt: JubjubPoint): bigint {
+export function jubjubPointX(pt: JubjubPoint): bigint {
   return pt.x;
 }
 
-export function NativePointY(pt: JubjubPoint): bigint {
+export function jubjubPointY(pt: JubjubPoint): bigint {
   return pt.y;
+}
+
+export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
+    return { x: x, y: y };
 }
 
 /**
