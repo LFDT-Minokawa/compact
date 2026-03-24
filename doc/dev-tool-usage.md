@@ -240,6 +240,62 @@ _targetpath_ specifies the target directory for the outputs of the compiler.
 Visit [the compiler usepage](compiler-usage.md) for a more detailed explanation
 of how to use it.
 
+If **+version** is specified (e.g. **+0.30.0**), `compact compile` uses that
+exact version of the toolchain to compile the program. If no version
+is specified, the default toolchain version (as set by compact update) is
+used. Partial version specifiers are not supported here; the version must be
+fully qualified (e.g. **+0.30.0**, not **+0.30**).
+If the requested toolchain version is not installed, compact compile will
+fail with an error.  Run compact update version first to install it.
+
+Assuming that Compact toolchain **0.26.0** and **0.30.0** are installed and 
+**0.26.0** is the defualt, running 
+
+```
+compact compile +0.27.0 --language-version
+```
+
+results in
+
+```
+Error: Failed to run compactc
+
+Caused by:
+    0: Couldn't find compiler for aarch64-darwin (0.27.0)
+    1: Directory does not exist
+```
+
+whereas 
+
+```
+compact compile --language-version
+```
+
+
+results in `0.18.0` (which is the corresponding language version for the 
+toolchain **0.26.0**) and
+
+```
+compact compile +0.30.0 --language-version
+```
+
+results in `0.22.0` (which is the corresponding language version for the 
+toolchain **0.30.0**).
+
+Running 
+
+```
+compact compile +version --help
+```
+
+returns the help text of the compiler for a specific version **+version** whereas
+
+```
+compact compile --help
+```
+
+returns the help text of specified in the Compact command-line tool for the compiler.
+
 The options in OPTIONS can be used with this command. **--directory
 _directorypath_** behaves the same as not using a command, but **--version**
 prints the version of the Compact toolchain and not of **compact** and
