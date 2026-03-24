@@ -3060,7 +3060,7 @@ Certain values to be stored in public state require size, length, and other
 properties to be maintained explicitly, because these properties cannot
 be determined solely from the JavaScript representation of the value.
 For this purpose, the `@midnight/compact-runtime` package provides explicit
-run-time types satisfying the `CompactType<`*T*`>` interface, where `T` is the
+run-time types satisfying the `CompactType<`*T*`>` interface, where *T* is the
 corresponding TypeScript type.
 This representation is *not* user-facing most of the time, except
 when replicating the behavior of the operations implemented
@@ -3072,11 +3072,11 @@ for a primitive type:
 - `Boolean` - `CompactTypeBoolean`
 - `Field` - `CompactTypeField`
 - `Uint<0..`*n*`>` - `new CompactTypeUnsignedInteger(`*n*`, `*length*`)`, where
-  *length* is the number of bytes required to store *n*
-- `Uint<`*n*`>` - same as `Uint<0..(2 ^ `*n*`)>`
+  *length* is the number of bytes required to store *n*-1
+- `Uint<`*n*`>` - same as `Uint<0..2<sup>*n*</sup>`>`
 - `Bytes<`*n*`>` - `new CompactTypeBytes(`*n*`)`
-- `Vector<`*n*`, `*T*`>` - `new CompactTypeVector(`*n*`, `*rt_T*`)`, where *rt_T* is the run-time
-  type of *T*
+- `Vector<`*n*`, `*T*`>` - `new CompactTypeVector(`*n*`, `*CT*`)`, where *CT* is the
+  `CompactType` for *T*
 - `Opaque<"String">` - `CompactTypeString`
 - `Opaque<"Uint8Array">` - `CompactTypeUint8Array`
 - `JubjubPoint` - `CompactTypeJubjubPoint`.
@@ -3088,7 +3088,7 @@ manually or using compiler internals.  Enumerations are exposed
 through `new CompactTypeEnum(`*maxValue*`, `*length*`)`, where *maxValue* is
 the maximum permissible integer assignable, and *length* its
 representation length in bytes (almost always `1`).
-
+<-- mention alias type--> <-- above doesn't cover tuple type that isn't a vector, has struct issue-->
 ## TypeScript target
 
 When compiled, a contract generates several artifacts. Key to these
