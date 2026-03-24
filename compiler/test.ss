@@ -64441,7 +64441,7 @@ groups than for single tests.
 )
 )
 
-; tests of code snippets in lang-ref
+; tests of code snippets in compact-reference
 (run-tests print-typescript
   ; change: " --> ' for message of assert
   (test
@@ -81097,7 +81097,7 @@ groups than for single tests.
         ))
     )
 
-  ; lang-ref
+  ; compact-reference
   (test
     '(
       "import CompactStandardLibrary;"
