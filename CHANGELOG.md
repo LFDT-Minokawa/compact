@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.30.103, language 0.22.101, runtime 0.15.101]
+
+### Changed
+
+- The language reference `doc/lang-ref.mdx` is now been fully revised and
+  is completely up-to-date with the Compact Version 1.0 language.  Grammar
+  snippets are automatically inserted into the document directly from parser.ss,
+  and several changes have been made to the presentation of the grammar to
+  make it more readable.
+
 ## [Toolchain 0.30.102, language 0.22.101, runtime 0.15.101]
 
 ### Changed
