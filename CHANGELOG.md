@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.30.104, language 0.22.101, runtime 0.15.101]
+
+### Changed
+
+- Renames `doc/lang-ref.mdx` and `compiler/lang-ref-proto.mdx` to
+  `doc/compact-reference.mdx` and `compiler/compact-reference-proto.mdx`,
+  respectively.  It also adopts some changes from midnight-docs PR changes
+  for lang-ref 1.0.
+
 ## [Toolchain 0.30.103, language 0.22.101, runtime 0.15.101]
 
 ### Changed

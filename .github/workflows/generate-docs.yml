@@ -98,7 +98,7 @@ jobs:
           git checkout -b compact-docs-update-${{ github.run_id }}
 
           cp ../doc/ledger-adt.mdx docs/compact/data-types
-          cp ../doc/lang-ref.mdx docs/compact/reference
+          cp ../doc/compact-reference.mdx docs/compact/reference
           cp ../doc/api/CompactStandardLibrary/exports.md docs/compact/standard-library
           cp ../doc/api/CompactStandardLibrary/README.md docs/compact/standard-library
           cp ../doc/compiler-usage.md docs/compact/compilation-and-tooling/compiler-usage.mdx
