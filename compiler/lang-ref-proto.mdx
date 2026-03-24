@@ -439,7 +439,7 @@ The following are the primitive types of Compact:
   be rewritten to one that uses only bounded integer types, but the converse is
   not true.
 
-- `Field` represents the set of unsigned intergers with values up to the order of
+- `Field` represents the set of unsigned integers with values up to the order of
   the native prime field of the ZK proving system.
   The current maximum field value is given in
   [Implementation-specific limits](#implementation-specific-limits).
@@ -1368,7 +1368,7 @@ the Compact [ledger data type documentation](ledger-adt).
 
 ### Nested state types in the `Map` type
 
-In most cases, legder-state types cannot be nested within other ledger-state types.
+In most cases, ledger-state types cannot be nested within other ledger-state types.
 However, while `Map` keys must have regular Compact types, `Map` values can have
 either regular Compact types or ledger-state types (except `Kernel`).
 
@@ -2593,7 +2593,7 @@ with an optional type annotation `:` *type*.
 Finally, *fun* can be a parenthesized function `(`*fun*`)`.
 
 Because circuits and witnesses are not first class, *fun* cannot be a variable
-name or arbitary expresison.
+name or arbitrary expression.
 
 Anonymous circuits cannot have generic parameters.
 Since they appear only in contexts where they are directly called, the circuit
@@ -2770,7 +2770,7 @@ Any cast not covered by one of the rules is not allowed.
   Upcasts are never required: it is always possible to use a value of type *T*
   as a value of a supertype of *T*.
 
-  This rule is straightfoward, but some implications regarding tuple and
+  This rule is straightforward, but some implications regarding tuple and
   vector types are worth noting:
 
   - Since `Vector<`*n*, *T*`>` is the same type as `[`*T*, ⋯, *T*`]` of length *n*,
@@ -3032,7 +3032,7 @@ More details are given in
 
 ## Run-time data representation
 
-The TypeScript represention of a Compact type is defined in [Representations
+The TypeScript representation of a Compact type is defined in [Representations
 in TypeScript](#representations-in-typescript).
 
 Compact represents values exactly as TypeScript represents values, i.e., as
