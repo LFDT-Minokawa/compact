@@ -271,7 +271,6 @@ whereas
 compact compile --language-version
 ```
 
-
 results in `0.18.0` (which is the corresponding language version for the 
 toolchain **0.26.0**) and
 
