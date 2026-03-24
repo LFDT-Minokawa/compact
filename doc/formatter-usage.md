@@ -93,5 +93,5 @@ Assuming **src/test.compact** contains an ill-formed Compact program
 format-compact src/test.compact
 ```
 
-throws an exception with the error that causes the Compact program in
-**src/test.compact** not to compile.
+exits with an error message describing the problem that prevents the
+Compact program in **src/test.compact** from compiling.

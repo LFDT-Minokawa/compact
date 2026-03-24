@@ -13,7 +13,7 @@ The Compact fixup takes as input a Compact source program in a specified source
 file, attempts to update it to account for recent changes in the Compact
 language, formats it, and writes the updated and reformatted program to a
 specified file.  If such a file is not specified, it writes the updated and
-formatted prgram to standard output.
+formatted program to standard output.
 
 SYNOPSYS
 ========
@@ -57,6 +57,24 @@ prints the language version and exits.
 causes error messages to be printed on a single line so they are rendered
 properly within the VS Code extension for Compact.
 
+**--update-Uint-ranges**
+
+adjusts the end point of each Uint whose size is given by
+a range with a constant end point and issues a warning for each Uint whose
+size is given by a range when the end point is a generic-variable reference.
+
+**--compact-path _search list_**
+
+sets the Compact search list to **_search list_**, overriding the default (the
+value of the **COMPACT_PATH** environment variable, if set, otherwise empty).
+The search list is a colon-separated (semicolon-separated on Windows) list of
+directory pathnames.
+
+**--trace-search**
+
+causes the fixup tool to print a sequence of messages saying where it is looking
+for each included file and imported module source file.
+
 EXAMPLES
 ========
 
@@ -93,5 +111,5 @@ Assuming **src/test.compact** contains an ill-formed Compact program
 fixup-compact src/test.compact
 ```
 
-throws an exception with the error that causes the Compact program in 
-**src/test.compact** not to compile.
+exits with an error message describing the problem that prevents the
+Compact program in **src/test.compact** from compiling.

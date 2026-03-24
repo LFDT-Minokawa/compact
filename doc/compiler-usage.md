@@ -130,12 +130,19 @@ the deployed structure of the application.
 
 **--compact-path _search list_**
 
-sets the Compact search list to **_search list_**.
+sets the compact path, overriding the default
+value, which is the value of the environment variable COMPACT_PATH, if
+it is set, and empty otherwise.  **_search list_** should be a colon-separated
+(semicolon-separated under Windows) sequence of directory pathnames.
+The compact path controls where the compiler looks for include and external
+module files with non-absolute pathnames.  It always looks first relative
+to the directory of the including or importing file, then in each directory
+in the compact path from left to right.
 
-**--trace-import**
+**--trace-search**
 
-causes the compiler to print a sequence of messages saying where it is looking
-for each included file and imported module source file.
+causes the compiler to print a sequence of messages saying
+where it is looking for each included file and imported module source file.
 
 **--trace-passes**
 
