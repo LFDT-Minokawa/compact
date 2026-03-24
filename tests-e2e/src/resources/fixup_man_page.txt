@@ -19,6 +19,10 @@ The following flags, if present, affect the tool's behavior as follows:
   --vscode causes error messages to be printed on a single line so they are
     rendered properly within the VS Code extension for Compact.
 
+  --update-Uint-ranges adjusts the end point of each Uint whose size is given by
+    a range with a constant end point and issues a warning for each Uint whose
+    size is given by a range when the end point is a generic-variable reference.
+
   --compact-path <search list> sets the compact path, overriding the default
     value, which is the value of the environment variable COMPACT_PATH, if
     it is set, and empty otherwise.  <search list> should be a colon-separated
