@@ -1476,7 +1476,7 @@ groups than for single tests.
             (const ([q (tundeclared) (new (type-ref S) (x 3) (y 4))]))
             (const ([q (tundeclared) (new (type-ref S) (x 3) (y 4))]))
             (const ([q (tundeclared) (new (type-ref S) (x 3) (y 4))]))
-            (for x (tuple 3 4 5 6)
+            (for x 3 7
               (block
                 (assert (seq (call bar (if #t x q)) (!= x 1)) "oops")))
             (return (tuple (tuple q (new (type-ref S) (x 5) (y 6)))))))
@@ -1633,7 +1633,7 @@ groups than for single tests.
           ciphertexts
           (topaque "Uint8Array"))
         (constructor ([state (tfield)])
-          (block (for i (tuple) (+ state 1))))
+          (block (for i 3 3 (+ state 1))))
         (circuit #f #f foosbar () ()
              (ttuple)
           (block (for i (tuple 3 2 1) (+ i 1))))
@@ -4372,7 +4372,7 @@ groups than for single tests.
           ciphertexts
           (topaque "Uint8Array"))
         (constructor ([state (tfield)])
-          (block (for i (tuple) (+ state 1))))
+          (block (for i 3 3 (+ state 1))))
         (circuit #f #f foosbar () ()
              (ttuple)
           (block (for i (tuple 3 2 1) (+ i 1))))
@@ -5678,18 +5678,7 @@ groups than for single tests.
       (program
         (circuit #t #f foo () ()
              (ttuple)
-          (block (for i (tuple) (+ i 1))))))
-    )
-
-  (test
-    '(
-      "export circuit foo(): [] {"
-      "  for (const i of 4..3) i + 1;"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 3" "end bound ~d is less than start bound ~s" (3 4)))
+          (block (for i 3 3 (+ i 1))))))
     )
 
   (test
@@ -5703,88 +5692,8 @@ groups than for single tests.
         (circuit #t #f foo () ()
              (ttuple)
           (block
-            (for i (tuple 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
-                    21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38
-                    39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56
-                    57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74
-                    75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92
-                    93 94 95 96 97 98 99 100 101 102 103 104 105 106 107
-                    108 109 110 111 112 113 114 115 116 117 118 119 120 121
-                    122 123 124 125 126 127 128 129 130 131 132 133 134 135
-                    136 137 138 139 140 141 142 143 144 145 146 147 148 149
-                    150 151 152 153 154 155 156 157 158 159 160 161 162 163
-                    164 165 166 167 168 169 170 171 172 173 174 175 176 177
-                    178 179 180 181 182 183 184 185 186 187 188 189 190 191
-                    192 193 194 195 196 197 198 199 200 201 202 203 204 205
-                    206 207 208 209 210 211 212 213 214 215 216 217 218 219
-                    220 221 222 223 224 225 226 227 228 229 230 231 232 233
-                    234 235 236 237 238 239 240 241 242 243 244 245 246 247
-                    248 249 250 251 252 253 254 255 256 257 258 259 260 261
-                    262 263 264 265 266 267 268 269 270 271 272 273 274 275
-                    276 277 278 279 280 281 282 283 284 285 286 287 288 289
-                    290 291 292 293 294 295 296 297 298 299 300 301 302 303
-                    304 305 306 307 308 309 310 311 312 313 314 315 316 317
-                    318 319 320 321 322 323 324 325 326 327 328 329 330 331
-                    332 333 334 335 336 337 338 339 340 341 342 343 344 345
-                    346 347 348 349 350 351 352 353 354 355 356 357 358 359
-                    360 361 362 363 364 365 366 367 368 369 370 371 372 373
-                    374 375 376 377 378 379 380 381 382 383 384 385 386 387
-                    388 389 390 391 392 393 394 395 396 397 398 399 400 401
-                    402 403 404 405 406 407 408 409 410 411 412 413 414 415
-                    416 417 418 419 420 421 422 423 424 425 426 427 428 429
-                    430 431 432 433 434 435 436 437 438 439 440 441 442 443
-                    444 445 446 447 448 449 450 451 452 453 454 455 456 457
-                    458 459 460 461 462 463 464 465 466 467 468 469 470 471
-                    472 473 474 475 476 477 478 479 480 481 482 483 484 485
-                    486 487 488 489 490 491 492 493 494 495 496 497 498 499
-                    500 501 502 503 504 505 506 507 508 509 510 511 512 513
-                    514 515 516 517 518 519 520 521 522 523 524 525 526 527
-                    528 529 530 531 532 533 534 535 536 537 538 539 540 541
-                    542 543 544 545 546 547 548 549 550 551 552 553 554 555
-                    556 557 558 559 560 561 562 563 564 565 566 567 568 569
-                    570 571 572 573 574 575 576 577 578 579 580 581 582 583
-                    584 585 586 587 588 589 590 591 592 593 594 595 596 597
-                    598 599 600 601 602 603 604 605 606 607 608 609 610 611
-                    612 613 614 615 616 617 618 619 620 621 622 623 624 625
-                    626 627 628 629 630 631 632 633 634 635 636 637 638 639
-                    640 641 642 643 644 645 646 647 648 649 650 651 652 653
-                    654 655 656 657 658 659 660 661 662 663 664 665 666 667
-                    668 669 670 671 672 673 674 675 676 677 678 679 680 681
-                    682 683 684 685 686 687 688 689 690 691 692 693 694 695
-                    696 697 698 699 700 701 702 703 704 705 706 707 708 709
-                    710 711 712 713 714 715 716 717 718 719 720 721 722 723
-                    724 725 726 727 728 729 730 731 732 733 734 735 736 737
-                    738 739 740 741 742 743 744 745 746 747 748 749 750 751
-                    752 753 754 755 756 757 758 759 760 761 762 763 764 765
-                    766 767 768 769 770 771 772 773 774 775 776 777 778 779
-                    780 781 782 783 784 785 786 787 788 789 790 791 792 793
-                    794 795 796 797 798 799 800 801 802 803 804 805 806 807
-                    808 809 810 811 812 813 814 815 816 817 818 819 820 821
-                    822 823 824 825 826 827 828 829 830 831 832 833 834 835
-                    836 837 838 839 840 841 842 843 844 845 846 847 848 849
-                    850 851 852 853 854 855 856 857 858 859 860 861 862 863
-                    864 865 866 867 868 869 870 871 872 873 874 875 876 877
-                    878 879 880 881 882 883 884 885 886 887 888 889 890 891
-                    892 893 894 895 896 897 898 899 900 901 902 903 904 905
-                    906 907 908 909 910 911 912 913 914 915 916 917 918 919
-                    920 921 922 923 924 925 926 927 928 929 930 931 932 933
-                    934 935 936 937 938 939 940 941 942 943 944 945 946 947
-                    948 949 950 951 952 953 954 955 956 957 958 959 960 961
-                    962 963 964 965 966 967 968 969 970 971 972 973 974 975
-                    976 977 978 979 980 981 982 983 984 985 986 987 988 989
-                    990 991 992 993 994 995 996 997 998 999 1000 1001 1002)
+            (for i 3 1003
               (+ i 1))))))
-    )
-
-  (test
-    '(
-      "export circuit foo(): [] {"
-      "  for (const i of 3..1004) i + 1;"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 3" "difference ~s between end and start bounds is greater than the arbitrary compiler limit of ~s; use 'for ... in' syntax instead" (1001 1000)))
     )
 
   (test
@@ -8506,7 +8415,7 @@ groups than for single tests.
           ciphertexts
           (topaque "Uint8Array"))
         (constructor ([state (tfield)])
-          (block () (for i (tuple) (+ state 1))))
+          (block () (for i 3 3 (+ state 1))))
         (circuit #f #f foosbar () ()
              (ttuple)
           (block () (for i (tuple 3 2 1) (+ i 1))))
@@ -9071,7 +8980,7 @@ groups than for single tests.
           ciphertexts
           (topaque "Uint8Array"))
         (constructor ([state (tfield)])
-          (seq (for i (tuple) (seq (+ state 1) (tuple))) (tuple)))
+          (seq (for i 3 3 (seq (+ state 1) (tuple))) (tuple)))
         (circuit #f #f foosbar () ()
              (ttuple)
           (seq (for i (tuple 3 2 1) (seq (+ i 1) (tuple))) (tuple)))
@@ -9330,7 +9239,7 @@ groups than for single tests.
           ciphertexts
           (topaque "Uint8Array"))
         (constructor ([state (tfield)])
-          (seq (for i (tuple) (seq (+ state 1) (tuple))) (tuple)))
+          (seq (for i 3 3 (seq (+ state 1) (tuple))) (tuple)))
         (circuit #f #f foosbar () ()
              (ttuple)
           (seq (for i (tuple 3 2 1) (seq (+ i 1) (tuple))) (tuple)))
@@ -13929,6 +13838,28 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 7 char 14" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint)))
+    )
+
+  (test
+    '(
+      "export circuit foo(): [] {"
+      "  for (const i of 4..3) i + 1;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "end bound ~d is less than start bound ~s" (3 4)))
+    )
+
+  (test
+    `(
+      "export circuit foo(): [] {"
+      ,(format "  for (const i of 3..~d) i + 1;" (fx+ (max-bytes/vector-length) 4))
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "the difference ~d between end and start bounds exceeds the maximum vector size ~d" (16777217 16777216)))
     )
 )
 
@@ -23952,6 +23883,237 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 5" "~a ~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (HistoricMerkleTree insert "Opaque<\"string\">")))
+    )
+
+  (test
+    '(
+      "export circuit foo(): [] {"
+      "  for (const i of 3..7) i + 1;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ()
+             (ttuple)
+          (seq
+            (fold
+              (circuit ([%t.1 (ttuple)] [%i.2 (tunsigned 6)])
+                   (ttuple)
+                (seq
+                  (seq
+                    (+ 3
+                       (safe-cast (tunsigned 7) (tunsigned 6) %i.2)
+                       (safe-cast (tunsigned 7) (tunsigned 1) 1))
+                    (tuple))
+                  %t.1))
+              (tuple)
+              (tuple 3 4 5 6))
+            (tuple)))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): [] {"
+      "  for (const i of 3..1003) i + 1;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ()
+             (ttuple)
+          (seq
+            (fold
+              (circuit ([%t.1 (ttuple)] [%i.2 (tunsigned 1002)])
+                   (ttuple)
+                (seq
+                  (seq
+                    (+ 10
+                       (safe-cast (tunsigned 1003) (tunsigned 1002) %i.2)
+                       (safe-cast (tunsigned 1003) (tunsigned 1) 1))
+                    (tuple))
+                  %t.1))
+              (tuple)
+              (tuple 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22
+               23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42
+               43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62
+               63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82
+               83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101
+               102 103 104 105 106 107 108 109 110 111 112 113 114 115 116
+               117 118 119 120 121 122 123 124 125 126 127 128 129 130 131
+               132 133 134 135 136 137 138 139 140 141 142 143 144 145 146
+               147 148 149 150 151 152 153 154 155 156 157 158 159 160 161
+               162 163 164 165 166 167 168 169 170 171 172 173 174 175 176
+               177 178 179 180 181 182 183 184 185 186 187 188 189 190 191
+               192 193 194 195 196 197 198 199 200 201 202 203 204 205 206
+               207 208 209 210 211 212 213 214 215 216 217 218 219 220 221
+               222 223 224 225 226 227 228 229 230 231 232 233 234 235 236
+               237 238 239 240 241 242 243 244 245 246 247 248 249 250 251
+               252 253 254 255 256 257 258 259 260 261 262 263 264 265 266
+               267 268 269 270 271 272 273 274 275 276 277 278 279 280 281
+               282 283 284 285 286 287 288 289 290 291 292 293 294 295 296
+               297 298 299 300 301 302 303 304 305 306 307 308 309 310 311
+               312 313 314 315 316 317 318 319 320 321 322 323 324 325 326
+               327 328 329 330 331 332 333 334 335 336 337 338 339 340 341
+               342 343 344 345 346 347 348 349 350 351 352 353 354 355 356
+               357 358 359 360 361 362 363 364 365 366 367 368 369 370 371
+               372 373 374 375 376 377 378 379 380 381 382 383 384 385 386
+               387 388 389 390 391 392 393 394 395 396 397 398 399 400 401
+               402 403 404 405 406 407 408 409 410 411 412 413 414 415 416
+               417 418 419 420 421 422 423 424 425 426 427 428 429 430 431
+               432 433 434 435 436 437 438 439 440 441 442 443 444 445 446
+               447 448 449 450 451 452 453 454 455 456 457 458 459 460 461
+               462 463 464 465 466 467 468 469 470 471 472 473 474 475 476
+               477 478 479 480 481 482 483 484 485 486 487 488 489 490 491
+               492 493 494 495 496 497 498 499 500 501 502 503 504 505 506
+               507 508 509 510 511 512 513 514 515 516 517 518 519 520 521
+               522 523 524 525 526 527 528 529 530 531 532 533 534 535 536
+               537 538 539 540 541 542 543 544 545 546 547 548 549 550 551
+               552 553 554 555 556 557 558 559 560 561 562 563 564 565 566
+               567 568 569 570 571 572 573 574 575 576 577 578 579 580 581
+               582 583 584 585 586 587 588 589 590 591 592 593 594 595 596
+               597 598 599 600 601 602 603 604 605 606 607 608 609 610 611
+               612 613 614 615 616 617 618 619 620 621 622 623 624 625 626
+               627 628 629 630 631 632 633 634 635 636 637 638 639 640 641
+               642 643 644 645 646 647 648 649 650 651 652 653 654 655 656
+               657 658 659 660 661 662 663 664 665 666 667 668 669 670 671
+               672 673 674 675 676 677 678 679 680 681 682 683 684 685 686
+               687 688 689 690 691 692 693 694 695 696 697 698 699 700 701
+               702 703 704 705 706 707 708 709 710 711 712 713 714 715 716
+               717 718 719 720 721 722 723 724 725 726 727 728 729 730 731
+               732 733 734 735 736 737 738 739 740 741 742 743 744 745 746
+               747 748 749 750 751 752 753 754 755 756 757 758 759 760 761
+               762 763 764 765 766 767 768 769 770 771 772 773 774 775 776
+               777 778 779 780 781 782 783 784 785 786 787 788 789 790 791
+               792 793 794 795 796 797 798 799 800 801 802 803 804 805 806
+               807 808 809 810 811 812 813 814 815 816 817 818 819 820 821
+               822 823 824 825 826 827 828 829 830 831 832 833 834 835 836
+               837 838 839 840 841 842 843 844 845 846 847 848 849 850 851
+               852 853 854 855 856 857 858 859 860 861 862 863 864 865 866
+               867 868 869 870 871 872 873 874 875 876 877 878 879 880 881
+               882 883 884 885 886 887 888 889 890 891 892 893 894 895 896
+               897 898 899 900 901 902 903 904 905 906 907 908 909 910 911
+               912 913 914 915 916 917 918 919 920 921 922 923 924 925 926
+               927 928 929 930 931 932 933 934 935 936 937 938 939 940 941
+               942 943 944 945 946 947 948 949 950 951 952 953 954 955 956
+               957 958 959 960 961 962 963 964 965 966 967 968 969 970 971
+               972 973 974 975 976 977 978 979 980 981 982 983 984 985 986
+               987 988 989 990 991 992 993 994 995 996 997 998 999 1000
+               1001 1002))
+            (tuple)))))
+    )
+
+  (test
+    `(
+      "export circuit foo(): [] {"
+      ,(format "  for (const i of ~d..~d) i + 1;"
+         (- (max-unsigned) 10)
+         (max-unsigned))
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ()
+             (ttuple)
+          (seq
+            (fold
+              (circuit ([%t.1 (ttuple)]
+                        [%i.2 (tunsigned
+                                452312848583266388373324160190187140051835877600158453279131187530910662654)])
+                   (ttuple)
+                (seq
+                  (seq
+                    (+ 248
+                       (safe-cast (tunsigned
+                                    452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                  (tunsigned
+                                    452312848583266388373324160190187140051835877600158453279131187530910662654)
+                         %i.2)
+                       (safe-cast (tunsigned
+                                    452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                  (tunsigned 1)
+                         1))
+                    (tuple))
+                  %t.1))
+              (tuple)
+              (tuple
+                452312848583266388373324160190187140051835877600158453279131187530910662645
+                452312848583266388373324160190187140051835877600158453279131187530910662646
+                452312848583266388373324160190187140051835877600158453279131187530910662647
+                452312848583266388373324160190187140051835877600158453279131187530910662648
+                452312848583266388373324160190187140051835877600158453279131187530910662649
+                452312848583266388373324160190187140051835877600158453279131187530910662650
+                452312848583266388373324160190187140051835877600158453279131187530910662651
+                452312848583266388373324160190187140051835877600158453279131187530910662652
+                452312848583266388373324160190187140051835877600158453279131187530910662653
+                452312848583266388373324160190187140051835877600158453279131187530910662654))
+            (tuple)))))
+    )
+
+  (test
+    `(
+      "export circuit foo(): [] {"
+      ,(format "  for (const i of ~d..~d) i + 1;"
+         (- (max-unsigned) 5)
+         (+ (max-unsigned) 5))
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "end bound ~d is greater than the maximum unsigned integer ~d" (452312848583266388373324160190187140051835877600158453279131187530910662660 452312848583266388373324160190187140051835877600158453279131187530910662655)))
+    )
+
+  (test
+    `(
+      "export circuit foo(): [] {"
+      "  for (const i of 3..7) {"
+      "    if (i == 4) 0; else true;"
+      "  }"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ()
+             (ttuple)
+          (seq
+            (fold
+              (circuit ([%t.1 (ttuple)] [%i.2 (tunsigned 6)])
+                   (ttuple)
+                (seq
+                  (seq
+                    (if (== %i.2 (safe-cast (tunsigned 6) (tunsigned 4) 4))
+                        0
+                        #t)
+                    (tuple))
+                  %t.1))
+              (tuple)
+              (tuple 3 4 5 6))
+            (tuple)))))
+    )
+
+  (test
+    `(
+      "export circuit foo(v: Vector<4, Field>): [] {"
+      "  for (const i of v) {"
+      "    if (i == 4) 0; else true;"
+      "  }"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 ([%v.1 (tvector 4 (tfield))])
+             (ttuple)
+          (seq
+            (fold
+              (circuit ([%t.3 (ttuple)] [%i.2 (tfield)])
+                   (ttuple)
+                (seq
+                  (seq
+                    (if (== %i.2 (safe-cast (tfield) (tunsigned 4) 4)) 0 #t)
+                    (tuple))
+                  %t.3))
+              (tuple)
+              %v.1)
+            (tuple)))))
     )
 )
 
@@ -64282,7 +64444,7 @@ groups than for single tests.
 )
 )
 
-; tests of code snippets in lang-ref
+; tests of code snippets in compact-reference
 (run-tests print-typescript
   ; change: " --> ' for message of assert
   (test
@@ -64444,7 +64606,7 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
-      "circuit sumStruct({x, y}: S): Field {"
+      "circuit sumStruct({x, y}: S): Uint<64> {"
       "  return x + y;"
       "}"
       )
@@ -64454,7 +64616,7 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
-      "circuit sumStruct({y, x}: S): Field {"
+      "circuit sumStruct({y, x}: S): Uint<64> {"
       "  return x + y;"
       "}"
       )
@@ -64464,7 +64626,7 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
-      "circuit sumStruct({x: a, y}: S): Field {"
+      "circuit sumStruct({x: a, y}: S): Uint<64> {"
       "  return a + y;"
       "}"
       )
@@ -64474,7 +64636,7 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
-      "circuit sumTupleStruct([{x: a1, y: b1}, {x: a2, y: b2}]: [S, S]): Field {"
+      "circuit sumTupleStruct([{x: a1, y: b1}, {x: a2, y: b2}]: [S, S]): Uint<64> {"
       "  return a1 + b1 + a2 + b2;"
       "}"
       )
@@ -64484,7 +64646,7 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
-      "circuit sumSomeYs([{y: b1}, , {y: b3}]: [S, S, S]): Field {"
+      "circuit sumSomeYs([{y: b1}, , {y: b3}]: [S, S, S]): Uint<64> {"
       "  return b1 + b3;"
       "}"
       )
@@ -64494,19 +64656,19 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
-      "circuit sumStruct({x, y}: [Field, Field]): Field {"
+      "circuit sumStruct({x, y}: [Uint<16>, Uint<32>]): Uint<64> {"
       "  return x + y;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 19" "expected structure type, received ~a" ("[Field, Field]")))
+      irritants: '("testfile.compact line 2 char 19" "expected structure type, received ~a" ("[Uint<16>, Uint<32>]")))
     )
 
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
-      "circuit sumSomeYs([{y: b1}, , , {y: b3}]: [S, S, S]): Field {"
+      "circuit sumSomeYs([{y: b1}, , , {y: b3}]: [S, S, S]): Uint<64> {"
       "  return b1 + b3;"
       "}"
       )
@@ -64518,7 +64680,7 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
-      "circuit sumSomeYs([{y: b1}, , {z: b3}]: [S, S, S]): Field {"
+      "circuit sumSomeYs([{y: b1}, , {z: b3}]: [S, S, S]): Uint<64> {"
       "  return b1 + b3;"
       "}"
       )
@@ -64530,7 +64692,7 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Uint<16>, y: Uint<32> }"
-      "circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Field {"
+      "circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Uint<64> {"
       "  return b1 + b3;"
       "}"
       )
@@ -64762,10 +64924,13 @@ groups than for single tests.
       "  fld.lookup(b).insert(disclose(n), default<Counter>);"
       "}"
       ""
-      "export circuit incrementNestedCounter(b: Boolean, n: Field, k: Uint<16>): [] {"
+      "export circuit incrementNestedCounter1(b: Boolean, n: Field, k: Uint<16>): [] {"
       "  fld.lookup(b).lookup(n).increment(disclose(k));"
       "}"
       ""
+      "export circuit incrementNestedCounter2(b: Boolean, n: Field, k: Uint<16>): [] {"
+      "  fld.lookup(b).lookup(n) += disclose(k);"
+      "}"
       "export circuit readNestedCounter1(b: Boolean, n: Field): Uint<64> {"
       "  return fld.lookup(b).lookup(n).read();"
       "}"
@@ -64999,6 +65164,471 @@ groups than for single tests.
         "});"
         ))
     )
+
+  ; cast test: Boolean --> Field
+  (test
+    '(
+      "export circuit foo(b: Boolean): Field {"
+      "  return b as Field;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Boolean to Field: true -> 1n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, true).result).toEqual(1n);"
+        "});"
+        "test('Boolean to Field: false -> 0n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, false).result).toEqual(0n);"
+        "});"
+        )))
+
+  ; cast test: Boolean --> Uint<0..2> (nat=1, wide enough for 1)
+  (test
+    '(
+      "export circuit foo(b: Boolean): Uint<0..2> {"
+      "  return b as Uint<0..2>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Boolean to Uint<0..2>: true -> 1n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, true).result).toEqual(1n);"
+        "});"
+        "test('Boolean to Uint<0..2>: false -> 0n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, false).result).toEqual(0n);"
+        "});"
+        )))
+
+  ; cast test: Boolean --> Uint<0..1> (nat=0, only value is 0, true branch downcast-unsigned)
+  (test
+    '(
+      "export circuit foo(b: Boolean): Uint<0..1> {"
+      "  return b as Uint<0..1>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Boolean to Uint<0..1>: false -> 0n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, false).result).toEqual(0n);"
+        "});"
+        "test('Boolean to Uint<0..1>: true throws (1 > 0)', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, true)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Field --> Boolean
+  (test
+    '(
+      "export circuit foo(f: Field): Boolean {"
+      "  return f as Boolean;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Field to Boolean: 0n -> false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0n).result).toEqual(false);"
+        "});"
+        "test('Field to Boolean: 1n -> true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 1n).result).toEqual(true);"
+        "});"
+        "test('Field to Boolean: 99n -> true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 99n).result).toEqual(true);"
+        "});"
+        )))
+
+  ; cast test: Uint --> Boolean
+  (test
+    '(
+      "export circuit foo(u: Uint<0..256>): Boolean {"
+      "  return u as Boolean;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint to Boolean: 0n -> false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0n).result).toEqual(false);"
+        "});"
+        "test('Uint to Boolean: 5n -> true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 5n).result).toEqual(true);"
+        "});"
+        )))
+
+  ; cast test: Uint downcast (Uint<0..256> --> Uint<0..10>)
+  (test
+    '(
+      "export circuit foo(u: Uint<0..256>): Uint<0..10> {"
+      "  return u as Uint<0..10>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint downcast: in-range value succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 9n).result).toEqual(9n);"
+        "});"
+        "test('Uint downcast: out-of-range value throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 10n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Field --> Uint (downcast-unsigned)
+  (test
+    '(
+      "export circuit foo(f: Field): Uint<0..10> {"
+      "  return f as Uint<0..10>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Field to Uint: in-range value succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 7n).result).toEqual(7n);"
+        "});"
+        "test('Field to Uint: out-of-range value throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 10n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Bytes --> Field (cast-from-bytes)
+  (test
+    '(
+      "export circuit foo(b: Bytes<2>): Field {"
+      "  return b as Field;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Bytes to Field: little-endian conversion', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0x01, 0x02])).result).toEqual(0x0201n);"
+        "});"
+        "test('Bytes to Field: zero bytes -> 0n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x00])).result).toEqual(0n);"
+        "});"
+        )))
+
+  ; cast test: Bytes --> Uint (cast-from-bytes)
+  (test
+    '(
+      "export circuit foo(b: Bytes<2>): Uint<0..256> {"
+      "  return b as Uint<0..256>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Bytes to Uint: little-endian conversion', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0x03, 0x00])).result).toEqual(3n);"
+        "});"
+        "test('Bytes to Uint: exceed maxval', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x01]))).toThrow();"
+        "});"
+        "test('Bytes to Uint: max value succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0xFF, 0x00])).result).toEqual(255n);"
+        "});"
+        )))
+
+  ; cast test: Field --> Bytes (field->bytes)
+  (test
+    '(
+      "export circuit foo(f: Field): Bytes<2> {"
+      "  return f as Bytes<2>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Field to Bytes: little-endian conversion', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0x0201n).result).toEqual(new Uint8Array([0x01, 0x02]));"
+        "});"
+        "test('Field to Bytes: value too large for target throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 0x010000n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Uint --> Bytes (field->bytes via safe-cast to Field first)
+  (test
+    '(
+      "export circuit foo(u: Uint<0..256>): Bytes<1> {"
+      "  return u as Bytes<1>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint to Bytes: value fits', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 42n).result).toEqual(new Uint8Array([42]));"
+        "});"
+        "test('Uint to Bytes: value too large for target throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 256n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Vector<m, Uint<0..k>> k<256 --> Bytes<m> (vector->bytes)
+  (test
+    '(
+      "export circuit foo(v: Vector<3, Uint<0..256>>): Bytes<3> {"
+      "  return v as Bytes<3>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Vector of Uint<0..256> to Bytes', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [1n, 2n, 3n]).result).toEqual(new Uint8Array([1, 2, 3]));"
+        "});"
+        )))
+
+  ; cast test: Tuple of Uint<0..k> k<256 --> Bytes<m> (vector->bytes)
+  (test
+    '(
+      "export circuit foo(t: [Uint<0..128>, Uint<0..256>]): Bytes<2> {"
+      "  return t as Bytes<2>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Tuple of Uint subtypes to Bytes', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [10n, 20n]).result).toEqual(new Uint8Array([10, 20]));"
+        "});"
+        )))
+
+  ; cast test: Bytes<m> --> Vector<m, Uint<0..256>> (bytes->vector + safe-cast)
+  (test
+    '(
+      "export circuit foo(b: Bytes<3>): Vector<3, Uint<0..256>> {"
+      "  return b as Vector<3, Uint<0..256>>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Bytes to Vector of Uint<0..256>', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([10, 20, 30])).result).toEqual([10n, 20n, 30n]);"
+        "});"
+        )))
+
+  ; cast test: Bytes<m> --> Vector<m, Field> (bytes->vector + safe-cast to Field)
+  (test
+    '(
+      "export circuit foo(b: Bytes<2>): Vector<2, Field> {"
+      "  return b as Vector<2, Field>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Bytes to Vector of Field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([0x01, 0x02])).result).toEqual([1n, 2n]);"
+        "});"
+        )))
+
+  ; cast test: Bytes<m> --> Tuple [U1...Um] where each Ui >= Uint<0..256> (bytes->vector + safe-cast)
+  (test
+    '(
+      "export circuit foo(b: Bytes<2>): [Uint<0..512>, Uint<0..1024>] {"
+      "  return b as [Uint<0..512>, Uint<0..1024>];"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Bytes to Tuple of Uint supertypes', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, new Uint8Array([5, 10])).result).toEqual([5n, 10n]);"
+        "});"
+        )))
+
+  ; cast test: Enum --> Field (cast-from-enum, Field always wide enough, no check)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(c: Color): Field {"
+      "  return c as Field;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Enum to Field: red -> 0n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0).result).toEqual(0n);"
+        "});"
+        "test('Enum to Field: blue -> 2n', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 2).result).toEqual(2n);"
+        "});"
+        )))
+
+  ; cast test: Enum --> Uint wide enough (nat >= maxval, no runtime check)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(c: Color): Uint<0..4> {"
+      "  return c as Uint<0..4>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Enum to wide Uint: no runtime check', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 2).result).toEqual(2n);"
+        "});"
+        )))
+
+  ; cast test: Enum --> Uint too narrow (nat < maxval, runtime check)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(c: Color): Uint<0..2> {"
+      "  return c as Uint<0..2>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Enum to narrow Uint: in-range succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 1).result).toEqual(1n);"
+        "});"
+        "test('Enum to narrow Uint: out-of-range throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 2)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Field --> Enum (cast-to-enum, always needs check since Field is unbounded)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(f: Field): Color {"
+      "  return f as Color;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Field to Enum: valid value succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 1n).result).toEqual(1);"
+        "});"
+        "test('Field to Enum: out-of-range throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 3n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Uint --> Enum where Uint is too wide (nat > maxval, runtime check)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(u: Uint<0..4>): Color {"
+      "  return u as Color;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint to Enum: valid value succeeds', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 0n).result).toEqual(0);"
+        "});"
+        "test('Uint to Enum: out-of-range throws', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(() => C.circuits.foo(Ctxt, 3n)).toThrow();"
+        "});"
+        )))
+
+  ; cast test: Uint --> Enum where Uint fits entirely (nat <= maxval, no check)
+  (test
+    '(
+      "enum Color { red, green, blue };"
+      "export circuit foo(u: Uint<0..3>): Color {"
+      "  return u as Color;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint to Enum: fits entirely, no check needed', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 2n).result).toEqual(2);"
+        "});"
+        )))
+
+  ; cast test: upcast Uint<0..10> --> Uint<0..100> (safe-cast, zero cost)
+  (test
+    '(
+      "export circuit foo(u: Uint<0..10>): Uint<0..100> {"
+      "  return u as Uint<0..100>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint upcast: zero cost, value preserved', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 9n).result).toEqual(9n);"
+        "});"
+        )))
+
+  ; cast test: upcast Uint<0..10> --> Field (safe-cast, zero cost)
+  (test
+    '(
+      "export circuit foo(u: Uint<0..10>): Field {"
+      "  return u as Field;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint upcast to Field: zero cost, value preserved', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, 7n).result).toEqual(7n);"
+        "});"
+        )))
+
+  ; cast test: upcast Vector<2, Uint<0..10>> --> Vector<2, Uint<0..100>> (safe-cast, zero cost)
+  (test
+    '(
+      "export circuit foo(v: Vector<2, Uint<0..10>>): Vector<2, Uint<0..100>> {"
+      "  return v as Vector<2, Uint<0..100>>;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Vector upcast: zero cost, values preserved', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt, [3n, 7n]).result).toEqual([3n, 7n]);"
+        "});"
+        )))
+
+  ; cast test: large field literal as Field (compile-time erasure, no runtime node)
+  (test
+    `(
+      "export circuit foo(): Field {"
+      ,(string-append "  return 52435875175126190479447740508185965837690552500527637822603658699938581184512 as Field;")
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('Large field literal: compile-time erasure', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        ,(string-append "  expect(C.circuits.foo(Ctxt).result).toEqual(52435875175126190479447740508185965837690552500527637822603658699938581184512n);")
+        "});"
+        )))
+
   )
 
 (with-parameter-values ([feature-zkir-v3 #f #t])
@@ -80470,6 +81100,182 @@ groups than for single tests.
         ))
     )
 
+  ; compact-reference
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger fld: Map<Boolean, Map<Field, Counter>>;"
+      ""
+      "export circuit initNestedMap(b: Boolean): [] {"
+      "  fld.insert(disclose(b), default<Map<Field, Counter>>);"
+      "}"
+      ""
+      "export circuit initNestedCounter(b: Boolean, n: Field): [] {"
+      "  fld.lookup(b).insert(disclose(n), default<Counter>);"
+      "}"
+      ""
+      "export circuit incrementNestedCounter1(b: Boolean, n: Field, k: Uint<16>): [] {"
+      "  fld.lookup(b).lookup(n).increment(disclose(k));"
+      "}"
+      ""
+      "export circuit incrementNestedCounter2(b: Boolean, n: Field, k: Uint<16>): [] {"
+      "  fld.lookup(b).lookup(n) += disclose(k);"
+      "}"
+      "export circuit readNestedCounter1(b: Boolean, n: Field): Uint<64> {"
+      "  return fld.lookup(b).lookup(n).read();"
+      "}"
+      ""
+      "export circuit readNestedCounter2(b: Boolean, n: Field): Uint<64> {"
+      "  return fld.lookup(b).lookup(n);"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  var t = C.circuits.initNestedMap(Ctxt, true);"
+        "  t = C.circuits.initNestedCounter(t.context, true, 7n);"
+        "  t = C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
+        "  t = C.circuits.incrementNestedCounter2(t.context, true, 7n, 2n);"
+        "  t = C.circuits.readNestedCounter1(t.context, true, 7n);"
+        "  expect(t.result).toEqual(3n);"
+        "  t = C.circuits.readNestedCounter2(t.context, true, 7n);"
+        "  expect(t.result).toEqual(3n);"
+        "});"
+        "test('check 2', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  var t = C.circuits.initNestedMap(Ctxt, true);"
+        "  t = C.circuits.initNestedCounter(t.context, true, 7n);"
+        "  t = C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
+        "  t = C.circuits.incrementNestedCounter2(t.context, true, 7n, 2n);"
+        "  t = C.circuits.readNestedCounter1(t.context, true, 7n);"
+        "  expect(t.result).toEqual(3n);"
+        "  // lookup using an uninitialized Counter"
+        "  expect(() => C.circuits.readNestedCounter2(t.context, true, 8n)).toThrow(runtime.CompactError);"
+        "});"
+        "test('check 3', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  var t = C.circuits.initNestedMap(Ctxt, true);"
+        "  t = C.circuits.initNestedCounter(t.context, true, 7n);"
+        "  t = C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
+        "  t = C.circuits.incrementNestedCounter2(t.context, true, 7n, 2n);"
+        "  // lookup using an uninitialized Counter"
+        "  expect(() => C.circuits.readNestedCounter1(t.context, true, 8n)).toThrow(runtime.CompactError);"
+        "});"
+        "test('check 4', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  var t = C.circuits.initNestedMap(Ctxt, true);"
+        "  t = C.circuits.initNestedCounter(t.context, true, 7n);"
+        "  t = C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
+        "  // increment using an uninitialized Counter"
+        "  expect(() => C.circuits.incrementNestedCounter2(t.context, true, 8n, 2n)).toThrow(runtime.CompactError);"
+        "});"
+        "test('check 5', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  var t = C.circuits.initNestedMap(Ctxt, true);"
+        "  t = C.circuits.initNestedCounter(t.context, true, 7n);"
+        "  // increment using an uninitialized Counter"
+        "  expect(() => C.circuits.incrementNestedCounter1(t.context, true, 8n, 1n)).toThrow(runtime.CompactError);"
+        "});"
+        "test('check 6', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  var t = C.circuits.initNestedMap(Ctxt, true);"
+        "  t = C.circuits.initNestedCounter(t.context, true, 7n);"
+        "  t = C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
+        "  t = C.circuits.incrementNestedCounter2(t.context, true, 7n, 2n);"
+        "  t = C.circuits.readNestedCounter1(t.context, true, 7n);"
+        "  expect(t.result).toEqual(3n);"
+        "  // lookup using an uninitialized Map"
+        "  expect(() => C.circuits.readNestedCounter2(t.context, false, 7n)).toThrow(runtime.CompactError);"
+        "});"
+        "test('check 7', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  var t = C.circuits.initNestedMap(Ctxt, true);"
+        "  t = C.circuits.initNestedCounter(t.context, true, 7n);"
+        "  t = C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
+        "  t = C.circuits.incrementNestedCounter2(t.context, true, 7n, 2n);"
+        "  // lookup using an uninitialized Map"
+        "  expect(() => C.circuits.readNestedCounter1(t.context, false, 7n)).toThrow(runtime.CompactError);"
+        "});"
+        "test('check 8', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  var t = C.circuits.initNestedMap(Ctxt, true);"
+        "  t = C.circuits.initNestedCounter(t.context, true, 7n);"
+        "  t = C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
+        "  // insert using an uninitialized Map"
+        "  expect(() => C.circuits.incrementNestedCounter2(t.context, false, 7n, 2n)).toThrow(runtime.CompactError);"
+        "});"
+        "test('check 9', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  var t = C.circuits.initNestedMap(Ctxt, true);"
+        "  t = C.circuits.initNestedCounter(t.context, true, 7n);"
+        "  // insert using an uninitialized Map"
+        "  expect(() => C.circuits.incrementNestedCounter1(t.context, false, 7n, 1n)).toThrow(runtime.CompactError);"
+        "});"
+        "test('check 10', () => {"
+        "  var [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  var t = C.circuits.initNestedMap(Ctxt, true);"
+        "  // insert using an uninitialized Map"
+        "  expect(() => C.circuits.initNestedCounter(t.context, false, 7n)).toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "ledger F: Field;"
+      "circuit factorial<#N>(): [] {"
+      "  F = 1;"
+      "  for (const i of 0..N) {"
+      "    F = F * (i + 1);"
+      "  }"
+      "}"
+      "export circuit foo(): Field {"
+      "  factorial<10>();"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual(3628800n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F1: Counter;"
+      "circuit foo1<#S, #E>(): Uint<64> {"
+      "  for (const i of S..E) {"
+      "    F1 += i;"
+      "  }"
+      "  return F1;"
+      "}"
+      "ledger F2: Counter;"
+      "circuit foo2<#S, #N>(): Uint<64> {"
+      "  fold((i, x) => (F2 += i, i + 1 as Uint<16>), S as Uint<16>, default<Vector<N, Field>>);"
+      "  return F2;"
+      "}"
+      "export circuit foo(): [Uint<64>, Uint<64>] {"
+      "  return [foo1<3, 10>(), foo2<3, 7>()];"
+      "}"
+      "export circuit bar(): [Uint<64>, Uint<64>] {"
+      "  return [foo1<3, 3>(), foo2<3, 0>()];"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.foo(Ctxt).result).toEqual([42n, 42n]);"
+        "  expect(C.circuits.bar(Ctxt).result).toEqual([0n, 0n]);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)

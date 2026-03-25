@@ -111,7 +111,7 @@ This release removes the syntax from the language, it is now a compiler error to
 ## Links and references
 
 - The [Compact documentation portal](https://docs.midnight.network/compact),
-  including the [language reference](https://docs.midnight.network/compact/lang-ref) and
+  including the [language reference](https://docs.midnight.network/compact/compact-reference) and
   the [standard library documentation](https://docs.midnight.network/compact/compact-std-library)
 - The [Compact runtime TypeScript API](https://docs.midnight.network/api-reference/compact-runtime) for DApps
 - [Compact compiler usage](https://docs.midnight.network/compact/reference/tools/compiler-usage)

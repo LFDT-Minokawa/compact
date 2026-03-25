@@ -143,17 +143,8 @@
        `(if ,src ,expr ,stmt1 ,stmt2)]
       [(if ,src ,kwd ,lparen ,[expr] ,rparen ,[stmt])
        `(if ,src ,expr ,stmt (statement-expression ,src (tuple ,src)))]
-      [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,start ,dotdot ,end ,rparen ,[stmt])
-       (let ([start (token-value start)] [end (token-value end)])
-         (define for-limit 1000)
-         (when (< end start)
-           (source-errorf src "end bound ~d is less than start bound ~s" end start))
-         (let ([n (- end start)])
-           (when (> n for-limit)
-             (source-errorf src "difference ~s between end and start bounds is greater than the arbitrary compiler limit of ~s; use 'for ... in' syntax instead" (- end start) for-limit))
-           `(for ,src ,(token-value var-name)
-              (tuple ,src ,(map (lambda (i) `(single ,src (quote ,src ,(fx+ start i)))) (iota n)) ...)
-              ,stmt)))]
+      [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,[tsize0] ,dotdot ,[tsize1] ,rparen ,[stmt])
+       `(for ,src ,(token-value var-name) ,tsize0 ,tsize1 ,stmt)]
       [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,[expr] ,rparen ,[stmt])
        `(for ,src ,(token-value var-name) ,expr ,stmt)])
     (Expression : Expression (ir) -> Expression ()

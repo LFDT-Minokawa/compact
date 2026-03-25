@@ -96,7 +96,7 @@ describe('[Reserved] PM-14357 - Reserved keywords', () => {
                 testcase: 'do keyword',
                 file: 'example_11.compact',
                 output: {
-                    stderr: 'Exception: example_11.compact line 16 char 37: parse error: found keyword "do" (which is reserved for future use) looking for a non-negative numeric constant or an expression sequence',
+                    stderr: 'Exception: example_11.compact line 16 char 37: parse error: found keyword "do" (which is reserved for future use) looking for a type size or an expression sequence',
                 },
             },
             {
@@ -355,7 +355,7 @@ describe('[Reserved] PM-14357 - Reserved keywords', () => {
                 testcase: 'of keyword',
                 file: 'example_48.compact',
                 output: {
-                    stderr: 'Exception: example_48.compact line 16 char 37: parse error: found keyword "of" looking for a non-negative numeric constant or an expression sequence',
+                    stderr: 'Exception: example_48.compact line 16 char 37: parse error: found keyword "of" looking for a type size or an expression sequence',
                 },
             },
         ])(`$testcase`, async ({ file, output }) => {

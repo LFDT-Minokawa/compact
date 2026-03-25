@@ -213,6 +213,7 @@
       (return src)                       => (return (tuple))
       (const src cbinding cbinding* ...) => (const (cbinding 0 cbinding* ...))
       (if src expr stmt1 stmt2)          => (if expr 3 stmt1 3 stmt2)
+      (for src var-name tsize0 tsize1 stmt) => (for var-name tsize0 tsize1 #f stmt)
       (for src var-name expr stmt)       => (for var-name expr #f stmt)
       blck
       )
@@ -366,11 +367,13 @@
          (return src)
          (= src var-name type expr)
          (if src expr stmt1 stmt2)
+         (for src var-name tsize0 tsize1 stmt)
          (for src var-name expr stmt)
          (seq src stmt* ...)
          blck))
     (Expression (expr index)
       (+ (let* src ([local* expr*] ...) expr)    => (let* ([bracket local* 0 expr*] 0 ...) #f expr)
+         (for src var-name tsize0 tsize1 expr2)  => (for var-name tsize0 tsize1 #f expr2)
          (for src var-name expr1 expr2)          => (for var-name expr1 #f expr2)
          (block src (var-name* ...) expr)        => (block (var-name* 0 ...) #f expr)
          (return src expr)                       => expr
@@ -561,7 +564,8 @@
     (Expression (expr index)
       (- (block src (var-name* ...) expr)
          (new src tref new-field* ...)
-         (tuple-slice src expr index tsize))
+         (tuple-slice src expr index tsize)
+         (for src var-name tsize0 tsize1 expr2))
       (+ (ledger-ref src ledger-field-name) => ledger-field-name
          (new src type new-field* ...)      => (new type #f new-field* ...)
          (enum-ref src type elt-name)       => (enum-ref type elt-name)
