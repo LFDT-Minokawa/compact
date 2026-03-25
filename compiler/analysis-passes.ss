@@ -862,6 +862,7 @@
             `(talias ,alias-src ,nominal? ,type-name ,(Type type p^)))))
       (define (type-adt-depth type)
         (nanopass-case (Lexpanded Type) type
+          [(talias ,src ,nominal? ,type-name ,type) (type-adt-depth type)]
           [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
            (fx+ 1 (apply fxmax 0
                     (map (lambda (gv)
