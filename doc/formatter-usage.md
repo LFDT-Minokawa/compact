@@ -26,7 +26,7 @@ The flags _flag_ **...** are optional.  They are described under FLAGS later in
 this document.
 
 _sourcepath_ should identify a file containing a Compact source program, and
-_targetpath_ should identify an target file in which the reformatted program is
+_targetpath_ should identify a target file in which the reformatted program is
 to be written.  _targetpath_ may be an existing file, in which case the file
 will be replaced with the formatted program.  _targetpath_ may be the same as
 _sourcepath_, in which case the source program is replaced with the reformatted

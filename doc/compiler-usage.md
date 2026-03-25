@@ -25,13 +25,12 @@ The flags _flag_ **...** are optional.  They are described under FLAGS later in
 this document.
 
 _sourcepath_ should identify a file containing a Compact source
-program, and_targetpath_ should identify a target directory into which the
+program, and _targetpath_ should identify a target directory into which the
 target files are to be placed.  The target directory is created if it does not
 already exist.
 
 **compactc** compiles the source file and produces from it the following target
-files, where _sourceroot_ is the name of the file identified by _sourcepath_
-without any extension.
+files:
 
 - a Typescript type-definition file _targetdir_**/contract/index.d.ts**
 
@@ -154,7 +153,7 @@ EXAMPLES
 
 Assuming **src/test.compact** contains a well-formed Compact program containing
 circuits *foo*, *bar*, and *baz* where *foo* and *bar* are exported but *baz* 
-is not and  *foo* touches (reads or writes) a ledger field but *bar* does not
+is not and  *foo* touches (reads or writes) a ledger field but *bar* does not:
 
 ```
 compactc src/test.compact obj/test

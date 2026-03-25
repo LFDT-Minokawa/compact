@@ -31,7 +31,7 @@ _targetpath_ should identify an existing target file in which the updated and
 formatted program is to be written.  _targetpath_ may be an existing file, in
 which case the file will be replaced with the formatted program.  _targetpath_
 may be the same as _sourcepath_,  in which case the source program is replaced
-with the updated and reformatted equivalent.  Though we recommend that you
+with the updated and reformatted equivalent.  We recommend, however, that you
 direct the output to a different file and compare it with the original, to
 verify that the changes make sense. 
 
@@ -74,6 +74,10 @@ directory pathnames.
 
 causes the fixup tool to print a sequence of messages saying where it is looking
 for each included file and imported module source file.
+
+**--line-length _n_**
+
+sets the target line length to _n_ (default 100).
 
 EXAMPLES
 ========

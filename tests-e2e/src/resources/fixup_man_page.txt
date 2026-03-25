@@ -34,3 +34,5 @@ The following flags, if present, affect the tool's behavior as follows:
 
   --trace-search causes the compiler to print a sequence of messages saying
     where it is looking for each included file and imported module source file.
+
+  --line-length <n> sets the target line length to <n> (default 100)

@@ -23,8 +23,6 @@
         (command-line-parsing)
         (program-common))
 
-(define line-length 100)
-
 (define (print-help)
   (print-usage #f)
   (fprintf (current-output-port) "
@@ -62,9 +60,17 @@ The following flags, if present, affect the tool's behavior as follows:
 
   --trace-search causes the compiler to print a sequence of messages saying
     where it is looking for each included file and imported module source file.
-"))
+
+  --line-length <n> sets the target line length to <n> (default ~d)
+" (format-line-length)))
 
 (usage "<flag> ... <source-pathname> [ <target-pathname> ]")
+
+(define (string->line-length s)
+  (or (cond
+        [(string->number s) => (lambda (x) (and (fixnum? x) (fx>= x 0) x))]
+        [else #f])
+      (external-errorf "specified line length ~a is not a nonnegative integer" s)))
 
 (parameterize ([reset-handler abort])
   (command-line-case (command-line)
@@ -74,7 +80,8 @@ The following flags, if present, affect the tool's behavior as follows:
              [(--vscode)]
              [(--update-Uint-ranges)]
              [(--compact-path) (string search-list)]
-             [(--trace-search)])
+             [(--trace-search)]
+             [(--line-length) (line-length line-length)])
       (string source-pathname)
       (optional string target-pathname #f))
      (check-pathname source-pathname)
@@ -83,7 +90,8 @@ The following flags, if present, affect the tool's behavior as follows:
        (let ([s (parameterize ([update-Uint-ranges ?--update-Uint-ranges]
                                [relative-path (path-parent source-pathname)]
                                [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
-                               [trace-search ?--trace-search])
+                               [trace-search ?--trace-search]
+                               [format-line-length (or line-length (format-line-length))])
                   (parse-file/fixup/format source-pathname))])
          (if target-pathname
              (let ([op (guard (c [else (error-accessing-file c "creating output file")])
