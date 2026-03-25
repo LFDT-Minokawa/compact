@@ -3273,7 +3273,7 @@ Certain values to be stored in public state require size, length, and other
 properties to be maintained explicitly, because these properties cannot
 be determined solely from the JavaScript representation of the value.
 For this purpose, the `@midnight/compact-runtime` package provides explicit
-run-time types satisfying the `CompactType<`*T*`>` interface, where `T` is the
+run-time types satisfying the `CompactType<`*T*`>` interface, where *T* is the
 corresponding TypeScript type.
 This representation is *not* user-facing most of the time, except
 when replicating the behavior of the operations implemented
@@ -3285,22 +3285,33 @@ for a primitive type:
 - `Boolean` - `CompactTypeBoolean`
 - `Field` - `CompactTypeField`
 - `Uint<0..`*n*`>` - `new CompactTypeUnsignedInteger(`*n*`, `*length*`)`, where
-  *length* is the number of bytes required to store *n*
-- `Uint<`*n*`>` - same as `Uint<0..(2 ^ `*n*`)>`
+  *length* is the number of bytes required to store *n*-1
+- `Uint<`*n*`>` - same as `Uint<0..2<sup>*n*</sup>`>`
 - `Bytes<`*n*`>` - `new CompactTypeBytes(`*n*`)`
-- `Vector<`*n*`, `*T*`>` - `new CompactTypeVector(`*n*`, `*rt_T*`)`, where *rt_T* is the run-time
-  type of *T*
-- `Opaque<"String">` - `CompactTypeString`
-- `Opaque<"Uint8Array">` - `CompactTypeUint8Array`
+- `Vector<`*n*`, `*T*`>` - `new CompactTypeVector(`*n*`, `*CT*`)`, where *CT* is the
+  `CompactType` for *T*
+- `Opaque<"String">` - `CompactTypeOpaqueString`
+- `Opaque<"Uint8Array">` - `CompactTypeOpaqueUint8Array`
 - `JubjubPoint` - `CompactTypeJubjubPoint`.
 
 
 For program-defined types, structures are not currently easily
 constructed at run time and require implementing `CompactType<`*T*`>`
-manually or using compiler internals.  Enumerations are exposed
+manually or using compiler internals. This also applies to tuple types
+that do not have a vector type. However, tuple types that have a vector
+type are equivalent to their vector type, i.e., `[`*T*, ⋯, *T*`]` where
+all *T*s are the same is equivalent to `Vector<`*n*`, `*T*`>` where *n*
+is the number of types in the tuple type and its `CompactType` can be
+constructed as `new CompactTypeVector(`*n*`, `*CT*`)`, where *CT* is the
+`CompactType` for *T*.
+
+Enumerations are exposed
 through `new CompactTypeEnum(`*maxValue*`, `*length*`)`, where *maxValue* is
 the maximum permissible integer assignable, and *length* its
 representation length in bytes (almost always `1`).
+
+Type aliases are resolved transparently to their underlying type, thus
+their `CompactType` are the corresponding `CompactType` of to the aliased type.
 
 ## TypeScript target
 
@@ -3344,8 +3355,8 @@ A contract exports the following in the TypeScript module:
   - exposes members `circuits: Circuits<PS>`, `impureCircuits: ImpureCircuits<PS>`,
     and `provableCircuits: ProvableCircuits<PS>`
   - provides initial contract states via
-    `initialState(context: __compactRuntime.ConstructorContext<PS>, `*x*`: `*T*`, `*y*`: `*T*`, ...): runtime.ConstructorResult<PS>`
-    where *x*`: `*T*`, `*y*`: `*T*`, ...` are the contract constructor parameters and their
+    `initialState(context: __compactRuntime.ConstructorContext<PS>, `*x*`: `*T*`, `*y*`: `*T*`, ⋯): runtime.ConstructorResult<PS>`
+    where *x*`: `*T*`, `*y*`: `*T*`, ⋯` are the contract constructor parameters and their
     type declarations if they exist
 - A constant `pureCircuits: PureCircuits` object, providing all pure circuits
   as pure functions
@@ -3376,17 +3387,19 @@ Compact's primitive types are represented in TypeScript as follows:
 - `Boolean` - `boolean`
 - `Field` - `bigint` with run-time bounds checks
 - `Uint<`*n*`>` / `Uint<0..`*n*`>` - `bigint` with run-time bounds checks
-- `[`*T*`, ...]` - the TypeScript tuple type `[`*S*`, ...]` or else the TypeScript array
-  type *S*`[]` with run-time length checks, where *S* is the TypeScript
-  representation of the corresponding type *T*
+- `Vector<`*n*`, `*T*`>`` — the TypeScript array type *S*`[]`` with run-time length checks
+  where *S* is the TypeScript representation of type *T*
+- `[`*T*`, ⋯]` — the TypeScript tuple type `[`*S*`, ⋯]` with run-time length checks
+  where *S* is the TypeScript representation of the corresponding type *T*
 - `Bytes<`*n*`>` - `Uint8Array` with run-time length checks
 - `Opaque<"string">` - `string`
 - `Opaque<"Uint8Array">` - `Uint8Array`
 
 Program-defined types are represented in TypeScript as follows:
 - `enum` instances - a `number` with run-time membership checks
-- `struct` instances with fields `a: A, b: B, ...` - an object `{ a: A, b: B, ... }`
-  where `A`, `B`, ... are the TypeScript representations of the Compact types.
+- `struct` instances with fields `a: A, b: B, ⋯` - an object `{ a: A, b: B, ⋯ }`
+  where `A`, `B`, ⋯ are the TypeScript representations of the Compact types
+- Type aliases — represented as the TypeScript representation of the aliased type.
 
 Note that other `Opaque` types are currently not supported.
 
