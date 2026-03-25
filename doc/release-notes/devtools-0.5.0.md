@@ -31,7 +31,7 @@ In addition, most subcommands will also accept any prefix of the subcommand.  Fo
 
 We have had to make some choices when a prefix is ambiguous.  For example, `compact c` is used for "compile", not "clean".
 
-This feature were contributed by GitHub user `rvcas`.
+These features were contributed by GitHub user `rvcas`.
 
 ### Partial version numbers
 
