@@ -22853,6 +22853,23 @@ groups than for single tests.
       irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
     )
 
+  ; test for bounds of ADT nesting depth
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger field1: Map<Field, Map<Field, Map<Field, Map<Field, Boolean>>>>;"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger field1: Map<Field, Map<Field, Map<Field, Map<Field, Map<Field, Boolean>>>>>;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "ledger type nesting depth exceeds the maximum supported depth ~d" (,(max-adt-nesting-depth)))))
+
   (test
     '(
       "export circuit foo(): Boolean { return 1, true; }"

@@ -17,7 +17,7 @@
 
 (library (langs)
   (export max-field field-bytes max-unsigned unsigned-bits field? datum? path-index?
-          max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth
+          max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth max-adt-nesting-depth
           zkir-field-rep?
           maximum-ledger-segment-length 
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
@@ -97,6 +97,8 @@
 
   (define (max-merkle-tree-depth) 32)
   (define (min-merkle-tree-depth) 2)
+
+  (define (max-adt-nesting-depth) 4)
 
   (define (zkir-field-rep? x)
     (and (integer? x)
