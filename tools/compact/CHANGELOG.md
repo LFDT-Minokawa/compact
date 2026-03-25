@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [Compact tools 0.5.1]
+
+### Fixed
+
+- A bug that prevented ARM Linux builds from being installed.  There was already
+  a toolchain release `.zip` file for this platform (since toolchain version
+  0.29.0), but the platform was not recognized by the command-line tools.
+  
+  Fixes issue #222.
+
 ## [Compact tools 0.5.0]
 
 ### Added
