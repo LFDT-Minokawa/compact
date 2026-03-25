@@ -104,7 +104,8 @@ jobs:
           cp ../doc/compiler-usage.md docs/compact/compilation-and-tooling/compiler-usage.mdx
           cp -r ../doc/api/runtime/. ./api-reference/compact-runtime
           echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./api-reference/compact-runtime/README.md
-          cp -r ../doc/ledger-adt.mdx ./static/language/ledger-adt.mdx
+          cp -r ../doc/ledger-adt.mdx docs/compact/reference/ledger-adt.mdx
+          cp -r ../doc/ledger-adt.mdx docs/compact/data-types/ledger-adt.mdx
 
           git add .
           git commit -m "Update compact documentation"
