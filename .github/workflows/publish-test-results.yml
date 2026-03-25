@@ -1,5 +1,4 @@
-# Publishes test results from the "Compiler Build" workflow as PR comments
-# and check runs.
+# Publishes test results from build workflows as PR comments and check runs.
 #
 # This is a separate workflow because fork PRs run with a read-only
 # GITHUB_TOKEN, which prevents the build workflow from posting comments
@@ -12,7 +11,7 @@ name: Publish Test Results
 
 on:
   workflow_run:
-    workflows: ["Compiler Build"]
+    workflows: ["Compiler Build", "Compiler extracted", "VSC Plugin Build"]
     types:
       - completed
 
@@ -38,6 +37,7 @@ jobs:
 
       - name: Download CTRF test results
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: github.event.workflow_run.name != 'VSC Plugin Build'
         with:
           name: test-results-ctrf-summary
           path: artifacts/ctrf
@@ -52,35 +52,50 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set check names
+        id: names
+        run: |
+          case "${{ github.event.workflow_run.name }}" in
+            "VSC Plugin Build")
+              echo "report_name=Plugin Test Report" >> "$GITHUB_OUTPUT"
+              echo "summary_name=Plugin Test Summary" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "report_name=Compactc E2E Test Report" >> "$GITHUB_OUTPUT"
+              echo "summary_name=Compactc E2E Test Summary" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
       - name: Initialize git repository
         run: git init
 
-      # dorny/test-reporter: Creates a GitHub check run with a summary of
-      # test results parsed from JUnit XML reports.
+      # dorny/test-reporter: Creates a GitHub check run with a detailed,
+      # browsable report of individual test cases from JUnit XML.
       - name: Publish Test Report
         uses: dorny/test-reporter@3d76b34a4535afbd0600d347b09a6ee5deb3ed7f # v2.6.0
         with:
-          name: Compactc E2E Tests Report
+          name: ${{ steps.names.outputs.report_name }}
           path: artifacts/junit/test-report.xml
           reporter: jest-junit
 
       # EnricoMi/publish-unit-test-result-action: Creates a check run and
-      # posts a PR comment with detailed test counts (pass/fail/skip).
+      # posts a PR comment with aggregated test counts (pass/fail/skip).
       # The commit, event_file, and event_name inputs are required for
       # workflow_run to associate results with the correct PR.
       - name: Publish Test Summary
         uses: EnricoMi/publish-unit-test-result-action@c950f6fb443cb5af20a377fd0dfaa78838901040 # v2.23.0
         with:
-          check_name: Compactc E2E Tests Results
+          check_name: ${{ steps.names.outputs.summary_name }}
           files: artifacts/junit/test-report.xml
           commit: ${{ github.event.workflow_run.head_sha }}
           event_file: artifacts/event/event.json
           event_name: ${{ github.event.workflow_run.event }}
 
       # github-actions-ctrf: Posts a CTRF-format test summary to the
-      # Actions run and as a PR comment.
+      # Actions run and as a PR comment. Only compactc workflows produce
+      # CTRF reports.
       - name: Publish CTRF Summary
-        if: always()
+        if: always() && github.event.workflow_run.name != 'VSC Plugin Build'
         run: |
           npx github-actions-ctrf artifacts/ctrf/ctrf-report.json --title "E2E test results"
           npx github-actions-ctrf pull-request artifacts/ctrf/ctrf-report.json --title "E2E test results"
