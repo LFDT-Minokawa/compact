@@ -50,31 +50,30 @@ jobs:
           nix develop .#compiler --command yarn install
           nix develop .#compiler --command yarn test:extracted
 
-      - name: Publish Test Report
-        uses: dorny/test-reporter@3d76b34a4535afbd0600d347b09a6ee5deb3ed7f # v2.6.0
+      # Test result artifacts are consumed by the "Publish Test Results"
+      # workflow (publish-test-results.yml) which runs with write permissions
+      # via the workflow_run trigger. This two-workflow pattern is necessary
+      # so that fork/Dependabot PRs can have test results posted as PR comments.
+      - name: Upload CTRF test results
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
-          name: Compactc E2E Tests Report
-          path: |
-            !(node_modules)/**/reports/test-report.xml
-          reporter: jest-junit
+          name: test-results-ctrf-summary
+          path: tests-e2e/reports/ctrf-report.json
 
-      - name: Publish Test Summary
-        uses: EnricoMi/publish-unit-test-result-action@c950f6fb443cb5af20a377fd0dfaa78838901040 # v2.23.0
+      - name: Upload Junit test results
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
-          check_name: Compactc E2E Tests Results
-          files: |
-            **/reports/test-report.xml
-            !(node_modules)/**/test-report.xml
+          name: test-results-junit-summary
+          path: tests-e2e/reports/test-report.xml
 
-      - name: Publish Test Summary Results
-        uses: ctrf-io/github-test-reporter@024bc4b64d997ca9da86833c6b9548c55c620e40 # v1.0.26
+      # The event file is needed by the reporting workflow to associate
+      # test results with the correct PR.
+      - name: Upload event file
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: always()
         with:
-          report-path: 'tests-e2e/reports/ctrf-report.json'
-          flaky-rate-report: 'true'
-          pull-request: 'true'
-          update-comment: 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: event-file
+          path: ${{ github.event_path }}
 
