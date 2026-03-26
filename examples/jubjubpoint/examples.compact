@@ -24,8 +24,8 @@ constructor() {
 export circuit test(): [] {
   const a : JubjubPoint = default<JubjubPoint>;
   const b : JubjubPoint = ecAdd(a, a);
-  const c : JubjubPoint = ecMul(a, 1);
-  const d : JubjubPoint = ecMulGenerator(1);
+  const c : JubjubPoint = ecMul(a, 1 as JubjubScalar);
+  const d : JubjubPoint = ecMulGenerator(1 as JubjubScalar);
   const e : JubjubPoint = hashToCurve<Field>(1);
 }
 
