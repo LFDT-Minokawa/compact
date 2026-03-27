@@ -91,6 +91,16 @@
               [(ecAdd)
                (assert (= (length var-name*) 1))
                (cons `(add ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
+              [(ecNeg)
+               (assert (= (length var-name*) 1))
+               (let ([tmp-x (make-temp-id src 'x)]
+                     [tmp-y (make-temp-id src 'y)]
+                     [tmp-neg-x (make-temp-id src 'neg)])
+                 (cons*
+                   `(decode "Point<Jubjub>" ,(car var-name*) ,tmp-neg-x ,tmp-y)
+                   `(neg ,tmp-neg-x ,tmp-x)
+                   `(encode ,tmp-x ,tmp-y ,(car triv*))
+                   instr*))]
               [(ecMul)
                (assert (= (length var-name*) 1))
                (cons `(ec_mul ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]

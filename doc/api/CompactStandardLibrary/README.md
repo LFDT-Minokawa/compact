@@ -32,6 +32,7 @@ Key parts of the API are:
   - [`degradeToTransient`](exports.md#degradetotransient)
 - Elliptic curve functions:
   - [`ecAdd`](exports.md#ecadd)
+  - [`ecNeg`](exports.md#ecneg)
   - [`ecMul`](exports.md#ecmul)
   - [`ecMulGenerator`](exports.md#ecmulgenerator)
   - [`hashToCurve`](exports.md#hashtocurve)

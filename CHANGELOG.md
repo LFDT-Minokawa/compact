@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.30.105, language 0.22.102, runtime 0.15.101]
+
+### Added
+
+- Add `ecNeg` to the standard library for JubJub point negation.
+
 ## [Toolchain 0.30.104, language 0.22.101, runtime 0.15.101]
 
 ### Changed

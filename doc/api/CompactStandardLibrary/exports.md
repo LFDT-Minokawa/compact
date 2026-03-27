@@ -296,6 +296,15 @@ notation)
 circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;
 ```
 
+### `ecNeg`
+
+This function negates an elliptic [`NativePoint`](#nativepoint). On the JubJub
+twisted Edwards curve, the negation of `(x, y)` is `(-x, y)`.
+
+```compact
+circuit ecNeg(a: NativePoint): NativePoint;
+```
+
 ### `ecMul`
 
 This function multiplies an elliptic [`NativePoint`](#nativepoint) by a scalar
