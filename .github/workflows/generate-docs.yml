@@ -125,7 +125,7 @@ jobs:
       - name: Create PR
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
-          run: |
+        run: |
           DRAFT_FLAG=""
           if [ "${{ inputs.draft_pr }}" = "true" ]; then
             DRAFT_FLAG="--draft"
