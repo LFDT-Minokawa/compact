@@ -250,5 +250,5 @@ PYEOF
             --base ${{ inputs.docs_branch }} \
             --head "compact-docs-update-${{ github.run_id }}" \
             --title "${{ inputs.pr_description }}" \
-            --body 'PR: ${{ inputs.pr_description }}' \
+            --body "PR: ${{ inputs.pr_description }}" \
             $DRAFT_FLAG
