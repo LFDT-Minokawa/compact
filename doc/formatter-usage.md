@@ -14,7 +14,7 @@ source file, reformats it, and writes the reformatted program to a specified
 file.  If such a file is not specified, it writes the reformatted program to
 standard output.
 
-SYNOPSYS
+SYNOPSIS
 ========
 
 **format-compact** _flag_ **...** _sourcepath_ _targetpath_

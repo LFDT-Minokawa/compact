@@ -12,10 +12,10 @@ OVERVIEW
 The Compact command-line tool provides a set of utilities for Compact smart
 contract development.
 
-SYNOPSYS
+SYNOPSIS
 ========
 
-**compact** _options_ **...**
+**compact** _options_ **...** <br>
 **compact** _command_ _options_ **..**
 
 DESCRIPTION
@@ -25,8 +25,8 @@ The options _options_ are optional. They are described under OPTIONS later in
 this document.
 
 The Compact command-line tool takes a _command_. This command is the program
-that the tool runs. Supporting commands are listed below and the more
-complicated ones are explained in details under the command name:
+that the tool runs. Supported commands are listed below and the more
+complicated ones are explained in detail under the command name:
 
 **check**
 
@@ -58,11 +58,11 @@ Commands for managing the compact tool itself [aliases: s].
 
 **compile**
 
-Calls the compiler [aliases: c] and exits .
+Calls the compiler [aliases: c] and exits.
 
 **help**
 
-Prints the help of the command-line tool or the given subcommand(s) and exits.
+Prints the help of the command-line tool and exits.
 
 OPTIONS 
 =======
@@ -82,20 +82,20 @@ does not exist. This can also be configured via an environment variable.
 
 **--help**
 
-Prints help (see a summary with '-h') and exits.
+Prints help for this tool or of _command_ provided by the tool and exits.
 
 **--version**
 
-Prints version and exits.
+Prints the version of this tool or of _command_ and exits.
 
 CHECK
 =====
 
-Synopsys: **compact** **check** _option_
+Synopsis: **compact** **check** _options_
 
 This command checks for updates of the Compact toolchain on the remote server. 
 
-Assuming there are not versions of the Compact toolchain installed running
+Assuming there are not versions of the Compact toolchain installed, running:
 
 ```
 compact check
@@ -112,7 +112,7 @@ where **0.28.0** is the latest available Compact toolchain version on the remote
 server. 
 
 However, assuming that the previous version of the Compact toolchain is
-installed running
+installed, running:
 
 ```
 compact check
@@ -127,18 +127,13 @@ compact: Latest version available: 0.28.0.
 
 where **0.26.0** is the installed version and **0.28.0** is the latest available
 version of the Compact toolchain. The command **update** can be used to update
-to this version. **aarch64-darwin** spits out the chosen binary of the Compact
+to this version. **aarch64-darwin** displays the chosen binary of the Compact
 toolchain for your machine's architecture.
-
-The options in OPTIONS can be used with this command. **--directory
-_directorypath_** and **--version** behave the same as not using a command
-(**compact-check** does not have a different version than **compact**), but
-**--help** prints the help text for this command and not **compact**.
 
 UPDATE
 ======
 
-Synopsys: **compact** **update** _option_ _compactversion_
+Synopsis: **compact** **update** _options_ _compactversion_
 
 This command updates to the latest version of the Compact toolchain if no
 version is specified, otherwise, it updates to the specified version of the
@@ -155,9 +150,12 @@ default compiler version to the installed one. This can be overwritten by
 
 If the compiler was already downloaded it is not downloaded again.
 
-Options: **--no-set-default**
-         Doesn't set the newly installed compiler the default one
+The following options are specific to this command:
 
+**--no-set-default**
+Doesn't set the newly installed compiler the default one
+
+We now present some simple examples of using this command.
 Assuming the lastest Compact toolchain on the remote server is **0.28.0** and
 the last time you updated your Compact toolchain was to **0.26.0** running
 
@@ -222,31 +220,28 @@ which results in
 compact: aarch64-darwin -- 0.26.0 -- already installed
 ```
 
-The options in OPTIONS can be used with this command. **--directory
-_directorypath_** and **--version** behave the same as not using a command
-(**compact-update** does not have a different version than **compact**), but
-**--help** prints the help text for this command and not **compact**.
-
 COMPILE
 =======
 
-Synopsys: **compact** **compile** _+version_ _option_ _sourcepath_ _targetpath_
+Synopsis: **compact** **compile** _+version_ _options_ _sourcepath_ _targetpath_
 
 This command compiles the Compact source program in _sourcepath_ using the
-specified Compact toolchain version _version_ if it exits. If a version is not
+specified Compact toolchain version _version_ if it exists. If a version is not
 specified the default version of the Compact toolchain installed is picked. The
-_option_ can be one of the flags accepted by the Compact compiler and the
-_targetpath_ specifies the target directory for the outputs of the compiler.
-Visit [the compiler usepage](compiler-usage.md) for a more detailed explanation
+_options_ are optional. If _version_ doesn't exist both _options_ accepted
+by the compiler and the command-line tool can be used, otherwise only _options_
+accepted by the compiler can be used. 
+The _targetpath_ specifies the target directory for the outputs of the compiler.
+Visit [the compiler usage page](compiler-usage.md) for a more detailed explanation
 of how to use it.
 
 If **+version** is specified (e.g. **+0.30.0**), `compact compile` uses that
 exact version of the toolchain to compile the program. If no version
-is specified, the default toolchain version (as set by compact update) is
+is specified, the default toolchain version (as set by `compact update`) is
 used. Partial version specifiers are not supported here; the version must be
 fully qualified (e.g. **+0.30.0**, not **+0.30**).
-If the requested toolchain version is not installed, compact compile will
-fail with an error.  Run compact update version first to install it.
+If the requested toolchain version is not installed, `compact compile` will
+fail with an error.  Run `compact update _version_` first to install it.
 
 Assuming that Compact toolchain **0.26.0** and **0.30.0** are installed and 
 **0.26.0** is the defualt, running 
@@ -295,16 +290,10 @@ compact compile --help
 
 returns the help text of specified in the Compact command-line tool for the compiler.
 
-The options in OPTIONS can be used with this command. **--directory
-_directorypath_** behaves the same as not using a command, but **--version**
-prints the version of the Compact toolchain and not of **compact** and
-**--help** prints the help text for this command and not **compact**.
-`compact compile --help` takes the help text from the compiler directly.
-
 FORMAT
 ======
 
-Synopsys: **compact** **format** _option_ _files_
+Synopsis: **compact** **format** _options_ _files_
 
 This command formats one or more Compact source files using the installed
 **format-compact** tool.  _files_ may be individual `.compact` files or
@@ -318,22 +307,18 @@ The following options are specific to this command:
 
 checks whether files are already formatted without modifying them.  Exits
 with a non-zero status and prints a diff for any file that would be changed.
-Useful in CI pipelines to enforce formatting without altering source files.
+This is useful in CI pipelines to enforce formatting without altering source files.
 
 **--verbose**
 
 prints each file processed along with its outcome (**formatted**, **unchanged**,
 or an error).  Without this flag only failures are reported.
 
-**--version**
+Additionally, the formatter tool itself provides extra flags. Visit [the format usage
+page](formatter-usage.md) for a more detailed explanation of this tool.
 
-prints the version of the installed formatter toolchain and exits.
-
-**--language-version**
-
-prints the version of the installed language version and exits.
-
-Assuming **src/** contains Compact source files, format all of them in place:
+We now present some simple examples of using this command.
+Assuming **src/** contains a well-formed Compact source files, format all of them in place:
 
 ```
 compact format src/
@@ -351,16 +336,19 @@ Format a single file verbosely:
 compact format --verbose src/counter.compact
 ```
 
-The options in OPTIONS can be used with this command. **--directory
-_directorypath_** behaves the same as not using a command, but **--version**
-prints the version of the Compact toolchain and not of **compact** and
-**--help** prints the help text for this command and not **compact**, however,
-`compact format --help` does not take the help text from the formatter tool.
+Assuming **src/test.compact** contains an ill-formed Compact program
+
+```
+compact format src/test.compact
+```
+
+exits with an error message describing the problem that prevents the
+Compact program in **src/test.compact** from compiling.
 
 FIXUP
 =====
 
-Synopsys: **compact** **fixup** _option_ _files_
+Synopsis: **compact** **fixup** _options_ _files_
 
 This command applies fixup transformations to one or more Compact source files
 using the installed **fixup-compact** tool.  Unlike **format**, which only
@@ -378,31 +366,11 @@ checks whether files need fixup without modifying them.  Exits with a non-zero
 status and prints a diff for any file that would be changed.  Useful in CI
 pipelines to verify that source files are up to date.
 
-**--update-Uint-ranges**
+Additionally, the fixup tool itself provides extra flags. Visit [the fixup usage
+page](fixup-usage.md) for a more detailed explanation of this tool.
 
-adjusts the end point of each Uint whose size is given by 
-a range with a constant end point and issues a warning for each Uint whose 
-size is given by a range when the end point is a generic-variable reference.
-
-**--verbose**
-
-prints each file processed along with its outcome (**fixed**, **unchanged**,
-or an error).  Without this flag only failures are reported.
-
-**--vscode**
-
-formats error messages as a single line for rendering within the VS Code
-extension for Compact.
-
-**--version**
-
-prints the version of the installed fixup toolchain and exits.
-
-**--language-version**
-
-prints the version of the installed language version and exits.
-
-Assuming **src/** contains Compact source files, apply fixup to all files in 
+We now present some simple examples of using this command.
+Assuming **src/** contains a well-formed Compact source files, apply fixup to all files in 
 **src/** in place:
 
 ```
@@ -421,21 +389,31 @@ Apply fixup including `Uint` range endpoint adjustment:
 compact fixup --update-Uint-ranges src/
 ```
 
-The options in OPTIONS can be used with this command. **--directory
-_directorypath_** behaves the same as not using a command, but **--version**
-prints the version of the Compact toolchain and not of **compact** and
-**--help** prints the help text for this command and not **compact**, however,
-`compact fixup --help` does not take the help text from the fixup tool.
+Assuming **src/test.compact** contains an ill-formed Compact program
+
+```
+compact fixup src/test.compact
+```
+
+exits with an error message describing the problem that prevents the
+Compact program in **src/test.compact** from compiling.
 
 LIST
 ====
 
-Synopsys: **compact** **list** _option_
+Synopsis: **compact** **list** _options_
 
 This command lists available Compact toolchain versions on the remote server if
 no option is set, otherwise, it lists the locally installed versions of the
 Compact toolchain when the **--installed** option is set.
 
+The following options are specific to this command:
+
+**--installed**
+
+shows installed versions and exits.
+
+We now present some simple examples of using this command.
 Assuming that the latest available Compact toolchain version is **0.28.0** on
 the remote server running 
 
@@ -475,15 +453,10 @@ compact: installed versions
 The right arrow indicates what version is set to be used by the Compact
 command-line tool unless a version is specified.
 
-The options in OPTIONS can be used with this command. **--directory
-_directorypath_** and **--version** behave the same as not using a command
-(**compact-list** does not have a different version than **compact**), but
-**--help** prints the help text for this command and not **compact**.
-
 CLEAN
 =====
 
-Synopsys: **compact** **clean** _option_
+Synopsis: **compact** **clean** _options_
 
 This command removes all local versions of the Compact toolchain if no option is
 set. When **--cache** is set it also removes the cache directory. When
@@ -497,6 +470,17 @@ toolchain is unusable until `compact update`` is run again to reinstall a
 version.  With **--keep-current**, the symlinks are preserved alongside the
 kept version.
 
+The following options are specific to this command:
+
+**--cache**
+
+removes the cache directory as well.
+
+**--keep-current**
+
+keeps the version currently in use.
+
+We now present some simple examples of using this command.
 Assuming that versions **0.26.0** and **0.28.00** of the Compact toolchain are
 locally installed running
 
@@ -544,15 +528,10 @@ compact: removed 0.28.0
 compact: kept 0.26.0
 ```
 
-The options in OPTIONS can be used with this command. **--directory
-_directorypath_** and **--version** behave the same as not using a command
-(**compact-clean** does not have a different version than **compact**), but
-**--help** prints the help text for this command and not **compact**.
-
 SELF
 ====
 
-Synopsys: **compact** **self** _option_ _subcommand_
+Synopsis: **compact** **self** _options_ _subcommand_
 
 Manages the Compact command-line tool itself.
 
@@ -591,8 +570,3 @@ results in (assuming the latest version is `0.5.0`)
 ```
 compact: compact -- 0.5.0 -- Up to date
 ```
-
-The options in OPTIONS can be used with this command. **--directory
-_directorypath_** and **--version** behave the same as not using a command
-(**compact-self** does not have a different version than **compact**), but
-**--help** prints the help text for this command and not **compact**.

@@ -13,7 +13,7 @@ The Compact compiler, **compactc**, takes as input a Compact source program in a
 specified source file and translates it into several target files in a specified
 directory.
 
-SYNOPSYS
+SYNOPSIS
 ========
 
 **compactc** _flag_ **...** _sourcepath_ _targetpath_

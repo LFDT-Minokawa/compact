@@ -15,7 +15,7 @@ language, formats it, and writes the updated and reformatted program to a
 specified file.  If such a file is not specified, it writes the updated and
 formatted program to standard output.
 
-SYNOPSYS
+SYNOPSIS
 ========
 
 **fixup-compact** _flag_ **...**... _sourcepath_ _targetpath_
