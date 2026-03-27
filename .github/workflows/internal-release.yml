@@ -327,22 +327,40 @@ jobs:
         with:
           name: macos-release-x86_64
 
-      - name: Patch release notes title in zip artifacts
+      - name: Patch release notes in zip artifacts
         run: |
           VERSION="${{ inputs.version }}"
-          # Strip leading 'v'
           CLEAN_VERSION="${VERSION#v}"
           NOTES_FILENAME=$(basename "${{ needs.setup.outputs.release_notes_file }}")
 
           for zip in compactc_${{ needs.setup.outputs.clean_tag }}_*.zip; do
             echo "Patching $zip..."
-            # Extract the release notes file from the zip
-            unzip -p "$zip" "$NOTES_FILENAME" > /tmp/patched_notes.md
-            # Replace the title line
-            sed -i "s/^# Compact toolchain .*/# Compact toolchain ${CLEAN_VERSION}/" /tmp/patched_notes.md
-            # Update the file inside the zip
-            zip "$zip" -j /tmp/patched_notes.md
 
+            # Find the full path of the release notes file inside the zip
+            # (it may be nested, e.g. aarch64-darwin/toolchain-0.30.0.md)
+            NOTES_PATH_IN_ZIP=$(unzip -l "$zip" | awk '{print $4}' | grep "/$NOTES_FILENAME$\|^$NOTES_FILENAME$")
+
+            if [ -z "$NOTES_PATH_IN_ZIP" ]; then
+              echo "::warning::Release notes file '$NOTES_FILENAME' not found in $zip, skipping."
+              continue
+            fi
+
+            echo "Found in zip at: $NOTES_PATH_IN_ZIP"
+
+            # Extract to a temp file, patch the title
+            unzip -p "$zip" "$NOTES_PATH_IN_ZIP" > /tmp/patched_notes.md
+            sed -i "s/^# Compact toolchain .*/# Compact toolchain ${CLEAN_VERSION}/" /tmp/patched_notes.md
+
+            # Remove the old entry from the zip
+            zip --delete "$zip" "$NOTES_PATH_IN_ZIP"
+
+            # Re-add the patched file at the same path inside the zip
+            mkdir -p /tmp/zip_stage/$(dirname "$NOTES_PATH_IN_ZIP")
+            cp /tmp/patched_notes.md /tmp/zip_stage/$NOTES_PATH_IN_ZIP
+            cd /tmp/zip_stage
+            zip "$GITHUB_WORKSPACE/$zip" "$NOTES_PATH_IN_ZIP"
+            cd "$GITHUB_WORKSPACE"
+            rm -rf /tmp/zip_stage
           done
 
       - name: Patch release notes file for GitHub release body
@@ -364,6 +382,16 @@ jobs:
           body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
           body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
+      - name: Debug LFDT-Minokawa/compact access
+        env:
+          GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+        run: |
+          echo "--- Checking repo access ---"
+          gh api /repos/LFDT-Minokawa/compact || echo "::error::No repo access"
+
+          echo "--- Checking if tag exists ---"
+          gh api /repos/LFDT-Minokawa/compact/git/refs/tags/compactc-${{ inputs.version }} || echo "::error::Tag does not exist"
+
       - name: Create Release on LFDT/Minokawa
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
@@ -373,7 +401,7 @@ jobs:
           draft: false
           prerelease: true
           files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
-          token: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+          token: ${{ secrets.MIDNIGHTCI_REPO }}
           body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
           body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 

@@ -15,10 +15,13 @@
 #
 # The BEGIN/END marker lines themselves are always kept from the docs file.
 #
-# Usage: python3 update-custom.py <compiler-custom.css> <docs-custom.css>
+# Usage:
+#   python3 sync-css.py <compiler-custom.css> <docs-custom.css>           # apply sync
+#   python3 sync-css.py <compiler-custom.css> <docs-custom.css> --check   # check only, exit 1 if out of sync
 
 import re
 import sys
+import difflib
 from pathlib import Path
 
 BEGIN_RE = re.compile(r"/\* BEGIN_COMPACT_SYNC: (\S+) \*/")
@@ -110,13 +113,34 @@ def sync(compiler_text, docs_text):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <compiler-custom.css> <docs-custom.css>", file=sys.stderr)
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    flags = [a for a in sys.argv[1:] if a.startswith("--")]
+    check_only = "--check" in flags
+
+    if len(args) != 2:
+        print(f"Usage: {sys.argv[0]} <compiler-custom.css> <docs-custom.css> [--check]", file=sys.stderr)
         sys.exit(1)
 
-    compiler_path = Path(sys.argv[1])
-    docs_path     = Path(sys.argv[2])
-    result = sync(compiler_path.read_text(encoding="utf-8"),
-                  docs_path.read_text(encoding="utf-8"))
-    docs_path.write_text(result, encoding="utf-8")
-    print(f"Updated {docs_path}")
+    compiler_path = Path(args[0])
+    docs_path     = Path(args[1])
+
+    compiler_text = compiler_path.read_text(encoding="utf-8")
+    docs_text     = docs_path.read_text(encoding="utf-8")
+    result        = sync(compiler_text, docs_text)
+
+    if check_only:
+        if result != docs_text:
+            diff = difflib.unified_diff(
+                docs_text.splitlines(keepends=True),
+                result.splitlines(keepends=True),
+                fromfile=str(docs_path),
+                tofile=str(docs_path) + " (after sync)",
+            )
+            sys.stdout.writelines(diff)
+            print(f"\nCSS sync blocks are out of sync in {docs_path}", file=sys.stderr)
+            sys.exit(1)
+        else:
+            print(f"OK: CSS sync blocks are up to date in {docs_path}")
+    else:
+        docs_path.write_text(result, encoding="utf-8")
+        print(f"Updated {docs_path}")
