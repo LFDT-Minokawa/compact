@@ -372,28 +372,28 @@ jobs:
           body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
           body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
-      - name: Debug LFDT-Minokawa/compact access
-        env:
-          GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
-        run: |
-          echo "--- Checking repo access ---"
-          gh api /repos/LFDT-Minokawa/compact || echo "::error::No repo access"
+      # - name: Debug LFDT-Minokawa/compact access
+      #   env:
+      #     GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+      #   run: |
+      #     echo "--- Checking repo access ---"
+      #     gh api /repos/LFDT-Minokawa/compact || echo "::error::No repo access"
 
-          echo "--- Checking if tag exists ---"
-          gh api /repos/LFDT-Minokawa/compact/git/refs/tags/compactc-${{ inputs.version }} || echo "::error::Tag does not exist"
+      #     echo "--- Checking if tag exists ---"
+      #     gh api /repos/LFDT-Minokawa/compact/git/refs/tags/compactc-${{ inputs.version }} || echo "::error::Tag does not exist"
 
-      - name: Create Release on LFDT/Minokawa
-        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
-        with:
-          repository: LFDT-Minokawa/compact
-          tag_name: compactc-${{ inputs.version || github.ref_name }}
-          name: Compact toolchain ${{ inputs.version || github.ref_name }}
-          draft: false
-          prerelease: true
-          files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
-          token: ${{ secrets.MIDNIGHTCI_REPO }}
-          body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
-          body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
+      # - name: Create Release on LFDT/Minokawa
+      #   uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
+      #   with:
+      #     repository: LFDT-Minokawa/compact
+      #     tag_name: compactc-${{ inputs.version || github.ref_name }}
+      #     name: Compact toolchain ${{ inputs.version || github.ref_name }}
+      #     draft: false
+      #     prerelease: true
+      #     files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
+      #     token: ${{ secrets.MIDNIGHTCI_REPO }}
+      #     body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
+      #     body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
   generate-docs-after-release:
     if: ${{ always() && inputs.docs && github.event_name == 'workflow_dispatch' && needs.make-release.result == 'success' }}
