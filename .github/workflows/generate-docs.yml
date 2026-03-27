@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest-16-core-x64
     steps:
       - name: Install Nix
-        uses: cachix/install-nix-action@1ca7d21a94afc7c957383a2d217460d980de4934 # v31.10.1
+        uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff # v31.10.2
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
@@ -104,7 +104,8 @@ jobs:
           cp ../doc/compiler-usage.md docs/compact/compilation-and-tooling/compiler-usage.mdx
           cp -r ../doc/api/runtime/. ./api-reference/compact-runtime
           echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./api-reference/compact-runtime/README.md
-          cp -r ../doc/ledger-adt.mdx ./static/language/ledger-adt.mdx
+          cp -r ../doc/ledger-adt.mdx docs/compact/reference/ledger-adt.mdx
+          cp -r ../doc/ledger-adt.mdx docs/compact/data-types/ledger-adt.mdx
 
           git add .
           git commit -m "Update compact documentation"
