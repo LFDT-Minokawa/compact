@@ -322,6 +322,7 @@ jobs:
           VERSION="${{ inputs.version }}"
           CLEAN_VERSION="${VERSION#v}"
           NOTES_FILENAME=$(basename "${{ needs.setup.outputs.release_notes_file }}")
+          TARGET_FILENAME="toolchain-${CLEAN_VERSION}.md"
 
           for zip in compactc_${{ needs.setup.outputs.clean_tag }}_*.zip; do
             echo "Patching $zip..."
@@ -337,6 +338,14 @@ jobs:
 
             echo "Found in zip at: $NOTES_PATH_IN_ZIP"
 
+            # Build the new path: same parent directory, renamed file
+            PARENT_DIR=$(dirname "$NOTES_PATH_IN_ZIP")
+            if [ "$PARENT_DIR" = "." ]; then
+              TARGET_PATH_IN_ZIP="$TARGET_FILENAME"
+            else
+              TARGET_PATH_IN_ZIP="$PARENT_DIR/$TARGET_FILENAME"
+            fi
+
             # Extract to a temp file, patch the title
             unzip -p "$zip" "$NOTES_PATH_IN_ZIP" > /tmp/patched_notes.md
             sed -i "s/^# Compact toolchain .*/# Compact toolchain ${CLEAN_VERSION}/" /tmp/patched_notes.md
@@ -344,11 +353,11 @@ jobs:
             # Remove the old entry from the zip
             zip --delete "$zip" "$NOTES_PATH_IN_ZIP"
 
-            # Re-add the patched file at the same path inside the zip
-            mkdir -p /tmp/zip_stage/$(dirname "$NOTES_PATH_IN_ZIP")
-            cp /tmp/patched_notes.md /tmp/zip_stage/$NOTES_PATH_IN_ZIP
+            # Re-add the patched file with the new name
+            mkdir -p /tmp/zip_stage/$(dirname "$TARGET_PATH_IN_ZIP")
+            cp /tmp/patched_notes.md /tmp/zip_stage/$TARGET_PATH_IN_ZIP
             cd /tmp/zip_stage
-            zip "$GITHUB_WORKSPACE/$zip" "$NOTES_PATH_IN_ZIP"
+            zip "$GITHUB_WORKSPACE/$zip" "$TARGET_PATH_IN_ZIP"
             cd "$GITHUB_WORKSPACE"
             rm -rf /tmp/zip_stage
           done
