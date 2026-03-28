@@ -3257,8 +3257,6 @@ valid Compact program:
 The second subsection discusses the structure of the generated TypeScript
 code, while the third discusses the TypeScript representation of
 Compact datatypes.
-The final subsection describes how the DApp can interact with the serialized
-on-chain representations of Compact datatypes.
 
 ### Products of the compiler
 
@@ -3453,51 +3451,6 @@ typed TypeScript because some Compact types have size and range limits that are
 not expressible via the TypeScript type system.
 They are also necessary because compile-time type checks are easily defeated in
 TypeScript and are nonexistent when a caller or witness is coded in JavaScript.
-
-### Ledger representation of Compact types
-
-Values to be stored in the public state require size, length, and other
-properties to be maintained explicitly, because these properties cannot
-be determined solely from the JavaScript representation of the value.
-For this purpose, the `@midnight/compact-runtime` package
-(described in [Compact runtime API](/api-reference/compact-runtime))
-provides explicit run-time types satisfying the `CompactType<`*T*`>` interface,
-where *T* is the corresponding TypeScript type.
-This representation is *not* relevant to most DApp developers; knowledge of it is
-useful only for developers that choose to replicate, augment, or modify the behavior
-of the operations provided by `@midnight/compact-runtime`.
-
-The following types or constructors can be used to create a `CompactType` instance
-for a primitive type:
-
-- `Boolean` - `CompactTypeBoolean`
-- `Field` - `CompactTypeField`
-- `Uint<0..`*n*`>` - `new CompactTypeUnsignedInteger(`*n*`, `*length*`)`, where
-  *length* is the number of bytes required to store *n*-1
-- `Uint<`*n*`>` - same as `Uint<0..2<sup>*n*</sup>`>`
-- `Bytes<`*n*`>` - `new CompactTypeBytes(`*n*`)`
-- `Vector<`*n*`, `*T*`>` - `new CompactTypeVector(`*n*`, `*CT*`)`, where *CT* is the
-  `CompactType` for *T*
-- `Opaque<"String">` - `CompactTypeOpaqueString`
-- `Opaque<"Uint8Array">` - `CompactTypeOpaqueUint8Array`
-- `JubjubPoint` - `CompactTypeJubjubPoint`.
-
-For program-defined types, structures are not currently easily
-constructed at run time and require implementing `CompactType<`*T*`>`
-manually or using compiler internals. This also applies to tuple types
-that do not have a vector type. However, tuple types that have a vector
-type are equivalent to their vector type, i.e., `[`*T*, ⋯, *T*`]` where
-all *T*s are the same is equivalent to `Vector<`*n*`, `*T*`>` where *n*
-is the number of types in the tuple type and its `CompactType` can be
-constructed as `new CompactTypeVector(`*n*`, `*CT*`)`, where *CT* is the
-`CompactType` for *T*.
-
-Enumerations are exposed
-through `new CompactTypeEnum(`*maxValue*`, `*length*`)`, where *maxValue* is
-the maximum permissible integer assignable, and *length* its
-representation length in bytes (almost always `1`).
-
-Type aliases are represented in the same manner as their underlying types.
 
 ## Implementation-specific limits
 
