@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Install Nix
-        uses: cachix/install-nix-action@1ca7d21a94afc7c957383a2d217460d980de4934 # v31.10.1
+        uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff # v31.10.2
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
@@ -64,7 +64,7 @@ jobs:
             !(node_modules)/**/test-report.xml
 
       - name: Publish Test Summary Results
-        uses: ctrf-io/github-test-reporter@024bc4b64d997ca9da86833c6b9548c55c620e40 # v1.0.26
+        uses: ctrf-io/github-test-reporter@31e2a2735dd4641c65c2f49eb07e93ce8ec37fff # v1.0.27
         with:
           report-path: 'tests-e2e/reports/ctrf-report.json'
           flaky-rate-report: 'true'
