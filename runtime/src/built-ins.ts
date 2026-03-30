@@ -162,6 +162,16 @@ export function upgradeFromTransient(x: bigint): Uint8Array {
   return res;
 }
 
+/**
+ * The Compact builtin `keccakHash` function
+ *
+ * TODO: Describe me.
+ */
+export function keccakHash<A>(rtType: CompactType<A>, value: A): Uint8Array {
+  // TODO: Implement me.
+  return new Uint8Array(32);
+}
+
 export function jubjubPointX(pt: JubjubPoint): bigint {
   return pt.x;
 }

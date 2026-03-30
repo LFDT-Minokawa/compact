@@ -287,6 +287,14 @@ circuit upgradeFromTransient(x: Field): Bytes<32>;
 
 ```
 
+### `keccakHash`
+
+TODO: Describe me.
+
+```compact
+circuit keccakHash<T>(value: T): Bytes<32>;
+```
+
 ### `ecAdd`
 
 This function add two elliptic [`NativePoint`](#nativepoint)s (in multiplicative
