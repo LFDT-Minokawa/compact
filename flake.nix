@@ -37,7 +37,7 @@
     onchain-runtime-v3 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2";
+      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-jubjubscalar";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
@@ -47,12 +47,12 @@
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-typed-inputs"; # zkir-v3
+      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-jubjubscalar"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-typed-inputs";
+      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-jubjubscalar";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
