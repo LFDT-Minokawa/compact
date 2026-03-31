@@ -72,7 +72,7 @@ jobs:
       # dorny/test-reporter: Creates a GitHub check run with a detailed,
       # browsable report of individual test cases from JUnit XML.
       - name: Publish Test Report
-        uses: dorny/test-reporter@3d76b34a4535afbd0600d347b09a6ee5deb3ed7f # v2.6.0
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         with:
           name: ${{ steps.names.outputs.report_name }}
           path: artifacts/junit/test-report.xml
