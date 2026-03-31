@@ -48,5 +48,17 @@ describe('[E2E] Example contract tests for formatter tool', () => {
             expectCommandResult(result).toBeSuccess('', '');
             expect(getFileContent(formattedContract)).toEqual(oracleContent);
         });
+
+        test(`should complain about negative line length: '${fileName}'`, async () => {
+            const outputDir = createTempFolder();
+            const formattedContract = `${outputDir}/formatted.compact}`;
+
+            const result: Result = await format([Arguments.LINES_LENGTH, '-10', filePath, formattedContract]);
+
+            expectCommandResult(result).toBeFailure(
+                `Exception: specified line length -10 is not a nonnegative integer`,
+                '',
+            );
+        });
     });
 });

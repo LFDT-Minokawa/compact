@@ -3217,6 +3217,41 @@ groups than for single tests.
     )
 )
 
+(parameterize ([format-line-length 40])
+(run-tests parse-file/format/reparse
+  (test
+    '(
+      "circuit foo(pos: Uint<32>): Boolean {"
+      "return pos == 1 || pos == 2 || pos == 3;"
+      "}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "circuit foo(pos: Uint<32>): Boolean {"
+        "  return pos == 1 ||"
+        "         pos == 2 ||"
+        "         pos == 3;"
+        "}"))
+    )
+)
+
+(run-tests parse-file/fixup/format/reparse
+  (test
+    '(
+      "circuit foo(pos: Uint<32>): Boolean {"
+      "return pos == 1 || pos == 2 || pos == 3;"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "circuit foo(pos: Uint<32>): Boolean {"
+        "  return pos == 1 ||"
+        "         pos == 2 ||"
+        "         pos == 3;"
+        "}"))
+    )
+))
+
 (run-tests parse-file/fixup/format/reparse
   (test
     '(
