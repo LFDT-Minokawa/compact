@@ -289,10 +289,11 @@ circuit upgradeFromTransient(x: Field): Bytes<32>;
 
 ### `keccak256`
 
-TODO: Describe me.
+This function hashes its input using the Keccak-256 algorithm.  It returns the
+32-byte digest.
 
 ```compact
-circuit keccak256(value: T): Bytes<32>;
+circuit keccak256<T>(value: T): Bytes<32>;
 ```
 
 ### `ecAdd`
