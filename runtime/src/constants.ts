@@ -23,6 +23,13 @@ import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
 export const MAX_FIELD: bigint = ocrt.maxField();
 
 /**
+ * The maximum value representable in Compact's `JubjubScalar` type
+ *
+ * One less than the prime modulus of the Jubjub scalar field
+ */
+export const MAX_JUBJUB_SCALAR: bigint = ocrt.maxJubjubScalar();
+
+/**
  * A valid placeholder contract address
  *
  * @deprecated Cannot handle {@link NetworkId}s, use

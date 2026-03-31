@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
-import { MAX_FIELD } from './constants.js';
+import { MAX_FIELD, MAX_JUBJUB_SCALAR } from './constants.js';
 import { CompactType, CompactTypeJubjubPoint, JubjubPoint } from './compact-types.js';
 import { CompactError } from './error.js';
 
@@ -56,6 +56,46 @@ export function mulField(x: bigint, y: bigint): bigint {
   // (although JavaScript % implements remainder rather than modulo, remainder
   // and modulo coincide for nonnegative inputs)
   return (x * y) % FIELD_MODULUS;
+}
+
+const JUBJUB_SCALAR_MODULUS: bigint = MAX_JUBJUB_SCALAR + 1n;
+
+/**
+ * Jubjub scalar addition
+ * returns the result of adding x and y, wrapping if necessary
+ * x and y are assumed to be values in the range [0, JUBJUB_SCALAR_MODULUS)
+ */
+export function addJubjubScalar(x: bigint, y: bigint): bigint {
+  const t = x + y;
+  // effectively mod(x + y, JUBJUB_SCALAR_MODULUS) for x and y in the assumed range
+  // (x + y) % JUBJUB_SCALAR_MODULUS would also work but would likely be more expensive
+  return t < JUBJUB_SCALAR_MODULUS ? t : t - JUBJUB_SCALAR_MODULUS;
+}
+
+/**
+ * Jubjub scalar subtraction
+ * returns the result of subtracting y from x, wrapping if necessary
+ * x and y are assumed to be values in the range [0, JUBJUB_SCALAR_MODULUS)
+ */
+export function subJubjubScalar(x: bigint, y: bigint): bigint {
+  // effectively mod(x - y, JUBJUB_SCALAR_MODULUS) for x and y in the assumed range
+  // NB: JavaScript % implements remainder rather than modulus, so
+  // (x - y) % JUBJUB_SCALAR_MODULUS would return an incorrect value for negative values of x - y.
+  // also, any implementation involving % would likely be more expensive
+  const t = x - y;
+  return t >= 0 ? t : t + JUBJUB_SCALAR_MODULUS;
+}
+
+/**
+ * Jubjub scalar multiplication
+ * returns the result of multipying x and y, wrapping if necessary
+ * x and y are assumed to be values in the range [0, JUBJUB_SCALAR_MODULUS)
+ */
+export function mulJubjubScalar(x: bigint, y: bigint): bigint {
+  // effectively mod(x * y, JUBJUB_SCALAR_MODULUS) for x and y in the assumed range
+  // (although JavaScript % implements remainder rather than modulo, remainder
+  // and modulo coincide for nonnegative inputs)
+  return (x * y) % JUBJUB_SCALAR_MODULUS;
 }
 
 /**

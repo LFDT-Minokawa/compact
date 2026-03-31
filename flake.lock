@@ -473,16 +473,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1773309020,
-        "narHash": "sha256-5RvXdcs2piO2f4LT3zEMQvgVcK6V/8bXYAmfsvvLB5w=",
+        "lastModified": 1774896863,
+        "narHash": "sha256-g/aGjowdYUECGo3ODeOvCT1WHQysGG/T+A2uZympePk=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "dfb450d558d23100d056d2ba121fe2b865e1208c",
+        "rev": "aa58dd081b2ff201a62ee880dddb4b30961865b4",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-8.0.2",
+        "ref": "ambrona@zkirv3-jubjubscalar",
         "repo": "midnight-ledger",
         "type": "github"
       }
@@ -944,16 +944,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1772554179,
-        "narHash": "sha256-jogpuLGX+EgC1z6dl8rXu6tgxQU/9p9BoW+fr4CMDiU=",
+        "lastModified": 1774896863,
+        "narHash": "sha256-g/aGjowdYUECGo3ODeOvCT1WHQysGG/T+A2uZympePk=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "d34844e5d8aa14e6a0fe5143b1884d8881260f08",
+        "rev": "aa58dd081b2ff201a62ee880dddb4b30961865b4",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ambrona@zkirv3-typed-inputs",
+        "ref": "ambrona@zkirv3-jubjubscalar",
         "repo": "midnight-ledger",
         "type": "github"
       }
@@ -969,16 +969,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1772554179,
-        "narHash": "sha256-jogpuLGX+EgC1z6dl8rXu6tgxQU/9p9BoW+fr4CMDiU=",
+        "lastModified": 1774896863,
+        "narHash": "sha256-g/aGjowdYUECGo3ODeOvCT1WHQysGG/T+A2uZympePk=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "d34844e5d8aa14e6a0fe5143b1884d8881260f08",
+        "rev": "aa58dd081b2ff201a62ee880dddb4b30961865b4",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ambrona@zkirv3-typed-inputs",
+        "ref": "ambrona@zkirv3-jubjubscalar",
         "repo": "midnight-ledger",
         "type": "github"
       }
