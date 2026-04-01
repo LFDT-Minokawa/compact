@@ -162,6 +162,8 @@ jobs:
     name: Build compactc binary for Linux aarch64 (Arm)
     uses: ./.github/workflows/release-build.yml
     needs: [ setup, check-release-notes-exist ]
+    permissions:
+      contents: read
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -178,6 +180,8 @@ jobs:
     name: Build compactc binary for Linux x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
     needs: [ setup, check-release-notes-exist ]
+    permissions:
+      contents: read
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -194,6 +198,8 @@ jobs:
     name: Build compactc binary for macOS aarch64 (Arm)
     uses: ./.github/workflows/release-build.yml
     needs: [ setup, check-release-notes-exist ]
+    permissions:
+      contents: read
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -210,6 +216,8 @@ jobs:
     name: Build compactc binary for macOS x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
     needs: [ setup, check-release-notes-exist ]
+    permissions:
+      contents: read
     if: ${{ inputs.include_macos_intel && github.event_name != 'schedule' }}
     secrets: inherit
     with:
@@ -227,6 +235,8 @@ jobs:
     name: Test compactc on Linux aarch42 (Arm)
     uses: ./.github/workflows/release-test.yml
     needs: [ setup, build-release-arm-linux ]
+    permissions:
+      contents: read
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -239,6 +249,8 @@ jobs:
     name: Test compactc on Linux x86_64 (Intel)
     uses: ./.github/workflows/release-test.yml
     needs: [ setup, build-release-intel-linux ]
+    permissions:
+      contents: read
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -251,6 +263,8 @@ jobs:
     name: Test compactc on macOS aarch64 (Arm)
     uses: ./.github/workflows/release-test.yml
     needs: [ setup, build-release-arm-macos ]
+    permissions:
+      contents: read
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
@@ -263,6 +277,8 @@ jobs:
     name: Test compactc on macOS x86_64 (Intel)
     uses: ./.github/workflows/release-test.yml
     needs: [ setup, build-release-intel-macos ]
+    permissions:
+      contents: read
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
