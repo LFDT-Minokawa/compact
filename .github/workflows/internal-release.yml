@@ -151,6 +151,8 @@ jobs:
     name: Check if documentation is updated
     if: ${{ inputs.docs && github.event_name == 'workflow_dispatch' }}
     needs: [ setup ]
+    permissions:
+      contents: read
     uses: ./.github/workflows/check-docs.yml
     secrets: inherit
     with:
