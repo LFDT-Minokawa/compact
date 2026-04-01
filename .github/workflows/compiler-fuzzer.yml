@@ -5,6 +5,8 @@ on:
   schedule:
     - cron: '0 */6 * * *'
 
+permissions: {}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -12,6 +14,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest-16-core-x64
+    permissions:
+      contents: read
+      checks: write
     timeout-minutes: 45
     steps:
       - name: Install Nix

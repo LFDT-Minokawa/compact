@@ -50,6 +50,8 @@ on:
         type: string
         default: 'Compact toolchain release notes copied to midnight-docs'
 
+permissions: {}
+
 concurrency:
   group: release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -117,6 +119,8 @@ jobs:
   check-release-notes-exist:
     name: Check if release notes file exists
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [ setup ]
     steps:
       - name: Checkout compactc repository
@@ -200,6 +204,8 @@ jobs:
   make-internal-release-public:
     name: Copy internal release to public repo
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs: [ setup, check-internal-release-exists, check-release-notes-exist ]
     steps:
       - name: Checkout compactc repository

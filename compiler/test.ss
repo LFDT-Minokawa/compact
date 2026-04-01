@@ -3217,6 +3217,41 @@ groups than for single tests.
     )
 )
 
+(parameterize ([format-line-length 40])
+(run-tests parse-file/format/reparse
+  (test
+    '(
+      "circuit foo(pos: Uint<32>): Boolean {"
+      "return pos == 1 || pos == 2 || pos == 3;"
+      "}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "circuit foo(pos: Uint<32>): Boolean {"
+        "  return pos == 1 ||"
+        "         pos == 2 ||"
+        "         pos == 3;"
+        "}"))
+    )
+)
+
+(run-tests parse-file/fixup/format/reparse
+  (test
+    '(
+      "circuit foo(pos: Uint<32>): Boolean {"
+      "return pos == 1 || pos == 2 || pos == 3;"
+      "}"
+      )
+    (output-file "compiler/testdir/fixup/testfile.compact"
+      '(
+        "circuit foo(pos: Uint<32>): Boolean {"
+        "  return pos == 1 ||"
+        "         pos == 2 ||"
+        "         pos == 3;"
+        "}"))
+    )
+))
+
 (run-tests parse-file/fixup/format/reparse
   (test
     '(
@@ -66378,6 +66413,32 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  expect(C.circuits.foo(Ctxt, new Uint8Array([0, 1]), new Uint8Array([0, 0])).result).toEqual(false);"
         "  expect(C.circuits.foo(Ctxt, new Uint8Array([0, 0]), new Uint8Array([0, 0])).result).toEqual(true);"
+        "  });"
+        ))
+    )
+
+  ; GitHub issue #278: JubjubPoint equality should be component-wise, not reference equality
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit pointsEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
+      "  return a == b;"
+      "}"
+      "export circuit pointsNotEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
+      "  return a != b;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('JubjubPoint equality', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const p1 = runtime.ecMulGenerator(5n);"
+        "  const p2 = runtime.ecMulGenerator(5n);"
+        "  const p3 = runtime.ecMulGenerator(7n);"
+        "  expect(C.circuits.pointsEqual(Ctxt, p1, p2).result).toEqual(true);"
+        "  expect(C.circuits.pointsEqual(Ctxt, p1, p3).result).toEqual(false);"
+        "  expect(C.circuits.pointsNotEqual(Ctxt, p1, p2).result).toEqual(false);"
+        "  expect(C.circuits.pointsNotEqual(Ctxt, p1, p3).result).toEqual(true);"
         "  });"
         ))
     )

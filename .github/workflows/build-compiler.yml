@@ -6,6 +6,8 @@ on:
   schedule:
     - cron: '0 1 * * *'
 
+permissions: {}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -14,12 +16,14 @@ jobs:
   license-check:
     name: Check if all files got headers
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout compactc repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: 3.13
 
@@ -33,6 +37,8 @@ jobs:
   build:
     name: Build and test compiler
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: license-check
     # It takes 90+ minutes to build without Nix caching
     timeout-minutes: 120

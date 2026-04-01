@@ -3,6 +3,8 @@ name: Agda Formal Verification
 on:
   pull_request:
 
+permissions: {}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
   cancel-in-progress: true
@@ -11,12 +13,14 @@ jobs:
   verify:
     name: Verify Agda Specifications
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         name: Cache cabal packages
         id: cache-cabal
         with:
