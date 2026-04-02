@@ -91,13 +91,54 @@ export class AssertGeneratedFiles {
 
     private async lintGeneratedJSCode(code: string): Promise<ESLint.LintResult[]> {
         // Full list: https://eslint.org/docs/latest/rules
-        const rules = js.configs.all.rules;
+        // using the recommended list of rules instead of disabling
+        // lots of them based on the result of testing artifacts upon a release
+        const rules = js.configs.recommended.rules;
         const eslint = new ESLint({
             overrideConfigFile: true,
             overrideConfig: {
                 languageOptions: {
                     ecmaVersion: 'latest',
                     sourceType: 'module',
+                },
+                rules: {
+                    ...rules,
+                    'no-unused-vars': 'warn',
+                    eqeqeq: 'warn',
+                    'no-var': 'warn',
+                    // camelcase: 'off',
+                    // 'class-methods-use-this': 'off',
+                    // curly: 'off',
+                    // eqeqeq: 'warn',
+                    // 'func-style': 'off',
+                    // 'id-length': 'off',
+                    // 'init-declarations': 'off',
+                    // 'max-classes-per-file': 'off',
+                    // 'max-lines': 'off',
+                    // 'max-lines-per-function': 'off',
+                    // 'max-params': 'off',
+                    // 'max-statements': 'off',
+                    // 'no-else-return': 'off',
+                    // 'no-magic-numbers': 'off',
+                    // 'no-param-reassign': 'off',
+                    // 'no-plusplus': 'off',
+                    // 'no-shadow': 'off',
+                    // 'no-ternary': 'off',
+                    // 'no-undefined': 'off',
+                    // 'no-underscore-dangle': 'off',
+                    // 'no-unused-vars': 'warn',
+                    // 'no-var': 'warn',
+                    // 'object-shorthand': 'off',
+                    // 'one-var': 'off',
+                    // 'prefer-destructuring': 'off',
+                    // radix: 'off',
+                    // 'sort-keys': 'off',
+                    // 'vars-on-top': 'off',
+                    // 'no-constant-condition': 'off',
+                    // 'no-nested-ternary': 'off',
+                    // 'no-return-assign': 'off',
+                    // 'no-sequences': 'off',
+                    // 'yoda': 'off',
                 },
                 rules: {
                     ...rules,
