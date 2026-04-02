@@ -14,6 +14,7 @@ on:
         type: choice
         default: 'release/midnight'
         options:
+          - issue-61 # for test
           - main
           - release/midnight
       include_macos_intel:
