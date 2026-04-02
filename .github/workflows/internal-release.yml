@@ -430,29 +430,29 @@ jobs:
           body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
           body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
-      - name: Create Release on LFDT/Minokawa
-        id: create_release_lfdt
-        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
-        with:
-          repository: LFDT-Minokawa/compact
-          tag_name: compactc-${{ inputs.version || github.ref_name }}
-          name: Compact toolchain ${{ inputs.version || github.ref_name }}
-          draft: true
-          prerelease: true
-          files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
-          token: ${{ secrets.MIDNIGHTCI_REPO }}
-          body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
-          body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
+      # - name: Create Release on LFDT/Minokawa
+      #   id: create_release_lfdt
+      #   uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
+      #   with:
+      #     repository: LFDT-Minokawa/compact
+      #     tag_name: compactc-${{ inputs.version || github.ref_name }}
+      #     name: Compact toolchain ${{ inputs.version || github.ref_name }}
+      #     draft: true
+      #     prerelease: true
+      #     files: compactc_${{ needs.setup.outputs.clean_tag }}_*.zip
+      #     token: ${{ secrets.MIDNIGHTCI_REPO }}
+      #     body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
+      #     body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
-      - name: Publish release on LFDT-Minokawa/compact
-        env:
-          GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
-          RELEASE_ID: ${{ steps.create_release_lfdt.outputs.id }}
-        run: |
-          gh api \
-            --method PATCH \
-            /repos/LFDT-Minokawa/compact/releases/${RELEASE_ID} \
-            -f draft=false
+      # - name: Publish release on LFDT-Minokawa/compact
+      #   env:
+      #     GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
+      #     RELEASE_ID: ${{ steps.create_release_lfdt.outputs.id }}
+      #   run: |
+      #     gh api \
+      #       --method PATCH \
+      #       /repos/LFDT-Minokawa/compact/releases/${RELEASE_ID} \
+      #       -f draft=false
 
   generate-docs-after-release:
     if: ${{ always() && inputs.docs && github.event_name == 'workflow_dispatch' && needs.make-release.result == 'success' }}
