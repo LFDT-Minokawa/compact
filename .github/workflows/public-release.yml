@@ -255,7 +255,7 @@ jobs:
 
       - name: Create public release -- LFDT-Minokawa/compact
         env:
-          GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+          GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
         run: |
           PUBLIC_VERSION="${{ needs.setup.outputs.public_version }}"
           CLEAN_PUBLIC="${PUBLIC_VERSION#v}"
