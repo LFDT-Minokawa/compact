@@ -266,7 +266,7 @@ jobs:
             --latest=false \
             public-assets/*
 
-      - name: Create public release -- LFDT-Minokawa/compact
+       - name: Create public release -- LFDT-Minokawa/compact
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
           PUBLIC_VERSION: ${{ needs.setup.outputs.public_version }}
@@ -281,7 +281,11 @@ jobs:
             --title "Compact toolchain ${CLEAN_PUBLIC} (Compact language ${CLEAN_LANGUAGE})" \
             --notes-file "$RELEASE_NOTES_FILE" \
             --latest=false \
+            --draft \
             public-assets/*
+          gh release edit "$PUBLIC_TAG" \
+            --repo LFDT-Minokawa/compact \
+            --draft=false
 
       - name: Create public release -- midnight-ntwrk/artifacts
         env:
