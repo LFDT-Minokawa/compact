@@ -27,7 +27,8 @@
           (runtime-version)
           (ledger)
           (vm)
-          (sourcemaps))
+          (sourcemaps)
+          (config-params))
 
   (define-pass prepare-for-typescript : Lnodisclose (ir) -> Ltypescript ()
     (definitions
@@ -3217,7 +3218,9 @@
             (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)])
               (nanopass-case (Ltypescript Type) (de-alias type)
                 [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                 (assert not-implemented)]
+                 (if (feature-cross-contract)
+                     q
+                     (assert not-implemented))]
                 [else
                  (if descriptor-name?
                      (make-Qconcat
@@ -3227,7 +3230,11 @@
                        ".value)")
                      q)])))])]
       [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
-       (source-errorf src "contract types are not yet implemented")])
+       (if (feature-cross-contract)
+           (begin
+             (source-warningf src "cross-contract call stubbed (experimental cross-contract support)")
+             "undefined")
+           (source-errorf src "contract types are not yet implemented"))])
     (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
       [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
        (values

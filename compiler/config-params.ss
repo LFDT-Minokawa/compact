@@ -41,4 +41,5 @@
 
   ; feature flags
   (export-parameter feature-zkir-v3 #f)
+  (export-parameter feature-cross-contract #f)
 )

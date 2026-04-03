@@ -77,6 +77,11 @@ The following flags, if present, affect the compiler's behavior as follows:
   --trace-search causes the compiler to print a sequence of messages saying
     where it is looking for each included file and imported module source file.
 
+  --feature-cross-contract enables experimental cross-contract call support.
+    When set, the compiler will emit warnings instead of errors for cross-
+    contract calls in ZKIR and TypeScript passes.  This flag implies
+    --feature-zkir-v3.
+
   --trace-passes causes the compiler to print tracing information that is
     generally useful only to compiler developers.
 "))
@@ -97,7 +102,8 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--compact-path) (string search-list)]
              [(--trace-search)]
              [(--trace-passes)]
-             [(--feature-zkir-v3)])
+             [(--feature-zkir-v3)]
+             [(--feature-cross-contract)])
       (string source-pathname)
       (string target-directory-pathname))
      (check-pathname source-pathname)
@@ -105,7 +111,8 @@ The following flags, if present, affect the compiler's behavior as follows:
      (parameterize ([trace-passes ?--trace-passes]
                     [skip-zk ?--skip-zk]
                     [no-communications-commitment ?--no-communications-commitment]
-                    [feature-zkir-v3 ?--feature-zkir-v3]
+                    [feature-zkir-v3 (or ?--feature-zkir-v3 ?--feature-cross-contract)]
+                    [feature-cross-contract ?--feature-cross-contract]
                     [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
                     [trace-search ?--trace-search])
        (when source-root (register-source-root! source-root))
@@ -116,7 +123,8 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--language-version) $ (begin (print-language-version) (exit))]
              [(--ledger-version) $ (begin (print-ledger-version ?--feature-zkir-v3) (exit))]
              [(--runtime-version) $ (begin (print-runtime-version) (exit))]
-             [(--feature-zkir-v3)])
+             [(--feature-zkir-v3)]
+             [(--feature-cross-contract)])
       (string arg) ...)
      (print-usage #t)
      (exit 1)]))
