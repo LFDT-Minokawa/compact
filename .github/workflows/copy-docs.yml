@@ -33,6 +33,8 @@ permissions: {}
 jobs:
   copy-docs:
     name: Create branch in midnight-docs with latest documentation
+    permissions:
+      contents: read
     uses: ./.github/workflows/generate-docs.yml
     secrets: inherit
     with:
