@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "../result/lib/node_modules/@midnight-ntwrk/compact-runtime",
-    "@types/node": "^22.13.8",
+    "@types/node": "^25.5.0",
     "typescript": "~5.9.0"
   },
   "devDependencies": {
