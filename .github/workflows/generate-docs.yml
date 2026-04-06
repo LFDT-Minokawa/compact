@@ -113,14 +113,15 @@ jobs:
           cp ../doc/api/CompactStandardLibrary/exports.md docs/compact/standard-library/exports.md
           cp ../doc/api/CompactStandardLibrary/README.md docs/compact/standard-library/README.md
 
-          cp ../doc/compiler-usage.md docs/compact/compilation-and-tooling/compiler-usage.md
-          cp ../doc/formatter-usage.md docs/compact/compilation-and-tooling/formatter-usage.md
-          cp ../doc/fixup-usage.md docs/compact/compilation-and-tooling/fixup-usage.md
+          cp ../doc/compiler-usage.mdx docs/compact/compilation-and-tooling/compiler-usage.mdx
+          cp ../doc/formatter-usage.mdx docs/compact/compilation-and-tooling/formatter-usage.mdx
+          cp ../doc/fixup-usage.mdx docs/compact/compilation-and-tooling/fixup-usage.mdx
+          cp ../doc/dev-tool-usage.mdx docs/compact/compilation-and-tooling/dev-tool-usage.mdx
 
           cp -r ../doc/api/runtime/. ./api-reference/compact-runtime
           echo -e "# Compact runtime API\n\n$(cat ../doc/api/runtime/README.md)" > ./api-reference/compact-runtime/README.md
 
-          python3 ../scripts/sync-css.py "../doc/custom.css" "src/css/docs-custom.css"
+          python3 ../scripts/sync-css.py "../doc/custom.css" "src/css/custom.css"
 
           git add .
           git commit -m "Update compact documentation"
