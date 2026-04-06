@@ -66824,6 +66824,32 @@ groups than for single tests.
         ))
     )
 
+  ; GitHub issue #278: JubjubPoint equality should be component-wise, not reference equality
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit pointsEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
+      "  return a == b;"
+      "}"
+      "export circuit pointsNotEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
+      "  return a != b;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('JubjubPoint equality', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const p1 = runtime.ecMulGenerator(5n);"
+        "  const p2 = runtime.ecMulGenerator(5n);"
+        "  const p3 = runtime.ecMulGenerator(7n);"
+        "  expect(C.circuits.pointsEqual(Ctxt, p1, p2).result).toEqual(true);"
+        "  expect(C.circuits.pointsEqual(Ctxt, p1, p3).result).toEqual(false);"
+        "  expect(C.circuits.pointsNotEqual(Ctxt, p1, p2).result).toEqual(false);"
+        "  expect(C.circuits.pointsNotEqual(Ctxt, p1, p3).result).toEqual(true);"
+        "  });"
+        ))
+    )
+
  (with-compact-path '(".")
   (test
     '(

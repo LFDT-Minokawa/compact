@@ -27,6 +27,8 @@ on:
         type: boolean
         default: false
 
+permissions: {}
+
 jobs:
   copy-docs:
     name: Create branch in midnight-docs with latest documentation

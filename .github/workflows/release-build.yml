@@ -42,10 +42,14 @@ on:
         type: string
         default: ''
 
+permissions: {}
+
 jobs:
   build:
     name: Build compactc binary for specific system
     runs-on: ${{ inputs.platform }}
+    permissions:
+      contents: read
     steps:
       - name: Set name of artifact
         run: |

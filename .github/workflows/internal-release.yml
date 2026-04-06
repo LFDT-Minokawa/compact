@@ -50,6 +50,8 @@ on:
   schedule:
     - cron: '0 */12 * * *'
 
+permissions: {}
+
 concurrency:
   group: release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -135,6 +137,8 @@ jobs:
   check-release-notes-exist:
     name: Check if release notes file exists
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [ setup ]
     steps:
       - name: Checkout compactc repository
@@ -278,6 +282,8 @@ jobs:
     name: Create GitHub release associated with tag
     if: ${{ always() && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs: [ setup, test-arm-linux, test-intel-linux, test-arm-macos, test-intel-macos ]
     steps:
       - name: Verify required builds passed
