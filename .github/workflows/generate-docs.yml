@@ -102,8 +102,8 @@ jobs:
           cd midnight-docs
           git config user.name "midnight-ci"
           git config user.email "ci@midnight.network"
+          git config --unset-all http.https://github.com/.extraheader || true
           git remote set-url origin "https://x-access-token:${MIDNIGHTCI_REPO}@github.com/midnightntwrk/midnight-docs.git"
-
 
           git checkout -b "compact-docs-update-${RUN_ID}"
 
