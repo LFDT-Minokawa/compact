@@ -92,6 +92,7 @@ jobs:
           token: ${{ secrets.MIDNIGHTCI_REPO }}
           path: "midnight-docs"
           ref: ${{ inputs.docs_branch }}
+          persist-credentials: false
 
       - name: Manual Git Push
         env:
@@ -130,7 +131,7 @@ jobs:
 
           git add .
           git commit -m "Update compact documentation"
-          git push origin compact-docs-update-${{ github.run_id }}
+          git push origin "compact-docs-update-${Run_ID}"
 
       - name: Create PR
         env:
