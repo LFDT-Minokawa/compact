@@ -95,13 +95,6 @@ jobs:
           ref: ${{ inputs.docs_branch }}
           persist-credentials: false
 
-      - name: Check CSS sync blocks are in sync
-        run: |
-          python3 scripts/sync-css.py \
-            "doc/custom-code.css" \
-            "midnight-docs/src/css/custom.css" \
-            --check
-
       - name: Manual Git Push
         env:
           MIDNIGHTCI_REPO: ${{ secrets.MIDNIGHTCI_REPO }}

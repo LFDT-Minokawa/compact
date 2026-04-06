@@ -3,13 +3,13 @@
 @font-face {
   font-family: "Geist Mono";
   src: url("https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-mono/GeistMono-Regular.woff2") format("woff2");
-  font-weight: 4000;
+  font-weight: 400;
 }
 /* END_COMPACT_SYNC: geist-font */
 
 /* BEGIN_COMPACT_SYNC: root */
 :root {
-  --ifm-font-family-monospacee: "Geist Mono", monospacee;
+  --ifm-font-family-monospace: "Geist Mono", monospace;
 }
 /* END_COMPACT_SYNC: root */
 
