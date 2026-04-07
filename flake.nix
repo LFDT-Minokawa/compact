@@ -341,8 +341,16 @@
             '' else "");
           };
 
+          # The upstream zkir-v3 package produces bin/zkir (same name as
+          # zkir v2).  Wrap it so the binary is available as bin/zkir-v3,
+          # which is the name the compiler invokes.
+          packages.zkir-v3-bin = pkgs.runCommand "zkir-v3-bin" {} ''
+            mkdir -p $out/bin
+            ln -s ${zkir-v3.packages.${system}.zkir-v3}/bin/zkir $out/bin/zkir-v3
+          '';
+
           packages.compactc-binaryWrapperScript-nixos = pkgs.writeShellScriptBin "run-compactc" ''
-            PATH=${pkgs.lib.makeBinPath [ packages.compactc-binary-nixos zkir.packages.${system}.zkir zkir-v3.packages.${system}.zkir-v3 ]} \
+            PATH=${pkgs.lib.makeBinPath [ packages.compactc-binary-nixos zkir.packages.${system}.zkir packages.zkir-v3-bin ]} \
             compactc $@
           '';
 
@@ -408,7 +416,7 @@
                 "PATH=${pkgs.lib.makeBinPath [
                   compactc
                   zkir.packages.${system}.zkir
-                  zkir-v3.packages.${system}.zkir-v3
+                  zkir-v3-bin
                 ]}"
               ];
             };
@@ -417,7 +425,7 @@
                 deps = [
                   compactc
                   zkir.packages.${system}.zkir
-                  zkir-v3.packages.${system}.zkir-v3
+                  zkir-v3-bin
                 ];
               })
             ];
@@ -509,7 +517,7 @@
             paths = [
               packages.compactc
               zkir.packages.${system}.zkir
-              zkir-v3.packages.${system}.zkir-v3
+              packages.zkir-v3-bin
               packages.compact-vscode-extension
             ];
           };
@@ -545,7 +553,7 @@
               packages.test-center.package
               packages.test-center.node-modules
               zkir.packages.${system}.zkir
-              zkir-v3.packages.${system}.zkir-v3
+              packages.zkir-v3-bin
             ];
             shellHook = combined-shell-hook;
 
@@ -558,7 +566,7 @@
               packages.compactc
               pkgs.yarn
               zkir.packages.${system}.zkir
-              zkir-v3.packages.${system}.zkir-v3
+              packages.zkir-v3-bin
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
@@ -578,7 +586,7 @@
               packages.runtime.package
               packages.runtime.node-modules
               zkir.packages.${system}.zkir
-              zkir-v3.packages.${system}.zkir-v3
+              packages.zkir-v3-bin
               pkgs.nodejs
               pkgs.yarn
             ];
