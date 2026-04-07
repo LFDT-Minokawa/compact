@@ -11,7 +11,7 @@ name: Publish Test Results
 
 on:
   workflow_run:
-    workflows: ["Compiler Build", "Compiler extracted", "VSC Plugin Build"]
+    workflows: ["Compiler Build", "Compiler extracted", "VSC Plugin Build", "Run compatibility tests", "Compiler fuzzer"]
     types:
       - completed
 
@@ -37,7 +37,7 @@ jobs:
 
       - name: Download CTRF test results
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: github.event.workflow_run.name != 'VSC Plugin Build'
+        if: github.event.workflow_run.name != 'VSC Plugin Build' && github.event.workflow_run.name != 'Run compatibility tests'
         with:
           name: test-results-ctrf-summary
           path: artifacts/ctrf
@@ -59,6 +59,14 @@ jobs:
             "VSC Plugin Build")
               echo "report_name=Plugin Test Report" >> "$GITHUB_OUTPUT"
               echo "summary_name=Plugin Test Summary" >> "$GITHUB_OUTPUT"
+              ;;
+            "Run compatibility tests")
+              echo "report_name=Compatibility Test Report" >> "$GITHUB_OUTPUT"
+              echo "summary_name=Compatibility Test Summary" >> "$GITHUB_OUTPUT"
+              ;;
+            "Compiler fuzzer")
+              echo "report_name=Fuzzer Test Report" >> "$GITHUB_OUTPUT"
+              echo "summary_name=Fuzzer Test Summary" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "report_name=Compactc E2E Test Report" >> "$GITHUB_OUTPUT"
@@ -95,7 +103,7 @@ jobs:
       # Actions run and as a PR comment. Only compactc workflows produce
       # CTRF reports.
       - name: Publish CTRF Summary
-        if: always() && github.event.workflow_run.name != 'VSC Plugin Build'
+        if: always() && github.event.workflow_run.name != 'VSC Plugin Build' && github.event.workflow_run.name != 'Run compatibility tests'
         run: |
           npx github-actions-ctrf artifacts/ctrf/ctrf-report.json --title "E2E test results"
           npx github-actions-ctrf pull-request artifacts/ctrf/ctrf-report.json --title "E2E test results"

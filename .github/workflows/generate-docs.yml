@@ -33,9 +33,13 @@ on:
       MIDNIGHTCI_REPO:
         required: true
 
+permissions: {}
+
 jobs:
   generate-docs:
     runs-on: ubuntu-latest-16-core-x64
+    permissions:
+      contents: read
     steps:
       - name: Install Nix
         uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff # v31.10.2

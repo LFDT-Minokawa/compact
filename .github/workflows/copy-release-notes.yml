@@ -30,6 +30,8 @@ on:
         type: string
         default: 'Compact toolchain release notes copied to midnight-docs'
 
+permissions: {}
+
 jobs:
   setup:
     name: Setup the variable

@@ -2744,6 +2744,22 @@
                          (printf "}\n"))
                        elt-name*
                        type*)]
+                    [(topaque ,src ,opaque-type)
+                     (guard (string=? opaque-type "JubjubPoint"))
+                     (for-each
+                       (lambda (elt-name)
+                         (print-indent indent)
+                         (printf "{\n")
+                         (let ([next-i (fx+ i 1)] [next-indent (fx+ indent 2)])
+                           (print-indent next-indent)
+                           (printf "let x~s = x~s.~s;\n" next-i i elt-name)
+                           (print-indent next-indent)
+                           (printf "let y~s = y~s.~s;\n" next-i i elt-name)
+                           (print-indent next-indent)
+                           (printf "if (x~s !== y~:*~s) { return false; }\n" next-i))
+                         (print-indent indent)
+                         (printf "}\n"))
+                       '(x y))]
                     [else
                      (print-indent indent)
                      (printf "if (x~s !== y~:*~s) { return false; }\n" i)])))))
@@ -2928,7 +2944,7 @@
        (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
              [(tfield ,src) #t]
-             [(topaque ,src ,opaque-type) #t]
+             [(topaque ,src ,opaque-type) (not (string=? opaque-type "JubjubPoint"))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
              [else #f])
            (parenthesize level (precedence ==)
@@ -2951,7 +2967,7 @@
        (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
              [(tfield ,src) #t]
-             [(topaque ,src ,opaque-type) #t]
+             [(topaque ,src ,opaque-type) (not (string=? opaque-type "JubjubPoint"))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
              [else #f])
            (parenthesize level (precedence ==)
