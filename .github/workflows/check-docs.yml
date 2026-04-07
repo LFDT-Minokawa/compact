@@ -11,10 +11,14 @@ on:
       MIDNIGHTCI_PACKAGES_WRITE:
         required: false
 
+permissions: {}
+
 jobs:
   check-docs:
     name: Check if documentation is updated
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout compactc repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

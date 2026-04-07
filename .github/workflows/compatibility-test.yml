@@ -14,9 +14,13 @@ on:
     types:
       - completed
 
+permissions: {}
+
 jobs:
   test:
     runs-on: ubuntu-latest-8-core-x64
+    permissions:
+      contents: read
     steps:
       - name: Install Nix
         uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff # v31.10.2
@@ -64,11 +68,16 @@ jobs:
           nix develop .#compiler --command yarn install
           nix develop .#compiler --command yarn test:compatibility
 
-      - name: Publish Test Summary
-        uses: EnricoMi/publish-unit-test-result-action@c950f6fb443cb5af20a377fd0dfaa78838901040 # v2.23.0
+      - name: Upload Junit test results
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
-          check_name: Compactc E2E Tests Results
-          files: |
-            **/reports/test-report.xml
-            !(node_modules)/**/test-report.xml
+          name: test-results-junit-summary
+          path: tests-e2e/reports/test-report.xml
+
+      - name: Upload event file
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: always()
+        with:
+          name: event-file
+          path: ${{ github.event_path }}

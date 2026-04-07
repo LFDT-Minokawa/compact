@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
 
+permissions: {}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -11,6 +13,8 @@ concurrency:
 jobs:
   debug-build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Install Nix
         uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff # v31.10.2
