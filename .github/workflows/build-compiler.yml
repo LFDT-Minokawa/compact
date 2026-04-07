@@ -64,6 +64,17 @@ jobs:
           cache: midnight-public
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
+      - name: Make cache hook non-fatal
+        run: |
+          if [ -f /home/runner/work/_temp/post-build.sh ]; then
+            mv /home/runner/work/_temp/post-build.sh /home/runner/work/_temp/post-build-original.sh
+            cat > /home/runner/work/_temp/post-build.sh << 'EOF'
+          #!/bin/bash
+          /home/runner/work/_temp/post-build-original.sh "$@" || true
+          EOF
+            chmod +x /home/runner/work/_temp/post-build.sh
+          fi
+
       - name: Checkout compactc repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
