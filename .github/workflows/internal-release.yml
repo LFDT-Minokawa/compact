@@ -375,7 +375,7 @@ jobs:
 
             # Find the full path of the release notes file inside the zip
             # (it may be nested, e.g. aarch64-darwin/toolchain-0.30.0.md)
-            NOTES_PATH_IN_ZIP=$(unzip -l "$zip" | awk '{print $4}' | grep "/$NOTES_FILENAME$\|^$NOTES_FILENAME$")
+            NOTES_PATH_IN_ZIP=$(unzip -Z1 "$zip" | grep -E "(^|/)${NOTES_FILENAME}$")
 
             if [ -z "$NOTES_PATH_IN_ZIP" ]; then
               echo "::warning::Release notes file '$NOTES_FILENAME' not found in $zip, skipping."
@@ -400,8 +400,8 @@ jobs:
             zip --delete "$zip" "$NOTES_PATH_IN_ZIP"
 
             # Re-add the patched file with the new name
-            mkdir -p /tmp/zip_stage/$(dirname "$TARGET_PATH_IN_ZIP")
-            cp /tmp/patched_notes.md /tmp/zip_stage/$TARGET_PATH_IN_ZIP
+            mkdir -p "/tmp/zip_stage/$(dirname "$TARGET_PATH_IN_ZIP")"
+            cp /tmp/patched_notes.md "/tmp/zip_stage/$TARGET_PATH_IN_ZIP"
             cd /tmp/zip_stage
             zip "$GITHUB_WORKSPACE/$zip" "$TARGET_PATH_IN_ZIP"
             cd "$GITHUB_WORKSPACE"

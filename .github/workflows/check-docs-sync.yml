@@ -59,12 +59,10 @@ jobs:
           check doc/dev-tool-usage.mdx docs/compact/compilation-and-tooling/dev-tool-usage.mdx
 
           # Check runtime API files (copied with cp -r)
-          for SRC_FILE in $(find doc/api/runtime -type f); do
+          find doc/api/runtime -type f -print0 | while IFS= read -r -d '' SRC_FILE; do
             REL="${SRC_FILE#doc/api/runtime/}"
             # README.md is handled separately below (it has a prepended header)
-            if [ "$REL" = "README.md" ]; then
-              continue
-            fi
+            [ "$REL" = "README.md" ] && continue
             check "$SRC_FILE" "api-reference/compact-runtime/$REL"
           done
 

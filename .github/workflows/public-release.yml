@@ -266,7 +266,7 @@ jobs:
             --latest=false \
             public-assets/*
 
-       - name: Create public release -- LFDT-Minokawa/compact
+      - name: Create public release -- LFDT-Minokawa/compact
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
           PUBLIC_VERSION: ${{ needs.setup.outputs.public_version }}
