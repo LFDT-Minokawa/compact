@@ -87,14 +87,14 @@ jobs:
       - name: Checkout compactc repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Check flake.nix version matches compiler-version.ss
+      - name: Check flake.nix version matches compiler/compiler-version.ss
         run: |
           FLAKE_VERSION=$(grep -oP 'version = "\K[0-9]+\.[0-9]+\.[0-9]+(?=";.*# NB: also update compiler-version)' flake.nix)
 
           COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
 
-          echo "flake.nix version:          $FLAKE_VERSION"
-          echo "compiler-version.ss version: $COMPILER_VERSION"
+          echo "flake.nix version:                    $FLAKE_VERSION"
+          echo "compiler/compiler-version.ss version: $COMPILER_VERSION"
 
           if [ -z "$FLAKE_VERSION" ]; then
             echo "::error::Could not extract version from flake.nix. Check that the version line contains the expected comment."
@@ -102,17 +102,13 @@ jobs:
           fi
 
           if [ "$FLAKE_VERSION" != "$COMPILER_VERSION" ]; then
-            if printf '%s\n' "$FLAKE_VERSION" "$COMPILER_VERSION" | sort -V | head -1 | grep -qx "$FLAKE_VERSION"; then
-              echo "::error::flake.nix version ($FLAKE_VERSION) is behind compiler/compiler-version.ss ($COMPILER_VERSION). Update the version field in flake.nix to match."
-            else
-              echo "::error::compiler/compiler-version.ss version ($COMPILER_VERSION) is behind flake.nix ($FLAKE_VERSION). Update the version in compiler/compiler-version.ss to match."
-            fi
+            echo "::error::Compiler version mismatch between $FLAKE_VERSION (in flake.nix) and $COMPILER_VERSION (in compiler/compiler-version.ss). Update the versions so that they match."
             exit 1
           fi
 
-          echo "flake.nix and compiler-version.ss versions match: $COMPILER_VERSION"
+          echo "flake.nix and compiler/compiler-version.ss versions match: $COMPILER_VERSION"
 
-      - name: Check compiler and language versions match ledger-adt.mdx
+      - name: Check compiler and language versions match doc/ledger-adt.mdx
         run: |
           FAILED=0
 
@@ -128,15 +124,11 @@ jobs:
             exit 1
           fi
 
-          echo "Compiler version (compiler-version.ss): $COMPILER_VERSION"
-          echo "Compiler version (ledger-adt.mdx):      $DOCS_COMPILER"
+          echo "Compiler version (compiler/compiler-version.ss): $COMPILER_VERSION"
+          echo "Compiler version (ledger-adt.mdx):               $DOCS_COMPILER"
 
           if [ "$COMPILER_VERSION" != "$DOCS_COMPILER" ]; then
-            if printf '%s\n' "$DOCS_COMPILER" "$COMPILER_VERSION" | sort -V | head -1 | grep -qx "$DOCS_COMPILER"; then
-              echo "::error::doc/ledger-adt.mdx compiler version ($DOCS_COMPILER) is behind compiler/compiler-version.ss ($COMPILER_VERSION). Run './compiler/go' inside a nix shell ('nix develop .#compiler') to regenerate doc/ledger-adt.mdx, then commit the result."
-            else
-              echo "::error::compiler/compiler-version.ss compiler version ($COMPILER_VERSION) is behind doc/ledger-adt.mdx ($DOCS_COMPILER). Update the version in compiler/compiler-version.ss."
-            fi
+            echo "::error::Compiler version mismatch between $COMPILER_VERSION (in compiler/compiler-version.ss) and $DOCS_COMPILER (in doc/ledger-adt.mdx). The compiler version in doc/ledger-adt.mdx is pulled from compiler/compiler-version.ss by running './compiler/go' in a Nix shell."
             FAILED=1
           else
             echo "Compiler versions match: $COMPILER_VERSION"
@@ -154,15 +146,11 @@ jobs:
             exit 1
           fi
 
-          echo "Language version (language-version.ss): $LANGUAGE_VERSION"
-          echo "Language version (ledger-adt.mdx):      $DOCS_LANGUAGE"
+          echo "Language version (compiler/language-version.ss): $LANGUAGE_VERSION"
+          echo "Language version (ledger-adt.mdx):               $DOCS_LANGUAGE"
 
           if [ "$LANGUAGE_VERSION" != "$DOCS_LANGUAGE" ]; then
-            if printf '%s\n' "$DOCS_LANGUAGE" "$LANGUAGE_VERSION" | sort -V | head -1 | grep -qx "$DOCS_LANGUAGE"; then
-              echo "::error::doc/ledger-adt.mdx language version ($DOCS_LANGUAGE) is behind compiler/language-version.ss ($LANGUAGE_VERSION). Run './compiler/go' inside a nix shell ('nix develop .#compiler') to regenerate doc/ledger-adt.mdx, then commit the result."
-            else
-              echo "::error::compiler/language-version.ss language version ($LANGUAGE_VERSION) is behind doc/ledger-adt.mdx ($DOCS_LANGUAGE). Update the version in compiler/language-version.ss."
-            fi
+            echo "::error::Language version mismatch between $LANGUAGE_VERSION (in compiler/language-version.ss) and $DOCS_LANGUAGE (in doc/ledger-adt.mdx). The language version in doc/ledger-adt.mdx is pulled from compiler/language-version.ss by running './compiler/go' in a Nix shell."
             FAILED=1
           else
             echo "Language versions match: $LANGUAGE_VERSION"
@@ -230,11 +218,7 @@ jobs:
             local FILE_NAME="$4"
 
             if [ "$CHANGELOG_VERSION" != "$FILE_VERSION" ]; then
-              if printf '%s\n' "$CHANGELOG_VERSION" "$FILE_VERSION" | sort -V | head -1 | grep -qx "$CHANGELOG_VERSION"; then
-                echo "::error::changelog.md $LABEL version ($CHANGELOG_VERSION) is behind $FILE_NAME ($FILE_VERSION). Add a new entry to CHANGELOG.md for the updated version."
-              else
-                echo "::error::$FILE_NAME $LABEL version ($FILE_VERSION) is behind changelog.md ($CHANGELOG_VERSION). Update the version in $FILE_NAME to match the CHANGELOG."
-              fi
+              echo "::error::Version mismatch between CHANGELOG.md $LABEL version ($CHANGELOG_VERSION) and $FILE_NAME ($FILE_VERSION)."
               return 1
             fi
             echo "$LABEL versions match: $FILE_VERSION"
