@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Setup Nix with cache
-        uses: ./.github/workflows/setup-nix-cache.yml
+        uses: ./.github/actions/setup-nix-cache
         with:
           attic_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
