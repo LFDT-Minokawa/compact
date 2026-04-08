@@ -44,13 +44,13 @@ jobs:
     # It takes 90+ minutes to build without Nix caching
     timeout-minutes: 120
     steps:
+      - name: Checkout compactc repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
       - name: Setup Nix with cache
         uses: ./.github/actions/setup-nix-cache
         with:
           attic_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
-
-      - name: Checkout compactc repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Check flake.nix version matches compiler/compiler-version.ss
         run: |

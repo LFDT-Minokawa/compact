@@ -16,15 +16,15 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Setup Nix with cache
+      - name: Checkout compactc repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+       - name: Setup Nix with cache
         uses: ./.github/actions/setup-nix-cache
         with:
           attic_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
-      - name: Checkout compactc repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Build lib
+     - name: Build lib
         run: |
           nix build .#runtime.forPublish
 
