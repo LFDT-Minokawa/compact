@@ -64,15 +64,24 @@ jobs:
           cache: midnight-public
           access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
+      # The input-output-hk/actions/attic action installs a Nix post-build hook
+      # that uploads every derivation to the Attic cache. If the upload fails
+      # (e.g. endpoint down, expired token), the hook exits non-zero and Nix
+      # treats the build itself as failed. This wrapper makes upload failures
+      # non-fatal so that CI is not blocked by cache infrastructure issues.
+      # TODO: Fix upstream in input-output-hk/actions/attic or replace Attic.
       - name: Make cache hook non-fatal
+        env:
+          HOOK: ${{ runner.temp }}/post-build.sh
         run: |
-          if [ -f /home/runner/work/_temp/post-build.sh ]; then
-            mv /home/runner/work/_temp/post-build.sh /home/runner/work/_temp/post-build-original.sh
-            cat > /home/runner/work/_temp/post-build.sh << 'EOF'
+          if [ -f "$HOOK" ]; then
+            ORIGINAL="$(mktemp -d)/post-build.sh"
+            mv "$HOOK" "$ORIGINAL"
+            cat > "$HOOK" << EOF
           #!/bin/bash
-          /home/runner/work/_temp/post-build-original.sh "$@" || true
+          "$ORIGINAL" "\$@" || true
           EOF
-            chmod +x /home/runner/work/_temp/post-build.sh
+            chmod +x "$HOOK"
           fi
 
       - name: Checkout compactc repository
