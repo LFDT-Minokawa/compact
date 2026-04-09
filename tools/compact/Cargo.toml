@@ -37,7 +37,7 @@ dirs = "5.0.1"
 futures = "0.3.31"
 ignore = "0.4.23"
 indicatif = "0.18.0"
-octocrab = "0.44.1"
+octocrab = "0.49.7"
 pretty_assertions = "1.4.1"
 regex = "1.11.1"
 reqwest = { version = "0.12.9", default-features = false, features = [
