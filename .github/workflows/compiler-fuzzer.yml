@@ -1,3 +1,4 @@
+# NB: if this name changes, it must also be changed in notify-failed-scheduled
 name: Compiler fuzzer
 
 on:
@@ -69,7 +70,7 @@ jobs:
             !(node_modules)/**/test-report.xml
 
       - name: Publish Test Summary Results
-        uses: ctrf-io/github-test-reporter@31e2a2735dd4641c65c2f49eb07e93ce8ec37fff # v1.0.27
+        uses: ctrf-io/github-test-reporter@0f299074936c32ccaab5be5230511f6b2b9080aa # v1.0.28
         with:
           report-path: 'tests-e2e/reports/ctrf-report.json'
           flaky-rate-report: 'true'
