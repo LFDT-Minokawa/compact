@@ -39,7 +39,7 @@ jobs:
         run: rustup component add rustfmt clippy
 
       - name: Cache Cargo registry and git trees
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             ~/.cargo/registry/index/
@@ -84,7 +84,7 @@ jobs:
         uses: taiki-e/install-action@5e9ca9f228625a79b1cdac24184900b4ffc542ac # nextest (tag)
 
       - name: Cache Cargo registry and git trees
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             ~/.cargo/registry/index/
@@ -95,7 +95,7 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Cache target directory
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: tools/compact/target
           key: ${{ runner.os }}-target-${{ hashFiles('tools/compact/Cargo.lock') }}
