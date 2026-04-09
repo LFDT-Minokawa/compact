@@ -1,3 +1,4 @@
+# NB: if this name changes, it must also be changed in notify-failed-scheduled
 name: CodeQL
 
 on:

@@ -91,7 +91,9 @@ export class AssertGeneratedFiles {
 
     private async lintGeneratedJSCode(code: string): Promise<ESLint.LintResult[]> {
         // Full list: https://eslint.org/docs/latest/rules
-        const rules = js.configs.all.rules;
+        // using the recommended list of rules instead of disabling
+        // lots of them based on the result of testing artifacts upon a release
+        const rules = js.configs.recommended.rules;
         const eslint = new ESLint({
             overrideConfigFile: true,
             overrideConfig: {
@@ -101,21 +103,10 @@ export class AssertGeneratedFiles {
                 },
                 rules: {
                     ...rules,
-                    camelcase: 'off',
-                    'class-methods-use-this': 'off',
-                    curly: 'off',
+                    'no-unused-vars': 'warn',
                     eqeqeq: 'warn',
-                    'id-length': 'off',
-                    'max-classes-per-file': 'off',
-                    'max-lines': 'off',
-                    'max-lines-per-function': 'off',
-                    'no-magic-numbers': 'off',
-                    'no-underscore-dangle': 'off',
                     'no-var': 'warn',
-                    'one-var': 'off',
-                    'sort-keys': 'off',
-                    radix: 'off',
-                    'vars-on-top': 'off',
+                    'no-constant-condition': 'warn',
                 },
             },
         });

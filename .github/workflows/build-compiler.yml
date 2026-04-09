@@ -1,3 +1,4 @@
+# NB: if this name changes, it must also be changed in notify-failed-scheduled
 name: Compiler Build
 
 on:
@@ -43,67 +44,217 @@ jobs:
     # It takes 90+ minutes to build without Nix caching
     timeout-minutes: 120
     steps:
-      - name: Install Nix
-        uses: cachix/install-nix-action@51f3067b56fe8ae331890c77d4e454f6d60615ff # v31.10.2
-        with:
-          #github_access_token: ${{ secrets.MIDNIGHTCI_PACKAGES_READ }}
-          nix_path: nixpkgs=channel:nixos-unstable
-
-          extra_nix_config: |
-            extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
-            extra-substituters = https://cache.iog.io
-            accept-flake-config = true
-
-      - name: Cache Nix
-        uses: input-output-hk/actions/attic@8663542d03a41382d97ee344a4e3955280db5f95 # latest
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-          endpoint: https://attic.ci.iog.io
-          cache: midnight-public
-          access_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
-
       - name: Checkout compactc repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Check compiler and language versions in internal documentation
-        run: |
-          # check compiler version
-          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
-          DOCS_COMPILER=$(grep -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
+      - name: Setup Nix with cache
+        uses: ./.github/actions/setup-nix-cache
+        with:
+          attic_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
-          echo "Compiler version: $COMPILER_VERSION"
-          echo "Compiler version in docs: $DOCS_COMPILER"
+      - name: Check flake.nix version matches compiler/compiler-version.ss
+        run: |
+          FLAKE_VERSION=$(grep -oP 'version = "\K[0-9]+\.[0-9]+\.[0-9]+(?=";.*# NB: also update compiler-version)' flake.nix)
+
+          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
+
+          echo "flake.nix version:                    $FLAKE_VERSION"
+          echo "compiler/compiler-version.ss version: $COMPILER_VERSION"
+
+          if [ -z "$FLAKE_VERSION" ]; then
+            echo "::error::Could not extract version from flake.nix. Check that the version line contains the expected comment."
+            exit 1
+          fi
+
+          if [ "$FLAKE_VERSION" != "$COMPILER_VERSION" ]; then
+            echo "::error::Compiler version mismatch between $FLAKE_VERSION (in flake.nix) and $COMPILER_VERSION (in compiler/compiler-version.ss). Update the versions so that they match."
+            exit 1
+          fi
+
+          echo "flake.nix and compiler/compiler-version.ss versions match: $COMPILER_VERSION"
+
+      - name: Check compiler and language versions match doc/ledger-adt.mdx
+        run: |
+          FAILED=0
+
+          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
+          DOCS_COMPILER=$(grep -m1 -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
+
+          if [ -z "$COMPILER_VERSION" ]; then
+            echo "::error::Could not extract compiler version from compiler/compiler-version.ss. Check the make-version format."
+            exit 1
+          fi
+          if [ -z "$DOCS_COMPILER" ]; then
+            echo "::error::Could not extract compiler version from doc/ledger-adt.mdx. Check that it contains a 'compiler version X.Y.Z' string."
+            exit 1
+          fi
+
+          echo "Compiler version (compiler/compiler-version.ss): $COMPILER_VERSION"
+          echo "Compiler version (ledger-adt.mdx):               $DOCS_COMPILER"
 
           if [ "$COMPILER_VERSION" != "$DOCS_COMPILER" ]; then
-            echo "Compiler version mismatch, please update"
+            echo "::error::Compiler version mismatch between $COMPILER_VERSION (in compiler/compiler-version.ss) and $DOCS_COMPILER (in doc/ledger-adt.mdx). The compiler version in doc/ledger-adt.mdx is pulled from compiler/compiler-version.ss by running './compiler/go' in a Nix shell."
+            FAILED=1
+          else
+            echo "Compiler versions match: $COMPILER_VERSION"
+          fi
+
+          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
+          DOCS_LANGUAGE=$(grep -m1 -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
+
+          if [ -z "$LANGUAGE_VERSION" ]; then
+            echo "::error::Could not extract language version from compiler/language-version.ss. Check the make-version format."
+            exit 1
+          fi
+          if [ -z "$DOCS_LANGUAGE" ]; then
+            echo "::error::Could not extract language version from doc/ledger-adt.mdx. Check that it contains a 'language version X.Y.Z' string."
             exit 1
           fi
 
-          echo "Compiler versions match"
-
-          # check language version
-          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
-          DOCS_LANGUAGE=$(grep -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
-
-          echo "Language version: $LANGUAGE_VERSION"
-          echo "Language version in docs: $DOCS_LANGUAGE"
+          echo "Language version (compiler/language-version.ss): $LANGUAGE_VERSION"
+          echo "Language version (ledger-adt.mdx):               $DOCS_LANGUAGE"
 
           if [ "$LANGUAGE_VERSION" != "$DOCS_LANGUAGE" ]; then
-            echo "Language versions mismatch, please update"
+            echo "::error::Language version mismatch between $LANGUAGE_VERSION (in compiler/language-version.ss) and $DOCS_LANGUAGE (in doc/ledger-adt.mdx). The language version in doc/ledger-adt.mdx is pulled from compiler/language-version.ss by running './compiler/go' in a Nix shell."
+            FAILED=1
+          else
+            echo "Language versions match: $LANGUAGE_VERSION"
+          fi
+
+          if [ "$FAILED" -eq 1 ]; then
             exit 1
           fi
 
-          echo "Language versions match"
+      - name: Check CHANGELOG.md top entry matches version files
+        run: |
+          FAILED=0
+
+          # Extract versions from source files
+          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
+          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
+          RUNTIME_VERSION=$(grep -oP '"version":\s*"\K[0-9]+\.[0-9]+\.[0-9]+' runtime/package.json | head -1)
+
+          if [ -z "$COMPILER_VERSION" ]; then
+            echo "::error::Could not extract compiler version from compiler/compiler-version.ss. Check the make-version format."
+            exit 1
+          fi
+          if [ -z "$LANGUAGE_VERSION" ]; then
+            echo "::error::Could not extract language version from compiler/language-version.ss. Check the make-version format."
+            exit 1
+          fi
+          if [ -z "$RUNTIME_VERSION" ]; then
+            echo "::error::Could not extract runtime version from runtime/package.json. Check the version field."
+            exit 1
+          fi
+
+          # Extract versions from the top changelog entry
+          # Expected format: ## [Toolchain 0.30.104, language 0.22.101, runtime 0.15.101]
+          CHANGELOG_LINE=$(grep -m1 "^## \[Toolchain" CHANGELOG.md)
+
+          if [ -z "$CHANGELOG_LINE" ]; then
+            echo "::error::Could not find a changelog entry starting with '## [Toolchain' in CHANGELOG.md."
+            exit 1
+          fi
+
+          CHANGELOG_TOOLCHAIN=$(echo "$CHANGELOG_LINE" | grep -oP "Toolchain \K[0-9]+\.[0-9]+\.[0-9]+")
+          CHANGELOG_LANGUAGE=$(echo "$CHANGELOG_LINE" | grep -oP "language \K[0-9]+\.[0-9]+\.[0-9]+")
+          CHANGELOG_RUNTIME=$(echo "$CHANGELOG_LINE" | grep -oP "runtime \K[0-9]+\.[0-9]+\.[0-9]+")
+
+          if [ -z "$CHANGELOG_TOOLCHAIN" ]; then
+            echo "::error::Could not extract toolchain version from the top CHANGELOG.md entry: $CHANGELOG_LINE"
+            exit 1
+          fi
+          if [ -z "$CHANGELOG_LANGUAGE" ]; then
+            echo "::error::Could not extract language version from the top CHANGELOG.md entry: $CHANGELOG_LINE"
+            exit 1
+          fi
+          if [ -z "$CHANGELOG_RUNTIME" ]; then
+            echo "::error::Could not extract runtime version from the top CHANGELOG.md entry: $CHANGELOG_LINE"
+            exit 1
+          fi
+
+          echo "Source versions:    compiler=$COMPILER_VERSION  language=$LANGUAGE_VERSION  runtime=$RUNTIME_VERSION"
+          echo "Changelog versions: compiler=$CHANGELOG_TOOLCHAIN  language=$CHANGELOG_LANGUAGE  runtime=$CHANGELOG_RUNTIME"
+
+          check_version() {
+            local LABEL="$1"
+            local FILE_VERSION="$2"
+            local CHANGELOG_VERSION="$3"
+            local FILE_NAME="$4"
+
+            if [ "$CHANGELOG_VERSION" != "$FILE_VERSION" ]; then
+              echo "::error::Version mismatch between CHANGELOG.md $LABEL version ($CHANGELOG_VERSION) and $FILE_NAME ($FILE_VERSION)."
+              return 1
+            fi
+            echo "$LABEL versions match: $FILE_VERSION"
+          }
+
+          check_version "toolchain" "$COMPILER_VERSION" "$CHANGELOG_TOOLCHAIN" "compiler/compiler-version.ss" || FAILED=1
+          check_version "language"  "$LANGUAGE_VERSION" "$CHANGELOG_LANGUAGE"  "compiler/language-version.ss" || FAILED=1
+          check_version "runtime"   "$RUNTIME_VERSION"  "$CHANGELOG_RUNTIME"   "runtime/package.json" || FAILED=1
+
+          if [ "$FAILED" -eq 1 ]; then
+            exit 1
+          fi
 
       - name: Build compiler
         run: |
           nix build
 
+      - name: Snapshot doc/compact-reference.mdx before running compiler/go
+        run: |
+          cp doc/compact-reference.mdx /tmp/compact-reference.before.mdx
+          cp compiler/compact-reference-proto.mdx /tmp/compact-reference-proto.before.mdx
+
       - name: Run compiler tests
         run: |
-          nix develop --command ./compiler/go
+          if ! nix develop --command ./compiler/go; then
+            echo "::error::./compiler/go failed. Fix any warnings or errors produced by running './compiler/go' inside a nix shell ('nix develop .#compiler'), then commit the result."
+            exit 1
+          fi
           nix develop --command ./srcMaps/test.sh
-          test coverage
+          test -d coverage
+
+      - name: Check doc/compact-reference.mdx is consistent with compiler/go
+        run: |
+          FAILED=0
+
+          PROTO_CHANGED=false
+          REF_CHANGED=false
+
+          if ! diff -q /tmp/compact-reference-proto.before.mdx compiler/compact-reference-proto.mdx > /dev/null 2>&1; then
+            PROTO_CHANGED=true
+          fi
+
+          if ! diff -q /tmp/compact-reference.before.mdx doc/compact-reference.mdx > /dev/null 2>&1; then
+            REF_CHANGED=true
+          fi
+
+          # Case 1: doc/compact-reference.mdx changed before ./compiler/go but proto didn't
+          # This means someone edited the generated file directly instead of the source
+          if [ "$REF_CHANGED" = "true" ] && [ "$PROTO_CHANGED" = "false" ]; then
+            echo "::error::doc/compact-reference.mdx has been edited directly, but compiler/compact-reference-proto.mdx has not changed. Do not edit doc/compact-reference.mdx by hand — make your changes in compiler/compact-reference-proto.mdx instead and run './compiler/go' inside a nix shell ('nix develop .#compiler') to regenerate it."
+            FAILED=1
+          fi
+
+          # Case 2: doc/compact-reference.mdx differs before vs after running ./compiler/go
+          # This means the committed file is out of date with what ./compiler/go would produce
+          AFTER_CONTENT=$(cat doc/compact-reference.mdx)
+          BEFORE_CONTENT=$(cat /tmp/compact-reference.before.mdx)
+
+          if [ "$AFTER_CONTENT" != "$BEFORE_CONTENT" ]; then
+            echo "::error::doc/compact-reference.mdx is out of date. Run './compiler/go' inside a nix shell ('nix develop .#compiler') and commit the updated doc/compact-reference.mdx."
+            echo ""
+            echo "Diff (before vs after running ./compiler/go):"
+            diff /tmp/compact-reference.before.mdx doc/compact-reference.mdx || true
+            FAILED=1
+          fi
+
+          if [ "$FAILED" -eq 1 ]; then
+            exit 1
+          fi
+
+          echo "doc/compact-reference.mdx is consistent."
 
       - name: Run src-maps tests
         run: |
