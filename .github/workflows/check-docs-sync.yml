@@ -5,7 +5,6 @@ on:
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch:
-# get some inputs: branch on compact and branch on midnight-docs
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -59,12 +58,12 @@ jobs:
           check doc/dev-tool-usage.mdx docs/compact/compilation-and-tooling/dev-tool-usage.mdx
 
           # Check runtime API files (copied with cp -r)
-          find doc/api/runtime -type f -print0 | while IFS= read -r -d '' SRC_FILE; do
+          while IFS= read -r -d '' SRC_FILE; do
             REL="${SRC_FILE#doc/api/runtime/}"
             # README.md is handled separately below (it has a prepended header)
             [ "$REL" = "README.md" ] && continue
             check "$SRC_FILE" "api-reference/compact-runtime/$REL"
-          done
+          done < <(find doc/api/runtime -type f -print0)
 
           # Check runtime README.md — docs version has a prepended header line
           # Expected content: "# Compact runtime API\n\n" + original README
