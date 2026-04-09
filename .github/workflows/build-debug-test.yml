@@ -24,7 +24,7 @@ jobs:
         with:
           attic_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
-     - name: Build lib
+      - name: Build lib
         run: |
           nix build .#runtime.forPublish
 
