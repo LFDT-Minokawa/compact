@@ -1,5 +1,10 @@
-Compact Formatter Manual Page
-============================
+# Compact formatter usage page
+
+This is the usage page of **format-compact**, a formatter for Compact.
+This document assumes you are using **format-compact** by itself.
+However, use the Compact command-line tool instead of using the
+formatter on its own. [The usage page of the Compact command-line tool](dev-tool-usage)
+is provided separately.
 
 NAME
 ====
@@ -9,7 +14,8 @@ format-compact
 OVERVIEW
 ========
 
-The Compact formatter takes as input a Compact source program in a specified
+The Compact formatter is part of the Compact toolchain and
+it takes as input a Compact source program in a specified
 source file, reformats it, and writes the reformatted program to a specified
 file.  If such a file is not specified, it writes the reformatted program to
 standard output.
@@ -39,39 +45,39 @@ The following flags, if present, affect the formatter's behavior as follows:
  
 **--help**
 
-prints help text and exits.
+Prints help text and exits.
 
 **--version**
 
-prints the compiler version and exits.
+Prints the compiler version and exits.
 
 **--language-version**
 
-prints the language version and exits.
+Prints the language version and exits.
 
 **--vscode**
 
-causes error messages to be printed on a single line so they are
+Causes error messages to be printed on a single line so they are
 rendered properly within the VS Code extension for Compact.
 
 **--line-length _n_** 
 
-sets the target line length to _n_ (default 100).
+Sets the target line length to _n_ (default 100).
 
 EXAMPLES
 ========
 
-Assuming **src/test.compact** contains a well-formed Compact program
+Assuming `src/test.compact` contains a well-formed Compact program, running:
 
-```
+```bash
 format-compact src/test.compact
 ```
 
 prints the formatted program of **src/test.compact** to standard output.
 
-Assuming that **formatted** is an existing directory
+Assuming that **formatted** is an existing directory, running:
 
-```
+```bash
 format-compact src/test.compact formatted/test.compact
 ```
 
@@ -79,17 +85,17 @@ writes the formatted program to **formatted/test.compact**.  If the
 **formatted** directory does not exist the formatter complains that it cannot
 create the output file.
 
-Alternatively, 
+Alternatively, running:
 
-```
+```bash
 format-compact src/test.compact src/test.compact
 ```
 
 rewrites the formatted program to **src/test.compact**.
 
-Assuming **src/test.compact** contains an ill-formed Compact program
+Assuming **src/test.compact** contains an ill-formed Compact program, running:
 
-```
+```bash
 format-compact src/test.compact
 ```
 
