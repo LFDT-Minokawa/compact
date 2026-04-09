@@ -30,6 +30,61 @@
 
   ; NB: must come after identify-pure-circuits
   (define-pass save-contract-info : Lnodisclose (ir proof-circuit-name*) -> Lnodisclose ()
+    (definitions
+      ;; Flatten a Public-Ledger-Array B-tree into a list of Public-Ledger-Binding nodes.
+      (define (flatten-pl-array pl-array)
+        (nanopass-case (Lnodisclose Public-Ledger-Array) pl-array
+          [(public-ledger-array ,pl-array-elt* ...)
+           (apply append (map flatten-pl-array-elt pl-array-elt*))]))
+
+      (define (flatten-pl-array-elt elt)
+        (nanopass-case (Lnodisclose Public-Ledger-Array-Element) elt
+          [,pl-array (flatten-pl-array pl-array)]
+          [,public-binding (list public-binding)]))
+
+      ;; Strip the __compact_ prefix from an ADT name if present and return the
+      ;; clean name as a symbol.  In the IR, the Cell ADT is renamed to
+      ;; __compact_Cell by analysis-passes.ss; other ADTs keep their names.
+      (define (clean-adt-name adt-name)
+        (let ([s (symbol->string adt-name)])
+          (if (string-prefix? "__compact_" s)
+              (string->symbol (substring s 10 (string-length s)))
+              adt-name)))
+
+      ;; Serialize a ledger ADT as a JSON alist with a leading key/name entry
+      ;; followed by type-specific fields.
+      (define (serialize-adt key adt-name adt-arg*)
+        (let ([cleaned (clean-adt-name adt-name)])
+          (cons
+            (cons key (symbol->string cleaned))
+            (case cleaned
+              [(Cell)
+               (list (cons "type" (adt-arg->json (car adt-arg*))))]
+              [(Counter)
+               '()]
+              [(Map)
+               (list (cons "key" (adt-arg->json (car adt-arg*)))
+                     (cons "value" (adt-arg->json (cadr adt-arg*))))]
+              [(Set List)
+               (list (cons "type" (adt-arg->json (car adt-arg*))))]
+              [(MerkleTree HistoricMerkleTree)
+               (list (cons "depth" (adt-arg->json (car adt-arg*)))
+                     (cons "type" (adt-arg->json (cadr adt-arg*))))]
+              [else (assert cannot-happen)]))))
+
+      ;; Extract an ADT-Arg as a JSON value via the Type transformer.
+      (define (adt-arg->json arg)
+        (nanopass-case (Lnodisclose Public-Ledger-ADT-Arg) arg
+          [,type (Type type)]
+          [,nat nat]))
+
+      ;; Unwrap aliases to reach the underlying tadt node for a ledger field.
+      (define (unwrap-to-adt type)
+        (nanopass-case (Lnodisclose Type) type
+          [(talias ,src ,nominal? ,type-name ,type)
+           (unwrap-to-adt type)]
+          [else type])))
+
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (let ([op (get-target-port 'contract-info.json)])
@@ -57,7 +112,10 @@
                (list->vector (fold-right Witness '() pelt*)))
              (cons
                "contracts"
-               (list->vector (map symbol->string contract-name*))))))
+               (list->vector (map symbol->string contract-name*)))
+             (cons
+               "ledger"
+               (list->vector (fold-right LedgerField '() pelt*))))))
        ir])
     (Witness : Program-Element (ir witness*) -> * (json)
       [(witness ,src ,function-name (,arg* ...) ,type)
@@ -74,6 +132,29 @@
              (Type type)))
          witness*)]
       [else witness*])
+    (LedgerField : Program-Element (ir field*) -> * (json)
+      [(public-ledger-declaration ,pl-array ,lconstructor)
+       (let ([bindings (flatten-pl-array pl-array)])
+         (append
+           (map
+             (lambda (pb)
+               (nanopass-case (Lnodisclose Public-Ledger-Binding) pb
+                 [(,src ,ledger-field-name (,path-index* ...) ,type)
+                  (let ([name (symbol->string (id-sym ledger-field-name))]
+                        [index (if (and (pair? path-index*) (null? (cdr path-index*))) (car path-index*) (list->vector path-index*))]
+                        [exported (id-exported? ledger-field-name)]
+                        [unwrapped (unwrap-to-adt type)])
+                    (nanopass-case (Lnodisclose Type) unwrapped
+                      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                       (cons*
+                         (cons "name" name)
+                         (cons "index" index)
+                         (cons "exported" exported)
+                         (serialize-adt "storage" adt-name adt-arg*))]
+                      [else (assert cannot-happen)]))]))
+             bindings)
+           field*))]
+      [else field*])
     (exported-circuit : Program-Element (ir circuit* export-alist) -> * (json)
       (definitions
         (define (external-names id)
@@ -188,6 +269,8 @@
              (cons "name" (symbol->string type-name))
              (cons "type" (Type type)))
            (Type type))]
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (serialize-adt "type-name" adt-name adt-arg*)]
       [else (assert cannot-happen)]))
 
   (define-passes save-contract-info-passes

@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "../result/lib/node_modules/@midnight-ntwrk/compact-runtime",
-    "@types/node": "^22.13.8",
+    "@types/node": "^25.5.0",
     "typescript": "~5.9.0"
   },
   "devDependencies": {
@@ -31,16 +31,16 @@
     "@vscode/debugadapter-testsupport": "^1.68.0",
     "@vscode/debugprotocol": "1.68.0",
     "copyfiles": "^2.4.1",
-    "eslint": "^9.21.0",
+    "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.0.2",
     "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-jest": "^28.11.0",
+    "eslint-plugin-jest": "^29.15.1",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-prettier": "^5.2.3",
     "eslint-plugin-react": "^7.37.4",
     "prettier": "^3.5.3",
     "rimraf": "^6.0.1",
     "typescript": "~5.9.0",
-    "vitest": "^3.1.1"
+    "vitest": "^4.1.2"
   }
 }
