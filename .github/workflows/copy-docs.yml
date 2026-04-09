@@ -32,8 +32,10 @@ permissions: {}
 jobs:
   copy-docs:
     name: Create branch in midnight-docs with latest documentation
+    permissions:
+      contents: read
     uses: ./.github/workflows/generate-docs.yml
-    secrets: inherit #if inherit does not work we need to uncomment below
+    secrets: inherit
     with:
       branch: ${{ inputs.branch }}
       docs_branch: ${{ inputs.docs_branch }}
