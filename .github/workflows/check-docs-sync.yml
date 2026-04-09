@@ -1,0 +1,92 @@
+# NB: if this name changes, it must also be changed in notify-failed-scheduled
+name: Check docs are in sync with midnight-docs
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-docs-sync:
+    name: Check docs are in sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout compactc repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: release/midnight
+
+      - name: Checkout midnight-docs repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: midnightntwrk/midnight-docs
+          token: ${{ secrets.MIDNIGHTCI_REPO }}
+          path: midnight-docs
+
+      - name: Check verbatim files are in sync
+        run: |
+          FAILED=0
+
+          check() {
+            SRC="$1"
+            DST="midnight-docs/$2"
+            if ! diff -q "$SRC" "$DST" > /dev/null 2>&1; then
+              echo "::error::Out of sync: $SRC vs $DST"
+              diff "$SRC" "$DST" || true
+              FAILED=1
+            else
+              echo "OK: $SRC"
+            fi
+          }
+
+          check doc/ledger-adt.mdx docs/compact/data-types/ledger-adt.mdx
+          check doc/ledger-adt.mdx docs/compact/reference/ledger-adt.mdx
+          check doc/writing.mdx docs/compact/reference/writing.mdx
+          check doc/compact-reference.mdx docs/compact/reference/compact-reference.mdx
+          check doc/explicit-disclosure.mdx docs/compact/reference/explicit-disclosure.mdx
+          check doc/compact-grammar.mdx docs/compact/reference/compact-grammar.mdx
+          check doc/compact-keywords.mdx docs/compact/reference/compact-keywords.mdx
+          check doc/api/CompactStandardLibrary/exports.md docs/compact/standard-library/exports.md
+          check doc/api/CompactStandardLibrary/README.md docs/compact/standard-library/README.md
+          check doc/compiler-usage.mdx docs/compact/compilation-and-tooling/compiler-usage.mdx
+          check doc/formatter-usage.mdx docs/compact/compilation-and-tooling/formatter-usage.mdx
+          check doc/fixup-usage.mdx                        docs/compact/compilation-and-tooling/fixup-usage.mdx
+          check doc/dev-tool-usage.mdx docs/compact/compilation-and-tooling/dev-tool-usage.mdx
+
+          # Check runtime API files (copied with cp -r)
+          while IFS= read -r -d '' SRC_FILE; do
+            REL="${SRC_FILE#doc/api/runtime/}"
+            # README.md is handled separately below (it has a prepended header)
+            [ "$REL" = "README.md" ] && continue
+            check "$SRC_FILE" "api-reference/compact-runtime/$REL"
+          done < <(find doc/api/runtime -type f -print0)
+
+          # Check runtime README.md — docs version has a prepended header line
+          # Expected content: "# Compact runtime API\n\n" + original README
+          EXPECTED=$(printf "# Compact runtime API\n\n"; cat doc/api/runtime/README.md)
+          ACTUAL=$(cat midnight-docs/api-reference/compact-runtime/README.md)
+          if [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::Out of sync: doc/api/runtime/README.md vs api-reference/compact-runtime/README.md"
+            diff <(echo "$EXPECTED") <(echo "$ACTUAL") || true
+            FAILED=1
+          else
+            echo "OK: doc/api/runtime/README.md (with prepended header)"
+          fi
+
+          if [ "$FAILED" -eq 1 ]; then
+            echo "::error::One or more files are out of sync. Run the generate-docs workflow to update midnight-docs."
+            exit 1
+          fi
+
+          echo "All verbatim files are in sync."
+
+      - name: Check CSS sync blocks are in sync
+        run: |
+          python3 scripts/sync-css.py \
+            "doc/custom-code.css" \
+            "midnight-docs/src/css/custom.css" \
+            --check

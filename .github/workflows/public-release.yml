@@ -67,8 +67,9 @@ jobs:
     steps:
       - name: Determine branch
         id: set_branch
+        env:
+          BRANCH: ${{ inputs.branch }}
         run: |
-          BRANCH="${{ inputs.branch }}"
           if [ -z "$BRANCH" ]; then
             BRANCH="main"
           fi
@@ -76,8 +77,9 @@ jobs:
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
 
       - name: Check format of internal release
+        env:
+          INTERNAL: ${{ inputs.internal_version }}
         run: |
-          INTERNAL="${{ inputs.internal_version }}"
           if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(rc|alpha|beta)\.[0-9]+$ ]]; then
             echo "::error::internal_version must match v*.*.*-(rc|alpha|beta).* format (e.g. v1.2.3-rc.1), got: $INTERNAL"
             exit 1
@@ -85,8 +87,9 @@ jobs:
           echo "Internal version format is valid: $INTERNAL"
 
       - name: Check format of language version
+        env:
+          LANGUAGE: ${{ inputs.language_version }}
         run: |
-          LANGUAGE="${{ inputs.language_version }}"
           if [[ ! "$LANGUAGE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::language_version must match v*.*.* format (e.g. v1.2.3), got: $LANGUAGE"
             exit 1
@@ -95,8 +98,9 @@ jobs:
 
       - name: Compute public version
         id: public_version
+        env:
+          INTERNAL: ${{ inputs.internal_version }}
         run: |
-          INTERNAL="${{ inputs.internal_version }}"
           # Validate format
           if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-.+ ]]; then
             echo "::error::internal_version must match v*.*.*-* format (e.g. v1.2.3-rc.1), got: $INTERNAL"
@@ -110,8 +114,9 @@ jobs:
 
       - name: Compute release notes path
         id: release_notes
+        env:
+          VERSION: ${{ steps.public_version.outputs.version }}
         run: |
-          VERSION="${{ steps.public_version.outputs.version }}"
           # Strip leading 'v' if present
           CLEAN_VERSION="${VERSION#v}"
           echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
@@ -129,12 +134,15 @@ jobs:
           ref: ${{ needs.setup.outputs.branch }}
 
       - name: Verify release notes file exists
+        env:
+          RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
+          BRANCH: ${{ needs.setup.outputs.branch }}
         run: |
-          if [ ! -f "${{ needs.setup.outputs.release_notes_file }}" ]; then
-            echo "::error::Release notes file '${{ needs.setup.outputs.release_notes_file }}' not found on branch '${{ needs.setup.outputs.branch }}'"
+          if [ ! -f "$RELEASE_NOTES_FILE" ]; then
+            echo "::error::Release notes file '$RELEASE_NOTES_FILE' not found on branch '$BRANCH'"
             exit 1
           fi
-          echo "Release notes file found: ${{ needs.setup.outputs.release_notes_file }}"
+          echo "Release notes file found: $RELEASE_NOTES_FILE"
 
   check-docs:
     name: Check if documentation is updated
@@ -152,8 +160,9 @@ jobs:
       - name: Verify internal release exists in artifacts repo
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+          INTERNAL_VERSION: ${{ inputs.internal_version }}
         run: |
-          INTERNAL_TAG="compactc-${{ inputs.internal_version }}"
+          INTERNAL_TAG="compactc-${INTERNAL_VERSION}"
           if ! gh release view "$INTERNAL_TAG" --repo midnight-ntwrk/artifacts > /dev/null 2>&1; then
             echo "::error::Internal release '$INTERNAL_TAG' not found in midnight-ntwrk/artifacts"
             exit 1
@@ -163,8 +172,9 @@ jobs:
       - name: Verify all architecture assets exist in internal release
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+          INTERNAL_VERSION: ${{ inputs.internal_version }}
         run: |
-          INTERNAL_TAG="compactc-${{ inputs.internal_version }}"
+          INTERNAL_TAG="compactc-${INTERNAL_VERSION}"
 
           EXPECTED_ARCHS=(
             "aarch64-unknown-linux-musl"
@@ -216,17 +226,19 @@ jobs:
       - name: Download assets from internal release
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+          INTERNAL_VERSION: ${{ inputs.internal_version }}
         run: |
-          INTERNAL_TAG="compactc-${{ inputs.internal_version }}"
+          INTERNAL_TAG="compactc-${INTERNAL_VERSION}"
           mkdir -p assets
           gh release download "$INTERNAL_TAG" --repo midnight-ntwrk/artifacts --dir assets
           echo "Downloaded assets:"
           ls -la assets/
 
       - name: Rename assets to public version
+        env:
+          INTERNAL: ${{ inputs.internal_version }}
+          PUBLIC: ${{ needs.setup.outputs.public_version }}
         run: |
-          INTERNAL="${{ inputs.internal_version }}"
-          PUBLIC="${{ needs.setup.outputs.public_version }}"
           mkdir -p public-assets
           for file in assets/*; do
             FILENAME=$(basename "$file")
@@ -237,26 +249,61 @@ jobs:
           echo "Public assets:"
           ls -la public-assets/
 
-      - name: Create and push tag
-        run: |
-          git tag ${{ needs.setup.outputs.public_version }}
-          git push origin ${{ needs.setup.outputs.public_version }}
-
-      - name: Create public release
+      - name: Create public release -- midnightntwrk/compact
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+          PUBLIC_VERSION: ${{ needs.setup.outputs.public_version }}
+          LANGUAGE_VERSION: ${{ inputs.language_version }}
+          RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
         run: |
-          PUBLIC_VERSION="${{ needs.setup.outputs.public_version }}"
           CLEAN_PUBLIC="${PUBLIC_VERSION#v}"
           PUBLIC_TAG="compactc-${PUBLIC_VERSION}"
-          LANGUAGE_VERSION="${{ inputs.language_version }}"
           CLEAN_LANGUAGE="${LANGUAGE_VERSION#v}"
           gh release create "$PUBLIC_TAG" \
             --repo midnightntwrk/compact \
             --title "Compact toolchain ${CLEAN_PUBLIC} (Compact language ${CLEAN_LANGUAGE})" \
-            --notes-file "${{ needs.setup.outputs.release_notes_file }}" \
+            --notes-file "$RELEASE_NOTES_FILE" \
             --latest=false \
             public-assets/*
+
+      - name: Create public release -- LFDT-Minokawa/compact
+        env:
+          GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
+          PUBLIC_VERSION: ${{ needs.setup.outputs.public_version }}
+          LANGUAGE_VERSION: ${{ inputs.language_version }}
+          RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
+        run: |
+          CLEAN_PUBLIC="${PUBLIC_VERSION#v}"
+          PUBLIC_TAG="compactc-${PUBLIC_VERSION}"
+          CLEAN_LANGUAGE="${LANGUAGE_VERSION#v}"
+          gh release create "$PUBLIC_TAG" \
+            --repo LFDT-Minokawa/compact \
+            --title "Compact toolchain ${CLEAN_PUBLIC} (Compact language ${CLEAN_LANGUAGE})" \
+            --notes-file "$RELEASE_NOTES_FILE" \
+            --latest=false \
+            --draft \
+            public-assets/*
+          gh release edit "$PUBLIC_TAG" \
+            --repo LFDT-Minokawa/compact \
+            --draft=false
+
+      - name: Create public release -- midnight-ntwrk/artifacts
+        env:
+          GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+          PUBLIC_VERSION: ${{ needs.setup.outputs.public_version }}
+          LANGUAGE_VERSION: ${{ inputs.language_version }}
+          RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
+        run: |
+          CLEAN_PUBLIC="${PUBLIC_VERSION#v}"
+          PUBLIC_TAG="compactc-${PUBLIC_VERSION}"
+          CLEAN_LANGUAGE="${LANGUAGE_VERSION#v}"
+          gh release create "$PUBLIC_TAG" \
+            --repo midnight-ntwrk/artifacts \
+            --title "Compact toolchain ${CLEAN_PUBLIC} (Compact language ${CLEAN_LANGUAGE})" \
+            --notes-file "$RELEASE_NOTES_FILE" \
+            --latest=false \
+            public-assets/*
+
 
   generate-docs-after-release:
     if: ${{ inputs.docs }}
