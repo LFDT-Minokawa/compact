@@ -1619,7 +1619,12 @@ by Compactc. For contract `C`, this file contains the following in this order:
   is the name of the circuit, its purity, its arguments and its return type,
 - the type signature of exercised witnesses,
 - the name of contracts that have been declared in a contract type declaration
-  within `C`, whether, `C` actually calls them or not.
+  within `C`, whether, `C` actually calls them or not,
+- the ledger layout of `C`, listing every ledger field (both exported and
+  non-exported) with its name, path index, export status, storage kind
+  (Cell, Counter, Map, Set, List, MerkleTree, HistoricMerkleTree), and
+  fully-resolved type tree. Non-exported fields are included because the
+  full layout is required to navigate the on-chain state tree.
 
 
 ### exported-impure-circuit-names (Lwithpaths -> *)

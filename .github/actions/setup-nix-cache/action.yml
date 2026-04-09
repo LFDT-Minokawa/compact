@@ -1,0 +1,50 @@
+name: Setup Nix with Attic cache
+description: Install Nix, configure Attic cache, and make the cache hook non-fatal
+
+inputs:
+  attic_token:
+    description: Attic cache access token
+    required: true
+  nix_path:
+    description: Nix path channel
+    default: nixpkgs=channel:nixos-unstable
+  extra_nix_config:
+    description: Additional Nix configuration
+    default: |
+      extra-trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
+      extra-substituters = https://cache.iog.io
+      accept-flake-config = true
+
+runs:
+  using: composite
+  steps:
+    - name: Install Nix
+      uses: cachix/install-nix-action@96951a368ba55167b55f1c916f7d416bac6505fe # v31.10.3
+      with:
+        nix_path: ${{ inputs.nix_path }}
+        extra_nix_config: ${{ inputs.extra_nix_config }}
+
+    - name: Cache Nix
+      uses: input-output-hk/actions/attic@8663542d03a41382d97ee344a4e3955280db5f95 # latest
+      continue-on-error: true
+      with:
+        nix_path: ${{ inputs.nix_path }}
+        endpoint: https://attic.ci.iog.io
+        cache: midnight-public
+        access_token: ${{ inputs.attic_token }}
+
+    # TODO: Fix upstream in input-output-hk/actions/attic or replace Attic.
+    - name: Make cache hook non-fatal
+      shell: bash
+      env:
+        HOOK: ${{ runner.temp }}/post-build.sh
+      run: |
+        if [ -f "$HOOK" ]; then
+          ORIGINAL="$(mktemp -d)/post-build.sh"
+          mv "$HOOK" "$ORIGINAL"
+          cat > "$HOOK" << EOF
+        #!/bin/bash
+        "$ORIGINAL" "\$@" || true
+        EOF
+          chmod +x "$HOOK"
+        fi
