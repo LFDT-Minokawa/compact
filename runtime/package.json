@@ -48,7 +48,7 @@
     "typedoc": "^0.28.1",
     "typedoc-plugin-markdown": "4.6.4",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.1"
+    "vitest": "^4.1.2"
   },
   "repository": {
     "type": "git",
