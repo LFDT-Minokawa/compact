@@ -1,0 +1,97 @@
+name: Notify on scheduled CI failure
+
+on:
+  workflow_run:
+    # NB: these workflows use the name values of workflows and not filenames
+    # changing their names must also be reflected here
+    workflows:
+      - Compiler Build
+      - Check docs are in sync with midnight-docs
+      - CodeQL
+      - Compiler fuzzer
+      - Internal release of compact toolchain
+      - Scan
+    types:
+      - completed
+
+permissions: {}
+
+jobs:
+  create-issue:
+    name: Create issue for scheduled CI failure
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'schedule'
+    permissions:
+      issues: write
+    steps:
+      - name: Create or update issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const workflowName = context.payload.workflow_run.name;
+            const runUrl = context.payload.workflow_run.html_url;
+            const runId = context.payload.workflow_run.id;
+            const branch = context.payload.workflow_run.head_branch;
+            const date = new Date().toISOString().split('T')[0];
+
+            const title = `Scheduled CI failure: ${workflowName}`;
+            const label = 'ci-failure';
+
+            // Ensure the label exists
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+              });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+                color: 'd73a4a',
+                description: 'Automated issue for scheduled CI failures',
+              });
+            }
+
+            // Check for an existing open issue for this workflow
+            const { data: existingIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: label,
+            });
+
+            const existing = existingIssues.find(i => i.title === title);
+
+            if (existing) {
+              // Add a comment to the existing issue instead of opening a duplicate
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `Still failing as of ${date}.\n\n- **Run:** ${runUrl}\n- **Branch:** \`${branch}\``,
+              });
+              core.info(`Commented on existing issue #${existing.number}`);
+            } else {
+              // Create a new issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                labels: [label],
+                body: [
+                  `The scheduled run of **${workflowName}** failed.`,
+                  '',
+                  `- **Run:** ${runUrl}`,
+                  `- **Branch:** \`${branch}\``,
+                  `- **Date:** ${date}`,
+                  '',
+                  'This issue was created automatically and will receive comments on subsequent failures.',
+                  'Close it once the problem is resolved.',
+                ].join('\n'),
+              });
+              core.info('Created new issue');
+            }
