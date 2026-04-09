@@ -9,6 +9,7 @@ on:
         type: choice
         default: 'release/midnight'
         options:
+          - issue-61
           - main
           - release/midnight
       docs_branch:
