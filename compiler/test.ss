@@ -36808,10 +36808,10 @@ groups than for single tests.
                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))))))))
          (circuit %hello.2 ()
               (ty () ())
-           (= (%t.3) (public-ledger 1 %contract_c.1 (0) read))
-           (= (%t.4) (public-ledger 1 %contract_c.1 (0) read))
-           (= (%t.5 %t.6)
-              (contract-call 1 barr
+           (= 1 (%t.3) (public-ledger %contract_c.1 (0) read))
+           (= 1 (%t.4) (public-ledger %contract_c.1 (0) read))
+           (= 1 (%t.5 %t.6)
+              (contract-call barr
                    (%t.4 (tcontract C
                            (foo #f ((ty ((abytes 32))
                                         ((tfield 255)
@@ -36823,8 +36823,8 @@ groups than for single tests.
                                  ((tfield 255)
                                    (tfield
                                      452312848583266388373324160190187140051835877600158453279131187530910662655))))))))
-           (= ()
-              (contract-call 1 foo
+           (= 1 ()
+              (contract-call foo
                    (%t.3 (tcontract C
                            (foo #f ((ty ((abytes 32))
                                         ((tfield 255)
@@ -38844,7 +38844,7 @@ groups than for single tests.
           ((%forceField.1 (0) (__compact_Cell (tfield)))))
         (circuit %foo.2 ([%b.3 (tboolean)] [%x.4 (tfield)])
              (tboolean)
-          (= %t.5 (public-ledger #t %forceField.1 (0) write 7))
+          (= #t %t.5 (public-ledger %forceField.1 (0) write 7))
           #t)))
     )
 
@@ -38864,11 +38864,11 @@ groups than for single tests.
           ((%forceField.1 (0) (__compact_Cell (tfield)))))
         (circuit %foo.2 ([%b.3 (tboolean)] [%x.4 (tfield)])
              (tboolean)
-          (= %t.5 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.6 (== %x.4 3))
-          (= %t.7 (select #t %t.6 #t))
+          (= #t %t.5 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.6 (== %x.4 3))
+          (= #t %t.7 (select #t %t.6 #t))
           (assert %t.7 "oops 1")
-          (= %t.8 (tuple))
+          (= #t %t.8 (tuple))
           %b.3)))
     )
 
@@ -38888,11 +38888,11 @@ groups than for single tests.
           ((%forceField.1 (0) (__compact_Cell (tfield)))))
         (circuit %foo.2 ([%b.3 (tboolean)] [%x.4 (tunsigned 65535)])
              (tboolean)
-          (= %t.5 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.6 (< 16 %x.4 3))
-          (= %t.7 (select #t %t.6 #t))
+          (= #t %t.5 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.6 (< 16 %x.4 3))
+          (= #t %t.7 (select #t %t.6 #t))
           (assert %t.7 "oops 1")
-          (= %t.8 (tuple))
+          (= #t %t.8 (tuple))
           %b.3)))
     )
 
@@ -38915,18 +38915,18 @@ groups than for single tests.
           ((%forceField.1 (0) (__compact_Cell (tfield)))))
         (circuit %foo.2 ([%b.3 (tboolean)] [%x.4 (tfield)])
              (tboolean)
-          (= %t.5 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.6 (select %b.3 #t #f))
-          (= %t.7 (select %b.3 #f #t))
-          (= %t.8 (tuple))
-          (= %t.9 (== %x.4 3))
-          (= %t.10 (select %t.7 %t.9 #t))
+          (= #t %t.5 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.6 (select %b.3 #t #f))
+          (= #t %t.7 (select %b.3 #f #t))
+          (= %t.6 %t.8 (tuple))
+          (= %t.7 %t.9 (== %x.4 3))
+          (= #t %t.10 (select %t.7 %t.9 #t))
           (assert %t.10 "oops 2")
-          (= %t.11 (tuple))
-          (= %t.12 (select %b.3 #t #f))
-          (= %t.13 (select %b.3 #f #t))
-          (= %t.14 (== %x.4 3))
-          (= %t.15 (select %b.3 %t.14 #f))
+          (= %t.7 %t.11 (tuple))
+          (= #t %t.12 (select %b.3 #t #f))
+          (= #t %t.13 (select %b.3 #f #t))
+          (= %t.12 %t.14 (== %x.4 3))
+          (= #t %t.15 (select %b.3 %t.14 #f))
           %t.15)))
     )
 
@@ -38945,11 +38945,11 @@ groups than for single tests.
           ((%forceField.1 (0) (__compact_Cell (tfield)))))
         (circuit %foo.2 ()
              (tvector 3 (tvector 2 (tfield)))
-          (= %t.3 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.4 (tuple 1 2))
-          (= %t.5 (tuple 3 4))
-          (= %t.6 (tuple 5 6))
-          (= %t.7 (tuple %t.4 %t.5 %t.6))
+          (= #t %t.3 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.4 (tuple 1 2))
+          (= #t %t.5 (tuple 3 4))
+          (= #t %t.6 (tuple 5 6))
+          (= #t %t.7 (tuple %t.4 %t.5 %t.6))
           %t.7)))
     )
 
@@ -38965,8 +38965,8 @@ groups than for single tests.
           ((%forceField.1 (0) (__compact_Cell (tfield)))))
         (circuit %baz.2 ([%arg.3 (tbytes 20)])
              (tfield)
-          (= %t.4 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.5 (bytes->field #t 20 %arg.3))
+          (= #t %t.4 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.5 (bytes->field 20 %arg.3))
           %t.5))))
 
   (test
@@ -38981,8 +38981,8 @@ groups than for single tests.
           ((%forceField.1 (0) (__compact_Cell (tfield)))))
         (circuit %foo.2 ([%arg.3 (tfield)])
              (tbytes 20)
-          (= %t.4 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.5 (field->bytes #t 20 %arg.3))
+          (= #t %t.4 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.5 (field->bytes 20 %arg.3))
           %t.5))))
 
   (test
@@ -39014,22 +39014,22 @@ groups than for single tests.
         (circuit %foo.2 ([%v.3 (tvector 7 (tfield))]
                          [%b.4 (tbytes 7)])
              (tfield)
-          (= %t.5 (public-ledger #t %forceField.1 (0) write 7))
+          (= #t %t.5 (public-ledger %forceField.1 (0) write 7))
           17)
         (circuit %foo.6 ([%v.7 (tvector 30 (tboolean))]
                          [%b.8 (tbytes 30)])
              (tfield)
-          (= %t.9 (public-ledger #t %forceField.1 (0) write 7))
+          (= #t %t.9 (public-ledger %forceField.1 (0) write 7))
           17)
         (circuit %foo.10 ([%x.11 (tfield)])
              (tfield)
-          (= %t.12 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.13 (+ #f %x.11 1))
+          (= #t %t.12 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.13 (+ #f %x.11 1))
           %t.13)
         (circuit %bar.14 ([%x.15 (tfield)])
              (tfield)
-          (= %t.16 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.17 (- #f %x.15 1))
+          (= #t %t.16 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.17 (- #f %x.15 1))
           %t.17)))
     )
 
@@ -39048,7 +39048,7 @@ groups than for single tests.
         (public-ledger-declaration ((%field1.2 (0) (Counter))))
         (circuit %foo.3 ()
              (tfield)
-          (= %t.0 (public-ledger #t %field1.2 (0) read))
+          (= #t %t.0 (public-ledger %field1.2 (0) read))
           %t.0)))
     )
 
@@ -39167,83 +39167,83 @@ groups than for single tests.
                                     (value (tunsigned
                                              340282366920938463463374607431768211455)))])
              (tboolean)
-          (= %t.15 (public-ledger #t %field0.1 (0) resetToDefault))
-          (= %t.16 (public-ledger #t %field0.1 (0) increment 5))
-          (= %t.17 (public-ledger #t %field0.1 (0) decrement 2))
-          (= %t.18 (public-ledger #t %field0.1 (0) lessThan 4))
-          (= %t.19 (select #t %t.18 #t))
+          (= #t %t.15 (public-ledger %field0.1 (0) resetToDefault))
+          (= #t %t.16 (public-ledger %field0.1 (0) increment 5))
+          (= #t %t.17 (public-ledger %field0.1 (0) decrement 2))
+          (= #t %t.18 (public-ledger %field0.1 (0) lessThan 4))
+          (= #t %t.19 (select #t %t.18 #t))
           (assert %t.19 "oops 1")
-          (= %t.20 (tuple))
-          (= %t.21 (public-ledger #t %field1.2 (1) write #t))
-          (= %q.22 (public-ledger #t %field1.2 (1) read))
-          (= %t.23 (public-ledger #t %field2.3 (2) resetToDefault))
-          (= %t.24 (public-ledger #t %field2.3 (2) isEmpty))
-          (= %t.25 (select #t %t.24 #t))
+          (= #t %t.20 (tuple))
+          (= #t %t.21 (public-ledger %field1.2 (1) write #t))
+          (= #t %q.22 (public-ledger %field1.2 (1) read))
+          (= #t %t.23 (public-ledger %field2.3 (2) resetToDefault))
+          (= #t %t.24 (public-ledger %field2.3 (2) isEmpty))
+          (= #t %t.25 (select #t %t.24 #t))
           (assert %t.25 "oops 2a")
-          (= %t.26 (tuple))
-          (= %t.27 (public-ledger #t %field2.3 (2) size))
-          (= %t.28 (== %t.27 0))
-          (= %t.29 (select #t %t.28 #t))
+          (= #t %t.26 (tuple))
+          (= #t %t.27 (public-ledger %field2.3 (2) size))
+          (= #t %t.28 (== %t.27 0))
+          (= #t %t.29 (select #t %t.28 #t))
           (assert %t.29 "oops 2b")
-          (= %t.30 (tuple))
-          (= %t.31 (public-ledger #t %field2.3 (2) member %x.13))
-          (= %t.32 (select %t.31 #t #f))
-          (= %t.33 (select %t.31 #f #t))
-          (= %t.34 (select %t.31 #f #t))
-          (= %t.35 (select #t %t.34 #t))
+          (= #t %t.30 (tuple))
+          (= #t %t.31 (public-ledger %field2.3 (2) member %x.13))
+          (= #t %t.32 (select %t.31 #t #f))
+          (= #t %t.33 (select %t.31 #f #t))
+          (= #t %t.34 (select %t.31 #f #t))
+          (= #t %t.35 (select #t %t.34 #t))
           (assert %t.35 "oops 2c")
-          (= %t.36 (tuple))
-          (= %t.37 (public-ledger #t %field2.3 (2) insert %x.13))
-          (= %tmp.38 (+ #f %x.13 1))
-          (= %t.39 (public-ledger #t %field2.3 (2) insert %tmp.38))
-          (= %tmp.40 (+ #f %x.13 2))
-          (= %t.41 (public-ledger #t %field2.3 (2) insert %tmp.40))
-          (= %tmp.42 (+ #f %x.13 1))
-          (= %t.43 (public-ledger #t %field2.3 (2) insert %tmp.42))
-          (= %t.44 (public-ledger #t %field2.3 (2) size))
-          (= %t.45 (== %t.44 3))
-          (= %t.46 (select #t %t.45 #t))
+          (= #t %t.36 (tuple))
+          (= #t %t.37 (public-ledger %field2.3 (2) insert %x.13))
+          (= #t %tmp.38 (+ #f %x.13 1))
+          (= #t %t.39 (public-ledger %field2.3 (2) insert %tmp.38))
+          (= #t %tmp.40 (+ #f %x.13 2))
+          (= #t %t.41 (public-ledger %field2.3 (2) insert %tmp.40))
+          (= #t %tmp.42 (+ #f %x.13 1))
+          (= #t %t.43 (public-ledger %field2.3 (2) insert %tmp.42))
+          (= #t %t.44 (public-ledger %field2.3 (2) size))
+          (= #t %t.45 (== %t.44 3))
+          (= #t %t.46 (select #t %t.45 #t))
           (assert %t.46 "oops 2d")
-          (= %t.47 (tuple))
-          (= %tmp.48 (+ #f %x.13 1))
-          (= %t.49 (public-ledger #t %field2.3 (2) remove %tmp.48))
-          (= %t.50 (public-ledger #t %field2.3 (2) size))
-          (= %t.51 (== %t.50 2))
-          (= %t.52 (select #t %t.51 #t))
+          (= #t %t.47 (tuple))
+          (= #t %tmp.48 (+ #f %x.13 1))
+          (= #t %t.49 (public-ledger %field2.3 (2) remove %tmp.48))
+          (= #t %t.50 (public-ledger %field2.3 (2) size))
+          (= #t %t.51 (== %t.50 2))
+          (= #t %t.52 (select #t %t.51 #t))
           (assert %t.52 "oops 2e")
-          (= %t.53 (tuple))
-          (= %t.54 (public-ledger #t %field2.3 (2) isEmpty))
-          (= %t.55 (select %t.54 #t #f))
-          (= %t.56 (select %t.54 #f #t))
-          (= %t.57 (select %t.54 #f #t))
-          (= %t.58 (select #t %t.57 #t))
+          (= #t %t.53 (tuple))
+          (= #t %t.54 (public-ledger %field2.3 (2) isEmpty))
+          (= #t %t.55 (select %t.54 #t #f))
+          (= #t %t.56 (select %t.54 #f #t))
+          (= #t %t.57 (select %t.54 #f #t))
+          (= #t %t.58 (select #t %t.57 #t))
           (assert %t.58 "oops 2f")
-          (= %t.59 (tuple))
-          (= %t.60 (public-ledger #t %field2.3 (2) member %x.13))
-          (= %t.61 (select #t %t.60 #t))
+          (= #t %t.59 (tuple))
+          (= #t %t.60 (public-ledger %field2.3 (2) member %x.13))
+          (= #t %t.61 (select #t %t.60 #t))
           (assert %t.61 "oops 2g")
-          (= %t.62 (tuple))
-          (= %tmp.63 (+ #f %x.13 1))
-          (= %t.64 (public-ledger #t %field2.3 (2) member %tmp.63))
-          (= %t.65 (select %t.64 #t #f))
-          (= %t.66 (select %t.64 #f #t))
-          (= %t.67 (select %t.64 #f #t))
-          (= %t.68 (select #t %t.67 #t))
+          (= #t %t.62 (tuple))
+          (= #t %tmp.63 (+ #f %x.13 1))
+          (= #t %t.64 (public-ledger %field2.3 (2) member %tmp.63))
+          (= #t %t.65 (select %t.64 #t #f))
+          (= #t %t.66 (select %t.64 #f #t))
+          (= #t %t.67 (select %t.64 #f #t))
+          (= #t %t.68 (select #t %t.67 #t))
           (assert %t.68 "oops 2h")
-          (= %t.69 (tuple))
-          (= %tmp.70 (+ #f %x.13 2))
-          (= %t.71 (public-ledger #t %field2.3 (2) member %tmp.70))
-          (= %t.72 (select #t %t.71 #t))
+          (= #t %t.69 (tuple))
+          (= #t %tmp.70 (+ #f %x.13 2))
+          (= #t %t.71 (public-ledger %field2.3 (2) member %tmp.70))
+          (= #t %t.72 (select #t %t.71 #t))
           (assert %t.72 "oops 2i")
-          (= %t.73 (tuple))
-          (= %t.74 (public-ledger #t %field3.4 (3) resetToDefault))
-          (= %t.75 (public-ledger #t %field4.5 (4) resetToDefault))
-          (= %t.76 (public-ledger #t %field5.6 (5) resetToDefault))
-          (= %t.77 (public-ledger #t %field6.7 (6) resetToDefault))
-          (= %value.78 (public-ledger #t %kernel.0 () self))
-          (= %t.79
+          (= #t %t.73 (tuple))
+          (= #t %t.74 (public-ledger %field3.4 (3) resetToDefault))
+          (= #t %t.75 (public-ledger %field4.5 (4) resetToDefault))
+          (= #t %t.76 (public-ledger %field5.6 (5) resetToDefault))
+          (= #t %t.77 (public-ledger %field6.7 (6) resetToDefault))
+          (= #t %value.78 (public-ledger %kernel.0 () self))
+          (= #t %t.79
              (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
-          (= %tmp.80
+          (= #t %tmp.80
              (new (tstruct Either
                     (is_left (tboolean))
                     (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
@@ -39251,13 +39251,13 @@ groups than for single tests.
                #f
                %t.79
                %value.78))
-          (= %t.81
-             (public-ledger #t %field7.8 (7) writeCoin %ci.14 %tmp.80))
-          (= %t.82 (public-ledger #t %field8.9 (8) resetToDefault))
-          (= %value.83 (public-ledger #t %kernel.0 () self))
-          (= %t.84
+          (= #t %t.81
+             (public-ledger %field7.8 (7) writeCoin %ci.14 %tmp.80))
+          (= #t %t.82 (public-ledger %field8.9 (8) resetToDefault))
+          (= #t %value.83 (public-ledger %kernel.0 () self))
+          (= #t %t.84
              (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
-          (= %tmp.85
+          (= #t %tmp.85
              (new (tstruct Either
                     (is_left (tboolean))
                     (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
@@ -39265,13 +39265,13 @@ groups than for single tests.
                #f
                %t.84
                %value.83))
-          (= %t.86
-             (public-ledger #t %field8.9 (8) insertCoin %ci.14 %tmp.85))
-          (= %t.87 (public-ledger #t %field9.10 (9) resetToDefault))
-          (= %value.88 (public-ledger #t %kernel.0 () self))
-          (= %t.89
+          (= #t %t.86
+             (public-ledger %field8.9 (8) insertCoin %ci.14 %tmp.85))
+          (= #t %t.87 (public-ledger %field9.10 (9) resetToDefault))
+          (= #t %value.88 (public-ledger %kernel.0 () self))
+          (= #t %t.89
              (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
-          (= %tmp.90
+          (= #t %tmp.90
              (new (tstruct Either
                     (is_left (tboolean))
                     (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
@@ -39279,16 +39279,16 @@ groups than for single tests.
                #f
                %t.89
                %value.88))
-          (= %t.91
-             (public-ledger #t %field9.10 (9) insertCoin
+          (= #t %t.91
+             (public-ledger %field9.10 (9) insertCoin
                %x.13
                %ci.14
                %tmp.90))
-          (= %t.92 (public-ledger #t %field10.11 (10) resetToDefault))
-          (= %value.93 (public-ledger #t %kernel.0 () self))
-          (= %t.94
+          (= #t %t.92 (public-ledger %field10.11 (10) resetToDefault))
+          (= #t %value.93 (public-ledger %kernel.0 () self))
+          (= #t %t.94
              (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
-          (= %tmp.95
+          (= #t %tmp.95
              (new (tstruct Either
                     (is_left (tboolean))
                     (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
@@ -39296,8 +39296,8 @@ groups than for single tests.
                #f
                %t.94
                %value.93))
-          (= %t.96
-             (public-ledger #t %field10.11 (10) pushFrontCoin
+          (= #t %t.96
+             (public-ledger %field10.11 (10) pushFrontCoin
                %ci.14
                %tmp.95))
           %q.22)))
@@ -39327,13 +39327,13 @@ groups than for single tests.
           ((%forceField.1 (0) (__compact_Cell (tfield)))))
         (circuit %foo.2 ([%x.3 (tfield)])
              (tunsigned 65535)
-          (= %t.4 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.5 (downcast-unsigned #t 65535 %x.3))
+          (= #t %t.4 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.5 (downcast-unsigned 65535 %x.3))
           %t.5)
         (circuit %bar.6 ([%x.7 (tunsigned 4294967295)])
              (tunsigned 65535)
-          (= %t.8 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.9 (downcast-unsigned #t 65535 %x.7))
+          (= #t %t.8 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.9 (downcast-unsigned 65535 %x.7))
           %t.9)))
     )
 
@@ -39354,11 +39354,11 @@ groups than for single tests.
           ((%field1.0 (0) (Map (tfield) (tboolean)))))
         (circuit %foo.3 ([%n.4 (tfield)])
              (tboolean)
-          (= %t.5 (public-ledger #t %field1.0 (0) lookup %n.4))
+          (= #t %t.5 (public-ledger %field1.0 (0) lookup %n.4))
           %t.5)
         (circuit %call_foo.6 ([%i.1 (tfield)])
              (tboolean)
-          (= %t.7 (public-ledger #t %field1.0 (0) lookup %i.1))
+          (= #t %t.7 (public-ledger %field1.0 (0) lookup %i.1))
           %t.7)))
     )
 
@@ -39379,11 +39379,11 @@ groups than for single tests.
           ((%field1.1 (0) (Map (tfield) (tboolean)))))
         (circuit %foo.2 ([%n.3 (tfield)])
              (tboolean)
-          (= %t.4 (public-ledger #t %field1.1 (0) lookup %n.3))
+          (= #t %t.4 (public-ledger %field1.1 (0) lookup %n.3))
           %t.4)
         (circuit %call_foo.5 ([%i.6 (tfield)])
              (tboolean)
-          (= %t.7 (public-ledger #t %field1.1 (0) lookup 1))
+          (= #t %t.7 (public-ledger %field1.1 (0) lookup 1))
           %t.7)))
     )
 
@@ -39404,11 +39404,11 @@ groups than for single tests.
           ((%field1.0 (0) (Map (tfield) (tboolean)))))
         (circuit %foo.3 ([%n.4 (tfield)])
              (tboolean)
-          (= %t.5 (public-ledger #t %field1.0 (0) lookup %n.4))
+          (= #t %t.5 (public-ledger %field1.0 (0) lookup %n.4))
           %t.5)
         (circuit %call_foo.6 ([%n.1 (tfield)])
              (tboolean)
-          (= %t.7 (public-ledger #t %field1.0 (0) lookup %n.1))
+          (= #t %t.7 (public-ledger %field1.0 (0) lookup %n.1))
           %t.7)))
     )
 
@@ -39429,13 +39429,13 @@ groups than for single tests.
           ((%field1.1 (0) (Map (tfield) (Map (tfield) (tboolean))))))
         (circuit %foo.2 ([%n.3 (tfield)])
              (tboolean)
-          (= %t.4
-             (public-ledger #t %field1.1 (0 ((tfield) 1)) lookup 2))
+          (= #t %t.4
+             (public-ledger %field1.1 (0 ((tfield) 1)) lookup 2))
           %t.4)
         (circuit %call_foo.5 ([%i.6 (tfield)])
              (tboolean)
-          (= %t.7
-             (public-ledger #t %field1.1 (0 ((tfield) 1)) lookup 2))
+          (= #t %t.7
+             (public-ledger %field1.1 (0 ((tfield) 1)) lookup 2))
           %t.7)))
     )
 
@@ -39456,13 +39456,13 @@ groups than for single tests.
           ((%field1.1 (0) (Map (tfield) (Map (tfield) (tboolean))))))
         (circuit %foo.2 ([%n.3 (tfield)])
              (tboolean)
-          (= %t.4
-             (public-ledger #t %field1.1 (0 ((tfield) 1)) lookup %n.3))
+          (= #t %t.4
+             (public-ledger %field1.1 (0 ((tfield) 1)) lookup %n.3))
           %t.4)
         (circuit %call_foo.5 ([%i.6 (tfield)])
              (tboolean)
-          (= %t.7
-             (public-ledger #t %field1.1 (0 ((tfield) 1)) lookup 2))
+          (= #t %t.7
+             (public-ledger %field1.1 (0 ((tfield) 1)) lookup 2))
           %t.7)))
     )
 
@@ -39483,13 +39483,13 @@ groups than for single tests.
           ((%field1.1 (0) (Map (tfield) (Map (tfield) (tboolean))))))
         (circuit %foo.2 ([%n.3 (tfield)])
              (tboolean)
-          (= %t.4
-             (public-ledger #t %field1.1 (0 ((tfield) %n.3)) lookup 1))
+          (= #t %t.4
+             (public-ledger %field1.1 (0 ((tfield) %n.3)) lookup 1))
           %t.4)
         (circuit %call_foo.5 ([%i.6 (tfield)])
              (tboolean)
-          (= %t.7
-             (public-ledger #t %field1.1 (0 ((tfield) 2)) lookup 1))
+          (= #t %t.7
+             (public-ledger %field1.1 (0 ((tfield) 2)) lookup 1))
           %t.7)))
     )
 
@@ -39510,13 +39510,13 @@ groups than for single tests.
           ((%field1.1 (0) (Map (tfield) (Map (tfield) (tboolean))))))
         (circuit %foo.2 ([%n.3 (tfield)])
              (tboolean)
-          (= %t.4
-             (public-ledger #t %field1.1 (0 ((tfield) %n.3)) lookup 1))
+          (= #t %t.4
+             (public-ledger %field1.1 (0 ((tfield) %n.3)) lookup 1))
           %t.4)
         (circuit %call_foo.5 ([%i.6 (tfield)])
              (tboolean)
-          (= %t.7
-             (public-ledger #t %field1.1 (0 ((tfield) %i.6)) lookup 1))
+          (= #t %t.7
+             (public-ledger %field1.1 (0 ((tfield) %i.6)) lookup 1))
           %t.7)))
     )
 
@@ -39535,8 +39535,8 @@ groups than for single tests.
           ((%forceField.1 (0) (__compact_Cell (tfield)))))
         (circuit %foo.2 ([%x.3 (tboolean)] [%y.4 (tboolean)])
              (ttuple)
-          (= %t.5 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.6 (tuple))
+          (= #t %t.5 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.6 (tuple))
           %t.6)))
     )
 
@@ -39579,11 +39579,11 @@ groups than for single tests.
           ((%forceField.1 (0) (__compact_Cell (tfield)))))
         (circuit %foo.2 ([%x.3 (tboolean)])
              (ttuple)
-          (= %t.4 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.5 (select #t %x.3 #t))
+          (= #t %t.4 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.5 (select #t %x.3 #t))
           (assert %t.5 "oops")
-          (= %t.6 (tuple))
-          (= %t.7 (tuple))
+          (= #t %t.6 (tuple))
+          (= #t %t.7 (tuple))
           %t.7)))
     )
 
@@ -39604,8 +39604,8 @@ groups than for single tests.
         (witness %W.2 () (tunsigned 65535))
         (circuit %foo.3 ()
              (tunsigned 65535)
-          (= %t.4 (public-ledger #t %forceField.1 (0) write 7))
-          (= %t.5 (call #t %W.2))
+          (= #t %t.4 (public-ledger %forceField.1 (0) write 7))
+          (= #t %t.5 (call %W.2))
           %t.5)))
     )
 )
@@ -39633,13 +39633,13 @@ groups than for single tests.
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= %t.4 (== %n.0 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= ()
-             (public-ledger %t.7 %ledger_counter.2 (0) increment 1))
+          (= 1 %t.4 (== %n.0 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= %t.7 ()
+             (public-ledger %ledger_counter.2 (0) increment 1))
           ())))
     )
 
@@ -39669,19 +39669,19 @@ groups than for single tests.
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= %t.4 (== %n.0 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (== %n.0 0))
-          (= %t.10 (select 1 %t.9 0))
-          (= %t.11 %t.10)
-          (= %t.12 (select %t.10 %t.7 0))
-          (= %t.13 (select %t.10 0 %t.7))
-          (= ()
-             (public-ledger %t.12 %ledger_counter.2 (0) decrement 1))
-          (= (%t.14) (public-ledger %t.13 %ledger_counter.2 (0) read))
+          (= 1 %t.4 (== %n.0 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= %t.7 %t.9 (== %n.0 0))
+          (= %t.7 %t.10 (select 1 %t.9 0))
+          (= %t.7 %t.11 %t.10)
+          (= 1 %t.12 (select %t.10 %t.7 0))
+          (= 1 %t.13 (select %t.10 0 %t.7))
+          (= %t.12 ()
+             (public-ledger %ledger_counter.2 (0) decrement 1))
+          (= %t.13 (%t.14) (public-ledger %ledger_counter.2 (0) read))
           ())))
     )
 
@@ -39711,20 +39711,20 @@ groups than for single tests.
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= %t.4 (== %n.0 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (== %n.0 0))
-          (= %t.10 (select 1 %t.9 0))
-          (= %t.11 %t.10)
-          (= %t.12 (select %t.10 %t.7 0))
-          (= %t.13 (select %t.10 0 %t.7))
-          (= ()
-             (public-ledger %t.12 %ledger_counter.2 (0) decrement 1))
-          (= ()
-             (public-ledger %t.13 %ledger_counter.2 (0) increment 1))
+          (= 1 %t.4 (== %n.0 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= %t.7 %t.9 (== %n.0 0))
+          (= %t.7 %t.10 (select 1 %t.9 0))
+          (= %t.7 %t.11 %t.10)
+          (= 1 %t.12 (select %t.10 %t.7 0))
+          (= 1 %t.13 (select %t.10 0 %t.7))
+          (= %t.12 ()
+             (public-ledger %ledger_counter.2 (0) decrement 1))
+          (= %t.13 ()
+             (public-ledger %ledger_counter.2 (0) increment 1))
           ())))
     )
 
@@ -39752,18 +39752,18 @@ groups than for single tests.
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= %t.4 (== %n.0 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (== %n.0 0))
-          (= %t.10 (select 1 %t.9 0))
-          (= %t.11 %t.10)
-          (= %t.12 (select %t.10 %t.7 0))
-          (= %t.13 (select %t.10 0 %t.7))
-          (= ()
-             (public-ledger %t.12 %ledger_counter.2 (0) decrement 1))
+          (= 1 %t.4 (== %n.0 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= %t.7 %t.9 (== %n.0 0))
+          (= %t.7 %t.10 (select 1 %t.9 0))
+          (= %t.7 %t.11 %t.10)
+          (= 1 %t.12 (select %t.10 %t.7 0))
+          (= 1 %t.13 (select %t.10 0 %t.7))
+          (= %t.12 ()
+             (public-ledger %ledger_counter.2 (0) decrement 1))
           ())))
     )
 
@@ -39815,18 +39815,18 @@ groups than for single tests.
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= %t.4 (== %n.0 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (== %n.0 1))
-          (= %t.10 (select 1 %t.9 0))
-          (= %t.11 %t.10)
-          (= %t.12 (select %t.10 %t.7 0))
-          (= %t.13 (select %t.10 0 %t.7))
-          (= ()
-             (public-ledger %t.12 %ledger_counter.2 (0) decrement 1))
+          (= 1 %t.4 (== %n.0 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= %t.7 %t.9 (== %n.0 1))
+          (= %t.7 %t.10 (select 1 %t.9 0))
+          (= %t.7 %t.11 %t.10)
+          (= 1 %t.12 (select %t.10 %t.7 0))
+          (= 1 %t.13 (select %t.10 0 %t.7))
+          (= %t.12 ()
+             (public-ledger %ledger_counter.2 (0) decrement 1))
           ())))
     )
 
@@ -39852,7 +39852,7 @@ groups than for single tests.
           ((%ledger_counter.1 (0) (Counter))))
         (circuit %minimal_error_circuit.2 ()
              (ty () ())
-          (= () (public-ledger 1 %ledger_counter.1 (0) increment 1))
+          (= 1 () (public-ledger %ledger_counter.1 (0) increment 1))
           ())))
     )
 
@@ -39880,32 +39880,32 @@ groups than for single tests.
                                              (%n.0)
                                              (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= %t.4 (== %n.0 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (== %n.0 0))
-          (= %t.10 (select 1 %t.9 0))
-          (= %t.11 %t.10)
-          (= %t.12 (select %t.5 %t.10 0))
-          (= %t.13 (select %t.12 1 0))
-          (= %t.14 (select %t.12 0 1))
-          (= ()
-             (public-ledger %t.13 %ledger_counter.2 (0) increment 1))
-          (= %t.15 (== %n.0 0))
-          (= %t.16 (select 1 %t.15 0))
-          (= %t.17 %t.16)
-          (= %t.18 (select %t.16 %t.14 0))
-          (= %t.19 (select %t.16 0 %t.14))
-          (= %t.20 (== %n.0 1))
-          (= %t.21 (select 1 %t.20 0))
-          (= %t.22 %t.21)
-          (= %t.23 (select %t.16 %t.21 0))
-          (= %t.24 (select %t.23 %t.14 0))
-          (= %t.25 (select %t.23 0 %t.14))
-          (= ()
-             (public-ledger %t.24 %ledger_counter.2 (0) increment 2))
+          (= 1 %t.4 (== %n.0 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= %t.7 %t.9 (== %n.0 0))
+          (= %t.7 %t.10 (select 1 %t.9 0))
+          (= %t.7 %t.11 %t.10)
+          (= 1 %t.12 (select %t.5 %t.10 0))
+          (= 1 %t.13 (select %t.12 1 0))
+          (= 1 %t.14 (select %t.12 0 1))
+          (= %t.13 ()
+             (public-ledger %ledger_counter.2 (0) increment 1))
+          (= %t.14 %t.15 (== %n.0 0))
+          (= %t.14 %t.16 (select 1 %t.15 0))
+          (= %t.14 %t.17 %t.16)
+          (= 1 %t.18 (select %t.16 %t.14 0))
+          (= 1 %t.19 (select %t.16 0 %t.14))
+          (= %t.18 %t.20 (== %n.0 1))
+          (= %t.18 %t.21 (select 1 %t.20 0))
+          (= %t.18 %t.22 %t.21)
+          (= %t.14 %t.23 (select %t.16 %t.21 0))
+          (= 1 %t.24 (select %t.23 %t.14 0))
+          (= 1 %t.25 (select %t.23 0 %t.14))
+          (= %t.24 ()
+             (public-ledger %ledger_counter.2 (0) increment 2))
           ())))
     )
 
@@ -39936,7 +39936,7 @@ groups than for single tests.
                            (%n.3)
                            (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %field1.1 (0) remove 1))
+          (= 1 () (public-ledger %field1.1 (0) remove 1))
           ())))
     )
 
@@ -39967,17 +39967,17 @@ groups than for single tests.
                            (%n.0)
                            (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= %t.4 (== %n.0 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (== %n.0 0))
-          (= %t.10 (select 1 %t.9 0))
-          (= %t.11 %t.10)
-          (= %t.12 (select %t.10 %t.7 0))
-          (= %t.13 (select %t.10 0 %t.7))
-          (= () (public-ledger %t.12 %field1.2 (0) remove 1))
+          (= 1 %t.4 (== %n.0 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= %t.7 %t.9 (== %n.0 0))
+          (= %t.7 %t.10 (select 1 %t.9 0))
+          (= %t.7 %t.11 %t.10)
+          (= 1 %t.12 (select %t.10 %t.7 0))
+          (= 1 %t.13 (select %t.10 0 %t.7))
+          (= %t.12 () (public-ledger %field1.2 (0) remove 1))
           ())))
     )
 
@@ -40003,13 +40003,13 @@ groups than for single tests.
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.3) (public-ledger 1 %field1.0 (0) lookup %n.2))
+          (= 1 (%t.3) (public-ledger %field1.0 (0) lookup %n.2))
           (%t.3))
         (circuit %call_foo.4 ((argument
                                 (%i.5)
                                 (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.6) (public-ledger 1 %field1.0 (0) lookup %i.5))
+          (= 1 (%t.6) (public-ledger %field1.0 (0) lookup %i.5))
           (%t.6))))
     )
 
@@ -40037,8 +40037,8 @@ groups than for single tests.
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.3)
-             (public-ledger 1 %field1.0 (0 ((ty ((afield)) ((tfield)))
+          (= 1 (%t.3)
+             (public-ledger %field1.0 (0 ((ty ((afield)) ((tfield)))
                                              %n.2)) lookup
                1))
           (%t.3))
@@ -40046,8 +40046,8 @@ groups than for single tests.
                                 (%i.5)
                                 (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.6)
-             (public-ledger 1 %field1.0 (0 ((ty ((afield)) ((tfield)))
+          (= 1 (%t.6)
+             (public-ledger %field1.0 (0 ((ty ((afield)) ((tfield)))
                                              %i.5)) lookup
                1))
           (%t.6))))
@@ -40075,13 +40075,13 @@ groups than for single tests.
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.3) (public-ledger 1 %field1.0 (0) lookup %n.2))
+          (= 1 (%t.3) (public-ledger %field1.0 (0) lookup %n.2))
           (%t.3))
         (circuit %call_foo.4 ((argument
                                 (%i.5)
                                 (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.6) (public-ledger 1 %field1.0 (0) lookup %i.5))
+          (= 1 (%t.6) (public-ledger %field1.0 (0) lookup %i.5))
           (%t.6))))
     )
 
@@ -40108,8 +40108,8 @@ groups than for single tests.
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.3)
-             (public-ledger 1 %field1.0 (0 ((ty ((afield)) ((tfield)))
+          (= 1 (%t.3)
+             (public-ledger %field1.0 (0 ((ty ((afield)) ((tfield)))
                                              %n.2)) lookup
                1))
           (%t.3))))
@@ -40139,16 +40139,16 @@ groups than for single tests.
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.3)
-             (public-ledger 1 %field1.0 (0 ((ty ((afield)) ((tfield))) 1)) lookup
+          (= 1 (%t.3)
+             (public-ledger %field1.0 (0 ((ty ((afield)) ((tfield))) 1)) lookup
                2))
           (%t.3))
         (circuit %call_foo.4 ((argument
                                 (%i.5)
                                 (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.6)
-             (public-ledger 1 %field1.0 (0 ((ty ((afield)) ((tfield))) 1)) lookup
+          (= 1 (%t.6)
+             (public-ledger %field1.0 (0 ((ty ((afield)) ((tfield))) 1)) lookup
                2))
           (%t.6))))
     )
@@ -40177,16 +40177,16 @@ groups than for single tests.
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.3)
-             (public-ledger 1 %field1.0 (0 ((ty ((afield)) ((tfield))) 1)) lookup
+          (= 1 (%t.3)
+             (public-ledger %field1.0 (0 ((ty ((afield)) ((tfield))) 1)) lookup
                %n.2))
           (%t.3))
         (circuit %call_foo.4 ((argument
                                 (%i.5)
                                 (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.6)
-             (public-ledger 1 %field1.0 (0 ((ty ((afield)) ((tfield))) 1)) lookup
+          (= 1 (%t.6)
+             (public-ledger %field1.0 (0 ((ty ((afield)) ((tfield))) 1)) lookup
                2))
           (%t.6))))
     )
@@ -40215,8 +40215,8 @@ groups than for single tests.
                            (%n.2)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.3)
-             (public-ledger 1 %field1.0 (0 ((ty ((afield)) ((tfield)))
+          (= 1 (%t.3)
+             (public-ledger %field1.0 (0 ((ty ((afield)) ((tfield)))
                                            %n.2)) lookup
                1))
           (%t.3))
@@ -40224,8 +40224,8 @@ groups than for single tests.
                                 (%i.5)
                                 (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.6)
-             (public-ledger 1 %field1.0 (0 ((ty ((afield)) ((tfield))) 2)) lookup
+          (= 1 (%t.6)
+             (public-ledger %field1.0 (0 ((ty ((afield)) ((tfield))) 2)) lookup
                1))
           (%t.6))))
     )
@@ -40252,11 +40252,11 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.4) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.5 (== %x.4 3))
-          (= %t.6 (select 1 %t.5 0))
-          (= %t.7 %t.6)
-          (= %t.8 (select 1 %t.6 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.5 (== %x.4 3))
+          (= 1 %t.6 (select 1 %t.5 0))
+          (= 1 %t.7 %t.6)
+          (= 1 %t.8 (select 1 %t.6 1))
           (assert %t.8 "oops 1")
           (%b.3))
         (circuit %call_foo.9 ((argument
@@ -40264,12 +40264,12 @@ groups than for single tests.
                                 (ty ((abytes 1)) ((tfield 1))))
                               (argument (%x.11) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.12 (== %x.11 3))
-          (= %t.13 (select 1 %t.12 0))
-          (= %t.14 %t.13)
-          (= %t.15 (select 1 %t.13 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.12 (== %x.11 3))
+          (= 1 %t.13 (select 1 %t.12 0))
+          (= 1 %t.14 %t.13)
+          (= 1 %t.15 (select 1 %t.13 1))
           (assert %t.15 "oops 1")
           (%b.10))))
     )
@@ -40306,11 +40306,11 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.4) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.5 (== %x.4 3))
-          (= %t.6 (select 1 %t.5 0))
-          (= %t.7 %t.6)
-          (= %t.8 (select 1 %t.6 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.5 (== %x.4 3))
+          (= 1 %t.6 (select 1 %t.5 0))
+          (= 1 %t.7 %t.6)
+          (= 1 %t.8 (select 1 %t.6 1))
           (assert %t.8 "oops 1")
           (%b.3))))
     )
@@ -40336,12 +40336,12 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.4) (ty ((abytes 2)) ((tfield 65535)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.5 (< 16 3 %x.4))
-          (= %t.6 (select %t.5 1 0))
-          (= %t.7 (select %t.5 0 1))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (select 1 %t.8 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.5 (< 16 3 %x.4))
+          (= 1 %t.6 (select %t.5 1 0))
+          (= 1 %t.7 (select %t.5 0 1))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= 1 %t.9 (select 1 %t.8 1))
           (assert %t.9 "oops 1")
           (%b.3))))
     )
@@ -40370,20 +40370,20 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.4) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.5 (select %b.3 1 0))
-          (= %t.6 (select %b.3 0 1))
-          (= %t.7 (== %x.4 3))
-          (= %t.8 (select 1 %t.7 0))
-          (= %t.9 %t.8)
-          (= %t.10 (select %t.6 %t.8 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.5 (select %b.3 1 0))
+          (= 1 %t.6 (select %b.3 0 1))
+          (= %t.6 %t.7 (== %x.4 3))
+          (= %t.6 %t.8 (select 1 %t.7 0))
+          (= %t.6 %t.9 %t.8)
+          (= 1 %t.10 (select %t.6 %t.8 1))
           (assert %t.10 "oops 2")
-          (= %t.11 (select %b.3 1 0))
-          (= %t.12 (select %b.3 0 1))
-          (= %t.13 (== %x.4 3))
-          (= %t.14 (select 1 %t.13 0))
-          (= %t.15 %t.14)
-          (= %t.16 (select %b.3 %t.14 0))
+          (= 1 %t.11 (select %b.3 1 0))
+          (= 1 %t.12 (select %b.3 0 1))
+          (= %t.11 %t.13 (== %x.4 3))
+          (= %t.11 %t.14 (select 1 %t.13 0))
+          (= %t.11 %t.15 %t.14)
+          (= 1 %t.16 (select %b.3 %t.14 0))
           (%t.16))))
     )
 
@@ -40405,7 +40405,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield) (afield) (afield) (afield) (afield) (afield))
                  ((tfield) (tfield) (tfield) (tfield) (tfield) (tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (1 2 3 4 5 6))))
     )
 
@@ -40436,7 +40436,7 @@ groups than for single tests.
                                ((tfield
                                   1461501637330902918203684832716283019655932542975)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (%arg.3))))
     )
 
@@ -40466,8 +40466,8 @@ groups than for single tests.
                                  (tfield
                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.5 (bytes->field 1 32 %arg.3 %arg.4))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.5 (bytes->field 32 %arg.3 %arg.4))
           (%t.5))))
     )
 
@@ -40500,10 +40500,10 @@ groups than for single tests.
                                  (tfield
                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.6 (== %arg.3 0))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.6 (== %arg.3 0))
           (assert %t.6 "bytes value is too big to fit in a field")
-          (= %t.7 (bytes->field 1 80 %arg.4 %arg.5))
+          (= 1 %t.7 (bytes->field 80 %arg.4 %arg.5))
           (%t.7))))
     )
 
@@ -40534,8 +40534,8 @@ groups than for single tests.
              (ty ((abytes 20))
                  ((tfield
                     1461501637330902918203684832716283019655932542975)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.4 %t.5) (field->bytes 1 20 %arg.3))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.4 %t.5) (field->bytes 20 %arg.3))
           (%t.5))))
     )
 
@@ -40567,8 +40567,8 @@ groups than for single tests.
                      452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.4 %t.5) (field->bytes 1 80 %arg.3))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.4 %t.5) (field->bytes 80 %arg.3))
           (0 %t.4 %t.5))))
     )
 
@@ -40588,10 +40588,10 @@ groups than for single tests.
                            (%arg.3)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.4 (select %arg.3 1 0))
-          (= %t.5 (select %arg.3 0 1))
-          (= %t.6 (select %arg.3 1 0))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.4 (select %arg.3 1 0))
+          (= 1 %t.5 (select %arg.3 0 1))
+          (= 1 %t.6 (select %arg.3 1 0))
           (%t.6))))
     )
 
@@ -40619,13 +40619,13 @@ groups than for single tests.
                            (%arg.3)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.4 (== %arg.3 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (select %t.5 0 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.4 (== %arg.3 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= 1 %t.9 (select %t.5 0 1))
           (%t.9))))
     )
 
@@ -40667,7 +40667,7 @@ groups than for single tests.
                            (%b.10)
                            (ty ((abytes 7)) ((tfield 72057594037927935)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (17))
         (circuit %foo.11 ((argument
                             (%v.12 %v.13 %v.14 %v.15 %v.16 %v.17 %v.18 %v.19
@@ -40696,21 +40696,21 @@ groups than for single tests.
                                 ((tfield
                                    1766847064778384329583297500742918515827483896875618958121606201292619775)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (17))
         (circuit %foo.43 ((argument
                             (%x.44)
                             (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.45 (+ #f %x.44 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.45 (+ #f %x.44 1))
           (%t.45))
         (circuit %bar.46 ((argument
                             (%x.47)
                             (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.48 (- #f %x.47 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.48 (- #f %x.47 1))
           (%t.48))))
     )
 
@@ -40734,14 +40734,14 @@ groups than for single tests.
                            (ty ((afield) (afield) (afield))
                                ((tfield) (tfield) (tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.6 (== %x.3 3))
-          (= %t.7 (select 1 %t.6 0))
-          (= %t.8 (== %x.4 4))
-          (= %t.9 (select %t.7 %t.8 0))
-          (= %t.10 (== %x.5 5))
-          (= %t.11 (select %t.9 %t.10 0))
-          (= %t.12 %t.11)
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.6 (== %x.3 3))
+          (= 1 %t.7 (select 1 %t.6 0))
+          (= 1 %t.8 (== %x.4 4))
+          (= 1 %t.9 (select %t.7 %t.8 0))
+          (= 1 %t.10 (== %x.5 5))
+          (= 1 %t.11 (select %t.9 %t.10 0))
+          (= 1 %t.12 %t.11)
           (%t.11))))
     )
 
@@ -40762,7 +40762,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ((argument () (ty ((abytes 0)) ())))
              (ty ((abytes 0)) ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -40783,7 +40783,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -40810,7 +40810,7 @@ groups than for single tests.
              (ty ((abytes 31))
                  ((tfield
                     452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (%b.3))))
     )
 
@@ -40833,7 +40833,7 @@ groups than for single tests.
              (ty ((abytes 31))
                  ((tfield
                     452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (92229389609740816795180269993859972877376305008880425034764490106789388897))))
     )
 
@@ -40878,7 +40878,7 @@ groups than for single tests.
                  ((tfield 4722366482869645213695)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (889566821702876541746
             86908332635947936520937639616427602624961814622853568299663208045469708849))))
     )
@@ -40903,7 +40903,7 @@ groups than for single tests.
                  ((tfield 4722366482869645213695)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (0 36762444129640))))
     )
 
@@ -40933,8 +40933,8 @@ groups than for single tests.
              (ty () ()))
         (circuit %foo.5 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (call 1 %bar.2 0 36762444129640))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (call %bar.2 0 36762444129640))
           ())))
     )
 
@@ -40964,8 +40964,8 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.4 %t.5) (call 1 %bar.2))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.4 %t.5) (call %bar.2))
           (%t.4 %t.5))))
     )
 
@@ -40991,11 +40991,11 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.4 (select %b.3 1 0))
-          (= %t.5 (select %b.3 0 1))
-          (= %t.6 (select %b.3 0 146740295883472840746347634))
-          (= %t.7
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.4 (select %b.3 1 0))
+          (= 1 %t.5 (select %b.3 0 1))
+          (= 1 %t.6 (select %b.3 0 146740295883472840746347634))
+          (= 1 %t.7
              (select
                %b.3
                36762444129640
@@ -41024,7 +41024,7 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (0 36762444129640))))
     )
 
@@ -41056,14 +41056,14 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%x.4 %x.5) (call 1 %bar.2))
-          (= %t.6 (== %x.4 0))
-          (= %t.7 (select 1 %t.6 0))
-          (= %t.8 (== %x.5 36762444129640))
-          (= %t.9 (select %t.7 %t.8 0))
-          (= %t.10 %t.9)
-          (= %t.11 (select 1 %t.9 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%x.4 %x.5) (call %bar.2))
+          (= 1 %t.6 (== %x.4 0))
+          (= 1 %t.7 (select 1 %t.6 0))
+          (= 1 %t.8 (== %x.5 36762444129640))
+          (= 1 %t.9 (select %t.7 %t.8 0))
+          (= 1 %t.10 %t.9)
+          (= 1 %t.11 (select 1 %t.9 1))
           (assert %t.11 "oops")
           (%x.4 %x.5))))
     )
@@ -41096,16 +41096,16 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%x.4 %x.5) (call 1 %bar.2))
-          (= %t.6 (== %x.4 146740295883472840746347634))
-          (= %t.7 (select 1 %t.6 0))
-          (= %t.8
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%x.4 %x.5) (call %bar.2))
+          (= 1 %t.6 (== %x.4 146740295883472840746347634))
+          (= 1 %t.7 (select 1 %t.6 0))
+          (= 1 %t.8
              (== %x.5
                  172089018921478248217018581585884075052860504307373738624254165310312246895))
-          (= %t.9 (select %t.7 %t.8 0))
-          (= %t.10 %t.9)
-          (= %t.11 (select 1 %t.9 1))
+          (= 1 %t.9 (select %t.7 %t.8 0))
+          (= 1 %t.10 %t.9)
+          (= 1 %t.11 (select 1 %t.9 1))
           (assert %t.11 "oops")
           (%x.4 %x.5))))
     )
@@ -41140,29 +41140,29 @@ groups than for single tests.
                      452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.3 (== 0 0))
-          (= %t.4 (select 1 %t.3 0))
-          (= %t.5
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.3 (== 0 0))
+          (= 1 %t.4 (select 1 %t.3 0))
+          (= 1 %t.5
              (== 0
                  655673852914079535706832728104650208561044890911829149250927))
-          (= %t.6 (select %t.4 %t.5 0))
-          (= %t.7
+          (= 1 %t.6 (select %t.4 %t.5 0))
+          (= 1 %t.7
              (== 36762444129640
                  57307987020550611804426281024220409105956829700898855016698443841058205542))
-          (= %t.8 (select %t.6 %t.7 0))
-          (= %t.9 (== 0 0))
-          (= %t.10 (select %t.8 %t.9 0))
-          (= %t.11
+          (= 1 %t.8 (select %t.6 %t.7 0))
+          (= 1 %t.9 (== 0 0))
+          (= 1 %t.10 (select %t.8 %t.9 0))
+          (= 1 %t.11
              (== 655673852914079535706832728104650208561044890911829149250927
                  0))
-          (= %t.12 (select %t.10 %t.11 0))
-          (= %t.13
+          (= 1 %t.12 (select %t.10 %t.11 0))
+          (= 1 %t.13
              (== 57307987020550611804426281024220409105956829700898855016698443841058205542
                  36762444129640))
-          (= %t.14 (select %t.12 %t.13 0))
-          (= %t.15 %t.14)
-          (= %t.16 (select 1 %t.14 1))
+          (= 1 %t.14 (select %t.12 %t.13 0))
+          (= 1 %t.15 %t.14)
+          (= 1 %t.16 (select 1 %t.14 1))
           (assert %t.16 "oops")
           (0 0 36762444129640 0
              655673852914079535706832728104650208561044890911829149250927
@@ -41210,12 +41210,12 @@ groups than for single tests.
                            (%n.3)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.4
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.4
              (== %n.3
                  452312848583266388373324160190187140051835877600158453279131187530910662655))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
           (%t.5))))
     )
 
@@ -41238,12 +41238,12 @@ groups than for single tests.
                            (%n.3)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.4
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.4
              (== %n.3
                  52435875175126190479447740508185965837690552500527637822603658699938581184512))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
           (%t.5))))
     )
 
@@ -41269,8 +41269,8 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %bar.2 ()
              (ty ((abytes 1)) ((tfield 3)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (1))))
     )
 
@@ -41289,7 +41289,7 @@ groups than for single tests.
         (public-ledger-declaration ((field1 (0) (Counter))))
         (circuit %foo.0 ()
              (ty ((afield)) ((tfield)))
-          (= (%t.1) (public-ledger 1 field1 (0) read))
+          (= 1 (%t.1) (public-ledger field1 (0) read))
           (%t.1))))
     )
 
@@ -41310,15 +41310,15 @@ groups than for single tests.
                            (ty ((abytes 1) (abytes 1) (abytes 1))
                                ((tfield 1) (tfield 1) (tfield 1)))))
              (ty () ())
-          (= %t.5 (select %v.2 1 0))
-          (= %t.6 (select %v.2 0 1))
-          (= () (public-ledger %t.5 %x.0 (0) increment 1))
-          (= %t.7 (select %v.3 1 0))
-          (= %t.8 (select %v.3 0 1))
-          (= () (public-ledger %t.7 %x.0 (0) increment 1))
-          (= %t.9 (select %v.4 1 0))
-          (= %t.10 (select %v.4 0 1))
-          (= () (public-ledger %t.9 %x.0 (0) increment 1))
+          (= 1 %t.5 (select %v.2 1 0))
+          (= 1 %t.6 (select %v.2 0 1))
+          (= %t.5 () (public-ledger %x.0 (0) increment 1))
+          (= 1 %t.7 (select %v.3 1 0))
+          (= 1 %t.8 (select %v.3 0 1))
+          (= %t.7 () (public-ledger %x.0 (0) increment 1))
+          (= 1 %t.9 (select %v.4 1 0))
+          (= 1 %t.10 (select %v.4 0 1))
+          (= %t.9 () (public-ledger %x.0 (0) increment 1))
           ())))
     )
 
@@ -41336,10 +41336,10 @@ groups than for single tests.
         (public-ledger-declaration ((x (0) (Counter))))
         (circuit %foo.0 ()
              (ty () ())
-          (= () (public-ledger 1 x (0) increment 3))
-          (= () (public-ledger 1 x (0) increment 4))
-          (= () (public-ledger 1 x (0) increment 5))
-          (= () (public-ledger 1 x (0) increment 6))
+          (= 1 () (public-ledger x (0) increment 3))
+          (= 1 () (public-ledger x (0) increment 4))
+          (= 1 () (public-ledger x (0) increment 5))
+          (= 1 () (public-ledger x (0) increment 6))
           ())))
     )
 
@@ -41368,9 +41368,9 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 15))))
                          (argument (%b.6) (ty ((abytes 1)) ((tfield 15)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.7 (+ 5 %a.5 %b.6))
-          (= () (call 1 %foo.2 %t.7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.7 (+ 5 %a.5 %b.6))
+          (= 1 () (call %foo.2 %t.7))
           ())))
     )
 
@@ -41399,13 +41399,13 @@ groups than for single tests.
                            (ty ((afield)) ((tfield))))
                          (argument (%x.4) (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.5 (== %x.4 0))
-          (= %t.6 (select 1 %t.5 0))
-          (= %t.7 %t.6)
-          (= %t.8 (select %t.6 1 0))
-          (= %t.9 (select %t.6 0 1))
-          (= %t.10 (downcast-unsigned %t.8 7 %f.3))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.5 (== %x.4 0))
+          (= 1 %t.6 (select 1 %t.5 0))
+          (= 1 %t.7 %t.6)
+          (= 1 %t.8 (select %t.6 1 0))
+          (= 1 %t.9 (select %t.6 0 1))
+          (= %t.8 %t.10 (downcast-unsigned 7 %f.3))
           ())))
     )
 
@@ -41433,13 +41433,13 @@ groups than for single tests.
                            (ty ((afield)) ((tfield))))
                          (argument (%x.4) (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.5 (== %x.4 0))
-          (= %t.6 (select 1 %t.5 0))
-          (= %t.7 %t.6)
-          (= %t.8 (select %t.6 1 0))
-          (= %t.9 (select %t.6 0 1))
-          (= %t.10 (downcast-unsigned %t.8 7 %f.3))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.5 (== %x.4 0))
+          (= 1 %t.6 (select 1 %t.5 0))
+          (= 1 %t.7 %t.6)
+          (= 1 %t.8 (select %t.6 1 0))
+          (= 1 %t.9 (select %t.6 0 1))
+          (= %t.8 %t.10 (downcast-unsigned 7 %f.3))
           ())))
     )
 
@@ -41467,13 +41467,13 @@ groups than for single tests.
                            (ty ((afield)) ((tfield))))
                          (argument (%x.4) (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.5 (== %x.4 0))
-          (= %t.6 (select 1 %t.5 0))
-          (= %t.7 %t.6)
-          (= %t.8 (select %t.6 1 0))
-          (= %t.9 (select %t.6 0 1))
-          (= %t.10 (downcast-unsigned %t.8 7 %f.3))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.5 (== %x.4 0))
+          (= 1 %t.6 (select 1 %t.5 0))
+          (= 1 %t.7 %t.6)
+          (= 1 %t.8 (select %t.6 1 0))
+          (= 1 %t.9 (select %t.6 0 1))
+          (= %t.8 %t.10 (downcast-unsigned 7 %f.3))
           ())))
     )
 
@@ -41500,19 +41500,19 @@ groups than for single tests.
                            (%x.3)
                            (ty ((abytes 1)) ((tfield 255)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.4 (== %x.3 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (select %t.5 0 1))
-          (= %t.10 (select %t.9 1 0))
-          (= %t.11 (select %t.9 0 1))
-          (= %t.12 (< 8 %x.3 7))
-          (= %t.13 (select %t.12 %t.10 0))
-          (= %t.14 (select %t.12 0 %t.10))
-          (= %t.15 (select %t.13 0 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.4 (== %x.3 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= 1 %t.9 (select %t.5 0 1))
+          (= 1 %t.10 (select %t.9 1 0))
+          (= 1 %t.11 (select %t.9 0 1))
+          (= %t.10 %t.12 (< 8 %x.3 7))
+          (= 1 %t.13 (select %t.12 %t.10 0))
+          (= 1 %t.14 (select %t.12 0 %t.10))
+          (= 1 %t.15 (select %t.13 0 1))
           (assert %t.15 "oops")
           ())))
     )
@@ -41540,7 +41540,7 @@ groups than for single tests.
                            (%x.3)
                            (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -41567,21 +41567,21 @@ groups than for single tests.
                            (%x.3)
                            (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.4 (== %x.3 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (select %t.5 0 1))
-          (= %t.10 (select %t.9 1 0))
-          (= %t.11 (select %t.9 0 1))
-          (= %t.12 (== %x.3 7))
-          (= %t.13 (select 1 %t.12 0))
-          (= %t.14 %t.13)
-          (= %t.15 (select %t.13 %t.10 0))
-          (= %t.16 (select %t.13 0 %t.10))
-          (= %t.17 (select %t.15 0 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.4 (== %x.3 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= 1 %t.9 (select %t.5 0 1))
+          (= 1 %t.10 (select %t.9 1 0))
+          (= 1 %t.11 (select %t.9 0 1))
+          (= %t.10 %t.12 (== %x.3 7))
+          (= %t.10 %t.13 (select 1 %t.12 0))
+          (= %t.10 %t.14 %t.13)
+          (= 1 %t.15 (select %t.13 %t.10 0))
+          (= 1 %t.16 (select %t.13 0 %t.10))
+          (= 1 %t.17 (select %t.15 0 1))
           (assert %t.17 "oops")
           ())))
     )
@@ -41606,7 +41606,7 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%y.4) (ty ((abytes 1)) ((tfield 1)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -41630,15 +41630,15 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%y.4) (ty ((abytes 1)) ((tfield 1)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.5 (select %x.3 1 0))
-          (= %t.6 (select %x.3 0 1))
-          (= %t.7 (select %y.4 %t.5 0))
-          (= %t.8 (select %y.4 0 %t.5))
-          (= %t.9 (select %y.4 0 1))
-          (= %t.10 (select %t.9 %t.5 0))
-          (= %t.11 (select %t.9 0 %t.5))
-          (= %t.12 (select %t.10 0 1))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.5 (select %x.3 1 0))
+          (= 1 %t.6 (select %x.3 0 1))
+          (= 1 %t.7 (select %y.4 %t.5 0))
+          (= 1 %t.8 (select %y.4 0 %t.5))
+          (= %t.5 %t.9 (select %y.4 0 1))
+          (= 1 %t.10 (select %t.9 %t.5 0))
+          (= 1 %t.11 (select %t.9 0 %t.5))
+          (= 1 %t.12 (select %t.10 0 1))
           (assert %t.12 "oops")
           ())))
     )
@@ -41684,7 +41684,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (1))))
     )
 
@@ -41711,13 +41711,13 @@ groups than for single tests.
                            (%x.3)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t.4 (== %x.3 0))
-          (= %t.5 (select 1 %t.4 0))
-          (= %t.6 %t.5)
-          (= %t.7 (select %t.5 1 0))
-          (= %t.8 (select %t.5 0 1))
-          (= %t.9 (select %t.5 1 0))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t.4 (== %x.3 0))
+          (= 1 %t.5 (select 1 %t.4 0))
+          (= 1 %t.6 %t.5)
+          (= 1 %t.7 (select %t.5 1 0))
+          (= 1 %t.8 (select %t.5 0 1))
+          (= 1 %t.9 (select %t.5 1 0))
           (%t.9))))
     )
 
@@ -41777,7 +41777,7 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.4) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (1))))
     )
 
@@ -41802,8 +41802,8 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.0) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.3 (0) write 7))
-          (= %t.1 (== %x.0 3))
+          (= 1 () (public-ledger %forceField.3 (0) write 7))
+          (= 1 %t.1 (== %x.0 3))
           (assert %t.1 "oops 1")
           (%b.5))))
     )
@@ -41829,9 +41829,9 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.0) (ty ((abytes 2)) ((tfield 65535)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.4 (0) write 7))
-          (= %t.1 (< 16 3 %x.0))
-          (= %t.2 (select %t.1 0 1))
+          (= 1 () (public-ledger %forceField.4 (0) write 7))
+          (= 1 %t.1 (< 16 3 %x.0))
+          (= 1 %t.2 (select %t.1 0 1))
           (assert %t.2 "oops 1")
           (%b.6))))
     )
@@ -41857,7 +41857,7 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.4) (ty ((abytes 2)) ((tfield 65535)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (assert 0 "oops 1")
           (%b.3))))
 
@@ -41883,8 +41883,8 @@ groups than for single tests.
                            (%x.0)
                            (ty ((abytes 2)) ((tfield 65535)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.3 (0) write 7))
-          (= %t.1 (< 16 %x.0 100))
+          (= 1 () (public-ledger %forceField.3 (0) write 7))
+          (= 1 %t.1 (< 16 %x.0 100))
           (assert %t.1 "oops 1")
           (%t.1))))
     )
@@ -41908,7 +41908,7 @@ groups than for single tests.
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (%b.0))))
     )
 
@@ -41931,7 +41931,7 @@ groups than for single tests.
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (0))))
     )
 
@@ -41955,7 +41955,7 @@ groups than for single tests.
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (0))))
     )
 
@@ -41979,7 +41979,7 @@ groups than for single tests.
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (%b.0))))
     )
 
@@ -42003,7 +42003,7 @@ groups than for single tests.
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (%b.0))))
     )
 
@@ -42031,11 +42031,11 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.1) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.5 (0) write 7))
-          (= %t.2 (== %x.1 3))
-          (= %t.3 (select %b.0 1 %t.2))
+          (= 1 () (public-ledger %forceField.5 (0) write 7))
+          (= 1 %t.2 (== %x.1 3))
+          (= 1 %t.3 (select %b.0 1 %t.2))
           (assert %t.3 "oops 2")
-          (= %t.7 (select %b.0 %t.2 0))
+          (= 1 %t.7 (select %b.0 %t.2 0))
           (%t.7))))
     )
 
@@ -42057,7 +42057,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield) (afield) (afield) (afield) (afield) (afield))
                  ((tfield) (tfield) (tfield) (tfield) (tfield) (tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (1 2 3 4 5 6))))
     )
 
@@ -42084,8 +42084,8 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.5) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.6) (call 1 %W.2))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.6) (call %W.2))
           (1))))
     )
 
@@ -42106,7 +42106,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -42145,10 +42145,10 @@ groups than for single tests.
                             (ty ((abytes 1)) ((tfield 1))))
                           (argument (%x.12) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.13 %t.14 %t.15 %t.16 %t.17 %t.18) (call 1 %S.9))
-          (= (%t.19 %t.20)
-             (call 1 %W.2 %t.13 %t.14 %t.15 %t.16 %t.17 %t.18))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.13 %t.14 %t.15 %t.16 %t.17 %t.18) (call %S.9))
+          (= 1 (%t.19 %t.20)
+             (call %W.2 %t.13 %t.14 %t.15 %t.16 %t.17 %t.18))
           (%t.19))))
     )
 
@@ -42188,12 +42188,12 @@ groups than for single tests.
                             (ty ((abytes 1)) ((tfield 1))))
                           (argument (%x.15) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.5 (0) write 7))
-          (= (%t.16 %t.17 %t.18 %t.19 %t.20 %t.21) (call 1 %S.13))
-          (= (%p.3 %p.0)
-             (call 1 %W.6 %t.16 %t.17 %t.18 %t.19 %t.20 %t.21))
-          (= %t.1 (== %p.0 19))
-          (= %t.22 (select %t.1 %p.3 %b.2))
+          (= 1 () (public-ledger %forceField.5 (0) write 7))
+          (= 1 (%t.16 %t.17 %t.18 %t.19 %t.20 %t.21) (call %S.13))
+          (= 1 (%p.3 %p.0)
+             (call %W.6 %t.16 %t.17 %t.18 %t.19 %t.20 %t.21))
+          (= 1 %t.1 (== %p.0 19))
+          (= 1 %t.22 (select %t.1 %p.3 %b.2))
           (%t.22))))
     )
 
@@ -42241,18 +42241,18 @@ groups than for single tests.
                             (ty ((abytes 1)) ((tfield 1))))
                           (argument (%x.26) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.9 (0) write 7))
-          (= %t.27 (select %b.0 0 1))
-          (= (%t.28 %t.29 %t.30 %t.31 %t.32 %t.33) (call %b.0 %S.24))
-          (= (%t.2 %t.4)
-             (call %b.0 %W1.10 %t.28 %t.29 %t.30 %t.31 %t.32 %t.33))
-          (= (%t.34 %t.35 %t.36 %t.37 %t.38 %t.39) (call %t.27 %S.24))
-          (= (%t.1 %t.3)
-             (call %t.27 %W2.17 %t.34 %t.35 %t.36 %t.37 %t.38 %t.39))
-          (= %p.7 (select %b.0 %t.2 %t.1))
-          (= %p.5 (select %b.0 %t.4 %t.3))
-          (= %t.6 (== %p.5 19))
-          (= %t.40 (select %t.6 %p.7 %b.0))
+          (= 1 () (public-ledger %forceField.9 (0) write 7))
+          (= 1 %t.27 (select %b.0 0 1))
+          (= %b.0 (%t.28 %t.29 %t.30 %t.31 %t.32 %t.33) (call %S.24))
+          (= %b.0 (%t.2 %t.4)
+             (call %W1.10 %t.28 %t.29 %t.30 %t.31 %t.32 %t.33))
+          (= %t.27 (%t.34 %t.35 %t.36 %t.37 %t.38 %t.39) (call %S.24))
+          (= %t.27 (%t.1 %t.3)
+             (call %W2.17 %t.34 %t.35 %t.36 %t.37 %t.38 %t.39))
+          (= 1 %p.7 (select %b.0 %t.2 %t.1))
+          (= 1 %p.5 (select %b.0 %t.4 %t.3))
+          (= 1 %t.6 (== %p.5 19))
+          (= 1 %t.40 (select %t.6 %p.7 %b.0))
           (%t.40))))
     )
 
@@ -42291,20 +42291,20 @@ groups than for single tests.
              (ty ((abytes 1)) ((tfield 1))))
         (circuit %C.7 ((argument () (ty () ())))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (1))
         (circuit %C.8 ((argument (%v.9) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.2 (1) write 7))
-          (= (%t.10) (call 1 %foo.4 1 %v.9))
+          (= 1 () (public-ledger %forceField.2 (1) write 7))
+          (= 1 (%t.10) (call %foo.4 1 %v.9))
           (%t.10))
         (circuit %C.11 ((argument
                           (%v.12 %v.13)
                           (ty ((afield) (afield)) ((tfield) (tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.3 (2) write 7))
-          (= (%x.14) (call 1 %foo.4 1 %v.12))
-          (= (%t.15) (call 1 %foo.4 %x.14 %v.13))
+          (= 1 () (public-ledger %forceField.3 (2) write 7))
+          (= 1 (%x.14) (call %foo.4 1 %v.12))
+          (= 1 (%t.15) (call %foo.4 %x.14 %v.13))
           (%t.15))))
     )
 
@@ -42343,10 +42343,10 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %bar1.4 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (public-ledger 1 %forceField.2 (1) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (1) write 7))
           (assert 0 "oops 1")
-          (= () (public-ledger 1 %forceField.3 (2) write 7))
+          (= 1 () (public-ledger %forceField.3 (2) write 7))
           (assert 0 "oops 2")
           ())))
     )
@@ -42383,12 +42383,12 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%n.1) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1) (abytes 1)) ((tfield 1) (tfield 1)))
-          (= () (public-ledger 1 %forceField.5 (0) write 7))
-          (= %t.2 (== %n.1 0))
-          (= %t.3 (select %b.0 1 %t.2))
+          (= 1 () (public-ledger %forceField.5 (0) write 7))
+          (= 1 %t.2 (== %n.1 0))
+          (= 1 %t.3 (select %b.0 1 %t.2))
           (assert %t.3 "oops")
-          (= (%t.9) (call 1 %foo.6 3))
-          (= (%t.10) (call 1 %foo.6 7))
+          (= 1 (%t.9) (call %foo.6 3))
+          (= 1 (%t.10) (call %foo.6 7))
           (%t.9 %t.10))))
     )
 
@@ -42416,7 +42416,7 @@ groups than for single tests.
         (circuit %C.3 ((argument (%v.4) (ty ((afield)) ((tfield))))
                        (argument (%b.0) (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (%b.0))))
     )
 
@@ -42448,16 +42448,16 @@ groups than for single tests.
                         (argument (%b.0) (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 1) (abytes 1) (abytes 1))
                  ((tfield 1) (tfield 1) (tfield 1)))
-          (= () (public-ledger 1 %forceField.8 (0) write 7))
-          (= %t.12 (+ #f %v.1 1))
-          (= (%t.2) (call %b.0 %foo.9 %t.12))
-          (= %t.13 (select %b.0 %t.2 0))
-          (= %t.14 (+ #f %v.3 1))
-          (= (%t.4) (call %b.0 %foo.9 %t.14))
-          (= %t.15 (select %b.0 %t.4 0))
-          (= %t.16 (+ #f %v.5 1))
-          (= (%t.6) (call %b.0 %foo.9 %t.16))
-          (= %t.17 (select %b.0 %t.6 0))
+          (= 1 () (public-ledger %forceField.8 (0) write 7))
+          (= 1 %t.12 (+ #f %v.1 1))
+          (= %b.0 (%t.2) (call %foo.9 %t.12))
+          (= 1 %t.13 (select %b.0 %t.2 0))
+          (= 1 %t.14 (+ #f %v.3 1))
+          (= %b.0 (%t.4) (call %foo.9 %t.14))
+          (= 1 %t.15 (select %b.0 %t.4 0))
+          (= 1 %t.16 (+ #f %v.5 1))
+          (= %b.0 (%t.6) (call %foo.9 %t.16))
+          (= 1 %t.17 (select %b.0 %t.6 0))
           (%t.13 %t.15 %t.17))))
     )
 
@@ -42493,12 +42493,12 @@ groups than for single tests.
                            (%v2.2 %v2.4)
                            (ty ((afield) (afield)) ((tfield) (tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.8 (0) write 7))
-          (= %t.1 (== %v1.0 0))
+          (= 1 () (public-ledger %forceField.8 (0) write 7))
+          (= 1 %t.1 (== %v1.0 0))
           (assert %t.1 "oops 1")
-          (= %b.3 (== %v2.2 0))
-          (= %t.5 (== %v2.4 0))
-          (= %t.6 (select %b.3 %t.5 0))
+          (= 1 %b.3 (== %v2.2 0))
+          (= 1 %t.5 (== %v2.4 0))
+          (= 1 %t.6 (select %b.3 %t.5 0))
           (assert %t.6 "oops 2")
           ())))
     )
@@ -42526,11 +42526,11 @@ groups than for single tests.
                          (ty ((abytes 1)) ((tfield 1))))
                        (argument (%n.0) (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.6 (0) write 7))
-          (= %m.2 (* #f %n.0 2))
-          (= %t.4 (+ #f %m.2 1))
-          (= %t.3 (+ #f %m.2 2))
-          (= %t.8 (select %b.1 %t.4 %t.3))
+          (= 1 () (public-ledger %forceField.6 (0) write 7))
+          (= 1 %m.2 (* #f %n.0 2))
+          (= 1 %t.4 (+ #f %m.2 1))
+          (= 1 %t.3 (+ #f %m.2 2))
+          (= 1 %t.8 (select %b.1 %t.4 %t.3))
           (%t.8))))
     )
 
@@ -42557,7 +42557,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %C.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (32))))
     )
 
@@ -42585,11 +42585,11 @@ groups than for single tests.
                          (%v.0 %v.3)
                          (ty ((abytes 1) (abytes 1)) ((tfield 1) (tfield 1)))))
              (ty ((afield) (afield)) ((tfield) (tfield)))
-          (= () (public-ledger 1 %forceField.7 (0) write 7))
-          (= %t.2 (* #f 2 %u.1))
-          (= %t.9 (select %v.0 %t.2 0))
-          (= %t.5 (* #f 2 %u.4))
-          (= %t.10 (select %v.3 %t.5 0))
+          (= 1 () (public-ledger %forceField.7 (0) write 7))
+          (= 1 %t.2 (* #f 2 %u.1))
+          (= 1 %t.9 (select %v.0 %t.2 0))
+          (= 1 %t.5 (* #f 2 %u.4))
+          (= 1 %t.10 (select %v.3 %t.5 0))
           (%t.9 %t.10))))
     )
 
@@ -42618,7 +42618,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %D.2 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (assert 0 "oops 1")
           ())))
     )
@@ -42644,8 +42644,8 @@ groups than for single tests.
              (ty ((abytes 1) (afield)) ((tfield 1) (tfield))))
         (circuit %C.3 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.4 %t.5) (call 1 %foo.2))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.4 %t.5) (call %foo.2))
           (%t.5))))
     )
 
@@ -42669,7 +42669,7 @@ groups than for single tests.
                          (%p.3 %p.4)
                          (ty ((abytes 1) (afield)) ((tfield 1) (tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (%p.4))))
     )
 
@@ -42709,9 +42709,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %C.5 ((argument (%n.0) (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.4 (0) write 7))
-          (= %t.1 (== %n.0 0))
-          (= %t.2 (select %t.1 0 1))
+          (= 1 () (public-ledger %forceField.4 (0) write 7))
+          (= 1 %t.1 (== %n.0 0))
+          (= 1 %t.2 (select %t.1 0 1))
           (assert %t.2 "oops")
           (1))))
     )
@@ -42735,16 +42735,16 @@ groups than for single tests.
                            (%n.3)
                            (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())
         (circuit %C.4 ((argument
                          (%v.5 %v.6 %v.7)
                          (ty ((afield) (afield) (afield))
                              ((tfield) (tfield) (tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -42766,16 +42766,16 @@ groups than for single tests.
         (circuit %foo.2 ((argument () (ty () ()))
                          (argument (%n.3) (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())
         (circuit %C.4 ((argument
                          (%v.5 %v.6 %v.7)
                          (ty ((afield) (afield) (afield))
                              ((tfield) (tfield) (tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -42802,7 +42802,7 @@ groups than for single tests.
                        (argument (%n.4) (ty ((afield)) ((tfield))))
                        (argument (%m.5) (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           ())))
     )
 
@@ -42839,9 +42839,9 @@ groups than for single tests.
              (ty ((abytes 1)) ((tfield 1))))
         (circuit %bar.4 ()
              (ty ((abytes 1) (abytes 1)) ((tfield 1) (tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.5) (call 1 %foo.2 4))
-          (= (%t.6) (call 1 %foo.2 8))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.5) (call %foo.2 4))
+          (= 1 (%t.6) (call %foo.2 8))
           (%t.5 %t.6))))
     )
 
@@ -42883,7 +42883,7 @@ groups than for single tests.
                            (%b.12)
                            (ty ((abytes 7)) ((tfield 72057594037927935)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.3 (0) write 7))
+          (= 1 () (public-ledger %forceField.3 (0) write 7))
           (17))
         (circuit %foo.13 ((argument
                             (%v.14 %v.15 %v.16 %v.17 %v.18 %v.19 %v.20 %v.21
@@ -42912,21 +42912,21 @@ groups than for single tests.
                                 ((tfield
                                    1766847064778384329583297500742918515827483896875618958121606201292619775)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.3 (0) write 7))
+          (= 1 () (public-ledger %forceField.3 (0) write 7))
           (17))
         (circuit %foo.45 ((argument
                             (%x.0)
                             (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.3 (0) write 7))
-          (= %t.46 (+ #f %x.0 1))
+          (= 1 () (public-ledger %forceField.3 (0) write 7))
+          (= 1 %t.46 (+ #f %x.0 1))
           (%t.46))
         (circuit %bar.47 ((argument
                             (%x.1)
                             (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.3 (0) write 7))
-          (= %t.48 (- #f %x.1 1))
+          (= 1 () (public-ledger %forceField.3 (0) write 7))
+          (= 1 %t.48 (- #f %x.1 1))
           (%t.48))))
     )
 
@@ -42952,9 +42952,9 @@ groups than for single tests.
              (ty ((abytes 20))
                  ((tfield
                     1461501637330902918203684832716283019655932542975)))
-          (= () (public-ledger 1 %forceField.4 (0) write 7))
-          (= %t.1 (== %x.0 0))
-          (= %t.2 (select %t.1 0 1))
+          (= 1 () (public-ledger %forceField.4 (0) write 7))
+          (= 1 %t.1 (== %x.0 0))
+          (= 1 %t.2 (select %t.1 0 1))
           (assert %t.2 "oops")
           (1718579047))))
     )
@@ -42986,23 +42986,23 @@ groups than for single tests.
                             (%x.0)
                             (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.14 (0) write 7))
+          (= 1 () (public-ledger %forceField.14 (0) write 7))
           (assert 0 "oops")
-          (= %t.1 (== %x.0 17))
-          (= %t.2 (select %t.1 0 1))
+          (= 1 %t.1 (== %x.0 17))
+          (= 1 %t.2 (select %t.1 0 1))
           (assert %t.2 "oops 1")
-          (= %t.3 (== 0 %x.0))
-          (= %t.5 (select %t.3 1 %t.2))
+          (= 1 %t.3 (== 0 %x.0))
+          (= 1 %t.5 (select %t.3 1 %t.2))
           (assert %t.5 "oops 3")
-          (= %t.6 (== %x.0 59))
-          (= %t.7 (== %x.0 61))
-          (= %t.8 (select %t.6 0 %t.7))
+          (= 1 %t.6 (== %x.0 59))
+          (= 1 %t.7 (== %x.0 61))
+          (= 1 %t.8 (select %t.6 0 %t.7))
           (assert %t.8 "oops 4")
-          (= %t.9 (== %x.0 7))
-          (= %t.10 (== %x.0 19))
-          (= %t.11 (select %t.9 %t.1 %t.10))
+          (= 1 %t.9 (== %x.0 7))
+          (= 1 %t.10 (== %x.0 19))
+          (= 1 %t.11 (select %t.9 %t.1 %t.10))
           (assert %t.11 "oops 6")
-          (= %t.12 (select %t.11 0 1))
+          (= 1 %t.12 (select %t.11 0 1))
           (assert %t.12 "oops 7")
           (%x.0))))
     )
@@ -43028,13 +43028,13 @@ groups than for single tests.
                            (ty ((afield)) ((tfield))))
                          (argument (%y.3) (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.6 (0) write 7))
-          (= %t.1 (* #f %x.0 5))
-          (= %t.2
+          (= 1 () (public-ledger %forceField.6 (0) write 7))
+          (= 1 %t.1 (* #f %x.0 5))
+          (= 1 %t.2
              (+ #f
                 %t.1
                 99999999999999999999999999999999999999999999999999))
-          (= %t.4 (== %t.2 %y.3))
+          (= 1 %t.4 (== %t.2 %y.3))
           (assert %t.4 "oops 2")
           (%t.2))))
     )
@@ -43060,12 +43060,12 @@ groups than for single tests.
                            (ty ((afield)) ((tfield))))
                          (argument (%y.1) (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.6 (0) write 7))
-          (= %t.2 (== %x.0 %y.1))
-          (= %t.3 (== %x.0 0))
-          (= %t.4 (select %t.2 %t.3 1))
+          (= 1 () (public-ledger %forceField.6 (0) write 7))
+          (= 1 %t.2 (== %x.0 %y.1))
+          (= 1 %t.3 (== %x.0 0))
+          (= 1 %t.4 (select %t.2 %t.3 1))
           (assert %t.4 "oops")
-          (= %t.8 (select %t.4 %x.0 %y.1))
+          (= 1 %t.8 (select %t.4 %x.0 %y.1))
           (%t.8))))
     )
 
@@ -43091,7 +43091,7 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%b.4) (ty ((abytes 1)) ((tfield 1)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -43115,7 +43115,7 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%b.0) (ty ((abytes 1)) ((tfield 1)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (assert %b.0 "oops 2")
           ())))
     )
@@ -43144,10 +43144,10 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%b.2) (ty ((abytes 1)) ((tfield 1)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.6 (0) write 7))
-          (= %t.1 (select %a.0 0 1))
-          (= %t.3 (select %b.2 %t.1 0))
-          (= %t.4 (select %t.3 0 1))
+          (= 1 () (public-ledger %forceField.6 (0) write 7))
+          (= 1 %t.1 (select %a.0 0 1))
+          (= 1 %t.3 (select %b.2 %t.1 0))
+          (= 1 %t.4 (select %t.3 0 1))
           (assert %t.4 "oops 1")
           ())))
     )
@@ -43172,12 +43172,12 @@ groups than for single tests.
                            (ty ((afield) (afield) (afield))
                                ((tfield) (tfield) (tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.8 (0) write 7))
-          (= %t.3 (== %x.0 3))
-          (= %t.2 (== %x.1 4))
-          (= %t.6 (select %t.3 %t.2 0))
-          (= %t.5 (== %x.4 5))
-          (= %t.10 (select %t.6 %t.5 0))
+          (= 1 () (public-ledger %forceField.8 (0) write 7))
+          (= 1 %t.3 (== %x.0 3))
+          (= 1 %t.2 (== %x.1 4))
+          (= 1 %t.6 (select %t.3 %t.2 0))
+          (= 1 %t.5 (== %x.4 5))
+          (= 1 %t.10 (select %t.6 %t.5 0))
           (%t.10))))
     )
 
@@ -43210,8 +43210,8 @@ groups than for single tests.
                             (%x.5)
                             (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.6) (call 1 %W.2 %x.5))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.6) (call %W.2 %x.5))
           (%t.6))))
     )
 
@@ -43244,8 +43244,8 @@ groups than for single tests.
                             (%x.5)
                             (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.6) (call 1 %W.2 %x.5))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.6) (call %W.2 %x.5))
           (%t.6))))
     )
 
@@ -43280,8 +43280,8 @@ groups than for single tests.
                             (%x.5)
                             (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.6) (call 1 %W.2 %x.5))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.6) (call %W.2 %x.5))
           (%t.6))))
     )
 
@@ -43316,8 +43316,8 @@ groups than for single tests.
                             (%x.5)
                             (ty ((abytes 1)) ((tfield 1)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.6) (call 1 %W.2 %x.5))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.6) (call %W.2 %x.5))
           (%t.6))))
     )
 
@@ -43345,7 +43345,7 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%c.0) (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 10)) ((tfield 1208925819614629174706175)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (502515278406210103239265))))
     )
 
@@ -43401,10 +43401,10 @@ groups than for single tests.
                            (ty ((abytes 10))
                                ((tfield 1208925819614629174706175)))))
              (ty ((abytes 10)) ((tfield 1208925819614629174706175)))
-          (= () (public-ledger 1 %forceField.6 (0) write 7))
-          (= %z.4 (select %b.0 502515278406210103239265 %d.1))
-          (= %w.3 (select %b.0 %d.1 502515278406210103239265))
-          (= %t.8 (select %c.2 %z.4 %w.3))
+          (= 1 () (public-ledger %forceField.6 (0) write 7))
+          (= 1 %z.4 (select %b.0 502515278406210103239265 %d.1))
+          (= 1 %w.3 (select %b.0 %d.1 502515278406210103239265))
+          (= 1 %t.8 (select %c.2 %z.4 %w.3))
           (%t.8))))
     )
 
@@ -43427,7 +43427,7 @@ groups than for single tests.
         (witness %bar.2 () (ty () ()))
         (circuit %foo.3 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -43454,7 +43454,7 @@ groups than for single tests.
                  ((tfield) (tfield) (tfield))))
         (circuit %foo.3 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -43478,7 +43478,7 @@ groups than for single tests.
                  ((tfield 4722366482869645213695)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (0 36762444129640))))
     )
 
@@ -43508,8 +43508,8 @@ groups than for single tests.
              (ty () ()))
         (circuit %foo.5 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (call 1 %bar.2 0 36762444129640))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (call %bar.2 0 36762444129640))
           ())))
     )
 
@@ -43539,8 +43539,8 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= (%t.4 %t.5) (call 1 %bar.2))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 (%t.4 %t.5) (call %bar.2))
           (%t.4 %t.5))))
     )
 
@@ -43566,9 +43566,9 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
-          (= %t.4 (select %b.0 0 146740295883472840746347634))
-          (= %t.5
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
+          (= 1 %t.4 (select %b.0 0 146740295883472840746347634))
+          (= 1 %t.5
              (select
                %b.0
                36762444129640
@@ -43606,7 +43606,7 @@ groups than for single tests.
                      452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (assert 0 "oops")
           (0 0 36762444129640 0
              655673852914079535706832728104650208561044890911829149250927
@@ -43635,7 +43635,7 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (0 36762444129640))))
     )
 
@@ -43662,7 +43662,7 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (0 36762444129640))))
     )
 
@@ -43689,7 +43689,7 @@ groups than for single tests.
                  ((tfield 5708990770823839524233143877797980545530986495)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (assert 0 "oops")
           (0 36762444129640))))
     )
@@ -43714,12 +43714,12 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.0) (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.7 (0) write 7))
-          (= %b.2 (+ #f %x.0 1))
-          (= %t.3 (- #f %b.2 1))
-          (= %t.4 (+ #f %b.2 1))
-          (= %t.5 (select %b.1 %t.4 %t.3))
-          (= %t.9 (+ #f 1 %t.5))
+          (= 1 () (public-ledger %forceField.7 (0) write 7))
+          (= 1 %b.2 (+ #f %x.0 1))
+          (= 1 %t.3 (- #f %b.2 1))
+          (= 1 %t.4 (+ #f %b.2 1))
+          (= 1 %t.5 (select %b.1 %t.4 %t.3))
+          (= 1 %t.9 (+ #f 1 %t.5))
           (%t.9))))
     )
 
@@ -43743,12 +43743,12 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x.0) (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.7 (0) write 7))
-          (= %b.2 (+ #f %x.0 1))
-          (= %t.3 (- #f %b.2 1))
-          (= %t.4 (+ #f %b.2 1))
-          (= %t.5 (select %b.1 %t.4 %t.3))
-          (= %t.9 (+ #f 1 %t.5))
+          (= 1 () (public-ledger %forceField.7 (0) write 7))
+          (= 1 %b.2 (+ #f %x.0 1))
+          (= 1 %t.3 (- #f %b.2 1))
+          (= 1 %t.4 (+ #f %b.2 1))
+          (= 1 %t.5 (select %b.1 %t.4 %t.3))
+          (= 1 %t.9 (+ #f 1 %t.5))
           (%t.9))))
     )
 
@@ -43810,10 +43810,10 @@ groups than for single tests.
                      452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
-          (= (%t.11 %t.12) (field->bytes 1 80 %arg.0))
-          (= (%t.13 %t.14 %t.15 %t.16 %t.17 %t.18)
-             (call 1 %bar.3 0 %t.11 %t.12 0 %t.11 %t.12))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
+          (= 1 (%t.11 %t.12) (field->bytes 80 %arg.0))
+          (= 1 (%t.13 %t.14 %t.15 %t.16 %t.17 %t.18)
+             (call %bar.3 0 %t.11 %t.12 0 %t.11 %t.12))
           (%t.13 %t.14 %t.15 %t.16 %t.17 %t.18))))
     )
 
@@ -43839,11 +43839,11 @@ groups than for single tests.
                                  (tfield
                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.6 (0) write 7))
-          (= %t.1 (== %arg.0 0))
+          (= 1 () (public-ledger %forceField.6 (0) write 7))
+          (= 1 %t.1 (== %arg.0 0))
           (assert %t.1 "bytes value is too big to fit in a field")
-          (= %t.4 (bytes->field 1 80 %arg.3 %arg.2))
-          (= %t.8 (+ #f %t.4 %t.4))
+          (= 1 %t.4 (bytes->field 80 %arg.3 %arg.2))
+          (= 1 %t.8 (+ #f %t.4 %t.4))
           (%t.8))))
     )
 
@@ -43863,7 +43863,7 @@ groups than for single tests.
                            (%arg.0)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (%arg.0))))
     )
 
@@ -43884,7 +43884,7 @@ groups than for single tests.
                            (%arg.3)
                            (ty ((abytes 1)) ((tfield 2)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (%arg.3))))
     )
 
@@ -43904,9 +43904,9 @@ groups than for single tests.
                            (%arg.0)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.3 (0) write 7))
-          (= %t.1 (== %arg.0 0))
-          (= %t.5 (select %t.1 0 1))
+          (= 1 () (public-ledger %forceField.3 (0) write 7))
+          (= 1 %t.1 (== %arg.0 0))
+          (= 1 %t.5 (select %t.1 0 1))
           (%t.5))))
     )
 
@@ -43975,21 +43975,21 @@ groups than for single tests.
                                     452312848583266388373324160190187140051835877600158453279131187530910662655)
                                   (tfield 1)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= (%t.22 %t.23 %t.24)
-             (public-ledger 1 %field1.10 (0) lookup %n.18))
-          (= () (public-ledger 1 %field3.12 (2) write %t.24))
-          (= (%q.0 %q.1 %q.4)
-             (public-ledger 1 %field1.10 (0) lookup %n.18))
-          (= %t.3 (== %q.0 0))
-          (= %t.2 (== %q.1 0))
-          (= %t.6 (select %t.3 %t.2 0))
-          (= %t.5 (== %q.4 0))
-          (= %t.7 (select %t.6 %t.5 0))
-          (= %t.8 (select %t.7 0 1))
+          (= 1 (%t.22 %t.23 %t.24)
+             (public-ledger %field1.10 (0) lookup %n.18))
+          (= 1 () (public-ledger %field3.12 (2) write %t.24))
+          (= 1 (%q.0 %q.1 %q.4)
+             (public-ledger %field1.10 (0) lookup %n.18))
+          (= 1 %t.3 (== %q.0 0))
+          (= 1 %t.2 (== %q.1 0))
+          (= 1 %t.6 (select %t.3 %t.2 0))
+          (= 1 %t.5 (== %q.4 0))
+          (= 1 %t.7 (select %t.6 %t.5 0))
+          (= 1 %t.8 (select %t.7 0 1))
           (assert %t.8 "entry not found")
-          (= (%tmp.25) (call 1 %merklePathRoot.13 %q.0 %q.1 %q.4))
-          (= (%t.26)
-             (public-ledger 1 %field2.11 (1) checkRoot %tmp.25))
+          (= 1 (%tmp.25) (call %merklePathRoot.13 %q.0 %q.1 %q.4))
+          (= 1 (%t.26)
+             (public-ledger %field2.11 (1) checkRoot %tmp.25))
           (%t.26))))
    )
 
@@ -44008,7 +44008,7 @@ groups than for single tests.
         (public-ledger-declaration ((%field1.0 (0) (Counter))))
         (circuit %foo.1 ()
              (ty ((afield)) ((tfield)))
-          (= (%t.2) (public-ledger 1 %field1.0 (0) read))
+          (= 1 (%t.2) (public-ledger %field1.0 (0) read))
           (%t.2))))
     )
 
@@ -44100,17 +44100,17 @@ groups than for single tests.
                             (ty ((abytes 1)) ((tfield 1))))
                           (argument (%b.2) (ty ((abytes 1)) ((tfield 1)))))
              (ty ((afield)) ((tfield)))
-          (= %t.1 (select %a.0 0 1))
-          (= %t.3 (select %b.2 %t.1 0))
-          (= %t.4 (select %t.3 0 1))
+          (= 1 %t.1 (select %a.0 0 1))
+          (= 1 %t.3 (select %b.2 %t.1 0))
+          (= 1 %t.4 (select %t.3 0 1))
           (assert %t.4 "a should be false")
-          (= (%t.5 %t.7) (public-ledger 1 %kernel.12 () self))
-          (= (%t.6 %t.8) (public-ledger 1 %kernel.12 () self))
-          (= %t.10 (== %t.5 %t.6))
-          (= %t.9 (== %t.7 %t.8))
-          (= %t.11 (select %t.10 %t.9 0))
+          (= 1 (%t.5 %t.7) (public-ledger %kernel.12 () self))
+          (= 1 (%t.6 %t.8) (public-ledger %kernel.12 () self))
+          (= 1 %t.10 (== %t.5 %t.6))
+          (= 1 %t.9 (== %t.7 %t.8))
+          (= 1 %t.11 (select %t.10 %t.9 0))
           (assert %t.11 "oops")
-          (= (%t.32) (public-ledger 1 %x0.13 (0 0) read))
+          (= 1 (%t.32) (public-ledger %x0.13 (0 0) read))
           (%t.32))))
     )
 
@@ -44156,49 +44156,49 @@ groups than for single tests.
                             (%v.25)
                             (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= (%t.9) (public-ledger 1 %state.17 (2) read))
-          (= %t.10 (== %t.9 0))
+          (= 1 (%t.9) (public-ledger %state.17 (2) read))
+          (= 1 %t.10 (== %t.9 0))
           (assert %t.10 "set: attempted to overwrite recorded value")
-          (= (%sk.26 %sk.27) (call 1 %private$secret_key.23))
-          (= (%apk.28 %apk.29)
-             (call 1 %persistentHash.18
+          (= 1 (%sk.26 %sk.27) (call %private$secret_key.23))
+          (= 1 (%apk.28 %apk.29)
+             (call %persistentHash.18
                0
                1184891903413063782045712785760620
                %sk.26
                %sk.27))
-          (= ()
-             (public-ledger 1 %authority.15 (0) write %apk.28 %apk.29))
-          (= () (public-ledger 1 %value.16 (1) write %v.25))
-          (= () (public-ledger 1 %state.17 (2) write 1))
+          (= 1 ()
+             (public-ledger %authority.15 (0) write %apk.28 %apk.29))
+          (= 1 () (public-ledger %value.16 (1) write %v.25))
+          (= 1 () (public-ledger %state.17 (2) write 1))
           ())
         (circuit %get.30 ()
              (ty ((abytes 1) (afield)) ((tfield 1) (tfield)))
-          (= (%t.11) (public-ledger 1 %state.17 (2) read))
-          (= %t.12 (== %t.11 1))
-          (= (%value.13) (public-ledger %t.12 %value.16 (1) read))
-          (= %t.31 (select %t.12 %value.13 0))
+          (= 1 (%t.11) (public-ledger %state.17 (2) read))
+          (= 1 %t.12 (== %t.11 1))
+          (= %t.12 (%value.13) (public-ledger %value.16 (1) read))
+          (= 1 %t.31 (select %t.12 %value.13 0))
           (%t.12 %t.31))
         (circuit %clear.32 ()
              (ty () ())
-          (= (%t.0) (public-ledger 1 %state.17 (2) read))
-          (= %t.1 (== %t.0 1))
+          (= 1 (%t.0) (public-ledger %state.17 (2) read))
+          (= 1 %t.1 (== %t.0 1))
           (assert %t.1 "clear: no value is currently recorded")
-          (= (%sk.33 %sk.34) (call 1 %private$secret_key.23))
-          (= (%apk.2 %apk.4)
-             (call 1 %persistentHash.18
+          (= 1 (%sk.33 %sk.34) (call %private$secret_key.23))
+          (= 1 (%apk.2 %apk.4)
+             (call %persistentHash.18
                0
                1184891903413063782045712785760620
                %sk.33
                %sk.34))
-          (= (%t.3 %t.5) (public-ledger 1 %authority.15 (0) read))
-          (= %t.7 (== %apk.2 %t.3))
-          (= %t.6 (== %apk.4 %t.5))
-          (= %t.8 (select %t.7 %t.6 0))
+          (= 1 (%t.3 %t.5) (public-ledger %authority.15 (0) read))
+          (= 1 %t.7 (== %apk.2 %t.3))
+          (= 1 %t.6 (== %apk.4 %t.5))
+          (= 1 %t.8 (select %t.7 %t.6 0))
           (assert %t.8
             "clear: attempted clear without proper authorization")
-          (= () (public-ledger 1 %authority.15 (0) write 0 0))
-          (= () (public-ledger 1 %value.16 (1) write 0))
-          (= () (public-ledger 1 %state.17 (2) write 0))
+          (= 1 () (public-ledger %authority.15 (0) write 0 0))
+          (= 1 () (public-ledger %value.16 (1) write 0))
+          (= 1 () (public-ledger %state.17 (2) write 0))
           ())))
     )
 
@@ -44239,7 +44239,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (1))))
     )
 
@@ -44263,13 +44263,13 @@ groups than for single tests.
                            (%x.0)
                            (ty ((abytes 1)) ((tfield 255)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.6 (0) write 7))
-          (= %t.1 (+ 9 %x.0 %x.0))
-          (= %t.2 (< 9 %t.1 %x.0))
-          (= %t.3 (select %t.2 0 1))
+          (= 1 () (public-ledger %forceField.6 (0) write 7))
+          (= 1 %t.1 (+ 9 %x.0 %x.0))
+          (= 1 %t.2 (< 9 %t.1 %x.0))
+          (= 1 %t.3 (select %t.2 0 1))
           (assert %t.3 "result of subtraction would be negative")
-          (= %t.4 (- 9 %t.1 %x.0))
-          (= %t.8 (== %t.4 %x.0))
+          (= 1 %t.4 (- 9 %t.1 %x.0))
+          (= 1 %t.8 (== %t.4 %x.0))
           (%t.8))))
     )
 
@@ -44324,7 +44324,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((abytes 1)) ((tfield 255)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (0))))
     )
 
@@ -44346,9 +44346,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((abytes 1)) ((tfield 255)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (assert 0 "result of subtraction would be negative")
-          (= %t.3 (- 4 12 13))
+          (= 1 %t.3 (- 4 12 13))
           (%t.3))))
     )
 
@@ -44402,25 +44402,25 @@ groups than for single tests.
                                   (tfield
                                     452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= %t1.21 (downcast-unsigned 1 255 %x.0))
-          (= %t2.22 (downcast-unsigned 1 255 %y.1))
-          (= (%t3.23) (public-ledger 1 %X.19 (0) read))
-          (= %t6.3 (== %z.2 0))
+          (= 1 %t1.21 (downcast-unsigned 255 %x.0))
+          (= 1 %t2.22 (downcast-unsigned 255 %y.1))
+          (= 1 (%t3.23) (public-ledger %X.19 (0) read))
+          (= 1 %t6.3 (== %z.2 0))
           (assert %t6.3 "bytes value is too big to fit in a field")
-          (= %t6.5 (== %z.4 0))
+          (= 1 %t6.5 (== %z.4 0))
           (assert %t6.5 "bytes value is too big to fit in a field")
-          (= %t6.7 (== %z.6 0))
+          (= 1 %t6.7 (== %z.6 0))
           (assert %t6.7 "bytes value is too big to fit in a field")
-          (= %t6.9 (== %z.8 0))
+          (= 1 %t6.9 (== %z.8 0))
           (assert %t6.9 "bytes value is too big to fit in a field")
-          (= %t6.11 (== %z.10 0))
+          (= 1 %t6.11 (== %z.10 0))
           (assert %t6.11 "bytes value is too big to fit in a field")
-          (= %t6.13 (== %z.12 0))
+          (= 1 %t6.13 (== %z.12 0))
           (assert %t6.13 "bytes value is too big to fit in a field")
-          (= %t6.15 (== %z.14 0))
+          (= 1 %t6.15 (== %z.14 0))
           (assert %t6.15 "bytes value is too big to fit in a field")
-          (= %t6.24 (bytes->field 1 256 %z.17 %z.16))
-          (= (%t7.25 %t7.26) (field->bytes 1 8 %y.1))
+          (= 1 %t6.24 (bytes->field 256 %z.17 %z.16))
+          (= 1 (%t7.25 %t7.26) (field->bytes 8 %y.1))
           (1))))
     )
 
@@ -44441,10 +44441,10 @@ groups than for single tests.
         (public-ledger-declaration ((%ctr.1 (0) (Counter))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= (%t1.0) (public-ledger 1 %ctr.1 (0) read))
-          (= %tmp.3 (downcast-unsigned 1 65535 %t1.0))
-          (= () (public-ledger 1 %ctr.1 (0) increment %tmp.3))
-          (= (%t.4) (public-ledger 1 %ctr.1 (0) read))
+          (= 1 (%t1.0) (public-ledger %ctr.1 (0) read))
+          (= 1 %tmp.3 (downcast-unsigned 65535 %t1.0))
+          (= 1 () (public-ledger %ctr.1 (0) increment %tmp.3))
+          (= 1 (%t.4) (public-ledger %ctr.1 (0) read))
           (%t.4))))
     )
 
@@ -44469,10 +44469,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                52435875175126190479447740508185965837690552500527637822603658699938581184512))
           (%t4.3))))
@@ -44499,10 +44498,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                52435875175126190479447740508185965837690552500527637822603658699938581184512))
           (%t4.3))))
@@ -44529,10 +44527,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                52435875175126190479447740508185965837690552500527637822603658699938581184512))
           (%t4.3))))
@@ -44576,10 +44573,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                52435875175126190479447740508185965837690552500527637822603658699938581184512))
           (%t4.3))))
@@ -44606,10 +44602,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                452312848583266388373324160190187140051835877600158453279131187530910662656))
           (%t4.3))))
@@ -44636,10 +44631,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                452312848583266388373324160190187140051835877600158453279131187530910662656))
           (%t4.3))))
@@ -44666,10 +44660,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                452312848583266388373324160190187140051835877600158453279131187530910662656))
           (%t4.3))))
@@ -44697,10 +44690,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                452312848583266388373324160190187140051835877600158453279131187530910662656))
           (%t4.3))))
@@ -44727,10 +44719,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                452312848583266388373324160190187140051835877600158453279131187530910662655))
           (%t4.3))))
@@ -44757,10 +44748,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                452312848583266388373324160190187140051835877600158453279131187530910662655))
           (%t4.3))))
@@ -44788,10 +44778,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456789
                452312848583266388373324160190187140051835877600158453279131187530910662655))
           (%t4.3))))
@@ -44820,9 +44809,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.3 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
-          (= (%t2.4 %t2.0) (field->bytes 1 4 123456789123456789))
-          (= %t4.5 (downcast-unsigned 1 123456789123456789 %t2.0))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
+          (= 1 (%t2.4 %t2.0) (field->bytes 4 123456789123456789))
+          (= 1 %t4.5 (downcast-unsigned 123456789123456789 %t2.0))
           (%t4.5))))
     )
 
@@ -44847,10 +44836,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
              (downcast-unsigned
-               1
                123456789123456788
                52435875175126190479447740508185965837690552500527637822603658699938581184511))
           (%t4.3))))
@@ -44877,9 +44865,9 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= %t4.3
-             (downcast-unsigned 1 123456789123456788 123456789123456789))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 %t4.3
+             (downcast-unsigned 123456789123456788 123456789123456789))
           (%t4.3))))
     )
 
@@ -44904,7 +44892,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (123456789123456789))))
     )
 
@@ -44928,13 +44916,13 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.3 ()
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (assert 0 "bytes value is too big to fit in a field")
-          (= %t3.0
-             (bytes->field 1 256
+          (= 1 %t3.0
+             (bytes->field 256
                63855931564696431299763410850379360948494476837669428698230285298481505316
                63855931564696431299763410850379360948494476837669428698230285298481505316))
-          (= %t4.4 (downcast-unsigned 1 123456789123456788 %t3.0))
+          (= 1 %t4.4 (downcast-unsigned 123456789123456788 %t3.0))
           (%t4.4))))
     )
 
@@ -45063,10 +45051,10 @@ groups than for single tests.
                                     (tfield
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ())
-          (= (%value.45 %value.46)
-             (public-ledger 1 %kernel.0 () self))
-          (= ()
-             (call 1 %createZswapOutput.26
+          (= 1 (%value.45 %value.46)
+             (public-ledger %kernel.0 () self))
+          (= 1 ()
+             (call %createZswapOutput.26
                %coin.38
                %coin.39
                %coin.40
@@ -45077,8 +45065,8 @@ groups than for single tests.
                0
                %value.45
                %value.46))
-          (= (%tmp.47 %tmp.48)
-             (call 1 %persistentHash.4
+          (= 1 (%tmp.47 %tmp.48)
+             (call %persistentHash.4
                136202032268515569762809483864408030127489942841709
                %coin.38
                %coin.39
@@ -45088,22 +45076,22 @@ groups than for single tests.
                0
                %value.45
                %value.46))
-          (= ()
-             (public-ledger 1 %kernel.0 () claimZswapCoinReceive
+          (= 1 ()
+             (public-ledger %kernel.0 () claimZswapCoinReceive
                %tmp.47
                %tmp.48))
-          (= (%selfAddr.49 %selfAddr.50)
-             (public-ledger 1 %kernel.0 () self))
-          (= ()
-             (call 1 %createZswapInput.19
+          (= 1 (%selfAddr.49 %selfAddr.50)
+             (public-ledger %kernel.0 () self))
+          (= 1 ()
+             (call %createZswapInput.19
                %coin.38
                %coin.39
                %coin.40
                %coin.41
                %coin.42
                0))
-          (= (%tmp.51 %tmp.52)
-             (call 1 %persistentHash.4
+          (= 1 (%tmp.51 %tmp.52)
+             (call %persistentHash.4
                136202032272258675798939806962505150809239393167725
                %coin.38
                %coin.39
@@ -45113,19 +45101,19 @@ groups than for single tests.
                0
                %selfAddr.49
                %selfAddr.50))
-          (= ()
-             (public-ledger 1 %kernel.0 () claimZswapNullifier
+          (= 1 ()
+             (public-ledger %kernel.0 () claimZswapNullifier
                %tmp.51
                %tmp.52))
-          (= (%t.53)
-             (call 1 %degradeToTransient.14 %coin.38 %coin.39))
-          (= (%t.54)
-             (call 1 %transientHash.1
+          (= 1 (%t.53)
+             (call %degradeToTransient.14 %coin.38 %coin.39))
+          (= 1 (%t.54)
+             (call %transientHash.1
                10685258091935385184760267925849721347998787314052891846880509847917
                %t.53))
-          (= (%t.55 %t.56) (call 1 %upgradeFromTransient.17 %t.54))
-          (= ()
-             (call 1 %createZswapOutput.26
+          (= 1 (%t.55 %t.56) (call %upgradeFromTransient.17 %t.54))
+          (= 1 ()
+             (call %createZswapOutput.26
                %t.55
                %t.56
                %coin.40
@@ -45136,8 +45124,8 @@ groups than for single tests.
                0
                %target.43
                %target.44))
-          (= (%tmp.57 %tmp.58)
-             (call 1 %persistentHash.4
+          (= 1 (%tmp.57 %tmp.58)
+             (call %persistentHash.4
                136202032268515569762809483864408030127489942841709
                %t.55
                %t.56
@@ -45147,15 +45135,15 @@ groups than for single tests.
                0
                %target.43
                %target.44))
-          (= ()
-             (public-ledger 1 %kernel.0 () claimZswapCoinSpend
+          (= 1 ()
+             (public-ledger %kernel.0 () claimZswapCoinSpend
                %tmp.57
                %tmp.58))
-          (= %t.59 (== %target.43 %selfAddr.49))
-          (= %t.60 (== %target.44 %selfAddr.50))
-          (= %t.61 (select %t.59 %t.60 0))
-          (= (%tmp.62 %tmp.63)
-             (call %t.61 %persistentHash.4
+          (= 1 %t.59 (== %target.43 %selfAddr.49))
+          (= 1 %t.60 (== %target.44 %selfAddr.50))
+          (= 1 %t.61 (select %t.59 %t.60 0))
+          (= %t.61 (%tmp.62 %tmp.63)
+             (call %persistentHash.4
                136202032268515569762809483864408030127489942841709
                %t.55
                %t.56
@@ -45165,8 +45153,8 @@ groups than for single tests.
                0
                %target.43
                %target.44))
-          (= ()
-             (public-ledger %t.61 %kernel.0 () claimZswapCoinReceive
+          (= %t.61 ()
+             (public-ledger %kernel.0 () claimZswapCoinReceive
                %tmp.62
                %tmp.63))
           ())))
@@ -45312,10 +45300,10 @@ groups than for single tests.
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tfield 340282366920938463463374607431768211455)))
-          (= (%value.45 %value.46)
-             (public-ledger 1 %kernel.0 () self))
-          (= ()
-             (call 1 %createZswapOutput.26
+          (= 1 (%value.45 %value.46)
+             (public-ledger %kernel.0 () self))
+          (= 1 ()
+             (call %createZswapOutput.26
                %coin.38
                %coin.39
                %coin.40
@@ -45326,8 +45314,8 @@ groups than for single tests.
                0
                %value.45
                %value.46))
-          (= (%tmp.47 %tmp.48)
-             (call 1 %persistentHash.4
+          (= 1 (%tmp.47 %tmp.48)
+             (call %persistentHash.4
                136202032268515569762809483864408030127489942841709
                %coin.38
                %coin.39
@@ -45337,22 +45325,22 @@ groups than for single tests.
                0
                %value.45
                %value.46))
-          (= ()
-             (public-ledger 1 %kernel.0 () claimZswapCoinReceive
+          (= 1 ()
+             (public-ledger %kernel.0 () claimZswapCoinReceive
                %tmp.47
                %tmp.48))
-          (= (%selfAddr.49 %selfAddr.50)
-             (public-ledger 1 %kernel.0 () self))
-          (= ()
-             (call 1 %createZswapInput.19
+          (= 1 (%selfAddr.49 %selfAddr.50)
+             (public-ledger %kernel.0 () self))
+          (= 1 ()
+             (call %createZswapInput.19
                %coin.38
                %coin.39
                %coin.40
                %coin.41
                %coin.42
                0))
-          (= (%tmp.51 %tmp.52)
-             (call 1 %persistentHash.4
+          (= 1 (%tmp.51 %tmp.52)
+             (call %persistentHash.4
                136202032272258675798939806962505150809239393167725
                %coin.38
                %coin.39
@@ -45362,19 +45350,19 @@ groups than for single tests.
                0
                %selfAddr.49
                %selfAddr.50))
-          (= ()
-             (public-ledger 1 %kernel.0 () claimZswapNullifier
+          (= 1 ()
+             (public-ledger %kernel.0 () claimZswapNullifier
                %tmp.51
                %tmp.52))
-          (= (%t.53)
-             (call 1 %degradeToTransient.14 %coin.38 %coin.39))
-          (= (%t.54)
-             (call 1 %transientHash.1
+          (= 1 (%t.53)
+             (call %degradeToTransient.14 %coin.38 %coin.39))
+          (= 1 (%t.54)
+             (call %transientHash.1
                10685258091935385184760267925849721347998787314052891846880509847917
                %t.53))
-          (= (%t.55 %t.56) (call 1 %upgradeFromTransient.17 %t.54))
-          (= ()
-             (call 1 %createZswapOutput.26
+          (= 1 (%t.55 %t.56) (call %upgradeFromTransient.17 %t.54))
+          (= 1 ()
+             (call %createZswapOutput.26
                %t.55
                %t.56
                %coin.40
@@ -45385,8 +45373,8 @@ groups than for single tests.
                0
                %target.43
                %target.44))
-          (= (%tmp.57 %tmp.58)
-             (call 1 %persistentHash.4
+          (= 1 (%tmp.57 %tmp.58)
+             (call %persistentHash.4
                136202032268515569762809483864408030127489942841709
                %t.55
                %t.56
@@ -45396,15 +45384,15 @@ groups than for single tests.
                0
                %target.43
                %target.44))
-          (= ()
-             (public-ledger 1 %kernel.0 () claimZswapCoinSpend
+          (= 1 ()
+             (public-ledger %kernel.0 () claimZswapCoinSpend
                %tmp.57
                %tmp.58))
-          (= %t.59 (== %target.43 %selfAddr.49))
-          (= %t.60 (== %target.44 %selfAddr.50))
-          (= %t.61 (select %t.59 %t.60 0))
-          (= (%tmp.62 %tmp.63)
-             (call %t.61 %persistentHash.4
+          (= 1 %t.59 (== %target.43 %selfAddr.49))
+          (= 1 %t.60 (== %target.44 %selfAddr.50))
+          (= 1 %t.61 (select %t.59 %t.60 0))
+          (= %t.61 (%tmp.62 %tmp.63)
+             (call %persistentHash.4
                136202032268515569762809483864408030127489942841709
                %t.55
                %t.56
@@ -45414,8 +45402,8 @@ groups than for single tests.
                0
                %target.43
                %target.44))
-          (= ()
-             (public-ledger %t.61 %kernel.0 () claimZswapCoinReceive
+          (= %t.61 ()
+             (public-ledger %kernel.0 () claimZswapCoinReceive
                %tmp.62
                %tmp.63))
           (0 0 0 0 0 0 %t.55 %t.56 %coin.40 %coin.41 %coin.42))))
@@ -45453,8 +45441,8 @@ groups than for single tests.
                  ((tfield 255)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
-          (= (%t.5 %t.6) (field->bytes 1 32 %x.0))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
+          (= 1 (%t.5 %t.6) (field->bytes 32 %x.0))
           (%t.5 %t.6))))
     )
 
@@ -45481,10 +45469,10 @@ groups than for single tests.
                            (%x.0)
                            (ty ((abytes 4)) ((tfield 4294967295)))))
              (ty ((abytes 1)) ((tfield 255)))
-          (= () (public-ledger 1 %forceField.4 (0) write 7))
-          (= %t.1 (< 32 %x.0 256))
-          (= %t.2 (downcast-unsigned %t.1 255 %x.0))
-          (= %t.6 (select %t.1 %t.2 0))
+          (= 1 () (public-ledger %forceField.4 (0) write 7))
+          (= 1 %t.1 (< 32 %x.0 256))
+          (= %t.1 %t.2 (downcast-unsigned 255 %x.0))
+          (= 1 %t.6 (select %t.1 %t.2 0))
           (%t.6))))
     )
 
@@ -45509,11 +45497,11 @@ groups than for single tests.
                            (%b.0)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty ((abytes 2)) ((tfield 65535)))
-          (= () (public-ledger 1 %forceField.5 (0) write 7))
-          (= (%t.1) (call %b.0 %W.6))
-          (= (%t.2) (call %b.0 %W.6))
-          (= %t.3 (* 16 %t.1 %t.2))
-          (= %t.8 (select %b.0 %t.3 0))
+          (= 1 () (public-ledger %forceField.5 (0) write 7))
+          (= %b.0 (%t.1) (call %W.6))
+          (= %b.0 (%t.2) (call %W.6))
+          (= 1 %t.3 (* 16 %t.1 %t.2))
+          (= 1 %t.8 (select %b.0 %t.3 0))
           (%t.8))))
     )
 
@@ -45537,7 +45525,7 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%y.4) (ty ((abytes 1)) ((tfield 1)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -45562,7 +45550,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ()
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (1))))
     )
 
@@ -45586,8 +45574,8 @@ groups than for single tests.
                            (%x.0)
                            (ty ((acompress)) ((topaque "string")))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= () (public-ledger 1 %forceField.3 (0) write 7))
-          (= %t.1 (== %x.0 0))
+          (= 1 () (public-ledger %forceField.3 (0) write 7))
+          (= 1 %t.1 (== %x.0 0))
           (%t.1))))
     )
 
@@ -45614,7 +45602,7 @@ groups than for single tests.
                            (%x.0)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           (assert %x.0 "oops")
           ())))
     )
@@ -45638,7 +45626,7 @@ groups than for single tests.
                            (%x.3)
                            (ty ((afield)) ((tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (%x.3))))
     )
 
@@ -45666,9 +45654,9 @@ groups than for single tests.
                            (%x.0)
                            (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.4 (0) write 7))
-          (= %t.1 (== %x.0 0))
-          (= %t.2 (select %t.1 0 1))
+          (= 1 () (public-ledger %forceField.4 (0) write 7))
+          (= 1 %t.1 (== %x.0 0))
+          (= 1 %t.2 (select %t.1 0 1))
           (assert %t.2 "oops2")
           ())))
     )
@@ -45699,7 +45687,7 @@ groups than for single tests.
                            (%p.4)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty () ())
-          (= () (public-ledger %p.4 %y.3 (0) write 1))
+          (= %p.4 () (public-ledger %y.3 (0) write 1))
           ())))
     )
 
@@ -45732,13 +45720,13 @@ groups than for single tests.
                             (ty ((abytes 1)) ((tfield 1))))
                           (argument (%x0.10) (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= %t.11 (select %b0.9 0 1))
-          (= %tmp.3 (+ #f %x0.10 1))
-          (= () (public-ledger %b0.9 %m.6 (0) insert %tmp.3 1))
-          (= %tmp.7 (- #f %x0.10 1))
-          (= (%t.12) (public-ledger %t.11 %m.6 (0) lookup %x0.10))
-          (= %tmp.15 (select %t.12 0 1))
-          (= () (public-ledger %t.11 %m.6 (0) insert %tmp.7 %tmp.15))
+          (= 1 %t.11 (select %b0.9 0 1))
+          (= 1 %tmp.3 (+ #f %x0.10 1))
+          (= %b0.9 () (public-ledger %m.6 (0) insert %tmp.3 1))
+          (= 1 %tmp.7 (- #f %x0.10 1))
+          (= %t.11 (%t.12) (public-ledger %m.6 (0) lookup %x0.10))
+          (= 1 %tmp.15 (select %t.12 0 1))
+          (= %t.11 () (public-ledger %m.6 (0) insert %tmp.7 %tmp.15))
           ())))
     )
 
@@ -45773,15 +45761,15 @@ groups than for single tests.
                            (ty ((abytes 1)) ((tfield 1))))
                          (argument (%x0.1) (ty ((afield)) ((tfield)))))
              (ty () ())
-          (= %t.6 (select %b0.0 0 1))
-          (= %tmp.7 (+ #f %x0.1 1))
-          (= (%t.2)
-             (public-ledger %t.6 %m.4 (0 ((ty ((afield)) ((tfield))) %x0.1))
+          (= 1 %t.6 (select %b0.0 0 1))
+          (= 1 %tmp.7 (+ #f %x0.1 1))
+          (= %t.6 (%t.2)
+             (public-ledger %m.4 (0 ((ty ((afield)) ((tfield))) %x0.1))
                lookup
                %x0.1))
-          (= %tmp.8 (select %b0.0 1 %t.2))
-          (= ()
-             (public-ledger 1 %m.4 (0 ((ty ((afield)) ((tfield))) %x0.1))
+          (= 1 %tmp.8 (select %b0.0 1 %t.2))
+          (= 1 ()
+             (public-ledger %m.4 (0 ((ty ((afield)) ((tfield))) %x0.1))
                insert
                %tmp.7
                %tmp.8))
@@ -45809,7 +45797,7 @@ groups than for single tests.
                            (ty ((abytes 2)) ((tfield 65535))))
                          (argument (%y.4) (ty ((abytes 2)) ((tfield 65535)))))
              (ty ((abytes 4)) ((tfield 4294967295)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (7))))
     )
 
@@ -45837,19 +45825,19 @@ groups than for single tests.
              (ty () ()))
         (circuit %foo.4 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (call 1 %w.2 4))
-          (= () (call 1 %w.2 5))
-          (= () (call 1 %w.2 6))
-          (= () (call 1 %w.2 7))
-          (= () (call 1 %w.2 8))
-          (= () (call 1 %w.2 9))
-          (= () (call 1 %w.2 10))
-          (= () (call 1 %w.2 11))
-          (= () (call 1 %w.2 12))
-          (= () (call 1 %w.2 13))
-          (= () (call 1 %w.2 14))
-          (= () (call 1 %w.2 15))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (call %w.2 4))
+          (= 1 () (call %w.2 5))
+          (= 1 () (call %w.2 6))
+          (= 1 () (call %w.2 7))
+          (= 1 () (call %w.2 8))
+          (= 1 () (call %w.2 9))
+          (= 1 () (call %w.2 10))
+          (= 1 () (call %w.2 11))
+          (= 1 () (call %w.2 12))
+          (= 1 () (call %w.2 13))
+          (= 1 () (call %w.2 14))
+          (= 1 () (call %w.2 15))
           ())))
     )
 
@@ -45875,8 +45863,8 @@ groups than for single tests.
              (ty () ()))
         (circuit %foo.4 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (call 1 %w.2 0))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (call %w.2 0))
           ())))
     )
 
@@ -45902,8 +45890,8 @@ groups than for single tests.
              (ty () ()))
         (circuit %foo.4 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
-          (= () (call 1 %w.2 6))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
+          (= 1 () (call %w.2 6))
           ())))
     )
 
@@ -45925,7 +45913,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %test6.2 ()
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -45951,7 +45939,7 @@ groups than for single tests.
                              (ty ((abytes 10))
                                  ((tfield 1208925819614629174706175)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -45979,10 +45967,10 @@ groups than for single tests.
                    (tfield 255)
                    (tfield 255)
                    (tfield 255)))
-          (= () (public-ledger 1 %forceField.8 (0) write 7))
-          (= (%t.1 %t.2 %t.3 %t.4 %t.5) (bytes->vector %param1.0))
-          (= %t.6 (vector->bytes %t.1 %t.2 %t.3 %t.4 %t.5))
-          (= (%t.10 %t.11 %t.12 %t.13 %t.14) (bytes->vector %t.6))
+          (= 1 () (public-ledger %forceField.8 (0) write 7))
+          (= 1 (%t.1 %t.2 %t.3 %t.4 %t.5) (bytes->vector %param1.0))
+          (= 1 %t.6 (vector->bytes %t.1 %t.2 %t.3 %t.4 %t.5))
+          (= 1 (%t.10 %t.11 %t.12 %t.13 %t.14) (bytes->vector %t.6))
           (%t.10 %t.11 %t.12 %t.13 %t.14))))
     )
 
@@ -46045,26 +46033,26 @@ groups than for single tests.
                   (tfield 255) (tfield 255) (tfield 255) (tfield 255)
                   (tfield 255) (tfield 255) (tfield 255) (tfield 255)
                   (tfield 255) (tfield 255) (tfield 255) (tfield 255)))
-          (= (%tmp.6 %tmp.7 %tmp.8 %tmp.9 %tmp.10)
+          (= 1 (%tmp.6 %tmp.7 %tmp.8 %tmp.9 %tmp.10)
              (bytes->vector %bv.0))
-          (= (%tmp.2 %tmp.11 %tmp.12 %tmp.13 %tmp.14 %tmp.15 %tmp.16
+          (= 1 (%tmp.2 %tmp.11 %tmp.12 %tmp.13 %tmp.14 %tmp.15 %tmp.16
               %tmp.17 %tmp.18 %tmp.19 %tmp.20 %tmp.21 %tmp.22 %tmp.23
               %tmp.24 %tmp.25 %tmp.26 %tmp.27 %tmp.28 %tmp.29 %tmp.30
               %tmp.31 %tmp.32 %tmp.33 %tmp.34 %tmp.35 %tmp.36 %tmp.37
               %tmp.38 %tmp.39 %tmp.40)
              (bytes->vector %bv.1))
-          (= ()
-             (public-ledger 1 %v.4 (0) write
+          (= 1 ()
+             (public-ledger %v.4 (0) write
                %tmp.2 %tmp.11 %tmp.12 %tmp.13 %tmp.14 %tmp.15 %tmp.16 %tmp.17
                %tmp.18 %tmp.19 %tmp.20 %tmp.21 %tmp.22 %tmp.23 %tmp.24 %tmp.25
                %tmp.26 %tmp.27 %tmp.28 %tmp.29 %tmp.30 %tmp.31 %tmp.32 %tmp.33
                %tmp.34 %tmp.35 %tmp.36 %tmp.37 %tmp.38 %tmp.39 %tmp.40 %tmp.6
                %tmp.7 %tmp.8 %tmp.9 %tmp.10))
-          (= (%t.41 %t.42 %t.43 %t.44 %t.45 %t.46 %t.47 %t.48 %t.49 %t.50
+          (= 1 (%t.41 %t.42 %t.43 %t.44 %t.45 %t.46 %t.47 %t.48 %t.49 %t.50
               %t.51 %t.52 %t.53 %t.54 %t.55 %t.56 %t.57 %t.58 %t.59 %t.60
               %t.61 %t.62 %t.63 %t.64 %t.65 %t.66 %t.67 %t.68 %t.69 %t.70
               %t.71 %t.72 %t.73 %t.74 %t.75 %t.76)
-             (public-ledger 1 %v.4 (0) read))
+             (public-ledger %v.4 (0) read))
           (%t.41 %t.42 %t.43 %t.44 %t.45 %t.46 %t.47 %t.48 %t.49 %t.50
            %t.51 %t.52 %t.53 %t.54 %t.55 %t.56 %t.57 %t.58 %t.59 %t.60
            %t.61 %t.62 %t.63 %t.64 %t.65 %t.66 %t.67 %t.68 %t.69 %t.70
@@ -46097,7 +46085,7 @@ groups than for single tests.
                     452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (101098268993605439271324835781587634707437295801802011347542947705699977030
             122383579515264484277446527239169866061122741007141276322279342944460956257))))
     )
@@ -46156,14 +46144,14 @@ groups than for single tests.
                  ((tfield 1099511627775)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= %tmp.39 (vector->bytes %v.0 %v.1 %v.2 %v.3 %v.4))
-          (= %tmp.40
+          (= 1 %tmp.39 (vector->bytes %v.0 %v.1 %v.2 %v.3 %v.4))
+          (= 1 %tmp.40
              (vector->bytes %v.5 %v.6 %v.7 %v.8 %v.9 %v.10 %v.11 %v.12
               %v.13 %v.14 %v.15 %v.16 %v.17 %v.18 %v.19 %v.20 %v.21 %v.22
               %v.23 %v.24 %v.25 %v.26 %v.27 %v.28 %v.29 %v.30 %v.31 %v.32
               %v.33 %v.34 %v.35))
-          (= () (public-ledger 1 %bv.37 (0) write %tmp.39 %tmp.40))
-          (= (%t.41 %t.42) (public-ledger 1 %bv.37 (0) read))
+          (= 1 () (public-ledger %bv.37 (0) write %tmp.39 %tmp.40))
+          (= 1 (%t.41 %t.42) (public-ledger %bv.37 (0) read))
           (%t.41 %t.42))))
     )
 
@@ -46206,21 +46194,21 @@ groups than for single tests.
                   (tfield 255) (tfield 255) (tfield 255) (tfield 255)
                   (tfield 255) (tfield 255) (tfield 255) (tfield 255)
                   (tfield 255) (tfield 255) (tfield 255) (tfield 255)))
-          (= () (public-ledger 1 %forceField.41 (0) write 7))
-          (= (%t.2 %t.3 %t.4 %t.5 %t.6) (bytes->vector %param1.0))
-          (= (%t.7 %t.8 %t.9 %t.10 %t.11 %t.12 %t.13 %t.14 %t.15 %t.16
+          (= 1 () (public-ledger %forceField.41 (0) write 7))
+          (= 1 (%t.2 %t.3 %t.4 %t.5 %t.6) (bytes->vector %param1.0))
+          (= 1 (%t.7 %t.8 %t.9 %t.10 %t.11 %t.12 %t.13 %t.14 %t.15 %t.16
               %t.17 %t.18 %t.19 %t.20 %t.21 %t.22 %t.23 %t.24 %t.25 %t.26
               %t.27 %t.28 %t.29 %t.30 %t.31 %t.32 %t.33 %t.34 %t.35 %t.36
               %t.37)
              (bytes->vector %param1.1))
-          (= %t.38 (vector->bytes %t.2 %t.3 %t.4 %t.5 %t.6))
-          (= %t.39
+          (= 1 %t.38 (vector->bytes %t.2 %t.3 %t.4 %t.5 %t.6))
+          (= 1 %t.39
              (vector->bytes %t.7 %t.8 %t.9 %t.10 %t.11 %t.12 %t.13 %t.14
               %t.15 %t.16 %t.17 %t.18 %t.19 %t.20 %t.21 %t.22 %t.23 %t.24
               %t.25 %t.26 %t.27 %t.28 %t.29 %t.30 %t.31 %t.32 %t.33 %t.34
               %t.35 %t.36 %t.37))
-          (= (%t.43 %t.44 %t.45 %t.46 %t.47) (bytes->vector %t.38))
-          (= (%t.48 %t.49 %t.50 %t.51 %t.52 %t.53 %t.54 %t.55 %t.56 %t.57
+          (= 1 (%t.43 %t.44 %t.45 %t.46 %t.47) (bytes->vector %t.38))
+          (= 1 (%t.48 %t.49 %t.50 %t.51 %t.52 %t.53 %t.54 %t.55 %t.56 %t.57
               %t.58 %t.59 %t.60 %t.61 %t.62 %t.63 %t.64 %t.65 %t.66 %t.67
               %t.68 %t.69 %t.70 %t.71 %t.72 %t.73 %t.74 %t.75 %t.76 %t.77
               %t.78)
@@ -46254,48 +46242,48 @@ groups than for single tests.
                                      (tfield
                                        452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.73 (0) write 7))
-          (= (%t.63 %t.65 %t.67 %t.69 %t.71)
+          (= 1 () (public-ledger %forceField.73 (0) write 7))
+          (= 1 (%t.63 %t.65 %t.67 %t.69 %t.71)
              (bytes->vector %param1.0))
-          (= (%t.2 %t.3 %t.5 %t.7 %t.9 %t.11 %t.13 %t.15 %t.17 %t.19 %t.21
+          (= 1 (%t.2 %t.3 %t.5 %t.7 %t.9 %t.11 %t.13 %t.15 %t.17 %t.19 %t.21
               %t.23 %t.25 %t.27 %t.29 %t.31 %t.33 %t.35 %t.37 %t.39 %t.41
               %t.43 %t.45 %t.47 %t.49 %t.51 %t.53 %t.55 %t.57 %t.59 %t.61)
              (bytes->vector %param1.1))
-          (= %a.4 (+ #f %t.2 %t.3))
-          (= %a.6 (+ #f %a.4 %t.5))
-          (= %a.8 (+ #f %a.6 %t.7))
-          (= %a.10 (+ #f %a.8 %t.9))
-          (= %a.12 (+ #f %a.10 %t.11))
-          (= %a.14 (+ #f %a.12 %t.13))
-          (= %a.16 (+ #f %a.14 %t.15))
-          (= %a.18 (+ #f %a.16 %t.17))
-          (= %a.20 (+ #f %a.18 %t.19))
-          (= %a.22 (+ #f %a.20 %t.21))
-          (= %a.24 (+ #f %a.22 %t.23))
-          (= %a.26 (+ #f %a.24 %t.25))
-          (= %a.28 (+ #f %a.26 %t.27))
-          (= %a.30 (+ #f %a.28 %t.29))
-          (= %a.32 (+ #f %a.30 %t.31))
-          (= %a.34 (+ #f %a.32 %t.33))
-          (= %a.36 (+ #f %a.34 %t.35))
-          (= %a.38 (+ #f %a.36 %t.37))
-          (= %a.40 (+ #f %a.38 %t.39))
-          (= %a.42 (+ #f %a.40 %t.41))
-          (= %a.44 (+ #f %a.42 %t.43))
-          (= %a.46 (+ #f %a.44 %t.45))
-          (= %a.48 (+ #f %a.46 %t.47))
-          (= %a.50 (+ #f %a.48 %t.49))
-          (= %a.52 (+ #f %a.50 %t.51))
-          (= %a.54 (+ #f %a.52 %t.53))
-          (= %a.56 (+ #f %a.54 %t.55))
-          (= %a.58 (+ #f %a.56 %t.57))
-          (= %a.60 (+ #f %a.58 %t.59))
-          (= %a.62 (+ #f %a.60 %t.61))
-          (= %a.64 (+ #f %a.62 %t.63))
-          (= %a.66 (+ #f %a.64 %t.65))
-          (= %a.68 (+ #f %a.66 %t.67))
-          (= %a.70 (+ #f %a.68 %t.69))
-          (= %t.75 (+ #f %a.70 %t.71))
+          (= 1 %a.4 (+ #f %t.2 %t.3))
+          (= 1 %a.6 (+ #f %a.4 %t.5))
+          (= 1 %a.8 (+ #f %a.6 %t.7))
+          (= 1 %a.10 (+ #f %a.8 %t.9))
+          (= 1 %a.12 (+ #f %a.10 %t.11))
+          (= 1 %a.14 (+ #f %a.12 %t.13))
+          (= 1 %a.16 (+ #f %a.14 %t.15))
+          (= 1 %a.18 (+ #f %a.16 %t.17))
+          (= 1 %a.20 (+ #f %a.18 %t.19))
+          (= 1 %a.22 (+ #f %a.20 %t.21))
+          (= 1 %a.24 (+ #f %a.22 %t.23))
+          (= 1 %a.26 (+ #f %a.24 %t.25))
+          (= 1 %a.28 (+ #f %a.26 %t.27))
+          (= 1 %a.30 (+ #f %a.28 %t.29))
+          (= 1 %a.32 (+ #f %a.30 %t.31))
+          (= 1 %a.34 (+ #f %a.32 %t.33))
+          (= 1 %a.36 (+ #f %a.34 %t.35))
+          (= 1 %a.38 (+ #f %a.36 %t.37))
+          (= 1 %a.40 (+ #f %a.38 %t.39))
+          (= 1 %a.42 (+ #f %a.40 %t.41))
+          (= 1 %a.44 (+ #f %a.42 %t.43))
+          (= 1 %a.46 (+ #f %a.44 %t.45))
+          (= 1 %a.48 (+ #f %a.46 %t.47))
+          (= 1 %a.50 (+ #f %a.48 %t.49))
+          (= 1 %a.52 (+ #f %a.50 %t.51))
+          (= 1 %a.54 (+ #f %a.52 %t.53))
+          (= 1 %a.56 (+ #f %a.54 %t.55))
+          (= 1 %a.58 (+ #f %a.56 %t.57))
+          (= 1 %a.60 (+ #f %a.58 %t.59))
+          (= 1 %a.62 (+ #f %a.60 %t.61))
+          (= 1 %a.64 (+ #f %a.62 %t.63))
+          (= 1 %a.66 (+ #f %a.64 %t.65))
+          (= 1 %a.68 (+ #f %a.66 %t.67))
+          (= 1 %a.70 (+ #f %a.68 %t.69))
+          (= 1 %t.75 (+ #f %a.70 %t.71))
           (%t.75))))
     )
 
@@ -46319,7 +46307,7 @@ groups than for single tests.
                               (ty ((abytes 1)) ((tfield 255))))
                             (argument () (ty () ())))
              (ty () ())
-          (= () (public-ledger 1 %forceField.3 (0) write 7))
+          (= 1 () (public-ledger %forceField.3 (0) write 7))
           ())))
     )
 
@@ -46340,7 +46328,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %test24.2 ()
              (ty ((abytes 5)) ((tfield 1099511627775)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (21542142465))))
     )
 
@@ -46368,7 +46356,7 @@ groups than for single tests.
                     452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (108193372500793931637965151673943418321664824916460816336849004088516485151
             53206320320083115796502214552783413060461247639578808291150702859268522240))))
     )
@@ -46395,7 +46383,7 @@ groups than for single tests.
                     452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (108193372500793931637965151673943418321664824916460816336849004088516485151
             53206320320083115796502214552783413060461247639578808291150702859268522240))))
     )
@@ -46425,7 +46413,7 @@ groups than for single tests.
                  ((tfield 1099511627775)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (319057053510
             122383579515264484277446527239169866061122741007141276322279342944460956257))))
     )
@@ -46455,7 +46443,7 @@ groups than for single tests.
                  ((tfield 18446744073709551615)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (319057053510
             122383579515264484277446527239169866061122741007141276322279342944460956257))))
     )
@@ -46487,8 +46475,8 @@ groups than for single tests.
                  ((tfield 18446744073709551615)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
-          (= %t.4 (vector->bytes 70 71 72 73 74 %x.0))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
+          (= 1 %t.4 (vector->bytes 70 71 72 73 74 %x.0))
           (%t.4
             122383579515264484277446527239169866061122741007141276322279342944460956257))))
     )
@@ -46520,7 +46508,7 @@ groups than for single tests.
                  ((tfield 1099511627775)
                    (tfield
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (319057053510
             122383579515264484277446527239169866061122741007141276322279342944460956257))))
     )
@@ -46566,7 +46554,7 @@ groups than for single tests.
                   (tfield 255) (tfield 255) (tfield 255) (tfield 255)
                   (tfield 255) (tfield 255) (tfield 255) (tfield 255)
                   (tfield 255) (tfield 255) (tfield 255) (tfield 255)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (97 98 99 100 101 102 103 104 105 106 107 108 109 110 111
            112 113 114 115 116 117 118 119 120 121 122 65 66 67 68 69
            70 71 72 73 74))))
@@ -46589,7 +46577,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %test24.2 ()
              (ty ((abytes 5)) ((tfield 1099511627775)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (228509037105))))
     )
 
@@ -46610,7 +46598,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %test24.2 ()
              (ty ((abytes 5)) ((tfield 1099511627775)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (228509037105))))
     )
 
@@ -46631,7 +46619,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %test24.2 ()
              (ty ((abytes 5)) ((tfield 1099511627775)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (211295614005))))
     )
 
@@ -46657,7 +46645,7 @@ groups than for single tests.
                    (tfield 255)
                    (tfield 255)
                    (tfield 255)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (49 50 51 52 53))))
     )
 
@@ -46691,16 +46679,16 @@ groups than for single tests.
                                  (tfield 65535) (tfield 65535)
                                  (tfield 65535)))))
              (ty ((abytes 8)) ((tfield 18446744073709551615)))
-          (= () (public-ledger 1 %counter.1 (0) increment %v.8))
-          (= () (public-ledger 1 %counter.1 (0) increment %v.9))
-          (= () (public-ledger 1 %counter.1 (0) increment %v.10))
-          (= () (public-ledger 1 %counter.1 (0) increment %v.11))
-          (= () (public-ledger 1 %counter.1 (0) increment %v.12))
-          (= () (public-ledger 1 %counter.1 (0) increment %v.3))
-          (= () (public-ledger 1 %counter.1 (0) increment %v.4))
-          (= () (public-ledger 1 %counter.1 (0) increment %v.5))
-          (= () (public-ledger 1 %counter.1 (0) increment %v.6))
-          (= (%t.13) (public-ledger 1 %counter.1 (0) read))
+          (= 1 () (public-ledger %counter.1 (0) increment %v.8))
+          (= 1 () (public-ledger %counter.1 (0) increment %v.9))
+          (= 1 () (public-ledger %counter.1 (0) increment %v.10))
+          (= 1 () (public-ledger %counter.1 (0) increment %v.11))
+          (= 1 () (public-ledger %counter.1 (0) increment %v.12))
+          (= 1 () (public-ledger %counter.1 (0) increment %v.3))
+          (= 1 () (public-ledger %counter.1 (0) increment %v.4))
+          (= 1 () (public-ledger %counter.1 (0) increment %v.5))
+          (= 1 () (public-ledger %counter.1 (0) increment %v.6))
+          (= 1 (%t.13) (public-ledger %counter.1 (0) read))
           (%t.13))))
     )
 
@@ -46808,7 +46796,7 @@ groups than for single tests.
                                  (tfield)
                                  (tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (%v.6))))
     )
 
@@ -46854,7 +46842,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ((argument () (ty () ())))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -46876,7 +46864,7 @@ groups than for single tests.
              (__compact_Cell (ty ((afield)) ((tfield)))))))
         (circuit %foo.2 ((argument () (ty () ())))
              (ty () ())
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           ())))
     )
 
@@ -46943,15 +46931,15 @@ groups than for single tests.
                  ((tfield 255) (tfield 255) (tfield 255) (tfield 255) (tfield 255)
                    (tfield 255) (tfield 255) (tfield 255) (tfield 255)
                    (tfield 255)))
-          (= (%tmp.5 %tmp.6 %tmp.7 %tmp.8 %tmp.9 %tmp.10 %tmp.11
+          (= 1 (%tmp.5 %tmp.6 %tmp.7 %tmp.8 %tmp.9 %tmp.10 %tmp.11
               %tmp.12 %tmp.13 %tmp.14)
              (bytes->vector %bv.0))
-          (= ()
-             (public-ledger 1 %V1.2 (0) write
+          (= 1 ()
+             (public-ledger %V1.2 (0) write
                %tmp.5 %tmp.6 %tmp.7 %tmp.8 %tmp.9 %tmp.10 %tmp.11 %tmp.12
                %tmp.13 %tmp.14))
-          (= ()
-             (public-ledger 1 %V2.3 (1) write
+          (= 1 ()
+             (public-ledger %V2.3 (1) write
                %tmp.5 %tmp.6 %tmp.7 %tmp.8 %tmp.9 %tmp.10 %tmp.11 %tmp.12
                %tmp.13 %tmp.14))
           (%tmp.5 %tmp.6 %tmp.7 %tmp.8 %tmp.9 %tmp.10 %tmp.11 %tmp.12
@@ -46977,11 +46965,11 @@ groups than for single tests.
                            (%a.0)
                            (ty ((abytes 1)) ((tfield 1)))))
              (ty () ())
-          (= (%t.1) (public-ledger %a.0 %F.6 (0) read))
-          (= %t.2 (select %a.0 %t.1 1))
+          (= %a.0 (%t.1) (public-ledger %F.6 (0) read))
+          (= 1 %t.2 (select %a.0 %t.1 1))
           (assert %t.2 "oops")
-          (= (%t.3) (public-ledger 1 %F.6 (0) read))
-          (= %t.4 (select %t.3 %a.0 1))
+          (= 1 (%t.3) (public-ledger %F.6 (0) read))
+          (= 1 %t.4 (select %t.3 %a.0 1))
           (assert %t.4 "oops")
           ())))
     )
@@ -47005,7 +46993,7 @@ groups than for single tests.
                          (argument (%b.1) (ty ((abytes 1)) ((tfield 1))))
                          (argument (%c.3) (ty ((abytes 1)) ((tfield 1)))))
              (ty () ())
-          (= () (public-ledger 1 %F.5 (0) write 37))
+          (= 1 () (public-ledger %F.5 (0) write 37))
           ())))
     )
 
@@ -47036,10 +47024,10 @@ groups than for single tests.
                             (%s.7)
                             (ty ((acompress)) ((topaque "string")))))
              (ty () ())
-          (= () (public-ledger 1 %F.11 (0) write 37))
-          (= (%t.13 %t.6 %t.14) (call %b.5 %w.3))
-          (= %t.8 (== %t.6 %s.7))
-          (= %t.9 (select %b.5 %t.8 1))
+          (= 1 () (public-ledger %F.11 (0) write 37))
+          (= %b.5 (%t.13 %t.6 %t.14) (call %w.3))
+          (= 1 %t.8 (== %t.6 %s.7))
+          (= 1 %t.9 (select %b.5 %t.8 1))
           (assert %t.9 "oops")
           ())))
     )
@@ -47071,8 +47059,8 @@ groups than for single tests.
                            (%is.3)
                            (ty ((abytes 2)) ((tfield 65535)))))
              (ty ((abytes 2)) ((tfield 65535)))
-          (= () (public-ledger 1 %F.1 (0) write %is.3))
-          (= (%t.4) (public-ledger 1 %F.1 (0) read))
+          (= 1 () (public-ledger %F.1 (0) write %is.3))
+          (= 1 (%t.4) (public-ledger %F.1 (0) read))
           (%t.4))))
     )
 
@@ -47095,7 +47083,7 @@ groups than for single tests.
                            (%x.0)
                            (ty ((abytes 2)) ((tfield 65535)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.3 (0) write 7))
+          (= 1 () (public-ledger %forceField.3 (0) write 7))
           ())))
     )
 
@@ -47120,7 +47108,7 @@ groups than for single tests.
                            (%x.0)
                            (ty ((abytes 2)) ((tfield 65535)))))
              (ty () ())
-          (= () (public-ledger 1 %forceField.2 (0) write 7))
+          (= 1 () (public-ledger %forceField.2 (0) write 7))
           ())))
     )
 
@@ -47155,14 +47143,14 @@ groups than for single tests.
              (ty ((abytes 10) (abytes 10))
                  ((tfield 1208925819614629174706175)
                    (tfield 1208925819614629174706175)))
-          (= (%t.9 %t.2) (field->bytes %ia.0 10 %ix.1))
-          (= %tmp.10 (select %ia.0 %t.2 0))
-          (= () (public-ledger 1 %B1.6 (0) write %tmp.10))
-          (= (%t.11 %t.4) (field->bytes %ib.3 10 %ix.1))
-          (= %tmp.12 (select %ib.3 %t.4 0))
-          (= () (public-ledger 1 %B2.7 (1) write %tmp.12))
-          (= (%t.13) (public-ledger 1 %B1.6 (0) read))
-          (= (%t.14) (public-ledger 1 %B2.7 (1) read))
+          (= %ia.0 (%t.9 %t.2) (field->bytes 10 %ix.1))
+          (= 1 %tmp.10 (select %ia.0 %t.2 0))
+          (= 1 () (public-ledger %B1.6 (0) write %tmp.10))
+          (= %ib.3 (%t.11 %t.4) (field->bytes 10 %ix.1))
+          (= 1 %tmp.12 (select %ib.3 %t.4 0))
+          (= 1 () (public-ledger %B2.7 (1) write %tmp.12))
+          (= 1 (%t.13) (public-ledger %B1.6 (0) read))
+          (= 1 (%t.14) (public-ledger %B2.7 (1) read))
           (%t.13 %t.14))))
     )
 
@@ -47196,12 +47184,12 @@ groups than for single tests.
              (ty ((abytes 10) (abytes 10))
                  ((tfield 1208925819614629174706175)
                    (tfield 1208925819614629174706175)))
-          (= (%t.7 %t.2) (field->bytes %ib.0 10 %ix.1))
-          (= %tmp.8 (select %ib.0 %t.2 0))
-          (= () (public-ledger 1 %B1.4 (0) write %tmp.8))
-          (= () (public-ledger 1 %B2.5 (1) write %tmp.8))
-          (= (%t.9) (public-ledger 1 %B1.4 (0) read))
-          (= (%t.10) (public-ledger 1 %B2.5 (1) read))
+          (= %ib.0 (%t.7 %t.2) (field->bytes 10 %ix.1))
+          (= 1 %tmp.8 (select %ib.0 %t.2 0))
+          (= 1 () (public-ledger %B1.4 (0) write %tmp.8))
+          (= 1 () (public-ledger %B2.5 (1) write %tmp.8))
+          (= 1 (%t.9) (public-ledger %B1.4 (0) read))
+          (= 1 (%t.10) (public-ledger %B2.5 (1) read))
           (%t.9 %t.10))))
     )
 
@@ -47225,7 +47213,7 @@ groups than for single tests.
                            (%ix.0)
                            (ty ((afield)) ((tfield)))))
              (ty ((abytes 1)) ((tfield 1)))
-          (= %t.1 (== %ix.0 0))
+          (= 1 %t.1 (== %ix.0 0))
           (%t.1))))
     )
   ;; Unused `default`.
@@ -47258,9 +47246,9 @@ groups than for single tests.
                             (%pt.8 %pt.9)
                             (ty ((afield) (afield)) ((tfield) (tfield)))))
              (ty ((afield) (afield)) ((tfield) (tfield)))
-          (= () (public-ledger 1 %impure.1 (0) write 1))
-          (= (%pt1.10 %pt1.11)
-             (call 1 %ecAdd.2 %pt.8 %pt.9 %pt.8 %pt.9))
+          (= 1 () (public-ledger %impure.1 (0) write 1))
+          (= 1 (%pt1.10 %pt1.11)
+             (call %ecAdd.2 %pt.8 %pt.9 %pt.8 %pt.9))
           (%pt1.10 %pt1.11)))))
 )
 
@@ -53671,13 +53659,13 @@ groups than for single tests.
         "  \"do_communications_commitment\": true,"
         "  \"num_inputs\": 3,"
         "  \"instructions\": ["
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"add\", \"a\": 3, \"b\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"add\", \"a\": 4, \"b\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"add\", \"a\": 6, \"b\": 7 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
+        "    { \"op\": \"add\", \"a\": 4, \"b\": 2 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"add\", \"a\": 5, \"b\": 6 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
+        "    { \"op\": \"add\", \"a\": 7, \"b\": 8 },"
         "    { \"op\": \"private_input\", \"guard\": null },"
         "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
         "    { \"op\": \"add\", \"a\": 10, \"b\": 11 },"
@@ -53685,22 +53673,22 @@ groups than for single tests.
         "    { \"op\": \"add\", \"a\": 12, \"b\": 13 },"
         "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 4 },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 4 },"
         "    { \"op\": \"add\", \"a\": 14, \"b\": 18 },"
         "    { \"op\": \"output\", \"var\": 21 }"
         "  ]"
@@ -56277,9 +56265,9 @@ groups than for single tests.
                             (ty ((abytes 1)) ((tfield 1))))
                           (argument (%n.1) (ty ((abytes 2)) ((tfield 65535)))))
              (ty () ())
-          (= () (public-ledger 1 %field1.3 (0) insert %b.0 0))
-          (= ()
-             (public-ledger 1 %field1.3 (0 ((ty ((abytes 1)) ((tfield 1)))
+          (= 1 () (public-ledger %field1.3 (0) insert %b.0 0))
+          (= 1 ()
+             (public-ledger %field1.3 (0 ((ty ((abytes 1)) ((tfield 1)))
                                            %b.0)) insert
                %n.1
                ; two zeros
@@ -56776,7 +56764,7 @@ groups than for single tests.
                                  (tfield)
                                  (tfield)))))
              (ty ((afield)) ((tfield)))
-          (= () (public-ledger 1 %forceField.1 (0) write 7))
+          (= 1 () (public-ledger %forceField.1 (0) write 7))
           (%v.6))))
     )
 
@@ -56805,21 +56793,21 @@ groups than for single tests.
                                   (tfield 65535)
                                   (tfield 65535)))))
              (ty () ())
-          (= %t.2 (< 16 %v.1 %v.0))
-          (= %t.3 (select %t.2 0 1))
+          (= 1 %t.2 (< 16 %v.1 %v.0))
+          (= 1 %t.3 (select %t.2 0 1))
           (assert %t.3 "result of subtraction would be negative")
-          (= %tmp.11 (- 16 %v.1 %v.0))
-          (= () (public-ledger 1 %x.15 (0) increment %tmp.11))
-          (= %t.5 (< 16 %v.4 %v.1))
-          (= %t.6 (select %t.5 0 1))
+          (= 1 %tmp.11 (- 16 %v.1 %v.0))
+          (= 1 () (public-ledger %x.15 (0) increment %tmp.11))
+          (= 1 %t.5 (< 16 %v.4 %v.1))
+          (= 1 %t.6 (select %t.5 0 1))
           (assert %t.6 "result of subtraction would be negative")
-          (= %tmp.12 (- 16 %v.4 %v.1))
-          (= () (public-ledger 1 %x.15 (0) increment %tmp.12))
-          (= %t.8 (< 16 %v.7 %v.4))
-          (= %t.9 (select %t.8 0 1))
+          (= 1 %tmp.12 (- 16 %v.4 %v.1))
+          (= 1 () (public-ledger %x.15 (0) increment %tmp.12))
+          (= 1 %t.8 (< 16 %v.7 %v.4))
+          (= 1 %t.9 (select %t.8 0 1))
           (assert %t.9 "result of subtraction would be negative")
-          (= %tmp.13 (- 16 %v.7 %v.4))
-          (= () (public-ledger 1 %x.15 (0) increment %tmp.13))
+          (= 1 %tmp.13 (- 16 %v.7 %v.4))
+          (= 1 () (public-ledger %x.15 (0) increment %tmp.13))
           ())))
     )
 
@@ -56956,47 +56944,47 @@ groups than for single tests.
         "  \"num_inputs\": 1,"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 40 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 3, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 5, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 0, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 2, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 4, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 6, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 13 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"guard\": null },"
@@ -57005,17 +56993,17 @@ groups than for single tests.
         "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 12 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 12 },"
         "    { \"op\": \"output\", \"var\": 17 },"
         "    { \"op\": \"output\", \"var\": 18 },"
         "    { \"op\": \"output\", \"var\": 19 },"
@@ -57045,125 +57033,125 @@ groups than for single tests.
         "  \"num_inputs\": 1,"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 248 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 3, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 5, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 7, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 9, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 11, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 13, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 15, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 17, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 19, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 21, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 23, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 25, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 27, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 29, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 31, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 33, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 35, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 37, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 39, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 41, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 43, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 45, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 47, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 49, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 51, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 53, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 55, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 57, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 0, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 2, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 4, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 6, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 8, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 10, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 12, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 14, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 16, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 18, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 20, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 22, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 24, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 26, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 28, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 30, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 32, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 34, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 36, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 38, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 40, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 42, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 44, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 46, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 48, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 50, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 52, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 54, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 56, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 58, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 62 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"1F\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 64 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 65 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 26 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 30 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 32 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 34 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 36 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 38 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 40 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 42 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 44 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 46 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 48 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 50 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 52 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 54 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 58 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 33 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 35 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 39 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 41 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 43 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 45 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 47 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 49 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 51 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 53 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 55 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 57 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 59 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 65 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 65 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 66 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 67 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 68 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"guard\": null },"
@@ -57198,37 +57186,37 @@ groups than for single tests.
         "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 100 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 65 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 69 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 71 },"
@@ -57260,7 +57248,7 @@ groups than for single tests.
         "    { \"op\": \"declare_pub_input\", \"var\": 97 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 98 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 99 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 64 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 64 },"
         "    { \"op\": \"output\", \"var\": 69 },"
         "    { \"op\": \"output\", \"var\": 70 },"
         "    { \"op\": \"output\", \"var\": 71 },"
@@ -57317,139 +57305,139 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 40 },"
         "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 248 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 2, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 4, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 6, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 10, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 12, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 14, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 16, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 18, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 20, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 22, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 24, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 26, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 28, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 30, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 32, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 34, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 36, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 38, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 40, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 42, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 44, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 46, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 48, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 50, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 52, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 54, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 56, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 58, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 60, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 62, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 64, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 66, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 0, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 3, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 5, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 7, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 1, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 11, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 13, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 15, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 17, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 19, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 21, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 23, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 25, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 27, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 29, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 31, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 33, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 35, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 37, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 39, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 41, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 43, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 45, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 47, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 49, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 51, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 53, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 55, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 57, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 59, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 61, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 63, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 65, \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"var\": 67, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 71 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 70, \"count\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"24\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 73 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 33 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 35 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 39 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 41 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 43 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 45 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 47 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 49 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 51 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 53 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 55 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 57 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 59 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 65 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 67 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 69 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 26 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 30 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 32 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 34 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 36 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 38 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 40 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 42 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 44 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 46 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 48 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 50 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 52 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 54 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 58 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 62 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 64 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 66 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 68 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 69 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 70, \"count\": 75 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 75 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 75 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 70, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 76 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 70, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 77 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 70, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"guard\": null },"
@@ -57489,42 +57477,42 @@ groups than for single tests.
         "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 114 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 78 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 79 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 80 },"
@@ -57561,7 +57549,7 @@ groups than for single tests.
         "    { \"op\": \"declare_pub_input\", \"var\": 111 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 112 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 113 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 70, \"count\": 74 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 74 },"
         "    { \"op\": \"output\", \"var\": 78 },"
         "    { \"op\": \"output\", \"var\": 79 },"
         "    { \"op\": \"output\", \"var\": 80 },"
@@ -57677,42 +57665,42 @@ groups than for single tests.
         "  \"num_inputs\": 1,"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"copy\", \"var\": 0 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"copy\", \"var\": 0 },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
         "    { \"op\": \"output\", \"var\": 9 }"
         "  ]"
         "}"))
@@ -57742,46 +57730,46 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"var\": 4, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 4, \"modulus\": 3, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 5, \"modulus\": 2, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 6, \"modulus\": 1, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 7, \"modulus\": 0, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 4, \"modulus\": 3, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 6, \"modulus\": 2, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 7, \"modulus\": 1, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 8, \"modulus\": 0, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 4 },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 4 },"
         "    { \"op\": \"output\", \"var\": 17 }"
         "  ]"
         "}"))
@@ -57837,72 +57825,72 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"var\": 28, \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"var\": 29, \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"var\": 30, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 30, \"modulus\": 29, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 31, \"modulus\": 28, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 32, \"modulus\": 27, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 33, \"modulus\": 26, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 34, \"modulus\": 25, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 35, \"modulus\": 24, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 36, \"modulus\": 23, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 37, \"modulus\": 22, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 38, \"modulus\": 21, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 39, \"modulus\": 20, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 40, \"modulus\": 19, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 41, \"modulus\": 18, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 42, \"modulus\": 17, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 43, \"modulus\": 16, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 44, \"modulus\": 15, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 45, \"modulus\": 14, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 46, \"modulus\": 13, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 47, \"modulus\": 12, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 48, \"modulus\": 11, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 49, \"modulus\": 10, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 50, \"modulus\": 9, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 51, \"modulus\": 8, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 52, \"modulus\": 7, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 53, \"modulus\": 6, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 54, \"modulus\": 5, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 55, \"modulus\": 4, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 56, \"modulus\": 3, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 57, \"modulus\": 2, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 58, \"modulus\": 1, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 59, \"modulus\": 0, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 30, \"modulus\": 29, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 32, \"modulus\": 28, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 33, \"modulus\": 27, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 34, \"modulus\": 26, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 35, \"modulus\": 25, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 36, \"modulus\": 24, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 37, \"modulus\": 23, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 38, \"modulus\": 22, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 39, \"modulus\": 21, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 40, \"modulus\": 20, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 41, \"modulus\": 19, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 42, \"modulus\": 18, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 43, \"modulus\": 17, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 44, \"modulus\": 16, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 45, \"modulus\": 15, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 46, \"modulus\": 14, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 47, \"modulus\": 13, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 48, \"modulus\": 12, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 49, \"modulus\": 11, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 50, \"modulus\": 10, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 51, \"modulus\": 9, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 52, \"modulus\": 8, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 53, \"modulus\": 7, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 54, \"modulus\": 6, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 55, \"modulus\": 5, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 56, \"modulus\": 4, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 57, \"modulus\": 3, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 58, \"modulus\": 2, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 59, \"modulus\": 1, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 60, \"modulus\": 0, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 62 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"1F\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 64 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 65 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 66 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 67 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 68 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 4 },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 65 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 69 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 4 },"
         "    { \"op\": \"output\", \"var\": 69 }"
         "  ]"
         "}"))
@@ -57988,104 +57976,104 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"var\": 58, \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"var\": 59, \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"var\": 60, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 60, \"modulus\": 59, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 61, \"modulus\": 58, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 62, \"modulus\": 57, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 63, \"modulus\": 56, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 64, \"modulus\": 55, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 65, \"modulus\": 54, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 66, \"modulus\": 53, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 67, \"modulus\": 52, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 68, \"modulus\": 51, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 69, \"modulus\": 50, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 70, \"modulus\": 49, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 71, \"modulus\": 48, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 72, \"modulus\": 47, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 73, \"modulus\": 46, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 74, \"modulus\": 45, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 75, \"modulus\": 44, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 76, \"modulus\": 43, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 77, \"modulus\": 42, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 78, \"modulus\": 41, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 79, \"modulus\": 40, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 80, \"modulus\": 39, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 81, \"modulus\": 38, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 82, \"modulus\": 37, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 83, \"modulus\": 36, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 84, \"modulus\": 35, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 85, \"modulus\": 34, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 86, \"modulus\": 33, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 87, \"modulus\": 32, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 88, \"modulus\": 31, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 30, \"modulus\": 29, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 90, \"modulus\": 28, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 91, \"modulus\": 27, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 92, \"modulus\": 26, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 93, \"modulus\": 25, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 94, \"modulus\": 24, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 95, \"modulus\": 23, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 96, \"modulus\": 22, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 97, \"modulus\": 21, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 98, \"modulus\": 20, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 99, \"modulus\": 19, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 100, \"modulus\": 18, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 101, \"modulus\": 17, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 102, \"modulus\": 16, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 103, \"modulus\": 15, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 104, \"modulus\": 14, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 105, \"modulus\": 13, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 106, \"modulus\": 12, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 107, \"modulus\": 11, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 108, \"modulus\": 10, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 109, \"modulus\": 9, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 110, \"modulus\": 8, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 111, \"modulus\": 7, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 112, \"modulus\": 6, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 113, \"modulus\": 5, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 114, \"modulus\": 4, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 115, \"modulus\": 3, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 116, \"modulus\": 2, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 117, \"modulus\": 1, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 118, \"modulus\": 0, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 60, \"modulus\": 59, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 62, \"modulus\": 58, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 63, \"modulus\": 57, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 64, \"modulus\": 56, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 65, \"modulus\": 55, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 66, \"modulus\": 54, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 67, \"modulus\": 53, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 68, \"modulus\": 52, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 69, \"modulus\": 51, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 70, \"modulus\": 50, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 71, \"modulus\": 49, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 72, \"modulus\": 48, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 73, \"modulus\": 47, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 74, \"modulus\": 46, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 75, \"modulus\": 45, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 76, \"modulus\": 44, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 77, \"modulus\": 43, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 78, \"modulus\": 42, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 79, \"modulus\": 41, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 80, \"modulus\": 40, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 81, \"modulus\": 39, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 82, \"modulus\": 38, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 83, \"modulus\": 37, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 84, \"modulus\": 36, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 85, \"modulus\": 35, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 86, \"modulus\": 34, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 87, \"modulus\": 33, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 88, \"modulus\": 32, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 89, \"modulus\": 31, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 30, \"modulus\": 29, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 91, \"modulus\": 28, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 92, \"modulus\": 27, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 93, \"modulus\": 26, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 94, \"modulus\": 25, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 95, \"modulus\": 24, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 96, \"modulus\": 23, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 97, \"modulus\": 22, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 98, \"modulus\": 21, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 99, \"modulus\": 20, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 100, \"modulus\": 19, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 101, \"modulus\": 18, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 102, \"modulus\": 17, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 103, \"modulus\": 16, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 104, \"modulus\": 15, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 105, \"modulus\": 14, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 106, \"modulus\": 13, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 107, \"modulus\": 12, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 108, \"modulus\": 11, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 109, \"modulus\": 10, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 110, \"modulus\": 9, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 111, \"modulus\": 8, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 112, \"modulus\": 7, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 113, \"modulus\": 6, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 114, \"modulus\": 5, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 115, \"modulus\": 4, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 116, \"modulus\": 3, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 117, \"modulus\": 2, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 118, \"modulus\": 1, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 119, \"modulus\": 0, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 121 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 120 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 120 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 120 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 122 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 120, \"count\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"3D\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 123 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 120 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 120 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 124 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 89 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 119 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 120, \"count\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 90 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 120 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 6 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 125 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 120, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 126 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 120, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 127 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 120 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 120 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 122 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 120, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 4 },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 130 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 120 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 124 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 128 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 129 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 120, \"count\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 5 },"
         "    { \"op\": \"output\", \"var\": 128 },"
         "    { \"op\": \"output\", \"var\": 129 }"
         "  ]"
@@ -58242,51 +58230,51 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"var\": 7, \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"var\": 8, \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"var\": 9, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 9, \"modulus\": 8, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 10, \"modulus\": 7, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 11, \"modulus\": 6, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 12, \"modulus\": 5, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 13, \"modulus\": 4, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 14, \"modulus\": 3, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 15, \"modulus\": 2, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 16, \"modulus\": 1, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 17, \"modulus\": 0, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 9, \"modulus\": 8, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 11, \"modulus\": 7, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 12, \"modulus\": 6, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 13, \"modulus\": 5, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 14, \"modulus\": 4, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 15, \"modulus\": 3, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 16, \"modulus\": 2, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 17, \"modulus\": 1, \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"divisor\": 18, \"modulus\": 0, \"bits\": 8 },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 19, \"count\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"0A\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 19, \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 19, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 19, \"count\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 26 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 19, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 4 },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 19, \"count\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 4 },"
         "    { \"op\": \"output\", \"var\": 27 }"
         "  ]"
         "}"))
