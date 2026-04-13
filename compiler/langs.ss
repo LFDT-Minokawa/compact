@@ -1000,7 +1000,7 @@
     (Argument (arg)
       (var-name type) => (bracket var-name type))
     (Statement (stmt)
-      (= var-name rhs)                  => (= var-name 2 rhs)
+      (= test var-name rhs)             => (= test var-name 2 rhs)
       (assert src test mesg)            => (assert test #f mesg))
     (Rhs (rhs)
       triv
@@ -1019,14 +1019,14 @@
       (elt-ref triv elt-name)
       (vector->bytes len triv)               => (vector->bytes len triv)
       (bytes->vector len triv)               => (bytes->vector len triv)
-      (call src test function-name triv* ...) => (call test function-name #f triv* ...)
-      (public-ledger src test ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
-        (public-ledger test ledger-field-name (path-elt* ...) adt-op #f triv* ...)
-      (contract-call src test elt-name (triv type) triv* ...) =>
-        (contract-call test elt-name 4 (triv 0 type) #f triv* ...)
-      (field->bytes src test len triv)        => (field->bytes test len triv)
-      (bytes->field src test len triv)        => (bytes->field test len triv)
-      (downcast-unsigned src test nat triv)   => (downcast-unsigned test nat triv))
+      (call src function-name triv* ...)     => (call function-name #f triv* ...)
+      (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
+        (public-ledger ledger-field-name (path-elt* ...) adt-op #f triv* ...)
+      (contract-call src elt-name (triv type) triv* ...) =>
+        (contract-call elt-name 4 (triv 0 type) #f triv* ...)
+      (field->bytes src len triv)            => (field->bytes len triv)
+      (bytes->field src len triv)            => (bytes->field len triv)
+      (downcast-unsigned src nat triv)       => (downcast-unsigned nat triv))
     (Triv (triv test)
       var-name
       (quote datum)                          => datum
@@ -1079,11 +1079,11 @@
       (- (var-name type))
       (+ (argument (var-name* ...) type)))
     (Statement (stmt)
-      (- (= var-name rhs))
+      (- (= test var-name rhs))
       ; nanopass limitation: swap the two clauses below and the (= (var-name ...) multiple) pattern
       ; is rejected. (reported to Andy Keep 01/02/2024)
-      (+ (= (var-name* ...) multiple) =>  (= (var-name* 0 ...) 2 multiple)
-         (= var-name single)          =>  (= var-name 2 single)))
+      (+ (= test (var-name* ...) multiple) =>  (= test (var-name* 0 ...) 2 multiple)
+         (= test var-name single)          =>  (= test var-name 2 single)))
     (Rhs (rhs)
       (- triv
          (default type)
@@ -1101,12 +1101,12 @@
          (elt-ref triv elt-name)
          (vector->bytes len triv)
          (bytes->vector len triv)
-         (call src test function-name triv* ...)
-         (public-ledger src test ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...)
-         (contract-call src test elt-name (triv type) triv* ...)
-         (field->bytes src test len triv)
-         (bytes->field src test len triv)
-         (downcast-unsigned src test nat triv)))
+         (call src function-name triv* ...)
+         (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...)
+         (contract-call src elt-name (triv type) triv* ...)
+         (field->bytes src len triv)
+         (bytes->field src len triv)
+         (downcast-unsigned src nat triv)))
     (Single (single)
       (+ triv
          (+ mbits triv1 triv2)
@@ -1116,18 +1116,18 @@
          (== triv1 triv2)                        => (== triv1 3 triv2)
          (select triv0 triv1 triv2)              => (select triv0 triv1 triv2)
          (bytes-ref triv nat)
-         (bytes->field src test len triv1 triv2) => (bytes->field test len #f triv1 #f triv2)
+         (bytes->field src len triv1 triv2)      => (bytes->field len #f triv1 #f triv2)
          (vector->bytes triv triv* ...)          => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
-         (downcast-unsigned src test nat triv)   => (downcast-unsigned test nat triv)))
+         (downcast-unsigned src nat triv)        => (downcast-unsigned nat triv)))
     (Multiple (multiple)
-      (+ (call src test function-name triv* ...) => (call test function-name #f triv* ...)
+      (+ (call src function-name triv* ...)      => (call function-name #f triv* ...)
          (default opaque-type)
-         (field->bytes src test len triv)        => (field->bytes test len #f triv)
+         (field->bytes src len triv)             => (field->bytes len #f triv)
          (bytes->vector triv)                    => (bytes->vector #f triv) ; triv holds one field's worth of bytes
-         (public-ledger src test ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
-           (public-ledger test ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
-         (contract-call src test elt-name (triv primitive-type) triv* ...) =>
-           (contract-call test elt-name 4 (triv primitive-type) #f triv* ...)))
+         (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
+           (public-ledger ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
+         (contract-call src elt-name (triv primitive-type) triv* ...) =>
+           (contract-call elt-name 4 (triv primitive-type) #f triv* ...)))
     (Triv (triv test)
       (- (quote datum))
       (+ nat))

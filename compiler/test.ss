@@ -60623,6 +60623,7 @@ groups than for single tests.
       "  return x + x * 3 - 4 == 20 || x == 5 && !(x * 3 + x == 8);"
       "}"
      )
+    (pass-returns optimize-circuit #f)
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"

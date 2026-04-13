@@ -347,10 +347,10 @@
                                   [(ty (,alignment* ...) (,primitive-type* ...)) (length primitive-type*)]))])
              (list ledger-op (apply + (type-length type) (map type-length type*))))])
         (Statement : Statement (ir) -> * (void)
-          [(= ,var-name ,single)
+          [(= ,[* test] ,var-name ,single)
            (Single single)
            (new-var! var-name #f)]
-          [(= (,var-name* ...) (call ,src ,[* test] ,function-name ,[* triv*] ...))
+          [(= ,[* test] (,var-name* ...) (call ,src ,function-name ,[* triv*] ...))
            (let ([pair (assert (calltype function-name))])
              (case (car pair)
                [(builtin-circuit)
@@ -368,13 +368,13 @@
                   (assert (hashtable-ref returntype-ht function-name #f))
                   var-name*)]
                [else (assert cannot-happen)]))]
-          [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...))
+          [(= ,[* test] (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...))
            (source-errorf src "cross-contract calls are not yet supported")]
-          [(= (,var-name1 ,var-name2) (default ,opaque-type))
+          [(= ,[* test] (,var-name1 ,var-name2) (default ,opaque-type))
            (guard (string=? opaque-type "JubjubPoint"))
            (bind-var! var-name1 (literal 0))
            (bind-var! var-name2 (literal 1))]
-          [(= (,var-name* ...) (bytes->vector ,[* triv]))
+          [(= ,[* test] (,var-name* ...) (bytes->vector ,[* triv]))
            (assert (not (null? var-name*)))
            (let loop ([var-name* var-name*] [triv triv])
              (let ([var-name (car var-name*)] [var-name* (cdr var-name*)])
@@ -386,7 +386,7 @@
                        (set! ctr (add1 ctr))
                        (new-var! var-name #f)
                        (loop var-name* q))))))]
-          [(= (,var-name1 ,var-name2) (field->bytes ,src ,[* test] ,len ,[* triv]))
+          [(= ,[* test] (,var-name1 ,var-name2) (field->bytes ,src ,len ,[* triv]))
            ; FIXME: need to respect test: constrain_bits shouldn't happen if test is false
            (if (<= len (field-bytes))
                (begin
@@ -397,7 +397,7 @@
                  (print-gate "div_mod_power_of_two" `[var ,triv] `[bits ,(* (field-bytes) 8)])
                  (new-var! var-name1 #f)
                  (new-var! var-name2 #f)))]
-          [(= (,var-name* ...) (public-ledger ,src ,[* test] ,ledger-field-name ,sugar? (,[* path-elt*] ...) ,src^ ,adt-op ,[* triv*] ...))
+          [(= ,[* test] (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,[* path-elt*] ...) ,src^ ,adt-op ,[* triv*] ...))
            (let ()
              (define (group type* triv*)
                (let f ([type* type*] [triv* triv*])
@@ -718,7 +718,7 @@
              (print-gate "div_mod_power_of_two" `[var ,q] `[bits ,8])
              (set! ctr (add1 ctr)))]
           ; FIXME: zkir bytes->field needs to respect test
-          [(bytes->field ,src ,[* test] ,len ,[* triv1] ,[* triv2])
+          [(bytes->field ,src ,len ,[* triv1] ,[* triv2])
            (if (<= len (field-bytes))
                ; flattened-datatype takes care of this case, so this line can't presently be reached
                (print-gate "copy" `[var ,triv2])
@@ -735,7 +735,7 @@
                                   (let ([d ctr]) (set! ctr (add1 ctr)) d))))])
                    (print-gate "reconstitute_field" `[divisor ,d] `[modulus ,triv] `[bits 8]))))]
           ; FIXME: zkir downcast-unsigned needs to respect test
-          [(downcast-unsigned ,src ,[* test] ,nat ,[* triv])
+          [(downcast-unsigned ,src ,nat ,[* triv])
            (constrain-type (with-output-language (Lflattened Primitive-Type)
                                                  `(tfield ,nat))
                            triv)

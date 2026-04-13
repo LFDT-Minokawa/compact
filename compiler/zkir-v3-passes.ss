@@ -658,17 +658,17 @@
                 ,(reverse body) ...))))])
 
     (Statement : Statement (ir instr*) -> * (instr*)
-      [(= (,var-name* ...) (call ,src ,test ,function-name ,triv* ...))
+      [(= ,test (,var-name* ...) (call ,src ,function-name ,triv* ...))
        (let ([code-generator (hashtable-ref callable-ht function-name #f)])
          (assert code-generator)
          (code-generator var-name* src test triv* instr*))]
-      [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...))
+      [(= ,test (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...))
        (source-errorf src "cross-contract calls are not yet supported")]
-      [(= (,var-name) (default ,opaque-type))
+      [(= ,test (,var-name) (default ,opaque-type))
        (assert (string=? opaque-type "JubjubPoint"))
        (with-output-language (Lzkir Instruction)
          (cons `(decode "Point<Jubjub>" ,var-name 0 1) instr*))]
-      [(= (,var-name0 ,var-name1) (field->bytes ,src ,test ,len ,triv))
+      [(= ,test (,var-name0 ,var-name1) (field->bytes ,src ,len ,triv))
        ;; TODO(kmillikin): this needs to respect test because `constrain_bits` can fail.
        (with-output-language (Lzkir Instruction)
          (if (<= len (field-bytes))
@@ -678,7 +678,7 @@
                instr*)
              (cons `(div_mod_power_of_two ,var-name0 ,var-name1 ,triv ,(* (field-bytes) 8))
                instr*)))]
-      [(= (,var-name* ...) (bytes->vector ,triv))
+      [(= ,test (,var-name* ...) (bytes->vector ,triv))
        (assert (not (null? var-name*)))
        (with-output-language (Lzkir Instruction)
          (let loop ([var-name* var-name*] [var triv] [instr* instr*])
@@ -687,7 +687,7 @@
                (let ([quo (make-temp-id default-src 'quo)])
                  (loop (cdr var-name*) quo
                    (cons `(div_mod_power_of_two ,quo ,(car var-name*) ,var ,8) instr*))))))]
-      [(= (,var-name* ...) (public-ledger ,src ,test ,ledger-field-name ,sugar? (,path-elt* ...)
+      [(= ,test (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...)
                              ,src^ ,adt-op ,triv* ...))
        (nanopass-case (Lflattened ADT-Op) adt-op
          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...)
@@ -720,7 +720,7 @@
                                  env)))])))])
             (assemble test alignment* var-name* src (map Path-Element path-elt*) env vm-code
               instr*))])]
-      [(= ,var-name ,single)
+      [(= ,test ,var-name ,single)
        (Single single var-name instr*)]
       [(assert ,src ,test ,mesg)
        (with-output-language (Lzkir Instruction)
@@ -761,7 +761,7 @@
              `(div_mod_power_of_two ,ig1 ,var-name ,quo ,8)
              `(div_mod_power_of_two ,quo ,ig0 ,triv ,(* nat 8))
              instr*)))]
-      [(bytes->field ,src ,test ,len ,triv0 ,triv1)
+      [(bytes->field ,src ,len ,triv0 ,triv1)
        ;; TODO(kmillikin): This should respect test and be conditional in the ZKIR output.
        (with-output-language (Lzkir Instruction)
          ;; flatten-datatype takes care of this case.
@@ -778,7 +778,7 @@
                                  (let ([div (make-temp-id default-src 'div)])
                                    (values div (recur div (car triv+) (cdr triv+) instr*))))])
                    (cons `(reconstitute_field ,result ,div ,current ,8) instr*)))))]
-      [(downcast-unsigned ,src ,test ,nat ,triv)
+      [(downcast-unsigned ,src ,nat ,triv)
        ;; TODO(kmillikin): This needs to be conditional on test.
        (with-output-language (Lzkir Instruction)
          ;; TODO(kmillikin): The `copy` here is unnecessary.  Remove it.
