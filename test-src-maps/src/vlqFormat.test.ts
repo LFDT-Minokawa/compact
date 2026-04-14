@@ -14,11 +14,20 @@
 // limitations under the License.
 
 import { describe, expect, test } from 'vitest';
+import { test as fcTest } from '@fast-check/vitest';
+import fc from 'fast-check';
 import * as vlq from "vlq";
 import * as decoded from '../resources/neg.js.map.decoded.json';
 import * as encoded from '../resources/neg.js.map.fmt.json';
 
 describe('VLQ converter', () => {
+
+   fcTest.prop([fc.array(fc.integer({ min: -1000000, max: 1000000 }), { minLength: 1, maxLength: 5 })])(
+      'encode/decode roundtrip should be identity',
+      (segment) => {
+         expect(vlq.decode(vlq.encode(segment))).toEqual(segment);
+      }
+   );
 
    // convenient tests to check concrete source mappings from file
    test('should decode VLQ from file', () => {

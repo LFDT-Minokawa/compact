@@ -5,22 +5,36 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-      
-#  - package-ecosystem: "cargo"
-#    directory: "/"
-#    registries: "*"
-#    schedule:
-#      interval: "daily"
-#
-#  - package-ecosystem: "npm"
-#    directory: "/"
-#    schedule:
-#      interval: "daily"
-#
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "npm"
+    directories:
+      - "/runtime"
+      - "/editor-support/vsc/compact"
+      - "/tests-e2e"
+      - "/test-center"
+      - "/test-src-maps"
+      - "/debug-test"
+      - "/nix/dry-install"
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 7
+
 #  - package-ecosystem: "docker"
 #    directory: "/"
 #    schedule:
 #      interval: "weekly"
+#    cooldown:
+#      default-days: 7
 #
 #registries:
 #   github:

@@ -99,7 +99,7 @@ export function mulJubjubScalar(x: bigint, y: bigint): bigint {
 }
 
 /**
- * The Compact builtin `transient_hash` function
+ * The Compact builtin `transientHash` function
  *
  * This function is a circuit-efficient compression function from arbitrary
  * data to field elements, which is not guaranteed to persist between upgrades.
@@ -111,7 +111,7 @@ export function transientHash<A>(rtType: CompactType<A>, value: A): bigint {
 }
 
 /**
- * The Compact builtin `transient_commit` function
+ * The Compact builtin `transientCommit` function
  *
  * This function is a circuit-efficient commitment function from arbitrary
  * values representable in Compact, and a field element commitment opening, to
@@ -126,7 +126,7 @@ export function transientCommit<A>(rtType: CompactType<A>, value: A, opening: bi
 }
 
 /**
- * The Compact builtin `persistent_hash` function
+ * The Compact builtin `persistentHash` function
  *
  * This function is a non-circuit-optimised hash function for mostly arbitrary
  * data. It is guaranteed to persist between upgrades, with the exception of
@@ -146,7 +146,7 @@ export function persistentHash<A>(rtType: CompactType<A>, value: A): Uint8Array 
 }
 
 /**
- * The Compact builtin `persistent_commit` function
+ * The Compact builtin `persistentCommit` function
  *
  * This function is a non-circuit-optimised commitment function from arbitrary
  * values representable in Compact, and a 256-bit bytestring opening, to a
@@ -171,7 +171,7 @@ export function persistentCommit<A>(rtType: CompactType<A>, value: A, opening: U
 }
 
 /**
- * The Compact builtin `degrade_to_transient` function
+ * The Compact builtin `degradeToTransient` function
  *
  * This function "degrades" the output of a {@link persistentHash} or
  * {@link persistentCommit} to a field element, which can then be used in
@@ -187,7 +187,7 @@ export function degradeToTransient(x: Uint8Array): bigint {
 }
 
 /**
- * The Compact builtin `upgrade_from_transient` function
+ * The Compact builtin `upgradeFromTransient` function
  *
  * This function "upgrades" the output of a {@link transientHash} or
  * {@link transientCommit} to 256-bit byte string, which can then be used in
@@ -215,7 +215,7 @@ export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
 }
 
 /**
- * The Compact builtin `hash_to_curve` function
+ * The Compact builtin `hashToCurve` function
  *
  * This function maps arbitrary values representable in Compact to elliptic
  * curve points in the proof system's embedded curve.
@@ -232,7 +232,7 @@ export function hashToCurve<A>(rtType: CompactType<A>, x: A): JubjubPoint {
 }
 
 /**
- * The Compact builtin `ec_add` function
+ * The Compact builtin `ecAdd` function
  *
  * This function add two elliptic curve points (in multiplicative notation)
  */
@@ -241,7 +241,7 @@ export function ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint {
 }
 
 /**
- * The Compact builtin `ec_mul` function
+ * The Compact builtin `ecMul` function
  *
  * This function multiplies an elliptic curve point by a scalar (in
  * multiplicative notation)
@@ -251,7 +251,7 @@ export function ecMul(a: JubjubPoint, b: bigint): JubjubPoint {
 }
 
 /**
- * The Compact builtin `ec_mul_generator` function
+ * The Compact builtin `ecMulGenerator` function
  *
  * This function multiplies the primary group generator of the embedded curve
  * by a scalar (in multiplicative notation)

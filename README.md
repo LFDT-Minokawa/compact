@@ -1,298 +1,160 @@
-# Compactc circuit compiler
+# Compact
 
-This project integrates with the Midnight Network.
+[![Compiler CI](https://img.shields.io/github/actions/workflow/status/LFDT-Minokawa/compact/build-compiler.yml?label=compiler%20CI)](https://github.com/LFDT-Minokawa/compact/actions/workflows/build-compiler.yml)
+[![compact CLI CI](https://img.shields.io/github/actions/workflow/status/LFDT-Minokawa/compact/compact-test.yml?label=compact%20CLI%20CI)](https://github.com/LFDT-Minokawa/compact/actions/workflows/compact-test.yml)
+[![compact CLI release](https://img.shields.io/github/v/release/midnightntwrk/compact?filter=compact-*&label=compact%20CLI)](https://github.com/midnightntwrk/compact/releases)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 
-A [nanopass](https://nanopass.org) framework compiler for cryptographic circuits. Currently targeting [Plonk](https://github.com/ZK-Garage/plonk) from a restricted front-end language.
+This is the home of **Compact**. This project integrates with the [Midnight Network](https://midnight.network). It contains the language documentation, formal specification, compiler, runtime libraries, CLI tooling, and editor extensions.
 
-[ABNF syntax](./doc/highlevel.abnf) for parser and lexer.
+> **Note:** Development takes place under the [LFDT-Minokawa](https://github.com/LFDT-Minokawa) GitHub organization, which is the [Linux Foundation Decentralized Trust](https://www.lfdecentralizedtrust.org/) project for Compact. Public releases are published to [midnightntwrk/compact](https://github.com/midnightntwrk/compact).
 
-Examples:
+## What Is Compact?
 
-- [election](./examples/election.compact)
-- [zerocash](./examples/zerocash.compact)
-- [tiny](./examples/tiny.compact)
+Compact is a smart contract language that makes it straightforward to write programs that combine public and private computation, with the compiler handling the complexity of generating zero-knowledge proofs. You write what looks like a normal program in a TypeScript-like syntax, and the compiler splits it into on-chain, off-chain, and ZK components automatically.
 
-## Publishing and credentials
+A Compact contract operates across three contexts at once:
 
-### Credentials
+- **`ledger` fields** declare public state that lives on chain
+- **`circuit` functions** define operations that are proven correct via zero-knowledge proofs -- they can read and update ledger state, perform assertions, and call witnesses
+- **`witness` declarations** are callbacks into TypeScript code running on the user's local machine, providing private inputs (like secret keys) without ever exposing them on chain
 
-TODO: Add proper guide for Github accounts instead of old deprecated nexus guide.
+The key idea: you write a single program that freely mixes public ledger operations with private data from witnesses. The compiler figures out what needs to be proven in zero-knowledge and what needs to be published on chain. Private data stays private by default -- the compiler rejects any program that would put witness-derived data on the ledger unless the developer explicitly wraps it in `disclose()`, making accidental data leaks a compile-time error rather than a runtime surprise.
 
-### Note about permissions
+Here's a concrete example -- a contract where a user can lock a value that only they can unlock, using a secret key that never leaves their machine (from [Writing a contract](./doc/writing.mdx)):
 
-If you have installed nix in a single-user mode, then using `chmod 600` for
-`~/.netrc` file should be fine, however if you have installed nix in a
-multi-user mode, then you need to make sure that both your user and nix build
-agents can access `/etc/nix/netrc` file.
+```compact
+import CompactStandardLibrary;
 
-One approach is to make the file read-writeable for `root` group, and readable for
-`wheel` group, but you need to ensure that your user is in `wheel` group.
+enum State { UNSET, SET }
 
-First, check if your user is in wheel group, by using `groups`: the output should contain `wheel`:
+export ledger authority: Bytes<32>;    // public: the key-holder's identity
+export ledger value: Uint<64>;         // public: the locked value
+export ledger state: State;            // public: whether the lock is set
+export ledger round: Counter;          // public: prevents cross-transaction linking
+
+witness secretKey(): Bytes<32>;        // private: runs locally in TypeScript
+
+circuit publicKey(round: Field, sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>(
+           [pad(32, "midnight:examples:lock:pk"), round as Bytes<32>, sk]);
+}
+
+export circuit set(v: Uint<64>): [] {
+  assert(state == State.UNSET);        // ensure we don't overwrite an existing lock
+  const sk = secretKey();              // fetch the secret key locally
+  const pk = publicKey(round, sk);     // derive a public key (inside the ZK proof)
+  authority = disclose(pk);            // explicitly publish the public key
+  value = disclose(v);                 // explicitly publish the value
+  state = State.SET;
+}
+
+export circuit clear(): [] {
+  assert(state == State.SET);          // ensure there's a lock to clear
+  const sk = secretKey();              // fetch the secret key again
+  const pk = publicKey(round, sk);     // re-derive the public key
+  assert(authority == pk);             // prove we hold the key, without revealing it
+  state = State.UNSET;                 // clear the lock
+  round.increment(1);                  // rotate round so the next public key differs
+}
+```
+
+The `set` circuit takes private data, derives a public key, and explicitly discloses it to the ledger. The `clear` circuit proves the caller holds the matching secret key -- all without ever putting the secret key on chain. The `round` counter is included in the key derivation and incremented on each `clear`, so the same secret key produces a different `authority` value next time -- without this, an observer could see the same `authority` appearing across transactions and link them to the same user. The ZK proof handles the rest.
+
+The Compact compiler produces JavaScript/TypeScript for transaction construction (with type definitions and source maps), zero-knowledge circuits (`.zkir`) compiled into proving and verifier keys, and a JSON contract info file describing the contract's interface.
+
+For a full walkthrough, see [Writing a contract](./doc/writing.mdx). For the complete language specification, see the [language reference](./doc/lang-ref.mdx).
+
+## Installation
+
+Install the `compact` CLI, which manages the Compact toolchain:
 
 ```sh
-$ groups
-users wheel
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
 ```
 
-Then, you can change the ownership of `/etc/nix/netrc` to `root:wheel`
+Then install the latest compiler toolchain:
 
 ```sh
-$ sudo chown root:wheel /etc/nix/netrc
+compact update
 ```
 
-and change its permissions to `640`
+### Supported Platforms
+
+| Platform | Architecture |
+|----------|-------------|
+| macOS | Apple Silicon (aarch64), Intel (x86_64) |
+| Linux | x86_64, aarch64 |
+
+### Keeping Up to Date
 
 ```sh
-$ sudo chmod 640 /etc/nix/netrc
+compact self update   # update the compact CLI itself
+compact update        # update the compiler toolchain
 ```
 
-finally, you can verify if ownership and permissions were set correctly
+## Quick Start
+
+A minimal Compact contract ([`examples/counter.compact`](./examples/counter.compact)):
+
+```compact
+import CompactStandardLibrary;
+
+export ledger round: Counter;
+
+export circuit increment(): [] {
+  round.increment(1);
+}
+```
+
+Compile it:
 
 ```sh
-ls -l /etc/nix/netrc
--rw-r----- 1 root wheel 261 Nov  8 15:42 /etc/nix/netrc
+compact compile examples/counter.compact output/
 ```
 
-the above can be understood as
-
-- `rw-` permissions for `root` user,
-- `r--` permissions for `wheel` group, and
-- `---` permissions for everyone else.
-
-## reproducible development environment
-
-We require [nix](https://nixos.org) >= 2.7, with [flakes
-enabled](https://nixos.wiki/wiki/Flakes).
+Use `--skip-zk` to skip proof key generation for faster iteration during development:
 
 ```sh
-nix develop
+compact compile --skip-zk examples/counter.compact output/
 ```
 
-## Running tests
-
-We currently _only_ support the reproducible environment in `nix develop .#default` for
-running tests. Once the dev environment has been entered, simply run:
+### Managing Compiler Versions
 
 ```sh
-./compiler/go
+compact update 0.29.0              # install a specific version
+compact list                       # list available versions
 ```
 
-Executing tests generate profile output with `hot spots` information in [./coverage/profile.html](./coverage/profile.html).
-You can treat details for each file as `test coverage`.
+## Documentation
 
-- re-run tests whenever source file changes (with exec time)
+- [Writing a contract](./doc/writing.mdx) -- introductory walkthrough
+- [Language reference](./doc/lang-ref.mdx) -- complete language specification
+- [API documentation](./doc/api/)
+- [Examples](./examples/)
+- [Midnight developer docs](https://docs.midnight.network/)
 
-```sh
-find . -type f -name "*.ss" | entr ./compiler/go
-find . -type f -name "*.ss" | entr time ./compiler/go
-```
+## Editor Support
 
-## nix build
+- [VS Code extension](./editor-support/vsc/)
+- [Vim](./editor-support/vim/)
 
-To build locally using [nix](https://nixos.org/guides/nix-pills/):
-
-```sh
-nix build
-```
-
-or to show output:
-
-```sh
-nix log
-```
-
-To run the same tests as CI:
-
-```sh
-nix build -L
-```
-
-plus follow the instructions for running the E2E and debug tests (below).
-
-## E2E tests
-
-To execute e2e tests, either inside a nix shell or outside of it, run:
-
-```shell
-sh ./run-e2e-tests.sh
-```
-
-## debug tests
-
-To execute debug test, either inside a nix shell or outside of it, run:
-
-```shell
-sh ./run-debug-test.sh
-```
-
-## Building from source code
-
-Example building using nix to build and add compactc to the system path:
-
-```sh
-nix build
-export PATH=$(pwd)/result/bin:$PATH
-compactc
-```
-
-You could alternatively use `compiler` nix shell:
-
-```sh
-nix build
-nix develop .#compiler
-compactc
-```
-
-## Running compiler
-
-To compile a file `FILE` and produce:
-
-- circuit definitions (\*.zkir)
-- code for private state and transition functions
-- template for definitions
-
-```sh
-compactc FILE OUT-DIR
-```
-
-for example:
-
-```sh
-compactc ./examples/election.compact ./examples/
-```
-
-or to have smart contract code in separate files
-
-```sh
-compactc ./examples/zerocash.compact ./examples/zerocash
-```
-
-The compiler takes the following arguments:
-
-- `--vscode`, omitting newlines from error messages, so that they are rendered
-properly within the VS Code extension for Compact.
-- `--trace-passes`, outputting intermediate representations for debugging
-  purposes.
-- `--skip-zk`, omitting the generation of prover and verifier keys, the
-  dominant time cost in compilation.
-- `--no-communications-commitment`, omitting the contract communications
-  commitment which enables data integrity for contract-to-contract calls.
-
-## Dependencies
-
-If you need library for Chez Scheme, add entry to [nvfetcher.toml](nvfetcher.toml)
-and run [nvfetcher](https://github.com/berberman/nvfetcher) e.g.
-
-```sh
-nix run github:berberman/nvfetcher
-```
-
-## User documentation
-
-### Release
-
-#### get compactc.zip for required platform
-
-##### Linux-release:
-
-Get the compactc.zip from linux-release for linux and windows wsl:
-https://github.com/midnightntwrk/compactc/releases/tag/linux-release
-
-##### MacOS-release:
-
-Get the compactc.zip from macos-release for macos:
-https://github.com/midnightntwrk/compactc/releases/tag/macos-release
-
-##### Direct usage -- compile a contract
+## Repository Structure
 
 ```
-unzip compactc.zip
-mkdir output
-./run-compactc.sh /path/to/contract.compact output
-# inspect output folder
+compiler/         Compact compiler (Scheme, built with Chez Scheme via Nix)
+tools/compact/    CLI tool for managing the toolchain (Rust)
+specification/    Formal specification (Agda)
+doc/              Language reference and documentation
+runtime/          TypeScript runtime libraries
+editor-support/   VS Code and Vim extensions
+examples/         Example Compact contracts
 ```
 
-##### System wide installation -- compile a contract
+## Contributing
 
-```
-unzip compactc.zip
-# needs to be root
-./install.sh
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to build the compiler and CLI from source, run tests, and submit pull requests.
 
-cd ..
+## License
 
-mkdir output
-# compactc is now available on $PATH
-compactc /path/to/contract.compact output
-```
-
-### Docker
-
-#### get compactc image
-
-Replace 'registry' with one of [Docker registries](#docker-registries)
-
-```
-docker login registry
-
-docker pull registry/compactc:0.0.1
-```
-
-#### compile compactc smart contract using compact compiler
-
-Note: absolute paths are necessary
-Replace 'registry' with one of [Docker registries](#docker-registries)
-
-```
-PATH_TO_COMPACTC_REPO=$PWD
-docker run -v $PATH_TO_COMPACTC_REPO/examples/zerocash.compact:/zerocash.compact -v $PATH_TO_COMPACTC_REPO/tmp:/tmp registry/compactc:0.0.1 "compactc zerocash.compact /tmp"
-```
-
-#### debug or run container interactively
-
-Replace 'registry' with one of [Docker registries](#docker-registries)
-
-```
-docker run -dit registry/compactc:0.0.1 bash
-# get container-id, it's also returned from previous cmd
-docker ps
-docker exec -it container-id bash
-```
-
-## Docker registries
-
-github registry = ghcr.io/midnight-ntwrk/
-
-public dockerhub =
-
-## Generate/update API documentation
-
-To install [Typedoc](https://typedoc.org/), from the appropriate project's directory (`midnight-onchain-runtime` or `runtime`) execute:
-
-```sh
-npm i
-```
-
-To update documentation for `midnight-onchain-runtime`, from the project's directory execute:
-
-```sh
-npm run generate-docs-midnight-onchain-runtime
-```
-
-To update documentation for `runtime`, from the project's directory execute:
-
-```sh
-npm run generate-docs-runtime
-```
-
-### Test report
-
-Test report after test execution is visible in **console** and also as:
-  - [HTML Report](./tests-e2e/reports/test-report.html)
-  - [Markdown Report](./tests-e2e/reports/test-report.md)
-  - [JUnit Report](./tests-e2e/reports/test-report.xml)
-
-### Test logs
-
-Logs are present in [./tests-e2e/logs/tests](./tests-e2e/logs/tests)
+This project is licensed under [Apache-2.0](./LICENSE).
