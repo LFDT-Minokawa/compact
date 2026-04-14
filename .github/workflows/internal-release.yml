@@ -107,9 +107,13 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          # Extract just the major.minor.patch part (strip leading 'v' and any suffix like -rc.0)
-          CLEAN_VERSION=$(echo "$VERSION" | sed 's/^v//' | sed 's/-.*//')
-          echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
+          if [ -n "$VERSION" ]; then
+            # Extract just the major.minor.patch part (strip leading 'v' and any suffix like -rc.0)
+            CLEAN_VERSION=$(echo "$VERSION" | sed 's/^v//' | sed 's/-.*//')
+            echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set release notes include flag
         id: release_notes_flag
