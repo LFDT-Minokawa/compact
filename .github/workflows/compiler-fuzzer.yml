@@ -38,6 +38,13 @@ jobs:
           nix develop .#compiler --command yarn install
           nix develop .#compiler --command yarn test:fuzzer
 
+      - name: Upload failed contracts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failed-contracts
+          path: tests-e2e/failed-contracts/
+
       - name: Publish Test Report
         uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         if: always()
