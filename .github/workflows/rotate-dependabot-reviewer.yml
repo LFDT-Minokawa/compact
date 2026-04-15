@@ -1,0 +1,39 @@
+name: Rotate Dependabot Reviewer
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  assign-reviewer:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign rotating reviewer
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const reviewers = [
+              'pataei',
+              'dybvig',
+              'kmillikin',
+              'JosephDenman'
+            ];
+
+            // Week number determines who's on rotation
+            const now = new Date();
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            const weekNumber = Math.ceil(
+              ((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7
+            );
+            const primary = reviewers[weekNumber % reviewers.length];
+            const backup = reviewers[(weekNumber + 1) % reviewers.length];
+
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              reviewers: [primary, backup]
+            });
+
+            console.log(`Primary reviewer: ${primary}, Backup reviewer: ${backup} (week ${weekNumber})`);
