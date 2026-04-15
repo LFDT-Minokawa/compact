@@ -3342,9 +3342,8 @@ where `x` ⋯ are the contract constructor parameters and `T` ⋯ are the
 [TypeScript equivalents](#typescript-representation-of-compact-types)
 of their declared types.
 
-The type parameter `PS` represents the contract's private state type.
-When using these interfaces in your TypeScript use site, substitute `PS`
-with the type of your contract's private state.
+Wherever the type parameter `PS` appears, the TypeScript use site should
+supply the type of the contract's private state.
 
 References to `runtime` refer to the `@midnight/compact-runtime` library, which
 all contracts depend upon and which implements key built-in behaviors.
