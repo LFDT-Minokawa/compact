@@ -16,8 +16,8 @@
     "@midnight-ntwrk/zkir-v3"
   ],
   "devDependencies": {
-    "glob": "^10.4.5",
-    "typescript": "^5.0.0",
-    "vitest": "^3.1.1"
+    "glob": "^13.0.6",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
   }
 }

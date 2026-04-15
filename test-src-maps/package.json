@@ -7,7 +7,7 @@
     "@types/node": "^25.5.0",
     "source-map": "^0.7.4",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
+    "typescript": "^6.0.2",
     "vlq": "^2.0.4"
   },
   "type": "module",

@@ -41,3 +41,6 @@ reports
 *.log
 logs
 dist
+
+# failed fuzzer tests
+tests-e2e/failed-contracts/
