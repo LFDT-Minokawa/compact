@@ -4,7 +4,12 @@ description: Install Nix, configure Attic cache, and make the cache hook non-fat
 inputs:
   attic_token:
     description: Attic cache access token
-    required: true
+    required: false
+    default: ''
+  skip_cache:
+    description: Skip Attic cache configuration
+    required: false
+    default: 'false'
   nix_path:
     description: Nix path channel
     default: nixpkgs=channel:nixos-unstable
@@ -25,6 +30,7 @@ runs:
         extra_nix_config: ${{ inputs.extra_nix_config }}
 
     - name: Cache Nix
+      if: ${{ inputs.skip_cache != 'true' }}
       uses: input-output-hk/actions/attic@8663542d03a41382d97ee344a4e3955280db5f95 # latest
       continue-on-error: true
       with:
@@ -35,6 +41,7 @@ runs:
 
     # TODO: Fix upstream in input-output-hk/actions/attic or replace Attic.
     - name: Make cache hook non-fatal
+      if: ${{ inputs.skip_cache != 'true' }}
       shell: bash
       env:
         HOOK: ${{ runner.temp }}/post-build.sh

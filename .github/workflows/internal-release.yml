@@ -98,7 +98,7 @@ jobs:
         id: macos_arm
         run: echo "name=aarch64-darwin" >> "$GITHUB_OUTPUT"
 
-      - name: Set linux x86 name
+      - name: Set macos x86 name
         id: macos_x86
         run: echo "name=x86_64-darwin" >> "$GITHUB_OUTPUT"
 
@@ -107,9 +107,13 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          # Extract just the major.minor.patch part (strip leading 'v' and any suffix like -rc.0)
-          CLEAN_VERSION=$(echo "$VERSION" | sed 's/^v//' | sed 's/-.*//')
-          echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
+          if [ -n "$VERSION" ]; then
+            # Extract just the major.minor.patch part (strip leading 'v' and any suffix like -rc.0)
+            CLEAN_VERSION=$(echo "$VERSION" | sed 's/^v//' | sed 's/-.*//')
+            echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set release notes include flag
         id: release_notes_flag
@@ -244,7 +248,7 @@ jobs:
       skipCache: true
 
   test-arm-linux:
-    name: Test compactc on Linux aarch42 (Arm)
+    name: Test compactc on Linux aarch64 (Arm)
     uses: ./.github/workflows/release-test.yml
     needs: [ setup, build-release-arm-linux ]
     permissions:

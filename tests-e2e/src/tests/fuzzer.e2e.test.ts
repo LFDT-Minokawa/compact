@@ -22,6 +22,7 @@ import { generate } from '../fuzzer/fuzzers.cjs';
 const contractsDir: string = createTempFolder();
 generate(contractsDir, process.env.NO_OF_FUZZER_TESTS || 1000);
 const generatedContracts = fs.readdirSync(contractsDir);
+const failDir = path.join(process.cwd(), 'failed-contracts');
 
 describe.skipIf(isRelease())('[E2E] Fuzzer tests for compiler', () => {
     generatedContracts.forEach((fileName) => {
@@ -31,15 +32,21 @@ describe.skipIf(isRelease())('[E2E] Fuzzer tests for compiler', () => {
         test(`should be able to compile synthetic contract: '${fileName}'`, async () => {
             const outputDir = createTempFolder();
 
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
-            expectCompilerResult(result, {
-                contract: contractContent,
-                ignoreStdOut: false,
-                ignoreStdErr: false,
-            }).stdErrToNotContain(['Internal']);
+            try {
+                const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+                expectCompilerResult(result, {
+                    contract: contractContent,
+                    ignoreStdOut: false,
+                    ignoreStdErr: false,
+                }).stdErrToNotContain(['Internal']);
 
-            if (result.exitCode == ExitCodes.Success) {
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                if (result.exitCode == ExitCodes.Success) {
+                    expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                }
+            } catch (e) {
+                fs.mkdirSync(failDir, { recursive: true });
+                fs.writeFileSync(path.join(failDir, fileName), contractContent);
+                throw e;
             }
         });
     });
