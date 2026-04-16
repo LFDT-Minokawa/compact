@@ -663,7 +663,11 @@
          (assert code-generator)
          (code-generator var-name* src test triv* instr*))]
       [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...))
-       (source-errorf src "cross-contract calls are not yet supported")]
+       (if (feature-cross-contract)
+           (begin
+             (source-warningf src "cross-contract call skipped (experimental cross-contract support)")
+             instr*)
+           (source-errorf src "cross-contract calls are not yet supported"))]
       [(= (,var-name) (default ,opaque-type))
        (assert (string=? opaque-type "JubjubPoint"))
        (with-output-language (Lzkir Instruction)

@@ -66070,6 +66070,60 @@ groups than for single tests.
 
   )
 
+(parameterize ([feature-cross-contract #t] [feature-zkir-v3 #t])
+(run-tests print-zkir-v3
+  (test-group
+    ((create-file "Calc.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export circuit get_value(): Field { return 42; }"
+         ))
+     (succeeds))
+    ((create-file "UseCalc.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "contract Calc {"
+         "  pure circuit get_value(): Field;"
+         "}"
+         "ledger c: Calc;"
+         "constructor (addr: Calc) { c = disclose(addr); }"
+         "export circuit call_calc(): Field { return c.get_value(); }"
+         ))
+     (succeeds)
+     (warning
+       message: "~a:\n  ~?"
+       irritants: '("UseCalc.compact line 7 char 45" "cross-contract call skipped (experimental cross-contract support)" ()))
+     ))
+  ))
+
+(parameterize ([feature-cross-contract #t] [feature-zkir-v3 #t])
+(run-tests print-typescript
+  (test-group
+    ((create-file "Calc.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export circuit get_value(): Field { return 42; }"
+         ))
+     (succeeds))
+    ((create-file "UseCalc.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "contract Calc {"
+         "  pure circuit get_value(): Field;"
+         "}"
+         "ledger c: Calc;"
+         "constructor (addr: Calc) { c = disclose(addr); }"
+         "export circuit call_calc(): Field { return c.get_value(); }"
+         ))
+     (succeeds)
+     (warning
+       message: "~a:\n  ~?"
+       irritants: '("UseCalc.compact line 7 char 45" "cross-contract call skipped (experimental cross-contract support)" ())
+       message: "~a:\n  ~?"
+       irritants: '("UseCalc.compact line 7 char 45" "cross-contract call stubbed (experimental cross-contract support)" ()))
+     ))
+  ))
+
 (with-parameter-values ([feature-zkir-v3 #f #t])
 (run-tests print-typescript
   (test-group

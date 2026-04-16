@@ -15,6 +15,7 @@ plonk-napi/pkg
 *.node
 
 *.mdb
+*.so
 .direnv
 
 # nix result
