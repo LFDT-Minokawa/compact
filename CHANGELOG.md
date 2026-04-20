@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.30.107, language 0.22.101, runtime 0.15.101]
+
+### Fixed
+
+Various zkir operators that can result in assertion failures and thus should
+be executed conditionally do not have guards are thus actually executed
+unconditionally.  This can result in proof failures for correct transactions.
+For example, casting an unsigned integer value to a smaller unsigned type will
+always cause the proof to fail when the value is too big for that type, even if
+the cast occurs in a branch that is not taken in the Compact code.
+
+The intent is to add guards to these operators in the next version of zkir.
+In the meantime, the compiler implements workarounds that arrange to invoke
+these operators with inputs that cannot cause assertion failures when the
+guard would be false.
+
+The downside of these workarounds is that they can increase the size of the
+generated circuit.
+The size increase arises from conditional use (i.e., use in the `then` or
+`else` part of an `if` statement or expression) of:
+
+- downcasts from Uint types to smaller Uint types,
+- downcasts of Field to Uint types,
+- conversions of byte vectors to and from fields or unsigned integers,
+- conversions of vectors to byte vectors, and
+- uses of relational comparison expressions (<, <=, >=, and >) with inputs
+  that might be unknown.
+
+If the increase in circuit size is problematic for a particular contract, developers
+should consider moving downcasts, conversions, and relational comparisons outside
+of `if` expressions where possible until zkir supports the required guards and the
+compiler workarounds have been removed.
+
 ## [Toolchain 0.30.106, language 0.22.101, runtime 0.15.101]
 
 ### Added

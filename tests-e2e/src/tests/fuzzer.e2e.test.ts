@@ -25,29 +25,34 @@ const generatedContracts = fs.readdirSync(contractsDir);
 const failDir = path.join(process.cwd(), 'failed-contracts');
 
 describe.skipIf(isRelease())('[E2E] Fuzzer tests for compiler', () => {
+    fs.mkdirSync(failDir, { recursive: true });
+
     generatedContracts.forEach((fileName) => {
         const filePath = path.join(contractsDir, fileName);
-        const contractContent = getFileContent(filePath);
 
         test(`should be able to compile synthetic contract: '${fileName}'`, async () => {
+            const contractContent = getFileContent(filePath);
             const outputDir = createTempFolder();
 
-            try {
-                const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
-                expectCompilerResult(result, {
-                    contract: contractContent,
-                    ignoreStdOut: false,
-                    ignoreStdErr: false,
-                }).stdErrToNotContain(['Internal']);
+            console.log(contractContent);
 
-                if (result.exitCode == ExitCodes.Success) {
-                    expectFiles(outputDir).thatGeneratedJSCodeIsValid();
-                }
-            } catch (e) {
-                fs.mkdirSync(failDir, { recursive: true });
-                fs.writeFileSync(path.join(failDir, fileName), contractContent);
-                throw e;
+            // Write the contract preemptively — remove it if the test passes
+            const failPath = path.join(failDir, fileName);
+            fs.writeFileSync(failPath, contractContent);
+
+            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+            expectCompilerResult(result, {
+                contract: contractContent,
+                ignoreStdOut: false,
+                ignoreStdErr: false,
+            }).stdErrToNotContain(['Internal']);
+
+            if (result.exitCode == ExitCodes.Success) {
+                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
             }
+
+            // Only reached if the test passed — clean up
+            fs.rmSync(failPath);
         });
     });
 });
