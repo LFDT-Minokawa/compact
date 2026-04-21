@@ -2694,6 +2694,21 @@
                      (make-Qconcat "..." (Expr expr (precedence add1 comma) outer-pure?))]))
                 tuple-arg*))
             "]"))
+        (define (downcast-unsigned src nat expr)
+          (let ([expr (Expr expr (precedence add1 comma) outer-pure?)])
+            (parenthesize level (precedence call)
+              (make-Qconcat
+                "((t1) => {"
+                2 (format "if (t1 > ~an) {" nat)
+                4 (format "throw new ~a('~a: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than ~a');"
+                    (compact-stdlib "CompactError")
+                    (format-source-object src)
+                    nat)
+                2 "}"
+                2 "return t1;"
+                0 "})("
+                expr
+                ")"))))
         (define (build-equal-helper! type equal-name)
           (define (build-equal-body type)
             (with-output-to-string
@@ -2928,16 +2943,16 @@
        (parenthesize level (precedence *)
          ; infer-type guarantees that the result is in range via range analysis
          (make-Qconcat expr1 0 "*" 0 expr2))]
-      [(< ,src ,mbits ,[Expr : expr1 (precedence <) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 <) outer-pure? -> * expr2])
+      [(< ,src ,bits ,[Expr : expr1 (precedence <) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 <) outer-pure? -> * expr2])
        (parenthesize level (precedence <)
          (make-Qconcat expr1 0 "<" 0 expr2))]
-      [(<= ,src ,mbits ,[Expr : expr1 (precedence <=) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 <=) outer-pure? -> * expr2])
+      [(<= ,src ,bits ,[Expr : expr1 (precedence <=) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 <=) outer-pure? -> * expr2])
        (parenthesize level (precedence <=)
          (make-Qconcat expr1 0 "<=" 0 expr2))]
-      [(> ,src ,mbits ,[Expr : expr1 (precedence >) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 >) outer-pure? -> * expr2])
+      [(> ,src ,bits ,[Expr : expr1 (precedence >) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 >) outer-pure? -> * expr2])
        (parenthesize level (precedence >)
          (make-Qconcat expr1 0 ">" 0 expr2))]
-      [(>= ,src ,mbits ,[Expr : expr1 (precedence >=) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 >=) outer-pure? -> * expr2])
+      [(>= ,src ,bits ,[Expr : expr1 (precedence >=) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 >=) outer-pure? -> * expr2])
        (parenthesize level (precedence >=)
          (make-Qconcat expr1 0 ">=" 0 expr2))]
       [(== ,src ,type ,expr1 ,expr2)
@@ -3190,21 +3205,8 @@
                  0 "})("
                  expr
                  ")"))))]
-      [(downcast-unsigned ,src ,nat ,expr)
-       (let ([expr (Expr expr (precedence add1 comma) outer-pure?)])
-         (parenthesize level (precedence call)
-           (make-Qconcat
-             "((t1) => {"
-             2 (format "if (t1 > ~an) {" nat)
-             4 (format "throw new ~a('~a: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than ~a');"
-                 (compact-stdlib "CompactError")
-                 (format-source-object src)
-                 nat)
-             2 "}"
-             2 "return t1;"
-             0 "})("
-             expr
-             ")")))]
+      [(downcast-unsigned ,src ,nat? ,nat ,expr)
+       (downcast-unsigned src nat expr)]
       [(safe-cast ,src ,type ,type^ ,expr)
        ; no checks needed for safe casts
        (Expr expr level outer-pure?)]

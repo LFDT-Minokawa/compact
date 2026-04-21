@@ -2043,7 +2043,12 @@
                     (values
                       (with-output-language (Ltypes Expression)
                         (if nat1
-                            (if (eq? op '-) result-expr `(downcast-unsigned ,src ,nat1 ,result-expr))
+                            (if (eq? op '-)
+                                result-expr
+                                (let ([result-nat (nanopass-case (Ltypes Type) result-type
+                                                    [(tunsigned ,src ,nat) nat]
+                                                    [else (assert cannot-happen)])])
+                                  `(downcast-unsigned ,src ,result-nat ,nat1 ,result-expr)))
                             `(safe-cast ,src ,type1 ,result-type ,result-expr)))
                       type1)))))))
       (define (relational-operator src expr1 expr2 k)
@@ -2055,12 +2060,12 @@
                       (T (de-alias type2 #f)
                          [(tunsigned ,src2 ,nat2)
                           (let-values ([(type nat) (if (< nat1 nat2) (values type2 nat2) (values type1 nat1))])
-                            (let ([mbits (fxmax 1 (integer-length nat))])
+                            (let ([bits (fxmax 1 (integer-length nat))])
                               ; maybe-bind forces the evaluation of expr1 before expr2.
                               ; this prevents the downstream transformations from changing the evaluation order.
                               (maybe-bind src type1 expr1
                                 (lambda (expr1)
-                                  (k mbits (maybe-safecast src type type1 expr1) (maybe-safecast src type type2 expr2))))))])]
+                                  (k bits (maybe-safecast src type type1 expr1) (maybe-safecast src type type2 expr2))))))])]
                      [(talias ,src1 ,nominal1? ,type-name1 ,type1)
                       (T (de-alias type2 #f)
                          [(talias ,src2 ,nominal2? ,type-name2 ,type2)
@@ -2733,20 +2738,20 @@
            `(* ,src ,mbits ,expr1 ,expr2)))]
       [(< ,src ,expr1 ,expr2)
        (relational-operator src expr1 expr2
-         (lambda (mbits expr1 expr2)
-           `(< ,src ,mbits ,expr1 ,expr2)))]
+         (lambda (bits expr1 expr2)
+           `(< ,src ,bits ,expr1 ,expr2)))]
       [(<= ,src ,expr1 ,expr2)
        (relational-operator src expr1 expr2
-         (lambda (mbits expr1 expr2)
-           `(<= ,src ,mbits ,expr1 ,expr2)))]
+         (lambda (bits expr1 expr2)
+           `(<= ,src ,bits ,expr1 ,expr2)))]
       [(> ,src ,expr1 ,expr2)
        (relational-operator src expr1 expr2
-         (lambda (mbits expr1 expr2)
-           `(> ,src ,mbits ,expr1 ,expr2)))]
+         (lambda (bits expr1 expr2)
+           `(> ,src ,bits ,expr1 ,expr2)))]
       [(>= ,src ,expr1 ,expr2)
        (relational-operator src expr1 expr2
-         (lambda (mbits expr1 expr2)
-           `(>= ,src ,mbits ,expr1 ,expr2)))]
+         (lambda (bits expr1 expr2)
+           `(>= ,src ,bits ,expr1 ,expr2)))]
       [(== ,src ,expr1 ,expr2)
        (equality-operator src expr1 expr2
          (lambda (type expr1 expr2)
@@ -3063,10 +3068,10 @@
                 [(tunsigned ,src1 ,nat1)
                  (T type^
                     [(tfield ,src2)
-                     `(downcast-unsigned ,src ,nat1 ,expr)]
+                     `(downcast-unsigned ,src #f ,nat1 ,expr)]
                     [(tunsigned ,src2 ,nat2)
                      (assert (> nat2 nat1))
-                     `(downcast-unsigned ,src ,nat1 ,expr)]
+                     `(downcast-unsigned ,src ,nat2 ,nat1 ,expr)]
                     [(tbytes ,src2 ,len2)
                      (guard (not (= len2 0)))
                      `(cast-from-bytes ,src ,type ,len2 ,expr)]
@@ -3075,7 +3080,7 @@
                     [(tboolean ,src2)
                      (if (= nat1 0)
                          `(if ,src ,expr
-                              (downcast-unsigned ,src ,nat1 (quote ,src 1))
+                              (downcast-unsigned ,src 1 ,nat1 (quote ,src 1))
                               (quote ,src 0))
                          `(if ,src ,expr
                               ,(if (eqv? nat1 1)
@@ -3604,7 +3609,7 @@
                               (format-type type1)
                               op)))
            type1))
-       (define (relational-operator src mbits expr1 expr2)
+       (define (relational-operator src bits expr1 expr2)
          (let ([type1 (Care expr1)] [type2 (Care expr2)])
            (let ([unaliased-type1 (de-alias type1)] [unaliased-type2 (de-alias type2)])
              (or (T unaliased-type1
@@ -3614,11 +3619,11 @@
                  (source-errorf src "incompatible combination of types ~a and ~a for relational operator"
                                 (format-type type1)
                                 (format-type type2)))
-             (unless (eqv? (T unaliased-type1 [(tunsigned ,src ,nat) (fxmax 1 (integer-length nat))]) mbits)
+             (unless (eqv? (T unaliased-type1 [(tunsigned ,src ,nat) (fxmax 1 (integer-length nat))]) bits)
                ; the error message says "relational operator" here rather than "<" to avoid misleading
                ; type-mismatch messages for <=, >, and >=; which all get converted to < earlier in the compiler.
-               (source-errorf src "mismatched mbits ~s and type ~a for relational operator"
-                              mbits
+               (source-errorf src "mismatched bits ~s and type ~a for relational operator"
+                              bits
                               (format-type type1)))))
          (with-output-language (Lnodca Type) `(tboolean ,src)))
        (define (equality-operator src type expr1 expr2)
@@ -3875,14 +3880,14 @@
        (arithmetic-binop src "-" mbits expr1 expr2)]
       [(* ,src ,mbits ,expr1 ,expr2)
        (arithmetic-binop src "*" mbits expr1 expr2)]
-      [(< ,src ,mbits ,expr1 ,expr2)
-       (relational-operator src mbits expr1 expr2)]
-      [(<= ,src ,mbits ,expr1 ,expr2)
-       (relational-operator src mbits expr1 expr2)]
-      [(> ,src ,mbits ,expr1 ,expr2)
-       (relational-operator src mbits expr1 expr2)]
-      [(>= ,src ,mbits ,expr1 ,expr2)
-       (relational-operator src mbits expr1 expr2)]
+      [(< ,src ,bits ,expr1 ,expr2)
+       (relational-operator src bits expr1 expr2)]
+      [(<= ,src ,bits ,expr1 ,expr2)
+       (relational-operator src bits expr1 expr2)]
+      [(> ,src ,bits ,expr1 ,expr2)
+       (relational-operator src bits expr1 expr2)]
+      [(>= ,src ,bits ,expr1 ,expr2)
+       (relational-operator src bits expr1 expr2)]
       [(== ,src ,type ,expr1 ,expr2)
        (equality-operator src type expr1 expr2)]
       [(!= ,src ,type ,expr1 ,expr2)
@@ -4066,13 +4071,19 @@
                         len
                         (format-type type)))
        (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
-      [(downcast-unsigned ,src ,nat ,[Care : expr -> * type])
-       (unless (nanopass-case (Lnodca Type) (de-alias type)
-                 [(tfield ,src) #t]
-                 [(tunsigned ,src ,nat) #t]
-                 [else #f])
-         (source-errorf src "expected Uint, got ~a for downcast-unsigned"
-                              (format-type type)))
+      [(downcast-unsigned ,src ,nat? ,nat ,[Care : expr -> * type])
+       (when nat? (assert (< nat nat?)))
+       (if nat?
+           (unless (nanopass-case (Lnodca Type) (de-alias type)
+                     [(tunsigned ,src ,nat) #t]
+                     [else #f])
+             (source-errorf src "expected Uint, got ~a for downcast-unsigned"
+                            (format-type type)))
+           (unless (nanopass-case (Lnodca Type) (de-alias type)
+                     [(tfield ,src) #t]
+                     [else #f])
+             (source-errorf src "expected Field, got ~a for downcast-unsigned"
+                            (format-type type))))
        (with-output-language (Lnodca Type) `(tunsigned ,src ,nat))]
       [(safe-cast ,src ,type ,type^ ,[Care : expr -> * type^^])
        (unless (sametype? type^^ type^)
@@ -5381,10 +5392,10 @@
        (add-path-point src "the computation" "the result of a subtraction involving" (combine-abs abs1 abs2))]
       [(* ,src ,mbits ,[* abs1] ,[* abs2])
        (add-path-point src "the computation" "the result of a multiplication involving" (combine-abs abs1 abs2))]
-      [(< ,src ,mbits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
-      [(<= ,src ,mbits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
-      [(> ,src ,mbits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
-      [(>= ,src ,mbits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
+      [(< ,src ,bits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
+      [(<= ,src ,bits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
+      [(> ,src ,bits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
+      [(>= ,src ,bits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
       [(== ,src ,type ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
       [(!= ,src ,type ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
 
@@ -5504,7 +5515,7 @@
       [(field->bytes ,src ,len ,[* abs]) abs]
       [(bytes->vector ,src ,len ,[* abs]) (Abs-single (Abs-atomic (abs->witnesses abs)))]
       [(vector->bytes ,src ,len ,[* abs]) (Abs-atomic (abs->witnesses abs))]
-      [(downcast-unsigned ,src ,nat ,[* abs]) abs]
+      [(downcast-unsigned ,src ,nat? ,nat ,[* abs]) abs]
       [(safe-cast ,src ,type ,type^ ,[* abs]) abs]
 
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[* abs*] ...)
