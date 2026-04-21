@@ -5,27 +5,15 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    groups:
-      actions-all:
-        patterns:
-          - "*"
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "weekly"
-    groups:
-      cargo-minor-patch:
-        update-types:
-          - "minor"
-          - "patch"
-        patterns:
-          - "*"
-      cargo-major:
-        update-types:
-          - "major"
-        patterns:
-          - "*"
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directories:
@@ -38,18 +26,13 @@ updates:
       - "/nix/dry-install"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     groups:
-      npm-minor-patch:
-        update-types:
-          - "minor"
-          - "patch"
+      npm-all:
         patterns:
           - "*"
-      npm-major:
-        update-types:
-          - "major"
-        patterns:
-          - "*"
+        group-by: dependency-name
 
 #  - package-ecosystem: "docker"
 #    directory: "/"
