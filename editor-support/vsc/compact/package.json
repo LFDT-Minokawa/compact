@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "version": "0.2.11",
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.116.0"
   },
   "icon": "icon-white.png",
   "categories": [
