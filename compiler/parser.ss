@@ -125,6 +125,7 @@
      debugger
      delete
      do
+     event
      extends
      finally
      function
@@ -133,6 +134,7 @@
      instanceof
      interface
      let
+     log
      null
      package
      private
