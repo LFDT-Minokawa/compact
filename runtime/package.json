@@ -47,7 +47,7 @@
     "prettier": "^3.4.2",
     "typedoc": "^0.28.1",
     "typedoc-plugin-markdown": "4.6.4",
-    "typescript": "^5.8.3",
+    "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   },
   "repository": {

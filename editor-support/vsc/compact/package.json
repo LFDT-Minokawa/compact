@@ -125,7 +125,7 @@
     "rimraf": "^6.0.1",
     "serialize-javascript": "^7.0.5",
     "ts-jest": "^29.4.9",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.2"
   },
   "scripts": {
     "package": "yarn build && vsce package --no-yarn",
