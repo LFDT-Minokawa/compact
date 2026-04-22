@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "version": "0.2.11",
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.116.0"
   },
   "icon": "icon-white.png",
   "categories": [
@@ -100,7 +100,7 @@
     "@types/glob": "^9.0.0",
     "@types/jest": "^30.0.0",
     "@types/mocha": "^10.0.10",
-    "@types/vscode": "^1.100.0",
+    "@types/vscode": "^1.116.0",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.58.2",
     "@vscode/test-electron": "^2.5.2",
