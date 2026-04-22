@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   assign-reviewer:
-    if: github.actor == 'dependabot[bot]'
+    # if: github.actor == 'dependabot[bot]'
+    if: github.actor == 'pataei'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
