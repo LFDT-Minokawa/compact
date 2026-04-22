@@ -421,7 +421,7 @@ jobs:
           sed -i "s/^# Compact toolchain .*/# Compact toolchain ${CLEAN_VERSION}/" "$RELEASE_NOTES_FILE"
 
       - name: Create Release on midnight-ntwrk/artifacts
-        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           repository: midnight-ntwrk/artifacts
           tag_name: compactc-${{ inputs.version || github.ref_name }}
@@ -435,7 +435,7 @@ jobs:
 
       - name: Create Release on LFDT/Minokawa
         id: create_release_lfdt
-        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           repository: LFDT-Minokawa/compact
           tag_name: compactc-${{ inputs.version || github.ref_name }}
