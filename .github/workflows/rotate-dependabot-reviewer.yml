@@ -1,8 +1,12 @@
 name: Rotate Dependabot Reviewer
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened]
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   assign-reviewer:
@@ -11,6 +15,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          sparse-checkout: .github
+          sparse-checkout-cone-mode: false
 
       - name: Assign rotating reviewer
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
@@ -21,7 +28,7 @@ jobs:
             // --- Load reviewer pool (one handle per line, # for comments) ---
             // default rotation reading from the dependabot-reviewers.txt:
             // W17 pataei, dybvig
-            // W18 dybvig, kmillikiin
+            // W18 dybvig, kmillikin
             // W19 kmillikin, JosephDenman
             // W20 JosephDenman, pataei
             // W21 pataei, dybvig
@@ -36,7 +43,7 @@ jobs:
             }
 
             // --- Load weekly overrides (may not exist) ---
-            // any override to the schedule (either skip or trade) is included in this file and merged in main
+            // any override to the schedule (either skip or trade) is included in this file and merged to main
             // for a swap: add two entries, e.g., pataei <-> dybvig swap of W12 and W15
             // for a skip: add a single entry, e.g., pataei skip of W10
             // the weeks are ISO weeks which can be seen by enabling "Show week numbers" in a google calendar
@@ -54,6 +61,8 @@ jobs:
             const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
             const dayNum = d.getUTCDay() || 7;
             d.setUTCDate(d.getUTCDate() + 4 - dayNum); // nearest Thursday
+            // Use d (post-Thursday-shift) for the year, not `now` — ISO week-numbering
+            // year can differ from calendar year near Jan 1 / Dec 31.
             const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
             const weekNum = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
             const weekKey = `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
