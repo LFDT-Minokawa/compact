@@ -6931,11 +6931,327 @@ groups than for single tests.
 
   (test
     '(
-      "circuit in(): [];"
+      "circuit await():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"await\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit break():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"break\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit case():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"case\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit catch():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"catch\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit class():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"class\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit continue():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"continue\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit debugger():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"debugger\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+
+  (test
+    '(
+      "circuit delete():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"delete\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit do():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"do\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit event():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"event\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit extends():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"extends\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit finally():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"finally\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit function():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"function\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit implements():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"implements\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit in():[] {}"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"in\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit instanceof():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"instanceof\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit interface():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit let():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"let\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit log():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"log\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit null():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"null\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit package():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"package\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit private():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"private\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit protected():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"protected\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit public():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"public\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit static():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"static\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit super():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"super\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit switch():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"switch\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit this():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"this\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit throw():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"throw\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit try():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"try\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit typeof():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"typeof\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit var():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"var\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit void():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"void\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit while():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"while\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit with():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"with\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit yield():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"yield\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
     )
 )
 
