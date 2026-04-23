@@ -125,6 +125,7 @@
      debugger
      delete
      do
+     event
      extends
      finally
      function

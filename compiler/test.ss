@@ -7013,6 +7013,15 @@ groups than for single tests.
 
   (test
     '(
+      "circuit event():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"event\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
       "circuit extends():[] {}"
       )
     (oops
