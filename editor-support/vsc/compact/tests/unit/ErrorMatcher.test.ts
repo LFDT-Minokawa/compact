@@ -106,7 +106,7 @@ describe('problemMatchers regexps should', () => {
     // then
     expect(actualParts).not.toBeNull();
     expectedParts.forEach((val, indx, arr) => {
-      expect(actualParts.includes(val)).toBe(true);
+      expect(actualParts!.includes(val)).toBe(true);
     });
   }
 });
