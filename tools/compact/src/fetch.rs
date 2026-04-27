@@ -102,6 +102,7 @@ impl MidnightCompiler {
     pub fn compiler(&self, cfg: &CommandLineArguments) -> Result<CompilerAsset> {
         let asset = match cfg.target {
             Target::x86_64UnknownLinuxMusl => self.x86_linux.clone(),
+            Target::Aarch64UnknownLinuxMusl => self.aarch64_linux.clone(),
             Target::Aarch64AppleDarwin => self.aarch64_macos.clone(),
             Target::x86_64AppleDarwin => self.x86_macos.clone(),
         };
@@ -201,7 +202,7 @@ async fn load_compiler_version(dir: octocrab::models::repos::Release) -> Result<
     let mut x86_macos = None;
     let mut aarch64_macos = None;
     let mut x86_linux = None;
-    let aarch64_linux = None;
+    let mut aarch64_linux = None;
 
     for asset in dir.assets {
         if asset.name.contains("aarch64-darwin") {
@@ -209,6 +210,10 @@ async fn load_compiler_version(dir: octocrab::models::repos::Release) -> Result<
         } else if asset.name.contains("x86_64-apple-darwin") || asset.name.contains("x86_64-darwin")
         {
             x86_macos = Some(asset);
+        } else if asset.name.contains("aarch64-unknown-linux")
+            || asset.name.contains("aarch64-linux")
+        {
+            aarch64_linux = Some(asset);
         } else if asset.name.contains("x86_64-unknown-linux") {
             x86_linux = Some(asset);
         }

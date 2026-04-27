@@ -113,8 +113,13 @@
     (Function : Function (ir) -> Function ()
       [(fref ,src ,function-name ,generic-arg-list?)
        (let ([function-name (maybe-rename src function-name)]
-             [generic-param-list? (and generic-arg-list? (Generic-Arg-List generic-arg-list?))])
+             [generic-arg-list? (and generic-arg-list? (Generic-Arg-List generic-arg-list?))])
          `(fref ,src ,function-name ,generic-arg-list?))])
+    (Type-Ref : Type-Ref (ir) -> Type-Ref ()
+      [(type-ref ,src ,tvar-name ,generic-arg-list?)
+       (let ([tvar-name (maybe-rename src tvar-name)]
+             [generic-param-list? (and generic-arg-list? (Generic-Arg-List generic-arg-list?))])
+         `(type-ref ,src ,tvar-name ,generic-arg-list?))])
     (Generic-Param-List : Generic-Param-List (ir) -> Generic-Param-List ())
     (Generic-Arg-List : Generic-Arg-List (ir) -> Generic-Arg-List ()))
 

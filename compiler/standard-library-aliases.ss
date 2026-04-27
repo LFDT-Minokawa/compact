@@ -14,7 +14,7 @@
 ;;; limitations under the License.
 
 (library (standard-library-aliases)
-  (export stdlib-circuit-aliases stdlib-struct-field-aliases ledger-op-aliases)
+  (export stdlib-circuit-aliases stdlib-type-aliases stdlib-struct-field-aliases ledger-op-aliases)
   (import (chezscheme))
 
   (define (to-symbol-hashtable alist)
@@ -58,6 +58,10 @@
       (nativePointX . jubjubPointX)
       (nativePointY . jubjubPointY)
       (constructNativePoint . constructJubjubPoint)))
+
+  (define stdlib-type-aliases
+    '((NativePoint . JubjubPoint)
+      (CurvePoint . JubjubPoint)))
 
   (define stdlib-struct-field-aliases
     '(
