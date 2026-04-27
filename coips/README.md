@@ -27,8 +27,8 @@ They can have several different statuses as they move through the lifecycle of a
 
 ## Draft and Submitted CoIPs
 
-| CoIP | Title | Authors | Category | Status
-| ---- | ----- | -------- | ------- |
+| CoIP | Title | Authors | Category | Status |
+| --- | --- | --- | --- | --- |
 | 1 | Compact Improvement Proposal Process | Bob Blessing-Hartley and Kevin Millikin | Process | Draft |
 
 ## Rejected, Superseded, Obsolete, and Withdrown CoIPs
