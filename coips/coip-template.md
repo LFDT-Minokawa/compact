@@ -1,14 +1,14 @@
 ---
 CoIP: X
-Title: {short descriptive title goes here}
+Title: short descriptive title goes here
 Authors:
-  - {Author name} ({Author GitHub username})
-  - {Note: alphabetize authors by last name}
+  - Author name (author GitHub username)
+  - Note: alphabetize authors by last name
 Status: Draft
-Category: {see CoIP Categories in CoIP-1}
-Created: {creation date YYYY-MM-DD }
-Requires: { CoIPs that this one depends on which are not yet accepted}
-Replaces: { CoIPs that this one will supercede when accepted}
+Category: see CoIP Categories in CoIP-1
+Created: creation date YYYY-MM-DD
+Requires: CoIPs that this one depends on which are not yet accepted
+Replaces: CoIPs that this one will supercede when accepted
 ---
 
 <!--
