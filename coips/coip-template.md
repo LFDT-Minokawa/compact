@@ -89,16 +89,17 @@ other contexts.
 
 Acknowledge non-authors who helped with the CoIP.
 
-## Footnotes
-
-If necessary, included footnotes in the CoIP text using GitHub's footnote
-syntax[^1].  Add the footnote content in this section.
-
-[^1]: See the [GitHub Markdown guide](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#footnotes).
-
 ## Copyright
 
 All contributions submitted in this CoIP must be licenced under the Apache
 License, version 2.0.  Include the paragraph below.
 
 This CoIP is licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+## Footnotes
+
+If necessary, include footnotes in the CoIP text using GitHub's footnote
+syntax[^1].  Keep the footnote heading at the bottom of the document.
+
+[^1]: See the [GitHub Markdown guide](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#footnotes).
+
