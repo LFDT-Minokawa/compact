@@ -148,6 +148,8 @@ jobs:
     name: Check if documentation is updated
     if: ${{ inputs.docs }}
     needs: [ setup ]
+    permissions:
+      contents: read
     uses: ./.github/workflows/check-docs.yml
     secrets: inherit
     with:
@@ -309,6 +311,8 @@ jobs:
     if: ${{ inputs.docs }}
     name: Create branch in midnight-docs with latest documentation
     needs: [ setup, check-docs, make-internal-release-public ]
+    permissions:
+      contents: read
     uses: ./.github/workflows/generate-docs.yml
     secrets: inherit
     with:
@@ -321,6 +325,8 @@ jobs:
     if: ${{ inputs.create_release_notes }}
     name: Create branch in midnight-docs for release notes
     needs: [ setup, check-release-notes-exist, make-internal-release-public ]
+    permissions:
+      contents: read
     uses: ./.github/workflows/compute-release-notes.yml
     secrets: inherit
     with:
