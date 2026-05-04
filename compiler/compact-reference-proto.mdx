@@ -3254,7 +3254,8 @@ a `Field`.
 - The maximum length of a vector or byte vector is @(parameter max-bytes/vector-length).
 This value is chosen as a reasonable upper bound that helps prevent the compiler
 from looping indefinitely on programs that operate on excessively large vector
-and byte-vector types.
+and byte-vector types. Consequently, this value dictates the possible range for
+a `for` loop.
 
 These limits may change in future versions of the compiler.
 
