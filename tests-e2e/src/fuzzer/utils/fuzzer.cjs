@@ -48,6 +48,7 @@ class Fuzzer {
             if (node === 'random_version') return pickRandomVersion();
             if (node === 'random_string') return pickRandomString('random', { length: this.stringLength, exactLength: false });
             if (node === 'random_number') return pickRandomNumber('random', { bigIntSize: this.numberPower });
+            if (node === 'very_small_random_number') return pickRandomNumber('ubigint', { bigIntSize: 10 }); // guarantee to get a number <= 2^10
             if (node === 'small_random_number') return pickRandomNumber('random', { bigIntSize: 16 });
             if (node === 'random_table') return pickRandomTable(this.tableLength);
             if (node === 'random_mixed_table') return randomMixedTable(this.tableLength);
