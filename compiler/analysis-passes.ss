@@ -1319,7 +1319,7 @@
           (hashtable-delete! ht id))
         (define (get-idtype src id)
           (or (hashtable-ref ht id #f)
-              (internal-errorf 'set-idtype! "type of identifier ~s at ~a has not been set"
+              (internal-errorf 'get-idtype! "type of identifier ~s at ~a has not been set"
                 (id-sym id)
                 (format-source-object src))))
         )
