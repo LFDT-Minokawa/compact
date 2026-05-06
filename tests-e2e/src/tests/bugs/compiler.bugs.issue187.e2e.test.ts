@@ -39,21 +39,18 @@ type ZkirCircuit = {
     instructions: ZkirInstruction[];
 };
 
-type ExpectedLessThanOperands = {
-    a: 'firstPrivateInput' | 'secondPrivateInput';
-    b: 'firstPrivateInput' | 'secondPrivateInput';
-};
+type PrivateInputPosition = 'firstPrivateInput' | 'secondPrivateInput';
 
 const CONTRACTS_ROOT = buildPathTo('/bugs/issue-187/');
 
-function getExpectedLessThanOperands(circuitName: CircuitName): ExpectedLessThanOperands {
+function getExpectedLessThanOperands(circuitName: CircuitName): [PrivateInputPosition, PrivateInputPosition] {
     switch (circuitName) {
         case 'less_than':
         case 'greater_than_or_equal':
-            return { a: 'firstPrivateInput', b: 'secondPrivateInput' };
+            return ['firstPrivateInput', 'secondPrivateInput'];
         case 'less_than_or_equal':
         case 'greater_than':
-            return { a: 'secondPrivateInput', b: 'firstPrivateInput' };
+            return ['secondPrivateInput', 'firstPrivateInput'];
     }
 }
 
@@ -61,7 +58,7 @@ function getZkir(outputDir: string, circuitName: CircuitName): ZkirCircuit {
     return JSON.parse(getFileContent(`${outputDir}/zkir/${circuitName}.zkir`)) as ZkirCircuit;
 }
 
-function getPrivateInputVars(zkir: ZkirCircuit): number[] {
+function getUint8PrivateInputVars(zkir: ZkirCircuit): number[] {
     return zkir.instructions.flatMap((instruction, index, instructions) => {
         const nextInstruction = instructions[index + 1];
 
@@ -87,22 +84,23 @@ function getLessThanInstruction(zkir: ZkirCircuit): ZkirInstruction {
 
 function expectComparisonToUsePrivateInputsInOrder(outputDir: string, circuitName: CircuitName): void {
     const zkir = getZkir(outputDir, circuitName);
-    const privateInputVars = getPrivateInputVars(zkir);
+    const privateInputVars = getUint8PrivateInputVars(zkir);
     const [firstPrivateInput, secondPrivateInput] = privateInputVars;
     const lessThanInstruction = getLessThanInstruction(zkir);
-    const expectedLessThanOperands = getExpectedLessThanOperands(circuitName);
+    const [expectedA, expectedB] = getExpectedLessThanOperands(circuitName);
     const privateInputs = {
         firstPrivateInput,
         secondPrivateInput,
     };
 
     expect(privateInputVars).toHaveLength(2);
-    expect(lessThanInstruction.a).toBe(privateInputs[expectedLessThanOperands.a]);
-    expect(lessThanInstruction.b).toBe(privateInputs[expectedLessThanOperands.b]);
+    expect(lessThanInstruction.bits).toBe(8);
+    expect(lessThanInstruction.a).toBe(privateInputs[expectedA]);
+    expect(lessThanInstruction.b).toBe(privateInputs[expectedB]);
 }
 
 describe('[Bugs] [Issue #187] comparison operators preserve operand evaluation order in ZKIR', () => {
-    test('provided comparison operators should compile left and right witness inputs in source order', async () => {
+    test('comparison operators should compile left and right witness inputs in source order', async () => {
         const filePath = CONTRACTS_ROOT + 'comparisons.compact';
 
         const outputDir = createTempFolder();
