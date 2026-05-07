@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Previously it accepted all alphabetic charactes which includes some non-`ID-Start`
   characters which are invalid in JavaScript.
   `identifier-subsequent?` now follows Unicode `ID_Continue` (`Lu Ll Lt Lm Lo Nl Mn Mc Nd Pc`).
+  Previously it included som non-`ID-Continue` characters.
 
 ## [Toolchain 0.31.101, language 0.23.101, runtime 0.16.0]
 
