@@ -252,5 +252,18 @@ describe('[Types] [PM-19636] Define type aliases and new disjoint types for exis
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
+
+        test('example 18 - for loop end as runtime value', async () => {
+            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_eighteen.compact';
+
+            const outputDir = createTempFolder();
+            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+
+            expectCompilerResult(result).toBeFailure(
+                'Exception: example_eighteen.compact line 17 char 22: invalid context for reference to variable name n',
+                compilerDefaultOutput(),
+            );
+            expectFiles(outputDir).thatNoFilesAreGenerated();
+        });
     });
 });

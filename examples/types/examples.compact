@@ -545,3 +545,19 @@ export circuit test40(): [] {
   const g: SX<248, Field> = default<SX<248, Field>>;
   const h: SY<99999999999999999999999999999999999999999999999999999999999999999999999999, Field> = default<SY<99999999999999999999999999999999999999999999999999999999999999999999999999, Field>>;
 }
+
+// Test 41: for loop with end as generic natural-number parameter
+export ledger t41_sum: Uint<16>;
+
+circuit _test41<#N>(v: Vector<N, Uint<8>>): Uint<16> {
+  t41_sum = 0;
+  for (const i of 0..N) {
+      t41_sum = (t41_sum + (v[i] as Uint<16>)) as Uint<16>;
+  }
+  return t41_sum;
+}
+
+export circuit test41(): Uint<16> {
+  const v: Vector<4, Uint<8>> = [1, 2, 3, 4];
+  return _test41<4>(v);
+}
