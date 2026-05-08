@@ -456,15 +456,48 @@
                                (zkir-instr*)))
                            (values (list -2 -2) (list pt0 pt1)))
                          (begin
-                           (for-each (lambda (var-name)
-                                       (zkir-instr*
-                                         (cons
-                                           ;; A case duplicated from ZKIR v2.
-                                           (if (eq? test-val 1)
-                                               `(public_input "Scalar<BLS12-381>" ,var-name)
-                                               `(public_input "Scalar<BLS12-381>" ,var-name ,test-val))
-                                           (zkir-instr*))))
-                             var-name*)
+                           ;; Emit one public_input per Fr-variable,
+                           ;; typed "Opaque" for Compress atoms and
+                           ;; "Scalar<BLS12-381>" otherwise. Atom→var
+                           ;; arity: Compress=1, Field=1, Bytes(N)=ceil(N/31).
+                           (let walk ([align* alignment*] [vars var-name*])
+                             (unless (null? align*)
+                               (let ([atom (car align*)])
+                                 (nanopass-case (Lflattened Alignment) atom
+                                   [(acompress)
+                                    (assert (pair? vars))
+                                    (zkir-instr*
+                                      (cons
+                                        (if (eq? test-val 1)
+                                            `(public_input "Opaque" ,(car vars))
+                                            `(public_input "Opaque" ,(car vars) ,test-val))
+                                        (zkir-instr*)))
+                                    (walk (cdr align*) (cdr vars))]
+                                   [(abytes ,nat)
+                                    (let take ([vars vars]
+                                               [k (ceiling (/ nat (field-bytes)))])
+                                      (cond
+                                        [(zero? k)
+                                         (walk (cdr align*) vars)]
+                                        [else
+                                          (assert (pair? vars))
+                                          (zkir-instr*
+                                            (cons
+                                              (if (eq? test-val 1)
+                                                  `(public_input "Scalar<BLS12-381>" ,(car vars))
+                                                  `(public_input "Scalar<BLS12-381>" ,(car vars) ,test-val))
+                                              (zkir-instr*)))
+                                          (take (cdr vars) (- k 1))]))]
+                                   [(afield)
+                                    (assert (pair? vars))
+                                    (zkir-instr*
+                                      (cons
+                                        (if (eq? test-val 1)
+                                            `(public_input "Scalar<BLS12-381>" ,(car vars))
+                                            `(public_input "Scalar<BLS12-381>" ,(car vars) ,test-val))
+                                        (zkir-instr*)))
+                                    (walk (cdr align*) (cdr vars))]
+                                   [else (assert cannot-happen)]))))
                            (values (map assemble-alignment-atom alignment*) var-name*))))])
                (cons*
                  (if (cdr (assoc "cached" rands)) #xd #xc)
@@ -608,7 +641,7 @@
           [(tfield ,nat) "Scalar<BLS12-381>"]
           [(topaque ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
            "Point<Jubjub>"]
-          [(topaque ,opaque-type) "Scalar<BLS12-381>"]
+          [(topaque ,opaque-type) "Opaque"]
           [else (assert cannot-happen)]))
 
       (define (return-primitive-types->strings type)

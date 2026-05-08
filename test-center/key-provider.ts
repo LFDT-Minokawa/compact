@@ -22,10 +22,12 @@ import {
 import {
   KeyMaterialProvider as KeyMaterialProviderV3,
   check as checkV3,
-  jsonIrToBinary as jsonIrToBinaryV3
+  jsonIrToBinary as jsonIrToBinaryV3,
+  proofDataIntoSerializedPreimage as proofDataIntoSerializedPreimageV3
 } from '@midnight-ntwrk/zkir-v3';
 import { ProofData } from '@midnight-ntwrk/compact-runtime';
-import { proofDataIntoSerializedPreimage } from '@midnight-ntwrk/onchain-runtime-v3';
+import { proofDataIntoSerializedPreimage as proofDataIntoSerializedPreimageV2 }
+  from '@midnight-ntwrk/onchain-runtime-v3';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -81,8 +83,9 @@ export const checkProofData = async (contractDir: string, circuitName: string, p
   const json = await readZkirJson(contractDir, circuitName);
   const version = detectZkirVersion(json);
   const isV3 = version.major === 3;
-
-  const preimage = proofDataIntoSerializedPreimage(proofData.input, proofData.output, proofData.publicTranscript, proofData.privateTranscriptOutputs, circuitName);
+  const proofDataFn = isV3 ? proofDataIntoSerializedPreimageV3 : proofDataIntoSerializedPreimageV2;
+  const preimage = proofDataFn(proofData.input, proofData.output, proofData.publicTranscript, proofData.privateTranscriptOutputs, circuitName);
+  const checkFn = isV3 ? checkV3 : checkV2;
   const keyProvider = createKeyMaterialProvider(contractDir);
-  return isV3 ? checkV3(preimage, keyProvider as KeyMaterialProviderV3) : checkV2(preimage, keyProvider);
+  return checkFn(preimage, keyProvider);
 };
