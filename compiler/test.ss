@@ -39920,9 +39920,9 @@ groups than for single tests.
                                     (tunsigned 18446744073709551615)
                            %paid.34)))))))))))
 
-  ;; no-witness-dex dynamic contract-call surface: these are the shapes the
-  ;; dynamic-call proposal would enable, but today's compiler rejects contract
-  ;; values at exported circuit boundaries before backend generation.
+  ;; no-witness-dex dynamic contract-call surface: this uses the proposed
+  ;; contract-interface syntax.  Today's compiler reserves that syntax before
+  ;; it can type-check exported contract arguments or emit dynamic calls.
   (test-group
     ((create-file "FungibleToken.compact"
        '(
@@ -39959,7 +39959,7 @@ groups than for single tests.
      (succeeds))
     ((create-file "testfile.compact"
        '(
-         "contract FungibleToken {"
+         "contract interface FungibleToken {"
          "  circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64>;"
          "  circuit multi_transfer("
          "    sender: Bytes<32>,"
@@ -39996,7 +39996,255 @@ groups than for single tests.
          "}"))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 18 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("contract FungibleToken<transfer(Bytes<32>, Bytes<32>, Uint<64>): Uint<64>, multi_transfer(Bytes<32>, Bytes<32>, Uint<64>, Bytes<32>, Uint<64>): Uint<64>, balance(Bytes<32>): Uint<64>>" swap 1)))))
+       irritants: '("testfile.compact line 1 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))))
+
+  ;; uniswap-v2-option-a: static DEX/MyToken mutual-reference flow.  MyToken
+  ;; reads DEX reserves first, caller specifies output, then DEX infers input
+  ;; from post-transfer balances.
+  (test-group
+    ((create-file "USDC.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger balances: Map<ContractAddress, Uint<64>>;"
+         "constructor(owner: ContractAddress, initial_supply: Uint<64>) {"
+         "  balances.insert(disclose(owner), disclose(initial_supply));"
+         "}"
+         "export circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64> {"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= amount, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - amount));"
+         "  balances.insert(disclose(to), disclose((balances.lookup(disclose(to)) + amount) as Uint<64>));"
+         "  return amount;"
+         "}"
+         "export circuit balanceOf(owner: ContractAddress): Uint<64> {"
+         "  return balances.lookup(disclose(owner));"
+         "}"))
+     (succeeds))
+    ((create-file "DEX.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "contract MyToken {"
+         "  circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64>;"
+         "  circuit balanceOf(owner: ContractAddress): Uint<64>;"
+         "}"
+         "contract USDC {"
+         "  circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64>;"
+         "  circuit balanceOf(owner: ContractAddress): Uint<64>;"
+         "}"
+         "ledger reserve_a: Uint<64>;"
+         "ledger reserve_b: Uint<64>;"
+         "ledger token_a: MyToken;"
+         "ledger token_b: USDC;"
+         "ledger dex_address: ContractAddress;"
+         "constructor(initial_a: Uint<64>, initial_b: Uint<64>, a: MyToken, b: USDC, dex_addr: ContractAddress) {"
+         "  reserve_a = disclose(initial_a);"
+         "  reserve_b = disclose(initial_b);"
+         "  token_a = disclose(a);"
+         "  token_b = disclose(b);"
+         "  dex_address = disclose(dex_addr);"
+         "}"
+         "export circuit getReserves(_unused: Uint<64>): [Uint<64>, Uint<64>] {"
+         "  return [reserve_a, reserve_b];"
+         "}"
+         "export circuit swap(amount_a_out: Uint<64>, amount_b_out: Uint<64>, recipient: ContractAddress): Uint<64> {"
+         "  const a_out = disclose(amount_a_out);"
+         "  const b_out = disclose(amount_b_out);"
+         "  const total_out = (a_out + b_out) as Uint<64>;"
+         "  assert(total_out > 0, \"zero output\");"
+         "  assert(a_out < reserve_a, \"insufficient reserve a\");"
+         "  assert(b_out < reserve_b, \"insufficient reserve b\");"
+         "  const recipient_addr = disclose(recipient);"
+         "  token_a.transfer(dex_address, recipient_addr, a_out);"
+         "  token_b.transfer(dex_address, recipient_addr, b_out);"
+         "  const balance_a = token_a.balanceOf(dex_address);"
+         "  const balance_b = token_b.balanceOf(dex_address);"
+         "  const expected_a_after = reserve_a - a_out;"
+         "  const expected_b_after = reserve_b - b_out;"
+         "  assert(balance_a >= expected_a_after, \"bad balance a\");"
+         "  assert(balance_b >= expected_b_after, \"bad balance b\");"
+         "  const amount_a_in = (balance_a - expected_a_after) as Uint<64>;"
+         "  const amount_b_in = (balance_b - expected_b_after) as Uint<64>;"
+         "  assert(amount_a_in > 0 || amount_b_in > 0, \"zero input\");"
+         "  const balance_a_adj = (balance_a * 1000 - amount_a_in * 3) as Uint<64>;"
+         "  const balance_b_adj = (balance_b * 1000 - amount_b_in * 3) as Uint<64>;"
+         "  assert(balance_a_adj * balance_b_adj >= reserve_a * reserve_b * 1000 * 1000, \"k check\");"
+         "  reserve_a = balance_a;"
+         "  reserve_b = balance_b;"
+         "  return (amount_a_in + amount_b_in) as Uint<64>;"
+         "}"))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("DEX.compact line 2 char 1" "error opening ~a; try (re)compiling ~a" ("compiler/testdir/MyToken/compiler/contract-info.json" "compiler/testdir/MyToken.compact"))))
+    ((create-file "MyToken.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "contract DEX {"
+         "  circuit getReserves(_unused: Uint<64>): [Uint<64>, Uint<64>];"
+         "  circuit swap(amount_a_out: Uint<64>, amount_b_out: Uint<64>, recipient: ContractAddress): Uint<64>;"
+         "}"
+         "export ledger balances: Map<ContractAddress, Uint<64>>;"
+         "ledger dex: DEX;"
+         "ledger dex_address: ContractAddress;"
+         "constructor(owner: ContractAddress, initial_supply: Uint<64>, d: DEX, dex_addr: ContractAddress) {"
+         "  balances.insert(disclose(owner), disclose(initial_supply));"
+         "  dex = disclose(d);"
+         "  dex_address = disclose(dex_addr);"
+         "}"
+         "export circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64> {"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= amount, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - amount));"
+         "  balances.insert(disclose(to), disclose((balances.lookup(disclose(to)) + amount) as Uint<64>));"
+         "  return amount;"
+         "}"
+         "export circuit balanceOf(owner: ContractAddress): Uint<64> {"
+         "  return balances.lookup(disclose(owner));"
+         "}"
+         "export circuit sellForUSDC(caller: ContractAddress, amount_in: Uint<64>, amount_out: Uint<64>, min_usdc_out: Uint<64>): Uint<64> {"
+         "  const zero = 0;"
+         "  const [reserve_a, reserve_b] = dex.getReserves(zero);"
+         "  assert(amount_out >= min_usdc_out, \"slippage\");"
+         "  assert(amount_out < reserve_b, \"insufficient reserve\");"
+         "  const caller_balance = balances.lookup(disclose(caller));"
+         "  assert(caller_balance >= amount_in, \"insufficient balance\");"
+         "  balances.insert(disclose(caller), disclose(caller_balance - amount_in));"
+         "  balances.insert(dex_address, disclose((balances.lookup(dex_address) + amount_in) as Uint<64>));"
+         "  const output = disclose(amount_out);"
+         "  const recipient = disclose(caller);"
+         "  dex.swap(zero, output, recipient);"
+         "  return amount_out;"
+         "}"))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("MyToken.compact line 2 char 1" "error opening ~a; try (re)compiling ~a" ("compiler/testdir/DEX/compiler/contract-info.json" "compiler/testdir/DEX.compact")))))
+
+  ;; uniswap-v2-dynamic: same three-contract shape as above, except contract
+  ;; references enter through exported circuit arguments using the proposed
+  ;; contract-interface syntax.  Today's compiler reserves that syntax.
+  (test-group
+    ((create-file "USDC.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger balances: Map<ContractAddress, Uint<64>>;"
+         "constructor(owner: ContractAddress, initial_supply: Uint<64>) {"
+         "  balances.insert(disclose(owner), disclose(initial_supply));"
+         "}"
+         "export circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64> {"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= amount, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - amount));"
+         "  balances.insert(disclose(to), disclose((balances.lookup(disclose(to)) + amount) as Uint<64>));"
+         "  return amount;"
+         "}"
+         "export circuit balanceOf(owner: ContractAddress): Uint<64> {"
+         "  return balances.lookup(disclose(owner));"
+         "}"))
+     (succeeds))
+    ((create-file "DEX.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "contract interface MyToken {"
+         "  circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64>;"
+         "  circuit balanceOf(owner: ContractAddress): Uint<64>;"
+         "}"
+         "contract USDC {"
+         "  circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64>;"
+         "  circuit balanceOf(owner: ContractAddress): Uint<64>;"
+         "}"
+         "ledger reserve_a: Uint<64>;"
+         "ledger reserve_b: Uint<64>;"
+         "ledger dex_address: ContractAddress;"
+         "constructor(initial_a: Uint<64>, initial_b: Uint<64>, dex_addr: ContractAddress) {"
+         "  reserve_a = disclose(initial_a);"
+         "  reserve_b = disclose(initial_b);"
+         "  dex_address = disclose(dex_addr);"
+         "}"
+         "export circuit getReserves(_unused: Uint<64>): [Uint<64>, Uint<64>] {"
+         "  return [reserve_a, reserve_b];"
+         "}"
+         "export circuit swap("
+         "  token_a: MyToken,"
+         "  token_b: USDC,"
+         "  amount_a_out: Uint<64>,"
+         "  amount_b_out: Uint<64>,"
+         "  recipient: ContractAddress"
+         "): Uint<64> {"
+         "  const a_out = disclose(amount_a_out);"
+         "  const b_out = disclose(amount_b_out);"
+         "  const total_out = (a_out + b_out) as Uint<64>;"
+         "  assert(total_out > 0, \"zero output\");"
+         "  assert(a_out < reserve_a, \"insufficient reserve a\");"
+         "  assert(b_out < reserve_b, \"insufficient reserve b\");"
+         "  const recipient_addr = disclose(recipient);"
+         "  token_a.transfer(dex_address, recipient_addr, a_out);"
+         "  token_b.transfer(dex_address, recipient_addr, b_out);"
+         "  const balance_a = token_a.balanceOf(dex_address);"
+         "  const balance_b = token_b.balanceOf(dex_address);"
+         "  const expected_a_after = reserve_a - a_out;"
+         "  const expected_b_after = reserve_b - b_out;"
+         "  assert(balance_a >= expected_a_after, \"bad balance a\");"
+         "  assert(balance_b >= expected_b_after, \"bad balance b\");"
+         "  const amount_a_in = (balance_a - expected_a_after) as Uint<64>;"
+         "  const amount_b_in = (balance_b - expected_b_after) as Uint<64>;"
+         "  assert(amount_a_in > 0 || amount_b_in > 0, \"zero input\");"
+         "  const balance_a_adj = (balance_a * 1000 - amount_a_in * 3) as Uint<64>;"
+         "  const balance_b_adj = (balance_b * 1000 - amount_b_in * 3) as Uint<64>;"
+         "  assert(balance_a_adj * balance_b_adj >= reserve_a * reserve_b * 1000 * 1000, \"k check\");"
+         "  reserve_a = balance_a;"
+         "  reserve_b = balance_b;"
+         "  return (amount_a_in + amount_b_in) as Uint<64>;"
+         "}"))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("DEX.compact line 2 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier")))))
+    ((create-file "MyToken.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "contract interface DEX {"
+         "  circuit getReserves(_unused: Uint<64>): [Uint<64>, Uint<64>];"
+         "  circuit swap(token_a: MyToken, token_b: USDC, amount_a_out: Uint<64>, amount_b_out: Uint<64>, recipient: ContractAddress): Uint<64>;"
+         "}"
+         "contract interface MyToken {"
+         "  circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64>;"
+         "  circuit balanceOf(owner: ContractAddress): Uint<64>;"
+         "}"
+         "contract interface USDC {"
+         "  circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64>;"
+         "  circuit balanceOf(owner: ContractAddress): Uint<64>;"
+         "}"
+         "export ledger balances: Map<ContractAddress, Uint<64>>;"
+         "ledger usdc: USDC;"
+         "constructor(owner: ContractAddress, initial_supply: Uint<64>, u: USDC) {"
+         "  balances.insert(disclose(owner), disclose(initial_supply));"
+         "  usdc = disclose(u);"
+         "}"
+         "export circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64> {"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= amount, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - amount));"
+         "  balances.insert(disclose(to), disclose((balances.lookup(disclose(to)) + amount) as Uint<64>));"
+         "  return amount;"
+         "}"
+         "export circuit balanceOf(owner: ContractAddress): Uint<64> {"
+         "  return balances.lookup(disclose(owner));"
+         "}"
+         "export circuit sellForUSDC(my_token: MyToken, dex: DEX, dex_addr: ContractAddress, caller: ContractAddress, amount_in: Uint<64>, amount_out: Uint<64>, min_usdc_out: Uint<64>): Uint<64> {"
+         "  const zero = 0;"
+         "  const [reserve_a, reserve_b] = dex.getReserves(zero);"
+         "  assert(amount_out >= min_usdc_out, \"slippage\");"
+         "  assert(amount_out < reserve_b, \"insufficient reserve\");"
+         "  const caller_balance = balances.lookup(disclose(caller));"
+         "  assert(caller_balance >= amount_in, \"insufficient balance\");"
+         "  balances.insert(disclose(caller), disclose(caller_balance - amount_in));"
+         "  balances.insert(disclose(dex_addr), disclose((balances.lookup(disclose(dex_addr)) + amount_in) as Uint<64>));"
+         "  const output = disclose(amount_out);"
+         "  const recipient = disclose(caller);"
+         "  dex.swap(my_token, usdc, zero, output, recipient);"
+         "  return amount_out;"
+         "}"))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("MyToken.compact line 2 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))))
 
 
 )
@@ -71055,8 +71303,8 @@ groups than for single tests.
        message: "~a:\n  ~?"
        irritants: '("testfile.compact line 35 char 29" "cross-contract calls are not yet supported" ()))))
 
-  ;; no-witness-dex dynamic: v3 currently rejects contract references passed
-  ;; through exported circuit arguments before it can emit a dynamic call.
+  ;; no-witness-dex dynamic: v3 uses the proposed contract-interface syntax,
+  ;; which today's parser still reserves for future use.
   (test-group
     ((create-file "FungibleToken.compact"
        '(
@@ -71093,7 +71341,7 @@ groups than for single tests.
      (succeeds))
     ((create-file "testfile.compact"
        '(
-         "contract FungibleToken {"
+         "contract interface FungibleToken {"
          "  circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64>;"
          "  circuit multi_transfer("
          "    sender: Bytes<32>,"
@@ -71130,7 +71378,7 @@ groups than for single tests.
          "}"))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 18 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("contract FungibleToken<transfer(Bytes<32>, Bytes<32>, Uint<64>): Uint<64>, multi_transfer(Bytes<32>, Bytes<32>, Uint<64>, Bytes<32>, Uint<64>): Uint<64>, balance(Bytes<32>): Uint<64>>" swap 1)))))
+       irritants: '("testfile.compact line 1 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))))
 
 
 )
@@ -90930,7 +91178,7 @@ groups than for single tests.
       irritants: '("testfile.compact line 35 char 29" "cross-contract calls are not yet supported" ()))))
 
   ;; no-witness-dex dynamic: TypeScript generation under the v3 feature setting
-  ;; currently rejects exported contract arguments before dynamic call emission.
+  ;; uses the proposed contract-interface syntax, which today's parser rejects.
   (test-group
     ((create-file "FungibleToken.compact"
        '(
@@ -90967,7 +91215,7 @@ groups than for single tests.
      (succeeds))
     ((create-file "testfile.compact"
        '(
-         "contract FungibleToken {"
+         "contract interface FungibleToken {"
          "  circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64>;"
          "  circuit multi_transfer("
          "    sender: Bytes<32>,"
@@ -91004,7 +91252,7 @@ groups than for single tests.
          "}"))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 18 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("contract FungibleToken<transfer(Bytes<32>, Bytes<32>, Uint<64>): Uint<64>, multi_transfer(Bytes<32>, Bytes<32>, Uint<64>, Bytes<32>, Uint<64>): Uint<64>, balance(Bytes<32>): Uint<64>>" swap 1)))))
+       irritants: '("testfile.compact line 1 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))))
 
 
   )
