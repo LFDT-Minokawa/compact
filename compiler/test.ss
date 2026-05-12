@@ -37608,6 +37608,348 @@ groups than for single tests.
                 %t.6))
            ())))
      ))
+
+  ;; no-witness-dex: static composability baseline for a DEX calling two
+  ;; constructor-provided token contracts.  Dynamic exported contract
+  ;; parameters are tested separately once that proposal surface is enabled.
+  (test-group
+    ((create-file "FungibleToken.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger balances: Map<Bytes<32>, Uint<64>>;"
+         "constructor(initial_owner: Bytes<32>, initial_supply: Uint<64>) {"
+         "  balances.insert(disclose(initial_owner), disclose(initial_supply));"
+         "}"
+         "export circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64> {"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= amount, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - amount));"
+         "  balances.insert(disclose(to), disclose((balances.lookup(disclose(to)) + amount) as Uint<64>));"
+         "  return amount;"
+         "}"
+         "export circuit multi_transfer("
+         "  sender: Bytes<32>,"
+         "  to_0: Bytes<32>,"
+         "  amount_0: Uint<64>,"
+         "  to_1: Bytes<32>,"
+         "  amount_1: Uint<64>"
+         "): Uint<64> {"
+         "  const total = (amount_0 + amount_1) as Uint<64>;"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= total, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - total));"
+         "  balances.insert(disclose(to_0), disclose((balances.lookup(disclose(to_0)) + amount_0) as Uint<64>));"
+         "  balances.insert(disclose(to_1), disclose((balances.lookup(disclose(to_1)) + amount_1) as Uint<64>));"
+         "  return total;"
+         "}"
+         "export circuit balance(owner: Bytes<32>): Uint<64> {"
+         "  return balances.lookup(disclose(owner));"
+         "}"))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract FungibleToken {"
+         "  circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64>;"
+         "  circuit multi_transfer("
+         "    sender: Bytes<32>,"
+         "    to_0: Bytes<32>,"
+         "    amount_0: Uint<64>,"
+         "    to_1: Bytes<32>,"
+         "    amount_1: Uint<64>"
+         "  ): Uint<64>;"
+         "  circuit balance(owner: Bytes<32>): Uint<64>;"
+         "}"
+         "ledger token_a: FungibleToken;"
+         "ledger token_b: FungibleToken;"
+         "ledger dex_address: Bytes<32>;"
+         "ledger fee_address: Bytes<32>;"
+         "constructor("
+         "  a: FungibleToken,"
+         "  b: FungibleToken,"
+         "  dex: Bytes<32>,"
+         "  fee: Bytes<32>"
+         ") {"
+         "  token_a = disclose(a);"
+         "  token_b = disclose(b);"
+         "  dex_address = disclose(dex);"
+         "  fee_address = disclose(fee);"
+         "}"
+         "export circuit swap("
+         "  a_for_b: Boolean,"
+         "  trader: Bytes<32>,"
+         "  amount_in: Uint<64>,"
+         "  amount_out: Uint<64>,"
+         "  fee_amount: Uint<64>"
+         "): Uint<64> {"
+         "  if (disclose(a_for_b)) {"
+         "    const received = token_a.transfer(disclose(trader), dex_address, disclose(amount_in));"
+         "    const paid = token_b.multi_transfer("
+         "    dex_address,"
+         "    disclose(trader),"
+         "    disclose(amount_out),"
+         "    fee_address,"
+         "    disclose(fee_amount)"
+         "    );"
+         "    return (received + paid) as Uint<64>;"
+         "  } else {"
+         "    const received = token_b.transfer(disclose(trader), dex_address, disclose(amount_in));"
+         "    const paid = token_a.multi_transfer("
+         "    dex_address,"
+         "    disclose(trader),"
+         "    disclose(amount_out),"
+         "    fee_address,"
+         "    disclose(fee_amount)"
+         "    );"
+         "    return (received + paid) as Uint<64>;"
+         "  }"
+         "}"))
+      (returns
+        (program
+          (kernel-declaration (%kernel.16 () (Kernel)))
+          (public-ledger-declaration
+            ((%token_a.17
+               (0)
+               (__compact_Cell
+                 (tcontract FungibleToken
+                   (transfer #f ((tbytes 32) (tbytes 32)
+                                  (tunsigned 18446744073709551615))
+                     (tunsigned 18446744073709551615))
+                   (multi_transfer #f
+                     ((tbytes 32) (tbytes 32)
+                      (tunsigned 18446744073709551615) (tbytes 32)
+                      (tunsigned 18446744073709551615))
+                     (tunsigned 18446744073709551615))
+                   (balance #f ((tbytes 32))
+                     (tunsigned 18446744073709551615)))))
+             (%token_b.18
+               (1)
+               (__compact_Cell
+                 (tcontract FungibleToken
+                   (transfer #f ((tbytes 32) (tbytes 32)
+                                  (tunsigned 18446744073709551615))
+                     (tunsigned 18446744073709551615))
+                   (multi_transfer #f
+                     ((tbytes 32) (tbytes 32)
+                      (tunsigned 18446744073709551615) (tbytes 32)
+                      (tunsigned 18446744073709551615))
+                     (tunsigned 18446744073709551615))
+                   (balance #f ((tbytes 32))
+                     (tunsigned 18446744073709551615)))))
+             (%dex_address.19 (2) (__compact_Cell (tbytes 32)))
+             (%fee_address.20 (3) (__compact_Cell (tbytes 32))))
+            (constructor
+              ([%a.21 (tcontract FungibleToken
+                        (transfer #f ((tbytes 32) (tbytes 32)
+                                       (tunsigned 18446744073709551615))
+                          (tunsigned 18446744073709551615))
+                        (multi_transfer #f
+                          ((tbytes 32) (tbytes 32)
+                           (tunsigned 18446744073709551615) (tbytes 32)
+                           (tunsigned 18446744073709551615))
+                          (tunsigned 18446744073709551615))
+                        (balance #f ((tbytes 32))
+                          (tunsigned 18446744073709551615)))]
+               [%b.22 (tcontract FungibleToken
+                        (transfer #f ((tbytes 32) (tbytes 32)
+                                       (tunsigned 18446744073709551615))
+                          (tunsigned 18446744073709551615))
+                        (multi_transfer #f
+                          ((tbytes 32) (tbytes 32)
+                           (tunsigned 18446744073709551615) (tbytes 32)
+                           (tunsigned 18446744073709551615))
+                          (tunsigned 18446744073709551615))
+                        (balance #f ((tbytes 32))
+                          (tunsigned 18446744073709551615)))]
+               [%dex.23 (tbytes 32)]
+               [%fee.24 (tbytes 32)])
+              (seq
+                (public-ledger %token_a.17 (0) write %a.21)
+                (public-ledger %token_b.18 (1) write %b.22)
+                (public-ledger %dex_address.19 (2) write %dex.23)
+                (public-ledger %fee_address.20 (3) write %fee.24)
+                (tuple))))
+          (circuit %swap.25
+              ([%a_for_b.26 (tboolean)]
+               [%trader.27 (tbytes 32)]
+               [%amount_in.28 (tunsigned 18446744073709551615)]
+               [%amount_out.29 (tunsigned 18446744073709551615)]
+               [%fee_amount.30 (tunsigned 18446744073709551615)])
+              (tunsigned 18446744073709551615)
+            (if %a_for_b.26
+                (let* ([[%received.31 (tunsigned 18446744073709551615)]
+                        (contract-call transfer
+                             ((public-ledger %token_a.17 (0) read)
+                              (tcontract FungibleToken
+                                (transfer #f ((tbytes 32) (tbytes 32)
+                                               (tunsigned 18446744073709551615))
+                                  (tunsigned 18446744073709551615))
+                                (multi_transfer #f
+                                  ((tbytes 32) (tbytes 32)
+                                   (tunsigned 18446744073709551615)
+                                   (tbytes 32)
+                                   (tunsigned 18446744073709551615))
+                                  (tunsigned 18446744073709551615))
+                                (balance #f ((tbytes 32))
+                                  (tunsigned 18446744073709551615))))
+                          %trader.27
+                          (public-ledger %dex_address.19 (2) read)
+                          %amount_in.28)])
+                  (let* ([[%paid.32 (tunsigned 18446744073709551615)]
+                          (contract-call multi_transfer
+                               ((public-ledger %token_b.18 (1) read)
+                                (tcontract FungibleToken
+                                  (transfer #f ((tbytes 32) (tbytes 32)
+                                                 (tunsigned 18446744073709551615))
+                                    (tunsigned 18446744073709551615))
+                                  (multi_transfer #f
+                                    ((tbytes 32) (tbytes 32)
+                                     (tunsigned 18446744073709551615)
+                                     (tbytes 32)
+                                     (tunsigned 18446744073709551615))
+                                    (tunsigned 18446744073709551615))
+                                  (balance #f ((tbytes 32))
+                                    (tunsigned 18446744073709551615))))
+                            (public-ledger %dex_address.19 (2) read)
+                            %trader.27
+                            %amount_out.29
+                            (public-ledger %fee_address.20 (3) read)
+                            %fee_amount.30)])
+                    (downcast-unsigned 36893488147419103230
+                      18446744073709551615
+                      (+ 65
+                         (safe-cast (tunsigned 36893488147419103230)
+                                    (tunsigned 18446744073709551615)
+                           %received.31)
+                         (safe-cast (tunsigned 36893488147419103230)
+                                    (tunsigned 18446744073709551615)
+                           %paid.32)))))
+                (let* ([[%received.33 (tunsigned 18446744073709551615)]
+                        (contract-call transfer
+                             ((public-ledger %token_b.18 (1) read)
+                              (tcontract FungibleToken
+                                (transfer #f ((tbytes 32) (tbytes 32)
+                                               (tunsigned 18446744073709551615))
+                                  (tunsigned 18446744073709551615))
+                                (multi_transfer #f
+                                  ((tbytes 32) (tbytes 32)
+                                   (tunsigned 18446744073709551615)
+                                   (tbytes 32)
+                                   (tunsigned 18446744073709551615))
+                                  (tunsigned 18446744073709551615))
+                                (balance #f ((tbytes 32))
+                                  (tunsigned 18446744073709551615))))
+                          %trader.27
+                          (public-ledger %dex_address.19 (2) read)
+                          %amount_in.28)])
+                  (let* ([[%paid.34 (tunsigned 18446744073709551615)]
+                          (contract-call multi_transfer
+                               ((public-ledger %token_a.17 (0) read)
+                                (tcontract FungibleToken
+                                  (transfer #f ((tbytes 32) (tbytes 32)
+                                                 (tunsigned 18446744073709551615))
+                                    (tunsigned 18446744073709551615))
+                                  (multi_transfer #f
+                                    ((tbytes 32) (tbytes 32)
+                                     (tunsigned 18446744073709551615)
+                                     (tbytes 32)
+                                     (tunsigned 18446744073709551615))
+                                    (tunsigned 18446744073709551615))
+                                  (balance #f ((tbytes 32))
+                                    (tunsigned 18446744073709551615))))
+                            (public-ledger %dex_address.19 (2) read)
+                            %trader.27
+                            %amount_out.29
+                            (public-ledger %fee_address.20 (3) read)
+                            %fee_amount.30)])
+                    (downcast-unsigned 36893488147419103230
+                      18446744073709551615
+                      (+ 65
+                         (safe-cast (tunsigned 36893488147419103230)
+                                    (tunsigned 18446744073709551615)
+                           %received.33)
+                         (safe-cast (tunsigned 36893488147419103230)
+                                    (tunsigned 18446744073709551615)
+                           %paid.34)))))))))))
+
+  ;; no-witness-dex dynamic contract-call surface: these are the shapes the
+  ;; dynamic-call proposal would enable, but today's compiler rejects contract
+  ;; values at exported circuit boundaries before backend generation.
+  (test-group
+    ((create-file "FungibleToken.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger balances: Map<Bytes<32>, Uint<64>>;"
+         "constructor(initial_owner: Bytes<32>, initial_supply: Uint<64>) {"
+         "  balances.insert(disclose(initial_owner), disclose(initial_supply));"
+         "}"
+         "export circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64> {"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= amount, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - amount));"
+         "  balances.insert(disclose(to), disclose((balances.lookup(disclose(to)) + amount) as Uint<64>));"
+         "  return amount;"
+         "}"
+         "export circuit multi_transfer("
+         "  sender: Bytes<32>,"
+         "  to_0: Bytes<32>,"
+         "  amount_0: Uint<64>,"
+         "  to_1: Bytes<32>,"
+         "  amount_1: Uint<64>"
+         "): Uint<64> {"
+         "  const total = (amount_0 + amount_1) as Uint<64>;"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= total, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - total));"
+         "  balances.insert(disclose(to_0), disclose((balances.lookup(disclose(to_0)) + amount_0) as Uint<64>));"
+         "  balances.insert(disclose(to_1), disclose((balances.lookup(disclose(to_1)) + amount_1) as Uint<64>));"
+         "  return total;"
+         "}"
+         "export circuit balance(owner: Bytes<32>): Uint<64> {"
+         "  return balances.lookup(disclose(owner));"
+         "}"))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract FungibleToken {"
+         "  circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64>;"
+         "  circuit multi_transfer("
+         "    sender: Bytes<32>,"
+         "    to_0: Bytes<32>,"
+         "    amount_0: Uint<64>,"
+         "    to_1: Bytes<32>,"
+         "    amount_1: Uint<64>"
+         "  ): Uint<64>;"
+         "  circuit balance(owner: Bytes<32>): Uint<64>;"
+         "}"
+         "ledger dex_address: Bytes<32>;"
+         "ledger fee_address: Bytes<32>;"
+         "constructor(dex: Bytes<32>, fee: Bytes<32>) {"
+         "  dex_address = disclose(dex);"
+         "  fee_address = disclose(fee);"
+         "}"
+         "export circuit swap("
+         "  token_in: FungibleToken,"
+         "  token_out: FungibleToken,"
+         "  trader: Bytes<32>,"
+         "  amount_in: Uint<64>,"
+         "  amount_out: Uint<64>,"
+         "  fee_amount: Uint<64>"
+         "): Uint<64> {"
+         "  const received = token_in.transfer(disclose(trader), dex_address, disclose(amount_in));"
+         "  const paid = token_out.multi_transfer("
+         "    dex_address,"
+         "    disclose(trader),"
+         "    disclose(amount_out),"
+         "    fee_address,"
+         "    disclose(fee_amount)"
+         "  );"
+         "  return (received + paid) as Uint<64>;"
+         "}"))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 18 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("contract FungibleToken<transfer(Bytes<32>, Bytes<32>, Uint<64>): Uint<64>, multi_transfer(Bytes<32>, Bytes<32>, Uint<64>, Bytes<32>, Uint<64>): Uint<64>, balance(Bytes<32>): Uint<64>>" swap 1)))))
+
+
 )
 
 (run-tests drop-ledger-runtime
@@ -37778,6 +38120,8 @@ groups than for single tests.
              (tfield)
           (safe-cast (tfield) (tunsigned 2) %arg.1))))
     )
+
+
 )
 
 (run-tests unroll-loops
@@ -66150,6 +66494,166 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
+  ;; no-witness-dex: v3 backend currently rejects static contract calls.
+  (test-group
+    ((create-file "FungibleToken.compact"
+       '(
+         "export circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64> {"
+         "  return amount;"
+         "}"
+         "export circuit multi_transfer("
+         "  sender: Bytes<32>,"
+         "  to_0: Bytes<32>,"
+         "  amount_0: Uint<64>,"
+         "  to_1: Bytes<32>,"
+         "  amount_1: Uint<64>"
+         "): Uint<64> {"
+         "  return (amount_0 + amount_1) as Uint<64>;"
+         "}"
+         "export circuit balance(owner: Bytes<32>): Uint<64> {"
+         "  return 0;"
+         "}"))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract FungibleToken {"
+         "  circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64>;"
+         "  circuit multi_transfer("
+         "    sender: Bytes<32>,"
+         "    to_0: Bytes<32>,"
+         "    amount_0: Uint<64>,"
+         "    to_1: Bytes<32>,"
+         "    amount_1: Uint<64>"
+         "  ): Uint<64>;"
+         "  circuit balance(owner: Bytes<32>): Uint<64>;"
+         "}"
+         "ledger token_a: FungibleToken;"
+         "ledger token_b: FungibleToken;"
+         "ledger dex_address: Bytes<32>;"
+         "ledger fee_address: Bytes<32>;"
+         "constructor("
+         "  a: FungibleToken,"
+         "  b: FungibleToken,"
+         "  dex: Bytes<32>,"
+         "  fee: Bytes<32>"
+         ") {"
+         "  token_a = disclose(a);"
+         "  token_b = disclose(b);"
+         "  dex_address = disclose(dex);"
+         "  fee_address = disclose(fee);"
+         "}"
+         "export circuit swap("
+         "  a_for_b: Boolean,"
+         "  trader: Bytes<32>,"
+         "  amount_in: Uint<64>,"
+         "  amount_out: Uint<64>,"
+         "  fee_amount: Uint<64>"
+         "): Uint<64> {"
+         "  if (disclose(a_for_b)) {"
+         "    const received = token_a.transfer(disclose(trader), dex_address, disclose(amount_in));"
+         "    const paid = token_b.multi_transfer("
+         "    dex_address,"
+         "    disclose(trader),"
+         "    disclose(amount_out),"
+         "    fee_address,"
+         "    disclose(fee_amount)"
+         "    );"
+         "    return (received + paid) as Uint<64>;"
+         "  } else {"
+         "    const received = token_b.transfer(disclose(trader), dex_address, disclose(amount_in));"
+         "    const paid = token_a.multi_transfer("
+         "    dex_address,"
+         "    disclose(trader),"
+         "    disclose(amount_out),"
+         "    fee_address,"
+         "    disclose(fee_amount)"
+         "    );"
+         "    return (received + paid) as Uint<64>;"
+         "  }"
+         "}"))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 35 char 29" "cross-contract calls are not yet supported" ()))))
+
+  ;; no-witness-dex dynamic: v3 currently rejects contract references passed
+  ;; through exported circuit arguments before it can emit a dynamic call.
+  (test-group
+    ((create-file "FungibleToken.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger balances: Map<Bytes<32>, Uint<64>>;"
+         "constructor(initial_owner: Bytes<32>, initial_supply: Uint<64>) {"
+         "  balances.insert(disclose(initial_owner), disclose(initial_supply));"
+         "}"
+         "export circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64> {"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= amount, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - amount));"
+         "  balances.insert(disclose(to), disclose((balances.lookup(disclose(to)) + amount) as Uint<64>));"
+         "  return amount;"
+         "}"
+         "export circuit multi_transfer("
+         "  sender: Bytes<32>,"
+         "  to_0: Bytes<32>,"
+         "  amount_0: Uint<64>,"
+         "  to_1: Bytes<32>,"
+         "  amount_1: Uint<64>"
+         "): Uint<64> {"
+         "  const total = (amount_0 + amount_1) as Uint<64>;"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= total, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - total));"
+         "  balances.insert(disclose(to_0), disclose((balances.lookup(disclose(to_0)) + amount_0) as Uint<64>));"
+         "  balances.insert(disclose(to_1), disclose((balances.lookup(disclose(to_1)) + amount_1) as Uint<64>));"
+         "  return total;"
+         "}"
+         "export circuit balance(owner: Bytes<32>): Uint<64> {"
+         "  return balances.lookup(disclose(owner));"
+         "}"))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract FungibleToken {"
+         "  circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64>;"
+         "  circuit multi_transfer("
+         "    sender: Bytes<32>,"
+         "    to_0: Bytes<32>,"
+         "    amount_0: Uint<64>,"
+         "    to_1: Bytes<32>,"
+         "    amount_1: Uint<64>"
+         "  ): Uint<64>;"
+         "  circuit balance(owner: Bytes<32>): Uint<64>;"
+         "}"
+         "ledger dex_address: Bytes<32>;"
+         "ledger fee_address: Bytes<32>;"
+         "constructor(dex: Bytes<32>, fee: Bytes<32>) {"
+         "  dex_address = disclose(dex);"
+         "  fee_address = disclose(fee);"
+         "}"
+         "export circuit swap("
+         "  token_in: FungibleToken,"
+         "  token_out: FungibleToken,"
+         "  trader: Bytes<32>,"
+         "  amount_in: Uint<64>,"
+         "  amount_out: Uint<64>,"
+         "  fee_amount: Uint<64>"
+         "): Uint<64> {"
+         "  const received = token_in.transfer(disclose(trader), dex_address, disclose(amount_in));"
+         "  const paid = token_out.multi_transfer("
+         "    dex_address,"
+         "    disclose(trader),"
+         "    disclose(amount_out),"
+         "    fee_address,"
+         "    disclose(fee_amount)"
+         "  );"
+         "  return (received + paid) as Uint<64>;"
+         "}"))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 18 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("contract FungibleToken<transfer(Bytes<32>, Bytes<32>, Uint<64>): Uint<64>, multi_transfer(Bytes<32>, Bytes<32>, Uint<64>, Bytes<32>, Uint<64>): Uint<64>, balance(Bytes<32>): Uint<64>>" swap 1)))))
+
+
 )
 )
 
@@ -83361,6 +83865,167 @@ groups than for single tests.
         "  });"
         ))
     )
+
+  ;; no-witness-dex: TypeScript generation under the v3 feature setting
+  ;; currently rejects the same static contract-call DEX shape as ZKIR v3.
+  (test-group
+    ((create-file "FungibleToken.compact"
+       '(
+         "export circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64> {"
+         "  return amount;"
+         "}"
+         "export circuit multi_transfer("
+         "  sender: Bytes<32>,"
+         "  to_0: Bytes<32>,"
+         "  amount_0: Uint<64>,"
+         "  to_1: Bytes<32>,"
+         "  amount_1: Uint<64>"
+         "): Uint<64> {"
+         "  return (amount_0 + amount_1) as Uint<64>;"
+         "}"
+         "export circuit balance(owner: Bytes<32>): Uint<64> {"
+         "  return 0;"
+         "}"))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract FungibleToken {"
+         "  circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64>;"
+         "  circuit multi_transfer("
+         "    sender: Bytes<32>,"
+         "    to_0: Bytes<32>,"
+         "    amount_0: Uint<64>,"
+         "    to_1: Bytes<32>,"
+         "    amount_1: Uint<64>"
+         "  ): Uint<64>;"
+         "  circuit balance(owner: Bytes<32>): Uint<64>;"
+         "}"
+         "ledger token_a: FungibleToken;"
+         "ledger token_b: FungibleToken;"
+         "ledger dex_address: Bytes<32>;"
+         "ledger fee_address: Bytes<32>;"
+         "constructor("
+         "  a: FungibleToken,"
+         "  b: FungibleToken,"
+         "  dex: Bytes<32>,"
+         "  fee: Bytes<32>"
+         ") {"
+         "  token_a = disclose(a);"
+         "  token_b = disclose(b);"
+         "  dex_address = disclose(dex);"
+         "  fee_address = disclose(fee);"
+         "}"
+         "export circuit swap("
+         "  a_for_b: Boolean,"
+         "  trader: Bytes<32>,"
+         "  amount_in: Uint<64>,"
+         "  amount_out: Uint<64>,"
+         "  fee_amount: Uint<64>"
+         "): Uint<64> {"
+         "  if (disclose(a_for_b)) {"
+         "    const received = token_a.transfer(disclose(trader), dex_address, disclose(amount_in));"
+         "    const paid = token_b.multi_transfer("
+         "    dex_address,"
+         "    disclose(trader),"
+         "    disclose(amount_out),"
+         "    fee_address,"
+         "    disclose(fee_amount)"
+         "    );"
+         "    return (received + paid) as Uint<64>;"
+         "  } else {"
+         "    const received = token_b.transfer(disclose(trader), dex_address, disclose(amount_in));"
+         "    const paid = token_a.multi_transfer("
+         "    dex_address,"
+         "    disclose(trader),"
+         "    disclose(amount_out),"
+         "    fee_address,"
+         "    disclose(fee_amount)"
+         "    );"
+         "    return (received + paid) as Uint<64>;"
+         "  }"
+         "}"))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 35 char 29" "cross-contract calls are not yet supported" ()))))
+
+  ;; no-witness-dex dynamic: TypeScript generation under the v3 feature setting
+  ;; currently rejects exported contract arguments before dynamic call emission.
+  (test-group
+    ((create-file "FungibleToken.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger balances: Map<Bytes<32>, Uint<64>>;"
+         "constructor(initial_owner: Bytes<32>, initial_supply: Uint<64>) {"
+         "  balances.insert(disclose(initial_owner), disclose(initial_supply));"
+         "}"
+         "export circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64> {"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= amount, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - amount));"
+         "  balances.insert(disclose(to), disclose((balances.lookup(disclose(to)) + amount) as Uint<64>));"
+         "  return amount;"
+         "}"
+         "export circuit multi_transfer("
+         "  sender: Bytes<32>,"
+         "  to_0: Bytes<32>,"
+         "  amount_0: Uint<64>,"
+         "  to_1: Bytes<32>,"
+         "  amount_1: Uint<64>"
+         "): Uint<64> {"
+         "  const total = (amount_0 + amount_1) as Uint<64>;"
+         "  const from_balance = balances.lookup(disclose(sender));"
+         "  assert(from_balance >= total, \"insufficient balance\");"
+         "  balances.insert(disclose(sender), disclose(from_balance - total));"
+         "  balances.insert(disclose(to_0), disclose((balances.lookup(disclose(to_0)) + amount_0) as Uint<64>));"
+         "  balances.insert(disclose(to_1), disclose((balances.lookup(disclose(to_1)) + amount_1) as Uint<64>));"
+         "  return total;"
+         "}"
+         "export circuit balance(owner: Bytes<32>): Uint<64> {"
+         "  return balances.lookup(disclose(owner));"
+         "}"))
+     (succeeds))
+    ((create-file "testfile.compact"
+       '(
+         "contract FungibleToken {"
+         "  circuit transfer(sender: Bytes<32>, to: Bytes<32>, amount: Uint<64>): Uint<64>;"
+         "  circuit multi_transfer("
+         "    sender: Bytes<32>,"
+         "    to_0: Bytes<32>,"
+         "    amount_0: Uint<64>,"
+         "    to_1: Bytes<32>,"
+         "    amount_1: Uint<64>"
+         "  ): Uint<64>;"
+         "  circuit balance(owner: Bytes<32>): Uint<64>;"
+         "}"
+         "ledger dex_address: Bytes<32>;"
+         "ledger fee_address: Bytes<32>;"
+         "constructor(dex: Bytes<32>, fee: Bytes<32>) {"
+         "  dex_address = disclose(dex);"
+         "  fee_address = disclose(fee);"
+         "}"
+         "export circuit swap("
+         "  token_in: FungibleToken,"
+         "  token_out: FungibleToken,"
+         "  trader: Bytes<32>,"
+         "  amount_in: Uint<64>,"
+         "  amount_out: Uint<64>,"
+         "  fee_amount: Uint<64>"
+         "): Uint<64> {"
+         "  const received = token_in.transfer(disclose(trader), dex_address, disclose(amount_in));"
+         "  const paid = token_out.multi_transfer("
+         "    dex_address,"
+         "    disclose(trader),"
+         "    disclose(amount_out),"
+         "    fee_address,"
+         "    disclose(fee_amount)"
+         "  );"
+         "  return (received + paid) as Uint<64>;"
+         "}"))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("testfile.compact line 18 char 1" "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values" ("contract FungibleToken<transfer(Bytes<32>, Bytes<32>, Uint<64>): Uint<64>, multi_transfer(Bytes<32>, Bytes<32>, Uint<64>, Bytes<32>, Uint<64>): Uint<64>, balance(Bytes<32>): Uint<64>>" swap 1)))))
+
+
 )
 
 (run-javascript)
