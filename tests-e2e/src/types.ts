@@ -113,8 +113,8 @@ interface LedgerList extends LedgerEntryBase {
 interface LedgerMap extends LedgerEntryBase {
     storage: 'Map';
     key: OrdinaryType;
-    // Ledger Map value can be either ADT or Ordinary Type
-    value: OrdinaryType;
+    /** Map value may be a nested ADT (Cell/Counter/Set/List/Map/MerkleTree/HistoricMerkleTree) or an OrdinaryType. */
+    value: OrdinaryType | LedgerAdtType;
 }
 
 interface LedgerMerkleTree extends LedgerEntryBase {
@@ -128,6 +128,15 @@ interface LedgerHistoricMerkleTree extends LedgerEntryBase {
     depth: number;
     type: OrdinaryType;
 }
+
+export type LedgerAdtType =
+    | { 'type-name': 'Cell'; type: OrdinaryType }
+    | { 'type-name': 'Counter' }
+    | { 'type-name': 'Set'; type: OrdinaryType }
+    | { 'type-name': 'List'; type: OrdinaryType }
+    | { 'type-name': 'Map'; key: OrdinaryType; value: OrdinaryType | LedgerAdtType }
+    | { 'type-name': 'MerkleTree'; depth: number; type: OrdinaryType }
+    | { 'type-name': 'HistoricMerkleTree'; depth: number; type: OrdinaryType };
 
 /** Structure of contract-info.json */
 export interface ContractInfo {

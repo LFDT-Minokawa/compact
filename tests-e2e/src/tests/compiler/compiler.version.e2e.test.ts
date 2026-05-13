@@ -41,7 +41,6 @@ describe('[PM-21414] Compiler and language versions added to contract-info.json'
         const compilerVersion = await getCompilerVersion();
         const languageVersion = await getLanguageVersion();
 
-        console.log(outputDir);
         new AssertContract()
             .expect(outputDir)
             .thatCompilerVersionIs(compilerVersion)

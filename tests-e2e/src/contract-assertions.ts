@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import { expect } from 'vitest';
-import { ContractInfo, ContractInfoCircuit, ContractInfoLedger, OrdinaryType } from './types';
+import { ContractInfo, ContractInfoCircuit, ContractInfoLedger, LedgerAdtType, OrdinaryType } from './types';
 
 export class AssertContract {
     private folderPath: string = '';
@@ -263,7 +263,7 @@ export class AssertContract {
         return this;
     }
 
-    thatLedgerMapValueIs(fieldName: string, expectedValue: OrdinaryType): AssertContract {
+    thatLedgerMapValueIs(fieldName: string, expectedValue: OrdinaryType | LedgerAdtType): AssertContract {
         const field = this.getLedgerFieldFromJson(fieldName);
         expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();
         expect(field?.storage, `'${fieldName}' is not a Map in contract-info.json`).toBe('Map');
