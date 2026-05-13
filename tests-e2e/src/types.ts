@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-type PrimitiveType = BooleanType | FieldType | UintType | BytesType | OpaqueType | VectorType | TupleType;
+type PrimitiveType = BooleanType | FieldType | UintType | BytesType | OpaqueType | VectorType | TupleType | EnumType;
 
 interface BooleanType {
     'type-name': 'Boolean';
@@ -50,6 +50,15 @@ interface TupleType {
 }
 
 /** Program defined type */
+
+export type ProgramDefinedType = EnumType | StructType;
+
+interface EnumType {
+    'type-name': 'Enum';
+    name: string;
+    elements: string[];
+}
+
 interface StructType {
     'type-name': 'Struct';
     name: string;
@@ -59,7 +68,7 @@ interface StructType {
     }[];
 }
 
-export type OrdinaryType = PrimitiveType | StructType;
+export type OrdinaryType = PrimitiveType | ProgramDefinedType;
 
 interface Argument {
     name: string;
