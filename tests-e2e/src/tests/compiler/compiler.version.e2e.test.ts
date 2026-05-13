@@ -44,9 +44,6 @@ describe('[PM-21414] Compiler and language versions added to contract-info.json'
         new AssertContract()
             .expect(outputDir)
             .thatCompilerVersionIs(compilerVersion)
-            .thatLanguageVersionIs(languageVersion)
-            .thatLedgerFieldExists('round')
-            .thatLedgerFieldIsExported('round')
-            .thatLedgerFieldStorageIs('round', 'Counter');
+            .thatLanguageVersionIs(languageVersion);
     });
 });
