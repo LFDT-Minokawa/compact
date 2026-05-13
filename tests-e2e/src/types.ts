@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-type PrimitiveType = BooleanType | FieldType | UintType | BytesType | OpaqueType | VectorType | TupleType | EnumType;
+type PrimitiveType = BooleanType | FieldType | UintType | BytesType | OpaqueType | VectorType | TupleType;
 
 interface BooleanType {
     'type-name': 'Boolean';
@@ -41,12 +41,12 @@ interface OpaqueType {
 interface VectorType {
     'type-name': 'Vector';
     length: number;
-    type: PrimitiveType;
+    type: OrdinaryType;
 }
 
 interface TupleType {
     'type-name': 'Tuple';
-    types: PrimitiveType[];
+    types: OrdinaryType[];
 }
 
 /** Program defined type */
@@ -64,7 +64,7 @@ interface StructType {
     name: string;
     elements: {
         name: string;
-        type: PrimitiveType;
+        type: OrdinaryType;
     }[];
 }
 
