@@ -241,7 +241,7 @@ export class AssertContract {
         return this;
     }
 
-    /** Asserts the `type` payload for Cell/Set/List/MerkleTree/HistoricMerkleTree storage. Map has no `type`. */
+    /** Asserts the `type` payload for Cell/Set/List/MerkleTree/HistoricMerkleTree. */
     thatLedgerFieldHasType(fieldName: string, expectedType: OrdinaryType): AssertContract {
         const field = this.getLedgerFieldFromJson(fieldName);
         expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();

@@ -50,7 +50,6 @@ interface TupleType {
 }
 
 /** Program defined type */
-
 export type ProgramDefinedType = EnumType | StructType;
 
 interface EnumType {
