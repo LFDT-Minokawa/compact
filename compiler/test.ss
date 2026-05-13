@@ -39996,7 +39996,7 @@ groups than for single tests.
          "}"))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))))
+       irritants: '("testfile.compact line 1 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier" "\"implements\""))))))
 
   ;; uniswap-v2-option-a: static DEX/MyToken mutual-reference flow.  MyToken
   ;; reads DEX reserves first, caller specifies output, then DEX infers input
@@ -40046,6 +40046,9 @@ groups than for single tests.
          "export circuit getReserves(_unused: Uint<64>): [Uint<64>, Uint<64>] {"
          "  return [reserve_a, reserve_b];"
          "}"
+         "export circuit contractAddress(): ContractAddress {"
+         "  return kernel.self();"
+         "}"
          "export circuit swap(amount_a_out: Uint<64>, amount_b_out: Uint<64>, recipient: ContractAddress): Uint<64> {"
          "  const a_out = disclose(amount_a_out);"
          "  const b_out = disclose(amount_b_out);"
@@ -40072,23 +40075,413 @@ groups than for single tests.
          "  reserve_b = balance_b;"
          "  return (amount_a_in + amount_b_in) as Uint<64>;"
          "}"))
-     (oops
-       message: "~a:\n  ~?"
-       irritants: '("DEX.compact line 2 char 1" "error opening ~a; try (re)compiling ~a" ("compiler/testdir/MyToken/compiler/contract-info.json" "compiler/testdir/MyToken.compact"))))
+     (returns
+       (program
+         (kernel-declaration (%kernel.50 () (Kernel)))
+         (public-ledger-declaration
+           ((%reserve_a.51
+              (0)
+              (__compact_Cell (tunsigned 18446744073709551615)))
+            (%reserve_b.52
+              (1)
+              (__compact_Cell (tunsigned 18446744073709551615)))
+            (%token_a.53
+              (2)
+              (__compact_Cell
+                (tcontract MyToken
+                  (transfer #f ((tstruct ContractAddress (bytes (tbytes 32))) (tstruct ContractAddress
+                                                                                (bytes (tbytes
+                                                                                         32))) (tunsigned
+                                                                                                 18446744073709551615))
+                    (tunsigned 18446744073709551615))
+                  (balanceOf #f ((tstruct ContractAddress
+                                   (bytes (tbytes 32))))
+                    (tunsigned 18446744073709551615)))))
+            (%token_b.54
+              (3)
+              (__compact_Cell
+                (tcontract USDC
+                  (transfer #f ((tstruct ContractAddress (bytes (tbytes 32))) (tstruct ContractAddress
+                                                                                (bytes (tbytes
+                                                                                         32))) (tunsigned
+                                                                                                 18446744073709551615))
+                    (tunsigned 18446744073709551615))
+                  (balanceOf #f ((tstruct ContractAddress
+                                   (bytes (tbytes 32))))
+                    (tunsigned 18446744073709551615)))))
+            (%dex_address.55
+              (4)
+              (__compact_Cell
+                (tstruct ContractAddress (bytes (tbytes 32))))))
+           (constructor ([%initial_a.56 (tunsigned
+                                          18446744073709551615)]
+                         [%initial_b.57 (tunsigned 18446744073709551615)]
+                         [%a.58 (tcontract MyToken
+                                  (transfer #f ((tstruct ContractAddress
+                                                  (bytes (tbytes 32))) (tstruct ContractAddress
+                                                                         (bytes (tbytes
+                                                                                  32))) (tunsigned
+                                                                                          18446744073709551615))
+                                    (tunsigned 18446744073709551615))
+                                  (balanceOf #f ((tstruct ContractAddress
+                                                   (bytes (tbytes 32))))
+                                    (tunsigned 18446744073709551615)))]
+                         [%b.59 (tcontract USDC
+                                  (transfer #f ((tstruct ContractAddress
+                                                  (bytes (tbytes 32))) (tstruct ContractAddress
+                                                                         (bytes (tbytes
+                                                                                  32))) (tunsigned
+                                                                                          18446744073709551615))
+                                    (tunsigned 18446744073709551615))
+                                  (balanceOf #f ((tstruct ContractAddress
+                                                   (bytes (tbytes 32))))
+                                    (tunsigned 18446744073709551615)))]
+                         [%dex_addr.60 (tstruct ContractAddress
+                                         (bytes (tbytes 32)))])
+             (seq
+               (public-ledger %reserve_a.51 (0) write %initial_a.56)
+               (public-ledger %reserve_b.52 (1) write %initial_b.57)
+               (public-ledger %token_a.53 (2) write %a.58)
+               (public-ledger %token_b.54 (3) write %b.59)
+               (public-ledger %dex_address.55 (4) write %dex_addr.60)
+               (tuple))))
+         (circuit %getReserves.61 ([%_unused.62 (tunsigned
+                                                  18446744073709551615)])
+              (ttuple
+                (tunsigned 18446744073709551615)
+                (tunsigned 18446744073709551615))
+           (tuple
+             (public-ledger %reserve_a.51 (0) read)
+             (public-ledger %reserve_b.52 (1) read)))
+         (circuit %contractAddress.63 ()
+              (tstruct ContractAddress (bytes (tbytes 32)))
+           (public-ledger %kernel.50 () self))
+         (circuit %swap.64 ([%amount_a_out.65 (tunsigned
+                                                18446744073709551615)]
+                            [%amount_b_out.66 (tunsigned 18446744073709551615)]
+                            [%recipient.67 (tstruct ContractAddress
+                                             (bytes (tbytes 32)))])
+              (tunsigned 18446744073709551615)
+           (let* ([[%a_out.68 (tunsigned 18446744073709551615)]
+                   %amount_a_out.65])
+             (let* ([[%b_out.69 (tunsigned 18446744073709551615)]
+                     %amount_b_out.66])
+               (let* ([[%total_out.3 (tunsigned 18446744073709551615)]
+                       (downcast-unsigned 36893488147419103230 18446744073709551615
+                         (+ 65
+                            (safe-cast (tunsigned 36893488147419103230)
+                                       (tunsigned 18446744073709551615)
+                              %a_out.68)
+                            (safe-cast (tunsigned 36893488147419103230)
+                                       (tunsigned 18446744073709551615)
+                              %b_out.69)))])
+                 (seq
+                   (assert
+                     (> %total_out.3
+                        (safe-cast (tunsigned 18446744073709551615)
+                                   (tunsigned 0)
+                          0))
+                     "zero output")
+                   (assert
+                     (< %a_out.68 (public-ledger %reserve_a.51 (0) read))
+                     "insufficient reserve a")
+                   (assert
+                     (< %b_out.69 (public-ledger %reserve_b.52 (1) read))
+                     "insufficient reserve b")
+                   (let* ([[%recipient_addr.70 (tstruct ContractAddress
+                                                 (bytes (tbytes 32)))]
+                           %recipient.67])
+                     (seq
+                       (contract-call transfer
+                            ((public-ledger %token_a.53 (2) read)
+                             (tcontract MyToken
+                               (transfer #f ((tstruct ContractAddress
+                                               (bytes (tbytes 32))) (tstruct ContractAddress
+                                                                      (bytes (tbytes
+                                                                               32))) (tunsigned
+                                                                                       18446744073709551615))
+                                 (tunsigned 18446744073709551615))
+                               (balanceOf #f ((tstruct ContractAddress
+                                                (bytes (tbytes 32))))
+                                 (tunsigned 18446744073709551615))))
+                         (public-ledger %dex_address.55 (4) read)
+                         %recipient_addr.70
+                         %a_out.68)
+                       (contract-call transfer
+                            ((public-ledger %token_b.54 (3) read)
+                             (tcontract USDC
+                               (transfer #f ((tstruct ContractAddress
+                                               (bytes (tbytes 32))) (tstruct ContractAddress
+                                                                      (bytes (tbytes
+                                                                               32))) (tunsigned
+                                                                                       18446744073709551615))
+                                 (tunsigned 18446744073709551615))
+                               (balanceOf #f ((tstruct ContractAddress
+                                                (bytes (tbytes 32))))
+                                 (tunsigned 18446744073709551615))))
+                         (public-ledger %dex_address.55 (4) read)
+                         %recipient_addr.70
+                         %b_out.69)
+                       (let* ([[%balance_a.71 (tunsigned 18446744073709551615)]
+                               (contract-call balanceOf
+                                    ((public-ledger %token_a.53 (2) read)
+                                     (tcontract MyToken
+                                       (transfer #f ((tstruct ContractAddress
+                                                       (bytes (tbytes 32))) (tstruct ContractAddress
+                                                                              (bytes (tbytes
+                                                                                       32))) (tunsigned
+                                                                                               18446744073709551615))
+                                         (tunsigned 18446744073709551615))
+                                       (balanceOf #f ((tstruct ContractAddress
+                                                        (bytes (tbytes 32))))
+                                         (tunsigned 18446744073709551615))))
+                                 (public-ledger %dex_address.55 (4) read))])
+                         (let* ([[%balance_b.72 (tunsigned
+                                                  18446744073709551615)]
+                                 (contract-call balanceOf
+                                      ((public-ledger %token_b.54 (3) read)
+                                       (tcontract USDC
+                                         (transfer #f ((tstruct ContractAddress
+                                                         (bytes (tbytes 32))) (tstruct ContractAddress
+                                                                                (bytes (tbytes
+                                                                                         32))) (tunsigned
+                                                                                                 18446744073709551615))
+                                           (tunsigned 18446744073709551615))
+                                         (balanceOf #f ((tstruct ContractAddress
+                                                          (bytes (tbytes 32))))
+                                           (tunsigned 18446744073709551615))))
+                                   (public-ledger %dex_address.55 (4) read))])
+                           (let* ([[%expected_a_after.15 (tunsigned
+                                                           18446744073709551615)]
+                                   (let* ([[%t.73 (tunsigned
+                                                    18446744073709551615)]
+                                           (public-ledger %reserve_a.51 (0) read)])
+                                     (seq
+                                       (assert
+                                         (>= %t.73 %a_out.68)
+                                         "result of subtraction would be negative")
+                                       (- 64 %t.73 %a_out.68)))])
+                             (let* ([[%expected_b_after.19 (tunsigned
+                                                             18446744073709551615)]
+                                     (let* ([[%t.74 (tunsigned
+                                                      18446744073709551615)]
+                                             (public-ledger %reserve_b.52 (1) read)])
+                                       (seq
+                                         (assert
+                                           (>= %t.74 %b_out.69)
+                                           "result of subtraction would be negative")
+                                         (- 64 %t.74 %b_out.69)))])
+                               (seq
+                                 (assert
+                                   (>= %balance_a.71 %expected_a_after.15)
+                                   "bad balance a")
+                                 (assert
+                                   (>= %balance_b.72 %expected_b_after.19)
+                                   "bad balance b")
+                                 (let* ([[%amount_a_in.23 (tunsigned
+                                                            18446744073709551615)]
+                                         (seq
+                                           (assert
+                                             (>= %balance_a.71
+                                                 %expected_a_after.15)
+                                             "result of subtraction would be negative")
+                                           (- 64
+                                              %balance_a.71
+                                              %expected_a_after.15))])
+                                   (let* ([[%amount_b_in.25 (tunsigned
+                                                              18446744073709551615)]
+                                           (seq
+                                             (assert
+                                               (>= %balance_b.72
+                                                   %expected_b_after.19)
+                                               "result of subtraction would be negative")
+                                             (- 64
+                                                %balance_b.72
+                                                %expected_b_after.19))])
+                                     (seq
+                                       (assert
+                                         (if (> %amount_a_in.23
+                                                (safe-cast (tunsigned
+                                                             18446744073709551615)
+                                                           (tunsigned 0)
+                                                  0))
+                                             #t
+                                             (> %amount_b_in.25
+                                                (safe-cast (tunsigned
+                                                             18446744073709551615)
+                                                           (tunsigned 0)
+                                                  0)))
+                                         "zero input")
+                                       (let* ([[%balance_a_adj.40 (tunsigned
+                                                                    18446744073709551615)]
+                                               (downcast-unsigned 18446744073709551615000 18446744073709551615
+                                                 (let* ([[%t.30 (tunsigned
+                                                                  18446744073709551615000)]
+                                                         (* 74
+                                                            (safe-cast (tunsigned
+                                                                         18446744073709551615000)
+                                                                       (tunsigned
+                                                                         18446744073709551615)
+                                                              %balance_a.71)
+                                                            (safe-cast (tunsigned
+                                                                         18446744073709551615000)
+                                                                       (tunsigned
+                                                                         1000)
+                                                              1000))])
+                                                   (let* ([[%t.29 (tunsigned
+                                                                    55340232221128654845)]
+                                                           (* 66
+                                                              (safe-cast (tunsigned
+                                                                           55340232221128654845)
+                                                                         (tunsigned
+                                                                           18446744073709551615)
+                                                                %amount_a_in.23)
+                                                              (safe-cast (tunsigned
+                                                                           55340232221128654845)
+                                                                         (tunsigned
+                                                                           3)
+                                                                3))])
+                                                     (seq
+                                                       (assert
+                                                         (>= %t.30
+                                                             (safe-cast (tunsigned
+                                                                          18446744073709551615000)
+                                                                        (tunsigned
+                                                                          55340232221128654845)
+                                                               %t.29))
+                                                         "result of subtraction would be negative")
+                                                       (- 74
+                                                          %t.30
+                                                          (safe-cast (tunsigned
+                                                                       18446744073709551615000)
+                                                                     (tunsigned
+                                                                       55340232221128654845)
+                                                            %t.29))))))])
+                                         (let* ([[%balance_b_adj.39 (tunsigned
+                                                                      18446744073709551615)]
+                                                 (downcast-unsigned 18446744073709551615000 18446744073709551615
+                                                   (let* ([[%t.35 (tunsigned
+                                                                    18446744073709551615000)]
+                                                           (* 74
+                                                              (safe-cast (tunsigned
+                                                                           18446744073709551615000)
+                                                                         (tunsigned
+                                                                           18446744073709551615)
+                                                                %balance_b.72)
+                                                              (safe-cast (tunsigned
+                                                                           18446744073709551615000)
+                                                                         (tunsigned
+                                                                           1000)
+                                                                1000))])
+                                                     (let* ([[%t.34 (tunsigned
+                                                                      55340232221128654845)]
+                                                             (* 66
+                                                                (safe-cast (tunsigned
+                                                                             55340232221128654845)
+                                                                           (tunsigned
+                                                                             18446744073709551615)
+                                                                  %amount_b_in.25)
+                                                                (safe-cast (tunsigned
+                                                                             55340232221128654845)
+                                                                           (tunsigned
+                                                                             3)
+                                                                  3))])
+                                                       (seq
+                                                         (assert
+                                                           (>= %t.35
+                                                               (safe-cast (tunsigned
+                                                                            18446744073709551615000)
+                                                                          (tunsigned
+                                                                            55340232221128654845)
+                                                                 %t.34))
+                                                           "result of subtraction would be negative")
+                                                         (- 74
+                                                            %t.35
+                                                            (safe-cast (tunsigned
+                                                                         18446744073709551615000)
+                                                                       (tunsigned
+                                                                         55340232221128654845)
+                                                              %t.34))))))])
+                                           (seq
+                                             (assert
+                                               (let* ([[%t.46 (tunsigned
+                                                                340282366920938463426481119284349108225)]
+                                                       (* 128
+                                                          (safe-cast (tunsigned
+                                                                       340282366920938463426481119284349108225)
+                                                                     (tunsigned
+                                                                       18446744073709551615)
+                                                            %balance_a_adj.40)
+                                                          (safe-cast (tunsigned
+                                                                       340282366920938463426481119284349108225)
+                                                                     (tunsigned
+                                                                       18446744073709551615)
+                                                            %balance_b_adj.39))])
+                                                 (>= (safe-cast (tunsigned
+                                                                  340282366920938463426481119284349108225000000)
+                                                                (tunsigned
+                                                                  340282366920938463426481119284349108225)
+                                                       %t.46)
+                                                     (* 148
+                                                        (safe-cast (tunsigned
+                                                                     340282366920938463426481119284349108225000000)
+                                                                   (tunsigned
+                                                                     340282366920938463426481119284349108225000)
+                                                          (* 138
+                                                             (safe-cast (tunsigned
+                                                                          340282366920938463426481119284349108225000)
+                                                                        (tunsigned
+                                                                          340282366920938463426481119284349108225)
+                                                               (* 128
+                                                                  (safe-cast (tunsigned
+                                                                               340282366920938463426481119284349108225)
+                                                                             (tunsigned
+                                                                               18446744073709551615)
+                                                                    (public-ledger %reserve_a.51 (0) read))
+                                                                  (safe-cast (tunsigned
+                                                                               340282366920938463426481119284349108225)
+                                                                             (tunsigned
+                                                                               18446744073709551615)
+                                                                    (public-ledger %reserve_b.52 (1) read))))
+                                                             (safe-cast (tunsigned
+                                                                          340282366920938463426481119284349108225000)
+                                                                        (tunsigned
+                                                                          1000)
+                                                               1000)))
+                                                        (safe-cast (tunsigned
+                                                                     340282366920938463426481119284349108225000000)
+                                                                   (tunsigned
+                                                                     1000)
+                                                          1000))))
+                                               "k check")
+                                             (public-ledger %reserve_a.51 (0) write
+                                               %balance_a.71)
+                                             (public-ledger %reserve_b.52 (1) write
+                                               %balance_b.72)
+                                             (downcast-unsigned 36893488147419103230 18446744073709551615
+                                               (+ 65
+                                                  (safe-cast (tunsigned
+                                                               36893488147419103230)
+                                                             (tunsigned
+                                                               18446744073709551615)
+                                                    %amount_a_in.23)
+                                                  (safe-cast (tunsigned
+                                                               36893488147419103230)
+                                                             (tunsigned
+                                                               18446744073709551615)
+                                                    %amount_b_in.25)))))))))))))))))))))))
+)
     ((create-file "MyToken.compact"
        '(
          "import CompactStandardLibrary;"
          "contract DEX {"
          "  circuit getReserves(_unused: Uint<64>): [Uint<64>, Uint<64>];"
+         "  circuit contractAddress(): ContractAddress;"
          "  circuit swap(amount_a_out: Uint<64>, amount_b_out: Uint<64>, recipient: ContractAddress): Uint<64>;"
          "}"
          "export ledger balances: Map<ContractAddress, Uint<64>>;"
-         "ledger dex: DEX;"
-         "ledger dex_address: ContractAddress;"
-         "constructor(owner: ContractAddress, initial_supply: Uint<64>, d: DEX, dex_addr: ContractAddress) {"
+         "constructor(owner: ContractAddress, initial_supply: Uint<64>) {"
          "  balances.insert(disclose(owner), disclose(initial_supply));"
-         "  dex = disclose(d);"
-         "  dex_address = disclose(dex_addr);"
          "}"
          "export circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64> {"
          "  const from_balance = balances.lookup(disclose(sender));"
@@ -40100,15 +40493,16 @@ groups than for single tests.
          "export circuit balanceOf(owner: ContractAddress): Uint<64> {"
          "  return balances.lookup(disclose(owner));"
          "}"
-         "export circuit sellForUSDC(caller: ContractAddress, amount_in: Uint<64>, amount_out: Uint<64>, min_usdc_out: Uint<64>): Uint<64> {"
+         "export circuit sellForUSDC(dex: DEX, caller: ContractAddress, amount_in: Uint<64>, amount_out: Uint<64>, min_usdc_out: Uint<64>): Uint<64> {"
          "  const zero = 0;"
          "  const [reserve_a, reserve_b] = dex.getReserves(zero);"
+         "  const dex_addr = dex.contractAddress();"
          "  assert(amount_out >= min_usdc_out, \"slippage\");"
          "  assert(amount_out < reserve_b, \"insufficient reserve\");"
          "  const caller_balance = balances.lookup(disclose(caller));"
          "  assert(caller_balance >= amount_in, \"insufficient balance\");"
          "  balances.insert(disclose(caller), disclose(caller_balance - amount_in));"
-         "  balances.insert(dex_address, disclose((balances.lookup(dex_address) + amount_in) as Uint<64>));"
+         "  balances.insert(disclose(dex_addr), disclose((balances.lookup(disclose(dex_addr)) + amount_in) as Uint<64>));"
          "  const output = disclose(amount_out);"
          "  const recipient = disclose(caller);"
          "  dex.swap(zero, output, recipient);"
@@ -40116,7 +40510,12 @@ groups than for single tests.
          "}"))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("MyToken.compact line 2 char 1" "error opening ~a; try (re)compiling ~a" ("compiler/testdir/DEX/compiler/contract-info.json" "compiler/testdir/DEX.compact")))))
+       irritants: '("MyToken.compact line 23 char 37" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter dex of exported circuit sellForUSDC at line 21 char 28" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value")))
+       message: "~a:\n  ~?"
+       irritants: '("MyToken.compact line 24 char 23" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter dex of exported circuit sellForUSDC at line 21 char 28" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value")))
+       message: "~a:\n  ~?"
+       irritants: '("MyToken.compact line 33 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter dex of exported circuit sellForUSDC at line 21 char 28" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value"))))
+))
 
   ;; uniswap-v2-dynamic: same three-contract shape as above, except contract
   ;; references enter through exported circuit arguments using the proposed
@@ -40143,11 +40542,7 @@ groups than for single tests.
     ((create-file "DEX.compact"
        '(
          "import CompactStandardLibrary;"
-         "contract interface MyToken {"
-         "  circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64>;"
-         "  circuit balanceOf(owner: ContractAddress): Uint<64>;"
-         "}"
-         "contract USDC {"
+         "contract interface Token {"
          "  circuit transfer(sender: ContractAddress, to: ContractAddress, amount: Uint<64>): Uint<64>;"
          "  circuit balanceOf(owner: ContractAddress): Uint<64>;"
          "}"
@@ -40162,9 +40557,12 @@ groups than for single tests.
          "export circuit getReserves(_unused: Uint<64>): [Uint<64>, Uint<64>] {"
          "  return [reserve_a, reserve_b];"
          "}"
+         "export circuit contractAddress(): ContractAddress {"
+         "  return kernel.self();"
+         "}"
          "export circuit swap("
-         "  token_a: MyToken,"
-         "  token_b: USDC,"
+         "  token_a: Token,"
+         "  token_b: Token,"
          "  amount_a_out: Uint<64>,"
          "  amount_b_out: Uint<64>,"
          "  recipient: ContractAddress"
@@ -40196,12 +40594,13 @@ groups than for single tests.
          "}"))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("DEX.compact line 2 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier")))))
+       irritants: '("DEX.compact line 2 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier" "\"implements\"")))))
     ((create-file "MyToken.compact"
        '(
          "import CompactStandardLibrary;"
          "contract interface DEX {"
          "  circuit getReserves(_unused: Uint<64>): [Uint<64>, Uint<64>];"
+         "  circuit contractAddress(): ContractAddress;"
          "  circuit swap(token_a: MyToken, token_b: USDC, amount_a_out: Uint<64>, amount_b_out: Uint<64>, recipient: ContractAddress): Uint<64>;"
          "}"
          "contract interface MyToken {"
@@ -40228,9 +40627,10 @@ groups than for single tests.
          "export circuit balanceOf(owner: ContractAddress): Uint<64> {"
          "  return balances.lookup(disclose(owner));"
          "}"
-         "export circuit sellForUSDC(my_token: MyToken, dex: DEX, dex_addr: ContractAddress, caller: ContractAddress, amount_in: Uint<64>, amount_out: Uint<64>, min_usdc_out: Uint<64>): Uint<64> {"
+         "export circuit sellForUSDC(my_token: MyToken, dex: DEX, caller: ContractAddress, amount_in: Uint<64>, amount_out: Uint<64>, min_usdc_out: Uint<64>): Uint<64> {"
          "  const zero = 0;"
          "  const [reserve_a, reserve_b] = dex.getReserves(zero);"
+         "  const dex_addr = dex.contractAddress();"
          "  assert(amount_out >= min_usdc_out, \"slippage\");"
          "  assert(amount_out < reserve_b, \"insufficient reserve\");"
          "  const caller_balance = balances.lookup(disclose(caller));"
@@ -40244,7 +40644,7 @@ groups than for single tests.
          "}"))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("MyToken.compact line 2 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))))
+       irritants: '("MyToken.compact line 2 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier" "\"implements\""))))))
 
 
 )
@@ -71222,7 +71622,7 @@ groups than for single tests.
         "}"))
       )
 
-  ;; no-witness-dex: v3 backend currently rejects static contract calls.
+  ;; no-witness-dex: static contract calls through the v3 backend.
   (test-group
     ((create-file "FungibleToken.compact"
        '(
@@ -71299,9 +71699,163 @@ groups than for single tests.
          "    return (received + paid) as Uint<64>;"
          "  }"
          "}"))
-     (oops
-       message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 35 char 29" "cross-contract calls are not yet supported" ()))))
+     (returns
+       (program
+         (circuit (swap) ((%a_for_b.0 "Scalar<BLS12-381>")
+                          (%trader.16 "Scalar<BLS12-381>")
+                          (%trader.17 "Scalar<BLS12-381>")
+                          (%amount_in.18 "Scalar<BLS12-381>")
+                          (%amount_out.19 "Scalar<BLS12-381>")
+                          (%fee_amount.20 "Scalar<BLS12-381>"))
+           ("Scalar<BLS12-381>")
+           (constrain_to_boolean %a_for_b.0)
+           (constrain_bits %trader.16 8)
+           (constrain_bits %trader.17 248)
+           (constrain_bits %amount_in.18 64)
+           (constrain_bits %amount_out.19 64)
+           (constrain_bits %fee_amount.20 64)
+           (cond_select %t.6 %a_for_b.0 0 1)
+           (public_input "Scalar<BLS12-381>" %t.21 %a_for_b.0)
+           (public_input "Scalar<BLS12-381>" %t.22 %a_for_b.0)
+           (impact %a_for_b.0 48)
+           (impact %a_for_b.0 80 1 1 0)
+           (impact %a_for_b.0 12 1 32 %t.21 %t.22)
+           (public_input "Scalar<BLS12-381>" %t.23 %a_for_b.0)
+           (public_input "Scalar<BLS12-381>" %t.24 %a_for_b.0)
+           (impact %a_for_b.0 48)
+           (impact %a_for_b.0 80 1 1 2)
+           (impact %a_for_b.0 12 1 32 %t.23 %t.24)
+           (private_input "Scalar<BLS12-381>" %received.2 %a_for_b.0)
+           (constrain_bits %received.2 64)
+           (private_input "Scalar<BLS12-381>" %cc-rand.25 %a_for_b.0)
+           (private_input "Scalar<BLS12-381>" %ep-mod.26 %a_for_b.0)
+           (constrain_bits %ep-mod.26 8)
+           (private_input "Scalar<BLS12-381>" %ep-div.27 %a_for_b.0)
+           (constrain_bits %ep-div.27 248)
+           (transient_hash %comm.28 %cc-rand.25 %trader.16 %trader.17
+             %t.23 %t.24 %amount_in.18 %received.2)
+           (impact %a_for_b.0 64)
+           (impact %a_for_b.0 128 1 1 3)
+           (impact %a_for_b.0 48)
+           (impact %a_for_b.0 4)
+           (impact %a_for_b.0 16 1 3 32 32 -2 %t.21 %t.22 %ep-mod.26
+             %ep-div.27 %comm.28)
+           (impact %a_for_b.0 23 160)
+           (impact %a_for_b.0 16 0)
+           (impact %a_for_b.0 162)
+           (impact %a_for_b.0 64)
+           (public_input "Scalar<BLS12-381>" %t.29 %a_for_b.0)
+           (public_input "Scalar<BLS12-381>" %t.30 %a_for_b.0)
+           (impact %a_for_b.0 48)
+           (impact %a_for_b.0 80 1 1 1)
+           (impact %a_for_b.0 12 1 32 %t.29 %t.30)
+           (public_input "Scalar<BLS12-381>" %t.31 %a_for_b.0)
+           (public_input "Scalar<BLS12-381>" %t.32 %a_for_b.0)
+           (impact %a_for_b.0 48)
+           (impact %a_for_b.0 80 1 1 2)
+           (impact %a_for_b.0 12 1 32 %t.31 %t.32)
+           (public_input "Scalar<BLS12-381>" %t.33 %a_for_b.0)
+           (public_input "Scalar<BLS12-381>" %t.34 %a_for_b.0)
+           (impact %a_for_b.0 48)
+           (impact %a_for_b.0 80 1 1 3)
+           (impact %a_for_b.0 12 1 32 %t.33 %t.34)
+           (private_input "Scalar<BLS12-381>" %paid.1 %a_for_b.0)
+           (constrain_bits %paid.1 64)
+           (private_input "Scalar<BLS12-381>" %cc-rand.35 %a_for_b.0)
+           (private_input "Scalar<BLS12-381>" %ep-mod.36 %a_for_b.0)
+           (constrain_bits %ep-mod.36 8)
+           (private_input "Scalar<BLS12-381>" %ep-div.37 %a_for_b.0)
+           (constrain_bits %ep-div.37 248)
+           (transient_hash %comm.38 %cc-rand.35 %t.31 %t.32 %trader.16 %trader.17
+             %amount_out.19 %t.33 %t.34 %fee_amount.20 %paid.1)
+           (impact %a_for_b.0 64)
+           (impact %a_for_b.0 128 1 1 3)
+           (impact %a_for_b.0 48)
+           (impact %a_for_b.0 4)
+           (impact %a_for_b.0 16 1 3 32 32 -2 %t.29 %t.30 %ep-mod.36
+             %ep-div.37 %comm.38)
+           (impact %a_for_b.0 23 160)
+           (impact %a_for_b.0 16 0)
+           (impact %a_for_b.0 162)
+           (impact %a_for_b.0 64)
+           (add %t.3 %received.2 %paid.1)
+           (cond_select %t.10 %a_for_b.0 %t.3 0)
+           (less_than %t1.11 %t.10 18446744073709551616 65)
+           (cond_select %t2.12 %a_for_b.0 %t1.11 1)
+           (assert %t2.12)
+           (copy %t.9 %t.10)
+           (public_input "Scalar<BLS12-381>" %t.39 %t.6)
+           (public_input "Scalar<BLS12-381>" %t.40 %t.6)
+           (impact %t.6 48)
+           (impact %t.6 80 1 1 1)
+           (impact %t.6 12 1 32 %t.39 %t.40)
+           (public_input "Scalar<BLS12-381>" %t.41 %t.6)
+           (public_input "Scalar<BLS12-381>" %t.42 %t.6)
+           (impact %t.6 48)
+           (impact %t.6 80 1 1 2)
+           (impact %t.6 12 1 32 %t.41 %t.42)
+           (private_input "Scalar<BLS12-381>" %received.5 %t.6)
+           (constrain_bits %received.5 64)
+           (private_input "Scalar<BLS12-381>" %cc-rand.43 %t.6)
+           (private_input "Scalar<BLS12-381>" %ep-mod.44 %t.6)
+           (constrain_bits %ep-mod.44 8)
+           (private_input "Scalar<BLS12-381>" %ep-div.45 %t.6)
+           (constrain_bits %ep-div.45 248)
+           (transient_hash %comm.46 %cc-rand.43 %trader.16 %trader.17
+             %t.41 %t.42 %amount_in.18 %received.5)
+           (impact %t.6 64)
+           (impact %t.6 128 1 1 3)
+           (impact %t.6 48)
+           (impact %t.6 4)
+           (impact %t.6 16 1 3 32 32 -2 %t.39 %t.40 %ep-mod.44
+             %ep-div.45 %comm.46)
+           (impact %t.6 23 160)
+           (impact %t.6 16 0)
+           (impact %t.6 162)
+           (impact %t.6 64)
+           (public_input "Scalar<BLS12-381>" %t.47 %t.6)
+           (public_input "Scalar<BLS12-381>" %t.48 %t.6)
+           (impact %t.6 48)
+           (impact %t.6 80 1 1 0)
+           (impact %t.6 12 1 32 %t.47 %t.48)
+           (public_input "Scalar<BLS12-381>" %t.49 %t.6)
+           (public_input "Scalar<BLS12-381>" %t.50 %t.6)
+           (impact %t.6 48)
+           (impact %t.6 80 1 1 2)
+           (impact %t.6 12 1 32 %t.49 %t.50)
+           (public_input "Scalar<BLS12-381>" %t.51 %t.6)
+           (public_input "Scalar<BLS12-381>" %t.52 %t.6)
+           (impact %t.6 48)
+           (impact %t.6 80 1 1 3)
+           (impact %t.6 12 1 32 %t.51 %t.52)
+           (private_input "Scalar<BLS12-381>" %paid.4 %t.6)
+           (constrain_bits %paid.4 64)
+           (private_input "Scalar<BLS12-381>" %cc-rand.53 %t.6)
+           (private_input "Scalar<BLS12-381>" %ep-mod.54 %t.6)
+           (constrain_bits %ep-mod.54 8)
+           (private_input "Scalar<BLS12-381>" %ep-div.55 %t.6)
+           (constrain_bits %ep-div.55 248)
+           (transient_hash %comm.56 %cc-rand.53 %t.49 %t.50 %trader.16 %trader.17
+             %amount_out.19 %t.51 %t.52 %fee_amount.20 %paid.4)
+           (impact %t.6 64)
+           (impact %t.6 128 1 1 3)
+           (impact %t.6 48)
+           (impact %t.6 4)
+           (impact %t.6 16 1 3 32 32 -2 %t.47 %t.48 %ep-mod.54
+             %ep-div.55 %comm.56)
+           (impact %t.6 23 160)
+           (impact %t.6 16 0)
+           (impact %t.6 162)
+           (impact %t.6 64)
+           (add %t.7 %received.5 %paid.4)
+           (cond_select %t.13 %a_for_b.0 0 %t.7)
+           (less_than %t1.14 %t.13 18446744073709551616 65)
+           (cond_select %t2.15 %a_for_b.0 1 %t1.14)
+           (assert %t2.15)
+           (copy %t.8 %t.13)
+           (cond_select %t.57 %a_for_b.0 %t.9 %t.8)
+           (output %t.57))))
+))
 
   ;; no-witness-dex dynamic: v3 uses the proposed contract-interface syntax,
   ;; which today's parser still reserves for future use.
@@ -71378,7 +71932,7 @@ groups than for single tests.
          "}"))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))))
+       irritants: '("testfile.compact line 1 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier" "\"implements\""))))))
 
 
 )
@@ -91095,8 +91649,8 @@ groups than for single tests.
         ))
     )
 
-  ;; no-witness-dex: TypeScript generation under the v3 feature setting
-  ;; currently rejects the same static contract-call DEX shape as ZKIR v3.
+  ;; no-witness-dex: static contract-call DEX shape under the v3 feature
+  ;; setting.
   (test-group
     ((create-file "FungibleToken.compact"
        '(
@@ -91173,9 +91727,499 @@ groups than for single tests.
          "    return (received + paid) as Uint<64>;"
          "  }"
          "}"))
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 35 char 29" "cross-contract calls are not yet supported" ()))))
+     (returns
+       (program
+         (native %transientCommit.16 ((argument
+                                        (%v.17 %v.18 %v.19 %v.20 %v.21 %v.22)
+                                        (ty ((abytes 32)
+                                              (abytes 32)
+                                              (abytes 8)
+                                              (abytes 8))
+                                            ((tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 18446744073709551615)
+                                              (tunsigned
+                                                18446744073709551615))))
+                                      (argument
+                                        (%rand.23)
+                                        (ty ((afield))
+                                            ((tfield (field-native))))))
+              (ty ((afield)) ((tfield (field-native)))))
+         (native %transientCommit.24 ((argument
+                                        (%v.25 %v.26 %v.27 %v.28 %v.29 %v.30
+                                          %v.31 %v.32 %v.33)
+                                        (ty ((abytes 32) (abytes 32) (abytes 8) (abytes 32)
+                                              (abytes 8) (abytes 8))
+                                            ((tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 18446744073709551615)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 18446744073709551615)
+                                              (tunsigned
+                                                18446744073709551615))))
+                                      (argument
+                                        (%rand.34)
+                                        (ty ((afield))
+                                            ((tfield (field-native))))))
+              (ty ((afield)) ((tfield (field-native)))))
+         (native %transientCommit.35 ((argument
+                                        (%v.36 %v.37 %v.38 %v.39 %v.40 %v.41)
+                                        (ty ((abytes 32)
+                                              (abytes 32)
+                                              (abytes 8)
+                                              (abytes 8))
+                                            ((tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 18446744073709551615)
+                                              (tunsigned
+                                                18446744073709551615))))
+                                      (argument
+                                        (%rand.42)
+                                        (ty ((afield))
+                                            ((tfield (field-native))))))
+              (ty ((afield)) ((tfield (field-native)))))
+         (native %transientCommit.43 ((argument
+                                        (%v.44 %v.45 %v.46 %v.47 %v.48 %v.49
+                                          %v.50 %v.51 %v.52)
+                                        (ty ((abytes 32) (abytes 32) (abytes 8) (abytes 32)
+                                              (abytes 8) (abytes 8))
+                                            ((tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 18446744073709551615)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 18446744073709551615)
+                                              (tunsigned
+                                                18446744073709551615))))
+                                      (argument
+                                        (%rand.53)
+                                        (ty ((afield))
+                                            ((tfield (field-native))))))
+              (ty ((afield)) ((tfield (field-native)))))
+         (kernel-declaration (%kernel.54 () (Kernel)))
+         (public-ledger-declaration
+           ((%token_a.55
+              (0)
+              (__compact_Cell
+                (ty ((abytes 32))
+                    ((tunsigned 255)
+                      (tunsigned
+                        452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+            (%token_b.56
+              (1)
+              (__compact_Cell
+                (ty ((abytes 32))
+                    ((tunsigned 255)
+                      (tunsigned
+                        452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+            (%dex_address.57
+              (2)
+              (__compact_Cell
+                (ty ((abytes 32))
+                    ((tunsigned 255)
+                      (tunsigned
+                        452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+            (%fee_address.58
+              (3)
+              (__compact_Cell
+                (ty ((abytes 32))
+                    ((tunsigned 255)
+                      (tunsigned
+                        452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
+         (circuit %swap.59 ((argument
+                              (%a_for_b.0)
+                              (ty ((abytes 1)) ((tunsigned 1))))
+                            (argument
+                              (%trader.60 %trader.61)
+                              (ty ((abytes 32))
+                                  ((tunsigned 255)
+                                    (tunsigned
+                                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                            (argument
+                              (%amount_in.62)
+                              (ty ((abytes 8))
+                                  ((tunsigned 18446744073709551615))))
+                            (argument
+                              (%amount_out.63)
+                              (ty ((abytes 8))
+                                  ((tunsigned 18446744073709551615))))
+                            (argument
+                              (%fee_amount.64)
+                              (ty ((abytes 8))
+                                  ((tunsigned 18446744073709551615)))))
+              (ty ((abytes 8)) ((tunsigned 18446744073709551615)))
+           (= 1 %t.6 (select %a_for_b.0 0 1))
+           (= %a_for_b.0 (%t.65 %t.66)
+              (public-ledger %token_a.55 (0) read))
+           (= %a_for_b.0 (%t.67 %t.68)
+              (public-ledger %dex_address.57 (2) read))
+           (= %a_for_b.0 (%received.2
+                           %cc-rand.69
+                           %ep-mod.70
+                           %ep-div.71)
+              (contract-call transfer
+                   ((%t.65 %t.66) (tcontract FungibleToken
+                                    (transfer #f ((ty ((abytes 32))
+                                                      ((tunsigned 255)
+                                                        (tunsigned
+                                                          452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                32))
+                                                                                                                                             ((tunsigned
+                                                                                                                                                255)
+                                                                                                                                               (tunsigned
+                                                                                                                                                 452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                       8))
+                                                                                                                                                                                                                                    ((tunsigned
+                                                                                                                                                                                                                                       18446744073709551615))))
+                                      (ty ((abytes 8)
+                                            (afield)
+                                            (afield)
+                                            (afield))
+                                          ((tunsigned 18446744073709551615)
+                                            (tfield (field-native))
+                                            (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                                    (multi_transfer #f ((ty ((abytes 32))
+                                                            ((tunsigned 255)
+                                                              (tunsigned
+                                                                452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                      32))
+                                                                                                                                                   ((tunsigned
+                                                                                                                                                      255)
+                                                                                                                                                     (tunsigned
+                                                                                                                                                       452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                             8))
+                                                                                                                                                                                                                                          ((tunsigned
+                                                                                                                                                                                                                                             18446744073709551615))) (ty ((abytes
+                                                                                                                                                                                                                                                                            32))
+                                                                                                                                                                                                                                                                         ((tunsigned
+                                                                                                                                                                                                                                                                            255)
+                                                                                                                                                                                                                                                                           (tunsigned
+                                                                                                                                                                                                                                                                             452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                                                                                                                                                   8))
+                                                                                                                                                                                                                                                                                                                                                                ((tunsigned
+                                                                                                                                                                                                                                                                                                                                                                   18446744073709551615))))
+                                      (ty ((abytes 8))
+                                          ((tunsigned 18446744073709551615))))
+                                    (balance #f ((ty ((abytes 32))
+                                                     ((tunsigned 255)
+                                                       (tunsigned
+                                                         452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                                      (ty ((abytes 8))
+                                          ((tunsigned 18446744073709551615))))))
+                %trader.60
+                %trader.61
+                %t.67
+                %t.68
+                %amount_in.62))
+           (= %a_for_b.0 (%comm.72)
+              (call %transientCommit.16
+                %trader.60
+                %trader.61
+                %t.67
+                %t.68
+                %amount_in.62
+                %received.2
+                %cc-rand.69))
+           (= %a_for_b.0 ()
+              (public-ledger %kernel.54 () claimContractCall
+                %t.65
+                %t.66
+                %ep-mod.70
+                %ep-div.71
+                %comm.72))
+           (= %a_for_b.0 (%t.73 %t.74)
+              (public-ledger %token_b.56 (1) read))
+           (= %a_for_b.0 (%t.75 %t.76)
+              (public-ledger %dex_address.57 (2) read))
+           (= %a_for_b.0 (%t.77 %t.78)
+              (public-ledger %fee_address.58 (3) read))
+           (= %a_for_b.0 (%paid.1 %cc-rand.79 %ep-mod.80 %ep-div.81)
+              (contract-call multi_transfer
+                   ((%t.73 %t.74) (tcontract FungibleToken
+                                    (transfer #f ((ty ((abytes 32))
+                                                      ((tunsigned 255)
+                                                        (tunsigned
+                                                          452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                32))
+                                                                                                                                             ((tunsigned
+                                                                                                                                                255)
+                                                                                                                                               (tunsigned
+                                                                                                                                                 452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                       8))
+                                                                                                                                                                                                                                    ((tunsigned
+                                                                                                                                                                                                                                       18446744073709551615))))
+                                      (ty ((abytes 8))
+                                          ((tunsigned 18446744073709551615))))
+                                    (multi_transfer #f ((ty ((abytes 32))
+                                                            ((tunsigned 255)
+                                                              (tunsigned
+                                                                452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                      32))
+                                                                                                                                                   ((tunsigned
+                                                                                                                                                      255)
+                                                                                                                                                     (tunsigned
+                                                                                                                                                       452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                             8))
+                                                                                                                                                                                                                                          ((tunsigned
+                                                                                                                                                                                                                                             18446744073709551615))) (ty ((abytes
+                                                                                                                                                                                                                                                                            32))
+                                                                                                                                                                                                                                                                         ((tunsigned
+                                                                                                                                                                                                                                                                            255)
+                                                                                                                                                                                                                                                                           (tunsigned
+                                                                                                                                                                                                                                                                             452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                                                                                                                                                   8))
+                                                                                                                                                                                                                                                                                                                                                                ((tunsigned
+                                                                                                                                                                                                                                                                                                                                                                   18446744073709551615))))
+                                      (ty ((abytes 8)
+                                            (afield)
+                                            (afield)
+                                            (afield))
+                                          ((tunsigned 18446744073709551615)
+                                            (tfield (field-native))
+                                            (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                                    (balance #f ((ty ((abytes 32))
+                                                     ((tunsigned 255)
+                                                       (tunsigned
+                                                         452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                                      (ty ((abytes 8))
+                                          ((tunsigned 18446744073709551615))))))
+                %t.75
+                %t.76
+                %trader.60
+                %trader.61
+                %amount_out.63
+                %t.77
+                %t.78
+                %fee_amount.64))
+           (= %a_for_b.0 (%comm.82)
+              (call %transientCommit.24
+                %t.75
+                %t.76
+                %trader.60
+                %trader.61
+                %amount_out.63
+                %t.77
+                %t.78
+                %fee_amount.64
+                %paid.1
+                %cc-rand.79))
+           (= %a_for_b.0 ()
+              (public-ledger %kernel.54 () claimContractCall
+                %t.73
+                %t.74
+                %ep-mod.80
+                %ep-div.81
+                %comm.82))
+           (= 1 %t.3 (+ 65 %received.2 %paid.1))
+           (= 1 %t.10 (select %a_for_b.0 %t.3 0))
+           (= 1 %t1.11 (< 65 %t.10 18446744073709551616))
+           (= 1 %t2.12 (select %a_for_b.0 %t1.11 1))
+           (assert %t2.12
+             "downcast to Uint<0..18446744073709551615> failed")
+           (= 1 %t.9
+              (downcast-unsigned
+                #t
+                36893488147419103230
+                18446744073709551615
+                %t.10))
+           (= %t.6 (%t.83 %t.84) (public-ledger %token_b.56 (1) read))
+           (= %t.6 (%t.85 %t.86)
+              (public-ledger %dex_address.57 (2) read))
+           (= %t.6 (%received.5 %cc-rand.87 %ep-mod.88 %ep-div.89)
+              (contract-call transfer
+                   ((%t.83 %t.84) (tcontract FungibleToken
+                                    (transfer #f ((ty ((abytes 32))
+                                                      ((tunsigned 255)
+                                                        (tunsigned
+                                                          452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                32))
+                                                                                                                                             ((tunsigned
+                                                                                                                                                255)
+                                                                                                                                               (tunsigned
+                                                                                                                                                 452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                       8))
+                                                                                                                                                                                                                                    ((tunsigned
+                                                                                                                                                                                                                                       18446744073709551615))))
+                                      (ty ((abytes 8)
+                                            (afield)
+                                            (afield)
+                                            (afield))
+                                          ((tunsigned 18446744073709551615)
+                                            (tfield (field-native))
+                                            (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                                    (multi_transfer #f ((ty ((abytes 32))
+                                                            ((tunsigned 255)
+                                                              (tunsigned
+                                                                452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                      32))
+                                                                                                                                                   ((tunsigned
+                                                                                                                                                      255)
+                                                                                                                                                     (tunsigned
+                                                                                                                                                       452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                             8))
+                                                                                                                                                                                                                                          ((tunsigned
+                                                                                                                                                                                                                                             18446744073709551615))) (ty ((abytes
+                                                                                                                                                                                                                                                                            32))
+                                                                                                                                                                                                                                                                         ((tunsigned
+                                                                                                                                                                                                                                                                            255)
+                                                                                                                                                                                                                                                                           (tunsigned
+                                                                                                                                                                                                                                                                             452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                                                                                                                                                   8))
+                                                                                                                                                                                                                                                                                                                                                                ((tunsigned
+                                                                                                                                                                                                                                                                                                                                                                   18446744073709551615))))
+                                      (ty ((abytes 8))
+                                          ((tunsigned 18446744073709551615))))
+                                    (balance #f ((ty ((abytes 32))
+                                                     ((tunsigned 255)
+                                                       (tunsigned
+                                                         452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                                      (ty ((abytes 8))
+                                          ((tunsigned 18446744073709551615))))))
+                %trader.60
+                %trader.61
+                %t.85
+                %t.86
+                %amount_in.62))
+           (= %t.6 (%comm.90)
+              (call %transientCommit.35
+                %trader.60
+                %trader.61
+                %t.85
+                %t.86
+                %amount_in.62
+                %received.5
+                %cc-rand.87))
+           (= %t.6 ()
+              (public-ledger %kernel.54 () claimContractCall
+                %t.83
+                %t.84
+                %ep-mod.88
+                %ep-div.89
+                %comm.90))
+           (= %t.6 (%t.91 %t.92) (public-ledger %token_a.55 (0) read))
+           (= %t.6 (%t.93 %t.94)
+              (public-ledger %dex_address.57 (2) read))
+           (= %t.6 (%t.95 %t.96)
+              (public-ledger %fee_address.58 (3) read))
+           (= %t.6 (%paid.4 %cc-rand.97 %ep-mod.98 %ep-div.99)
+              (contract-call multi_transfer
+                   ((%t.91 %t.92) (tcontract FungibleToken
+                                    (transfer #f ((ty ((abytes 32))
+                                                      ((tunsigned 255)
+                                                        (tunsigned
+                                                          452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                32))
+                                                                                                                                             ((tunsigned
+                                                                                                                                                255)
+                                                                                                                                               (tunsigned
+                                                                                                                                                 452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                       8))
+                                                                                                                                                                                                                                    ((tunsigned
+                                                                                                                                                                                                                                       18446744073709551615))))
+                                      (ty ((abytes 8))
+                                          ((tunsigned 18446744073709551615))))
+                                    (multi_transfer #f ((ty ((abytes 32))
+                                                            ((tunsigned 255)
+                                                              (tunsigned
+                                                                452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                      32))
+                                                                                                                                                   ((tunsigned
+                                                                                                                                                      255)
+                                                                                                                                                     (tunsigned
+                                                                                                                                                       452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                             8))
+                                                                                                                                                                                                                                          ((tunsigned
+                                                                                                                                                                                                                                             18446744073709551615))) (ty ((abytes
+                                                                                                                                                                                                                                                                            32))
+                                                                                                                                                                                                                                                                         ((tunsigned
+                                                                                                                                                                                                                                                                            255)
+                                                                                                                                                                                                                                                                           (tunsigned
+                                                                                                                                                                                                                                                                             452312848583266388373324160190187140051835877600158453279131187530910662655))) (ty ((abytes
+                                                                                                                                                                                                                                                                                                                                                                   8))
+                                                                                                                                                                                                                                                                                                                                                                ((tunsigned
+                                                                                                                                                                                                                                                                                                                                                                   18446744073709551615))))
+                                      (ty ((abytes 8)
+                                            (afield)
+                                            (afield)
+                                            (afield))
+                                          ((tunsigned 18446744073709551615)
+                                            (tfield (field-native))
+                                            (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                                    (balance #f ((ty ((abytes 32))
+                                                     ((tunsigned 255)
+                                                       (tunsigned
+                                                         452312848583266388373324160190187140051835877600158453279131187530910662655))))
+                                      (ty ((abytes 8))
+                                          ((tunsigned 18446744073709551615))))))
+                %t.93
+                %t.94
+                %trader.60
+                %trader.61
+                %amount_out.63
+                %t.95
+                %t.96
+                %fee_amount.64))
+           (= %t.6 (%comm.100)
+              (call %transientCommit.43
+                %t.93
+                %t.94
+                %trader.60
+                %trader.61
+                %amount_out.63
+                %t.95
+                %t.96
+                %fee_amount.64
+                %paid.4
+                %cc-rand.97))
+           (= %t.6 ()
+              (public-ledger %kernel.54 () claimContractCall
+                %t.91
+                %t.92
+                %ep-mod.98
+                %ep-div.99
+                %comm.100))
+           (= 1 %t.7 (+ 65 %received.5 %paid.4))
+           (= 1 %t.13 (select %a_for_b.0 0 %t.7))
+           (= 1 %t1.14 (< 65 %t.13 18446744073709551616))
+           (= 1 %t2.15 (select %a_for_b.0 1 %t1.14))
+           (assert %t2.15
+             "downcast to Uint<0..18446744073709551615> failed")
+           (= 1 %t.8
+              (downcast-unsigned
+                #t
+                36893488147419103230
+                18446744073709551615
+                %t.13))
+           (= 1 %t.101 (select %a_for_b.0 %t.9 %t.8))
+           (%t.101))))
+))
 
   ;; no-witness-dex dynamic: TypeScript generation under the v3 feature setting
   ;; uses the proposed contract-interface syntax, which today's parser rejects.
@@ -91252,7 +92296,7 @@ groups than for single tests.
          "}"))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 1 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))))
+       irritants: '("testfile.compact line 1 char 10" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier" "\"implements\""))))))
 
 
   )
