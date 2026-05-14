@@ -108,8 +108,11 @@
     (unless (okay? x)
       (syntax-error x complaint)))
 
+  ;; Identifiers expand-vm-code implicitly binds in every VM body.
+  (define implicit-vm-bindings '(f f-cached return_type))
+
   (define (make-check-vm-expr arg-name*)
-    (let ([free-name* (cons* 'f 'f-cached arg-name*)])
+    (let ([free-name* (append implicit-vm-bindings arg-name*)])
       (define (free-name? x) (memq x free-name*))
       (rec check-vm-expr
         (lambda (e)
@@ -157,8 +160,14 @@
       (define expand-vm-expr (make-expand-vm-expr arg-alist))
       (fluid-let ([query-src src])
         (expand-vm-expr e)))
-    (define (expand-vm-code src f f-cached arg-alist code)
-      (define expand-vm-expr (make-expand-vm-expr (cons* (cons 'f f) (cons 'f-cached f-cached) arg-alist)))
+    ;; result-type binds the implicit `return_type` identifier in the VM body.
+    (define (expand-vm-code src f f-cached result-type arg-alist code)
+      (define expand-vm-expr
+        (make-expand-vm-expr
+          (cons* (cons 'f f)
+                 (cons 'f-cached f-cached)
+                 (cons 'return_type result-type)
+                 arg-alist)))
       (define (expand-vm-instruction i)
         (syntax-case i ()
           [(op [x e] ...)
