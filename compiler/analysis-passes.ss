@@ -24,6 +24,7 @@
           (langs)
           (ledger)
           (natives)
+          (events)
           (json)
           (pass-helpers)
           (parser)
@@ -630,6 +631,7 @@
                                                   '()
                                                   (append standard-library-pelt*
                                                           (native-declarations)
+                                                          (event-declarations)
                                                           (map (lambda (adt-defn)
                                                                   (nanopass-case (Lpreexpand ADT-Definition) adt-defn
                                                                     [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -2181,7 +2183,20 @@
       (define (get-contract-name ecdecl)
         (nanopass-case (Lexpanded External-Contract-Declaration) ecdecl
           [(external-contract ,src ,contract-name ,ecdecl-circuit* ...)
-           contract-name])))
+           contract-name]))
+      (define event-ht
+        (let ([cached #f])
+          (lambda ()
+            (or cached
+                (let ([ht (make-hashtable symbol-hash eq?)])
+                  (for-each
+                    (lambda (sd)
+                      (nanopass-case (Lpreexpand Structure-Definition) sd
+                        [(struct ,src ,exported? ,name (,type-param* ...) ,arg* ...)
+                         (hashtable-set! ht name #t)]))
+                    (event-declarations))
+                  (set! cached ht)
+                  cached))))))
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) (,unused-pelt* ...) (,ecdecl* ...) ,pelt* ...)
        (for-each Set-Program-Element-Type! unused-pelt*)
@@ -2504,6 +2519,14 @@
       [(elt-call ,src ,expr ,elt-name ,expr* ...)
        (let-values ([(expr type) (elt-call-lhs ir src "." #f)])
          (desugar-ledger-read src expr type))]
+      [(log ,src ,[Care : expr type])
+       (nanopass-case (Ltypes Type) (de-alias type #t)
+         [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...)
+          (unless (hashtable-ref (event-ht) struct-name #f)
+            (source-errorf src "~a is not a declared event type" struct-name))
+          (values `(log ,src ,expr) type)]
+         [else (source-errorf src "expected structure type (representation of an event), received ~a"
+                              (format-type type))])]
       [(= ,src ,[elt-call-lhs : expr1 src "=" #t -> expr1 type1] ,[Care : expr2 type2])
        (nanopass-case (Ltypes Type) (de-alias type1 #t)
          [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -3659,6 +3682,19 @@
             [else (void)]))
         (define (lookup-adt-ops ledger-field-name)
           (assert (hashtable-ref ledger-ht ledger-field-name #f))))
+      (define event-ht
+        (let ([cached #f])
+          (lambda ()
+            (or cached
+                (let ([ht (make-hashtable symbol-hash eq?)])
+                  (for-each
+                    (lambda (sd)
+                      (nanopass-case (Lpreexpand Structure-Definition) sd
+                        [(struct ,src ,exported? ,name (,type-param* ...) ,arg* ...)
+                         (hashtable-set! ht name #t)]))
+                    (event-declarations))
+                  (set! cached ht)
+                  cached)))))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -3767,6 +3803,14 @@
                       (car type*))
                     (loop (cdr elt-name*) (cdr type*) (fx+ i 1)))))]
          [else (source-errorf src "expected structure type, received ~a"
+                              (format-type type))])]
+      [(log ,src ,[Care : expr -> * type])
+       (nanopass-case (Lnodca Type) (de-alias type)
+         [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...)
+          (unless (hashtable-ref (event-ht) struct-name #f)
+            (source-errorf src "~a is not a declared event type" struct-name))
+          type]
+         [else (source-errorf src "expected structure type (representation of an event), received ~a"
                               (format-type type))])]
       [(enum-ref ,src ,type ,elt-name^)
        (nanopass-case (Lnodca Type) (de-alias type)
@@ -5330,6 +5374,18 @@
        (Abs-case abs
          [(Abs-multiple abs*) (list-ref abs* nat)]
          [else (assert cannot-happen)])]
+
+      [(log ,src ,[* abs])
+       (unless (null? control-witness*)
+         (record-leak! src "performing this log operation" control-witness*))
+       (let ([witness* (abs->witnesses
+                         (add-path-point src
+                           "the argument to log"
+                           ""
+                           abs))])
+         (unless (null? witness*)
+           (record-leak! src "log operation" witness*)))
+       abs]
 
       [(tuple-ref ,src ,[* abs] ,kindex)
        (Abs-case abs

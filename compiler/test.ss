@@ -7512,7 +7512,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"log\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"log\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
     )
 
   (test
@@ -14625,6 +14625,291 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 3" "the difference ~d between end and start bounds exceeds the maximum vector size ~d" (16777217 16777216)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {pad(32, 'a')} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ()
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                      0 0 0 0 0))))))
+    )
+
+  (test
+    '(
+      "struct F { bar: Field }"
+      "export circuit foo (): F {"
+      "  return log ( F {1} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ()
+             (tstruct F (bar (tfield)))
+          (log (new (tstruct F (bar (tfield))) 1)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { ShieldedSpend }"
+      )
+    (returns
+      (program ()
+        (export-typedef ShieldedSpend ()
+          (tstruct ShieldedSpend (nullifier (tbytes 32))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { ShieldedReceive }"
+      )
+    (returns
+      (program ()
+        (export-typedef ShieldedReceive ()
+          (tstruct ShieldedReceive
+            (commitment (tbytes 32))
+            (contract_address (tstruct Maybe
+                                (is_some (tboolean))
+                                (value (tbytes 32))))
+            (ciphertext (tstruct Maybe
+                          (is_some (tboolean))
+                          (value (tbytes 512))))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { ShieldedMint }"
+      )
+    (returns
+      (program ()
+        (export-typedef ShieldedMint ()
+          (tstruct ShieldedMint
+            (commitment (tbytes 32))
+            (domain_sep (tbytes 32))
+            (amount (tstruct Maybe
+                      (is_some (tboolean))
+                      (value (tunsigned
+                               340282366920938463463374607431768211455))))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { ShieldedBurn }"
+      )
+    (returns
+      (program ()
+        (export-typedef ShieldedBurn ()
+          (tstruct ShieldedBurn
+            (nullifier (tbytes 32))
+            (amount (tstruct Maybe
+                      (is_some (tboolean))
+                      (value (tunsigned
+                               340282366920938463463374607431768211455))))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { UnshieldedSpend }"
+      )
+    (returns
+      (program ()
+        (export-typedef UnshieldedSpend ()
+          (tstruct UnshieldedSpend
+            (sender (tstruct Either
+                      (is_left (tboolean))
+                      (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                      (right (tstruct ContractAddress (bytes (tbytes 32))))))
+            (token_type (tbytes 32))
+            (amount (tunsigned
+                      340282366920938463463374607431768211455))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { UnshieldedReceive }"
+      )
+    (returns
+      (program ()
+        (export-typedef UnshieldedReceive ()
+          (tstruct UnshieldedReceive
+            (recipient (tstruct Either
+                         (is_left (tboolean))
+                         (left (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))
+                         (right (tstruct ContractAddress
+                                  (bytes (tbytes 32))))))
+            (token_type (tbytes 32))
+            (amount (tunsigned
+                      340282366920938463463374607431768211455))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { UnshieldedMint }"
+      )
+    (returns
+      (program ()
+        (export-typedef UnshieldedMint ()
+          (tstruct UnshieldedMint
+            (domain_sep (tbytes 32))
+            (token_type (tbytes 32))
+            (amount (tunsigned
+                      340282366920938463463374607431768211455))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (d: Bytes<32>, t: Bytes<32>, a: Uint<128>): UnshieldedMint {"
+      "  return log ( UnshieldedMint {d, t, a} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ([%d.2 (tbytes 32)]
+                         [%t.3 (tbytes 32)]
+                         [%a.4 (tunsigned
+                                 340282366920938463463374607431768211455)])
+             (tstruct UnshieldedMint
+               (domain_sep (tbytes 32))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (log (new (tstruct UnshieldedMint
+                      (domain_sep (tbytes 32))
+                      (token_type (tbytes 32))
+                      (amount (tunsigned
+                                340282366920938463463374607431768211455)))
+                 %d.2
+                 %t.3
+                 %a.4)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { UnshieldedBurn }"
+      )
+    (returns
+      (program ()
+        (export-typedef UnshieldedBurn ()
+          (tstruct UnshieldedBurn
+            (sender (tstruct Either
+                      (is_left (tboolean))
+                      (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                      (right (tstruct ContractAddress (bytes (tbytes 32))))))
+            (token_type (tbytes 32))
+            (amount (tunsigned
+                      340282366920938463463374607431768211455))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { Paused }"
+      )
+    (returns
+      (program ()
+        (export-typedef Paused ()
+          (tstruct Paused))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): Paused {"
+      "  return log ( Paused {} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ()
+             (tstruct Paused)
+          (log (new (tstruct Paused))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { Unpaused }"
+      )
+    (returns
+      (program ()
+        (export-typedef Unpaused ()
+          (tstruct Unpaused))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): Unpaused {"
+      "  return log ( Unpaused {} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ()
+             (tstruct Unpaused)
+          (log (new (tstruct Unpaused))))))
+    )
+
+  ;; Misc — two Bytes fields
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { Misc }"
+      )
+    (returns
+      (program ()
+        (export-typedef Misc ()
+          (tstruct Misc
+            (name (tbytes 32))
+            (payload (tbytes 256))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (n: Bytes<32>, p: Bytes<256>): Misc {"
+      "  return log ( Misc {n, p} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ((n (tbytes 32)) (p (tbytes 256)))
+             (tstruct Misc (name (tbytes 32)) (payload (tbytes 256)))
+          (log (new (tstruct Misc (name (tbytes 32)) (payload (tbytes 256))) n p)))))
     )
 )
 
@@ -24875,6 +25160,125 @@ groups than for single tests.
               %v.1)
             (tuple)))))
     )
+
+  (test
+    '(
+      "struct F { bar: Field }"
+      "export circuit foo (): F {"
+      "  return log ( F {bar: 1} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a is not a declared event type" (F)))
+    )
+
+  (test
+    '(
+      "struct F { bar: Field }"
+      "export circuit foo (): F {"
+      "  return log ( F {1} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a is not a declared event type" (F)))
+    )
+
+  (test
+    '(
+      "struct F { bar: Field }"
+      "export circuit foo (): F {"
+      "  return log ( F {baz: 1} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "value for element ~s is missing in creation syntax for ~a" (bar "struct F<bar: Field>")))
+    )
+
+  (test
+    '(
+      "struct F { bar: Field }"
+      "export circuit foo (): F {"
+      "  return log ( F {true} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Boolean" "Field" bar "struct F<bar: Field>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {nullifier: 1} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Uint<1>" "Bytes<32>" nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {1} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Uint<1>" "Bytes<32>" nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {x: pad(32, 'a')} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "value for element ~s is missing in creation syntax for ~a" (nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {nullifier: pad(32, 'a')} );"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ()
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                      0 0 0 0 0))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {pad(32, 'a')} );"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ()
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                      0 0 0 0 0))))))
+    )
+
 )
 
 ; tests limits for vectors, bytes, and tuples.
@@ -32271,6 +32675,298 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of s at line 6 char 9\n      the right-hand side of = at line 7 char 5"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return disclose (log ( ShieldedSpend {pad(32, 'a')} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ()
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (disclose
+            (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                        0 0 0 0 0)))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {pad(32, 'a')} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ()
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                      0 0 0 0 0))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): [] {"
+      "  log ( ShieldedSpend {pad(32, 'a')} );"
+      "  return;"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ()
+             (ttuple)
+          (seq
+            (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                        0 0 0 0 0)))
+            (tuple)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): ShieldedSpend {"
+      "  return log ( ShieldedSpend {disclose (x)} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%x.2 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 (disclose %x.2))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): ShieldedSpend {"
+      "  return log ( disclose (ShieldedSpend {x} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%x.2 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (disclose
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   %x.2))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): ShieldedSpend {"
+      "  return disclose (log ( ShieldedSpend {x} ));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 3 char 20"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): ShieldedSpend {"
+      "  return log ( ShieldedSpend {x} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 3 char 10"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): [] {"
+      "  log ( ShieldedSpend {x} );"
+      "  return;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 3 char 3"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {disclose(bar())} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %bar.1 () (tbytes 32))
+        (circuit %foo.2 ()
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 (disclose (call %bar.1)))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( disclose (ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %bar.1 () (tbytes 32))
+        (circuit %foo.2 ()
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (disclose
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (call %bar.1)))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return disclose( log ( ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 4 char 20"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): ShieldedSpend {"
+      "  return log ( disclose(ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%b.2 (tboolean)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (disclose
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (if %b.2
+                       #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                            0 0 0 0 0 0 0)
+                       #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                            0 0 0 0 0 0 0))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): ShieldedSpend {"
+      "  return log ( ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 3 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 4 char 32\n      the argument to log at line 4 char 10"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): ShieldedSpend {"
+      "  return log ( disclose(ShieldedSpend { b ? bar() : pad(32, 'b')} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %bar.1 () (tbytes 32))
+        (circuit %foo.2 ([%b.3 (tboolean)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (disclose
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (if %b.3
+                       (call %bar.1)
+                       #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                            0 0 0 0 0 0 0))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): [] {"
+      "  log ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
+      "  return;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 4 char 3"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): ShieldedSpend {"
+      "  return log ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 4 char 10"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): ShieldedSpend {"
+      "  return log ( ShieldedSpend { disclose(b) ? disclose(bar()) : pad(32, 'b')} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %bar.1 () (tbytes 32))
+        (circuit %foo.2 ([%b.3 (tboolean)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 (if (disclose %b.3)
+                     (disclose (call %bar.1))
+                     #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                          0 0 0 0 0 0)))))))
     )
 )
 
@@ -65645,6 +66341,7 @@ groups than for single tests.
 )
 )
 
+#!eof
 ; tests of code snippets in compact-reference
 (run-tests print-typescript
   ; change: " --> ' for message of assert

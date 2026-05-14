@@ -232,6 +232,7 @@
       (if src expr0 expr1 expr2)                          => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name)                         => (elt-ref expr elt-name)
       (elt-call src expr elt-name expr* ...)              => (elt-call expr elt-name expr* ...)
+      (log src expr)                                      => (log expr)
       (= src expr1 expr2)                                 => (= expr1 expr2)
       (+= src expr1 expr2)                                => (+= expr1 3 expr2)
       (-= src expr1 expr2)                                => (-= expr1 3 expr2)
@@ -675,6 +676,7 @@
       (default src type)                      => (default type)
       (if src expr0 expr1 expr2)              => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name nat)         => (elt-ref expr elt-name nat)
+      (log src expr)                          => (log expr)
       (enum-ref src type elt-name)            => (enum-ref type elt-name)
       ; for tuple, the elements can have different, even unrelated types
       (tuple src tuple-arg* ...)              => (tuple tuple-arg* ...)
@@ -696,13 +698,13 @@
       (+ src mbits expr1 expr2)               => (+ mbits expr1 expr2)
       (- src mbits expr1 expr2)               => (- mbits expr1 expr2)
       (* src mbits expr1 expr2)               => (* mbits expr1 expr2)
-      (< src bits expr1 expr2)               => (< expr1 expr2)
-      (<= src bits expr1 expr2)              => (<= expr1 3 expr2)
-      (> src bits expr1 expr2)               => (> expr1 expr2)
-      (>= src bits expr1 expr2)              => (>= expr1 3 expr2)
+      (< src bits expr1 expr2)                => (< expr1 expr2)
+      (<= src bits expr1 expr2)               => (<= expr1 3 expr2)
+      (> src bits expr1 expr2)                => (> expr1 expr2)
+      (>= src bits expr1 expr2)               => (>= expr1 3 expr2)
       (== src type expr1 expr2)               => (== expr1 3 expr2)
       (!= src type expr1 expr2)               => (!= expr1 3 expr2)
-      (map src len fun map-arg map-arg* ...) =>
+      (map src len fun map-arg map-arg* ...)  =>
         (map #f fun #f map-arg #f map-arg* ...)
       (fold src len fun (expr0 type0) map-arg map-arg* ...) =>
         (fold #f fun #f expr0 #f map-arg #f map-arg* ...)
