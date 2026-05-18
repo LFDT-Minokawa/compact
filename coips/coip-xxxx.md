@@ -65,14 +65,13 @@ log(<struct instance>)
 - The expression returns the struct passed to it.
 - Multiple `log` calls per circuit are allowed.
 - Inside conditional branches, the log executes only if the branch is taken.
-- `pure` circuits must not contain `log`, it is a side effect.
 
 **Example:**
 
 ```compact
 circuit spend(...): [] {
     // ... spend logic ...
-    log(ShieldedSpend { nullifier: old_nullifier });
+    log(ShieldedSpend { nullifier: disclose(old_nullifier) });
 }
 ```
 
@@ -137,7 +136,7 @@ It compiles to a struct emission that downstream consumers can subscribe to.
 ```compact
 circuit spend(...): [] {
     // ... spend logic ...
-    log(ShieldedSpend { nullifier: old_nullifier });
+    log(ShieldedSpend { nullifier: disclose(old_nullifier) });
 }
 ```
 
@@ -166,7 +165,6 @@ This adds language surface for no semantic benefit — an event is a struct that
 ## Open Questions
 
 - What is the impact of `log` on the ZK circuit model? Adding `log` calls changes a circuit's public outputs. Does this have implications for proof generation or verification beyond additional instructions?
-- What is the hard cap on the number of events a contract can emit per circuit call?
 
 ## References
 
@@ -307,7 +305,7 @@ To detect spends, a consumer must poll the full state, diff Merklized structures
 circuit spend(dest_public_key: public_key, input_coin: coin_info): [] {
   // ... existing logic unchanged ...
 
-  log(ShieldedSpend { nullifier: old_nullifier });
+  log(ShieldedSpend { nullifier: disclose(old_nullifier) });
 }
 ```
 
