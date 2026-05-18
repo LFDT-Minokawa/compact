@@ -30300,6 +30300,50 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 15 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (bar foo "accesses ledger field F" "line 6 char 12")))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger bar: Bytes<32>;"
+      "export pure circuit foo (): ShieldedSpend {"
+      "  return log ( disclose (ShieldedSpend {bar} ));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "accesses ledger field bar" "line 4 char 41")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit foo (x: Bytes<32>): ShieldedSpend {"
+      "  return log ( disclose (ShieldedSpend {x} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 (Kernel)))
+        (public-ledger-declaration (constructor () (tuple)))
+        (circuit %foo.1 ([%x.2 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (disclose
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   %x.2))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export pure circuit foo (): ShieldedSpend {"
+      "  return log ( disclose (ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "calls witness bar" "line 4 char 41")))
+    )
 )
 
 (run-tests propagate-ledger-paths
@@ -32740,6 +32784,23 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export circuit foo (x: Bytes<32>): ShieldedSpend {"
       "  return log ( ShieldedSpend {disclose (x)} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%x.2 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 (disclose %x.2))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): ShieldedSpend {"
+      "  return log ( ShieldedSpend {nullifier: disclose (x)} );"
       "}"
       )
     (returns
@@ -38268,6 +38329,64 @@ groups than for single tests.
                 %t.6))
            ())))
      ))
+
+  ; example of how events will appear in contract-info.json
+  (test-group
+    ((create-file "testfile.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "witness bar(): Bytes<32>;"
+         "export circuit foo (): ShieldedSpend {"
+         "  return log ( disclose (ShieldedSpend {bar()} ));"
+         "}"
+         ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/testfile/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "    {"
+         "      \"name\": \"foo\","
+         "      \"pure\": false,"
+         "      \"proof\": false,"
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result-type\": {"
+         "        \"type-name\": \"Struct\","
+         "        \"name\": \"ShieldedSpend\","
+         "        \"elements\": ["
+         "          {"
+         "            \"name\": \"nullifier\","
+         "            \"type\": {"
+         "              \"type-name\": \"Bytes\","
+         "              \"length\": 32"
+         "            }"
+         "          }"
+         "        ]"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"witnesses\": ["
+         "    {"
+         "      \"name\": \"bar\","
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result type\": {"
+         "        \"type-name\": \"Bytes\","
+         "        \"length\": 32"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "  ]"
+         "}"))
+     ))
 )
 
 (run-tests drop-ledger-runtime
@@ -41035,6 +41154,17 @@ groups than for single tests.
           (= #t %t.4 (public-ledger %forceField.1 (0) write 7))
           (= #t %t.5 (call %W.2))
           %t.5)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( disclose (ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (returns what)
     )
 )
 
@@ -66341,7 +66471,6 @@ groups than for single tests.
 )
 )
 
-#!eof
 ; tests of code snippets in compact-reference
 (run-tests print-typescript
   ; change: " --> ' for message of assert
@@ -83545,6 +83674,20 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt, false, [0x12n, 0x34n, 0x56n, 0x78n, 0x91n, 0x23n, 0x45n]).result).toEqual(new Uint8Array([1,2,3,4,5,6,7]));"
         "  });"
         ))
+    )
+
+  #;(test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export struct S { F: Field };"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( disclose (ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (returns what)
+    (output-file "compiler/testdir/contract/index.d.ts" '())
+    (output-file "compiler/testdir/contract/index.js" '())
     )
 )
 

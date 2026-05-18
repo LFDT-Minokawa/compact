@@ -20,6 +20,7 @@
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
+          (events)
           (config-params)
           (nanopass)
           (langs)
@@ -526,21 +527,34 @@
                  (type-error src what
                    (with-output-language (Linlined Type) `(tfield ,src))
                    type))))]))
-       (define (arithmetic-binop src op mbits expr1 expr2)
-         (let* ([type1 (Care expr1)] [type2 (Care expr2)])
-           (or (T type1
-                  [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
-                  [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])])
-               (source-errorf src "incompatible combination of types ~a and ~a for ~s"
-                              (format-type type1)
-                              (format-type type2)
-                              op))
-           (unless (eqv? (T type1 [(tunsigned ,src ,nat) (fxmax 1 (integer-length nat))]) mbits)
-             (source-errorf src "mismatched mbits ~s and type ~a for ~s"
-                            mbits
-                            (format-type type1)
-                            op))
-           type1))
+      (define (arithmetic-binop src op mbits expr1 expr2)
+        (let* ([type1 (Care expr1)] [type2 (Care expr2)])
+          (or (T type1
+                 [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
+                 [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])])
+              (source-errorf src "incompatible combination of types ~a and ~a for ~s"
+                             (format-type type1)
+                             (format-type type2)
+                             op))
+          (unless (eqv? (T type1 [(tunsigned ,src ,nat) (fxmax 1 (integer-length nat))]) mbits)
+            (source-errorf src "mismatched mbits ~s and type ~a for ~s"
+                           mbits
+                           (format-type type1)
+                           op))
+          type1))
+      (define event-ht
+        (let ([cached #f])
+          (lambda ()
+            (or cached
+                (let ([ht (make-hashtable symbol-hash eq?)])
+                  (for-each
+                    (lambda (sd)
+                      (nanopass-case (Lpreexpand Structure-Definition) sd
+                        [(struct ,src ,exported? ,name (,type-param* ...) ,arg* ...)
+                         (hashtable-set! ht name #t)]))
+                    (event-declarations))
+                  (set! cached ht)
+                  cached)))))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -645,6 +659,14 @@
                     (car type*)
                     (loop (cdr elt-name*) (cdr type*)))))]
          [else (source-errorf src "expected structure type, received ~a"
+                              (format-type type))])]
+      [(log ,src ,[Care : expr -> * type])
+       (nanopass-case (Linlined Type) type
+         [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...)
+          (unless (hashtable-ref (event-ht) struct-name #f)
+            (source-errorf src "~a is not a declared event type" struct-name))
+          type]
+         [else (source-errorf src "expected structure type (representation of an event), received ~a"
                               (format-type type))])]
       [(tuple-ref ,src ,[Care : expr -> * expr-type] ,kindex)
        (define (bounds-check len)
@@ -1437,6 +1459,8 @@
            [else (assert cannot-happen)]))]
       [(elt-ref ,src ,[expr ctv] ,elt-name)
        (handle-elt-ref src expr ctv elt-name)]
+      [(log ,src ,[expr ctv])
+       (values `(log ,src ,expr) ctv)]
       [(+ ,src ,mbits ,expr1 ,expr2)
        (define (add x y)
          (let ([a (+ x y)])
