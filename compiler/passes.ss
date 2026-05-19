@@ -36,7 +36,8 @@
           (typescript-passes)
           (circuit-passes)
           (zkir-passes)
-          (zkir-v3-passes))
+          (zkir-v3-passes)
+          (manifest-passes))
 
   (define-condition-type &pass-name &condition
     make-pass-name-condition pass-name-condition?
@@ -140,17 +141,20 @@
                                [analyzed-ir (run-passes analysis-passes frontend-ir)]
                                [circuit-ir (run-passes circuit-passes analyzed-ir)]
                                [proof-circuit-name* (extract-circuit-names circuit-ir)])
-                          (rm-rf (format "~a/compiler" output-directory-pathname))
-                          (rm-rf (format "~a/zkir" output-directory-pathname))
-                          (rm-rf (format "~a/keys" output-directory-pathname))
+                          (define output-subdirectories '("compiler" "contract" "zkir" "keys"))
+                          (for-each
+                            (lambda (fn) (rm-rf (format "~a/~a" output-directory-pathname fn)))
+                            output-subdirectories)
                           (with-target-ports
                             '((contract-info.json . "compiler/contract-info.json"))
                             (run-passes save-contract-info-passes analyzed-ir proof-circuit-name*))
+                          (create-directory "zkir")
                           (with-target-ports
                             (map (lambda (sym) (cons sym (format "zkir/~a.zkir" sym)))
                                  proof-circuit-name*)
                             (run-passes (if (feature-zkir-v3) zkir-v3-passes zkir-passes) circuit-ir))
                           (unless (null? (pending-conditions)) (raise (make-halt-condition)))
+                          (create-directory "keys")
                           (unless (skip-zk)
                             (if (zero? (system "command -v zkir > /dev/null"))
                               ;; If we have zero circuits, the zkir directory won't exist,
@@ -173,6 +177,12 @@
                              (contract.js.map . "contract/index.js.map"))
                            (parameterize ([proof-circuit-names proof-circuit-name*])
                              (run-passes typescript-passes analyzed-ir)))
+                          (let ([manifest-pathname* created-file*])
+                            (with-target-ports
+                              '((contract-manifest.json . "compiler/contract-manifest.json"))
+                              (run-passes manifest-passes circuit-ir
+                                output-directory-pathname
+                                output-subdirectories)))
                           (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass)))]))))))))]))
 
   (define-pass extract-circuit-names : Lflattened (ir) -> * (ls)
