@@ -13,6 +13,7 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
+;; ==== Transient (Poseidon) hashing
 (declare-native-entry circuit transientHash [A]
   "__compactRuntime.transientHash"
   ([value A (discloses "a hash of")])
@@ -24,6 +25,7 @@
    [rand Field (discloses nothing)])
   Field)
 
+;; ==== Persistent (SHA-256) hashing
 (declare-native-entry circuit persistentHash [A]
   "__compactRuntime.persistentHash"
   ([value A (discloses "a hash of")])
@@ -45,6 +47,13 @@
   ([x Field (discloses "a converted form of")])
   (Bytes 32))
 
+;; ==== Other hashing circuits
+(declare-native-entry circuit keccak256 [A]
+  "__compactRuntime.keccak256"
+  ([value A (discloses "a hash of")])
+  (Bytes 32))
+
+;; ====
 (declare-native-entry circuit jubjubPointX
   "__compactRuntime.jubjubPointX"
   ([np (TypeRef JubjubPoint) (discloses "the X coordinate of")])

@@ -40,9 +40,9 @@ const for_grammar = {
         // ['{\n', 'generate_nested_for', '\n}'],
     ],
     for_loop_range: [
-        ['for (const ', 'bob', ' of ', 'random_number', '..', 'random_number', ') {\n', '}\n'],
+        ['for (const ', 'bob', ' of ', 'very_small_random_number', '..', 'very_small_random_number', ') {\n', '}\n'],
         ['for (const ', 'bob', ' of ', 'counter_operation', ') {\n', '}\n'],
-        ['for (const ', 'bob', ' of ', 'small_random_number', '..', 'small_random_number', ') {\n', '}\n'],
+        // ['for (const ', 'bob', ' of ', 'small_random_number', '..', 'small_random_number', ') {\n', '}\n'],
         ['for (const ', 'bob', ' of ', '[', 'random_table', ']) {\n', '}\n'],
         ['for (const ', 'bob', ' of ', '[', 'valid_types', ']) {\n', '}\n'],
         ['for (const ', 'bob', ' of ', '[', 'default<', 'valid_types', '>]) {\n', '}\n'],

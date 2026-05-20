@@ -165,52 +165,52 @@
                   (when (cdr a) (internal-errorf 'print-zkir "duplicate circuit name ~s" name))
                   (set-cdr! a handler)))
               (register-handler! 'transientHash
-                (lambda (align res* . xs)
+                (lambda (src align res* . xs)
                   (print-gate "transient_hash" `[inputs ,xs])
                   (new-var! (car res*))))
               (register-handler! 'degradeToTransient
-                (lambda (align res* a1 a2) (bind-var! (car res*) a2)))
+                (lambda (src align res* a1 a2) (bind-var! (car res*) a2)))
               (register-handler! 'upgradeFromTransient
-                (lambda (align res* a1)
+                (lambda (src align res* a1)
                   (bind-var! (car res*) (literal 0))
                   (print-gate "div_mod_power_of_two" `[var ,a1] `[bits 248])
                   (set! ctr (add1 ctr))
                   (new-var! (cadr res*))))
               (register-handler! 'ecAdd
-                (lambda (align res* ax ay bx by)
+                (lambda (src align res* ax ay bx by)
                   (print-gate "ec_add" `[a_x ,ax] `[a_y ,ay] `[b_x ,bx] `[b_y ,by])
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
               (register-handler! 'ecMul
-                (lambda (align res* ax ay b)
+                (lambda (src align res* ax ay b)
                   (print-gate "ec_mul" `[a_x ,ax] `[a_y ,ay] `[scalar ,b])
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
               (register-handler! 'ecMulGenerator
-                (lambda (align res* b)
+                (lambda (src align res* b)
                   (print-gate "ec_mul_generator" `[scalar ,b])
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
               (register-handler! 'hashToCurve
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   (print-gate "hash_to_curve" `[inputs ,args*])
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
               (register-handler! 'jubjubPointX
-                (lambda (align res* a1 a2)
+                (lambda (src align res* a1 a2)
                   (bind-var! (car res*) a1)))
               (register-handler! 'jubjubPointY
-                (lambda (align res* a1 a2)
+                (lambda (src align res* a1 a2)
                   (bind-var! (car res*) a2)))
               (register-handler! 'constructJubjubPoint
-                (lambda (align res* a1 a2)
+                (lambda (src align res* a1 a2)
                   (bind-var! (car res*) a1)
                   (bind-var! (cadr res*) a2)))
               (register-handler! 'transientCommit
                 ;; First n-1 args are the object being committed.
                 ;; Final arg is commitment nonce.
                 ;; commit algorithm is: object.fold(nonce, poseidon_compress)
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   (print-gate "transient_hash" `[inputs ,(cons (car (list-tail args* (sub1 (length args*))))
                                                                (list-head args* (sub1 (length args*))))])
                   (new-var! (car res*))))
@@ -218,7 +218,7 @@
                 ;; First n-2 args are the object being committed.
                 ;; Final 2 args are commitment nonce.
                 ;; commit algorithm is: object.fold(nonce, poseidon_compress)
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   (print-gate "persistent_hash"
                               `[alignment ,(alignment->json
                                              (cons (with-output-language (Lflattened Alignment)
@@ -229,7 +229,7 @@
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
               (register-handler! 'persistentHash
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   (print-gate "persistent_hash"
                               `[alignment ,(alignment->json (caar align))]
                               `[inputs ,args*])
@@ -237,16 +237,19 @@
                   ; FIXME: should check for expected number of res*
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
+              (register-handler! 'keccak256
+                (lambda (src align res* . args*)
+                  (source-errorf src "keccak256 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`")))
               (register-handler! 'ownPublicKey
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   ; handled as a witness
                   (assert cannot-happen)))
               (register-handler! 'createZswapInput
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   ; handled as a witness
                   (assert cannot-happen)))
               (register-handler! 'createZswapOutput
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   ; handled as a witness
                   (assert cannot-happen)))
               ht))
@@ -363,7 +366,7 @@
                [(builtin-circuit)
                 (cond
                   [(hashtable-ref std-circuits (cadr pair) #f) =>
-                   (lambda (handler) (apply handler (cddr pair) var-name* triv*))]
+                   (lambda (handler) (apply handler src (cddr pair) var-name* triv*))]
                   [else (source-errorf src "unrecognized native circuit ~a" (cadr pair))])]
                [(witness)
                 (for-each
@@ -533,10 +536,10 @@
                                                        [leaf1 (make-temp-id src 'leaf1)]
                                                        [leaf2 (make-temp-id src 'leaf2)])
                                                   (apply (hashtable-ref std-circuits 'persistentHash #f)
-                                                         (list*
-                                                           (list (list (cons domain-sep-align alignment)))
-                                                           (list leaf1 leaf2)
-                                                           (cons (literal domain-sep-field) value-refs)))
+                                                         src
+                                                         (list (list (cons domain-sep-align alignment)))
+                                                         (list leaf1 leaf2)
+                                                         (cons (literal domain-sep-field) value-refs))
                                                   `(1 32 (ref . ,(var-idx leaf1)) (ref . ,(var-idx leaf2)))))]
                                              [(VMcoin-commit coin recipient)
                                               (let* ([coin (vmref-q coin)]
@@ -560,21 +563,21 @@
                                                                           `[b   ,(car (cddddr recipient))])
                                                 (new-var! data2)
                                                 (apply (hashtable-ref std-circuits 'persistentHash #f)
-                                                       (list*
-                                                         ;; alignment of `CoinPreimage` in std.compact
-                                                         (list (list (list
-                                                           (abytes (length domain-sep-bytes))
-                                                           (abytes 32)
-                                                           (abytes 32)
-                                                           (abytes 16)
-                                                           (abytes 1)
-                                                           (abytes 32))))
-                                                         (list hash1 hash2)
-                                                         (append
+                                                       src
+                                                       ;; alignment of `CoinPreimage` in std.compact
+                                                       (list (list (list
+                                                                     (abytes (length domain-sep-bytes))
+                                                                     (abytes 32)
+                                                                     (abytes 32)
+                                                                     (abytes 16)
+                                                                     (abytes 1)
+                                                                     (abytes 32))))
+                                                       (list hash1 hash2)
+                                                       (append
                                                            (list (literal domain-sep-field))
                                                            coin
                                                            (list (car recipient))
-                                                           (list (var-idx data1) (var-idx data2)))))
+                                                           (list (var-idx data1) (var-idx data2))))
                                                 `(1 32 (ref . ,(var-idx hash1)) (ref . ,(var-idx hash2))))]
                                              ;; There's room to tighten this in future, we just need to be careful to keep it
                                              ;; in-sync with the rust version.

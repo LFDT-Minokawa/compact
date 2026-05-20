@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
+import { keccak_256 } from '@noble/hashes/sha3.js';
 import { MAX_FIELD } from './constants.js';
 import { CompactType, CompactTypeJubjubPoint, JubjubPoint } from './compact-types.js';
 import { CompactError } from './error.js';
@@ -160,6 +161,25 @@ export function upgradeFromTransient(x: bigint): Uint8Array {
   const res = new Uint8Array(32);
   res.set(wrapped, 0);
   return res;
+}
+
+/**
+ * The Compact builtin `keccak256` function
+ *
+ * Hashes `value` using Keccak-256 and returns the 32-byte digest.
+ *
+ * @throws If `rtType` encodes a type containing Compact 'Opaque' types
+ */
+export function keccak256<A>(rtType: CompactType<A>, value: A): Uint8Array {
+  const chunks = rtType.toValue(value);
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const bytes = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return keccak_256(bytes);
 }
 
 export function jubjubPointX(pt: JubjubPoint): bigint {
