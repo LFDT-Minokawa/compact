@@ -16,7 +16,7 @@
 ;;; limitations under the License.
 
 (library (langs)
-  (export max-field field-bytes max-unsigned unsigned-bits field? datum? path-index?
+  (export field-bytes max-unsigned unsigned-bits datum? path-index?
           max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth
           zkir-field-rep?
           maximum-ledger-segment-length 
@@ -280,7 +280,7 @@
     (Type (type)
       tref
       (tboolean src)                         => (tboolean)
-      (tfield src)                           => (tfield)
+      (tfield src ftype)                     => (tfield ftype)
       (tunsigned src tsize)                  => (tunsigned tsize)        ; range from 0 to 2^{tsize}-1
       (tunsigned src tsize tsize^)           => (tunsigned tsize tsize^) ; range from tsize (inclusive) to tsize^ (exclusive)
       (tbytes src tsize)                     => (tbytes tsize)
@@ -300,6 +300,11 @@
       (targ-size src nat)                    => nat
       (targ-type src type)                   => type
       )
+    (Field-Type (ftype)
+      (field-native)
+      (field-scalar ctype))
+    (Curve-Type (ctype)
+      (curve-jubjub))
   )
 
   (define-language/pretty Lnoinclude (extends Lsrc)
@@ -715,8 +720,12 @@
       (cast-from-bytes src type len expr)     => (cast-from-bytes type len #f expr)
       (vector->bytes src len expr)            => (vector->bytes len expr)
       (bytes->vector src len expr)            => (bytes->vector len expr)
-      (cast-from-enum src type type^ expr)    => (cast-from-enum type type^ #f expr) ; type is tfield or tunsigned, type^ is tenum
-      (cast-to-enum src type type^ expr)      => (cast-to-enum type type^ #f expr) ; type is tenum, type^ is tfield or tunsigned
+      ;; type (below) is numeric (tfield or tunsigned), type^ is tenum
+      (cast-from-enum src type type^ expr)    => (cast-from-enum type type^ #f expr)
+      ;; type is tenum, type^ is numeric
+      (cast-to-enum src type type^ expr)      => (cast-to-enum type type^ #f expr)
+      ;; type is numeric
+      (cast-to-field src ftype type expr)     => (cast-to-field ftype type #f expr) ; 
       (safe-cast src type type^ expr)         => (safe-cast type 10 type^ #f expr)
       (downcast-unsigned src (maybe nat?) nat expr) =>
         (downcast-unsigned nat? nat #f expr)
@@ -741,7 +750,7 @@
     (Type (type)
       tvar-name
       (tboolean src)                         => (tboolean)
-      (tfield src)                           => (tfield)
+      (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
@@ -758,7 +767,12 @@
       (talias src nominal? type-name type) =>
         (talias nominal? type-name #f type)
       (tundeclared)
-      (tunknown)))
+      (tunknown))
+    (Field-Type (ftype)
+      (field-native)
+      (field-scalar ctype))
+    (Curve-Type (ctype)
+      (curve-jubjub)))
 
   (define-language/pretty Lnotundeclared (extends Ltypes)
     (Type (type)
@@ -1047,7 +1061,7 @@
       (src type triv) => (type triv))
     (Type (type)
       (tboolean src)                         => (tboolean)
-      (tfield src)                           => (tfield)
+      (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
@@ -1059,7 +1073,12 @@
         (tstruct struct-name #f (elt-name* type*) ...)
       (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...)) =>
         (adt-name #f adt-arg* ...)
-      (tunknown)))
+      (tunknown))
+    (Field-Type (ftype)
+      (field-native)
+      (field-scalar ctype))
+    (Curve-Type (ctype)
+      (curve-jubjub)))
 
   (define-language/pretty Lflattened (extends Lcircuit)
     (terminals
@@ -1157,7 +1176,7 @@
          (anative opaque-type)))
     (Type (type)
       (- (tboolean src)
-         (tfield src)
+         (tfield src ftype)
          (tunsigned src nat)
          (tbytes src len)
          (topaque src opaque-type)
@@ -1168,8 +1187,8 @@
          (tunknown))
       (+ (ty (alignment* ...) (primitive-type* ...))))
     (Primitive-Type (primitive-type)
-      (+ (tfield)
-         (tfield nat)
+      (+ (tfield ftype)
+         (tunsigned nat)
          (topaque opaque-type)
          (tcontract contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
            (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)

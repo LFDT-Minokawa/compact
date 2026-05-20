@@ -13,8 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { JUBJUB_SCALAR_MODULUS } from './built-ins.js';
 import { MAX_FIELD } from './constants.js';
 import { CompactError } from './error.js';
+
+/**
+ * Conversion of a native field value to a JubjubScalar
+ *
+ * The native field is BLS12-381 scalar, which has a larger field modulus than
+ * the Jubjub scalar field.  The value is converted modulo the Jubjub scalar field modulus.
+ */
+export function convertNumericToJubjubScalar(x: bigint): bigint {
+  // Effectively mod(x, JUBJUB_SCALAR_MODULUS).  Javascript % implements
+  // remainder rather than modulo, but they coincide for non-negative inputs.
+  return x % JUBJUB_SCALAR_MODULUS;
+}
 
 /**
  * Compiler internal for typecasts
@@ -44,6 +57,22 @@ export function convertBytesToField(n: number, a: Uint8Array, src: string): bigi
     x = x * 0x100n + BigInt(a[i]);
     if (x > MAX_FIELD) {
       const msg = `range error at ${src}: byte vector [${Array.from(a.slice(0, n)).join(',')}] exceeds maximum value ${MAX_FIELD} of Field type`;
+      throw new CompactError(msg);
+    }
+  }
+  return x;
+}
+
+/**
+ * Compiler internal for typecasts
+ * @internal
+ */
+export function convertBytesToJubjubScalar(n: number, a: Uint8Array, src: string): bigint {
+  let x = 0n;
+  for (let i = n - 1; i >= 0; i -= 1) {
+    x = x * 0x100n + BigInt(a[i]);
+    if (x >= JUBJUB_SCALAR_MODULUS) {
+      const msg = `range error at ${src}: byte vector [${Array.from(a.slice(0, n)).join(',')}] exceeds maximum value ${JUBJUB_SCALAR_MODULUS - 1n} of JubjubScalar type`;
       throw new CompactError(msg);
     }
   }

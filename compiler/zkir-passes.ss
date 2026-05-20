@@ -136,8 +136,8 @@
             (map alignment->json-atom align))
           (define (constrain-type type pos)
             (nanopass-case (Lflattened Primitive-Type) type
-              [(tfield) (void)]
-              [(tfield ,nat)
+              [(tfield ,ftype) (void)]
+              [(tunsigned ,nat)
                (cond
                  [(= nat 0) (print-gate "constrain_eq" `[a ,pos] `[b ,(literal 0)])]
                  [(= nat 1) (print-gate "constrain_to_boolean" `[var ,pos])]

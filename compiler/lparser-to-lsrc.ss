@@ -274,7 +274,8 @@
     (Type : Type (ir) -> Type ()
       [,tref (Type-Ref tref)]
       [(tboolean ,src ,kwd) `(tboolean ,src)]
-      [(tfield ,src ,kwd) `(tfield ,src)]
+      [(tfield ,src ,kwd) `(tfield ,src (field-native))]
+      [(tjubjub-scalar ,src ,kwd) `(tfield ,src (field-scalar (curve-jubjub)))]
       [(tunsigned ,src ,kwd ,langle ,[tsize] ,rangle)
        `(tunsigned ,src ,tsize)]
       [(tunsigned ,src ,kwd ,langle ,[tsize] ,dotdot ,[tsize^] ,rangle)

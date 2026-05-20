@@ -1341,6 +1341,9 @@
       [(tfield ,src ,kwd)
        (// src
            (make-Qtoken kwd))]
+      [(tjubjub-scalar ,src ,kwd)
+       (// src
+           (make-Qtoken kwd))]
       [(tunsigned ,src ,kwd ,langle ,tsize ,rangle)
        (// src
            (make-Qconcat #f

@@ -58,7 +58,7 @@ export function mulField(x: bigint, y: bigint): bigint {
   return (x * y) % FIELD_MODULUS;
 }
 
-const JUBJUB_SCALAR_MODULUS: bigint = MAX_JUBJUB_SCALAR + 1n;
+export const JUBJUB_SCALAR_MODULUS: bigint = MAX_JUBJUB_SCALAR + 1n;
 
 /**
  * Jubjub scalar addition

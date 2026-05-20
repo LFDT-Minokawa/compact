@@ -1,5 +1,3 @@
-#!chezscheme
-
 ;;; This file is part of Compact.
 ;;; Copyright (C) 2025 Midnight Foundation
 ;;; SPDX-License-Identifier: Apache-2.0
@@ -15,10 +13,13 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
+#!chezscheme
+
 (library (circuit-passes)
   (export circuit-passes)
   (import (except (chezscheme) errorf)
           (utils)
+          (field)
           (datatype)
           (config-params)
           (nanopass)
@@ -79,7 +80,7 @@
          [else (assert cannot-happen)])]
       [(cast-from-enum ,src ,[type] ,[type^] ,[expr])
        (nanopass-case (Lnoenums Type) type
-         [(tfield ,src^) `(safe-cast ,src ,type ,type^ ,expr)]
+         [(tfield ,src^ ,ftype) `(safe-cast ,src ,type ,type^ ,expr)]
          [(tunsigned ,src^ ,nat)
           (let ([maxval (nanopass-case (Lnoenums Type) type^
                           [(tunsigned ,src ,nat) nat]
@@ -94,7 +95,7 @@
                        [(tunsigned ,src ,nat) nat]
                        [else (assert cannot-happen)])])
          (nanopass-case (Lnoenums Type) type^
-           [(tfield ,src^) `(downcast-unsigned ,src #f ,maxval ,expr)]
+           [(tfield ,src^ ,ftype) `(downcast-unsigned ,src #f ,maxval ,expr)]
            [(tunsigned ,src^ ,nat)
             (cond
               [(> nat maxval) `(downcast-unsigned ,src ,nat ,maxval ,expr)]
@@ -115,7 +116,10 @@
              (nanopass-case (Lunrolled Type) ty clause ... [else #f])]))
         (T type1
            [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-           [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
+           [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
+           [(tfield ,src1 (field-scalar (curve-jubjub)))
+            (T type2
+              [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
            [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
            [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
            [(topaque ,src1 ,opaque-type1)
@@ -385,7 +389,10 @@
         (with-output-language (Linlined Type)
           (cond
             [(boolean? x) `(tboolean ,src)]
-            [(field? x) (if (<= x (max-unsigned)) `(tunsigned ,src ,x) `(tfield ,src))]
+            ;; TODO(kmillikin): We probably have to change this.
+            [(field? x) (if (<= x (max-unsigned))
+                            `(tunsigned ,src ,x)
+                            `(tfield ,src (field-native)))]
             [(bytevector? x) `(tbytes ,src ,(bytevector-length x))]
             [else (internal-errorf 'datum-type "unexpected datum ~s" x)])))
       (define-datatype Idtype
@@ -418,7 +425,8 @@
             [,type (format-type type)]))
         (nanopass-case (Linlined Type) type
           [(tboolean ,src) "Boolean"]
-          [(tfield ,src) "Field"]
+          [(tfield ,src (field-native)) "Field"]
+          [(tfield ,src (field-scalar (curve-jubjub))) "JubjubScalar"]
           [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
           [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tunknown) "Unknown"]
@@ -455,7 +463,10 @@
                [else #f])]))
         (T type1
            [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-           [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
+           [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
+           [(tfield ,src1 (field-scalar (curve-jubjub)))
+            (T type2
+              [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
            [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
            [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
            [(topaque ,src1 ,opaque-type1)
@@ -515,21 +526,13 @@
           (format-type type)
           (format-type declared-type)
           what))
-      (define-syntax check-tfield
-        (syntax-rules ()
-          [(_ ?src ?what ?type)
-           (let ([type ?type])
-             (unless (nanopass-case (Linlined Type) type
-                       [(tfield ,src) #t]
-                       [else #f])
-               (let ([src ?src] [what ?what])
-                 (type-error src what
-                   (with-output-language (Linlined Type) `(tfield ,src))
-                   type))))]))
        (define (arithmetic-binop src op mbits expr1 expr2)
          (let* ([type1 (Care expr1)] [type2 (Care expr2)])
            (or (T type1
-                  [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
+                  [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
+                  [(tfield ,src1 (field-scalar (curve-jubjub)))
+                   (T type2
+                     [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
                   [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])])
                (source-errorf src "incompatible combination of types ~a and ~a for ~s"
                               (format-type type1)
@@ -907,9 +910,15 @@
          [else (source-errorf src "expected Bytes<~d>, got ~a for bytes->field"
                               len
                               (format-type type))])
-       (with-output-language (Linlined Type) `(tfield ,src))]
+       ;; TODO(kmillikin): This probably needs to be fixed.
+       (with-output-language (Linlined Type) `(tfield ,src (field-native)))]
       [(field->bytes ,src ,len ,[Care : expr -> * type])
-       (check-tfield src "argument to field->bytes" type)
+       (unless (nanopass-case (Linlined Type) type
+                 [(tfield ,src ,ftype) #t]
+                 [else #f])
+         (source-errorf src
+           "actual type ~a must be a field type for argument to field->bytes"
+           type))
        (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
        (with-output-language (Linlined Type) `(tbytes ,src ,len))]
       [(bytes->vector ,src ,len ,[Care : expr -> * type])
@@ -946,7 +955,7 @@
              (source-errorf src "expected Uint, got ~a for downcast-unsigned"
                             (format-type type)))
            (unless (nanopass-case (Linlined Type) type
-                     [(tfield ,src) #t]
+                     [(tfield ,src (field-native)) #t]
                      [else #f])
              (source-errorf src "expected Field, got ~a for downcast-unsigned"
                             (format-type type))))
@@ -1252,7 +1261,7 @@
        (define (ifdefault-value type k)
          (nanopass-case (Lnovectorref Type) type
            [(tboolean ,src) (k #f)]
-           [(tfield ,src) (k 0)]
+           [(tfield ,src ,ftype) (k 0)]
            [(tunsigned ,src ,nat) (k 0)]
            [(tbytes ,src ,len) (and (<= len (field-bytes)) (k (make-bytevector len 0)))]
            [else #f]))
@@ -2221,7 +2230,7 @@
             (with-output-language (Lflattened Alignment)
               (nanopass-case (Lcircuit Type) type
                 [(tboolean ,src) (cons `(abytes 1) a*)]
-                [(tfield ,src) (cons `(afield) a*)]
+                [(tfield ,src ,ftype) (cons `(afield) a*)]
                 [(tunsigned ,src ,nat) (cons `(abytes ,(ceiling (/ (bitwise-length nat) 8))) a*)]
                 [(tbytes ,src ,len) (cons `(abytes ,len) a*)]
                 [(topaque ,src ,opaque-type)
@@ -2230,7 +2239,6 @@
                     (if (feature-zkir-v3)
                         (cons `(anative ,opaque-type) a*)
                         (cons* `(afield) `(afield) a*))]
-                   [("JubjubScalar") (cons `(afield) a*)]
                    [else (cons `(acompress) a*)])]
                 [(tvector ,src ,len ,type)
                  (let ([a^* (f type '())])
@@ -2324,8 +2332,8 @@
        (Wump-bytes
          (with-output-language (Lflattened Primitive-Type)
            (let-values ([(q r) (div-and-mod len (field-bytes))])
-             (let ([ls (make-list q `(tfield ,(- (expt 2 (* (field-bytes) 8)) 1)))])
-               (if (fx= r 0) ls (cons `(tfield ,(max 0 (- (expt 2 (* r 8)) 1))) ls))))))]
+             (let ([ls (make-list q `(tunsigned ,(- (expt 2 (* (field-bytes) 8)) 1)))])
+               (if (fx= r 0) ls (cons `(tunsigned ,(max 0 (- (expt 2 (* r 8)) 1))) ls))))))]
       [(ttuple ,src ,[Type->Wump : type* -> * wump*] ...)
        (Wump-vector wump*)]
       [(tstruct ,src ,struct-name (,elt-name* ,[Type->Wump : type -> * wump*]) ...)
@@ -2335,14 +2343,14 @@
        (guard (string=? opaque-type "JubjubPoint") (not (feature-zkir-v3)))
        (Wump-bytes
          (with-output-language (Lflattened Primitive-Type)
-           (list `(tfield) `(tfield))))]
+           (list `(tfield (field-native)) `(tfield (field-native)))))]
       [else (Wump-single (Single-Type ir))])
     (Type : Type (ir) -> Type ()
       [else (build-type ir (wump->elts (Type->Wump ir)))])
     (Single-Type : Type (ir) -> Primitive-Type ()
-      [(tboolean ,src) `(tfield 1)]
-      [(tfield ,src) `(tfield)]
-      [(tunsigned ,src ,nat) `(tfield ,nat)]
+      [(tboolean ,src) `(tunsigned 1)]
+      [(tfield ,src ,[ftype]) `(tfield ,ftype)]
+      [(tunsigned ,src ,nat) `(tunsigned ,nat)]
       [(topaque ,src ,opaque-type) `(topaque ,opaque-type)]
       [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[Type : type**] ...) ,[Type : type*]) ...)
        `(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)]
@@ -2363,7 +2371,7 @@
                   (lambda (type)
                     (nanopass-case (Lcircuit Type) type
                       [(tboolean ,src) (trivial (Wump-single 0))]
-                      [(tfield ,src) (trivial (Wump-single 0))]
+                      [(tfield ,src ,ftype) (trivial (Wump-single 0))]
                       [(tunsigned ,src ,nat) (trivial (Wump-single 0))]
                       [(tbytes ,src ,len)
                        (trivial (Wump-bytes
@@ -3443,8 +3451,9 @@
             [,nat (format "~d" nat)]
             [,type (format-type type)]))
         (nanopass-case (Lflattened Primitive-Type) primitive-type
-          [(tfield) "Field"]
-          [(tfield ,nat) (format "Field[~s]" nat)]
+          [(tfield (field-native)) "Field"]
+          [(tfield (field-scalar (curve-jubjub))) "JubjubScalar"]
+          [(tunsigned ,nat) (format "Uint<0..~d>" (1+ nat))]
           [(topaque ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
            (format "contract ~a<~{~a~^, ~}>" contract-name
@@ -3465,21 +3474,26 @@
                (andmap subprimitivetype? primitive-type1* primitive-type2*))))
       (define (subprimitivetype? primitive-type1 primitive-type2)
         (T primitive-type1
-           [(tfield)
+           [(tfield (field-native))
             (T primitive-type2
-               [(tfield) #t]
-               [(topaque ,opaque-type) (string=? opaque-type "JubjubScalar")])]
-           [(tfield ,nat1)
+              [(tfield (field-native)) #t]
+              [(tunsigned ,nat) (<= (max-field) nat)])]
+           [(tfield (field-scalar (curve-jubjub)))
             (T primitive-type2
-               [(tfield ,nat2) (<= nat1 nat2)]
-               [(tfield) #t]
-               [(topaque ,opaque-type)
-                (or (string=? opaque-type "JubjubScalar")
-                    ;; tfield value 0 of type (tfield 0) is produced by default<Opaque<"type">>
-                    (eqv? nat1 0))]
-               ;; default<public-adt> is the only value of type public-adt and is represented by 0
-               [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
-                (eqv? nat1 0)])]
+              [(tfield (field-native)) #t]
+              [(tfield (field-scalar (curve-jubjub))) #t]
+              [(tunsigned ,nat) (<= (max-jubjub-scalar) nat)])]
+           [(tunsigned ,nat1)
+            (T primitive-type2
+              [(tfield (field-native)) (<= nat1 (max-field))]
+              [(tfield (field-scalar (curve-jubjub))) (<= nat1 (max-jubjub-scalar))]
+              [(tunsigned ,nat2) (<= nat1 nat2)]
+              [(topaque ,opaque-type)
+               ;; tfield value 0 of type (tfield 0) is produced by default<Opaque<"type">>
+               (eqv? nat1 0)]
+              ;; default<public-adt> is the only value of type public-adt and is represented by 0
+              [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
+               (eqv? nat1 0)])]
            [(topaque ,opaque-type1)
             (T primitive-type2
                [(topaque ,opaque-type2)
@@ -3510,35 +3524,38 @@
           (format-primitive-type type)
           (format-primitive-type declared-type)
           what))
-      (define-syntax check-tfield
+      (define-syntax check-numeric
         (syntax-rules ()
           [(_ ?what ?type)
            (let ([type ?type])
              (nanopass-case (Lflattened Primitive-Type) type
-               [(tfield) #f]
-               [(tfield ,nat) nat]
+               [(tfield (field-native)) 'native]
+               [(tfield (field-scalar (curve-jubjub))) 'jubjub-scalar]
+               [(tunsigned ,nat) nat]
                [else (let ([what ?what])
-                       (type-error what
-                         (with-output-language (Lflattened Primitive-Type) `(tfield))
+                       (source-errorf what
+                         "actual type ~a must be a numeric type for arithmetic operations"
                          type))]))]))
+      ;; TODO(kmillikin): double check this, it's subtle.
       (define (arithmetic-binop op mbits triv1 triv2)
         (let* ([type1 (Triv triv1)] [type2 (Triv triv2)])
-          (let ([maybe-nat1 (check-tfield (format "first argument ~s to ~a" triv1 op) type1)]
-                [maybe-nat2 (check-tfield (format "second argument ~s to ~a" triv2 op) type2)])
+          (let ([num-kind1 (check-numeric (format "first argument ~s to ~a" triv1 op) type1)]
+                [num-kind2 (check-numeric (format "second argument ~s to ~a" triv2 op) type2)])
             (unless (or (not mbits)
-                        (and (and maybe-nat1 maybe-nat2)
-                             (let ([nat (if (equal? op "-") maybe-nat1 (max maybe-nat1 maybe-nat2))])
+                        (and (number? num-kind1)
+                             (number? num-kind2)
+                             (let ([nat (if (equal? op "-") num-kind1 (max num-kind1 num-kind2))])
                                (<= (fxmax 1 (integer-length nat)) mbits))))
               (source-errorf program-src "mismatched mbits ~s and types ~a and ~a for ~s"
-                             mbits
-                             (format-primitive-type type1)
-                             (format-primitive-type type2)
-                             op))
+                mbits
+                (format-primitive-type type1)
+                (format-primitive-type type2)
+                op))
             type1)))
       (define (verify-test src test)
         (let ([type (Triv test)])
           (unless (nanopass-case (Lflattened Primitive-Type) type
-                    [(tfield ,nat) (<= nat 1)]
+                    [(tunsigned ,nat) (<= nat 1)]
                     [else #f])
             (source-errorf src
                            "expected test to have type Boolean, received ~a"
@@ -3659,27 +3676,27 @@
                (set-idtype! (car var-name*) (Idtype-Base `(topaque "JubjubPoint"))))
              (begin
                (assert (= (length var-name*) 2))
-               (set-idtype! (car var-name*) (Idtype-Base `(tfield)))
-               (set-idtype! (cadr var-name*) (Idtype-Base `(tfield))))))]
+               (set-idtype! (car var-name*) (Idtype-Base `(tfield (field-native))))
+               (set-idtype! (cadr var-name*) (Idtype-Base `(tfield (field-native)))))))]
       [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,[* type]))
        (verify-test src test)
-       (check-tfield (format "argument to field->bytes at ~a" (format-source-object src)) type)
+       (check-numeric (format "argument to field->bytes at ~a" (format-source-object src)) type)
        (assert (not (= len 0)))
        (with-output-language (Lflattened Primitive-Type)
-         (set-idtype! var-name1 (Idtype-Base `(tfield ,(max 0 (- (expt 2 (* (fxmin (fxmax 0 (fx- len (field-bytes))) (field-bytes)) 8)) 1)))))
-         (set-idtype! var-name2 (Idtype-Base `(tfield ,(max 0 (- (expt 2 (* (fxmin len (field-bytes)) 8)) 1))))))]
+         (set-idtype! var-name1 (Idtype-Base `(tunsigned ,(max 0 (- (expt 2 (* (fxmin (fxmax 0 (fx- len (field-bytes))) (field-bytes)) 8)) 1)))))
+         (set-idtype! var-name2 (Idtype-Base `(tunsigned ,(max 0 (- (expt 2 (* (fxmin len (field-bytes)) 8)) 1))))))]
       [(= ,test (,var-name1 ,var-name2) (div-mod-power-of-two ,[* type] ,bits))
        (verify-test program-src test)
-       (check-tfield "argument to div-mod-power-of-two" type)
+       (check-numeric "argument to div-mod-power-of-two" type)
        (with-output-language (Lflattened Primitive-Type)
-         (set-idtype! var-name1 (Idtype-Base `(tfield)))
-         (set-idtype! var-name2 (Idtype-Base `(tfield ,bits))))]
+         (set-idtype! var-name1 (Idtype-Base `(tfield (field-native))))
+         (set-idtype! var-name2 (Idtype-Base `(tunsigned ,bits))))]
       [(= ,test (,var-name* ...) (bytes->vector ,[* type]))
        (verify-test program-src test)
-       (check-tfield "argument to bytes->vector" type)
+       (check-numeric "argument to bytes->vector" type)
        (with-output-language (Lflattened Primitive-Type)
          (for-each
-           (lambda (var-name) (set-idtype! var-name (Idtype-Base `(tfield 8))))
+           (lambda (var-name) (set-idtype! var-name (Idtype-Base `(tunsigned 8))))
            var-name*))]
       [(= ,test (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,[path-elt*] ...) ,src^ ,adt-op ,[* type^*] ...))
        (verify-test src test)
@@ -3722,15 +3739,15 @@
        (arithmetic-binop "*" mbits triv1 triv2)]
       [(< ,bits ,triv1 ,triv2)
        (let* ([type1 (Triv triv1)] [type2 (Triv triv2)])
-         (let ([maybe-nat1 (check-tfield (format "first argument ~s to relational operator" triv1) type1)]
-               [maybe-nat2 (check-tfield (format "second argument ~s to relational operator" triv2) type2)])
-           (unless (and maybe-nat1
-                        maybe-nat2
-                        (<= (fxmax 1 (integer-length (max maybe-nat1 maybe-nat2))) bits))
+         (let ([num-kind1 (check-numeric (format "first argument ~s to relational operator" triv1) type1)]
+               [num-kind2 (check-numeric (format "second argument ~s to relational operator" triv2) type2)])
+           (unless (and (number? num-kind1)
+                        (number? num-kind2)
+                        (<= (fxmax 1 (integer-length (max num-kind1 num-kind2))) bits))
              (source-errorf program-src "incompatible types ~a and ~a for relational operator"
                 (format-primitive-type type1)
                 (format-primitive-type type2)))
-             (with-output-language (Lflattened Primitive-Type) `(tfield 1))))]
+             (with-output-language (Lflattened Primitive-Type) `(tunsigned 1))))]
       [(== ,[* type1] ,[* type2])
        (unless (or (subprimitivetype? type1 type2)
                    (subprimitivetype? type2 type1))
@@ -3739,9 +3756,9 @@
         (source-errorf program-src "incompatible types ~a and ~a for equality operator"
                  (format-primitive-type type1)
                  (format-primitive-type type2)))
-       (with-output-language (Lflattened Primitive-Type) `(tfield 1))]
+       (with-output-language (Lflattened Primitive-Type) `(tunsigned 1))]
       [(select ,[* type0] ,[* type1] ,[* type2])
-       (unless (nanopass-case (Lflattened Primitive-Type) type0 [(tfield ,nat) (<= nat 1)] [else #f])
+       (unless (nanopass-case (Lflattened Primitive-Type) type0 [(tunsigned ,nat) (<= nat 1)] [else #f])
          (source-errorf program-src "expected select test to have type Boolean, received ~a"
                  (format-primitive-type type0)))
        (cond
@@ -3755,29 +3772,32 @@
        (unless (< nat (field-bytes))
          (source-errorf program-src "expected bytes-ref nat to be less than (field-bytes) but received ~d"
                  nat))
-       (check-tfield "bytes-ref argument" type)
-       (with-output-language (Lflattened Primitive-Type) `(tfield 255))]
+       (check-numeric "bytes-ref argument" type)
+       (with-output-language (Lflattened Primitive-Type) `(tunsigned 255))]
+      ;; TODO(kmillikin) we need to support conversion of bytes to JubjubScalar
       [(bytes->field ,src ,len ,[* type1] ,[* type2])
        (nanopass-case (Lflattened Primitive-Type) type1
-         [(tfield ,nat) #t]
+         [(tunsigned ,nat) #t]
          [else (source-errorf src "unexpected ~a of first argument to bytes->field"
                               (format-primitive-type type1))])
        (nanopass-case (Lflattened Primitive-Type) type2
-         [(tfield ,nat) #t]
+         [(tunsigned ,nat) #t]
          [else (source-errorf src "unexpected ~a of second argument to bytes->field"
                               (format-primitive-type type2))])
-       (with-output-language (Lflattened Primitive-Type) `(tfield))]
+       (with-output-language (Lflattened Primitive-Type) `(tfield (field-native)))]
       [(vector->bytes ,triv ,triv* ...)
        (let* ([triv* (cons triv triv*)] [type* (map Triv triv*)])
-         (let ([maybe-nat* (map (lambda (triv type) (check-tfield (format "argument ~a of vector->bytes" triv) type)) triv* type*)])
-           (unless (andmap (lambda (maybe-nat) (<= maybe-nat 255)) maybe-nat*)
+         (let ([num-kind* (map (lambda (triv type) (check-numeric (format "argument ~a of vector->bytes" triv) type)) triv* type*)])
+           (unless (andmap (lambda (num-kind) (and (number? num-kind)
+                                                   (<= num-kind 255)))
+                     num-kind*)
              (source-errorf program-src "incompatible types (~{~a~^, ~}) for vector->bytes"
                (map format-primitive-type type*)))))
-       (with-output-language (Lflattened Primitive-Type) `(tfield ,(- (expt 256 (fx+ (length triv*) 1)) 1)))]
+       (with-output-language (Lflattened Primitive-Type) `(tunsigned ,(- (expt 256 (fx+ (length triv*) 1)) 1)))]
       [(downcast-unsigned ,src ,safe ,nat? ,nat ,[* type])
        (when nat? (assert (< nat nat?)))
-       (check-tfield (format "argument to downcast-unsigned at ~a" (format-source-object src)) type)
-       (with-output-language (Lflattened Primitive-Type) `(tfield ,nat))]
+       (check-numeric (format "argument to downcast-unsigned at ~a" (format-source-object src)) type)
+       (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat))]
       [else (internal-errorf 'Single "unhandled form ~s\n" ir)])
     (Path-Element : Path-Element (ir) -> Path-Element ()
       [,path-index path-index]
@@ -3792,7 +3812,7 @@
           (source-errorf program-src "invalid context for reference to ~s name ~s"
                        kind
                        var-name)])]
-      [,nat (with-output-language (Lflattened Primitive-Type) `(tfield ,nat))])
+      [,nat (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat))])
     )
 
   (define optimize-circuit2 (lambda (x) (optimize-circuit x)))

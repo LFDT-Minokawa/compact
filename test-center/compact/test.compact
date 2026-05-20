@@ -102,6 +102,7 @@ ledger x7: ShieldedCoinInfo;
 ledger x10: MerkleTreeDigest;
 ledger x11: QualifiedShieldedCoinInfo;
 ledger x13: ContractAddress;
+ledger x14: JubjubScalar;
 ledger authority: Bytes<32>;
 ledger state: PublicState;
 ledger topic: Maybe<Opaque<"string">>;

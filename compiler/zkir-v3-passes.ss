@@ -567,8 +567,8 @@
       (define (emit-constraints-for var-name type instr*)
         (nanopass-case (Lflattened Primitive-Type) type
           [(topaque ,opaque-type) instr*]
-          [(tfield) instr*]
-          [(tfield ,nat)
+          [(tfield ,ftype) instr*]
+          [(tunsigned ,nat)
            (with-output-language (Lzkir Instruction)
              (cond
                [(zero? nat)
@@ -604,8 +604,8 @@
 
       (define (type->string primitive-type)
         (nanopass-case (Lflattened Primitive-Type) primitive-type
-          [(tfield) "Scalar<BLS12-381>"]
-          [(tfield ,nat) "Scalar<BLS12-381>"]
+          [(tfield ,ftype) "Scalar<BLS12-381>"]
+          [(tunsigned ,nat) "Scalar<BLS12-381>"]
           [(topaque ,opaque-type)
            (case opaque-type
              [("JubjubPoint") "Point<Jubjub>"]
@@ -806,7 +806,7 @@
            (if safe
                instr*
                (emit-constraints-for triv
-                 (with-output-language (Lflattened Primitive-Type) `(tfield ,nat))
+                 (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat))
                  instr*))))]
       [else
         (fprintf (current-error-port) "unimplemented: ~s\n" ir)

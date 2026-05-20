@@ -110,6 +110,7 @@
     (Boolean
      Bytes
      Field
+     JubjubScalar
      Opaque
      Uint
      Vector))
@@ -620,6 +621,10 @@
        (lambda (src kwd)
          (with-output-language (Lparser Type)
            `(tfield ,src ,kwd)))]
+      [type-jubjub-scalar :: src (KEYWORD JubjubScalar) =>
+        (lambda (src kwd)
+          (with-output-language (Lparser Type)
+            `(tjubjub-scalar ,src ,kwd)))]
       [type-unsigned-integer-bits :: src (KEYWORD Uint) #\< tsize #\> =>
        (lambda (src kwd langle tsize rangle)
          (with-output-language (Lparser Type)
