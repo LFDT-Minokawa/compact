@@ -860,7 +860,23 @@
         (let ([p^ (add-tvar-rib src p^ type-param* info*)])
           (with-output-language (Lexpanded Type)
             `(talias ,alias-src ,nominal? ,type-name ,(Type type p^)))))
+      (define (type-adt-depth type)
+        (nanopass-case (Lexpanded Type) type
+          [(talias ,src ,nominal? ,type-name ,type) (type-adt-depth type)]
+          [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           (fx+ 1 (apply fxmax 0
+                    (map (lambda (gv)
+                           (nanopass-case (Lexpanded Generic-Value) gv [,nat 0] [,type (type-adt-depth type)]))
+                         generic-value*)))]
+          [else 0]))
       (define (apply-ledger-ADT src adt-name type-param* vm-expr adt-op* adt-rt-op* p info*)
+        (when (ormap (lambda (info)
+                       (Info-case info
+                         [(Info-type src type) (fx>= (type-adt-depth type) (max-adt-nesting-depth))]
+                         [else #f]))
+                     info*)
+          (source-errorf src "ledger type nesting depth exceeds the maximum supported depth ~d"
+                         (max-adt-nesting-depth)))
         (let ([nactual (length info*)] [ndeclared (length type-param*)])
           (unless (fx= nactual ndeclared)
             (source-errorf src "mismatch between actual number ~s and declared number ~s of ADT parameters for ~s"
