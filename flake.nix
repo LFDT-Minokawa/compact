@@ -31,28 +31,28 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/94391bc7625a41b26ba78b3e8be349559fe822b1"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v3 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8";
+      url = "github:midnightntwrk/midnight-ledger/94391bc7625a41b26ba78b3e8be349559fe822b1";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2";
+      url = "github:midnightntwrk/midnight-ledger/94391bc7625a41b26ba78b3e8be349559fe822b1";
       inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/3a7ae0361d03e6eed4fc91e31f6600f334f605d5"; # zkir-v3
+      url = "github:midnightntwrk/midnight-ledger/94391bc7625a41b26ba78b3e8be349559fe822b1"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/3a7ae0361d03e6eed4fc91e31f6600f334f605d5";
+      url = "github:midnightntwrk/midnight-ledger/94391bc7625a41b26ba78b3e8be349559fe822b1";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -527,6 +527,7 @@
           devShells.default = pkgs.mkShell {
             inputsFrom = with packages; [compactc];
             packages = [
+              pkgs.git
               pkgs.nodejs
               pkgs.yarn
               pkgs.alejandra
@@ -545,6 +546,7 @@
           devShells.with-zkir = packages.runtime.mkShell {
             inputsFrom = with packages; [compactc];
             packages = [
+              pkgs.git
               pkgs.nodejs
               pkgs.yarn
               pkgs.binaryen
@@ -563,6 +565,7 @@
           devShells.compiler = pkgs.mkShell {
             inputsFrom = with packages; [compactc];
             packages = [
+              pkgs.git
               packages.compactc
               pkgs.yarn
               zkir.packages.${system}.zkir
@@ -574,6 +577,7 @@
 
           devShells.runtime = packages.runtime.mkShell {
             packages = [
+              pkgs.git
               pkgs.nodejs
               pkgs.chez
             ];
@@ -582,6 +586,7 @@
 
           devShells.dapp = packages.runtime.mkShell {
             packages = [
+              pkgs.git
               packages.compactc
               packages.runtime.package
               packages.runtime.node-modules

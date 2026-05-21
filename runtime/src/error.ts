@@ -37,6 +37,16 @@ export function assert(b: boolean, s: string): void {
 }
 
 /**
+ * Compiler internal for asserting an object is non-nullable.
+ * @internal
+ */
+export function assertDefined<T>(t: T | undefined, name: string): asserts t is NonNullable<T> {
+  if (t === undefined || t === null) {
+    throw new CompactError(`Expected ${name} to be defined`);
+  }
+}
+
+/**
  * Compiler internal for type errors
  * @internal
  */

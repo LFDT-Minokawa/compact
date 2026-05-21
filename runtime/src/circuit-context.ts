@@ -22,33 +22,185 @@ import {
   encodeZswapLocalState,
 } from './zswap.js';
 import { PartialProofData, ProofData } from './proof-data.js';
-import { CompactError } from './error.js';
+import { CompactError, assertDefined } from './error.js';
+
+export interface ContractStateProvider {
+  getContractState(blockHash: string, address: ocrt.ContractAddress): Promise<ocrt.ContractState | undefined>;
+}
+
+export type CircuitId = string;
+
+export interface CommunicationCommitmentData {
+  /**
+   * Communication commitment computed by the parent.
+   */
+  commComm: ocrt.CommunicationCommitment;
+  /**
+   * Randomness used by the parent in the commitment.
+   */
+  commCommRand: ocrt.CommunicationCommitmentRand;
+}
+
+export interface CallProofData extends ProofData {
+  /**
+   * The ID of the circuit that was called.
+   */
+  circuitId: CircuitId;
+  /**
+   * The address of the contract defining the circuit for which this proof data is pertinent.
+   */
+  contractAddress: ocrt.ContractAddress;
+  /**
+   * The ledger state of the contract before the circuit was called.
+   */
+  initialQueryContext: ocrt.QueryContext;
+  /**
+   * The ledger state of the contract when the circuit finished.
+   */
+  finalQueryContext: ocrt.QueryContext;
+  /**
+   * Data included by the parent call only if this was a sub-call
+   */
+  commCommData?: CommunicationCommitmentData;
+}
+
+export interface CallContext<PS = any> {
+  /**
+   * The ID of the circuit that was called.
+   */
+  circuitId: CircuitId;
+  /**
+   * The address of the contract defining the circuit for which this proof data is pertinent.
+   */
+  contractAddress: ocrt.ContractAddress;
+  /**
+   * The initial query context of the currently executing contract.
+   */
+  initialQueryContext: ocrt.QueryContext;
+  /**
+   * The current query context of the currently executing contract.
+   */
+  currentQueryContext: ocrt.QueryContext;
+  /**
+   * The current running gas cost of the currently executing contract.
+   */
+  currentGasCost: ocrt.RunningCost;
+  /**
+   * The current private state for the contract.
+   */
+  currentPrivateState: PS | undefined;
+  /**
+   * The current Zswap local state. Tracks inputs and outputs produced during circuit execution.
+   */
+  currentZswapLocalState: EncodedZswapLocalState | undefined;
+  /**
+   * The hash of the parent block on which we're building this transaction. Used to fetch contract states dynamically.
+   */
+  parentBlockHash?: string;
+  /**
+   * The current time the circuits will assume.
+   */
+  time: number;
+}
+
+export type CallProofDataTrace = CallProofData[];
 
 /**
  * The external information accessible from within a Compact circuit call
  */
 export interface CircuitContext<PS = any> {
   /**
-   * The current private state for the contract.
+   * The context for the current call.
    */
-  currentPrivateState: PS;
+  callContext: CallContext<PS>;
   /**
-   * The current Zswap local state. Tracks inputs and outputs produced during circuit execution.
+   * The current query context of every contract in the call tree.
    */
-  currentZswapLocalState: EncodedZswapLocalState;
+  queryContexts: Record<ocrt.ContractAddress, ocrt.QueryContext>;
   /**
-   * The current on-chain context the transaction is evolving.
+   * The current gas costs for every contract in the call tree.
    */
-  currentQueryContext: ocrt.QueryContext;
+  gasCosts: Record<ocrt.ContractAddress, ocrt.RunningCost>;
   /**
    * The cost model to use for the execution.
    */
   costModel: ocrt.CostModel;
   /**
+   * Sequence of calls made during the execution of the circuit (including the call for the root circuit).
+   */
+  callProofDataTrace: CallProofDataTrace;
+  /**
    * The gas limit for this circuit.
    */
   gasLimit?: ocrt.RunningCost;
+  /**
+   * Can fetch the current state of a contract from the blockchain.
+   */
+  stateProvider?: ContractStateProvider;
 }
+
+export const createCircuitContext = <PS>(
+  circuitId: CircuitId,
+  contractAddress: ocrt.ContractAddress,
+  coinPublicKeyOrZswapState: ocrt.CoinPublicKey | EncodedCoinPublicKey | ZswapLocalState | EncodedZswapLocalState,
+  contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState,
+  privateState: PS,
+  stateProvider?: ContractStateProvider,
+  gasLimit?: ocrt.RunningCost,
+  costModel?: ocrt.CostModel,
+  time?: number,
+  parentBlockHash?: string,
+): CircuitContext<PS> => {
+  const callContext = createCallContext(
+    circuitId,
+    contractAddress,
+    coinPublicKeyOrZswapState,
+    contractState,
+    privateState,
+    time,
+    parentBlockHash,
+  );
+  return {
+    callContext: createCallContext(
+      circuitId,
+      contractAddress,
+      coinPublicKeyOrZswapState,
+      contractState,
+      privateState,
+      time,
+      parentBlockHash,
+    ),
+    queryContexts: { [contractAddress]: callContext.currentQueryContext },
+    gasCosts: { [contractAddress]: callContext.currentGasCost },
+    costModel: costModel ?? ocrt.CostModel.initialCostModel(),
+    callProofDataTrace: [],
+    gasLimit,
+    stateProvider,
+  };
+};
+
+/**
+ * @internal
+ */
+export const finalizeCallProofData = (circuitContext: CircuitContext, proofData: ProofData): void => {
+  const contractAddress = circuitContext.callContext.contractAddress;
+  const initialQueryContext = circuitContext.callContext.initialQueryContext;
+  const currentQueryContext = circuitContext.callContext.currentQueryContext;
+
+  assertDefined(initialQueryContext, `initial ledger context for contract '${contractAddress}'`);
+  assertDefined(currentQueryContext, `current ledger context for contract '${contractAddress}'`);
+
+  circuitContext.queryContexts[contractAddress] = currentQueryContext;
+  circuitContext.gasCosts[contractAddress] = circuitContext.callContext.currentGasCost;
+
+  circuitContext.callProofDataTrace.push({
+    ...proofData,
+    circuitId: circuitContext.callContext.circuitId,
+    contractAddress,
+    initialQueryContext,
+    finalQueryContext: currentQueryContext,
+  });
+};
 
 /**
  * @internal
@@ -70,10 +222,12 @@ const coerceToChargedState = (contractState: ocrt.ContractState | ocrt.StateValu
 /**
  * @internal
  */
-const createInitialQueryContext = (
+export const createInitialQueryContext = (
   contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState,
   contractAddress: ocrt.ContractAddress,
-  time?: number,
+  time: number,
+  parentBlockHash?: string,
+  caller?: ocrt.PublicAddress,
 ): ocrt.QueryContext => {
   const initialQueryContext = new ocrt.QueryContext(coerceToChargedState(contractState), contractAddress);
   const balance = contractState instanceof ocrt.ContractState ? contractState.balance : new Map();
@@ -81,8 +235,20 @@ const createInitialQueryContext = (
     ...initialQueryContext.block,
     balance,
     ownAddress: contractAddress,
-    secondsSinceEpoch: BigInt(time ?? Math.floor(Date.now() / 1_000)),
+    secondsSinceEpoch: BigInt(time),
   };
+  if (parentBlockHash) {
+    initialQueryContext.block = {
+      ...initialQueryContext.block,
+      parentBlockHash,
+    };
+  }
+  if (caller) {
+    initialQueryContext.block = {
+      ...initialQueryContext.block,
+      caller,
+    };
+  }
   return initialQueryContext;
 };
 
@@ -118,19 +284,20 @@ const isEncodedZswapLocalState = (value: any): value is EncodedZswapLocalState =
   );
 };
 
-export const createCircuitContext = <PS>(
+export const createCallContext = <PS>(
+  circuitId: CircuitId,
   contractAddress: ocrt.ContractAddress,
   coinPublicKeyOrZswapState: ocrt.CoinPublicKey | EncodedCoinPublicKey | ZswapLocalState | EncodedZswapLocalState,
   contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState,
   privateState: PS,
-  gasLimit?: ocrt.RunningCost,
-  costModel?: ocrt.CostModel,
-  time?: number,
-): CircuitContext<PS> => {
-  const initialQueryContext = createInitialQueryContext(contractState, contractAddress, time);
+  maybeTime?: number,
+  parentBlockHash?: string,
+  caller?: ocrt.PublicAddress,
+): CallContext<PS> => {
+  const time = maybeTime ?? Math.floor(Date.now() / 1_000);
+  const initialQueryContext = createInitialQueryContext(contractState, contractAddress, time, parentBlockHash, caller);
 
   let zswapLocalState: EncodedZswapLocalState;
-
   if (isZswapLocalState(coinPublicKeyOrZswapState)) {
     // Convert ZswapLocalState to EncodedZswapLocalState
     zswapLocalState = encodeZswapLocalState(coinPublicKeyOrZswapState);
@@ -143,13 +310,53 @@ export const createCircuitContext = <PS>(
   }
 
   return {
+    circuitId,
+    contractAddress,
+    initialQueryContext: initialQueryContext,
+    currentQueryContext: initialQueryContext,
+    currentGasCost: emptyRunningCost(),
     currentPrivateState: privateState,
     currentZswapLocalState: zswapLocalState,
-    currentQueryContext: initialQueryContext,
-    costModel: costModel ?? ocrt.CostModel.initialCostModel(),
-    gasLimit,
+    parentBlockHash,
+    time,
   };
 };
+
+export const copyCallContext = ({
+  circuitId,
+  contractAddress,
+  initialQueryContext,
+  currentQueryContext,
+  currentGasCost,
+  currentPrivateState,
+  currentZswapLocalState,
+  parentBlockHash,
+  time,
+}: CallContext): CallContext => ({
+  circuitId,
+  contractAddress,
+  initialQueryContext,
+  currentQueryContext,
+  currentGasCost,
+  currentPrivateState,
+  currentZswapLocalState,
+  parentBlockHash,
+  time,
+});
+
+/**
+ * @internal
+ */
+export const copyCircuitContext = (context: CircuitContext): CircuitContext => ({
+  ...context,
+  callContext: {
+    ...context.callContext,
+    currentGasCost: emptyRunningCost(),
+  },
+  queryContexts: { ...context.queryContexts },
+  gasCosts: { ...context.gasCosts },
+  callProofDataTrace: [...context.callProofDataTrace],
+});
 
 /**
  * Function for creating an initial running cost of zero.
@@ -163,6 +370,15 @@ export const emptyRunningCost = (): ocrt.RunningCost => ({
   bytesDeleted: 0n,
 });
 
+export const addRunningCost = (a: ocrt.RunningCost, b: ocrt.RunningCost): ocrt.RunningCost => {
+  return {
+    readTime: a.readTime + b.readTime,
+    computeTime: a.computeTime + b.computeTime,
+    bytesWritten: a.bytesWritten + b.bytesWritten,
+    bytesDeleted: a.bytesDeleted + b.bytesDeleted,
+  };
+};
+
 /**
  * The results of the call to a Compact circuit
  */
@@ -171,10 +387,6 @@ export interface CircuitResults<PS = any, R = any> {
    * The primary result, as returned from Compact
    */
   result: R;
-  /**
-   * The data required to prove this circuit run
-   */
-  proofData: ProofData;
   /**
    * The updated context after the circuit execution, that can be used to
    * inform further runs
@@ -200,10 +412,9 @@ export const queryLedgerState = (
   program: ocrt.Op<null>[],
 ): ocrt.AlignedValue | ocrt.GatherResult[] => {
   try {
-    const res = circuitContext.currentQueryContext.query(program, circuitContext.costModel, circuitContext.gasLimit);
-    circuitContext.currentQueryContext = res.context;
-    // @ts-expect-error: We use a hidden variable to track running cost so we can move it to `CircuitResults` at the end
-    circuitContext['gasCost'] = res.gasCost;
+    const res = circuitContext.callContext.currentQueryContext.query(program, circuitContext.costModel, circuitContext.gasLimit);
+    circuitContext.callContext.currentQueryContext = res.context;
+    circuitContext.callContext.currentGasCost = addRunningCost(circuitContext.callContext.currentGasCost, res.gasCost);
     const reads = res.events.filter((e) => e.tag === 'read');
     let i = 0;
     partialProofData.publicTranscript = partialProofData.publicTranscript.concat(
