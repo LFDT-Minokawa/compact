@@ -322,6 +322,8 @@
            "addField"
            "subField"
            "mulField"
+           "crossContractCall"
+           "decodeContractAddress"
            ))
       (define (compact-stdlib name)
         (unless (member name compact-stdlib-entries)
@@ -454,6 +456,16 @@
           [(XPelt-type-definition src type-name export-name tvar-name* type) #f]
           [(XPelt-public-ledger pl-array lconstructor external-names) #f]
           [(XPelt-ledger-kernel) #f]))
+      ;; Tracks which functions have async wrappers in the generated JS.
+      ;; Only impure circuits are async (because their bodies
+      ;; may contain `await __compactRuntime.crossContractCall(...)`). Witnesses,
+      ;; native circuits, and native witnesses all have synchronous wrappers, so
+      ;; their call sites don't need `await`.
+      (define function-async-ht (make-eq-hashtable))
+      (define (mark-function-async! function-name)
+        (eq-hashtable-set! function-async-ht function-name #t))
+      (define (function-async? function-name)
+        (eq-hashtable-ref function-async-ht function-name #f))
 
       (module (descriptor-table type->maybe-descriptor-name type->descriptor-name)
         (define descriptor-table #f)
@@ -467,6 +479,12 @@
         (define (type->descriptor-name type)
           (assert descriptor-table)
           (format-id-reference (assert (hashtable-ref descriptor-table type #f)))))
+
+      (define (contract-import-binding contract-name)
+        (format "__compactContractsImport_~a" contract-name))
+
+      (define (contract-import-path contract-name)
+        (format "../../~a/contract/index.js" contract-name))
 
       (define (pl-array->public-bindings pl-array)
         (let f ([pl-array pl-array] [pb* '()])
@@ -843,6 +861,9 @@
           [else type]))
 
       (define (print-contract.d.ts src xpelt* uname*)
+        ;; Every entry in `Circuits`, `ImpureCircuits`, and `ProvableCircuits` is an async wrapper
+        (define (circuit-result-type type)
+          (make-Qconcat "Promise<__compactRuntime.CircuitResults<PS, " (Type type) ">>"))
         (define (print-exported-impure-circuit-declaration do-me?)
           (lambda (xpelt uname)
             (XPelt-case xpelt
@@ -860,7 +881,7 @@
                              "context: __compactRuntime.CircuitContext<PS>"
                              (map Typed-Argument arg*))
                            "): "
-                           "__compactRuntime.CircuitResults<PS, " (Type type) ">"
+                           (circuit-result-type type)
                            ";")))
                      (newline))
                    external-name*))]
@@ -900,7 +921,7 @@
                              "context: __compactRuntime.CircuitContext<PS>"
                              (map Typed-Argument arg*))
                            "): "
-                           "__compactRuntime.CircuitResults<PS, " (Type type) ">"
+                           (circuit-result-type type)
                            ";")))
                      (newline)))
                  external-name*)]
@@ -1133,7 +1154,8 @@
                                            ": "
                                            (Type type))]))
                                     arg*))
-                        "): __compactRuntime.ConstructorResult<PS>;"))
+                        ;; initialState is async too because it can call impure circuits
+                        "): Promise<__compactRuntime.ConstructorResult<PS>>;"))
                     (newline))])]
               [else (loop (cdr xpelt*))])))
         (parameterize ([current-output-port (get-target-port 'contract.d.ts)])
@@ -1186,8 +1208,14 @@
               ))))
 
       (module (print-contract.js)
-        (define (print-contract-header)
+        (define (print-contract-header contract-dependency*)
           (display-string "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';\n")
+          (for-each
+            (lambda (contract-name)
+              (printf "import * as ~a from '~a';\n"
+                      (contract-import-binding contract-name)
+                      (contract-import-path contract-name)))
+            contract-dependency*)
           (printf "__compactRuntime.checkRuntimeVersion('~a');\n" runtime-version-string)
           (display-string "\n"))
 
@@ -1441,7 +1469,7 @@
                 2 (make-Qconcat
                     "if (!("
                     ; we don't insist on currentPrivateState being defined
-                    (format "typeof(~a) === 'object' && ~:*~a.currentQueryContext != undefined" var)
+                    (format "typeof(~a) === 'object' && ~:*~a.callContext.currentQueryContext != undefined" var)
                     ")) {"
                     2 (compact-stdlib "typeError")
                     "("
@@ -1575,7 +1603,7 @@
                              (map (lambda (external-name)
                                     (apply make-Qconcat/src src
                                       (make-Qconcat/src (id-src internal-id) external-name)
-                                      (format ": (...~a) => {" args)
+                                      (format ": async (...~a) => {" args)
                                       2 (make-Qconcat
                                           (format "if (~a.length !== ~d) {" args nargs)
                                           2 (format "throw new ~a(`~a: expected ~d argument~:*~p (as invoked from Typescript), received ${~a.length}`);"
@@ -1588,8 +1616,7 @@
                                         (context-type-check src external-name contextOrig
                                           (argument-type-checks src external-name 1 (map arg->id arg*) (map arg->type arg*)
                                             (list
-                                              ; Shallow clone context to ensure no-one else has a reference to it
-                                              2 (format "const context = { ...~a, gasCost: __compactRuntime.emptyRunningCost() };" contextOrig)
+                                              2 (format "const context = __compactRuntime.copyCircuitContext(~a);" contextOrig)
                                               2 "const partialProofData = {"
                                               4 (make-Qconcat
                                                   "input: {"
@@ -1638,7 +1665,7 @@
                                               4 "publicTranscript: [],"
                                               4 "privateTranscriptOutputs: []"
                                               2 "};"
-                                              2 (format "const ~a = this." result)
+                                              2 (format "const ~a = await this." result)
                                                 uname "("
                                                 (apply (make-Qsep ",") "context" "partialProofData" q-formal*)
                                                 ");"
@@ -1651,11 +1678,11 @@
                                                                   (format "~a.alignment()" descriptor-name?)
                                                                   "[]")
                                                 " };"
+                                              2 "__compactRuntime.finalizeCallProofData(context, partialProofData);"
                                               2 "return { "
                                                 "result: " result ", "
                                                 "context: " "context" ", "
-                                                "proofData: " "partialProofData" ", "
-                                                "gasCost: " "context.gasCost"
+                                                "gasCost: " "context.callContext.currentGasCost"
                                                 " };"
                                               0 "}"))))))
                                   external-name*)
@@ -1663,8 +1690,10 @@
                        (with-local-unique-names
                          (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
                            (append
+                             ;; Pure circuit wrappers on `this.circuits` are still declared async
                              (map (lambda (external-name)
                                     (make-Qconcat/src src
+                                      "async "
                                       (make-Qconcat/src (id-src internal-id) external-name)
                                       (format "(context, ...~a) {" args)
                                       2 (format "return { result: pureCircuits.~a(...~a), context };" external-name args)
@@ -1884,7 +1913,7 @@
                         2 "const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
                         2 "const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
                         2 "const context = {"
-                        4 "currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()),"
+                        4 "callContext: { currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() },"
                         4 "costModel: __compactRuntime.CostModel.initialCostModel()"
                         2 "};"
                         2 "const partialProofData = {"
@@ -1975,7 +2004,7 @@
                                   2 "}"
                                   k)))
                           (apply make-Qconcat/src src
-                                 (format "initialState(...~a) {" args)
+                                 (format "async initialState(...~a) {" args)
                                  2 (format "if (~a.length !== ~d) {" args nargs)
                                  4 (format "throw new __compactRuntime.CompactError(`Contract state constructor: expected ~d argument~:*~p (as invoked from Typescript), received ${~a.length}`);" nargs args)
                                  2 "}"
@@ -1998,7 +2027,7 @@
                                              (ledger-initializers src state pl-array
                                                (set-operations state xpelt0*
                                                  (cons*
-                                                   2 (format "const context = __compactRuntime.createCircuitContext(__compactRuntime.dummyContractAddress(), ~a.initialZswapLocalState.coinPublicKey, ~a.data, ~a.initialPrivateState);" constructorContext state constructorContext)
+                                                   2 (format "const context = __compactRuntime.createCircuitContext('constructor', __compactRuntime.dummyContractAddress(), ~a.initialZswapLocalState.coinPublicKey, ~a.data, ~a.initialPrivateState);" constructorContext state constructorContext)
                                                    2 "const partialProofData = {"
                                                    4 "input: { value: [], alignment: [] },"
                                                    4 "output: undefined,"
@@ -2008,11 +2037,11 @@
                                                    (ledger-reset-to-default src pl-array
                                                      (list
                                                        2 (Stmt stmt #f #f)
-                                                       2 (format "~a.data = new __compactRuntime.ChargedState(context.currentQueryContext.state.state);" state)
+                                                       2 (format "~a.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);" state)
                                                        2 "return {"
                                                        4 (format "currentContractState: ~a," state)
-                                                       4 "currentPrivateState: context.currentPrivateState,"
-                                                       4 "currentZswapLocalState: context.currentZswapLocalState"
+                                                       4 "currentPrivateState: context.callContext.currentPrivateState,"
+                                                       4 "currentZswapLocalState: context.callContext.currentZswapLocalState"
                                                        2 "}"
                                                        0 "}")))))))))))))))
                     (newline)])]
@@ -2025,7 +2054,8 @@
                   (let ([q-formal* (map make-Qformal! arg*)])
                     (make-Qconcat/src src
                       (make-Qconcat
-                        (make-Qconcat/src (id-src internal-id) (format "~a" uname))
+                        (make-Qconcat/src (id-src internal-id)
+                          (if pure? (format "~a" uname) (format "async ~a" uname)))
                         "("
                         (make-Qargs pure? q-formal*)
                         ")"
@@ -2122,14 +2152,14 @@
                         (make-Qargs #f q-formal*)
                         ")"
                         0 "{")
-                      2 (format "const ~a = __compactRuntime.createWitnessContext(ledger(context.currentQueryContext.state), context.currentPrivateState, context.currentQueryContext.address);" witnessContext)
+                      2 (format "const ~a = __compactRuntime.createWitnessContext(ledger(context.callContext.currentQueryContext.state), context.callContext.currentPrivateState, context.callContext.currentQueryContext.address);" witnessContext)
                       2 (format "const [~a, ~a] = " nextPrivateState result)
                       "this.witnesses."
                       (make-Qconcat/src (id-src internal-id) external-name)
                       "("
                       (apply (make-Qsep ",") witnessContext q-formal*)
                       ");"
-                      2 (format "context.currentPrivateState = ~a;" nextPrivateState)
+                      2 (format "context.callContext.currentPrivateState = ~a;" nextPrivateState)
                       (result-type-check src external-name type result
                         (list
                           2 "partialProofData.privateTranscriptOutputs.push({"
@@ -2164,7 +2194,7 @@
                   (display-string "}\n")
                   (print-contract-ledger src xpelt* uname*)
                   (display-string "const _emptyContext = {\n")
-                  (display-string "  currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress())\n")
+                  (display-string "  callContext: { currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }\n")
                   (display-string "};\n")
                   (print-Q 0
                     (make-Qconcat
@@ -2368,15 +2398,22 @@
         (define (print-contract.js src descriptor-id* type* xpelt* uname*)
           (parameterize ([current-output-port (get-target-port 'contract.js)])
             (fluid-let ([sourcemap-tracker (make-sourcemap-tracker)])
-              (let-values ([(contract-dependency* contract-has-witness-ht) (get-contract-dependencies)])
-                (print-contract-header)
-                (print-exported-types xpelt*)
-                (print-contract-descriptors src descriptor-id* type*)
-                (print-contract-class src xpelt* uname*)
-                (for-each print-contract-reference-locations xpelt*)
-                (print-contract-footer)
-                (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
-                (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map)))))))
+              (let-values ([(contract-has-witness* contract-has-witness-ht) (get-contract-dependencies)])
+                (unless (null? contract-has-witness*)
+                  (source-errorf src
+                    "cross-contract dependency ~a declares witness(es) ~a; only the root contract may declare witnesses"
+                    (car contract-has-witness*)
+                    (hashtable-ref contract-has-witness-ht (car contract-has-witness*) '())))
+                (let ([contract-dependency*
+                        (vector->list (hashtable-keys (contract-ht)))])
+                  (print-contract-header contract-dependency*)
+                  (print-exported-types xpelt*)
+                  (print-contract-descriptors src descriptor-id* type*)
+                  (print-contract-class src xpelt* uname*)
+                  (for-each print-contract-reference-locations xpelt*)
+                  (print-contract-footer)
+                  (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
+                  (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map))))))))
 
       (define (format-javascript-string s)
         (define quote-seen #f)
@@ -2600,6 +2637,8 @@
             '()
             export-alist)))
       [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
+       (unless (id-pure? function-name)
+         (mark-function-async! function-name))
        (if (id-exported? function-name)
            (let ([external-name* (external-names function-name)])
              (XPelt-exported-circuit src function-name arg* type stmt external-name* (id-pure? function-name)))
@@ -2800,8 +2839,6 @@
       [(default ,src ,type)
        (let default-value ([type type])
          (let ([type (de-alias type)])
-           ; even though tstruct is substituted for tcontract, we will never generate a default value
-           ; for a tcontract since that would be caught earlier. so this substitution is safe.
            (let ([type (subst-tcontract type)])
              (nanopass-case (Ltypescript Type) type
                [(tboolean ,src) "false"]
@@ -3008,15 +3045,20 @@
        (let ([mapper-name (unique-global-name "mapper")]
              [pure? (nanopass-case (Ltypescript Function) fun0
                       [(fref ,src ,function-name) (id-pure? function-name)]
-                      [else outer-pure?])])
+                      [else outer-pure?])]
+             [async? (nanopass-case (Ltypescript Function) fun0
+                       [(fref ,src ,function-name) (function-async? function-name)]
+                       [else (not outer-pure?)])])
          (set! helper*
            (cons
              (let ([i+ (enumerate (cons expr expr*))])
-               (format "  ~a(~@[~*context, partialProofData, ~]f, ~{~a~^, ~}) {\n    let a = [];\n    for (let i = 0; i < ~a; i++) { a[i] = f(~@[~*context, partialProofData, ~]~{~a~^, ~}); }\n    return a;\n  }\n"
+               (format "  ~a~a(~@[~*context, partialProofData, ~]f, ~{~a~^, ~}) {\n    let a = [];\n    for (let i = 0; i < ~a; i++) { a[i] = ~af(~@[~*context, partialProofData, ~]~{~a~^, ~}); }\n    return a;\n  }\n"
+                 (if async? "async " "")
                  mapper-name
                  (not pure?)
                  (map (lambda (i) (format "a~s" i)) i+)
                  len
+                 (if async? "await " "")
                  (not pure?)
                  (map (lambda (i byte-ref?)
                         (let ([ref (format "a~d[i]" i)])
@@ -3024,21 +3066,25 @@
                       i+
                       (cons byte-ref? byte-ref?*))))
              helper*))
-         (parenthesize level (precedence call)
-           (make-Qconcat
-             "this."
-             mapper-name
-             "("
-             (make-Qargs pure?
-               (cons*
-                 (nanopass-case (Ltypescript Function) fun0
-                   [(fref ,src ,function-name)
-                    (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
-                      (make-Qconcat "(..." args ") =>" 2 fun "(..." args ")"))]
-                   [else fun])
-                 expr
-                 expr*))
-             ")")))]
+         (let ([call-q
+                (make-Qconcat
+                  "this."
+                  mapper-name
+                  "("
+                  (make-Qargs pure?
+                    (cons*
+                      (nanopass-case (Ltypescript Function) fun0
+                        [(fref ,src ,function-name)
+                         (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
+                           (make-Qconcat "(..." args ") =>" 2 fun "(..." args ")"))]
+                        [else fun])
+                      expr
+                      expr*))
+                  ")")])
+           (if async?
+               (parenthesize level (precedence not)
+                 (make-Qconcat "await " call-q))
+               (parenthesize level (precedence call) call-q))))]
       [(fold ,src ,len ,[Function : fun0 outer-pure? -> * fun]
              (,[Expr : expr0 (precedence add1 comma) outer-pure? -> * expr0] ,type)
              ,[Map-Argument : map-arg (precedence add1 comma) outer-pure? -> * expr byte-ref?]
@@ -3047,15 +3093,20 @@
        (let ([folder-name (unique-global-name "folder")]
              [pure? (nanopass-case (Ltypescript Function) fun0
                       [(fref ,src ,function-name) (id-pure? function-name)]
-                      [else outer-pure?])])
+                      [else outer-pure?])]
+             [async? (nanopass-case (Ltypescript Function) fun0
+                       [(fref ,src ,function-name) (function-async? function-name)]
+                       [else (not outer-pure?)])])
          (set! helper*
            (cons
              (let ([i+ (enumerate (cons expr expr*))])
-               (format "  ~a(~@[~*context, partialProofData, ~]f, x, ~{~a~^, ~}) {\n    for (let i = 0; i < ~a; i++) { x = f(~@[~*context, partialProofData, ~]x, ~{~a~^, ~}); }\n    return x;\n  }\n"
+               (format "  ~a~a(~@[~*context, partialProofData, ~]f, x, ~{~a~^, ~}) {\n    for (let i = 0; i < ~a; i++) { x = ~af(~@[~*context, partialProofData, ~]x, ~{~a~^, ~}); }\n    return x;\n  }\n"
+                 (if async? "async " "")
                  folder-name
                  (not pure?)
                  (map (lambda (i) (format "a~s" i)) i+)
                  len
+                 (if async? "await " "")
                  (not pure?)
                  (map (lambda (i byte-ref?)
                         (let ([ref (format "a~d[i]" i)])
@@ -3063,29 +3114,41 @@
                       i+
                       (cons byte-ref? byte-ref?*))))
              helper*))
-         (parenthesize level (precedence call)
-           (make-Qconcat
-             "this."
-             folder-name
-             "("
-             (make-Qargs pure?
-               (cons*
-                 (nanopass-case (Ltypescript Function) fun0
-                   [(fref ,src ,function-name)
-                    (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
-                      (make-Qconcat "(..." args ") =>" 2 fun "(..." args ")"))]
-                   [else fun])
-                 expr0
-                 expr
-                 expr*))
-             ")")))]
+         (let ([call-q
+                (make-Qconcat
+                  "this."
+                  folder-name
+                  "("
+                  (make-Qargs pure?
+                    (cons*
+                      (nanopass-case (Ltypescript Function) fun0
+                        [(fref ,src ,function-name)
+                         (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
+                           (make-Qconcat "(..." args ") =>" 2 fun "(..." args ")"))]
+                        [else fun])
+                      expr0
+                      expr
+                      expr*))
+                  ")")])
+           (if async?
+               (parenthesize level (precedence not)
+                 (make-Qconcat "await " call-q))
+               (parenthesize level (precedence call) call-q))))]
       [(call ,src ,function-name ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
-       (parenthesize level (precedence call)
-         (make-Qconcat
-           (format-function-reference src function-name)
-           "("
-           (make-Qargs (id-pure? function-name) expr*)
-           ")"))]
+       (if (function-async? function-name)
+           (parenthesize level (precedence not)
+             (make-Qconcat
+               "await "
+               (format-function-reference src function-name)
+               "("
+               (make-Qargs (id-pure? function-name) expr*)
+               ")"))
+           (parenthesize level (precedence call)
+             (make-Qconcat
+               (format-function-reference src function-name)
+               "("
+               (make-Qargs (id-pure? function-name) expr*)
+               ")")))]
       [(new ,src ,type ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
        (nanopass-case (Ltypescript Type) (de-alias type)
          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
@@ -3215,21 +3278,51 @@
          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
           ; this should be caught by ledger meta-type checks or by propagate-ledger-paths
           (when (public-adt? type) (source-errorf src "incomplete reference to nested ADT"))
-          (let ([descriptor-name? (and (eq? op-class 'read) (type->maybe-descriptor-name type))])
+          ;; For a tcontract result look up the ContractAddress descriptor that
+          ;; subst-tcontract substituted for during register-descriptor!.  For other
+          ;; types keep the existing descriptor lookup.
+          (let ([descriptor-name?
+                  (and (eq? op-class 'read)
+                       (type->maybe-descriptor-name (subst-tcontract type)))])
             (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)])
-              (nanopass-case (Ltypescript Type) (de-alias type)
-                [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                 (assert not-implemented)]
-                [else
-                 (if descriptor-name?
-                     (make-Qconcat
-                       descriptor-name?
-                       ".fromValue("
-                       q
-                       ".value)")
-                     q)])))])]
+              (if descriptor-name?
+                  (make-Qconcat
+                    descriptor-name?
+                    ".fromValue("
+                    q
+                    ".value)")
+                  q)))])]
       [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
-       (source-errorf src "contract types are not yet implemented")])
+       ;; Lower a cross-contract call to:
+       ;;   await __compactRuntime.crossContractCall(
+       ;;     context,                                     // caller CircuitContext
+       ;;     <import-binding>.Contract,                   // callee ContractCtor
+       ;;     '<elt-name>',                                // callee CircuitId
+       ;;     <receiver-expr>,                             // callee address from the ledger
+       ;;     partialProofData,                            // caller PartialProofData
+       ;;     <args>...)
+       (when outer-pure?
+         (source-errorf src "cross-contract call from a pure circuit is not yet supported"))
+       (nanopass-case (Ltypescript Type) (de-alias type)
+         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          (let ([callee-address
+                 (make-Qconcat
+                   (format "~a((" (compact-stdlib "decodeContractAddress"))
+                   expr
+                   ").bytes)")])
+            (parenthesize level (precedence not)
+              (make-Qconcat
+                (format "await ~a(" (compact-stdlib "crossContractCall"))
+                (apply (make-Qsep ",")
+                  (cons* "context"
+                         (format "~a.Contract" (contract-import-binding contract-name))
+                         (format "'~a'" elt-name)
+                         callee-address
+                         "partialProofData"
+                         expr*))
+                ")")))]
+         [else
+          (source-errorf src "internal: contract-call type is not a tcontract")])])
     (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
       [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
        (values
@@ -3244,7 +3337,7 @@
          (make-Qconcat
            "("
            (make-Qconcat
-             "("
+             (if outer-pure? "(" "async (")
              (make-Qargs outer-pure? q-formal*)
              ") =>"
              0 "{"

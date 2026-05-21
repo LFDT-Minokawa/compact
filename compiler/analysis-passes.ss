@@ -1559,12 +1559,6 @@
            (let ([type (Type ?type)])
              (verify-non-adt-type! ?src type ?fmt ?arg ...)
              type)]))
-      (define (contains-contract? type)
-        (T (de-alias type #t)
-           [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... ) #t]
-           [(ttuple ,src ,type* ...) (ormap contains-contract? type*)]
-           [(tvector ,src ,len ,type) (contains-contract? type)]
-           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) (ormap contains-contract? type*)]))
       (define check-contract
         (lambda (src contract-name)
           (let ([info (hashtable-cell (contract-ht) contract-name #f)])
@@ -2200,10 +2194,6 @@
       [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
        (build-function (native-entry-class native-entry) #t function-name arg* type)]
       [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
-       (when (contains-contract? type)
-         (source-errorf src "invalid type ~a for witness ~a return value:\n  witness return values cannot include contract values"
-                        (format-type type)
-                        (id-sym function-name)))
        (build-function 'witness #f function-name arg* type)]
       [(public-ledger-declaration ,src ,ledger-field-name ,[type])
        (unless (public-adt? type)
@@ -2229,20 +2219,6 @@
          `(constructor ,src (,arg* ...) ,expr))])
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
       [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
-       (when (id-exported? function-name)
-         (when (contains-contract? type)
-           (source-errorf src "invalid type ~a for circuit ~a return value:\n  exported circuit return values cannot include contract values"
-                          (format-type type)
-                          (id-sym function-name)))
-         (for-each
-           (lambda (type argno)
-             (when (contains-contract? type)
-               (source-errorf src "invalid type ~a for circuit ~a argument ~d:\n  exported circuit arguments cannot include contract values"
-                              (format-type type)
-                              (id-sym function-name)
-                              (fx1+ argno))))
-           (map arg->type arg*)
-           (enumerate arg*)))
        (let-values ([(expr return-type) (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)])
          `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
     (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
@@ -2452,8 +2428,6 @@
                            (id-sym ledger-field-name))]))]
       [(default ,src ,[type])
        (nanopass-case (Ltypes Type) (de-alias type #t)
-         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-          (source-errorf src "default is not defined for contract types")]
          [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
           (guard (eq? adt-name 'Kernel))
           (source-errorf src "default is not defined for ADT type Kernel")]

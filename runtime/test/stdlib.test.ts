@@ -20,6 +20,7 @@ import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
 describe('createCoinCommitment', () => {
   test('Check for success', () => {
     const context = compactRuntime.createCircuitContext(
+      'test',
       ocrt.sampleContractAddress(),
       '0'.repeat(64),
       new ocrt.ContractState(),
@@ -37,7 +38,7 @@ describe('createCoinCommitment', () => {
       right: { bytes: ocrt.encodeContractAddress(ocrt.sampleContractAddress()) },
     };
     compactRuntime.createZswapOutput(context, ocrt.encodeShieldedCoinInfo(coinInfo), recipient);
-    expect(context.currentZswapLocalState.outputs.length).toBe(1);
+    expect(context.callContext.currentZswapLocalState!.outputs.length).toBe(1);
   });
 });
 

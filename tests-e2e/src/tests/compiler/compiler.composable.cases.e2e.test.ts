@@ -172,19 +172,6 @@ describe('[Composable contracts] Compiler', () => {
             );
         });
 
-        // FIXME: un-skip for CC
-        test.skip('when dependent contract is used as ledger ADT value', async () => {
-            copyFiles('../examples/composable/cases/ledger-adt-type/*.compact', contractsDir);
-            await compileQueue(contractsDir, ['A']);
-
-            const returnValue = await compileWithContractName('main', contractsDir);
-            expectCompilerResult(returnValue).toBeFailure(
-                `Exception: main.compact line 20 char 1:\n  contract types are not yet implemented`,
-                compilerDefaultOutput(),
-            );
-            expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
-        });
-
         test('when you define dependent contract in module', async () => {
             copyFiles('../examples/composable/cases/module-contract/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A']);
@@ -257,20 +244,19 @@ describe('[Composable contracts] Compiler', () => {
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
         });
 
+    });
+
+    describe('should compile main contract', () => {
         test('when dependent contract is used as witness return value', async () => {
             copyFiles('../examples/composable/cases/witness-return/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A']);
 
             const returnValue = await compileWithContractName('main', contractsDir);
-            expectCompilerResult(returnValue).toBeFailure(
-                `Exception: main.compact line 25 char 1:\n  invalid type contract A<up(Uint<16>): [], down(Uint<16>): []> for witness bob return value:\n  witness return values cannot include contract values`,
-                compilerDefaultOutput(),
-            );
-            expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
+            expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
+            expectFiles(`${contractsDir}main/`).thatFilesAreGenerated(tsFiles, [], [], contractInfoFiles);
         });
-    });
 
-    describe('should compile main contract', () => {
+
         test('when dependent contract is empty', async () => {
             copyFiles('../examples/composable/cases/empty-contract/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A']);

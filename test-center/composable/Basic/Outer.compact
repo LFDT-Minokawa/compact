@@ -13,28 +13,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { beforeAll, afterAll, beforeEach, afterEach, test, expect } from 'vitest';
-import { runSmartContract } from '../src/contract.js';
+contract Inner {
+  circuit add(value: Field): Field;
+}
 
-beforeAll(() => {
-  console.log('Add something to beforeAll');
-});
+export ledger inner: Inner;
 
-afterAll(() => {
-  runSmartContract(false);
-});
+constructor(i: Inner) {
+  inner = disclose(i);
+}
 
-beforeEach(() => {
-  console.log('Running test');
-});
+export circuit add(value: Field): Field {
+  return inner.add(disclose(value));
+}
 
-afterEach(() => {
-  console.log('Finished!');
-});
+export circuit setInner(i: Inner): Inner {
+  const lastInner = inner;
+  inner = disclose(i);
+  return lastInner;
+}
 
-test('example jest debugging', async () => {
-  const result = await runSmartContract(true);
-  expect(result.nested.is_some).toBe(true);
-  expect(result.priv.is_some).toBe(false);
-  expect(result.stdLib.is_some).toBeTruthy();
-});
+export circuit echoStored(): Inner {
+  const a = inner;
+  const b = a;
+  return b;
+}
+
+export circuit echoInner(i: Inner): Inner {
+  const a = i;
+  const b = a;
+  return disclose(b);
+}
+
+export circuit addViaConst(value: Field): Field {
+  const target = inner;
+  return target.add(disclose(value));
+}

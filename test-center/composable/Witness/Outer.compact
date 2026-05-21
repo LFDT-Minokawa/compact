@@ -13,28 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { beforeAll, afterAll, beforeEach, afterEach, test, expect } from 'vitest';
-import { runSmartContract } from '../src/contract.js';
+// Exercises contract values flowing through witnesses: a witness can return
+// a contract value, and a witness can accept one as a parameter.
 
-beforeAll(() => {
-  console.log('Add something to beforeAll');
-});
+import CompactStandardLibrary;
 
-afterAll(() => {
-  runSmartContract(false);
-});
+contract Inner {
+  circuit add(value: Field): Field;
+}
 
-beforeEach(() => {
-  console.log('Running test');
-});
+witness chooseInner(): Inner;
 
-afterEach(() => {
-  console.log('Finished!');
-});
+witness inspectInner(i: Inner): Field;
 
-test('example jest debugging', async () => {
-  const result = await runSmartContract(true);
-  expect(result.nested.is_some).toBe(true);
-  expect(result.priv.is_some).toBe(false);
-  expect(result.stdLib.is_some).toBeTruthy();
-});
+export circuit pickViaWitness(): Inner {
+  return disclose(chooseInner());
+}
+
+export circuit inspectViaWitness(i: Inner): Field {
+  return disclose(inspectInner(i));
+}

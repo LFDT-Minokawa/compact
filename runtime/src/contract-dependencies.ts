@@ -484,6 +484,8 @@ const publicLedgerSegmentsDependencies = (
 };
 
 /**
+ * // TODO: Remove compiler support for contract dependencies once CCCs land.
+ *
  * Given a {@link StateValue} representing the current ledger state of a contract, uses the {@link ContractReferenceLocations}
  * object produced by the Compact compiler to extract the current contract addresses present in the given ledger state. The produced
  * contract addresses represent the contracts on which the root contract depends. The dependencies are used in a multi-contract
