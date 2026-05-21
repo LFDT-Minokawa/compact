@@ -196,8 +196,8 @@ struct ShieldedSpend {
 
 struct ShieldedReceive {
     commitment: Bytes<32>,        // hint: indexed
-    contractAddress: Maybe<ContractAddress>,
-    ciphertext: Maybe<Bytes<512>> // hint: indexed
+    ciphertext: Maybe<Bytes<512>>,// hint: indexed
+    contractAddress: Maybe<ContractAddress>
 }
 
 struct ShieldedMint {
