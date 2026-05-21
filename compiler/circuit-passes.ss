@@ -1612,7 +1612,7 @@
 
   (define-pass discard-useless-code : Lnovectorref (ir) -> Lnovectorref ()
     (definitions
-      (module (idset-empty idset idset-insert idset-remove idset-union idset-union-all idset-member?)
+      (module (idset-empty make-idset idset-insert idset-remove idset-union idset-union-all idset-member?)
         ; rkd 2025/07/15: This implementation of set operations is inefficient and, since union is quadratic,
         ; especially inefficient when the sets get large.  To determine if this is likely to be a problem,
         ; I tooled the code to compute average and max set sizes while running the unit tests, which includes
@@ -1623,7 +1623,7 @@
         ; efficient set implementation, e.g., the bit-tree operations used for live analysis in
         ; ChezScheme/s/cpnanopass.ss.
         (define (idset-empty) '())
-        (define (idset id) (list id))
+        (define (make-idset id) (list id))
         (define (idset-insert id idset) (if (memq id idset) idset (cons id idset)))
         (define (idset-remove id idset) (remq id idset))
         (define (idset-union idset1 idset2) (fold-right idset-insert idset1 idset2))
@@ -1689,7 +1689,7 @@
     (Value : Expression (ir) -> Expression (idset)
       [(quote ,src ,datum) (values ir (idset-empty))]
       [(default ,src ,type) (values ir (idset-empty))]
-      [(var-ref ,src ,var-name) (values ir (idset var-name))]
+      [(var-ref ,src ,var-name) (values ir (make-idset var-name))]
       [(let* ,src ([,local* ,expr*] ...) ,[Value : expr idset])
        (handle-let #f src local* expr* expr idset)]
       [(if ,src ,[Value : expr0 idset0] ,[Value : expr1 idset1] ,[Value : expr2 idset2])
@@ -1772,6 +1772,10 @@
        (values
          `(downcast-unsigned ,src ,nat? ,nat ,expr)
          idset)]
+      [(cast-to-field ,src ,ftype ,type ,[Value : expr idset])
+       (values
+         `(cast-to-field ,src ,ftype ,type ,expr)
+         idset)]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,[path-elt idset^*] ...) ,src^ ,adt-op ,[Value : expr* idset*] ...)
        (values
          `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt ...) ,src^ ,adt-op ,expr* ...)
@@ -1785,7 +1789,8 @@
       [(contract-call ,src ,elt-name (,[Value : expr idset] ,type) ,[Value : expr* idset*] ...)
        (values
          `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
-         (idset-union-all (cons idset idset*)))])
+         (idset-union-all (cons idset idset*)))]
+      [else (internal-errorf 'discard-useless-code "unhandled Value form ~s" ir)])
     (Tuple-Argument-Value : Tuple-Argument (ir) -> Tuple-Argument (idset)
       [(single ,src ,[Value : expr idset])
        (values `(single ,src ,expr) idset)]
@@ -2159,6 +2164,11 @@
          (lambda (triv)
            (k (with-output-language (Lcircuit Rhs)
                 `(downcast-unsigned ,src ,nat? ,nat ,triv)))))]
+      [(cast-to-field ,src ,[ftype] ,[type] ,expr)
+       (Triv expr test
+         (lambda (triv)
+           (k (with-output-language (Lcircuit Rhs)
+                `(cast-to-field ,src ,ftype ,type ,triv)))))]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,[adt-op] ,expr* ...)
        (Path-Element* path-elt* test
          (lambda (path-elt*)

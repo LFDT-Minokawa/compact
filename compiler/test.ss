@@ -884,6 +884,59 @@ groups than for single tests.
                      (next-value (cdr v*))))))))]))
 )
 
+(run-tests print-zkir
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(p1: JubjubPoint, p2: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)]) as JubjubScalar), ecMulGenerator(17 as JubjubScalar)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/foo.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 4,"
+        "  \"instructions\": ["
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"transient_hash\", \"inputs\": [0, 2] },"
+        "    { \"op\": \"ec_mul\", \"a_x\": 0, \"a_y\": 1, \"scalar\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"ec_mul_generator\", \"scalar\": 8 },"
+        "    { \"op\": \"ec_add\", \"a_x\": 6, \"a_y\": 7, \"b_x\": 9, \"b_y\": 10 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"32\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"60\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
+        "    { \"op\": \"hash_to_curve\", \"inputs\": [16, 17] },"
+        "    { \"op\": \"ec_add\", \"a_x\": 11, \"a_y\": 12, \"b_x\": 20, \"b_y\": 21 },"
+        "    { \"op\": \"hash_to_curve\", \"inputs\": [] },"
+        "    { \"op\": \"ec_add\", \"a_x\": 22, \"a_y\": 23, \"b_x\": 24, \"b_y\": 25 },"
+        "    { \"op\": \"output\", \"var\": 26 },"
+        "    { \"op\": \"output\", \"var\": 27 }"
+        "  ]"
+        "}"))
+    )
+  )
+#!eof
+
 (run-tests parse-file/format/reparse
   (test
     '(

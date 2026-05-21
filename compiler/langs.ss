@@ -1047,7 +1047,8 @@
       (field->bytes src len triv)            => (field->bytes len triv)
       (bytes->field src len triv)            => (bytes->field len triv)
       (downcast-unsigned src (maybe nat?) nat triv) =>
-        (downcast-unsigned nat? nat triv))
+        (downcast-unsigned nat? nat triv)
+      (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv))
     (Triv (triv test)
       var-name
       (quote datum)                          => datum
