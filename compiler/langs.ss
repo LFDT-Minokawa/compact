@@ -725,7 +725,7 @@
       ;; type is tenum, type^ is numeric
       (cast-to-enum src type type^ expr)      => (cast-to-enum type type^ #f expr)
       ;; type is numeric
-      (cast-to-field src ftype type expr)     => (cast-to-field ftype type #f expr) ; 
+      (cast-to-field src ftype type expr)     => (cast-to-field ftype type #f expr)
       (safe-cast src type type^ expr)         => (safe-cast type 10 type^ #f expr)
       (downcast-unsigned src (maybe nat?) nat expr) =>
         (downcast-unsigned nat? nat #f expr)

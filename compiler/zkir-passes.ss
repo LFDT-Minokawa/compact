@@ -350,7 +350,7 @@
           [(= ,[* test] ,var-name (downcast-unsigned ,src ,safe ,nat? ,nat ,[* triv]))
            (unless safe
              (constrain-type (with-output-language (Lflattened Primitive-Type)
-                                                   `(tfield ,nat))
+                                                   `(tunsigned ,nat))
                              triv))
            ; triv is a stack index for a literal or variable
            (hashtable-set! varid-ht var-name triv)]

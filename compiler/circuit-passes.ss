@@ -929,6 +929,17 @@
                            len
                            len^))])
        (with-output-language (Linlined Type) `(tvector ,src ,len (tunsigned ,src 255)))]
+      [(cast-to-field ,src ,ftype ,type ,[Care : expr -> * type^])
+       (unless (sametype? type type^)
+         (source-errorf src "expected ~a, got ~a for cast-to-field"
+           (format-type type) (format-type type^)))
+       (unless (nanopass-case (Linlined Type) type
+                 [(tfield ,src^ ,ftype^) #t]
+                 [(tunsigned ,src^ ,nat) #t]
+                 [else #f])
+         ;; This is unexpected.
+         (source-errorf src "expected a numeric type, got ~a for cast-to-field" (format-type type)))
+       (with-output-language (Linlined Type) `(tfield ,src ,ftype))]
       [(vector->bytes ,src ,len ,[Care : expr -> * type])
        (define (u8-subtype? type)
          (nanopass-case (Linlined Type) type
@@ -1511,6 +1522,10 @@
        (values
          `(assert ,src ,expr ,mesg)
          (CTV-tuple no-var-name '()))]
+      [(cast-to-field ,src ,[ftype] ,[type] ,[expr ctv])
+       (values
+         `(cast-to-field ,src ,ftype ,type ,expr)
+         ctv)]
       [(field->bytes ,src ,len ,[expr ctv])
        (assert (not (= len 0)))
        (cond
@@ -1585,7 +1600,7 @@
        (values
          `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
          (CTV-unknown no-var-name))]
-      [else (internal-errorf 'Expression "unexpected expr ~s" (unparse-Lnovectorref ir))])
+      [else (internal-errorf 'Expression "unexpected expr ~s" (unparse-Lnosafecast ir))])
     (Tuple-Argument : Tuple-Argument (ir) -> Tuple-Argument (maybe-ctv*)
       [(single ,src ,[expr ctv]) (values `(single ,src ,expr) (list ctv))]
       [(spread ,src ,nat ,[expr ctv])
