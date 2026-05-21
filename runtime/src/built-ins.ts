@@ -191,7 +191,7 @@ export function jubjubPointY(pt: JubjubPoint): bigint {
 }
 
 export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
-    return { x: x, y: y };
+  return { x: x, y: y };
 }
 
 /**

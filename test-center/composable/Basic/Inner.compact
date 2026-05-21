@@ -13,28 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { defineConfig } from 'vitest/config'
+import CompactStandardLibrary;
 
-const testFiles = ["**/*.test.ts", "test.ts"];
-// the ts directory contents are included in the test.ts file
-const nonTestFiles = [
-  "midnight-example-applications",
-  "node_modules",
-  "test-contracts",
-  "ts/**/!(*.test).ts",
-];
+export ledger v: Field;
 
-export default defineConfig({
-  test: {
-    include: testFiles,
-    exclude: nonTestFiles,
-    typecheck: {
-      enabled: true,
-      tsconfig: 'tsconfig.test.json',
-      include: testFiles,
-      exclude: nonTestFiles
-    },
-    testTimeout: 180_000,
-    hookTimeout: 20_000
-  },
-})
+export circuit add(value: Field): Field {
+    v = v + disclose(value);
+    return v;
+}

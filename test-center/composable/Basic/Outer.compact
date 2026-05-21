@@ -13,28 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { defineConfig } from 'vitest/config'
+contract Inner {
+  circuit add(value: Field): Field;
+}
 
-const testFiles = ["**/*.test.ts", "test.ts"];
-// the ts directory contents are included in the test.ts file
-const nonTestFiles = [
-  "midnight-example-applications",
-  "node_modules",
-  "test-contracts",
-  "ts/**/!(*.test).ts",
-];
+export ledger inner: Inner;
 
-export default defineConfig({
-  test: {
-    include: testFiles,
-    exclude: nonTestFiles,
-    typecheck: {
-      enabled: true,
-      tsconfig: 'tsconfig.test.json',
-      include: testFiles,
-      exclude: nonTestFiles
-    },
-    testTimeout: 180_000,
-    hookTimeout: 20_000
-  },
-})
+constructor(i: Inner) {
+  inner = disclose(i);
+}
+
+export circuit add(value: Field): Field {
+  return inner.add(disclose(value));
+}
+
+export circuit setInner(i: Inner): Inner {
+  const lastInner = inner;
+  inner = disclose(i);
+  return lastInner;
+}
