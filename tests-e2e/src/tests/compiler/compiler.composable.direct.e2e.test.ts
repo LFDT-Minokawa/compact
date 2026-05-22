@@ -132,7 +132,7 @@ describe('[Composable contracts direct] Compiler', () => {
         const mainFilePath = contractsDir + mainFileName;
 
         const contractInfo: ContractInfo = JSON.parse(fs.readFileSync(dependencyFileJsonPath, 'utf8')) as ContractInfo;
-        delete (contractInfo as { witnesses?: [] }).witnesses;
+        delete (contractInfo as Partial<ContractInfo>).witnesses;
 
         fs.writeFileSync(dependencyFileJsonPath, JSON.stringify(contractInfo, null, 2));
         const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
@@ -160,7 +160,7 @@ describe('[Composable contracts direct] Compiler', () => {
         const mainFilePath = contractsDir + mainFileName;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const contractInfo: ContractInfo = JSON.parse(fs.readFileSync(dependencyFileJsonPath, 'utf8'));
-        contractInfo.circuits[0]['result-type']['type-name'] = 'MALFORMED';
+        (contractInfo.circuits[0]['result-type'] as { 'type-name': string })['type-name'] = 'MALFORMED';
         fs.writeFileSync(dependencyFileJsonPath, JSON.stringify(contractInfo, null, 2));
         logger.info(fs.readFileSync(dependencyFileJsonPath, 'utf8'));
         const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
@@ -176,7 +176,7 @@ describe('[Composable contracts direct] Compiler', () => {
         const mainFilePath = contractsDir + mainFileName;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const contractInfo: ContractInfo = JSON.parse(fs.readFileSync(dependencyFileJsonPath, 'utf8'));
-        contractInfo.circuits[0].arguments[0].type['type-name'] = 'MALFORMED';
+        (contractInfo.circuits[0].arguments[0].type as { 'type-name': string })['type-name'] = 'MALFORMED';
         fs.writeFileSync(dependencyFileJsonPath, JSON.stringify(contractInfo, null, 2));
         logger.info(fs.readFileSync(dependencyFileJsonPath, 'utf8'));
         const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);

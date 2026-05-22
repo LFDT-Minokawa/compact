@@ -117,7 +117,8 @@
 
   (define-keyword-group keywordReservedForFutureUse
     (TITLE "Keywords reserved for future use")
-    (await
+    (arguments
+     await
      break
      case
      catch
@@ -126,6 +127,8 @@
      debugger
      delete
      do
+     eval
+     event
      extends
      finally
      function
@@ -134,6 +137,7 @@
      instanceof
      interface
      let
+     log
      null
      package
      private

@@ -287,6 +287,15 @@ circuit upgradeFromTransient(x: Field): Bytes<32>;
 
 ```
 
+### `keccak256`
+
+This function hashes its input using the Keccak-256 algorithm.  It returns the
+32-byte digest.
+
+```compact
+circuit keccak256<T>(value: T): Bytes<32>;
+```
+
 ### `ecAdd`
 
 This function add two elliptic [`NativePoint`](#nativepoint)s (in multiplicative

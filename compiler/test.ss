@@ -3268,6 +3268,402 @@ groups than for single tests.
         "    );"
         "}"))
     )
+
+  ; lexer tests for ID_Start from unicode spec
+  ; — first char must be in Lu Ll Lt Lm Lo Nl (plus _ $)
+  ;
+  ; Lu — Uppercase Letter (Greek)
+  (test
+    '(
+      "export enum Δelta {"
+      "  A"
+      "};"
+      )
+    (returns (program (enum #t Δelta A)))
+    )
+
+  ; Lu — Uppercase Letter (Cyrillic)
+  (test
+    '(
+      "export enum Жук {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t Жук X)))
+    )
+
+  ; Ll — Lowercase Letter (Greek)
+  (test
+    '(
+      "export enum αlpha {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t αlpha X)))
+    )
+
+  ; Ll — Lowercase Letter (Cyrillic)
+  (test
+    '(
+      "export enum жук {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t жук X)))
+    )
+
+  ; Lt — Titlecase Letter (Latin DZ with caron)
+  (test
+    '(
+      "export enum ǅagreb {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t ǅagreb X)))
+    )
+
+  ; Lm — Modifier Letter (modifier small h)
+  (test
+    '(
+      "export enum ʰello {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t ʰello X)))
+    )
+
+  ; Lo — Other Letter (Hebrew)
+  (test
+    '(
+      "export enum שלום {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t שלום X)))
+    )
+
+  ; Lo — Other Letter (Arabic)
+  (test
+    '(
+      "export enum مرحبا {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t مرحبا X)))
+    )
+
+  ; Lo — Other Letter (CJK Unified Ideographs)
+  (test
+    '(
+      "export enum 中国 {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t 中国 X)))
+    )
+
+  ; Lo — Other Letter (Hiragana)
+  (test
+    '(
+      "export enum あいう {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t あいう X)))
+    )
+
+  ; Nl — Letter Number (Roman numerals)
+  (test
+    '(
+      "export enum Ⅻhour {"
+      "  Ⅰst"
+      "};"
+      )
+    (returns (program (enum #t Ⅻhour Ⅰst)))
+    )
+
+  ; Special — underscore as start (allowed alongside ID_Start)
+  (test
+    '(
+      "export enum _foo {"
+      "  _bar"
+      "};"
+      )
+    (returns (program (enum #t _foo _bar)))
+    )
+
+  ; Special — dollar sign as start (allowed alongside ID_Start)
+  (test
+    '(
+      "export enum $foo {"
+      "  $bar"
+      "};"
+      )
+    (returns (program (enum #t $foo $bar)))
+    )
+
+  ; lexer tests for ID_Continue extras from unicode spec
+  ; — categories valid only in non-start position:
+  ; Mn Mc Nd Pc (in addition to all ID_Start categories)
+  ;
+  ; Mn — Nonspacing Mark (Hebrew point qamats, in middle)
+  (test
+    '(
+      "export enum Wָd {"
+      "  EN,"
+      "  Array"
+      "};"
+      )
+    (returns (program (enum #t Wָd EN Array)))
+    )
+
+  ; Mn — Nonspacing Mark (Arabic small high seen, in middle)
+  (test
+    '(
+      "export enum eٚXe {"
+      "  boolean"
+      "};"
+      )
+    (returns (program (enum #t eٚXe boolean)))
+    )
+
+  ; Mn — Nonspacing Mark (combining acute U+0301, on Latin base)
+  (test
+    '(
+      "export enum cafe\x301; {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t café X)))
+    )
+
+  ; Mc — Spacing Combining Mark (Devanagari vowel sign aa)
+  (test
+    '(
+      "export enum aाb {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t aाb X)))
+    )
+
+  ; Mc — Spacing Combining Mark (Devanagari sign visarga)
+  (test
+    '(
+      "export enum aःb {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t aःb X)))
+    )
+
+  ; Nd — Decimal Digit (ASCII 0-9 in continuation)
+  (test
+    '(
+      "export enum foo123 {"
+      "  X42"
+      "};"
+      )
+    (returns (program (enum #t foo123 X42)))
+    )
+
+  ; Nd — Decimal Digit (Arabic-Indic digits in continuation)
+  (test
+    '(
+      "export enum foo٠١٢ {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t foo٠١٢ X)))
+    )
+
+  ; Nd — Decimal Digit (Devanagari digits in continuation)
+  (test
+    '(
+      "export enum foo०१२ {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t foo०१२ X)))
+    )
+
+  ; Pc — Connector Punctuation (ASCII underscore in continuation)
+  (test
+    '(
+      "export enum foo_bar_baz {"
+      "  X_Y"
+      "};"
+      )
+    (returns (program (enum #t foo_bar_baz X_Y)))
+    )
+
+  ; Pc — Connector Punctuation (undertie U+203F in continuation)
+  (test
+    '(
+      "export enum a‿b {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t a‿b X)))
+    )
+
+  ; Pc — Connector Punctuation (character tie U+2040 in continuation)
+  (test
+    '(
+      "export enum a⁀b {"
+      "  X"
+      "};"
+      )
+    (returns (program (enum #t a⁀b X)))
+    )
+
+  ; Rejection tests — these Unicode categories are valid in
+  ; ID_Continue but NOT in ID_Start, so they must be rejected
+  ; as the first character of an identifier.
+  ; Mn — Nonspacing Mark at start (Hebrew point qamats)
+  (test
+    '(
+      "export enum ָdW {"
+      "  EN,"
+      "  Array"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character 'ָ'")))
+    )
+
+  ; Mn — Nonspacing Mark at start (Arabic small high seen)
+  (test
+    '(
+      "export enum ٚXee {"
+      "  boolean"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character 'ٚ'")))
+    )
+
+  ; Mn — Nonspacing Mark at start (Devanagari nukta)
+  (test
+    '(
+      "export enum ़foo {"
+      "  X"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character '़'")))
+    )
+
+  ; Mc — Spacing Combining Mark at start (Devanagari vowel sign aa)
+  (test
+    '(
+      "export enum ाfoo {"
+      "  X"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character 'ा'")))
+    )
+
+  ; Mc — Spacing Combining Mark at start (Devanagari sign visarga)
+  (test
+    '(
+      "export enum ःfoo {"
+      "  X"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character 'ः'")))
+    )
+
+  ; Mc — Spacing Combining Mark at start (Tamil vowel sign aa)
+  (test
+    '(
+      "export enum ாfoo {"
+      "  X"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character 'ா'")))
+    )
+
+  ; Nd — Decimal Digit at start (Arabic-Indic digit)
+  (test
+    '(
+      "export enum ٠foo {"
+      "  X"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character '٠'")))
+    )
+
+  ; Nd — Decimal Digit at start (Devanagari digit)
+  (test
+    '(
+      "export enum ०foo {"
+      "  X"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character '०'")))
+    )
+
+  ; Nd — Decimal Digit at start (Bengali digit)
+  (test
+    '(
+      "export enum ০foo {"
+      "  X"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character '০'")))
+    )
+
+  ; Pc — Connector Punctuation at start (undertie U+203F)
+  (test
+    '(
+      "export enum ‿foo {"
+      "  X"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character '‿'")))
+    )
+
+  ; Pc — Connector Punctuation at start (character tie U+2040)
+  (test
+    '(
+      "export enum ⁀foo {"
+      "  X"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character '⁀'")))
+    )
+
+  ; Pc — Connector Punctuation at start (fullwidth low line)
+  (test
+    '(
+      "export enum ＿foo {"
+      "  X"
+      "};"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character '＿'")))
+    )
 )
 
 (parameterize ([format-line-length 40])
@@ -6995,7 +7391,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"abc\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
+      irritants: '("testfile.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"abc๓ؒNJe\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
     )
 
   (test
@@ -7036,11 +7432,345 @@ groups than for single tests.
 
   (test
     '(
-      "circuit in(): [];"
+      "circuit arguments():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"arguments\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit await():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"await\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit break():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"break\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit case():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"case\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit catch():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"catch\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit class():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"class\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit continue():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"continue\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit debugger():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"debugger\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+
+  (test
+    '(
+      "circuit delete():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"delete\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit do():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"do\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit eval():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"eval\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit event():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"event\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit extends():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"extends\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit finally():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"finally\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit function():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"function\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit implements():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"implements\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit in():[] {}"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"in\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit instanceof():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"instanceof\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit interface():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"interface\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit let():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"let\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit log():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"log\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit null():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"null\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit package():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"package\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit private():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"private\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit protected():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"protected\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit public():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"public\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit static():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"static\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit super():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"super\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit switch():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"switch\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit this():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"this\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit throw():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"throw\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit try():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"try\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit typeof():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"typeof\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit var():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"var\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit void():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"void\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit while():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"while\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit with():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"with\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
+      "circuit yield():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"yield\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
     )
 )
 
@@ -54273,11 +55003,11 @@ groups than for single tests.
       "export circuit context(x: Field): Field { return state(x + 3); }"
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
       "export circuit Contract(x: Field): Field { return transcript(x) + 2; }"
-      "export circuit arguments(eval: Field, arguments: Field, witnesses: Field): Field { return Contract(eval + arguments + witnesses) + rat; }"
+      "export circuit _arguments(_eval: Field, _arguments: Field, witnesses: Field): Field { return Contract(_eval + _arguments + witnesses) + rat; }"
       "export circuit functions(Maybe: Maybe<Field>): Field { return Maybe.value + 17; }"
       "export circuit finalize(): Field { return functions(some<Field>(3 as Field)); }"
      )
-    (output-file "compiler/testdir/zkir/arguments.zkir"
+    (output-file "compiler/testdir/zkir/_arguments.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 2, \"minor\": 0 },"
@@ -62691,22 +63421,22 @@ groups than for single tests.
       "export circuit context(x: Field): Field { return state(x + 3); }"
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
       "export circuit Contract(x: Field): Field { return transcript(x) + 2; }"
-      "export circuit arguments(eval: Field, arguments: Field, witnesses: Field): Field { return Contract(eval + arguments + witnesses) + rat; }"
+      "export circuit _arguments(_eval: Field, _arguments: Field, witnesses: Field): Field { return Contract(_eval + _arguments + witnesses) + rat; }"
       "export circuit functions(Maybe: Maybe<Field>): Field { return Maybe.value + 17; }"
       "export circuit finalize(): Field { return functions(some<Field>(3 as Field)); }"
      )
-    (output-file "compiler/testdir/zkir/arguments.zkir"
+    (output-file "compiler/testdir/zkir/_arguments.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
         "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
-        "    { \"name\": \"%eval.0\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%arguments.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%_eval.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%_arguments.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%witnesses.2\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%eval.0\", \"b\": \"%arguments.1\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%_eval.0\", \"b\": \"%_arguments.1\" },"
         "    { \"op\": \"add\", \"output\": \"%x.4\", \"a\": \"%t.3\", \"b\": \"%witnesses.2\" },"
         "    { \"op\": \"add\", \"output\": \"%x.5\", \"a\": \"%x.4\", \"b\": \"0x07\" },"
         "    { \"op\": \"add\", \"output\": \"%x.6\", \"a\": \"%x.5\", \"b\": \"0x03\" },"
@@ -70685,7 +71415,7 @@ groups than for single tests.
       "export circuit context(x: Field): Field { return state(x + 3); }"
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
       "export circuit Contract(x: Field): Field { return transcript(x) + 2; }"
-      "export circuit arguments(eval: Field, arguments: Field, witnesses: Field): Field { return Contract(eval + arguments + witnesses) + rat; }"
+      "export circuit _arguments(_eval: Field, _arguments: Field, witnesses: Field): Field { return Contract(_eval + _arguments + witnesses) + rat; }"
       "export circuit functions(Maybe: Maybe<Field>): Field { return Maybe.value + 17; }"
       "export circuit finalize(): Field { return functions(some<Field>(3 as Field)); }"
       )
@@ -70705,17 +71435,17 @@ groups than for single tests.
         "  context(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "  transcript(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "  Contract(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
-        "  arguments(context: __compactRuntime.CircuitContext<PS>,"
-        "            eval_0: bigint,"
-        "            arguments_0: bigint,"
-        "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "  _arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "             _eval_0: bigint,"
+        "             _arguments_0: bigint,"
+        "             witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
         "export type ProvableCircuits<PS> = {"
-        "  arguments(context: __compactRuntime.CircuitContext<PS>,"
-        "            eval_0: bigint,"
-        "            arguments_0: bigint,"
-        "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "  _arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "             _eval_0: bigint,"
+        "             _arguments_0: bigint,"
+        "             witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
         ""
         "export type PureCircuits = {"
@@ -70728,10 +71458,10 @@ groups than for single tests.
         "  context(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "  transcript(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "  Contract(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
-        "  arguments(context: __compactRuntime.CircuitContext<PS>,"
-        "            eval_0: bigint,"
-        "            arguments_0: bigint,"
-        "            witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
+        "  _arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "             _eval_0: bigint,"
+        "             _arguments_0: bigint,"
+        "             witnesses_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;"
         "  functions(context: __compactRuntime.CircuitContext<PS>, Maybe_0: Maybe<bigint>): __compactRuntime.CircuitResults<PS, bigint>;"
         "  finalize(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, bigint>;"
         "}"
@@ -70761,7 +71491,7 @@ groups than for single tests.
         "const witnesses = { witnesses(private_state: any, witnesses: bigint): [any, bigint] { return [private_state, witnesses + 11n]; } };"
         "test('check 1', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0, 73n);"
-        "  expect(C.circuits.arguments(Ctxt, 11n, 7n, 13n).result).toEqual(132n);"
+        "  expect(C.circuits._arguments(Ctxt, 11n, 7n, 13n).result).toEqual(132n);"
         "});"
         "test('check 2', () => {"
         "  const [C, Ctxt] = startContract(contractCode, witnesses, 0, 73n);"

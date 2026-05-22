@@ -68,6 +68,8 @@ jobs:
   copy-release-notes:
     name: Create branch in midnight-docs
     needs: [ setup ]
+    permissions:
+      contents: read
     uses: ./.github/workflows/compute-release-notes.yml
     secrets: inherit #if inherit does not work we need to uncomment below
     with:

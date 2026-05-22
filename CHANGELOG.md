@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.31.103, language 0.23.103, runtime 0.16.100]
+
+### Added
+
+- Adds `keccak256` to the standard library, with the same signature as
+  `persistentHash`.  Adds `keccak256` to the Compact runtime with the same
+  signature as `persistentHash`.  `keccak256` requires the experimental feature
+  flag `--feature-zkir-v3` to work in a circuit that directly or indirectly uses
+  the public ledger state.  It is a compiler error to use it in a such a circuit
+  using the ZKIR v2 backend.
+
+## [Toolchain 0.31.102, language 0.23.102, runtime 0.16.0]
+
+### Added
+
+- `eval` and `arguments` which are reserved words in strict mode of JavaScript are now
+  added as future reserved words in Compact. Previously Compact accepted a contract using
+  these as an identifier, resulting in producing an invalid JavaScript output.
+
+### Fixed
+
+- Lexer matches the convention used by
+  ECMAScript (https://tc39.es/ecma262/#sec-names-and-keywords) and
+  UAX #31 (https://www.unicode.org/reports/tr31/#Table_Lexical_Classes_for_Identifiers):
+  the lexer accepts Unicode `ID_Start` (`Lu Ll Lt Lm Lo Nl`) plus `_` and `$`.
+  Previously it accepted all alphabetic charactes which includes some non-`ID-Start`
+  characters which are invalid in JavaScript.
+  `identifier-subsequent?` now follows Unicode `ID_Continue` (`Lu Ll Lt Lm Lo Nl Mn Mc Nd Pc`).
+  Previously it included som non-`ID-Continue` characters.
+
+## [Toolchain 0.31.101, language 0.23.101, runtime 0.16.0]
+
+### Added
+
+Adds `event` and `log` as future keywords that are reserved.
+
+## [Toolchain 0.31.0, language 0.23.0, runtime 0.16.0]
+
+This release includes all changes for compiler versions in the range between
+0.30.100 and 0.31.0; language versions in the range between 0.22.100 and 0.23.0;
+and Compact runtime versions in the range between 0.15.100 and 0.16.0.
+
 ## [Toolchain 0.30.107, language 0.22.101, runtime 0.15.101]
 
 ### Fixed
@@ -56,6 +98,11 @@ compiler workarounds have been removed.
 ### Added
 
 - Adds `--line-length` flag to fixup.
+
+### Fixed
+
+- JubjubPoint equality is now component-wise; it previously was reference
+  equality.
 
 ## [Toolchain 0.30.104, language 0.22.101, runtime 0.15.101]
 
