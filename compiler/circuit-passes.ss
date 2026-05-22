@@ -2585,6 +2585,10 @@
                          (cons
                            `(= ,test ,this-var-name (vector->bytes ,(car this-triv*) ,(cdr this-triv*) ...))
                            stmt*)))))))]
+      [(cast-to-field ,src ,[ftype] ,[Single-Type : primitive-type] ,[Single-Triv : triv])
+       (hashtable-set! var-ht var-name (Wump-single var-name))
+       (with-output-language (Lflattened Statement)
+         (list `(= ,test ,var-name (cast-to-field ,ftype ,primitive-type ,triv))))]
       [(downcast-unsigned ,src ,nat? ,nat ,[Single-Triv : triv])
        (hashtable-set! var-ht var-name (Wump-single var-name))
        (with-output-language (Lflattened Statement)
@@ -2800,6 +2804,8 @@
                (fold-left (lambda (hc triv) (triv-hash triv hc))
                  447395717
                  (cons triv triv*))]
+              [(cast-to-field ,ftype ,primitive-type ,triv)
+               (triv-hash triv 597056600)]
               [(downcast-unsigned ,src ,safe ,nat? ,nat ,triv)
                (triv-hash triv
                  (let ([h (triv-hash nat 314267636)])
@@ -3166,6 +3172,9 @@
                           '()
                           triv*)])
              `(vector->bytes ,triv ,triv* ...)))]
+      [(cast-to-field ,ftype ,primitive-type ,[FWD-Triv : triv])
+       ;; TODO(kmillikin): Is there an opportunity to optimize here?
+       `(cast-to-field ,ftype ,primitive-type ,triv)]
       [(downcast-unsigned ,src ,safe ,nat? ,nat ,[FWD-Triv : triv])
        (or (ifconstant triv
              (lambda (nat^)
@@ -3254,6 +3263,8 @@
        `(bytes->field ,src ,len ,triv1 ,triv2)]
       [(vector->bytes ,[BWD-Triv : triv] ,[BWD-Triv : triv*] ...)
        `(vector->bytes ,triv ,triv* ...)]
+      [(cast-to-field ,ftype ,primitive-type ,[BWD-Triv : triv])
+       `(cast-to-field ,ftype ,primitive-type ,triv)]
       [(downcast-unsigned ,src ,safe ,nat? ,nat ,[BWD-Triv : triv])
        `(downcast-unsigned ,src ,safe ,nat? ,nat ,triv)]
       [else (internal-errorf 'BWD-Single "unexpected ir ~s" ir)])
@@ -3496,8 +3507,8 @@
         (let ([primitive-type1* (type->primitive-types type1)]
               [primitive-type2* (type->primitive-types type2)])
           (and (fx= (length primitive-type1*) (length primitive-type2*))
-               (andmap subprimitivetype? primitive-type1* primitive-type2*))))
-      (define (subprimitivetype? primitive-type1 primitive-type2)
+               (andmap sub-primitive-type? primitive-type1* primitive-type2*))))
+      (define (sub-primitive-type? primitive-type1 primitive-type2)
         (T primitive-type1
            [(tfield (field-native))
             (T primitive-type2
@@ -3617,7 +3628,7 @@
            (for-each Statement stmt*)
            (let ([actual-type* (map Triv triv*)])
              (unless (and (fx= (length actual-type*) (length type*))
-                          (andmap subprimitivetype? actual-type* type*))
+                          (andmap sub-primitive-type? actual-type* type*))
                (source-errorf src "mismatch between actual return types ~a and declared return types ~a in ~a"
                  (map format-primitive-type actual-type*)
                  (map format-primitive-type type*)
@@ -3634,7 +3645,7 @@
            (let ([nactual (length actual-type*)])
              (lambda (arg-type*)
                (and (= (length arg-type*) nactual)
-                    (andmap subprimitivetype? actual-type* arg-type*)))))
+                    (andmap sub-primitive-type? actual-type* arg-type*)))))
          (Idtype-case (get-idtype function-name)
            [(Idtype-Function kind arg-name* arg-type* return-type*)
             (unless (compatible? arg-type*)
@@ -3675,7 +3686,7 @@
                                            contract-name elt-name ndeclared nactual)))
                         (for-each
                           (lambda (declared-type actual-type i)
-                            (unless (subprimitivetype? actual-type declared-type)
+                            (unless (sub-primitive-type? actual-type declared-type)
                               (source-errorf src "expected ~:r argument of ~s.~s to have type ~a but received ~a"
                                              (fx1+ i)
                                              contract-name
@@ -3734,7 +3745,7 @@
               (let ([nactual (length actual-type*)])
                 (lambda (arg-type*)
                   (and (= (length arg-type*) nactual)
-                       (andmap subprimitivetype? actual-type* arg-type*)))))
+                       (andmap sub-primitive-type? actual-type* arg-type*)))))
             (unless (compatible? arg-type*)
               (source-errorf src
                              "incompatible arguments for ledger.~a.~a;\n    \
@@ -3774,8 +3785,8 @@
                 (format-primitive-type type2)))
              (with-output-language (Lflattened Primitive-Type) `(tunsigned 1))))]
       [(== ,[* type1] ,[* type2])
-       (unless (or (subprimitivetype? type1 type2)
-                   (subprimitivetype? type2 type1))
+       (unless (or (sub-primitive-type? type1 type2)
+                   (sub-primitive-type? type2 type1))
         ; the error message say "equality operator" here rather than "==" to avoid misleading
         ; type-mismatch messages for !=, which gets converted to == earlier in the compiler.
         (source-errorf program-src "incompatible types ~a and ~a for equality operator"
@@ -3787,8 +3798,8 @@
          (source-errorf program-src "expected select test to have type Boolean, received ~a"
                  (format-primitive-type type0)))
        (cond
-         [(subprimitivetype? type1 type2) type2]
-         [(subprimitivetype? type2 type1) type1]
+         [(sub-primitive-type? type1 type2) type2]
+         [(sub-primitive-type? type2 type1) type1]
          [else (source-errorf program-src "mismatch between type ~a and type ~a of condition branches"
                        (format-primitive-type type1)
                        (format-primitive-type type2))])
@@ -3819,6 +3830,9 @@
              (source-errorf program-src "incompatible types (~{~a~^, ~}) for vector->bytes"
                (map format-primitive-type type*)))))
        (with-output-language (Lflattened Primitive-Type) `(tunsigned ,(- (expt 256 (fx+ (length triv*) 1)) 1)))]
+      [(cast-to-field ,ftype ,primitive-type ,[* type])
+       ;; TODO(kmillikin: Type checking code needed here.)
+       (with-output-language (Lflattened Primitive-Type) `(tfield ,ftype))]
       [(downcast-unsigned ,src ,safe ,nat? ,nat ,[* type])
        (when nat? (assert (< nat nat?)))
        (check-numeric (format "argument to downcast-unsigned at ~a" (format-source-object src)) type)

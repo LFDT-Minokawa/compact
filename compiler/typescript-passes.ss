@@ -320,6 +320,7 @@
            "CompactError"
            "typeError"
            "assert"
+           "convertNumericToJubjubScalar"
            "convertFieldToBytes"
            "convertBytesToField"
            "convertBytesToUint"

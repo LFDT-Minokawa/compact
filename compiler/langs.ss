@@ -1135,6 +1135,7 @@
          (contract-call src elt-name (triv type) triv* ...)
          (field->bytes src len triv)
          (bytes->field src len triv)
+         (cast-to-field src ftype type triv)
          (downcast-unsigned src (maybe nat?) nat triv)))
     (Single (single)
       (+ triv
@@ -1142,18 +1143,19 @@
          (- mbits triv1 triv2)
          (* mbits triv1 triv2)
          (< bits triv1 triv2)
-         (== triv1 triv2)                        => (== triv1 3 triv2)
-         (select triv0 triv1 triv2)              => (select triv0 triv1 triv2)
+         (== triv1 triv2)                          => (== triv1 3 triv2)
+         (select triv0 triv1 triv2)                => (select triv0 triv1 triv2)
          (bytes-ref triv nat)
-         (bytes->field src len triv1 triv2)      => (bytes->field len #f triv1 #f triv2)
-         (vector->bytes triv triv* ...)          => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
+         (bytes->field src len triv1 triv2)        => (bytes->field len #f triv1 #f triv2)
+         (vector->bytes triv triv* ...)            => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
+         (cast-to-field ftype primitive-type triv) => (cast-to-field ftype primitive-type triv)
          (downcast-unsigned src safe (maybe nat?) nat triv) =>
            (downcast-unsigned safe nat? nat triv)))
     (Multiple (multiple)
-      (+ (call src function-name triv* ...)      => (call function-name #f triv* ...)
+      (+ (call src function-name triv* ...)        => (call function-name #f triv* ...)
          (default opaque-type)
-         (field->bytes src len triv)             => (field->bytes len #f triv)
-         (bytes->vector triv)                    => (bytes->vector #f triv) ; triv holds one field's worth of bytes
+         (field->bytes src len triv)               => (field->bytes len #f triv)
+         (bytes->vector triv)                      => (bytes->vector #f triv) ; triv holds one field's worth of bytes
          (div-mod-power-of-two triv bits)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
            (public-ledger ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
