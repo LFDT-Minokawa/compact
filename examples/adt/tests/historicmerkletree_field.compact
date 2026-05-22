@@ -28,7 +28,7 @@ export circuit test(): [] {
   const digest = merkleTreePathRoot<4, Field>(path);
 
   // Test: check_root returns true for a valid past root
-  historicMerkleTree.insert(42);
+  historicMerkleTree.insert(42 as Field);
   assert(historicMerkleTree.checkRoot(digest) == true, "");
 
   const digest2 = merkleTreePathRoot<4, Field>(path);
@@ -37,7 +37,7 @@ export circuit test(): [] {
   assert(historicMerkleTree.checkRoot(digest2) == false, "");
 
   // Test: insert adds a value and updates the root, preserving the history
-  historicMerkleTree.insert(100);
+  historicMerkleTree.insert(100 as Field);
 
   // Test: insert_hash adds a hash and updates the root, preserving the history
   const hash = pad(32, "hash");
@@ -49,7 +49,7 @@ export circuit test(): [] {
 
   // Test: insert_index adds a value at a specific index
   const index = 1;
-  const value = 200;
+  const value = 200 as Field;
   historicMerkleTree.insertIndex(value, index);
 
   // Test: insert_index_default inserts a default value at a specific index
@@ -58,7 +58,7 @@ export circuit test(): [] {
 
   // Test: is_full returns true when the tree is full
   for (const i of 0..4) {
-    historicMerkleTreeSmall.insert(i);
+    historicMerkleTreeSmall.insert(i as Field);
   }
   assert(historicMerkleTreeSmall.isFull() == true, "");
 
@@ -73,5 +73,5 @@ export circuit test(): [] {
   assert(historicMerkleTree.isFull() == false, "");
 
   // Test: insert after reset_to_default allows adding values again
-  historicMerkleTree.insert(500);
+  historicMerkleTree.insert(500 as Field);
 }

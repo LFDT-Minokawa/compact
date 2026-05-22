@@ -22,7 +22,7 @@ constructor(var0: Vector<10, Uint<0..10>>) {
     sum = sum + a;
   }
 
-  assert(sum == 1, "Sum is equal to expected sum of 1");
+  assert(sum == 1 as Field, "Sum is equal to expected sum of 1");
 }
 
 // Test2: addition of Uints

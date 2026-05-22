@@ -18,22 +18,22 @@ import CompactStandardLibrary;
 export ledger c: Set<Field>;
 
 export circuit test(): [] {
-  c.remove(0); // this should not do anything
+  c.remove(0 as Field); // this should not do anything
 
   assert(c.isEmpty() == true, "Structure should be empty");
   assert(c.size() == 0, "Size should be 0");
 
-  c.insert(0);
+  c.insert(0 as Field);
   assert(c.size() == 1, "Size should be 1");
-  assert(c.member(0) == true, "Key 0 should have value 1");
+  assert(c.member(0 as Field) == true, "Key 0 should have value 1");
 
-  c.insert(1);
+  c.insert(1 as Field);
   assert(c.size() == 2, "Size should be 2");
-  assert(c.member(1) == true, "Key 1 should be member");
+  assert(c.member(1 as Field) == true, "Key 1 should be member");
 
-  c.remove(0);
+  c.remove(0 as Field);
   assert(c.size() == 1, "Size should be 1");
-  assert(c.member(1) == true, "Key 1 should be member");
+  assert(c.member(1 as Field) == true, "Key 1 should be member");
 
   c.resetToDefault();
   assert(c.size() == 0, "Size should be 0");

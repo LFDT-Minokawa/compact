@@ -20,7 +20,7 @@ struct Response1 { state: State, value: Field }
 struct Response2 { state: State, data: Bytes<8> }
 
 module M23 {
-  export circuit test23(n: Boolean): Response1 { return Response1 { state: State.Active, value: 1 }; }
+  export circuit test23(n: Boolean): Response1 { return Response1 { state: State.Active, value: 1 as Field }; }
   export circuit test23(n: Boolean): Response2 { return Response2 { state: State.Active, data: default<Bytes<8>> }; }
   export circuit call23a(): Response1 { return test23(true); }
   export circuit call23b(): Response2 { return test23(true); }

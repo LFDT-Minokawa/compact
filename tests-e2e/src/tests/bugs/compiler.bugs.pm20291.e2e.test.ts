@@ -47,7 +47,7 @@ describe('[Bug] [PM-20291] Redundant incompatible functions', () => {
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_one.compact line 24 char 54: call site ambiguity (multiple compatible functions) in call to test3; supplied argument types: (Vector<1, Vector<1, Uint<1>>>); compatible functions: line 18 char 3; line 20 char 3; line 21 char 3; line 22 char 3',
+                'Exception: example_one.compact line 24 char 54: call site ambiguity (multiple compatible functions) in call to test3; supplied argument types: (Vector<1, Vector<1, Uint<1>>>); compatible functions: line 20 char 3; line 21 char 3; line 22 char 3',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
@@ -99,7 +99,7 @@ describe('[Bug] [PM-20291] Redundant incompatible functions', () => {
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_five.compact line 25 char 45: call site ambiguity (multiple compatible functions) in call to test18; supplied argument types: (Uint<1>); compatible functions: line 22 char 3; line 23 char 3; line 24 char 3',
+                'Exception: example_five.compact line 25 char 45: call site ambiguity (multiple compatible functions) in call to test18; supplied argument types: (Field); compatible functions: line 22 char 3; line 23 char 3; line 24 char 3',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
