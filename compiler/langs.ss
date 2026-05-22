@@ -1135,7 +1135,6 @@
          (contract-call src elt-name (triv type) triv* ...)
          (field->bytes src len triv)
          (bytes->field src len triv)
-         (cast-to-field src ftype type triv)
          (downcast-unsigned src (maybe nat?) nat triv)))
     (Single (single)
       (+ triv
@@ -1148,7 +1147,7 @@
          (bytes-ref triv nat)
          (bytes->field src len triv1 triv2)        => (bytes->field len #f triv1 #f triv2)
          (vector->bytes triv triv* ...)            => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
-         (cast-to-field ftype primitive-type triv) => (cast-to-field ftype primitive-type triv)
+         (cast-to-field ftype primitive-type triv)
          (downcast-unsigned src safe (maybe nat?) nat triv) =>
            (downcast-unsigned safe nat? nat triv)))
     (Multiple (multiple)
@@ -1224,7 +1223,7 @@
       (div_mod_power_of_two outp0 outp1 inp imm)  ;; outps=(quotient remainder)
       (ec_mul outp inp0 inp1)
       (ec_mul_generator outp0 inp)
-      (encode outp0 outp1 inp)
+      (encode (outp* ...) inp)
       (hash_to_curve outp inp* ...)
       (impact inp inp* ...)
       (less_than outp inp0 inp1 imm)

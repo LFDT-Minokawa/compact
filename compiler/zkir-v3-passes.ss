@@ -105,10 +105,10 @@
                (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
               [(jubjubPointX)
                (assert (= (length var-name*) 1))
-               (cons `(encode ,(car var-name*) ,(make-temp-id src 'ingore) ,(car triv*)) instr*)]
+               (cons `(encode (,(car var-name*) ,(make-temp-id src 'ingore)) ,(car triv*)) instr*)]
               [(jubjubPointY)
                (assert (= (length var-name*) 1))
-               (cons `(encode ,(make-temp-id src 'ignore) ,(car var-name*) ,(car triv*)) instr*)]
+               (cons `(encode (,(make-temp-id src 'ignore) ,(car var-name*)) ,(car triv*)) instr*)]
               [(persistentCommit)
                (assert (= (length var-name*) 2))
                ;; The two source arguments are swapped for the persistent_hash gate.  We assume
@@ -348,7 +348,7 @@
                      (let* ([pt0 (make-temp-id default-src 'pt)]
                             [pt1 (make-temp-id default-src 'pt)])
                        (zkir-instr*
-                         (cons `(encode ,pt0 ,pt1 ,(car (zkir-val-input* val)))
+                         (cons `(encode (,pt0 ,pt1) ,(car (zkir-val-input* val)))
                            (zkir-instr*)))
                        (cons* pt1 pt0 -2 -2 2 1 code*)))
                    (assemble-operand-acc (cons 1 code*) val))]
@@ -449,7 +449,7 @@
                                 [pt1 (make-temp-id default-src 'pt)])
                            (zkir-instr*
                              (cons*
-                               `(encode ,pt0 ,pt1 ,(car var-name*))
+                               `(encode (,pt0 ,pt1) ,(car var-name*))
                                (if (eq? test-val 1)
                                    `(public_input "Point<Jubjub>" ,(car var-name*))
                                    `(public_input "Point<Jubjub>" ,(car var-name*) ,test-val))
@@ -604,12 +604,12 @@
 
       (define (type->string primitive-type)
         (nanopass-case (Lflattened Primitive-Type) primitive-type
-          [(tfield ,ftype) "Scalar<BLS12-381>"]
+          [(tfield (field-native)) "Scalar<BLS12-381>"]
+          [(tfield (field-scalar (curve-jubjub))) "Scalar<Jubjub>"]
           [(tunsigned ,nat) "Scalar<BLS12-381>"]
           [(topaque ,opaque-type)
            (case opaque-type
              [("JubjubPoint") "Point<Jubjub>"]
-             [("JubjubScalar") "Scalar<Jubjub>"]
              [else "Scalar<BLS12-381>"])]
           [else (assert cannot-happen)])))
 
@@ -796,6 +796,15 @@
                    ; NB: missing-guard-workarounds now implements a workaround that ensures
                    ; vector->bytes gets valid inputs when test turns out to be false
                    (cons `(reconstitute_field ,result ,div ,current ,8) instr*)))))]
+      [(cast-to-field ,ftype ,primitive-type ,triv)
+       ;; The types are distinct, which means that the source for a Scalar<Jubjub> target must be
+       ;; Scalar<BLS12-381> (Compact `Field` or `Uint` types) and the source for a Scalar<BLS12-381>
+       ;; target must be Scalar<Jubjub> (`Uint` sources are `safe-cast`s).
+       (with-output-language (Lzkir Instruction)
+         (cons (nanopass-case (Lflattened Field-Type) ftype
+                 [(field-native) `(encode (,var-name) ,triv)]
+                 [(field-scalar (curve-jubjub)) `(decode "Scalar<Jubjub>" ,var-name ,triv)])
+           instr*))]
       [(downcast-unsigned ,src ,safe ,nat? ,nat ,triv)
        ;; TODO(kmillikin): This needs to be conditional on test.
        ;; NB: missing-guard-workarounds now implements a workaround that ensures
@@ -900,17 +909,15 @@
        `((op . "copy") (output . ,outp) (val . ,inp))]
       [(decode ,zkir-type ,[* outp] ,[* inp*] ...)
        `((op . "decode") (type . ,zkir-type) (output . ,outp) (inputs . ,(list->vector inp*)))]
-      [(div_mod_power_of_two ,outp0 ,outp1 ,[* inp] ,imm)
-       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-         `((op . "div_mod_power_of_two") (outputs . ,(vector outp0 outp1)) (val . ,inp)
-           (bits . ,imm)))]
+      [(div_mod_power_of_two ,[* outp0] ,[* outp1] ,[* inp] ,imm)
+       `((op . "div_mod_power_of_two") (outputs . ,(vector outp0 outp1)) (val . ,inp)
+         (bits . ,imm))]
       [(ec_mul ,[* outp] ,[* inp0] ,[* inp1])
        `((op . "ec_mul") (output . ,outp) (a . ,inp0) (scalar . ,inp1))]
       [(ec_mul_generator ,[* outp] ,[* inp])
        `((op . "ec_mul_generator") (output . ,outp) (scalar . ,inp))]
-      [(encode ,outp0 ,outp1 ,[* inp])
-       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-         `((op . "encode") (outputs . ,(vector outp0 outp1)) (input . ,inp)))]
+      [(encode (,[* outp*] ...) ,[* inp])
+       `((op . "encode") (outputs . ,(list->vector outp*)) (input . ,inp))]
       [(hash_to_curve ,[* outp] ,[* inp*] ...)
        `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
       [(less_than ,[* outp] ,[* inp0] ,[* inp1] ,imm)
@@ -921,10 +928,9 @@
        `((op . "neg") (output . ,outp) (a . ,inp))]
       [(output ,[* inp])
        `((op . "output") (val . ,inp))]
-      [(persistent_hash ,outp0 ,outp1 (,alignment* ...) ,[* inp*] ...)
-       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-         `((op . "persistent_hash") (outputs . ,(vector outp0 outp1))
-           (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*))))]
+      [(persistent_hash ,[* outp0] ,[* outp1] (,alignment* ...) ,[* inp*] ...)
+       `((op . "persistent_hash") (outputs . ,(vector outp0 outp1))
+         (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*)))]
       [(private_input ,zkir-type ,[* outp])
        ;; Kind of warty: rather than a literal true guard or making it truly optional by leaving it
        ;; out of the JSON representation, ZKIR wants to put a JSON null value there.

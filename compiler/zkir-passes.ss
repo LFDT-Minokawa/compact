@@ -761,32 +761,7 @@
                    ; vector->bytes gets valid inputs when test turns out to be false
                    (print-gate "reconstitute_field" `[divisor ,d] `[modulus ,triv] '[bits 8]))))]
           [(cast-to-field ,ftype ,primitive-type ,[* triv])
-           (nanopass-case (Lflattened Field-Type) ftype
-             [(field-scalar (curve-jubjub))
-              (unless (nanopass-case (Lflattened Primitive-Type) primitive-type
-                        [(tfield (field-native)) #t]
-                        [(tunsigned ,nat) (> nat (max-jubjub-scalar))]
-                        [else #f])
-                (internal-errorf 'print-zkir
-                  "unexpected source type ~s for cast-to-field"
-                  (unparse-Lflattened primitive-type)))
-              (let* ([jubjub-scalar-modulus (1+ (max-jubjub-scalar))]
-                     [bits (integer-length jubjub-scalar-modulus)]
-                     [lit (literal jubjub-scalar-modulus)])
-                ;; ctr, ctr+1 =
-                (print-gate "div_mod_power_of_two" `[var ,triv] `[bits ,bits])
-                ;; ctr+2 =
-                (print-gate "neg" `[a ,lit])
-                ;; ctr+3 =
-                (print-gate "add" `[a ,(+ ctr 1)] `[b ,(+ ctr 2)])
-                ;; ctr+4 =
-                (print-gate "less_than" `[a ,(+ ctr 1)] `[b ,lit] `[bits ,bits])
-                ;; ctr+5 =
-                (print-gate "cond_select" `[bit ,(+ ctr 4)] `[a ,(+ ctr 1)] `[b ,(+ ctr 3)])
-                (set! ctr (+ ctr 5)))]
-             [else (internal-errorf 'print-zkir
-                     "unexpected target field type ~s for cast-to-field"
-                     (unparse-Lflattened ir))])]
+           (print-gate "copy" `[var ,triv])]
           [(downcast-unsigned ,src ,safe ,nat? ,nat ,[* triv])
            (assertf cannot-happen "handled directly by Statement")]
           [(select ,[* triv0] ,[* triv1] ,[* triv2])

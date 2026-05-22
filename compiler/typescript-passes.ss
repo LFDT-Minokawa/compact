@@ -320,7 +320,6 @@
            "CompactError"
            "typeError"
            "assert"
-           "convertNumericToJubjubScalar"
            "convertFieldToBytes"
            "convertBytesToField"
            "convertBytesToUint"
@@ -3227,8 +3226,8 @@
        ;; all possible values are smaller than the native field modulus.
        (Expr expr level outer-pure?)]
       [(cast-to-field ,src (field-scalar (curve-jubjub)) ,type ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
-       (parenthesize level (precedence call)
-         (make-Qconcat (compact-stdlib "convertNumericToJubjubScalar") "(" expr ")"))]
+       ;; TODO(kmillikin): should we eliminate this earlier?
+       (Expr expr level outer-pure?)]
       [(cast-to-field ,src ,ftype ,type ,expr)
        (assert cannot-happen)]
       [(downcast-unsigned ,src ,nat? ,nat ,expr)
