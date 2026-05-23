@@ -48,7 +48,7 @@ describe('[Errors] PM-14770', () => {
             const outputDir = createTempFolder();
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
-            expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+            expectCompilerResult(result).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
             expectFiles(outputDir).thatFilesAreGenerated(tsFiles, [], [], contractInfoFiles);
         });
 
