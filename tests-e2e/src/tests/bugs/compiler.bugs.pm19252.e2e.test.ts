@@ -153,7 +153,7 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const outputDir = createTempFolder();
                 const result: Result = await compile([filePath, outputDir]);
 
-                expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+                expectCompilerResult(result).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
@@ -255,7 +255,7 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const outputDir = createTempFolder();
                 const result: Result = await compile([filePath, outputDir]);
 
-                expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+                expectCompilerResult(result).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
@@ -271,7 +271,7 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const outputDir = createTempFolder();
                 const result: Result = await compile([filePath, outputDir]);
 
-                expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+                expectCompilerResult(result).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
@@ -287,7 +287,7 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const outputDir = createTempFolder();
                 const result: Result = await compile([filePath, outputDir]);
 
-                expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+                expectCompilerResult(result).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
@@ -319,7 +319,7 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const outputDir = createTempFolder();
                 const result: Result = await compile([filePath, outputDir]);
 
-                expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+                expectCompilerResult(result).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
