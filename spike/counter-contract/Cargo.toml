@@ -1,0 +1,9 @@
+[package]
+name = "counter-contract"
+version = "0.1.0-spike"
+edition.workspace = true
+license.workspace = true
+description = "Spike: hand-translation of examples/counter.compact to Rust against compact-runtime."
+
+[dependencies]
+compact-runtime = { path = "../runtime-rs" }

@@ -1,0 +1,17 @@
+[package]
+name = "compact-runtime"
+version = "0.1.0-spike"
+edition.workspace = true
+license.workspace = true
+description = "Spike: native Rust facade matching @midnight-ntwrk/compact-runtime. NOT for production."
+
+[dependencies]
+midnight-base-crypto      = { workspace = true }
+midnight-transient-crypto = { workspace = true }
+midnight-onchain-state    = { workspace = true }
+midnight-onchain-vm       = { workspace = true }
+midnight-onchain-runtime  = { workspace = true }
+midnight-coin-structure   = { workspace = true }
+midnight-zswap            = { workspace = true }
+midnight-serialize        = { workspace = true }
+midnight-storage          = { workspace = true }
