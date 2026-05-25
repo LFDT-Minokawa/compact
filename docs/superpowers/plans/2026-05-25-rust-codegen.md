@@ -23,6 +23,7 @@
 5. `AlignedValue.value` is `Value(Vec<ValueAtom>)`; access bytes via `av.value.0.first()` returning `Option<&ValueAtom>`, then `atom.0` for the byte slice.
 6. base-crypto strips trailing zero bytes from numeric atoms — `AlignedValue::from(42u64)` is a 1-byte atom `[42]`. `decode_u64` (already implemented in `compact_runtime::std_lib`) accepts variable-length (≤ 8 byte) atoms and zero-pads, little-endian.
 7. `ContractState::new(data, operations, maintenance_authority)` is the actual constructor — requires `HashMap<EntryPointBuf, ContractOperation, D>` and `ContractMaintenanceAuthority` (no Defaults). For B9 a full ContractState is not needed: just a `QueryContext::new(ChargedState::new(...), ContractAddress::default())`.
+8. `QueryResults.context.state` is a `ChargedState<D>`, not a `StateValue<D>`. To match on `StateValue::Array(arr)` use `results.context.state.get_ref()` (returns `&StateValue<D>`). (B9 patched.)
 
 ---
 
@@ -1277,8 +1278,8 @@ fn increment_counter_end_to_end() {
         .expect("query");
 
     // Decode the counter at path [0] from the resulting state.
-    let new_state = results.context.state;
-    let cell = match &new_state {
+    let new_state = results.context.state.get_ref();
+    let cell = match new_state {
         StateValue::Array(arr) => arr.get(0).expect("first element"),
         _ => panic!("expected StateValue::Array"),
     };
