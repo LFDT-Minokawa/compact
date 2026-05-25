@@ -2,6 +2,22 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Progress
+
+| Phase | Tasks | Status | Last commit |
+|---|---|---|---|
+| A — Pre-flight | A0 | ✅ Complete | (verified in session) |
+| B — runtime-rs crate (M1) | B1 ✅ B2 ✅ B3 ✅ B4–B10 | **B4 is next** | `151997f` |
+| C — `--rust` flag plumbing | C1–C4 | pending | — |
+| D — counter.compact emission | D2–D8 | pending | — |
+| E — Byte-parity validation | E1–E5 | pending | — |
+
+**Resume here:** Task B4 (`CircuitResults / ConstructorResult`).
+
+**Upstream-API correction already applied** (commit `151997f`): the plan originally referenced `CostModel::initial()` and `ChargedState::default()`; neither exists. Use `INITIAL_COST_MODEL` (now re-exported from `compact-runtime`) and `ChargedState::new(StateValue::Null)` instead. All later task bodies have been patched.
+
+---
+
 **Goal:** Ship a v1 of `compactc --rust` that emits a working Rust crate for `examples/counter.compact`, plus a new `compact-runtime` crate the generated code depends on. Result is a counter contract you can build with `cargo` and exercise from native Rust, producing the same on-chain state transitions as the existing TypeScript output.
 
 **Architecture:** Mirror the existing TS path. Add a `--rust` flag in `compactc.ss` that triggers a new branch in `passes.ss::generate-everything`. The new branch runs a parallel emitter `rust-passes.ss` (analogous to `typescript-passes.ss`) over the existing `Ltypescript` IR. Generated Rust depends on a thin new `runtime-rs/` crate that curates re-exports of published Midnight crates (`midnight-onchain-runtime`, `midnight-onchain-state`, etc.) and adds a handful of facade aggregates (`CircuitContext`, `WitnessContext`, etc.).
