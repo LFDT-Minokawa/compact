@@ -61,3 +61,10 @@ pub use midnight_transient_crypto::hash::{hash_to_curve, transient_commit, trans
 
 // Zswap local state.
 pub use midnight_zswap::local::State as ZswapLocalState;
+
+// ---------------------------------------------------------------------------
+// Facade aggregates.
+// ---------------------------------------------------------------------------
+
+mod context;
+pub use context::{CircuitContext, ConstructorContext};
