@@ -43,6 +43,6 @@ fn increment_counter_end_to_end() {
         StateValue::Array(arr) => arr.get(0).expect("first element"),
         _ => panic!("expected StateValue::Array"),
     };
-    let counter_value = Counter::decode_from(&cell).expect("decode counter");
+    let counter_value = Counter::decode_from(cell).expect("decode counter");
     assert_eq!(counter_value, 1);
 }

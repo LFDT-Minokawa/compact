@@ -4,7 +4,7 @@
 // assertion failures (from `assert(cond, msg)` in Compact source) and
 // VM-level transcript rejections.
 
-use crate::{DefaultDB, TranscriptRejected, DB};
+use crate::{TranscriptRejected, DB};
 use std::fmt;
 
 #[derive(Debug)]

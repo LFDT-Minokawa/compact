@@ -8,6 +8,7 @@ use compact_runtime::*;
 
 #[test]
 fn no_witnesses_is_default_constructible() {
+    #[allow(clippy::default_constructed_unit_structs)]
     let _ = NoWitnesses::default();
     let _ = NoWitnesses;
 }
