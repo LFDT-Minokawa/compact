@@ -77,3 +77,6 @@ pub use witness::{NoWitnesses, WitnessContext};
 
 mod error;
 pub use error::CompactError;
+
+pub mod version;
+pub use version::COMPACT_RUNTIME_VERSION;
