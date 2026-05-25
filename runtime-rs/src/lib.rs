@@ -71,3 +71,6 @@ pub use context::{CircuitContext, ConstructorContext};
 
 mod results;
 pub use results::{CircuitResults, ConstructorResult};
+
+mod witness;
+pub use witness::{NoWitnesses, WitnessContext};
