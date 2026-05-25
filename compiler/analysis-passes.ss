@@ -1240,65 +1240,6 @@
       [(targ-type ,src ,type) (Info-type src (Type type p))])
   )
 
-  (define-pass generate-contract-ht : Lexpanded (ir) -> Lexpanded ()
-    (definitions
-      (define (register-contract-info! src contract-name)
-        (define (contract-source-filename)
-          (let ([sd (source-directory)])
-            (if (string=? sd "")
-                (format "~a.compact" contract-name)
-                (format "~a/~a.compact" sd contract-name))))
-        (define (contract-info-filename)
-          (format "~a/~a/compiler/contract-info.json"
-            (path-parent (target-directory))
-            contract-name))
-        (define (malformed msg . args)
-          (external-errorf "malformed contract-info file ~a for ~s: ~a; try recompiling ~a"
-                           (contract-info-filename)
-                           contract-name
-                           (apply format msg args)
-                           contract-name))
-        (define (get-assoc key alist)
-          (cond
-            [(and (pair? alist) (assoc key alist)) => cdr]
-            [else (malformed "missing association for ~s" key)]))
-        (let ([info (let* ([contract-ht (contract-ht)]
-                           [a (hashtable-cell contract-ht contract-name #f)])
-                      (or (cdr a)
-                          (let ([source-fn (contract-source-filename)]
-                                [info-fn (contract-info-filename)])
-                            (let ([jf (guard (c [else (source-errorf src "error opening ~a; try (re)compiling ~a" info-fn source-fn)])
-                                        (open-json-file info-fn))])
-                              (when (and (file-exists? source-fn)
-                                         (time<?
-                                           (file-modification-time info-fn)
-                                           (file-modification-time source-fn)))
-                                (source-errorf src "~a has been modified more recently than ~a; try recompiling ~a"
-                                               source-fn
-                                               info-fn
-                                               source-fn))
-                              (let ([info (guard (c [else (source-errorf src "error reading ~a: ~a" info-fn
-                                                            (with-output-to-string
-                                                              (lambda ()
-                                                                (display-condition c))))])
-                                            (read-json jf))])
-                                (set-cdr! a info)
-                                info)))))])
-          (let* ([alist info]
-                 [v (vector-map string->symbol (get-assoc "contracts" alist))])
-          (unless (vector? v) (malformed "\"contracts\" is not associated with a vector"))
-          (vector-for-each (lambda (contract-name)
-                             (register-contract-info! src contract-name))
-              v))))
-        )
-    (Program : Program (ir) -> Program ()
-      [(program ,src ((,export-name* ,name*) ...) (,unused-pelt* ...) (,[ecdecl*] ...) ,pelt* ...)
-       `(program ,src ((,export-name* ,name*) ...) (,unused-pelt* ...) (,ecdecl* ...) ,pelt* ...)])
-    (build-contract-info! : External-Contract-Declaration (ir) -> External-Contract-Declaration ()
-      [(external-contract ,src ,contract-name ,ecdecl-circuit* ...)
-       (register-contract-info! src contract-name)
-       ir]))
-
   (define-pass infer-types : Lexpanded (ir) -> Ltypes ()
     (definitions
       (define-syntax T
@@ -1559,116 +1500,6 @@
            (let ([type (Type ?type)])
              (verify-non-adt-type! ?src type ?fmt ?arg ...)
              type)]))
-      (define check-contract
-        (lambda (src contract-name)
-          (let ([info (hashtable-cell (contract-ht) contract-name #f)])
-            (lambda (src elt-name pure-dcl type* type)
-              (define (contract-info-filename)
-                (format "~a/~a/compiler/contract-info.json"
-                  (path-parent (target-directory))
-                  contract-name))
-              (define (malformed msg . args)
-                (external-errorf "malformed contract-info file ~a for ~s: ~a; try recompiling ~a"
-                                 (contract-info-filename)
-                                 contract-name
-                                 (apply format msg args)
-                                 contract-name))
-              (define (get-assoc key alist)
-                (cond
-                  [(and (pair? alist) (assoc key alist)) => cdr]
-                  [else (malformed "missing association for ~s" key)]))
-              (define (tonat n)
-                (unless (field? n) (malformed "expected nat, got ~a" n))
-                n)
-              (define (tosym s)
-                (unless (string? s) (malformed "expected a string, got ~s" s))
-                (string->symbol s))
-              (define (tolist v)
-                (unless (vector? v) (malformed "expected a vector, got ~s" v))
-                (vector->list v))
-              (define (tobool b)
-                (unless (boolean? b) (malformed "expected a boolean, got ~s" b))
-                b)
-              (define (totype alist)
-                (with-output-language (Ltypes Type)
-                  (let ([type-name (get-assoc "type-name" alist)])
-                    (case type-name
-                      [("Boolean") `(tboolean ,src)]
-                      [("Field") `(tfield ,src)]
-                      [("Uint") `(tunsigned ,src ,(tonat (get-assoc "maxval" alist)))]
-                      [("Bytes") `(tbytes ,src ,(tonat (get-assoc "length" alist)))]
-                      [("Opaque") `(topaque ,src ,(get-assoc "tsType" alist))]
-                      [("Vector") `(tvector ,src ,(tonat (get-assoc "length" alist)) ,(totype (get-assoc "type" alist)))]
-                      [("Tuple") `(ttuple ,src ,(map totype (tolist (get-assoc "types" alist))) ...)]
-                      ;; this will never be exercised since exported circuits cannot take contracts as their
-                      ;; parameter or return value
-                      [("Contract")
-                       (let ([circuits (tolist (get-assoc "circuits" alist))])
-                         `(tcontract ,src
-                                     ,(tosym (get-assoc "name" alist))
-                                     (,(map (lambda (alist) (tosym (get-assoc "name" alist))) circuits)
-                                      ,(map (lambda (alist) (tobool (get-assoc "pure" alist))) circuits)
-                                      (,(map (lambda (alist) (map totype (tolist (get-assoc "argument-types" alist)))) circuits) ...)
-                                      ,(map (lambda (alist) (totype (get-assoc "result-type" alist))) circuits))
-                                     ...))]
-                      [("Struct")
-                       (let ([elt-alist* (tolist (get-assoc "elements" alist))])
-                         `(tstruct ,src
-                                   ,(tosym (get-assoc "name" alist))
-                                   (,(map (lambda (alist) (tosym (get-assoc "name" alist))) elt-alist*)
-                                    ,(map (lambda (alist) (totype (get-assoc "type" alist))) elt-alist*))
-                                   ...))]
-                      [("Enum")
-                       (let ([enum-name (tosym (get-assoc "name" alist))]
-                             [elt+ (tolist (get-assoc "elements" alist))])
-                         (when (null? elt+) (malformed "enum ~a does not have any members" enum-name))
-                         (let ([elt-name+ (map tosym elt+)])
-                           `(tenum ,src ,enum-name
-                                   ,(car elt-name+)
-                                   ,(cdr elt-name+)
-                                   ...)))]
-                      [("Alias")
-                       (let ([type-name (tosym (get-assoc "name" alist))]
-                             [type (totype (get-assoc "type" alist))])
-                         `(talias ,src #t ,type-name ,type))]
-                      [else (malformed "unrecognized type-name ~a" type-name)]))))
-              (let ([alist (cdr info)])
-                (let ([v (get-assoc "circuits" alist)])
-                  (unless (vector? v) (malformed "\"circuits\" is not associated with a vector"))
-                  (let ([n (vector-length v)])
-                    (let find-elt ([i 0])
-                      (if (fx= i n)
-                          (source-errorf src "contract declaration has a circuit named ~s, but it is not present in the actual contract definition" elt-name)
-                          (let ([alist (vector-ref v i)])
-                            (let ([name (get-assoc "name" alist)]
-                                  [is-pure (tobool (get-assoc "pure" alist))])
-                              (if (equal? (symbol->string elt-name) name)
-                                  (let ([type^* (map (lambda (alist) (totype (get-assoc "type" alist)))
-                                                  (tolist (get-assoc "arguments" alist)))]
-                                        [type^ (totype (get-assoc "result-type" alist))])
-                                    (when (and pure-dcl (not is-pure))
-                                      (source-errorf src "contract declaration claims circuit ~s is pure, but it is not in the actual contract definition" elt-name))
-                                    (let ([nargs (length type*)] [nargs^ (length type^*)])
-                                      (unless (= nargs nargs^)
-                                        (source-errorf src "contract declaration claims circuit ~s has ~s argument~:*~p, but in the actual contract definition it has ~s"
-                                                       elt-name
-                                                       nargs
-                                                       nargs^)))
-                                    (for-each
-                                      (lambda (type type^ k)
-                                        (unless (sametype? type type^)
-                                          (source-errorf src "contract declaration claims the type of circuit ~s argument ~s is ~a, but in the actual contract definition it is ~a"
-                                                         elt-name
-                                                         (fx+ k 1)
-                                                         (format-type type)
-                                                         (format-type type^))))
-                                      type* type^* (enumerate type*))
-                                    (unless (sametype? type type^)
-                                      (source-errorf src "contract declaration claims the return type of circuit ~s is ~a, but in the actual contract definition it is ~a"
-                                                     elt-name
-                                                     (format-type type)
-                                                     (format-type type^))))
-                                (find-elt (fx+ i 1))))))))))))))
       (define (declared? type)
         (nanopass-case (Ltypes Type) type
           [(tundeclared) #f]
@@ -2201,17 +2032,6 @@
                             (format-type type)))
        (set-idtype! ledger-field-name (Idtype-Base type))]
       [else (void)])
-    (External-Contract-Declaration! : External-Contract-Declaration (ir) -> * (void)
-      [(external-contract ,src ,contract-name ,ecdecl-circuit* ...)
-       (let ([check-circuit (check-contract src contract-name)])
-         (for-each
-           (lambda (ecdecl-circuit)
-             (External-Contract-Circuit! ecdecl-circuit check-circuit))
-           ecdecl-circuit*))])
-    (External-Contract-Circuit! : External-Contract-Circuit (ir check-circuit) -> * (void)
-      [(,src ,pure-dcl ,elt-name (,[arg*] ...) ,type)
-       (let ([type (Non-ADT-Type type src "circuit ~a return" elt-name)])
-         (check-circuit src elt-name pure-dcl (map arg->type arg*) type))])
     (Program-Element : Program-Element (ir) -> Program-Element ())
     (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
       [(constructor ,src (,[arg*] ...) ,expr)

@@ -18,7 +18,6 @@
 (library (pass-helpers)
   (export target-ports get-target-port target-directory source-directory source-file-name
           find-source-pathname
-          contract-ht
           proof-circuit-names
           define-passes define-checker checkers
           passrec-name passrec-pass passrec-unparse passrec-pretty-formats)
@@ -56,7 +55,6 @@
                 (cons (assert (relative-path)) (compact-path))))
           (err pathname))))
 
-  (define contract-ht (make-parameter #f))
   (define proof-circuit-names (make-parameter '()))
 
   (define-record-type passrec
