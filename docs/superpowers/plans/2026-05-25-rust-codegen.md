@@ -7,23 +7,42 @@
 | Phase | Tasks | Status | Last commit |
 |---|---|---|---|
 | A — Pre-flight | A0 | ✅ Complete | (verified in session) |
-| B — runtime-rs crate (M1) | B1–B8 ✅ B9–B10 | **B9 is next** | `fafc3c3` |
-| C — `--rust` flag plumbing | C1–C4 | pending | — |
+| B — runtime-rs crate (M1) | B1–B10 ✅ | ✅ **M1 complete** | `0cc805c` |
+| C — `--rust` flag plumbing | C1–C4 ✅ | ✅ **flag live; stub emits** | `69666d2` |
 | D — counter.compact emission | D2–D8 | pending | — |
 | E — Byte-parity validation | E1–E5 | pending | — |
 
-**Resume here:** Task B9 (`Integration smoke test`).
+**Resume here:** Task D2 (`Emit Witnesses trait` — first real codegen task).
+
+**State today (after C4):**
+- `runtime-rs` crate exports the full public API the codegen will reference. 16 tests pass, no warnings, clippy clean.
+- `compactc --rust counter.compact /tmp/out/` produces a stub `contract/lib.rs` that compiles cleanly against `compact-runtime`. The stub contains the file header, `check_runtime_version!`, an empty `Witnesses<PS>` trait + `NoWitnesses` blanket impl, and a placeholder `Contract<PS, W>` struct. Real circuit / ledger / witness / initial_state emission lands in D2-D7.
+- `compact-runtime` version is pinned to **`0.16.100`** (matched to the TS runtime version that `runtime-version-string` from `compiler/runtime-version.ss` resolves to). Keep them in lockstep on future bumps.
 
 **Upstream-API corrections already applied to the plan (do not rediscover these):**
 
 1. `CostModel::initial()` doesn't exist — use `INITIAL_COST_MODEL` (re-exported from `compact-runtime`).
 2. `ChargedState::default()` doesn't exist — use `ChargedState::new(StateValue::Null)`.
 3. `StateValue::new_cell(X)` doesn't exist — use `StateValue::from(X)` (via `impl From<AlignedValue> for StateValue<D>`).
-4. `StateValue::new_array().array_push(X)` doesn't exist — build with `Array::<StateValue, _>::new().push(X)` and wrap in `StateValue::Array(...)`. `Array::push` takes `&self` and returns a new Array (immutable update, name your variable accordingly).
+4. `StateValue::new_array().array_push(X)` doesn't exist — build with `Array::<StateValue, _>::new().push(X)` and wrap in `StateValue::Array(...)`. `Array::push` takes `&self` and returns a new Array (immutable update).
 5. `AlignedValue.value` is `Value(Vec<ValueAtom>)`; access bytes via `av.value.0.first()` returning `Option<&ValueAtom>`, then `atom.0` for the byte slice.
-6. base-crypto strips trailing zero bytes from numeric atoms — `AlignedValue::from(42u64)` is a 1-byte atom `[42]`. `decode_u64` (already implemented in `compact_runtime::std_lib`) accepts variable-length (≤ 8 byte) atoms and zero-pads, little-endian.
-7. `ContractState::new(data, operations, maintenance_authority)` is the actual constructor — requires `HashMap<EntryPointBuf, ContractOperation, D>` and `ContractMaintenanceAuthority` (no Defaults). For B9 a full ContractState is not needed: just a `QueryContext::new(ChargedState::new(...), ContractAddress::default())`.
-8. `QueryResults.context.state` is a `ChargedState<D>`, not a `StateValue<D>`. To match on `StateValue::Array(arr)` use `results.context.state.get_ref()` (returns `&StateValue<D>`). (B9 patched.)
+6. base-crypto strips trailing zero bytes from numeric atoms — `AlignedValue::from(42u64)` is a 1-byte atom `[42]`. `decode_u64` (already in `compact_runtime::std_lib`) accepts variable-length (≤ 8 byte) atoms and zero-pads, little-endian.
+7. `ContractState::new(data, operations, maintenance_authority)` is the actual constructor — requires `HashMap<EntryPointBuf, ContractOperation, D>` and `ContractMaintenanceAuthority` (no Defaults).
+8. `QueryResults.context.state` is `ChargedState<D>`, not `StateValue<D>`. To get the inner StateValue, call `.get_ref()` on the ChargedState.
+
+**Critical for D-phase (IR shape gotcha surfaced in C3):**
+
+The plan said `rust-passes` operates on `Ltypescript` IR. **It doesn't yet.** `prepare-for-typescript` (the Lnodisclose→Ltypescript pass) is private to `typescript-passes.ss` and not exported. The C3 stub consumes `Lnodisclose` directly. **Before D2 can emit real type information, one of the following must happen:**
+
+(a) Export `prepare-for-typescript` from `typescript-passes.ss` and call it from `rust-passes.ss`, OR
+(b) Have `passes.ss` thread the post-prepare `Ltypescript` IR into the rust-emit branch (reusing the prepare pass), OR
+(c) Build a parallel `prepare-for-rust` pass on `Lnodisclose` if the type-descriptor registration logic differs.
+
+(b) is the simplest. Pick it up at the start of D2. The plan body for D2 (and downstream) still mentions Ltypescript — that's correct; just make sure the IR threading actually delivers Ltypescript by the time `rust-passes` runs.
+
+**Other implementer notes worth remembering:**
+- `(runtime-version)` is a Scheme **library/module**, not a callable. Its export is the identifier `runtime-version-string` (a string value). Use it directly in `(format "..." runtime-version-string)`.
+- `nix build --print-out-paths` gives you the freshly-built path. Don't `ls /nix/store/*-compact-all/bin/compactc | head -1` — alphabetical ordering may return a stale build.
 
 ---
 
