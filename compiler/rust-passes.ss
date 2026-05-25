@@ -31,7 +31,7 @@
           (pass-helpers)
           (runtime-version))
 
-  (define-pass print-rust : Ltypescript (ir) -> Ltypescript ()
+  (define-pass print-rust : Lnodisclose (ir) -> Lnodisclose ()
     (definitions
       (define (out s)
         (display-string s (get-target-port 'contract.rs)))
@@ -60,9 +60,9 @@
         (out "    pub fn new(witnesses: W) -> Self { Self { witnesses, _ps: PhantomData } }\n")
         (out "}\n")))
     (Program : Program (ir) -> Program ()
-      [(program ,src ((,export-name* ,name*) ...) ,tdescs ,pelt* ...)
+      [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (header)
        ir]))
 
   (define-passes rust-passes
-    (print-rust          Ltypescript)))
+    (print-rust          Lnodisclose)))

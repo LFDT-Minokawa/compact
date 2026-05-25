@@ -34,6 +34,7 @@
           (analysis-passes)
           (save-contract-info-passes)
           (typescript-passes)
+          (rust-passes)
           (circuit-passes)
           (zkir-passes)
           (zkir-v3-passes))
@@ -173,6 +174,10 @@
                              (contract.js.map . "contract/index.js.map"))
                            (parameterize ([proof-circuit-names proof-circuit-name*])
                              (run-passes typescript-passes analyzed-ir)))
+                          (when (emit-rust)
+                            (with-target-ports
+                              '((contract.rs . "contract/lib.rs"))
+                              (run-passes rust-passes analyzed-ir)))
                           (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass)))]))))))))]))
 
   (define-pass extract-circuit-names : Lflattened (ir) -> * (ls)
