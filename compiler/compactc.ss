@@ -79,6 +79,10 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --trace-passes causes the compiler to print tracing information that is
     generally useful only to compiler developers.
+
+  --rust causes the compiler to additionally emit a Rust crate (contract/lib.rs)
+    alongside the TypeScript output. Generated Rust depends on the `compact-runtime`
+    crate. See docs/superpowers/specs/2026-05-25-rust-codegen-design.md for details.
 "))
 
 (usage "<flag> ... <source-pathname> <target-directory-pathname>")
@@ -97,7 +101,8 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--compact-path) (string search-list)]
              [(--trace-search)]
              [(--trace-passes)]
-             [(--feature-zkir-v3)])
+             [(--feature-zkir-v3)]
+             [(--rust)])
       (string source-pathname)
       (string target-directory-pathname))
      (check-pathname source-pathname)
@@ -106,6 +111,7 @@ The following flags, if present, affect the compiler's behavior as follows:
                     [skip-zk ?--skip-zk]
                     [no-communications-commitment ?--no-communications-commitment]
                     [feature-zkir-v3 ?--feature-zkir-v3]
+                    [emit-rust ?--rust]
                     [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
                     [trace-search ?--trace-search])
        (when source-root (register-source-root! source-root))
@@ -116,7 +122,8 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--language-version) $ (begin (print-language-version) (exit))]
              [(--ledger-version) $ (begin (print-ledger-version ?--feature-zkir-v3) (exit))]
              [(--runtime-version) $ (begin (print-runtime-version) (exit))]
-             [(--feature-zkir-v3)])
+             [(--feature-zkir-v3)]
+             [(--rust)])
       (string arg) ...)
      (print-usage #t)
      (exit 1)]))
