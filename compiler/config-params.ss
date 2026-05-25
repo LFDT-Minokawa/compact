@@ -41,4 +41,7 @@
 
   ; feature flags
   (export-parameter feature-zkir-v3 #f)
+
+  ; Rust emit (M2)
+  (export-parameter emit-rust #f)
 )
