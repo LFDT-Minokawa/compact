@@ -68,3 +68,6 @@ pub use midnight_zswap::local::State as ZswapLocalState;
 
 mod context;
 pub use context::{CircuitContext, ConstructorContext};
+
+mod results;
+pub use results::{CircuitResults, ConstructorResult};

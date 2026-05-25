@@ -36,3 +36,29 @@ fn constructor_context_can_be_constructed() {
     };
     let _ = cctx.cost_model;
 }
+
+#[test]
+fn circuit_results_can_be_constructed() {
+    let qctx = QueryContext::new(ChargedState::new(StateValue::Null), ContractAddress::default());
+    let ctx: CircuitContext<()> = CircuitContext {
+        current_private_state: (),
+        current_query_context: qctx,
+        current_zswap_local_state: ZswapLocalState::default(),
+        cost_model: INITIAL_COST_MODEL,
+        gas_limit: None,
+    };
+    let _: CircuitResults<(), ()> = CircuitResults {
+        result: (),
+        context: ctx,
+        gas_cost: RunningCost::default(),
+    };
+}
+
+#[test]
+fn constructor_result_can_be_constructed() {
+    let _: ConstructorResult<()> = ConstructorResult {
+        current_contract_state: ChargedState::new(StateValue::Null),
+        current_private_state: (),
+        current_zswap_local_state: ZswapLocalState::default(),
+    };
+}
