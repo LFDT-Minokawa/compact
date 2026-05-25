@@ -25,6 +25,7 @@
           (ledger)
           (natives)
           (events)
+          (inlines)
           (json)
           (pass-helpers)
           (parser)
@@ -632,6 +633,7 @@
                                                   (append standard-library-pelt*
                                                           (native-declarations)
                                                           (event-declarations)
+                                                          (inline-declarations)
                                                           (map (lambda (adt-defn)
                                                                   (nanopass-case (Lpreexpand ADT-Definition) adt-defn
                                                                     [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -1301,7 +1303,12 @@
        (register-contract-info! src contract-name)
        ir]))
 
-  (define-pass infer-types : Lexpanded (ir) -> Ltypes ()
+  (define-pass inject-serialize : Lexpanded (ir) -> Lserialized ()
+    (Expression : Expression (ir) -> Expression ()
+      [(log ,src ,[expr])
+       `(log ,src ,expr (serialized-payload ,src ,expr))]))
+
+  (define-pass infer-types : Lserialized (ir) -> Ltypes ()
     (definitions
       (define-syntax T
         (syntax-rules ()
@@ -1721,7 +1728,7 @@
             (lambda (arg-type*)
               (and (= (length arg-type*) nactual)
                    (andmap subtype? actual-type* arg-type*)))))
-        (nanopass-case (Lexpanded Function) fun
+        (nanopass-case (Lserialized Function) fun
           [(fref ,src^ ,symbolic-function-name ((,function-name** ...) ...)
                  (,generic-value* ...)
                  ((,src* ,generic-kind** ...) ...))
@@ -1760,7 +1767,7 @@
                                      ~{\n      ~a~}"
                               (functions-are generic-failure*)
                               (map (lambda (generic-value)
-                                     (nanopass-case (Lexpanded Generic-Value) generic-value
+                                     (nanopass-case (Lserialized Generic-Value) generic-value
                                        [,type (format "type ~a" (format-type (Type type)))]
                                        [,nat (format "size ~d" nat)]))
                                    generic-value*)
@@ -2181,22 +2188,308 @@
                     (car return-type*)))
                 (loop (cdr elt-name*) (cdr declared-type**) (cdr return-type*))))))
       (define (get-contract-name ecdecl)
-        (nanopass-case (Lexpanded External-Contract-Declaration) ecdecl
+        (nanopass-case (Lserialized External-Contract-Declaration) ecdecl
           [(external-contract ,src ,contract-name ,ecdecl-circuit* ...)
            contract-name]))
-      (define event-ht
-        (let ([cached #f])
-          (lambda ()
-            (or cached
-                (let ([ht (make-hashtable symbol-hash eq?)])
-                  (for-each
-                    (lambda (sd)
-                      (nanopass-case (Lpreexpand Structure-Definition) sd
-                        [(struct ,src ,exported? ,name (,type-param* ...) ,arg* ...)
-                         (hashtable-set! ht name #t)]))
-                    (event-declarations))
-                  (set! cached ht)
-                  cached))))))
+      (module (event-ht validate-event-type! extract-bytes-size serialized-size-of build-serialize build-deserialize)
+        (define event-ht
+          (let ([cached #f])
+            (lambda ()
+              (or cached
+                  (let ([ht (make-hashtable symbol-hash eq?)])
+                    (for-each
+                      (lambda (sd)
+                        (nanopass-case (Lpreexpand Structure-Definition) sd
+                          [(struct ,src ,exported? ,name (,type-param* ...) ,arg* ...)
+                           (hashtable-set! ht name #t)]))
+                      (event-declarations))
+                    (set! cached ht)
+                    cached)))))
+        (define (validate-event-type! src type)
+          (nanopass-case (Ltypes Type) (de-alias type #t)
+            [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...)
+             (unless (hashtable-ref (event-ht) struct-name #f)
+               (source-errorf src "~a is not a declared event type" struct-name))
+             (let ([size (serialized-size-of src type)])
+               (when (> size max-log-size)
+                 (source-errorf src "serialized event ~a has size ~d bytes, exceeding the maximum log payload size of ~d bytes (MAX_LOG_SIZE)"
+                                struct-name
+                                size
+                                max-log-size))
+               (values struct-name size))]
+            [else
+             (source-errorf src "expected event struct type, received ~a"
+                            (format-type type))]))
+        (define (extract-bytes-size type)
+          (nanopass-case (Ltypes Type) (de-alias type #t)
+            [(tbytes ,src ,len) len]
+            [else (assert cannot-happen)]))
+        ; compute the canonical serialized byte size for a supported type.
+        ; currently only types used in events are supported.
+        (define (serialized-size-of src type)
+          (define (adt-arg->type adt-arg)
+            (nanopass-case (Ltypes Public-Ledger-ADT-Arg) adt-arg
+              [,nat (source-errorf src "expected type, got nat ~a" nat)]
+              [,type type]))
+          (nanopass-case (Ltypes Type) (de-alias type #t)
+            [(tbytes ,src^ ,len) len]
+            [(tunsigned ,src^ ,nat)
+             ; nat is the max value (2^W - 1 for Uint<W>); compute the byte count.
+             (quotient (+ (integer-length nat) 7) 8)]
+            [(tboolean ,src^) 1]
+            [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+             (case struct-name
+               [(Maybe)
+                ; 1 byte tag + size(value).
+                (assert (= (length type*) 2))
+                (+ 1 (serialized-size-of src (cadr type*)))]
+               [(Either)
+                ; 1 byte tag + max(size(left), size(right)).
+                (assert (= (length type*) 3))
+                (+ 1 (max (serialized-size-of src (cadr type*))
+                          (serialized-size-of src (caddr type*))))]
+               [else
+                (fold-left (lambda (acc t) (+ acc (serialized-size-of src t))) 0 type*)])]
+            [else
+             (source-errorf src "type ~a is not supported in event serialization"
+                            (format-type type))]))
+
+        (define (make-byte-literal src n)
+          ; Bytes<1> literal holding byte value n (0 ≤ n ≤ 255).
+          (with-output-language (Ltypes Expression)
+            `(quote ,src ,(let ([bv (make-bytevector 1 0)])
+                            (bytevector-u8-set! bv 0 n)
+                            bv))))
+        (define (make-zero-bytes src n)
+          ; Bytes<n> of all-zero bytes.
+          (with-output-language (Ltypes Expression)
+            `(default ,src (tbytes ,src ,n))))
+        (define (make-bool-literal src b)
+          (with-output-language (Ltypes Expression)
+            `(quote ,src ,b)))
+        (define (make-default src type)
+          (with-output-language (Ltypes Expression)
+            `(default ,src ,type)))
+        (define (make-if src cond then else)
+          (with-output-language (Ltypes Expression)
+            `(if ,src ,cond ,then ,else)))
+        (define (make-elt-ref src expr elt-name i)
+          (with-output-language (Ltypes Expression)
+            `(elt-ref ,src ,expr ,elt-name ,i)))
+        (define (make-struct-new src struct-type field-expr*)
+          (with-output-language (Ltypes Expression)
+            `(new ,src ,struct-type ,field-expr* ...)))
+        (define (make-bytes-concat src parts total-len)
+          ; parts: list of (expr . len) pairs. returns Ltypes Expression Bytes<total-len>.
+          ; implementation: convert each piece to a vector, spread into a single vector,
+          ; convert back to bytes. vector spread is the only multi-source byte composition
+          ; available in Ltypes.
+          (cond
+            [(null? parts)
+             (with-output-language (Ltypes Expression)
+               `(quote ,src ,(make-bytevector 0)))]
+            [(null? (cdr parts))
+             (caar parts)]
+            [else
+             (let ([tuple-args
+                    (map (lambda (p)
+                           (let ([e (car p)] [n (cdr p)])
+                             (with-output-language (Ltypes Tuple-Argument)
+                               `(spread ,src ,n (bytes->vector ,src ,n ,e)))))
+                         parts)])
+               (with-output-language (Ltypes Expression)
+                 `(vector->bytes ,src ,total-len
+                    (vector ,src ,tuple-args ...))))]))
+        (define (make-bytes-pad src expr cur-len target-len)
+          (if (= cur-len target-len)
+              expr
+              (make-bytes-concat src
+                (list (cons expr cur-len)
+                      (cons (make-zero-bytes src (- target-len cur-len)) (- target-len cur-len)))
+                target-len)))
+        (define (make-bytes-slice src bytes-expr offset-nat len)
+          ; Bytes<len> = bytes-expr[offset .. offset+len].
+          (with-output-language (Ltypes Expression)
+            `(bytes-slice ,src (tbytes ,src ,len) ,bytes-expr
+                          (quote ,src ,offset-nat) ,len)))
+        (define (make-bytes-ref src bytes-expr offset-nat)
+          ; Bytes<1> at offset — implemented as a 1-byte slice (so it has a tbytes type
+          ; we can compare with ==).
+          (make-bytes-slice src bytes-expr offset-nat 1))
+        (define (make-tag-eq? src tag-expr n)
+          ; compare a Bytes<1> tag-expr to a Bytes<1> literal of value n; returns Boolean.
+          (with-output-language (Ltypes Expression)
+            `(== ,src (tbytes ,src 1) ,tag-expr ,(make-byte-literal src n))))
+        (define (make-uint->bytes src byte-len expr)
+          (with-output-language (Ltypes Expression)
+            `(field->bytes ,src ,byte-len ,expr)))
+        (define (make-bytes->uint src bytes-expr offset-nat byte-len max-val)
+          (with-output-language (Ltypes Expression)
+            `(cast-from-bytes ,src (tunsigned ,src ,max-val) ,byte-len
+                              ,(make-bytes-slice src bytes-expr offset-nat byte-len))))
+
+        (define (build-serialize src type expr)
+          (define (adt-arg->type arg)
+            (nanopass-case (Ltypes Public-Ledger-ADT-Arg) arg
+              [,nat (source-errorf src "expected type, got nat ~a" nat)]
+              [,type type]))
+          (nanopass-case (Ltypes Type) (de-alias type #t)
+            [(tbytes ,src ,len) expr]
+            [(tunsigned ,src^ ,nat)
+             (let ([byte-len (quotient (+ (integer-length nat) 7) 8)])
+               (make-uint->bytes src byte-len expr))]
+            [(tboolean ,src^)
+             (make-if src expr
+               (make-byte-literal src 1)
+               (make-byte-literal src 0))]
+            [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+             (case struct-name
+               ; wire format: [tag:1][value-bytes:size(T)], zero-padded when None.
+               [(Maybe)
+                (assert (= (length elt-name*) 2))
+                (let* ([is-some-name (car elt-name*)]
+                       [value-name   (cadr elt-name*)]
+                       [inner-type   (cadr type*)]
+                       [inner-size   (serialized-size-of src inner-type)]
+                       [total-size   (+ 1 inner-size)]
+                       [is-some-expr (make-elt-ref src expr is-some-name 0)]
+                       [value-expr   (make-elt-ref src expr value-name 1)])
+                  (make-if src
+                    is-some-expr
+                    (make-bytes-concat src
+                      (list (cons (make-byte-literal src 1) 1)
+                            (cons (build-serialize src inner-type value-expr) inner-size))
+                      total-size)
+                    (make-bytes-concat src
+                      (list (cons (make-byte-literal src 0) 1)
+                            (cons (make-zero-bytes src inner-size) inner-size))
+                      total-size)))]
+               ; wire format: [tag:1][value-bytes:max(size(A),size(B))], zero-padded.
+               [(Either)
+                (assert (= (length elt-name*) 3))
+                (let* ([is-left-name (car elt-name*)]
+                       [left-name    (cadr elt-name*)]
+                       [right-name   (caddr elt-name*)]
+                       [left-type    (cadr type*)]
+                       [right-type   (caddr type*)]
+                       [left-size    (serialized-size-of src left-type)]
+                       [right-size   (serialized-size-of src right-type)]
+                       [max-size     (max left-size right-size)]
+                       [total-size   (+ 1 max-size)]
+                       [is-left-expr (make-elt-ref src expr is-left-name 0)]
+                       [left-expr    (make-elt-ref src expr left-name 1)]
+                       [right-expr   (make-elt-ref src expr right-name 2)])
+                  (make-if src
+                    is-left-expr
+                    (make-bytes-concat src
+                      (list (cons (make-byte-literal src 0) 1)
+                            (cons (make-bytes-pad src
+                                    (build-serialize src left-type left-expr)
+                                    left-size max-size)
+                                  max-size))
+                      total-size)
+                    (make-bytes-concat src
+                      (list (cons (make-byte-literal src 1) 1)
+                            (cons (make-bytes-pad src
+                                    (build-serialize src right-type right-expr)
+                                    right-size max-size)
+                                  max-size))
+                      total-size)))]
+               ; other struct (events, ContractAddress, ZswapCoinPublicKey, etc.):
+               ; serialize each field in order, concatenate.
+               [else
+                (let* ([field-parts
+                        (map (lambda (i elt-name field-type)
+                               (let ([field-expr (make-elt-ref src expr elt-name i)]
+                                     [size       (serialized-size-of src field-type)])
+                                 (cons (build-serialize src field-type field-expr) size)))
+                             (iota (length elt-name*))
+                             elt-name*
+                             type*)]
+                       [total-size (fold-left + 0 (map cdr field-parts))])
+                  (make-bytes-concat src field-parts total-size))])]
+
+            [else
+             (source-errorf src "type ~a is not supported in event serialization"
+                            (format-type type))]))
+        (define (build-deserialize src type bytes-expr)
+          (define (adt-arg->type arg)
+            (nanopass-case (Ltypes Public-Ledger-ADT-Arg) arg
+              [,nat (source-errorf src "expected type, got nat ~a" nat)]
+              [,type type]))
+          ; recursive walker with offset threading. returns (expr next-offset).
+          ; expr is an Ltypes Expression of type `type` parsed from bytes-expr starting at `offset`.
+          (define (recur type offset)
+            (nanopass-case (Ltypes Type) (de-alias type #t)
+              [(tbytes ,src^ ,len)
+               (values (make-bytes-slice src bytes-expr offset len)
+                       (+ offset len))]
+              [(tunsigned ,src^ ,nat)
+               (let ([byte-len (quotient (+ (integer-length nat) 7) 8)])
+                 (values (make-bytes->uint src bytes-expr offset byte-len nat)
+                         (+ offset byte-len)))]
+              [(tboolean ,src^)
+               (values (make-tag-eq? src (make-bytes-ref src bytes-expr offset) 1)
+                       (+ offset 1))]
+              [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+               (case struct-name
+                 ; Maybe<T>: read tag byte at offset, value bytes at offset+1.
+                 ; construct struct { is_some: tag==1, value: deserialize(slice) }.
+                 ; when tag==0 the value bytes are zeros; deserializing them still produces
+                 ; a well-typed value (callers should check is_some before using it).
+                 [(Maybe)
+                  (assert (= (length elt-name*) 2))
+                  (let* ([inner-type   (cadr type*)]
+                         [inner-size   (serialized-size-of src inner-type)]
+                         [tag-expr     (make-bytes-ref src bytes-expr offset)])
+                    (let-values ([(value-expr _) (recur inner-type (+ offset 1))])
+                      (values (make-struct-new src type
+                                (list (make-tag-eq? src tag-expr 1)
+                                      value-expr))
+                              (+ offset 1 inner-size))))]
+                 ; Either<A,B>: read tag, then construct either Left or Right shape
+                 ; with the unused side filled by `default`.
+                 [(Either)
+                  (assert (= (length elt-name*) 3))
+                  (let* ([left-type    (cadr type*)]
+                         [right-type   (caddr type*)]
+                         [left-size    (serialized-size-of src left-type)]
+                         [right-size   (serialized-size-of src right-type)]
+                         [max-size     (max left-size right-size)]
+                         [tag-expr     (make-bytes-ref src bytes-expr offset)])
+                    (let-values ([(left-expr  _) (recur left-type  (+ offset 1))]
+                                 [(right-expr _^) (recur right-type (+ offset 1))])
+                      (values
+                        (make-if src
+                          (make-tag-eq? src tag-expr 0)
+                          (make-struct-new src type
+                            (list (make-bool-literal src #t)
+                                  left-expr
+                                  (make-default src right-type)))
+                          (make-struct-new src type
+                            (list (make-bool-literal src #f)
+                                  (make-default src left-type)
+                                  right-expr)))
+                        (+ offset 1 max-size))))]
+                 ; other struct: deserialize each field in order, then construct.
+                 [else
+                  (let loop ([elt-name* elt-name*]
+                             [type*     type*]
+                             [i         0]
+                             [offset    offset]
+                             [acc-rev   '()])
+                    (if (null? elt-name*)
+                        (values (make-struct-new src type (reverse acc-rev))
+                                offset)
+                        (let-values ([(field-expr next-offset) (recur (car type*) offset)])
+                          (loop (cdr elt-name*) (cdr type*) (+ i 1) next-offset
+                                (cons field-expr acc-rev)))))])]
+              [else
+               (source-errorf src "type ~a is not supported in event deserialization"
+                              (format-type type))]))
+          (let-values ([(expr _) (recur type 0)])
+            expr)))
+      )
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) (,unused-pelt* ...) (,ecdecl* ...) ,pelt* ...)
        (for-each Set-Program-Element-Type! unused-pelt*)
@@ -2519,12 +2812,17 @@
       [(elt-call ,src ,expr ,elt-name ,expr* ...)
        (let-values ([(expr type) (elt-call-lhs ir src "." #f)])
          (desugar-ledger-read src expr type))]
-      [(log ,src ,[Care : expr type])
+      [(serialized-payload ,src ,[Care : expr type])
+       (let-values ([(struct-name size) (validate-event-type! src type)])
+         (values (build-serialize src type expr)
+                 (with-output-language (Ltypes Type) `(tbytes ,src ,size))))]
+      [(log ,src ,[Care : expr type] ,[Care : expr^ type^])
        (nanopass-case (Ltypes Type) (de-alias type #t)
-         [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...)
+         [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
           (unless (hashtable-ref (event-ht) struct-name #f)
             (source-errorf src "~a is not a declared event type" struct-name))
-          (values `(log ,src ,expr) type)]
+          (values `(log ,src ,type ,expr ,expr^) type)]
+         ; can't presently happen it is checked in serialized-payload
          [else (source-errorf src "expected structure type (representation of an event), received ~a"
                               (format-type type))])]
       [(= ,src ,[elt-call-lhs : expr1 src "=" #t -> expr1 type1] ,[Care : expr2 type2])
@@ -2834,6 +3132,118 @@
                    return-type))))))]
       [(call ,src ,fun ,expr* ...)
        (let-values ([(expr* actual-type*) (maplr2 Care expr*)])
+         ; peek at the symbolic name of the fref so the build-call callback below
+         ; knows whether to inline. For non-fref funs (e.g., anonymous circuit
+         ; calls), sym-name is #f and the default case handles it.
+         (let ([sym-name (nanopass-case (Lserialized Function) fun
+                           [(fref ,src^
+                                  ,symbolic-function-name
+                                  ((,function-name** ...) ...)
+                                  (,generic-value* ...)
+                                  ((,src* ,generic-kind** ...) ...))
+                            symbolic-function-name]
+                           [else #f])])
+           (do-call src #f fun actual-type*
+             (lambda (declared-type* return-type fun-out)
+               (case sym-name
+                 ; serialize<T, n>(v: T) : Bytes<n>
+                 ; declared-type* = (T); return-type = Bytes<n>.
+                 [(serialize)
+                  (let-values ([(struct-name canonical-size) (validate-event-type! src (car declared-type*))])
+                    (let ([user-size (extract-bytes-size return-type)])
+                      (unless (= user-size canonical-size)
+                        (source-errorf src "serialize<~a, ~a>: declared size ~a does not match canonical serialized size ~a for ~a"
+                                       (format-type (car declared-type*))
+                                       user-size
+                                       user-size
+                                       canonical-size
+                                       struct-name))
+                      (values
+                        (build-serialize src (car declared-type*)
+                          ((maybe-safecast src) (car declared-type*) (car actual-type*) (car expr*)))
+                        return-type)))]
+                 ; deserialize<T, n>(b: Bytes<n>) : T
+                 ; declared-type* = (Bytes<n>); return-type = T.
+                 [(deserialize)
+                  (let-values ([(struct-name canonical-size) (validate-event-type! src return-type)])
+                    (let ([user-size (extract-bytes-size (car declared-type*))])
+                      (unless (= user-size canonical-size)
+                        (source-errorf src "deserialize<~a, ~a>: declared size ~a does not match canonical serialized size ~a for ~a"
+                                       (format-type return-type)
+                                       user-size
+                                       user-size
+                                       canonical-size
+                                       struct-name))
+                      (values
+                        (build-deserialize src return-type
+                          ((maybe-safecast src) (car declared-type*) (car actual-type*) (car expr*)))
+                        return-type)))]
+                 ; anything else is a regular call.
+                 [else
+                  (values
+                    `(call ,src ,fun-out ,(map (maybe-safecast src) declared-type* actual-type* expr*) ...)
+                    return-type)])))))]
+      #;[(call ,src
+             (fref ,src^ ,symbolic-function-name ((,function-name** ...) ...)
+                   (,generic-value* ...)
+                   ((,src* ,generic-kind** ...) ...))
+             ,[Care : expr expr-type])
+       (memq symbolic-function-name '(serialize deserialize))
+       (let ()
+         (unless (= (length generic-value*) 2)
+           (source-errorf src "~a expects two generic arguments (type and size), received ~a"
+                          symbolic-function-name
+                          (length generic-value*)))
+         ; generic args: first is T, second is n.
+         (let-values ([(target-type user-size)
+                       (let ([gv0 (car generic-value*)] [gv1 (cadr generic-value*)])
+                         (values
+                           (nanopass-case (Lexpanded Generic-Value) gv0
+                             [,nat (source-errorf src "first generic argument of ~a must be a type, got size ~a"
+                                                  symbolic-function-name
+                                                  nat)]
+                             [,type (Type type)])
+                           (nanopass-case (Lexpanded Generic-Value) gv1
+                             [,nat nat]
+                             [,type (source-errorf src "second generic argument of ~a must be a size, got a type"
+                                                   symbolic-function-name)])))])
+           (let-values ([(struct-name canonical-size) (validate-event-type! src target-type)])
+             ; ensure the user-supplied size matches the canonical size.
+             (unless (= user-size canonical-size)
+               (source-errorf src "~a<~a, ~a>: declared size ~a does not match canonical serialized size ~a for type ~a"
+                              symbolic-function-name
+                              (format-type target-type)
+                              user-size
+                              user-size
+                              canonical-size
+                              struct-name))
+             ; type-check the argument against what serialize/deserialize expects.
+             (case symbolic-function-name
+               [(serialize)
+                (unless (sametype? expr-type target-type)
+                  (source-errorf src "argument to serialize<~a, ~a> has type ~a, expected ~a"
+                                 (format-type target-type)
+                                 user-size
+                                 (format-type expr-type)
+                                 (format-type target-type)))
+                ; emit the inlined serialize expression.
+                (values (build-serialize src target-type expr)
+                        (with-output-language (Ltypes Type) `(tbytes ,src ,canonical-size)))]
+               [(deserialize)
+                ; argument must be Bytes<canonical-size>
+                (let ([expected-bytes-type
+                       (with-output-language (Ltypes Type) `(tbytes ,src ,canonical-size))])
+                  (unless (sametype? expr-type expected-bytes-type)
+                    (source-errorf src "argument to deserialize<~a, ~a> has type ~a, expected ~a"
+                                   (format-type target-type)
+                                   user-size
+                                   (format-type expr-type)
+                                   (format-type expected-bytes-type)))
+                  ; emit the inlined deserialize expression.
+                  (values (build-deserialize src target-type expr)
+                          target-type))]))))]
+      #;[(call ,src ,fun ,expr* ...)
+       (let-values ([(expr* actual-type*) (maplr2 Care expr*)])
          (do-call src #f fun actual-type*
            (lambda (declared-type* return-type fun)
              (values
@@ -2868,19 +3278,19 @@
           (define (s0)
             (if (null? new-field*)
                 (finish #f '() '())
-                (nanopass-case (Lexpanded New-Field) (car new-field*)
+                (nanopass-case (Lserialized New-Field) (car new-field*)
                   [(spread ,src^ ,expr) (snamed (cdr new-field*) (make-spread src^ expr) '() '())]
                   [else (spositional new-field* '())])))
           (define (spositional new-field* rpositional*)
             (if (null? new-field*)
                 (finish #f (reverse rpositional*) '())
-                (nanopass-case (Lexpanded New-Field) (car new-field*)
+                (nanopass-case (Lserialized New-Field) (car new-field*)
                   [(positional ,src^ ,expr) (spositional (cdr new-field*) (cons (make-positional src^ expr) rpositional*))]
                   [else (snamed new-field* #f (reverse rpositional*) '())])))
           (define (snamed new-field* maybe-spread positional* rnamed*)
             (if (null? new-field*)
                 (finish maybe-spread positional* (reverse rnamed*))
-                (nanopass-case (Lexpanded New-Field) (car new-field*)
+                (nanopass-case (Lserialized New-Field) (car new-field*)
                   [(named ,src^ ,elt-name ,expr)
                    (let ([elt-name (cond
                                      [(and (stdlib-src? src1)
@@ -3020,9 +3430,9 @@
          (with-output-language (Ltypes Type) `(ttuple ,src)))]
       [(cast ,src ,type (quote ,src^ ,datum))
        (guard
-         ; NB: guards are run before automatic recursion, so type is an Lexpanded Type, not an Ltypes Type
+         ; NB: guards are run before automatic recursion, so type is an Lserialized Type, not an Ltypes Type
          (let f ([type type])
-           (nanopass-case (Lexpanded Type) type
+           (nanopass-case (Lserialized Type) type
              [(tfield ,src) #t]
              [(talias ,src ,nominal? ,type-name ,type) (f type)]
              [else #f]))
@@ -3804,14 +4214,17 @@
                     (loop (cdr elt-name*) (cdr type*) (fx+ i 1)))))]
          [else (source-errorf src "expected structure type, received ~a"
                               (format-type type))])]
-      [(log ,src ,[Care : expr -> * type])
-       (nanopass-case (Lnodca Type) (de-alias type)
-         [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...)
+      [(log ,src ,type ,[Care : expr -> * type^] ,[Care : expr^ -> * type^^])
+       (nanopass-case (Lnodca Type) (de-alias type^)
+         [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
           (unless (hashtable-ref (event-ht) struct-name #f)
             (source-errorf src "~a is not a declared event type" struct-name))
-          type]
+          (nanopass-case (Lnodca Type) (de-alias type^^)
+            [(tbytes ,src^ ,len) type^]
+            [else (assert cannot-happen)])]
+         ; can't presently happen it is checked in serialized-payload
          [else (source-errorf src "expected structure type (representation of an event), received ~a"
-                              (format-type type))])]
+                              (format-type type^))])]
       [(enum-ref ,src ,type ,elt-name^)
        (nanopass-case (Lnodca Type) (de-alias type)
          [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
@@ -5375,7 +5788,7 @@
          [(Abs-multiple abs*) (list-ref abs* nat)]
          [else (assert cannot-happen)])]
 
-      [(log ,src ,[* abs])
+      [(log ,src ,type ,[* abs] ,expr)
        (unless (null? control-witness*)
          (record-leak! src "performing this log operation" control-witness*))
        (let ([witness* (abs->witnesses
@@ -5655,6 +6068,7 @@
   (define-passes analysis-passes
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
+    (inject-serialize                Lserialized)
     (infer-types                     Ltypes)
     (remove-tundeclared              Lnotundeclared)
     (combine-ledger-declarations     Loneledger)
@@ -5672,6 +6086,7 @@
   (define-passes fixup-analysis-passes
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
+    (inject-serialize                Lserialized)
     (infer-types                     Ltypes))
 
   (define-checker check-types/Lnodca Lnodca)

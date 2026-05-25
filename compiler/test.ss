@@ -96,6 +96,7 @@ groups than for single tests.
         (passes)
         (sourcemaps)
         (config-params)
+        (events)
         (utils)
         (json)
         (runtime-version)
@@ -14911,6 +14912,44 @@ groups than for single tests.
              (tstruct Misc (name (tbytes 32)) (payload (tbytes 256)))
           (log (new (tstruct Misc (name (tbytes 32)) (payload (tbytes 256))) n p)))))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 32>(x);"
+      "}"
+      )
+    (returns
+      (program ((deserialize_ShieldedSpend %deserialize_ShieldedSpend.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %deserialize.2 ([%value.3 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (default (tstruct ShieldedSpend (nullifier (tbytes 32)))))
+        (circuit %deserialize_ShieldedSpend.0 ([%x.4 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (call (fref ((%deserialize.2))) %x.4))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<32> {"
+      "  return serialize<ShieldedSpend, 32>(x);"
+      "}"
+      )
+    (returns
+      (program ((serialize_ShieldedSpend %serialize_ShieldedSpend.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %serialize.2 ([%value.3 (tstruct ShieldedSpend
+                                           (nullifier (tbytes 32)))])
+             (tbytes 32)
+          (default (tbytes 32)))
+        (circuit %serialize_ShieldedSpend.0 ([%x.4 (tstruct ShieldedSpend
+                                                     (nullifier (tbytes 32)))])
+             (tbytes 32)
+          (call (fref ((%serialize.2))) %x.4))))
+    )
 )
 
 (run-tests infer-types
@@ -25259,7 +25298,13 @@ groups than for single tests.
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                  #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                      0 0 0 0 0))))))
+                      0 0 0 0 0))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                        0 0 0 0 0))
+                 nullifier
+                 0)))))
     )
 
   (test
@@ -25276,7 +25321,1061 @@ groups than for single tests.
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                  #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                      0 0 0 0 0))))))
+                      0 0 0 0 0))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                        0 0 0 0 0))
+                 nullifier
+                 0)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 32>(x);"
+      "}"
+      "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<32> {"
+      "  return serialize<ShieldedSpend, 32>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct ShieldedSpend
+                                           (nullifier (tbytes 32)))])
+             (tbytes 32)
+          (default (tbytes 32)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (default (tstruct ShieldedSpend (nullifier (tbytes 32)))))
+        (circuit %deserialize_ShieldedSpend.5 ([%x.6 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+            (bytes-slice %x.6 0 32)))
+        (circuit %serialize_ShieldedSpend.7 ([%x.8 (tstruct ShieldedSpend
+                                                     (nullifier (tbytes 32)))])
+             (tbytes 32)
+          (elt-ref %x.8 nullifier 0))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedReceive (x: Bytes<578>) : ShieldedReceive {"
+      "  return deserialize<ShieldedReceive, 578>(x);"
+      "}"
+      "export circuit serialize_ShieldedReceive (x: ShieldedReceive) : Bytes<578> {"
+      "  return serialize<ShieldedReceive, 578>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct ShieldedReceive
+                                           (commitment (tbytes 32))
+                                           (contract_address (tstruct Maybe
+                                                               (is_some (tboolean))
+                                                               (value (tbytes
+                                                                        32))))
+                                           (ciphertext (tstruct Maybe
+                                                         (is_some (tboolean))
+                                                         (value (tbytes
+                                                                  512)))))])
+             (tbytes 578)
+          (default (tbytes 578)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 578)])
+             (tstruct ShieldedReceive
+               (commitment (tbytes 32))
+               (contract_address (tstruct Maybe
+                                   (is_some (tboolean))
+                                   (value (tbytes 32))))
+               (ciphertext (tstruct Maybe
+                             (is_some (tboolean))
+                             (value (tbytes 512)))))
+          (default
+            (tstruct ShieldedReceive
+              (commitment (tbytes 32))
+              (contract_address (tstruct Maybe
+                                  (is_some (tboolean))
+                                  (value (tbytes 32))))
+              (ciphertext (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tbytes 512)))))))
+        (circuit %deserialize_ShieldedReceive.5 ([%x.6 (tbytes
+                                                         578)])
+             (tstruct ShieldedReceive
+               (commitment (tbytes 32))
+               (contract_address (tstruct Maybe
+                                   (is_some (tboolean))
+                                   (value (tbytes 32))))
+               (ciphertext (tstruct Maybe
+                             (is_some (tboolean))
+                             (value (tbytes 512)))))
+          (new (tstruct ShieldedReceive
+                 (commitment (tbytes 32))
+                 (contract_address (tstruct Maybe
+                                     (is_some (tboolean))
+                                     (value (tbytes 32))))
+                 (ciphertext (tstruct Maybe
+                               (is_some (tboolean))
+                               (value (tbytes 512)))))
+            (bytes-slice %x.6 0 32)
+            (new (tstruct Maybe
+                   (is_some (tboolean))
+                   (value (tbytes 32)))
+              (== (bytes-slice %x.6 32 1) #vu8(1))
+              (bytes-slice %x.6 33 32))
+            (new (tstruct Maybe
+                   (is_some (tboolean))
+                   (value (tbytes 512)))
+              (== (bytes-slice %x.6 65 1) #vu8(1))
+              (bytes-slice %x.6 66 512))))
+        (circuit %serialize_ShieldedReceive.7 ([%x.8 (tstruct ShieldedReceive
+                                                       (commitment (tbytes 32))
+                                                       (contract_address (tstruct Maybe
+                                                                           (is_some (tboolean))
+                                                                           (value (tbytes
+                                                                                    32))))
+                                                       (ciphertext (tstruct Maybe
+                                                                     (is_some (tboolean))
+                                                                     (value (tbytes
+                                                                              512)))))])
+             (tbytes 578)
+          (vector->bytes
+            578
+            (vector
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 commitment 0)))
+              (spread
+                33
+                (bytes->vector
+                  33
+                  (if (elt-ref (elt-ref %x.8 contract_address 1) is_some 0)
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref %x.8 contract_address 1)
+                                value
+                                1)))))
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            32
+                            (bytes->vector 32 (default (tbytes 32)))))))))
+              (spread
+                513
+                (bytes->vector
+                  513
+                  (if (elt-ref (elt-ref %x.8 ciphertext 2) is_some 0)
+                      (vector->bytes
+                        513
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            512
+                            (bytes->vector
+                              512
+                              (elt-ref (elt-ref %x.8 ciphertext 2) value 1)))))
+                      (vector->bytes
+                        513
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            512
+                            (bytes->vector
+                              512
+                              (default (tbytes 512))))))))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedMint (x: Bytes<81>) : ShieldedMint {"
+      "  return deserialize<ShieldedMint, 81>(x);"
+      "}"
+      "export circuit serialize_ShieldedMint (x: ShieldedMint) : Bytes<81> {"
+      "  return serialize<ShieldedMint, 81>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct ShieldedMint
+                                           (commitment (tbytes 32))
+                                           (domain_sep (tbytes 32))
+                                           (amount (tstruct Maybe
+                                                     (is_some (tboolean))
+                                                     (value (tunsigned
+                                                              340282366920938463463374607431768211455)))))])
+             (tbytes 81)
+          (default (tbytes 81)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 81)])
+             (tstruct ShieldedMint
+               (commitment (tbytes 32))
+               (domain_sep (tbytes 32))
+               (amount (tstruct Maybe
+                         (is_some (tboolean))
+                         (value (tunsigned
+                                  340282366920938463463374607431768211455)))))
+          (default
+            (tstruct ShieldedMint
+              (commitment (tbytes 32))
+              (domain_sep (tbytes 32))
+              (amount (tstruct Maybe
+                        (is_some (tboolean))
+                        (value (tunsigned
+                                 340282366920938463463374607431768211455)))))))
+        (circuit %deserialize_ShieldedMint.5 ([%x.6 (tbytes 81)])
+             (tstruct ShieldedMint
+               (commitment (tbytes 32))
+               (domain_sep (tbytes 32))
+               (amount (tstruct Maybe
+                         (is_some (tboolean))
+                         (value (tunsigned
+                                  340282366920938463463374607431768211455)))))
+          (new (tstruct ShieldedMint
+                 (commitment (tbytes 32))
+                 (domain_sep (tbytes 32))
+                 (amount (tstruct Maybe
+                           (is_some (tboolean))
+                           (value (tunsigned
+                                    340282366920938463463374607431768211455)))))
+            (bytes-slice %x.6 0 32)
+            (bytes-slice %x.6 32 32)
+            (new (tstruct Maybe
+                   (is_some (tboolean))
+                   (value (tunsigned 340282366920938463463374607431768211455)))
+              (== (bytes-slice %x.6 64 1) #vu8(1))
+              (cast-from-bytes (tunsigned
+                                 340282366920938463463374607431768211455) 16
+                (bytes-slice %x.6 65 16)))))
+        (circuit %serialize_ShieldedMint.7 ([%x.8 (tstruct ShieldedMint
+                                                    (commitment (tbytes 32))
+                                                    (domain_sep (tbytes 32))
+                                                    (amount (tstruct Maybe
+                                                              (is_some (tboolean))
+                                                              (value (tunsigned
+                                                                       340282366920938463463374607431768211455)))))])
+             (tbytes 81)
+          (vector->bytes
+            81
+            (vector
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 commitment 0)))
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 domain_sep 1)))
+              (spread
+                17
+                (bytes->vector
+                  17
+                  (if (elt-ref (elt-ref %x.8 amount 2) is_some 0)
+                      (vector->bytes
+                        17
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            16
+                            (bytes->vector
+                              16
+                              (field->bytes
+                                16
+                                (elt-ref (elt-ref %x.8 amount 2) value 1))))))
+                      (vector->bytes
+                        17
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            16
+                            (bytes->vector 16 (default (tbytes 16))))))))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedBurn (x: Bytes<49>) : ShieldedBurn {"
+      "  return deserialize<ShieldedBurn, 49>(x);"
+      "}"
+      "export circuit serialize_ShieldedBurn (x: ShieldedBurn) : Bytes<49> {"
+      "  return serialize<ShieldedBurn, 49>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct ShieldedBurn
+                                           (nullifier (tbytes 32))
+                                           (amount (tstruct Maybe
+                                                     (is_some (tboolean))
+                                                     (value (tunsigned
+                                                              340282366920938463463374607431768211455)))))])
+             (tbytes 49)
+          (default (tbytes 49)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 49)])
+             (tstruct ShieldedBurn
+               (nullifier (tbytes 32))
+               (amount (tstruct Maybe
+                         (is_some (tboolean))
+                         (value (tunsigned
+                                  340282366920938463463374607431768211455)))))
+          (default
+            (tstruct ShieldedBurn
+              (nullifier (tbytes 32))
+              (amount (tstruct Maybe
+                        (is_some (tboolean))
+                        (value (tunsigned
+                                 340282366920938463463374607431768211455)))))))
+        (circuit %deserialize_ShieldedBurn.5 ([%x.6 (tbytes 49)])
+             (tstruct ShieldedBurn
+               (nullifier (tbytes 32))
+               (amount (tstruct Maybe
+                         (is_some (tboolean))
+                         (value (tunsigned
+                                  340282366920938463463374607431768211455)))))
+          (new (tstruct ShieldedBurn
+                 (nullifier (tbytes 32))
+                 (amount (tstruct Maybe
+                           (is_some (tboolean))
+                           (value (tunsigned
+                                    340282366920938463463374607431768211455)))))
+            (bytes-slice %x.6 0 32)
+            (new (tstruct Maybe
+                   (is_some (tboolean))
+                   (value (tunsigned 340282366920938463463374607431768211455)))
+              (== (bytes-slice %x.6 32 1) #vu8(1))
+              (cast-from-bytes (tunsigned
+                                 340282366920938463463374607431768211455) 16
+                (bytes-slice %x.6 33 16)))))
+        (circuit %serialize_ShieldedBurn.7 ([%x.8 (tstruct ShieldedBurn
+                                                    (nullifier (tbytes 32))
+                                                    (amount (tstruct Maybe
+                                                              (is_some (tboolean))
+                                                              (value (tunsigned
+                                                                       340282366920938463463374607431768211455)))))])
+             (tbytes 49)
+          (vector->bytes
+            49
+            (vector
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 nullifier 0)))
+              (spread
+                17
+                (bytes->vector
+                  17
+                  (if (elt-ref (elt-ref %x.8 amount 1) is_some 0)
+                      (vector->bytes
+                        17
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            16
+                            (bytes->vector
+                              16
+                              (field->bytes
+                                16
+                                (elt-ref (elt-ref %x.8 amount 1) value 1))))))
+                      (vector->bytes
+                        17
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            16
+                            (bytes->vector 16 (default (tbytes 16))))))))))))))
+    )
+
+  (test
+   '(
+     "import CompactStandardLibrary;"
+     "export circuit deserialize_UnshieldedSpend (x: Bytes<81>) : UnshieldedSpend {"
+     "  return deserialize<UnshieldedSpend, 81>(x);"
+     "}"
+     "export circuit serialize_UnshieldedSpend (x: UnshieldedSpend) : Bytes<81> {"
+     "  return serialize<UnshieldedSpend, 81>(x);"
+     "}"
+     )
+   (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct UnshieldedSpend
+                                           (sender (tstruct Either
+                                                     (is_left (tboolean))
+                                                     (left (tstruct ZswapCoinPublicKey
+                                                             (bytes (tbytes
+                                                                      32))))
+                                                     (right (tstruct ContractAddress
+                                                              (bytes (tbytes
+                                                                       32))))))
+                                           (token_type (tbytes 32))
+                                           (amount (tunsigned
+                                                     340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (default (tbytes 81)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 81)])
+             (tstruct UnshieldedSpend
+               (sender (tstruct Either
+                         (is_left (tboolean))
+                         (left (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))
+                         (right (tstruct ContractAddress
+                                  (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (default
+            (tstruct UnshieldedSpend
+              (sender (tstruct Either
+                        (is_left (tboolean))
+                        (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                        (right (tstruct ContractAddress (bytes (tbytes 32))))))
+              (token_type (tbytes 32))
+              (amount (tunsigned
+                        340282366920938463463374607431768211455)))))
+        (circuit %deserialize_UnshieldedSpend.5 ([%x.6 (tbytes 81)])
+             (tstruct UnshieldedSpend
+               (sender (tstruct Either
+                         (is_left (tboolean))
+                         (left (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))
+                         (right (tstruct ContractAddress
+                                  (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (new (tstruct UnshieldedSpend
+                 (sender (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ZswapCoinPublicKey
+                                   (bytes (tbytes 32))))
+                           (right (tstruct ContractAddress
+                                    (bytes (tbytes 32))))))
+                 (token_type (tbytes 32))
+                 (amount (tunsigned
+                           340282366920938463463374607431768211455)))
+            (if (== (bytes-slice %x.6 0 1) #vu8(0))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #t
+                  (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))
+                  (default (tstruct ContractAddress (bytes (tbytes 32)))))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #f
+                  (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                  (new (tstruct ContractAddress (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))))
+            (bytes-slice %x.6 33 32)
+            (cast-from-bytes (tunsigned
+                               340282366920938463463374607431768211455) 16
+              (bytes-slice %x.6 65 16))))
+        (circuit %serialize_UnshieldedSpend.7 ([%x.8 (tstruct UnshieldedSpend
+                                                       (sender (tstruct Either
+                                                                 (is_left (tboolean))
+                                                                 (left (tstruct ZswapCoinPublicKey
+                                                                         (bytes (tbytes
+                                                                                  32))))
+                                                                 (right (tstruct ContractAddress
+                                                                          (bytes (tbytes
+                                                                                   32))))))
+                                                       (token_type (tbytes 32))
+                                                       (amount (tunsigned
+                                                                 340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (vector->bytes
+            81
+            (vector
+              (spread
+                33
+                (bytes->vector
+                  33
+                  (if (elt-ref (elt-ref %x.8 sender 0) is_left 0)
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 sender 0) left 1)
+                                bytes
+                                0)))))
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 sender 0) right 2)
+                                bytes
+                                0))))))))
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 token_type 1)))
+              (spread
+                16
+                (bytes->vector
+                  16
+                  (field->bytes 16 (elt-ref %x.8 amount 2)))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_UnshieldedReceive (x: Bytes<81>) : UnshieldedReceive {"
+      "  return deserialize<UnshieldedReceive, 81>(x);"
+      "}"
+      "export circuit serialize_UnshieldedReceive (x: UnshieldedReceive) : Bytes<81> {"
+      "  return serialize<UnshieldedReceive, 81>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct UnshieldedReceive
+                                           (recipient (tstruct Either
+                                                        (is_left (tboolean))
+                                                        (left (tstruct ZswapCoinPublicKey
+                                                                (bytes (tbytes
+                                                                         32))))
+                                                        (right (tstruct ContractAddress
+                                                                 (bytes (tbytes
+                                                                          32))))))
+                                           (token_type (tbytes 32))
+                                           (amount (tunsigned
+                                                     340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (default (tbytes 81)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 81)])
+             (tstruct UnshieldedReceive
+               (recipient (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ZswapCoinPublicKey
+                                    (bytes (tbytes 32))))
+                            (right (tstruct ContractAddress
+                                     (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (default
+            (tstruct UnshieldedReceive
+              (recipient (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ZswapCoinPublicKey
+                                   (bytes (tbytes 32))))
+                           (right (tstruct ContractAddress
+                                    (bytes (tbytes 32))))))
+              (token_type (tbytes 32))
+              (amount (tunsigned
+                        340282366920938463463374607431768211455)))))
+        (circuit %deserialize_UnshieldedReceive.5 ([%x.6 (tbytes
+                                                           81)])
+             (tstruct UnshieldedReceive
+               (recipient (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ZswapCoinPublicKey
+                                    (bytes (tbytes 32))))
+                            (right (tstruct ContractAddress
+                                     (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (new (tstruct UnshieldedReceive
+                 (recipient (tstruct Either
+                              (is_left (tboolean))
+                              (left (tstruct ZswapCoinPublicKey
+                                      (bytes (tbytes 32))))
+                              (right (tstruct ContractAddress
+                                       (bytes (tbytes 32))))))
+                 (token_type (tbytes 32))
+                 (amount (tunsigned
+                           340282366920938463463374607431768211455)))
+            (if (== (bytes-slice %x.6 0 1) #vu8(0))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #t
+                  (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))
+                  (default (tstruct ContractAddress (bytes (tbytes 32)))))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #f
+                  (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                  (new (tstruct ContractAddress (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))))
+            (bytes-slice %x.6 33 32)
+            (cast-from-bytes (tunsigned
+                               340282366920938463463374607431768211455) 16
+              (bytes-slice %x.6 65 16))))
+        (circuit %serialize_UnshieldedReceive.7 ([%x.8 (tstruct UnshieldedReceive
+                                                         (recipient (tstruct Either
+                                                                      (is_left (tboolean))
+                                                                      (left (tstruct ZswapCoinPublicKey
+                                                                              (bytes (tbytes
+                                                                                       32))))
+                                                                      (right (tstruct ContractAddress
+                                                                               (bytes (tbytes
+                                                                                        32))))))
+                                                         (token_type (tbytes
+                                                                       32))
+                                                         (amount (tunsigned
+                                                                   340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (vector->bytes
+            81
+            (vector
+              (spread
+                33
+                (bytes->vector
+                  33
+                  (if (elt-ref (elt-ref %x.8 recipient 0) is_left 0)
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 recipient 0) left 1)
+                                bytes
+                                0)))))
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 recipient 0) right 2)
+                                bytes
+                                0))))))))
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 token_type 1)))
+              (spread
+                16
+                (bytes->vector
+                  16
+                  (field->bytes 16 (elt-ref %x.8 amount 2)))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_UnshieldedMint (x: Bytes<80>) : UnshieldedMint {"
+      "  return deserialize<UnshieldedMint, 80>(x);"
+      "}"
+      "export circuit serialize_UnshieldedMint (x: UnshieldedMint) : Bytes<80> {"
+      "  return serialize<UnshieldedMint, 80>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct UnshieldedMint
+                                           (domain_sep (tbytes 32))
+                                           (token_type (tbytes 32))
+                                           (amount (tunsigned
+                                                     340282366920938463463374607431768211455)))])
+             (tbytes 80)
+          (default (tbytes 80)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 80)])
+             (tstruct UnshieldedMint
+               (domain_sep (tbytes 32))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (default
+            (tstruct UnshieldedMint
+              (domain_sep (tbytes 32))
+              (token_type (tbytes 32))
+              (amount (tunsigned
+                        340282366920938463463374607431768211455)))))
+        (circuit %deserialize_UnshieldedMint.5 ([%x.6 (tbytes 80)])
+             (tstruct UnshieldedMint
+               (domain_sep (tbytes 32))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (new (tstruct UnshieldedMint
+                 (domain_sep (tbytes 32))
+                 (token_type (tbytes 32))
+                 (amount (tunsigned
+                           340282366920938463463374607431768211455)))
+            (bytes-slice %x.6 0 32)
+            (bytes-slice %x.6 32 32)
+            (cast-from-bytes (tunsigned
+                               340282366920938463463374607431768211455) 16
+              (bytes-slice %x.6 64 16))))
+        (circuit %serialize_UnshieldedMint.7 ([%x.8 (tstruct UnshieldedMint
+                                                      (domain_sep (tbytes 32))
+                                                      (token_type (tbytes 32))
+                                                      (amount (tunsigned
+                                                                340282366920938463463374607431768211455)))])
+             (tbytes 80)
+          (vector->bytes
+            80
+            (vector
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 domain_sep 0)))
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 token_type 1)))
+              (spread
+                16
+                (bytes->vector
+                  16
+                  (field->bytes 16 (elt-ref %x.8 amount 2)))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_UnshieldedBurn (x: Bytes<81>) : UnshieldedBurn {"
+      "  return deserialize<UnshieldedBurn, 81>(x);"
+      "}"
+      "export circuit serialize_UnshieldedBurn (x: UnshieldedBurn) : Bytes<81> {"
+      "  return serialize<UnshieldedBurn, 81>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct UnshieldedBurn
+                                           (sender (tstruct Either
+                                                     (is_left (tboolean))
+                                                     (left (tstruct ZswapCoinPublicKey
+                                                             (bytes (tbytes
+                                                                      32))))
+                                                     (right (tstruct ContractAddress
+                                                              (bytes (tbytes
+                                                                       32))))))
+                                           (token_type (tbytes 32))
+                                           (amount (tunsigned
+                                                     340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (default (tbytes 81)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 81)])
+             (tstruct UnshieldedBurn
+               (sender (tstruct Either
+                         (is_left (tboolean))
+                         (left (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))
+                         (right (tstruct ContractAddress
+                                  (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (default
+            (tstruct UnshieldedBurn
+              (sender (tstruct Either
+                        (is_left (tboolean))
+                        (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                        (right (tstruct ContractAddress (bytes (tbytes 32))))))
+              (token_type (tbytes 32))
+              (amount (tunsigned
+                        340282366920938463463374607431768211455)))))
+        (circuit %deserialize_UnshieldedBurn.5 ([%x.6 (tbytes 81)])
+             (tstruct UnshieldedBurn
+               (sender (tstruct Either
+                         (is_left (tboolean))
+                         (left (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))
+                         (right (tstruct ContractAddress
+                                  (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (new (tstruct UnshieldedBurn
+                 (sender (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ZswapCoinPublicKey
+                                   (bytes (tbytes 32))))
+                           (right (tstruct ContractAddress
+                                    (bytes (tbytes 32))))))
+                 (token_type (tbytes 32))
+                 (amount (tunsigned
+                           340282366920938463463374607431768211455)))
+            (if (== (bytes-slice %x.6 0 1) #vu8(0))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #t
+                  (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))
+                  (default (tstruct ContractAddress (bytes (tbytes 32)))))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #f
+                  (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                  (new (tstruct ContractAddress (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))))
+            (bytes-slice %x.6 33 32)
+            (cast-from-bytes (tunsigned
+                               340282366920938463463374607431768211455) 16
+              (bytes-slice %x.6 65 16))))
+        (circuit %serialize_UnshieldedBurn.7 ([%x.8 (tstruct UnshieldedBurn
+                                                      (sender (tstruct Either
+                                                                (is_left (tboolean))
+                                                                (left (tstruct ZswapCoinPublicKey
+                                                                        (bytes (tbytes
+                                                                                 32))))
+                                                                (right (tstruct ContractAddress
+                                                                         (bytes (tbytes
+                                                                                  32))))))
+                                                      (token_type (tbytes 32))
+                                                      (amount (tunsigned
+                                                                340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (vector->bytes
+            81
+            (vector
+              (spread
+                33
+                (bytes->vector
+                  33
+                  (if (elt-ref (elt-ref %x.8 sender 0) is_left 0)
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 sender 0) left 1)
+                                bytes
+                                0)))))
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 sender 0) right 2)
+                                bytes
+                                0))))))))
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 token_type 1)))
+              (spread
+                16
+                (bytes->vector
+                  16
+                  (field->bytes 16 (elt-ref %x.8 amount 2)))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_Paused (x: Bytes<0>) : Paused {"
+      "  return deserialize<Paused, 0>(x);"
+      "}"
+      "export circuit serialize_Paused (x: Paused) : Bytes<0> {"
+      "  return serialize<Paused, 0>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct Paused)])
+             (tbytes 0)
+          (default (tbytes 0)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 0)])
+             (tstruct Paused)
+          (default (tstruct Paused)))
+        (circuit %deserialize_Paused.5 ([%x.6 (tbytes 0)])
+             (tstruct Paused)
+          (new (tstruct Paused)))
+        (circuit %serialize_Paused.7 ([%x.8 (tstruct Paused)])
+             (tbytes 0)
+          #vu8())))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_Unpaused (x: Bytes<0>) : Unpaused {"
+      "  return deserialize<Unpaused, 0>(x);"
+      "}"
+      "export circuit serialize_Unpaused (x: Unpaused) : Bytes<0> {"
+      "  return serialize<Unpaused, 0>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct Unpaused)])
+             (tbytes 0)
+          (default (tbytes 0)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 0)])
+             (tstruct Unpaused)
+          (default (tstruct Unpaused)))
+        (circuit %deserialize_Unpaused.5 ([%x.6 (tbytes 0)])
+             (tstruct Unpaused)
+          (new (tstruct Unpaused)))
+        (circuit %serialize_Unpaused.7 ([%x.8 (tstruct Unpaused)])
+             (tbytes 0)
+          #vu8())))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_Misc (x: Bytes<288>) : Misc {"
+      "  return deserialize<Misc, 288>(x);"
+      "}"
+      "export circuit serialize_Misc (x: Misc) : Bytes<288> {"
+      "  return serialize<Misc, 288>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct Misc
+                                           (name (tbytes 32))
+                                           (payload (tbytes 256)))])
+             (tbytes 288)
+          (default (tbytes 288)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 288)])
+             (tstruct Misc (name (tbytes 32)) (payload (tbytes 256)))
+          (default
+            (tstruct Misc (name (tbytes 32)) (payload (tbytes 256)))))
+        (circuit %deserialize_Misc.5 ([%x.6 (tbytes 288)])
+             (tstruct Misc (name (tbytes 32)) (payload (tbytes 256)))
+          (new (tstruct Misc
+                 (name (tbytes 32))
+                 (payload (tbytes 256)))
+            (bytes-slice %x.6 0 32)
+            (bytes-slice %x.6 32 256)))
+        (circuit %serialize_Misc.7 ([%x.8 (tstruct Misc
+                                            (name (tbytes 32))
+                                            (payload (tbytes 256)))])
+             (tbytes 288)
+          (vector->bytes
+            288
+            (vector
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 name 0)))
+              (spread
+                256
+                (bytes->vector 256 (elt-ref %x.8 payload 1))))))))
+    )
+
+  ;; size mismatch on serialize: canonical size of ShieldedSpend is 32
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_size_serialize (s: ShieldedSpend): Bytes<99> {"
+      "  return serialize<ShieldedSpend, 99>(s);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "serialize<~a, ~a>: declared size ~a does not match canonical serialized size ~a for ~a" ("struct ShieldedSpend<nullifier: Bytes<32>>" 99 99 32 ShieldedSpend)))
+    )
+
+  ;; size mismatch on deserialize: canonical size of ShieldedSpend is 32
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_size_deserialize (x: Bytes<99>): ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 99>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "deserialize<~a, ~a>: declared size ~a does not match canonical serialized size ~a for ~a" ("struct ShieldedSpend<nullifier: Bytes<32>>" 99 99 32 ShieldedSpend)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_uint_serialize (n: Uint<128>): Bytes<16> {"
+      "  return serialize<Uint<128>, 16>(n);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "expected event struct type, received ~a" ("Uint<128>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_bytes_serialize (x: Bytes<32>): Bytes<32> {"
+      "  return serialize<Bytes<32>, 32>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "expected event struct type, received ~a" ("Bytes<32>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_uint_deserialize (x: Bytes<16>): Uint<128> {"
+      "  return deserialize<Uint<128>, 16>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "expected event struct type, received ~a" ("Uint<128>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_non_event_serialize (m: Maybe<Bytes<32>>): Bytes<33> {"
+      "  return serialize<Maybe<Bytes<32>>, 33>(m);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a is not a declared event type" (Maybe)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_non_event_deserialize (x: Bytes<33>): Maybe<Bytes<32>> {"
+      "  return deserialize<Maybe<Bytes<32>>, 33>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a is not a declared event type" (Maybe)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_non_event_deserialize (x: Bytes<33>): Maybe<Bytes<32>> {"
+      "  return deserialize<Maybe<Bytes<32>>>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (deserialize "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <type struct Maybe<is_some: Boolean, value: Bytes<32>>>\n      declared generics for function at <standard library>:\n        <type, size>" #f #f)))
     )
 
 )
@@ -30328,8 +31427,12 @@ groups than for single tests.
         (circuit %foo.1 ([%x.2 (tbytes 32)])
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (log (disclose
-                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
-                   %x.2))))))
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32))) %x.2))
+               (elt-ref
+                 (disclose
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32))) %x.2))
+                 nullifier
+                 0)))))
     )
 
   (test
@@ -32737,7 +33840,13 @@ groups than for single tests.
           (disclose
             (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                    #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                        0 0 0 0 0)))))))
+                        0 0 0 0 0))
+                 (elt-ref
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                     #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                          0 0 0 0 0 0))
+                   nullifier
+                   0))))))
     )
 
   (test
@@ -32755,7 +33864,13 @@ groups than for single tests.
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                  #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                      0 0 0 0 0))))))
+                      0 0 0 0 0))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                        0 0 0 0 0))
+                 nullifier
+                 0)))))
     )
 
   (test
@@ -32775,7 +33890,13 @@ groups than for single tests.
           (seq
             (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                    #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                        0 0 0 0 0)))
+                        0 0 0 0 0))
+                 (elt-ref
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                     #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                          0 0 0 0 0 0))
+                   nullifier
+                   0))
             (tuple)))))
     )
 
@@ -32793,7 +33914,12 @@ groups than for single tests.
         (circuit %foo.1 ([%x.2 (tbytes 32)])
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
-                 (disclose %x.2))))))
+                 (disclose %x.2))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (disclose %x.2))
+                 nullifier
+                 0)))))
     )
 
   (test
@@ -32810,7 +33936,12 @@ groups than for single tests.
         (circuit %foo.1 ([%x.2 (tbytes 32)])
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
-                 (disclose %x.2))))))
+                 (disclose %x.2))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (disclose %x.2))
+                 nullifier
+                 0)))))
     )
 
   (test
@@ -32827,8 +33958,12 @@ groups than for single tests.
         (circuit %foo.1 ([%x.2 (tbytes 32)])
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (log (disclose
-                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
-                   %x.2))))))
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32))) %x.2))
+               (elt-ref
+                 (disclose
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32))) %x.2))
+                 nullifier
+                 0)))))
     )
 
   (test
@@ -32884,7 +34019,12 @@ groups than for single tests.
         (circuit %foo.2 ()
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
-                 (disclose (call %bar.1)))))))
+                 (disclose (call %bar.1)))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (disclose (call %bar.1)))
+                 nullifier
+                 0)))))
     )
 
   (test
@@ -32904,7 +34044,13 @@ groups than for single tests.
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (log (disclose
                  (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
-                   (call %bar.1)))))))
+                   (call %bar.1)))
+               (elt-ref
+                 (disclose
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                     (call %bar.1)))
+                 nullifier
+                 0)))))
     )
 
   (test
@@ -32940,7 +34086,17 @@ groups than for single tests.
                        #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
                             0 0 0 0 0 0 0)
                        #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                            0 0 0 0 0 0 0))))))))
+                            0 0 0 0 0 0 0))))
+               (elt-ref
+                 (disclose
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                     (if %b.2
+                         #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                              0 0 0 0 0 0 0 0)
+                         #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                              0 0 0 0 0 0 0 0))))
+                 nullifier
+                 0)))))
     )
 
   (test
@@ -32976,7 +34132,16 @@ groups than for single tests.
                    (if %b.3
                        (call %bar.1)
                        #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                            0 0 0 0 0 0 0))))))))
+                            0 0 0 0 0 0 0))))
+               (elt-ref
+                 (disclose
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                     (if %b.3
+                         (call %bar.1)
+                         #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                              0 0 0 0 0 0 0 0))))
+                 nullifier
+                 0)))))
     )
 
   (test
@@ -33027,7 +34192,15 @@ groups than for single tests.
                  (if (disclose %b.3)
                      (disclose (call %bar.1))
                      #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                          0 0 0 0 0 0)))))))
+                          0 0 0 0 0 0)))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (if (disclose %b.3)
+                       (disclose (call %bar.1))
+                       #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                            0 0 0 0 0 0 0)))
+                 nullifier
+                 0)))))
     )
 )
 
@@ -83689,7 +84862,26 @@ groups than for single tests.
     (output-file "compiler/testdir/contract/index.d.ts" '())
     (output-file "compiler/testdir/contract/index.js" '())
     )
+
+  #;(test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 32>(x);"
+      "}"
+      "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<32> {"
+      "  return serialize<ShieldedSpend, 32>(x);"
+      "}"
+      "export circuit roundtrip_ShieldedSpend(orig: ShieldedSpend): Boolean {"
+      "  const bytes = serialize<ShieldedSpend, 32>(orig);"
+      "  const restored = deserialize<ShieldedSpend, 32>(bytes);"
+      "  return orig.nullifier == restored.nullifier;"
+      "}"
+      )
+    (stage-javascript pass values to see that they deserialize  serialize is id))
 )
 
-(run-javascript)
+;; (run-javascript)
 )
+
+#!eof

@@ -26,13 +26,24 @@
           (langs)
           (pass-helpers))
 
-  (define-pass drop-ledger-runtime : Lnodisclose (ir) -> Lposttypescript ()
+  (define-pass lower-log : Lnodisclose (ir) -> Lloweredlog ()
+    (Expression : Expression (ir) -> Expression ()
+      [(log ,src ,[type] ,[expr] ,[expr^])
+       (nanopass-case (Lloweredlog Type) type
+         [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+          (let ([event-tag (or (event-tag-of struct-name)
+                            (source-errorf src "~a is not a declared event type" struct-name))])
+            `(log ,src ,event-version ,event-tag ,type ,expr^))]
+         [else (assert cannot-happen)])
+       ]))
+
+  (define-pass drop-ledger-runtime : Lloweredlog (ir) -> Lposttypescript ()
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        `(program ,src ((,export-name* ,name*) ...)
           ,(fold-right
              (lambda (pelt pelt*)
-               (if (Lnodisclose-Export-Type-Definition? pelt)
+               (if (Lloweredlog-Export-Type-Definition? pelt)
                    pelt*
                    (cons (Program-Element pelt) pelt*)))
              '()
@@ -54,7 +65,7 @@
       [(!= ,src ,[type] ,[expr1] ,[expr2]) (do-not src `(== ,src ,type ,expr1 ,expr2))]
       [(cast-from-bytes ,src ,type ,len ,[expr])
        (let ([expr `(bytes->field ,src ,len ,expr)])
-         (nanopass-case (Lnodisclose Type) type
+         (nanopass-case (Lloweredlog Type) type
            [(tunsigned ,src ,nat) `(downcast-unsigned ,src #f ,nat ,expr)]
            [else expr]))])
     (Type : Type (ir) -> Type ()
@@ -660,14 +671,11 @@
                     (loop (cdr elt-name*) (cdr type*)))))]
          [else (source-errorf src "expected structure type, received ~a"
                               (format-type type))])]
-      [(log ,src ,[Care : expr -> * type])
-       (nanopass-case (Linlined Type) type
-         [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...)
-          (unless (hashtable-ref (event-ht) struct-name #f)
-            (source-errorf src "~a is not a declared event type" struct-name))
-          type]
-         [else (source-errorf src "expected structure type (representation of an event), received ~a"
-                              (format-type type))])]
+      [(log ,src ,event-version ,event-tag ,type ,[Care : expr -> * type^])
+       ; TODO add more check for event version and tag
+       (nanopass-case (Linlined Type) type^
+         [(tbytes ,src^ ,len) type]
+         [else (source-errorf src "expected Bytes type, received ~a" (format-type type))])]
       [(tuple-ref ,src ,[Care : expr -> * expr-type] ,kindex)
        (define (bounds-check len)
          (unless (< kindex len)
@@ -1459,8 +1467,8 @@
            [else (assert cannot-happen)]))]
       [(elt-ref ,src ,[expr ctv] ,elt-name)
        (handle-elt-ref src expr ctv elt-name)]
-      [(log ,src ,[expr ctv])
-       (values `(log ,src ,expr) ctv)]
+      [(log ,src ,event-version ,event-tag ,[type] ,[expr ctv]) ; TODO fix this
+       (values `(log ,src ,event-version ,event-tag ,type ,expr) ctv)]
       [(+ ,src ,mbits ,expr1 ,expr2)
        (define (add x y)
          (let ([a (+ x y)])
@@ -3818,6 +3826,7 @@
   (define optimize-circuit2 (lambda (x) (optimize-circuit x)))
 
   (define-passes circuit-passes
+    (lower-log                       Lloweredlog)
     (drop-ledger-runtime             Lposttypescript)
     (replace-enums                   Lnoenums)
     (unroll-loops                    Lunrolled)
