@@ -74,3 +74,6 @@ pub use results::{CircuitResults, ConstructorResult};
 
 mod witness;
 pub use witness::{NoWitnesses, WitnessContext};
+
+mod error;
+pub use error::CompactError;
