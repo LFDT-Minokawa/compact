@@ -29,7 +29,7 @@ pub use midnight_transient_crypto::merkle_tree::{MerklePath, MerklePathEntry, Me
 
 // Cost / gas.
 pub use midnight_base_crypto::cost_model::RunningCost;
-pub use midnight_onchain_vm::cost_model::CostModel;
+pub use midnight_onchain_vm::cost_model::{CostModel, INITIAL_COST_MODEL};
 
 // VM ops + path keys.
 pub use midnight_onchain_vm::ops::{Key, Op};

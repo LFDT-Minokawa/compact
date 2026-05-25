@@ -448,12 +448,12 @@ use compact_runtime::*;
 
 #[test]
 fn circuit_context_can_be_constructed() {
-    let qctx = QueryContext::new(ChargedState::default(), ContractAddress::default());
+    let qctx = QueryContext::new(ChargedState::new(StateValue::Null), ContractAddress::default());
     let ctx: CircuitContext<()> = CircuitContext {
         current_private_state: (),
         current_query_context: qctx,
         current_zswap_local_state: ZswapLocalState::default(),
-        cost_model: CostModel::initial(),
+        cost_model: INITIAL_COST_MODEL,
         gas_limit: None,
     };
     let _ = ctx.cost_model;
@@ -464,7 +464,7 @@ fn constructor_context_can_be_constructed() {
     let cctx: ConstructorContext<()> = ConstructorContext {
         initial_private_state: (),
         empty_zswap_local_state: ZswapLocalState::default(),
-        cost_model: CostModel::initial(),
+        cost_model: INITIAL_COST_MODEL,
         gas_limit: None,
     };
     let _ = cctx.cost_model;
@@ -567,12 +567,12 @@ Append to `runtime-rs/tests/context.rs`:
 ```rust
 #[test]
 fn circuit_results_can_be_constructed() {
-    let qctx = QueryContext::new(ChargedState::default(), ContractAddress::default());
+    let qctx = QueryContext::new(ChargedState::new(StateValue::Null), ContractAddress::default());
     let ctx: CircuitContext<()> = CircuitContext {
         current_private_state: (),
         current_query_context: qctx,
         current_zswap_local_state: ZswapLocalState::default(),
-        cost_model: CostModel::initial(),
+        cost_model: INITIAL_COST_MODEL,
         gas_limit: None,
     };
     let _: CircuitResults<(), ()> = CircuitResults {
@@ -585,7 +585,7 @@ fn circuit_results_can_be_constructed() {
 #[test]
 fn constructor_result_can_be_constructed() {
     let _: ConstructorResult<()> = ConstructorResult {
-        current_contract_state: ChargedState::default(),
+        current_contract_state: ChargedState::new(StateValue::Null),
         current_private_state: (),
         current_zswap_local_state: ZswapLocalState::default(),
     };
@@ -1249,7 +1249,7 @@ fn increment_counter_end_to_end() {
     ];
 
     let results = qctx
-        .query(&ops, None, &CostModel::initial())
+        .query(&ops, None, &INITIAL_COST_MODEL)
         .expect("query");
 
     // Decode the counter at path [0] from the resulting state.
@@ -1969,7 +1969,7 @@ mod _smoke {
         let cctx = ConstructorContext {
             initial_private_state: (),
             empty_zswap_local_state: ZswapLocalState::default(),
-            cost_model: CostModel::initial(),
+            cost_model: INITIAL_COST_MODEL,
             gas_limit: None,
         };
         let init = contract.initial_state(cctx).expect("init");
@@ -1979,7 +1979,7 @@ mod _smoke {
             current_private_state: (),
             current_query_context: qctx,
             current_zswap_local_state: init.current_zswap_local_state,
-            cost_model: CostModel::initial(),
+            cost_model: INITIAL_COST_MODEL,
             gas_limit: None,
         };
         let result = contract.increment(ctx).expect("increment");
@@ -2053,7 +2053,7 @@ In `rust-passes.ss`, add (called from `Program` after the contract impl block is
         (out "            },\n")
         (out "            Op::Popeq { cached: true, result: AlignedValue::default() },\n")
         (out "        ];\n")
-        (out "        let results = qctx.query(&ops, None, &CostModel::initial())?;\n")
+        (out "        let results = qctx.query(&ops, None, &INITIAL_COST_MODEL)?;\n")
         (out "        let event = results.events.last().ok_or_else(|| CompactError::AssertionFailed(\"empty events\".into()))?;\n")
         (out "        compact_runtime::std_lib::decode_u64(event)\n")
         (out "    }\n")
@@ -2483,7 +2483,7 @@ fn counter_init_plus_increment_byte_parity() {
         Op::Addi { immediate: 1 },
         Op::Ins { cached: true, n: 1 },
     ];
-    let results = qctx.query(&ops, None, &CostModel::initial()).expect("query");
+    let results = qctx.query(&ops, None, &INITIAL_COST_MODEL).expect("query");
     let final_state = results.context.state;
 
     // Step 2: serialize.
