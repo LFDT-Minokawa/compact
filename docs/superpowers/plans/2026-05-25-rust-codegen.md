@@ -7,14 +7,22 @@
 | Phase | Tasks | Status | Last commit |
 |---|---|---|---|
 | A — Pre-flight | A0 | ✅ Complete | (verified in session) |
-| B — runtime-rs crate (M1) | B1 ✅ B2 ✅ B3 ✅ B4–B10 | **B4 is next** | `151997f` |
+| B — runtime-rs crate (M1) | B1–B8 ✅ B9–B10 | **B9 is next** | `fafc3c3` |
 | C — `--rust` flag plumbing | C1–C4 | pending | — |
 | D — counter.compact emission | D2–D8 | pending | — |
 | E — Byte-parity validation | E1–E5 | pending | — |
 
-**Resume here:** Task B4 (`CircuitResults / ConstructorResult`).
+**Resume here:** Task B9 (`Integration smoke test`).
 
-**Upstream-API correction already applied** (commit `151997f`): the plan originally referenced `CostModel::initial()` and `ChargedState::default()`; neither exists. Use `INITIAL_COST_MODEL` (now re-exported from `compact-runtime`) and `ChargedState::new(StateValue::Null)` instead. All later task bodies have been patched.
+**Upstream-API corrections already applied to the plan (do not rediscover these):**
+
+1. `CostModel::initial()` doesn't exist — use `INITIAL_COST_MODEL` (re-exported from `compact-runtime`).
+2. `ChargedState::default()` doesn't exist — use `ChargedState::new(StateValue::Null)`.
+3. `StateValue::new_cell(X)` doesn't exist — use `StateValue::from(X)` (via `impl From<AlignedValue> for StateValue<D>`).
+4. `StateValue::new_array().array_push(X)` doesn't exist — build with `Array::<StateValue, _>::new().push(X)` and wrap in `StateValue::Array(...)`. `Array::push` takes `&self` and returns a new Array (immutable update, name your variable accordingly).
+5. `AlignedValue.value` is `Value(Vec<ValueAtom>)`; access bytes via `av.value.0.first()` returning `Option<&ValueAtom>`, then `atom.0` for the byte slice.
+6. base-crypto strips trailing zero bytes from numeric atoms — `AlignedValue::from(42u64)` is a 1-byte atom `[42]`. `decode_u64` (already implemented in `compact_runtime::std_lib`) accepts variable-length (≤ 8 byte) atoms and zero-pads, little-endian.
+7. `ContractState::new(data, operations, maintenance_authority)` is the actual constructor — requires `HashMap<EntryPointBuf, ContractOperation, D>` and `ContractMaintenanceAuthority` (no Defaults). For B9 a full ContractState is not needed: just a `QueryContext::new(ChargedState::new(...), ContractAddress::default())`.
 
 ---
 
@@ -1097,7 +1105,7 @@ use compact_runtime::std_lib::Counter;
 
 #[test]
 fn counter_decode_reads_u64_from_state_value() {
-    let sv = StateValue::new_cell(AlignedValue::from(42u64));
+    let sv = StateValue::from(AlignedValue::from(42u64));
     let value = Counter::decode_from(&sv).expect("decode");
     assert_eq!(value, 42);
 }
@@ -1243,7 +1251,7 @@ use compact_runtime::*;
 #[test]
 fn increment_counter_end_to_end() {
     // Seed contract state: array with one Cell(u64=0) at index 0.
-    let initial = StateValue::new_array().array_push(StateValue::new_cell(AlignedValue::from(0u64)));
+    let initial = StateValue::Array(Array::new().push(StateValue::from(AlignedValue::from(0u64))));
     let state = ChargedState::new(initial);
     let qctx = QueryContext::new(state, ContractAddress::default());
 
@@ -1844,13 +1852,15 @@ In `rust-passes.ss`, add an `emit-initial-state` helper that walks the construct
         (out "        &self,\n")
         (out "        ctx: ConstructorContext<PS>,\n")
         (out "    ) -> Result<ConstructorResult<PS>, CompactError> {\n")
-        (out "        let mut sv = StateValue::new_array();\n")
+        (out "        let mut sv = Array::<StateValue, _>::new();\n")
         ;; For each ledger field, push its initial StateValue + run the
         ;; ins op the compiler would emit. counter.compact has one field
         ;; (Counter, initial value Cell(0u64)).
         (for-each
           (lambda (lf)
-            (out "        sv = sv.array_push(StateValue::new_cell(AlignedValue::from(0u64)));\n"))
+            (out "        sv = sv.push(StateValue::from(AlignedValue::from(0u64)));\n"))
+        ;; Wrap accumulator in StateValue::Array after loop.
+        (out "        let sv = StateValue::Array(sv);\n")
           ledger-field*)
         (out "        let state = ChargedState::new(sv);\n")
         (out "        let qctx = QueryContext::new(state, ContractAddress::default());\n")
@@ -2486,7 +2496,7 @@ use tests_e2e_rust::TsReferenceState;
 #[test]
 fn counter_init_plus_increment_byte_parity() {
     // Step 1: reproduce the TS init+increment sequence in Rust.
-    let initial = StateValue::new_array().array_push(StateValue::new_cell(AlignedValue::from(0u64)));
+    let initial = StateValue::Array(Array::new().push(StateValue::from(AlignedValue::from(0u64))));
     let state = ChargedState::new(initial);
     let qctx = QueryContext::new(state, ContractAddress::default());
 
