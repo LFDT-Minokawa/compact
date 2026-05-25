@@ -80,3 +80,5 @@ pub use error::CompactError;
 
 pub mod version;
 pub use version::COMPACT_RUNTIME_VERSION;
+
+pub mod std_lib;
