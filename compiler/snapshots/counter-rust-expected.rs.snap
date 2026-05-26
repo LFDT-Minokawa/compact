@@ -47,15 +47,11 @@ where
         &self,
         ctx: CircuitContext<PS>,
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
-        let ops: Vec<Op<ResultModeVerify>> = vec![
-            Op::Idx {
-                cached: false,
-                push_path: true,
-                path: Array::from(vec![Key::Value(AlignedValue::from(0u8))]),
-            },
-            Op::Addi { immediate: 1 },
-            Op::Ins { cached: true, n: 1 },
-        ];
+        let ops = OpProgramVerify::<DefaultDB>::new()
+            .idx_at_index(0u8, true)
+            .addi(1)
+            .ins(true, 1)
+            .build();
 
         let results = query_for_verify(
             &ctx.current_query_context,
@@ -87,15 +83,11 @@ pub fn ledger<D: DB>(state: &ChargedState<D>) -> Ledger<'_, D> {
 impl<'a, D: DB> Ledger<'a, D> {
     pub fn round(&self) -> Result<u64, CompactError> {
         let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
-        let ops: Vec<Op<ResultModeGather, D>> = vec![
-            Op::Dup { n: 0 },
-            Op::Idx {
-                cached: false,
-                push_path: false,
-                path: Array::from(vec![Key::Value(AlignedValue::from(0u8))]),
-            },
-            Op::Popeq { cached: true, result: () },
-        ];
+        let ops = OpProgramGather::<D>::new()
+            .dup(0)
+            .idx_at_index(0u8, false)
+            .popeq(true)
+            .build();
         let results = query_for_read(&qctx, &ops, None, &initial_cost_model())
             .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
         let av = match results.events.last() {
