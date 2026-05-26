@@ -9,10 +9,12 @@
 | A — Pre-flight | A0 | ✅ Complete | (verified in session) |
 | B — runtime-rs crate (M1) | B1–B10 ✅ | ✅ **M1 complete** | `0cc805c` |
 | C — `--rust` flag plumbing | C1–C4 ✅ | ✅ **flag live; stub emits** | `69666d2` |
-| D — counter.compact emission | D2–D8 | pending | — |
-| E — Byte-parity validation | E1–E5 | pending | — |
+| D — counter.compact emission | D2–D8 ✅ | ✅ Complete | `00814b5` |
+| E — Byte-parity validation | E1–E5 ✅ | ✅ Complete | `8550363` |
 
-**Resume here:** Task D2 (`Emit Witnesses trait` — first real codegen task).
+**Status: DONE — M2 milestone gate green.** `compactc --rust counter.compact` emits a working Rust crate that compiles via `cargo build` against `compact-runtime` and matches the TS path's post-increment `ChargedState` byte-for-byte (`tests-e2e-rust/tests/counter.rs`). Snapshot regression guard installed in `compiler/test.ss`. Spec doc Section 7 updated to mark M1 and M2 ✅.
+
+Follow-up work tracked in M3+ (see Section 7 of the spec and "Follow-up plans" below).
 
 **State today (after C4):**
 - `runtime-rs` crate exports the full public API the codegen will reference. 16 tests pass, no warnings, clippy clean.

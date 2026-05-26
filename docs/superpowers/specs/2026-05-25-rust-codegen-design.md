@@ -576,16 +576,16 @@ same state machine as the TS output". Full ZK proof verification is v1.1.
 
 ## 7. Phasing & milestones
 
-| Phase | Deliverable | Effort |
-|---|---|---|
-| **M1** | `compact-runtime` v0.1.0 published from `runtime-rs/`. Compiles, ships re-exports + facade aggregates + macro. Covered by unit tests. | 1w |
-| **M2** | `compactc --rust counter.compact` produces a `contract/lib.rs` that compiles via `cargo check` and matches the TS Op program byte-for-byte. Foundational `rust-passes.ss` skeleton. | 2w |
-| **M3** | `tiny.compact` + `proposal.compact` working — full struct/enum/witness/hash coverage. Cross-language byte-parity harness running in CI. | 2w |
-| **M4** | `compact-runtime` feature `async` + emitter support. `AsyncWitnesses` exercised in a server-shape sample. | 1w |
-| **M5** | `compact-runtime` feature `wasm` + emitter support. Browser-loadable sample shipped. | 2w |
-| **M6** | Documentation, examples, public announcement, contribution of enum derive to `midnight-base-crypto-derive`. | 1w |
-| **Total v1 (M1–M3)** | sync/std Rust path, byte-parity with TS, covered by CI | **5w** |
-| **Total full (M1–M6)** | adds async + wasm + docs + upstream cleanups | **9w** |
+| Phase | Deliverable | Effort | Status |
+|---|---|---|---|
+| **M1** | `compact-runtime` v0.1.0 published from `runtime-rs/`. Compiles, ships re-exports + facade aggregates + macro. Covered by unit tests. | 1w | ✅ Complete |
+| **M2** | `compactc --rust counter.compact` produces a `contract/lib.rs` that compiles via `cargo check` and matches the TS Op program byte-for-byte. Foundational `rust-passes.ss` skeleton. | 2w | ✅ Complete |
+| **M3** | `tiny.compact` + `proposal.compact` working — full struct/enum/witness/hash coverage. Cross-language byte-parity harness running in CI. | 2w | pending |
+| **M4** | `compact-runtime` feature `async` + emitter support. `AsyncWitnesses` exercised in a server-shape sample. | 1w | pending |
+| **M5** | `compact-runtime` feature `wasm` + emitter support. Browser-loadable sample shipped. | 2w | pending |
+| **M6** | Documentation, examples, public announcement, contribution of enum derive to `midnight-base-crypto-derive`. | 1w | pending |
+| **Total v1 (M1–M3)** | sync/std Rust path, byte-parity with TS, covered by CI | **5w** | M1+M2 ✅ |
+| **Total full (M1–M6)** | adds async + wasm + docs + upstream cleanups | **9w** | M1+M2 ✅ |
 
 ## 8. Risks & mitigations
 

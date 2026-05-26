@@ -4539,6 +4539,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "tests-e2e-rust"
+version = "0.1.0"
+dependencies = [
+ "compact-runtime",
+ "hex",
+ "midnight-base-crypto",
+ "midnight-coin-structure",
+ "midnight-onchain-runtime",
+ "midnight-onchain-state",
+ "midnight-onchain-vm",
+ "midnight-serialize",
+ "midnight-storage",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "textwrap"
 version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
