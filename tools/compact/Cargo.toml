@@ -32,7 +32,7 @@ axoupdater = { version = "0.9.0", default-features = false, features = [
 bytes = "1.11.1"
 clap = { version = "4.5.23", features = ["derive", "env"] }
 console = "0.16.0"
-dialoguer = "0.11.0"
+dialoguer = "0.12.0"
 dirs = "5.0.1"
 futures = "0.3.31"
 ignore = "0.4.23"
