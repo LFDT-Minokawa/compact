@@ -183,6 +183,41 @@
         (out "            current_private_state: ctx.initial_private_state,\n")
         (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
         (out "        })\n")
+        (out "    }\n\n"))
+
+      ;; emit-increment-circuit: emits the `increment` circuit method
+      ;; inside the open Contract impl block. Hard-coded for
+      ;; counter.compact's single `increment()` circuit calling
+      ;; Counter.increment(1). The Op sequence (Idx + Addi + Ins) comes
+      ;; from compiler/midnight-ledger.ss:602-606. M3 will generalise to
+      ;; arbitrary circuit bodies via a proper IR walk.
+      (define (emit-increment-circuit)
+        (out "    pub fn increment(\n")
+        (out "        &self,\n")
+        (out "        ctx: CircuitContext<PS>,\n")
+        (out "    ) -> Result<CircuitResults<PS, ()>, CompactError> {\n")
+        (out "        let ops: Vec<Op<ResultModeVerify>> = vec![\n")
+        (out "            Op::Idx {\n")
+        (out "                cached: false,\n")
+        (out "                push_path: true,\n")
+        (out "                path: Array::from(vec![Key::Value(AlignedValue::from(0u8))]),\n")
+        (out "            },\n")
+        (out "            Op::Addi { immediate: 1 },\n")
+        (out "            Op::Ins { cached: true, n: 1 },\n")
+        (out "        ];\n")
+        (out "\n")
+        (out "        let results = ctx\n")
+        (out "            .current_query_context\n")
+        (out "            .query(&ops, ctx.gas_limit.clone(), &ctx.cost_model)?;\n")
+        (out "\n")
+        (out "        Ok(CircuitResults {\n")
+        (out "            result: (),\n")
+        (out "            context: CircuitContext {\n")
+        (out "                current_query_context: results.context,\n")
+        (out "                ..ctx\n")
+        (out "            },\n")
+        (out "            gas_cost: results.gas_cost,\n")
+        (out "        })\n")
         (out "    }\n\n")))
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,tdescs ,pelt* ...)
@@ -190,8 +225,10 @@
        (emit-witnesses (program-witnesses pelt*))
        (emit-contract-struct)
        (emit-initial-state (program-ledger-fields pelt*))
-       ;; Tasks D5-D7 will emit circuit and ledger() methods here,
-       ;; inside the impl block opened by emit-contract-struct.
+       ;; M2: hardcode the increment circuit for counter.compact.
+       ;; M3 replaces this with a real IR walk over circuit declarations.
+       (emit-increment-circuit)
+       ;; Tasks D6-D7 will emit ledger() and pure_circuits here.
        (close-contract-struct)
        ir]))
 
