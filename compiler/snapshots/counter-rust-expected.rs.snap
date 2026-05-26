@@ -31,9 +31,9 @@ where
         &self,
         ctx: ConstructorContext<PS>,
     ) -> Result<ConstructorResult<PS>, CompactError> {
-        let mut sv = Array::<StateValue, _>::new();
-        sv = sv.push(StateValue::from(AlignedValue::from(0u64)));
-        let sv = StateValue::Array(sv);
+        let sv = new_array(vec![
+            new_cell(0u64),
+        ]);
         let state = ChargedState::new(sv);
         let qctx = QueryContext::new(state, ContractAddress::default());
         Ok(ConstructorResult {
@@ -57,9 +57,12 @@ where
             Op::Ins { cached: true, n: 1 },
         ];
 
-        let results = ctx
-            .current_query_context
-            .query(&ops, ctx.gas_limit.clone(), &ctx.cost_model)?;
+        let results = query_for_verify(
+            &ctx.current_query_context,
+            &ops,
+            ctx.gas_limit.clone(),
+            &ctx.cost_model,
+        )?;
 
         Ok(CircuitResults {
             result: (),
@@ -93,8 +96,7 @@ impl<'a, D: DB> Ledger<'a, D> {
             },
             Op::Popeq { cached: true, result: () },
         ];
-        let results = qctx
-            .query(&ops, None, &INITIAL_COST_MODEL)
+        let results = query_for_read(&qctx, &ops, None, &initial_cost_model())
             .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
         let av = match results.events.last() {
             Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
