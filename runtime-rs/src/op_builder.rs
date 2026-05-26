@@ -1,0 +1,107 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Typed builders for Op programs. Two builders — OpProgramVerify and
+// OpProgramGather — corresponding to the two ResultMode flavours the
+// codegen emits (Verify for mutating circuits, Gather for ledger view
+// reads).
+//
+// Each builder method is a thin wrapper around constructing the
+// corresponding `Op<M, D>` variant. The builder also covers the most
+// common path shape — a single-element path keyed by a u8-aligned
+// index — via `idx_at_index` for readability.
+//
+// Build with `.build()` to obtain a `Vec<Op<M, D>>` ready to pass to
+// `query_for_verify` / `query_for_read`.
+
+use crate::{AlignedValue, Array, DefaultDB, Key, Op, ResultModeGather, ResultModeVerify, DB};
+
+/// Builder for `Vec<Op<ResultModeVerify, D>>` — used by mutating circuits.
+pub struct OpProgramVerify<D: DB = DefaultDB> {
+    ops: Vec<Op<ResultModeVerify, D>>,
+}
+
+impl<D: DB> OpProgramVerify<D> {
+    pub fn new() -> Self {
+        Self { ops: Vec::new() }
+    }
+
+    /// Generic `idx` with an explicit path.
+    pub fn idx(mut self, cached: bool, push_path: bool, path: Vec<Key>) -> Self {
+        self.ops.push(Op::Idx {
+            cached,
+            push_path,
+            path: Array::from(path),
+        });
+        self
+    }
+
+    /// Common case: single-element path indexing into an Array by u8 index.
+    pub fn idx_at_index(self, idx: u8, push_path: bool) -> Self {
+        self.idx(false, push_path, vec![Key::Value(AlignedValue::from(idx))])
+    }
+
+    pub fn addi(mut self, immediate: u32) -> Self {
+        self.ops.push(Op::Addi { immediate });
+        self
+    }
+
+    pub fn ins(mut self, cached: bool, n: u8) -> Self {
+        self.ops.push(Op::Ins { cached, n });
+        self
+    }
+
+    pub fn build(self) -> Vec<Op<ResultModeVerify, D>> {
+        self.ops
+    }
+}
+
+impl<D: DB> Default for OpProgramVerify<D> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Builder for `Vec<Op<ResultModeGather, D>>` — used by ledger view reads.
+pub struct OpProgramGather<D: DB = DefaultDB> {
+    ops: Vec<Op<ResultModeGather, D>>,
+}
+
+impl<D: DB> OpProgramGather<D> {
+    pub fn new() -> Self {
+        Self { ops: Vec::new() }
+    }
+
+    pub fn dup(mut self, n: u8) -> Self {
+        self.ops.push(Op::Dup { n });
+        self
+    }
+
+    pub fn idx(mut self, cached: bool, push_path: bool, path: Vec<Key>) -> Self {
+        self.ops.push(Op::Idx {
+            cached,
+            push_path,
+            path: Array::from(path),
+        });
+        self
+    }
+
+    pub fn idx_at_index(self, idx: u8, push_path: bool) -> Self {
+        self.idx(false, push_path, vec![Key::Value(AlignedValue::from(idx))])
+    }
+
+    /// `popeq` for read paths. In `ResultModeGather`, `ReadResult` is `()`.
+    pub fn popeq(mut self, cached: bool) -> Self {
+        self.ops.push(Op::Popeq { cached, result: () });
+        self
+    }
+
+    pub fn build(self) -> Vec<Op<ResultModeGather, D>> {
+        self.ops
+    }
+}
+
+impl<D: DB> Default for OpProgramGather<D> {
+    fn default() -> Self {
+        Self::new()
+    }
+}

@@ -94,3 +94,6 @@ pub use builders::{
 
 pub mod query;
 pub use query::{query_for_read, query_for_verify};
+
+pub mod op_builder;
+pub use op_builder::{OpProgramGather, OpProgramVerify};
