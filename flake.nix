@@ -37,7 +37,7 @@
     onchain-runtime-v3 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2";
+      url = "github:midnightntwrk/midnight-ledger/ledger-8";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
@@ -220,7 +220,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.31.104"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.31.105"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.31.104, language 0.23.103, runtime 0.16.100]
+## [Toolchain 0.31.105, language 0.23.104, runtime 0.16.101]
 
 ### Added
 
@@ -18,13 +18,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The compiler now removes and recreates the `contract` subdirectory of target
   directory.  While previous versions removed and recreated the `compiler`, `zkir`,
-  and `keys` directory they left the `contract` subdirectory in place and instead
-  replaced only the target files `index.dts`, `index.js`, and `index.js.map`.
+  and `keys` directory they left the `contract` subdirectory _and its contents_
+  in place and instead replaced only the target files `index.dts`, `index.js`,
+  and `index.js.map`.
 
 - The compiler now always creates the `keys` subdirectory of the target
   directory.  The `keys` directory will be empty, however, if the --skip-zk
   flag is used, the zkir binary isn't found, or none of the contracts circuits
   require proofs.
+
+## [Toolchain 0.31.104, language 0.23.104, runtime 0.16.101]
+
+### Added
+
+- Schnorr signature verification over the JubJub embedded curve, via the new
+  `JubjubSchnorrSignature` struct and `jubjubSchnorrVerify` circuit in the
+  standard library.
+>>>>>>> main
 
 ## [Toolchain 0.31.103, language 0.23.103, runtime 0.16.100]
 
