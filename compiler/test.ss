@@ -83531,6 +83531,49 @@ groups than for single tests.
         "  });"
         ))
     )
+
+  (test ; Casts involving JubjubScalar.
+    '(
+      "import CompactStandardLibrary;"
+      "ledger fCell: Field;"
+      "ledger jCell: JubjubScalar;"
+      "ledger uCell: Uint<64>;"
+      "export circuit testFtoJ(f: Field): [JubjubScalar, JubjubScalar, Field] {"
+      "  const j0 = f as JubjubScalar;"
+      "  jCell = disclose(j0);"
+      "  const j1 = jCell;"
+      "  return [j0, j1, j1 as Field];"
+      "}"
+      "// export circuit testJtoF(j: JubjubScalar): [Field, Field, JubjubScalar] {"
+      "//   const f0 = j as Field;"
+      "//   fCell = disclose(f0);"
+      "//   const f1 = fCell;"
+      "//   return [f0, f1, f1 as JubjubScalar];"
+      "// }"
+      "// export circuit testUtoJ(u: Uint<64>): [JubjubScalar, JubjubScalar, Uint<64>] {"
+      "//   const j0 = u as JubjubScalar;"
+      "//   jCell = disclose(j0);"
+      "//   const j1 = jCell;"
+      "//   return [j0, j1, j1 as Uint<64>];"
+      "// }"
+      "// export circuit testJtoU(j: JubjubScalar): [Uint<64>, Uint<64>, JubjubScalar] {"
+      "//   const u0 = j as Uint<64>;"
+      "//   uCell = disclose(u0);"
+      "//   const u1 = uCell;"
+      "//   return [u0, u1, u1 as JubjubScalar];"
+      "// }"
+      )
+    (stage-javascript
+      `(
+        "test('check 0', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "//  expect(C.circuits.testFtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
+        "//  expect(C.circuits.testFtoJ(Ctxt, 1000n).result).toEqual([1000n, 1000n, 1000n]);"
+        ,(format "  const MAX_FIELD = ~dn;" (max-field))
+        "  expect(C.circuits.testFtoJ(Ctxt, MAX_FIELD).result).toEqual([MAX_FIELD, MAX_FIELD, MAX_FIELD]);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)

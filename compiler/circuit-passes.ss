@@ -963,12 +963,12 @@
            (unless (nanopass-case (Linlined Type) type
                      [(tunsigned ,src ,nat) #t]
                      [else #f])
-             (source-errorf src "expected Uint, got ~a for downcast-unsigned"
+             (source-errorf src "expected an unsigned integer type, got ~a for downcast-unsigned"
                             (format-type type)))
            (unless (nanopass-case (Linlined Type) type
-                     [(tfield ,src (field-native)) #t]
+                     [(tfield ,src ,ftype) #t]
                      [else #f])
-             (source-errorf src "expected Field, got ~a for downcast-unsigned"
+             (source-errorf src "expected a field type, got ~a for downcast-unsigned"
                             (format-type type))))
        (with-output-language (Linlined Type) `(tunsigned ,src ,nat))]
       [(safe-cast ,src ,type ,type^ ,[Care : expr -> * type^^])
@@ -1525,7 +1525,7 @@
       [(cast-to-field ,src ,[ftype] ,[type] ,[expr ctv])
        (values
          `(cast-to-field ,src ,ftype ,type ,expr)
-         ctv)]
+         (CTV-unknown no-var-name))]
       [(field->bytes ,src ,len ,[expr ctv])
        (assert (not (= len 0)))
        (cond
