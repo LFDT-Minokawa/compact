@@ -264,7 +264,16 @@
             (out "        compact_runtime::std_lib::decode_u64(av)\n")
             (out "    }\n"))
           ledger-field*)
-        (out "}\n\n")))
+        (out "}\n\n"))
+
+      ;; emit-pure-circuits: emits the `pure_circuits` module. counter.compact
+      ;; has no pure circuits, so the module is emitted empty. M3 fills it in
+      ;; for contracts that declare pure circuits.
+      (define (emit-pure-circuits pure-circuit*)
+        (out "pub mod pure_circuits {\n")
+        ;; M3: emit one `pub fn` per pure circuit.
+        (for-each (lambda (c) (out "    // TODO(M3): emit pure circuit\n")) pure-circuit*)
+        (out "}\n")))
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,tdescs ,pelt* ...)
        (header)
@@ -276,7 +285,8 @@
        (emit-increment-circuit)
        (close-contract-struct)
        (emit-ledger-view (program-ledger-fields pelt*))
-       ;; Task D7 will emit pure_circuits here.
+       ;; counter.compact has no pure circuits — emit an empty module.
+       (emit-pure-circuits '())
        ir]))
 
   (define-passes rust-passes
