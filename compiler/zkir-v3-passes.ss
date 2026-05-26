@@ -100,6 +100,9 @@
               [(ecMulGenerator)
                (assert (= (length var-name*) 1))
                (cons `(ec_mul_generator ,(car var-name*) ,(car triv*)) instr*)]
+              [(jubjubScalarFromNative)
+               (assert (= (length var-name*) 1))
+               (cons `(copy ,(car var-name*) ,(car triv*)) instr*)]
               [(hashToCurve)
                (assert (= (length var-name*) 1))
                (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
