@@ -1291,6 +1291,8 @@
                              (register-contract-info! src contract-name))
               v))))
         )
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) ir])
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) (,unused-pelt* ...) (,[ecdecl*] ...) ,pelt* ...)
        `(program ,src ((,export-name* ,name*) ...) (,unused-pelt* ...) (,ecdecl* ...) ,pelt* ...)])
@@ -1301,6 +1303,7 @@
 
   (define-pass infer-types : Lexpanded (ir) -> Ltypes ()
     (definitions
+      (define tadt-type-cache (make-eq-hashtable))
       (define-syntax T
         (syntax-rules ()
           [(T ty clause ...)
@@ -2258,6 +2261,7 @@
            `(export-typedef ,src ,type-name (,tvar-name* ...) ,type))])
     (ADT-Op : ADT-Op (ir) -> ADT-Op ())
     (ADT-Op-Class : ADT-Op-Class (ir) -> ADT-Op-Class ())
+    (ADT-Runtime-Op : ADT-Runtime-Op (ir) -> ADT-Runtime-Op ())
     (Argument : Argument (ir) -> Argument ()
       [(,var-name ,type)
        (let ([type (Non-ADT-Type type (id-src var-name) "argument '~a'" (id-sym var-name))])
@@ -2304,16 +2308,22 @@
        `(tenum ,src ,enum-name ,elt-name ,elt-name* ...)]
       [(talias ,src ,nominal? ,type-name ,[type])
        `(talias ,src ,nominal? ,type-name ,type)]
-      [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,[adt-op*] ...) (,[adt-rt-op*] ...))
-       (when (or (eq? adt-name 'MerkleTree) (eq? adt-name 'HistoricMerkleTree))
-         (let ([depth (car generic-value*)])
-           (unless (<= (min-merkle-tree-depth) depth (max-merkle-tree-depth))
-             (source-errorf src "~a depth ~d does not fall in ~d <= depth <= ~d"
-                            adt-name
-                            depth
-                            (min-merkle-tree-depth)
-                            (max-merkle-tree-depth)))))
-       `(tadt ,src ,adt-name ([,adt-formal* ,(map Generic-Value generic-value*)] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))])
+      [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (or (hashtable-ref tadt-type-cache ir #f)
+           (let ([result
+                  (begin
+                    (when (or (eq? adt-name 'MerkleTree) (eq? adt-name 'HistoricMerkleTree))
+                      (let ([depth (car generic-value*)])
+                        (unless (<= (min-merkle-tree-depth) depth (max-merkle-tree-depth))
+                          (source-errorf src "~a depth ~d does not fall in ~d <= depth <= ~d"
+                                         adt-name
+                                         depth
+                                         (min-merkle-tree-depth)
+                                         (max-merkle-tree-depth)))))
+                    `(tadt ,src ,adt-name ([,adt-formal* ,(map Generic-Value generic-value*)] ...)
+                       ,vm-expr (,(map ADT-Op adt-op*) ...) (,(map ADT-Runtime-Op adt-rt-op*) ...)))])
+             (hashtable-set! tadt-type-cache ir result)
+             result))])
     (CareNot : Expression (ir) -> Expression ()
       [(if ,src ,[Care : expr0 type0] ,expr1 ,expr2)
        (unless (nanopass-case (Ltypes Type) (de-alias type0 #t)
@@ -3197,10 +3207,22 @@
                               (format-type type))])])
     )
 
-  (define-pass remove-tundeclared : Ltypes (ir) -> Lnotundeclared ())
+  (define-pass remove-tundeclared : Ltypes (ir) -> Lnotundeclared ()
+    (definitions
+      (define tadt-type-cache (make-eq-hashtable)))
+    (Public-Ledger-ADT-Arg : Public-Ledger-ADT-Arg (ir) -> Public-Ledger-ADT-Arg ())
+    (ADT-Op : ADT-Op (ir) -> ADT-Op ())
+    (ADT-Runtime-Op : ADT-Runtime-Op (ir) -> ADT-Runtime-Op ())
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (or (hashtable-ref tadt-type-cache ir #f)
+           (let ([result `(tadt ,src ,adt-name ([,adt-formal* ,(map Public-Ledger-ADT-Arg adt-arg*)] ...) ,vm-expr (,(map ADT-Op adt-op*) ...) (,(map ADT-Runtime-Op adt-rt-op*) ...))])
+             (hashtable-set! tadt-type-cache ir result)
+             result))]))
 
   (define-pass combine-ledger-declarations : Lnotundeclared (ir) -> Loneledger ()
     (definitions
+      (define tadt-type-cache (make-eq-hashtable))
       (define kernel-id*)
       (define (de-alias type)
         (nanopass-case (Lnotundeclared Type) type
@@ -3260,7 +3282,15 @@
       [,ldecl (assert cannot-happen)]
       [,lconstructor (assert cannot-happen)])
     (Argument : Argument (ir) -> Argument ())
-    (Type : Type (ir) -> Type ())
+    (Public-Ledger-ADT-Arg : Public-Ledger-ADT-Arg (ir) -> Public-Ledger-ADT-Arg ())
+    (ADT-Op : ADT-Op (ir) -> ADT-Op ())
+    (ADT-Runtime-Op : ADT-Runtime-Op (ir) -> ADT-Runtime-Op ())
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (or (hashtable-ref tadt-type-cache ir #f)
+           (let ([result `(tadt ,src ,adt-name ([,adt-formal* ,(map Public-Ledger-ADT-Arg adt-arg*)] ...) ,vm-expr (,(map ADT-Op adt-op*) ...) (,(map ADT-Runtime-Op adt-rt-op*) ...))])
+             (hashtable-set! tadt-type-cache ir result)
+             result))])
     (Expression : Expression (ir) -> Expression ()
       [(ledger-ref ,src ,ledger-field-name) (assert cannot-happen)]
       [(ledger-call ,src ,ledger-op ,sugar? ,expr ,expr* ...)
@@ -3295,6 +3325,8 @@
       (define (exported? ipelt)
         (let ([id (ipelt->function-name ipelt)])
           (or (not id) (id-exported? id)))))
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) ir])
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (let-values ([(exported* nonexported*) (partition exported? (map make-ipelt (enumerate pelt*) pelt*))])
@@ -3352,6 +3384,8 @@
                  (Expression expr)
                  (set-cdr! a 'processed)))])))
       )
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) ir])
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (for-each record-circuit! pelt*)
@@ -3375,6 +3409,17 @@
     ; this pass has two benefits for the downstream typescript generation pass:
     ; - it simplifies the generated code a bit, and, more importantly,
     ; - it allows exercise of non-top-level let expressions
+    (definitions
+      (define tadt-type-cache (make-eq-hashtable)))
+    (Public-Ledger-ADT-Arg : Public-Ledger-ADT-Arg (ir) -> Public-Ledger-ADT-Arg ())
+    (ADT-Op : ADT-Op (ir) -> ADT-Op ())
+    (ADT-Runtime-Op : ADT-Runtime-Op (ir) -> ADT-Runtime-Op ())
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (or (hashtable-ref tadt-type-cache ir #f)
+           (let ([result `(tadt ,src ,adt-name ([,adt-formal* ,(map Public-Ledger-ADT-Arg adt-arg*)] ...) ,vm-expr (,(map ADT-Op adt-op*) ...) (,(map ADT-Runtime-Op adt-rt-op*) ...))])
+             (hashtable-set! tadt-type-cache ir result)
+             result))])
     (Expr : Expression (ir) -> Expression ()
       [(call ,src (fref ,src^ ,function-name) ,[expr*] ...)
        `(call ,src ,function-name ,expr* ...)]
@@ -3660,6 +3705,8 @@
         (define (lookup-adt-ops ledger-field-name)
           (assert (hashtable-ref ledger-ht ledger-field-name #f))))
       )
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) ir])
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (for-each record-adt-ops! pelt*)
@@ -4251,6 +4298,8 @@
            (de-alias type)]
           [else type]))
     )
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) ir])
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (for-each record-adt-ops! pelt*)
@@ -4337,6 +4386,8 @@
             contract-name]
           [else (assert cannot-happen)]))
     )
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) ir])
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (for-each record-function-kind! pelt*)
@@ -4427,6 +4478,8 @@
            (de-alias type)]
           [else type]))
     )
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) ir])
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (for-each record-function-kind! pelt*)
@@ -4503,6 +4556,17 @@
        ir]))
 
   (define-pass determine-ledger-paths : Lnodca (ir) -> Lwithpaths0 ()
+    (definitions
+      (define tadt-type-cache (make-eq-hashtable)))
+    (Public-Ledger-ADT-Arg : Public-Ledger-ADT-Arg (ir) -> Public-Ledger-ADT-Arg ())
+    (ADT-Op : ADT-Op (ir) -> ADT-Op ())
+    (ADT-Runtime-Op : ADT-Runtime-Op (ir) -> ADT-Runtime-Op ())
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (or (hashtable-ref tadt-type-cache ir #f)
+           (let ([result `(tadt ,src ,adt-name ([,adt-formal* ,(map Public-Ledger-ADT-Arg adt-arg*)] ...) ,vm-expr (,(map ADT-Op adt-op*) ...) (,(map ADT-Runtime-Op adt-rt-op*) ...))])
+             (hashtable-set! tadt-type-cache ir result)
+             result))])
     (Kernel-Declaration : Kernel-Declaration (ir) -> Kernel-Declaration ()
       [(kernel-declaration ,public-binding)
        `(kernel-declaration ,(Public-Ledger-Binding public-binding '()))])
@@ -5236,6 +5300,8 @@
            (de-alias type)]
           [else type]))
     )
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) ir])
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (for-each record-function-kind! pelt*)
@@ -5590,9 +5656,19 @@
        (Expression expr (extend-env p var-name* abs*) control-witness* #f)]))
 
   (define-pass remove-disclose : Lwithpaths (ir) -> Lnodisclose ()
+    (definitions
+      (define tadt-type-cache (make-eq-hashtable)))
     (ADT-Op : ADT-Op (ir) -> ADT-Op ()
       [(,ledger-op ,[op-class] (,adt-name (,adt-formal* ,[adt-arg*]) ...) ((,var-name* ,[type*] ,discloses?*) ...) ,[type] ,vm-code)
        `(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)])
+    (Public-Ledger-ADT-Arg : Public-Ledger-ADT-Arg (ir) -> Public-Ledger-ADT-Arg ())
+    (ADT-Runtime-Op : ADT-Runtime-Op (ir) -> ADT-Runtime-Op ())
+    (Type : Type (ir) -> Type ()
+      [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+       (or (hashtable-ref tadt-type-cache ir #f)
+           (let ([result `(tadt ,src ,adt-name ([,adt-formal* ,(map Public-Ledger-ADT-Arg adt-arg*)] ...) ,vm-expr (,(map ADT-Op adt-op*) ...) (,(map ADT-Runtime-Op adt-rt-op*) ...))])
+             (hashtable-set! tadt-type-cache ir result)
+             result))])
     (Expression : Expression (ir) -> Expression ()
       [(disclose ,src ,[expr]) expr]))
 
