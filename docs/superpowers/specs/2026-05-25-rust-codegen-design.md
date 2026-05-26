@@ -55,15 +55,20 @@ compact/                            (this repo)
 ├── runtime-rs/                     NEW — Rust runtime facade
 │   ├── Cargo.toml
 │   ├── README.md
-│   └── src/
+│   └── src/                        (actual final shape, post-M2)
 │       ├── lib.rs                  curated re-exports + module declarations
 │       ├── context.rs              CircuitContext / ConstructorContext aggregates
 │       ├── witness.rs              WitnessContext + NoWitnesses marker
 │       ├── results.rs              CircuitResults / ConstructorResult
 │       ├── version.rs              check_runtime_version! macro
-│       ├── built_ins.rs            keccak256, max_field, optional add_field/sub_field/mul_field
-│       ├── zswap.rs                empty_zswap_local_state helper
-│       └── error.rs                CompactError type
+│       ├── error.rs                CompactError type
+│       ├── std_lib.rs              Counter newtype + decode_u8/u16/u32/u64/u128 family
+│       │                           + serialize_contract_state (tagged_serialize wrapper)
+│       ├── builders.rs             Tier-1 ergonomic helpers (new_cell, new_array,
+│       │                           empty_charged_state, initial_cost_model,
+│       │                           aligned_bytes, new_contract_state, entry_point, ...)
+│       ├── query.rs                query_for_read / query_for_verify (ResultMode-pinned)
+│       └── op_builder.rs           OpProgramVerify / OpProgramGather typed builders
 │
 └── tests-e2e/                      add a `rust-output/` subdirectory parallel to TS
 ```
@@ -247,6 +252,71 @@ serde   = ["dep:serde"]
 - Release cadence follows the existing compactc release cadence — every
   compactc release ships matched runtime/, runtime-rs/, and the npm
   package together.
+
+### 4.6 Upstream-API findings (as-implemented)
+
+The M1/M2 implementation surfaced a set of friction points where the
+upstream `midnight-ledger` Rust APIs diverge from the conventions the
+TypeScript facade exposes (and from idiomatic Rust). Rather than emit the
+longhand at every call site in generated code, `compact-runtime` papers
+over each gap with a thin wrapper. The Tier-4 doc (companion
+`2026-05-25-rust-codegen-upstream-prs.md`) proposes upstreaming the fixes;
+this section is the catalogue.
+
+1. **`CostModel::initial()` doesn't exist.** Upstream exposes an
+   `INITIAL_COST_MODEL` const. Wrapper: `initial_cost_model()` re-exports
+   the const through a function call site.
+2. **`ChargedState::default()` doesn't exist.** Construct empty state with
+   `ChargedState::new(StateValue::Null)`. Wrapper:
+   `empty_charged_state()`.
+3. **`StateValue::new_cell(X)` doesn't exist.** `StateValue::from(X)` via
+   `impl From<AlignedValue>` is the upstream idiom. Wrapper: `new_cell(v)`
+   matches the TS `StateValue.newCell` factory name.
+4. **`StateValue::new_array().array_push(X)` doesn't exist.** The
+   upstream pattern is `Array::<StateValue, _>::new().push(X)` wrapped in
+   `StateValue::Array(...)`. Wrappers: `new_array(vec![...])` and
+   `new_empty_array()`.
+5. **`AlignedValue` byte access is awkward.** `AlignedValue.value` is
+   `Value(Vec<ValueAtom>)`; bytes live at `av.value.0.first()?.0`. Wrapper:
+   `aligned_bytes(av) -> Option<&[u8]>`.
+6. **base-crypto strips trailing zero bytes from numeric atoms.**
+   `AlignedValue::from(42u64)` is a 1-byte atom `[42]`, not 8 bytes. Why
+   it matters: any decoder that assumes fixed-width atoms will silently
+   misread small values. Resolution: the `decode_u8/u16/u32/u64/u128`
+   family in `compact_runtime::std_lib` accepts variable-length atoms with
+   little-endian zero-padding.
+7. **`ContractState::new` signature is heavy.** It takes `(data, ops,
+   maintenance_authority)` where `ops` is `HashMap<EntryPointBuf,
+   ContractOperation, D>` and `maintenance_authority` is a
+   `ContractMaintenanceAuthority`. Wrapper:
+   `new_contract_state(data, &["op_name"])` defaults the maintenance
+   authority and accepts operation names as `&str`.
+8. **`QueryResults.context.state` is `ChargedState<D>`, not
+   `StateValue<D>`.** Use `.get_ref()` for the inner `StateValue`.
+   Wrapper: `query_result_state(r)`.
+9. **Read-path Op programs require `ResultModeGather`, not
+   `ResultModeVerify`.** Verify mode produces no events, so any read
+   (popeq → event capture) comes back empty. This is the single
+   highest-risk footgun in the upstream API. Resolution: purpose-named
+   wrappers `query_for_read()` (Gather) and `query_for_verify()` (Verify)
+   pin the correct mode at the call site so the codegen cannot get it
+   wrong.
+10. **`tagged_serialize` is the canonical envelope encoder.** Not
+    `Serializable::serialize`. `tagged_serialize` matches the TS path's
+    `cr.encode`. Wrapper: `serialize_contract_state(state)`.
+11. **`EntryPointBuf(b"increment".to_vec())` raw-bytes ceremony.** This
+    is the upstream constructor for operation keys. Matches what the TS
+    path uses underneath. Wrapper: `entry_point("name")` accepts `&str`.
+12. **`prepare-for-typescript` was private to `typescript-passes.ss`.**
+    Now exported (as `prepare-for-typescript-passes` and
+    `print-typescript-passes`) so `passes.ss` can thread the
+    `Ltypescript` IR into both the TS and the Rust emitter. This is the
+    only finding inside this repo rather than upstream.
+
+All twelve wrappers are deliberately trivial — they exist so the codegen
+stays terse and so the `compact-runtime` ↔ upstream-API delta is
+catalogued in one place. Once the upstream PRs land (see Tier-4 doc), the
+wrappers become re-exports or are deleted outright.
 
 ## 5. Compiler changes (`compiler/`)
 
