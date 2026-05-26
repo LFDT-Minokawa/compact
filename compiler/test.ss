@@ -67192,6 +67192,26 @@ groups than for single tests.
         ))
     )
 
+  ; keccak256 of an Opaque<"string"> must match @noble/hashes' keccak_256 of the UTF-8 bytes
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit doKeccak256(s: Opaque<'string'>): Bytes<32> {"
+      "  return keccak256<Opaque<'string'>>(s);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('keccak256 of an Opaque string matches @noble/hashes', async () => {"
+        "  const { keccak_256 } = await import('@noble/hashes/sha3.js');"
+        "  const utf8 = new TextEncoder();"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.doKeccak256(Ctxt, '').result).toEqual(keccak_256(utf8.encode('')));"
+        "  expect(C.circuits.doKeccak256(Ctxt, 'abc').result).toEqual(keccak_256(utf8.encode('abc')));"
+        "  });"
+        ))
+    )
+
   (test
     '(
       "circuit foo(n: Field): Boolean {"
