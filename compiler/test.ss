@@ -18083,6 +18083,17 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
+      "ledger counter: Counter;"
+      "export circuit foo(): Bytes<32> { return keccak256<Counter>(counter); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("argument 'value'" "Counter")))
+    )
+
+  (test
+    '(
       "import {keccak256} from CompactStandardLibrary;"
       "export circuit foo(): Field { return keccak256<Bytes<32>>(42); }"
       )
