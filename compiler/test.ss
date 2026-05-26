@@ -82853,3 +82853,14 @@ groups than for single tests.
 
 (run-javascript)
 )
+
+; snapshot test: counter.compact --rust emission
+; toggles (emit-rust) and compares the generated contract/lib.rs against the
+; committed snapshot.  Update the snapshot when intentional emitter changes
+; land.
+(parameterize ([emit-rust #t])
+  (run-tests print-rust
+    (test
+      "examples/counter.compact"
+      (output-file "compiler/testdir/contract/lib.rs"
+        "compiler/snapshots/counter-rust-expected.rs.snap"))))
