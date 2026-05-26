@@ -44,4 +44,7 @@
 
   ; Rust emit (M2)
   (export-parameter emit-rust #f)
+
+  ; Skip TypeScript emit (companion to --rust for Rust-only output)
+  (export-parameter skip-ts #f)
 )

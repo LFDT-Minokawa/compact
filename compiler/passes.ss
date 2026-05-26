@@ -54,6 +54,8 @@
        (unless (string? output-directory-pathname) (internal-errorf 'generate-everything "invalid pathname ~s" output-directory-pathname))
        (when final-pass (unless (symbol? final-pass) (internal-errorf 'generate-everything "invalid final-pass ~s" final-pass)))
        (when test-hook (unless (procedure? test-hook) (internal-errorf 'generate-everything "invalid test-hook ~s" test-hook)))
+       (when (and (skip-ts) (not (emit-rust)))
+         (external-errorf "--skip-ts requires --rust (otherwise no contract code would be emitted)"))
        (parameterize ([source-directory (path-parent pathname)]
                       [source-file-name (path-last (path-root pathname))]
                       [target-directory output-directory-pathname]
@@ -171,12 +173,13 @@
                           ;; Run the Lnodisclose -> Ltypescript prepare pass once;
                           ;; share the resulting Ltypescript IR between the TS and Rust emitters.
                           (let ([ltypescript-ir (run-passes prepare-for-typescript-passes analyzed-ir)])
-                            (with-target-ports
-                             '((contract.js . "contract/index.js")
-                               (contract.d.ts . "contract/index.d.ts")
-                               (contract.js.map . "contract/index.js.map"))
-                             (parameterize ([proof-circuit-names proof-circuit-name*])
-                               (run-passes print-typescript-passes ltypescript-ir)))
+                            (unless (skip-ts)
+                              (with-target-ports
+                               '((contract.js . "contract/index.js")
+                                 (contract.d.ts . "contract/index.d.ts")
+                                 (contract.js.map . "contract/index.js.map"))
+                               (parameterize ([proof-circuit-names proof-circuit-name*])
+                                 (run-passes print-typescript-passes ltypescript-ir))))
                             (when (emit-rust)
                               (with-target-ports
                                 '((contract.rs . "contract/lib.rs")
