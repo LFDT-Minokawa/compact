@@ -38,8 +38,11 @@
     onchain-runtime-v3 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
+      # this has to take the ledger tag and not the onchain-runtime tag since
+      # since the onchain-runtime tag disables some of the dependencies that
+      # are required for compact's flake atm.
       # url = "github:midnightntwrk/midnight-ledger/ledger-8";
-      url = "github:midnightntwrk/midnight-ledger/onchain-runtime-4.0.0-alpha.1";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
