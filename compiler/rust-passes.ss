@@ -273,7 +273,29 @@
         (out "pub mod pure_circuits {\n")
         ;; M3: emit one `pub fn` per pure circuit.
         (for-each (lambda (c) (out "    // TODO(M3): emit pure circuit\n")) pure-circuit*)
-        (out "}\n")))
+        (out "}\n"))
+
+      ;; emit-cargo-toml: emits a Cargo.toml alongside lib.rs so users can
+      ;; `cargo build` the emitted contract directly. The compact-runtime
+      ;; dep is pinned to the same version the lib.rs embeds via
+      ;; check_runtime_version!.
+      (define (emit-cargo-toml)
+        (let ([port (get-target-port 'contract-cargo.toml)])
+          (display-string
+            (format
+              "[package]
+name = \"compact-contract\"
+version = \"0.1.0\"
+edition = \"2021\"
+
+[lib]
+path = \"lib.rs\"
+
+[dependencies]
+compact-runtime = \"~a\"
+"
+              runtime-version-string)
+            port))))
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,tdescs ,pelt* ...)
        (header)
@@ -287,6 +309,7 @@
        (emit-ledger-view (program-ledger-fields pelt*))
        ;; counter.compact has no pure circuits — emit an empty module.
        (emit-pure-circuits '())
+       (emit-cargo-toml)
        ir]))
 
   (define-passes rust-passes

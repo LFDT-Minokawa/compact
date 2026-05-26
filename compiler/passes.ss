@@ -179,7 +179,8 @@
                                (run-passes print-typescript-passes ltypescript-ir)))
                             (when (emit-rust)
                               (with-target-ports
-                                '((contract.rs . "contract/lib.rs"))
+                                '((contract.rs . "contract/lib.rs")
+                                  (contract-cargo.toml . "contract/Cargo.toml"))
                                 (run-passes rust-passes ltypescript-ir))))
                           (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass)))]))))))))]))
 
