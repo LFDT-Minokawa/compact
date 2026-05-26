@@ -218,7 +218,53 @@
         (out "            },\n")
         (out "            gas_cost: results.gas_cost,\n")
         (out "        })\n")
-        (out "    }\n\n")))
+        (out "    }\n\n"))
+
+      ;; emit-ledger-view: emits the module-level `ledger()` factory and the
+      ;; `Ledger<'a, D>` view struct with one accessor method per ledger
+      ;; field. For counter.compact this is a single `round()` method that
+      ;; reads the Counter value via a dup+idx+popeq Op program. The popeq
+      ;; uses ResultModeGather so the read value is captured as a
+      ;; GatherEvent::Read(AlignedValue) event (ResultModeVerify would
+      ;; require the value to be known up-front, which is the opposite of
+      ;; what we want here).
+      ;;
+      ;; TODO(M3): hardcodes a single Counter field. Generalising requires
+      ;; walking the Ledger-Constructor body and emitting one accessor per
+      ;; field with the right decode path + type.
+      (define (emit-ledger-view ledger-field*)
+        (out "pub struct Ledger<'a, D: DB = DefaultDB> {\n")
+        (out "    state: &'a ChargedState<D>,\n")
+        (out "}\n\n")
+        (out "pub fn ledger<D: DB>(state: &ChargedState<D>) -> Ledger<'_, D> {\n")
+        (out "    Ledger { state }\n")
+        (out "}\n\n")
+        (out "impl<'a, D: DB> Ledger<'a, D> {\n")
+        ;; Each ledger field → one method. Counter currently only.
+        (for-each
+          (lambda (lf)
+            (out "    pub fn round(&self) -> Result<u64, CompactError> {\n")
+            (out "        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());\n")
+            (out "        let ops: Vec<Op<ResultModeGather, D>> = vec![\n")
+            (out "            Op::Dup { n: 0 },\n")
+            (out "            Op::Idx {\n")
+            (out "                cached: false,\n")
+            (out "                push_path: false,\n")
+            (out "                path: Array::from(vec![Key::Value(AlignedValue::from(0u8))]),\n")
+            (out "            },\n")
+            (out "            Op::Popeq { cached: true, result: () },\n")
+            (out "        ];\n")
+            (out "        let results = qctx\n")
+            (out "            .query(&ops, None, &INITIAL_COST_MODEL)\n")
+            (out "            .map_err(|e| CompactError::AssertionFailed(format!(\"ledger query failed: {:?}\", e)))?;\n")
+            (out "        let av = match results.events.last() {\n")
+            (out "            Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,\n")
+            (out "            _ => return Err(CompactError::AssertionFailed(\"ledger: expected Read event\".into())),\n")
+            (out "        };\n")
+            (out "        compact_runtime::std_lib::decode_u64(av)\n")
+            (out "    }\n"))
+          ledger-field*)
+        (out "}\n\n")))
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,tdescs ,pelt* ...)
        (header)
@@ -228,8 +274,9 @@
        ;; M2: hardcode the increment circuit for counter.compact.
        ;; M3 replaces this with a real IR walk over circuit declarations.
        (emit-increment-circuit)
-       ;; Tasks D6-D7 will emit ledger() and pure_circuits here.
        (close-contract-struct)
+       (emit-ledger-view (program-ledger-fields pelt*))
+       ;; Task D7 will emit pure_circuits here.
        ir]))
 
   (define-passes rust-passes
