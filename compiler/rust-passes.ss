@@ -136,13 +136,61 @@
             [(null? pelt*) (reverse acc)]
             [(witness? (car pelt*))
              (loop (cdr pelt*) (cons (car pelt*) acc))]
-            [else (loop (cdr pelt*) acc)]))))
+            [else (loop (cdr pelt*) acc)])))
+
+      ;; lfield?: returns #t if a Program-Element is a Ledger-Declaration
+      ;; (i.e. a `public-ledger-declaration` form). In Ltypescript the
+      ;; Program-Element nonterminal includes `ldecl`, whose Ltypescript
+      ;; form is `(public-ledger-declaration pl-array lconstructor)`.
+      (define (lfield? pelt)
+        (nanopass-case (Ltypescript Program-Element) pelt
+          [(public-ledger-declaration ,pl-array ,lconstructor) #t]
+          [else #f]))
+
+      ;; Collect ledger field declarations from a list of program elements.
+      (define (program-ledger-fields pelt*)
+        (let loop ([pelt* pelt*] [acc '()])
+          (cond
+            [(null? pelt*) (reverse acc)]
+            [(lfield? (car pelt*))
+             (loop (cdr pelt*) (cons (car pelt*) acc))]
+            [else (loop (cdr pelt*) acc)])))
+
+      ;; emit-initial-state: emits the `initial_state` constructor method
+      ;; inside the open Contract impl block. For counter.compact this
+      ;; seeds the single Counter ledger field to 0.
+      ;;
+      ;; TODO(M3): this hardcodes Counter as the only supported ADT.
+      ;; Generalising to Cell/Map/Set/MerkleTree/List requires walking the
+      ;; Ledger-Constructor body and dispatching on each field's ADT type.
+      (define (emit-initial-state ledger-field*)
+        (out "    pub fn initial_state(\n")
+        (out "        &self,\n")
+        (out "        ctx: ConstructorContext<PS>,\n")
+        (out "    ) -> Result<ConstructorResult<PS>, CompactError> {\n")
+        (out "        let mut sv = Array::<StateValue, _>::new();\n")
+        ;; For each ledger field, push its initial StateValue. For M2 this
+        ;; is hardcoded to Cell(0u64) (Counter's initial value).
+        (for-each
+          (lambda (lf)
+            (out "        sv = sv.push(StateValue::from(AlignedValue::from(0u64)));\n"))
+          ledger-field*)
+        (out "        let sv = StateValue::Array(sv);\n")
+        (out "        let state = ChargedState::new(sv);\n")
+        (out "        let qctx = QueryContext::new(state, ContractAddress::default());\n")
+        (out "        Ok(ConstructorResult {\n")
+        (out "            current_contract_state: qctx.state,\n")
+        (out "            current_private_state: ctx.initial_private_state,\n")
+        (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
+        (out "        })\n")
+        (out "    }\n\n")))
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,tdescs ,pelt* ...)
        (header)
        (emit-witnesses (program-witnesses pelt*))
        (emit-contract-struct)
-       ;; Tasks D4-D7 will emit `initial_state` and circuit methods here,
+       (emit-initial-state (program-ledger-fields pelt*))
+       ;; Tasks D5-D7 will emit circuit and ledger() methods here,
        ;; inside the impl block opened by emit-contract-struct.
        (close-contract-struct)
        ir]))
