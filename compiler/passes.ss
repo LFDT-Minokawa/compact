@@ -168,16 +168,19 @@
                                 (zkir-warning-issued #t)
                                 (fprintf (console-error-port)
                                          "Warning: ZKIR not found; skipping final circuit compilation.\n"))))
-                          (with-target-ports
-                           '((contract.js . "contract/index.js")
-                             (contract.d.ts . "contract/index.d.ts")
-                             (contract.js.map . "contract/index.js.map"))
-                           (parameterize ([proof-circuit-names proof-circuit-name*])
-                             (run-passes typescript-passes analyzed-ir)))
-                          (when (emit-rust)
+                          ;; Run the Lnodisclose -> Ltypescript prepare pass once;
+                          ;; share the resulting Ltypescript IR between the TS and Rust emitters.
+                          (let ([ltypescript-ir (run-passes prepare-for-typescript-passes analyzed-ir)])
                             (with-target-ports
-                              '((contract.rs . "contract/lib.rs"))
-                              (run-passes rust-passes analyzed-ir)))
+                             '((contract.js . "contract/index.js")
+                               (contract.d.ts . "contract/index.d.ts")
+                               (contract.js.map . "contract/index.js.map"))
+                             (parameterize ([proof-circuit-names proof-circuit-name*])
+                               (run-passes print-typescript-passes ltypescript-ir)))
+                            (when (emit-rust)
+                              (with-target-ports
+                                '((contract.rs . "contract/lib.rs"))
+                                (run-passes rust-passes ltypescript-ir))))
                           (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass)))]))))))))]))
 
   (define-pass extract-circuit-names : Lflattened (ir) -> * (ls)
