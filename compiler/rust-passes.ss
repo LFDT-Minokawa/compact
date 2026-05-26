@@ -94,18 +94,34 @@
           (out "impl<PS> Witnesses<PS> for NoWitnesses {}\n"))
         (out "\n"))
 
-      ;; emit-contract-stub: temporary placeholder for the Contract<PS, W>
-      ;; struct + new(). Real emission lands in Task D3.
-      (define (emit-contract-stub)
-        (out "// TODO(rust-codegen D3+): emit Contract struct, circuits, ledger view.\n")
-        (out "// Placeholder body so the file compiles against compact-runtime.\n")
+      ;; emit-contract-struct: emits the public `Contract<PS, W>` struct
+      ;; generic over private state type PS and a witnesses impl W
+      ;; (defaulting to NoWitnesses), and opens an `impl` block containing
+      ;; the `new()` constructor. The impl block is left open so that
+      ;; subsequent helpers (initial_state, circuits — Tasks D4-D7) can
+      ;; emit methods inside it. The caller must invoke
+      ;; `close-contract-struct` after emitting those methods.
+      (define (emit-contract-struct)
         (out "pub struct Contract<PS, W = NoWitnesses>\n")
-        (out "where W: Witnesses<PS>\n")
-        (out "{ pub witnesses: W, _ps: PhantomData<PS> }\n")
+        (out "where\n")
+        (out "    W: Witnesses<PS>,\n")
+        (out "{\n")
+        (out "    pub witnesses: W,\n")
+        (out "    _ps: PhantomData<PS>,\n")
+        (out "}\n")
         (out "\n")
-        (out "impl<PS, W: Witnesses<PS>> Contract<PS, W> {\n")
-        (out "    pub fn new(witnesses: W) -> Self { Self { witnesses, _ps: PhantomData } }\n")
-        (out "}\n"))
+        (out "impl<PS, W> Contract<PS, W>\n")
+        (out "where\n")
+        (out "    W: Witnesses<PS>,\n")
+        (out "{\n")
+        (out "    pub fn new(witnesses: W) -> Self {\n")
+        (out "        Self { witnesses, _ps: PhantomData }\n")
+        (out "    }\n"))
+
+      ;; close-contract-struct: closes the impl block opened by
+      ;; emit-contract-struct.
+      (define (close-contract-struct)
+        (out "}\n\n"))
 
       ;; witness?: returns #t if a Program-Element is a Witness-Declaration.
       (define (witness? pelt)
@@ -125,7 +141,10 @@
       [(program ,src ((,export-name* ,name*) ...) ,tdescs ,pelt* ...)
        (header)
        (emit-witnesses (program-witnesses pelt*))
-       (emit-contract-stub)
+       (emit-contract-struct)
+       ;; Tasks D4-D7 will emit `initial_state` and circuit methods here,
+       ;; inside the impl block opened by emit-contract-struct.
+       (close-contract-struct)
        ir]))
 
   (define-passes rust-passes
