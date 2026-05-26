@@ -704,11 +704,14 @@
                           "contract-call result arity mismatch for ~s.~s: ~s expected, ~s var-names"
                           contract-name elt-name
                           (length primitive-type*) (length var-name*)))
-                      ;; The `desugar-contract-calls` circuit pass has already rewritten this
-                      ;; cross-contract call into an extended contract-call whose result
-                      ;; vector carries cc-rand / ep-mod / ep-div as extra witnessed values,
-                      ;; plus an explicit transientCommit `call` and a kernel.claimContractCall
-                      ;; `public-ledger`. So all that remains here is to witness the
+                      ;; The `desugar-contract-calls` Lnodisclose pass (run before the
+                      ;; typescript/circuit fork) has already rewritten this cross-contract
+                      ;; call into an extended contract-call whose result vector — once
+                      ;; flatten-datatypes has converted the synthesized Bytes<32>
+                      ;; entry-point into its field-element limbs — carries
+                      ;; cc-rand / ep-mod / ep-div as extra witnessed values, plus an
+                      ;; explicit transientCommit `call` and a kernel.claimContractCall
+                      ;; `public-ledger`.  So all that remains here is to witness the
                       ;; (extended) result vector — the transient hash and the claim are
                       ;; lowered by the generic call / public-ledger handlers.
                       ((make-witness alignment* primitive-type*) var-name* src test triv* instr*)])))]

@@ -22,22 +22,14 @@ import {
   copyCallContext,
   createInitialQueryContext,
   emptyRunningCost,
-  queryLedgerState,
   CommunicationCommitmentData,
 } from './circuit-context.js';
 import { ConstructorContext, ConstructorResult } from './constructor-context.js';
 import { assertDefined } from './error.js';
-import { assertIsContractAddress, fromHex } from './utils.js';
+import { assertIsContractAddress, fromHex, toHex } from './utils.js';
 import { CompactError } from './error.js';
 import { PartialProofData } from './proof-data.js';
-import {
-  CompactTypeBytes,
-  CompactTypeField,
-  CompactTypeUnsignedInteger,
-  ContractAddressDescriptor,
-  Bytes32Descriptor,
-} from './compact-types.js';
-import { alignedConcat } from './built-ins.js';
+import { CompactTypeField, Bytes32Descriptor } from './compact-types.js';
 
 /**
  * The type of a provable circuit. A provable circuit is a function that accepts a circuit context and an arbitrary list of
@@ -133,16 +125,6 @@ export const restoreCircuitContext = (
   callerCircuitContext.callProofDataTrace = calleeCircuitContext.callProofDataTrace;
 };
 
-const contractAddressToValue = (address: ocrt.ContractAddress): ocrt.AlignedValue => ({
-  value: Bytes32Descriptor.toValue(ocrt.encodeContractAddress(address)),
-  alignment: Bytes32Descriptor.alignment(),
-});
-
-const circuitIdToValue = (circuitId: CircuitId): ocrt.AlignedValue => ({
-  value: Bytes32Descriptor.toValue(fromHex(ocrt.entryPointHash(circuitId))),
-  alignment: Bytes32Descriptor.alignment(),
-});
-
 /**
  * Convert a hex-encoded `Fr` (as produced by `ocrt.communicationCommitment` or
  * `ocrt.communicationCommitmentRandomness` — both go through
@@ -182,65 +164,22 @@ const frHexToAlignedValue = (frHex: string): ocrt.AlignedValue => {
   };
 };
 
-const KernelStateFieldIndexDescriptor = new CompactTypeUnsignedInteger(255n, 1);
-
-const kernelClaimContractCall = (
-  context: CircuitContext,
-  callerPartialProofData: PartialProofData,
-  calleeAddress: ocrt.ContractAddress,
-  calleeCircuitId: CircuitId,
-  commComm: ocrt.CommunicationCommitment,
-) => {
-  queryLedgerState(context, callerPartialProofData, [
-    { swap: { n: 0 } },
-    {
-      idx: {
-        cached: true,
-        pushPath: true,
-        path: [
-          {
-            tag: 'value',
-            value: {
-              value: KernelStateFieldIndexDescriptor.toValue(3n),
-              alignment: KernelStateFieldIndexDescriptor.alignment(),
-            },
-          },
-        ],
-      },
-    },
-    { dup: { n: 0 } },
-    'size',
-    {
-      push: {
-        storage: false,
-        value: ocrt.StateValue.newCell(
-          alignedConcat(contractAddressToValue(calleeAddress), circuitIdToValue(calleeCircuitId), frHexToAlignedValue(commComm)),
-        ).encode(),
-      },
-    },
-    { concat: { cached: true, n: 160 } },
-    { push: { storage: false, value: ocrt.StateValue.newNull().encode() } },
-    { ins: { cached: true, n: 2 } },
-    { swap: { n: 0 } },
-  ]);
-};
-
-const createCommCommData = (input: ocrt.AlignedValue, output: ocrt.AlignedValue): CommunicationCommitmentData => {
-  const commCommRand = ocrt.communicationCommitmentRandomness();
-  return { commComm: ocrt.communicationCommitment(input, output, commCommRand), commCommRand };
-};
-
 export function assertNotDefaultContractAddress(address: ocrt.ContractAddress): void {
   if (address === ocrt.dummyContractAddress()) {
     throw new CompactError(`Cannot perform cross-contract call to default contract address`);
   }
 }
 
+const uint8ArrayToAlignedValue = (x: Uint8Array): ocrt.AlignedValue => ({
+  value: Bytes32Descriptor.toValue(x),
+  alignment: Bytes32Descriptor.alignment(),
+});
+
 /**
  * Calls a circuit defined in another contract from the currently executing contract and returns the result.
  *
  * @param circuitContext The circuitContext of the currently executing circuit.
- * @param calleeContractCtor The 'Contract' clas constructor defined in the callee module
+ * @param calleeContractCtor The 'Contract' class constructor defined in the callee module.
  * @param calleeCircuitId The ID of the circuit to be called in the contract to be called.
  * @param calleeAddress The address of the contract to be called.
  * @param callerProofData The proof data instance created when the caller circuit was initialized.
@@ -255,7 +194,7 @@ export const crossContractCall = async (
   calleeAddress: ocrt.ContractAddress,
   callerProofData: PartialProofData,
   ...args: any[]
-): Promise<any> => {
+): Promise<[any, bigint, Uint8Array]> => {
   assertIsContractAddress(calleeAddress);
   assertNotDefaultContractAddress(calleeAddress);
   const provableCircuit = new calleeContractCtor({}).provableCircuits[calleeCircuitId];
@@ -268,12 +207,69 @@ export const crossContractCall = async (
   restoreCircuitContext(circuitContext, callerCallContext, circuitResult.context);
 
   const calleeCallProofData = circuitContext.callProofDataTrace[circuitContext.callProofDataTrace.length - 1];
-  const commCommData = createCommCommData(calleeCallProofData.input, calleeCallProofData.output);
-  calleeCallProofData.commCommData = commCommData;
-  callerProofData.privateTranscriptOutputs.push(calleeCallProofData.output);
-  callerProofData.privateTranscriptOutputs.push(frHexToAlignedValue(commCommData.commCommRand));
-  callerProofData.privateTranscriptOutputs.push(circuitIdToValue(calleeCircuitId));
-  kernelClaimContractCall(circuitContext, callerProofData, calleeAddress, calleeCircuitId, commCommData.commComm);
 
-  return circuitResult.result;
+  // Cc-rand: generated once so the ZKIR private_input gate and the
+  // compiled transientCommit() see the same value. Returned as bigint
+  // to feed straight into transientCommit's opening.
+  const commCommRandHex = ocrt.communicationCommitmentRandomness();
+  const commCommRandAligned = frHexToAlignedValue(commCommRandHex);
+  const commCommRandBigInt = ocrt.valueToBigInt(commCommRandAligned.value);
+
+  // Entry-point: IR-typed Bytes<32>, which is a bare Uint8Array in TS.
+  // The AlignedValue form is only for the transcript push.
+  const entryPointBytes = fromHex(ocrt.entryPointHash(calleeCircuitId));
+  const entryPointAligned = uint8ArrayToAlignedValue(entryPointBytes);
+
+  // Private-transcript pushes (output, cc-rand, entry-point) in the
+  // order the ZKIR private_input gates consume them.
+  callerProofData.privateTranscriptOutputs.push(calleeCallProofData.output);
+  callerProofData.privateTranscriptOutputs.push(commCommRandAligned);
+  callerProofData.privateTranscriptOutputs.push(entryPointAligned);
+
+  return [circuitResult.result, commCommRandBigInt, entryPointBytes];
+};
+
+/**
+ * Inverse of {@link frHexToAlignedValue}: bigint Fr → hex SCALE form.
+ * Compiled transientCommit() yields a bigint but
+ * {@link CommunicationCommitmentData} stores hex (downstream transaction
+ * construction reads it).
+ *
+ * Cc-rand and comm-comm are uniformly-distributed, so always SCALE
+ * Mode 3: marker `((n-4) << 2) | 0b11` then `n` LE bytes.
+ */
+const bigIntToFrHex = (x: bigint): ocrt.CommunicationCommitment => {
+  const valueBytes = ocrt.bigIntToValue(x)[0];
+  const n = valueBytes.length;
+  if (n < 4) {
+    throw new CompactError(`bigIntToFrHex expects a cryptographic-size Fr (>= 4 LE bytes), got ${n} bytes for ${x}`);
+  }
+  const result = new Uint8Array(1 + n);
+  result[0] = ((n - 4) << 2) | 0b11;
+  result.set(valueBytes, 1);
+  return toHex(result);
+};
+
+/**
+ * Stamp comm-comm metadata on the top of `callProofDataTrace`. The
+ * compiled cross-contract-call body calls this right after the
+ * synthesized transientCommit() — it replaces the inline stamping
+ * that used to live in {@link crossContractCall}.
+ *
+ * Targeting the trace top is safe by construction: the desugar emits
+ * this call inside the same `let*` block that just did the dispatch,
+ * with only pure operations between, so nothing else can push a new
+ * proof-data entry first.
+ *
+ * Args are bigints (Field-typed values projected by compiled code);
+ * converted to hex for {@link CommunicationCommitmentData}.
+ *
+ * @internal
+ */
+export const recordCalleeCommComm = (circuitContext: CircuitContext, commComm: bigint, commCommRand: bigint): void => {
+  const top = circuitContext.callProofDataTrace[circuitContext.callProofDataTrace.length - 1];
+  top.commCommData = {
+    commComm: bigIntToFrHex(commComm),
+    commCommRand: bigIntToFrHex(commCommRand),
+  };
 };

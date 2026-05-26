@@ -36,7 +36,8 @@
           (typescript-passes)
           (circuit-passes)
           (zkir-passes)
-          (zkir-v3-passes))
+          (zkir-v3-passes)
+          (desugar-contract-calls))
 
   (define-condition-type &pass-name &condition
     make-pass-name-condition pass-name-condition?
@@ -137,7 +138,8 @@
                        [else
                         (let* ([lsrc-ir (run-passes parser-passes pathname)]
                                [frontend-ir (run-passes frontend-passes lsrc-ir)]
-                               [analyzed-ir (run-passes analysis-passes frontend-ir)]
+                               [analyzed-ir-pre-desugar (run-passes analysis-passes frontend-ir)]
+                               [analyzed-ir (run-passes desugar-contract-calls-passes analyzed-ir-pre-desugar)]
                                [circuit-ir (run-passes circuit-passes analyzed-ir)]
                                [proof-circuit-name* (extract-circuit-names circuit-ir)])
                           (rm-rf (format "~a/compiler" output-directory-pathname))

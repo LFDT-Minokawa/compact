@@ -3271,8 +3271,15 @@
       [(downcast-unsigned ,src ,nat? ,nat ,expr)
        (downcast-unsigned src nat expr)]
       [(safe-cast ,src ,type ,type^ ,expr)
-       ; no checks needed for safe casts
-       (Expr expr level outer-pure?)]
+       (let ([inner (Expr expr level outer-pure?)])
+         (nanopass-case (Ltypescript Type) (de-alias type^)
+           [(tcontract ,src1 ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+            (nanopass-case (Ltypescript Type) (de-alias type)
+              [(tbytes ,src2 ,len)
+               (guard (= len 32))
+               (make-Qconcat "(" inner ").bytes")]
+              [else inner])]
+           [else inner]))]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
        (nanopass-case (Ltypescript ADT-Op) adt-op
          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
