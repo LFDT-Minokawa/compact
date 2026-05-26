@@ -36,7 +36,10 @@ pub use midnight_onchain_vm::ops::{Key, Op};
 pub use midnight_onchain_vm::result_mode::{ResultMode, ResultModeGather, ResultModeVerify};
 
 // On-chain state.
-pub use midnight_onchain_state::state::{ChargedState, ContractState, StateValue};
+pub use midnight_onchain_state::state::{
+    ChargedState, ContractMaintenanceAuthority, ContractOperation, ContractState, EntryPointBuf,
+    StateValue,
+};
 
 // Runtime / context.
 pub use midnight_onchain_runtime::context::{QueryContext, QueryResults};
@@ -82,3 +85,12 @@ pub mod version;
 pub use version::COMPACT_RUNTIME_VERSION;
 
 pub mod std_lib;
+
+pub mod builders;
+pub use builders::{
+    aligned_bytes, empty_charged_state, entry_point, initial_cost_model, new_array, new_cell,
+    new_contract_state, new_empty_array, query_result_state,
+};
+
+pub mod query;
+pub use query::{query_for_read, query_for_verify};
