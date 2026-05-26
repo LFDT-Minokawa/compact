@@ -18399,7 +18399,7 @@ groups than for single tests.
     (succeeds)
     )
 
-  (test ; jubjubScalarFromNative can be used in a circuit
+  (test ; `as JubjubScalar` can be used in a circuit.
     '(
       "import CompactStandardLibrary;"
       ""
@@ -18407,7 +18407,7 @@ groups than for single tests.
       ""
       "export circuit test(): JubjubPoint {"
       "  impure = true;"
-      "  return ecMulGenerator(jubjubScalarFromNative(0));"
+      "  return ecMulGenerator(0 as JubjubScalar);"
       "}"
       )
     (succeeds)
