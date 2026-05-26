@@ -35,7 +35,7 @@
       url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
-    onchain-runtime-v3 = {
+    onchain-runtime-v4 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
       # this has to take the ledger tag and not the onchain-runtime tag since
@@ -76,7 +76,7 @@
   outputs = {
     self,
     zkir,
-    onchain-runtime-v3,
+    onchain-runtime-v4,
     zkir-wasm,
     zkir-v3,
     zkir-v3-wasm,
@@ -182,11 +182,11 @@
             };
 
             nixDependenciesMap = {
-              "@midnight-ntwrk/onchain-runtime-v3" = let
-                pkg = onchain-runtime-v3.packages.${system}.onchain-runtime-wasm;
+              "@midnight-ntwrk/onchain-runtime-v4" = let
+                pkg = onchain-runtime-v4.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v3-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v3";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v4-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v4";
               };
             };
           };
