@@ -25,11 +25,11 @@
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
-        "lastModified": 1763621140,
-        "narHash": "sha256-nx0zy/+yR57FwloXmatf3CaXgzA4zJqIFbplnpaKn/Y=",
+        "lastModified": 1776931971,
+        "narHash": "sha256-3ZcWjBpZKsiWT0X9CSa6zG+Zk4ZRAmh56KYrm2iRqKU=",
         "owner": "nix-community",
         "repo": "fenix",
-        "rev": "d4e14d370b4763c67ea02a39f01f5366297d61cb",
+        "rev": "5b3016c5f8cdd37d5e557646d369ce76e30666de",
         "type": "github"
       },
       "original": {
@@ -352,11 +352,11 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1763421233,
-        "narHash": "sha256-Stk9ZYRkGrnnpyJ4eqt9eQtdFWRRIvMxpNRf4sIegnw=",
+        "lastModified": 1776548001,
+        "narHash": "sha256-ZSK0NL4a1BwVbbTBoSnWgbJy9HeZFXLYQizjb2DPF24=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "89c2b2330e733d6cdb5eae7b899326930c2c0648",
+        "rev": "b12141ef619e0a9c1c84dc8c684040326f27cdcc",
         "type": "github"
       },
       "original": {
@@ -368,11 +368,11 @@
     },
     "nixpkgs_5": {
       "locked": {
-        "lastModified": 1763464769,
-        "narHash": "sha256-AJHrsT7VoeQzErpBRlLJM1SODcaayp0joAoEA35yiwM=",
+        "lastModified": 1776329215,
+        "narHash": "sha256-a8BYi3mzoJ/AcJP8UldOx8emoPRLeWqALZWu4ZvjPXw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "6f374686605df381de8541c072038472a5ea2e2d",
+        "rev": "b86751bc4085f48661017fa226dee99fab6c651b",
         "type": "github"
       },
       "original": {
@@ -473,16 +473,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1773309020,
-        "narHash": "sha256-5RvXdcs2piO2f4LT3zEMQvgVcK6V/8bXYAmfsvvLB5w=",
+        "lastModified": 1777651898,
+        "narHash": "sha256-EK/0T+w/s1dYUBNlax0MtR7ddA+s2vvfC35aEG2bHnc=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "dfb450d558d23100d056d2ba121fe2b865e1208c",
+        "rev": "909292455347b9bdbe6476cddd1fc9b09e78fd70",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-8.0.2",
+        "ref": "ledger-8",
         "repo": "midnight-ledger",
         "type": "github"
       }
@@ -505,11 +505,11 @@
     "rust-analyzer-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1763555010,
-        "narHash": "sha256-SG8PRrLir8RkXdyBm/NnuUo3WqS7HW6ltJLZnAWjBjA=",
+        "lastModified": 1776800521,
+        "narHash": "sha256-f8YJfwAOsLFpIoqZuX3yF69UvMLrkx7iVzMH1pJU7cM=",
         "owner": "rust-lang",
         "repo": "rust-analyzer",
-        "rev": "636c3aa24ec6762347c334c030b5034c351d6e05",
+        "rev": "8954b66d43225e62c92e8bbcc8500191b5cceb1e",
         "type": "github"
       },
       "original": {

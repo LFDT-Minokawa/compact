@@ -100,6 +100,9 @@
               [(ecMulGenerator)
                (assert (= (length var-name*) 1))
                (cons `(ec_mul_generator ,(car var-name*) ,(car triv*)) instr*)]
+              [(jubjubScalarFromNative)
+               (assert (= (length var-name*) 1))
+               (cons `(copy ,(car var-name*) ,(car triv*)) instr*)]
               [(hashToCurve)
                (assert (= (length var-name*) 1))
                (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
@@ -109,6 +112,12 @@
               [(jubjubPointY)
                (assert (= (length var-name*) 1))
                (cons `(encode ,(make-temp-id src 'ignore) ,(car var-name*) ,(car triv*)) instr*)]
+              [(keccak256)
+               (assert (= (length var-name*) 2))
+               (let ([alignment* (arg->alignment arg* 0)])
+                 (cons `(keccak256 ,(car var-name*) ,(cadr var-name*)
+                          (,alignment* ...) ,triv* ...)
+                   instr*))]
               [(persistentCommit)
                (assert (= (length var-name*) 2))
                ;; The two source arguments are swapped for the persistent_hash gate.  We assume
@@ -926,6 +935,10 @@
          `((op . "encode") (outputs . ,(vector outp0 outp1)) (input . ,inp)))]
       [(hash_to_curve ,[* outp] ,[* inp*] ...)
        `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
+      [(keccak256 ,outp0 ,outp1 (,alignment* ...) ,[* inp*] ...)
+       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
+         `((op . "keccak256") (outputs . ,(vector outp0 outp1))
+           (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*))))]
       [(less_than ,[* outp] ,[* inp0] ,[* inp1] ,imm)
        `((op . "less_than") (output . ,outp) (a . ,inp0) (b . ,inp1) (bits . ,imm))]
       [(mul ,[* outp] ,[* inp0] ,[* inp1])

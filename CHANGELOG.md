@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.31.103, language 0.23.102, runtime 0.16.0]
+## [Toolchain 0.31.105, language 0.23.104, runtime 0.16.101]
 
 ### Added
 
@@ -13,6 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so that:
     - it contains an `outputs` field that is a list containing the type of each output of the circuit
     - it contains a single `output` instruction that specifies a list of output operands and is the last instruction
+
+## [Toolchain 0.31.104, language 0.23.104, runtime 0.16.101]
+
+### Added
+
+- Schnorr signature verification over the JubJub embedded curve, via the new
+  `JubjubSchnorrSignature` struct and `jubjubSchnorrVerify` circuit in the
+  standard library.
+
+## [Toolchain 0.31.103, language 0.23.103, runtime 0.16.100]
+
+### Added
+
+- Adds `keccak256` to the standard library, with the same signature as
+  `persistentHash`.  Adds `keccak256` to the Compact runtime with the same
+  signature as `persistentHash`.  `keccak256` requires the experimental feature
+  flag `--feature-zkir-v3` to work in a circuit that directly or indirectly uses
+  the public ledger state.  It is a compiler error to use it in a such a circuit
+  using the ZKIR v2 backend.
 
 ## [Toolchain 0.31.102, language 0.23.102, runtime 0.16.0]
 
