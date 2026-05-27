@@ -68,3 +68,6 @@ Key parts of the API are:
   - [`blockTimeGte`](exports.md#blocktimegte)
   - [`blockTimeGt`](exports.md#blocktimegt)
   - [`blockTimeLte`](exports.md#blocktimelte)
+- Cryptographic signature types and circuits:
+  - [`JubjubSchnorrSignature`](exports.md#jubjubschnorrsignature)
+  - [`jubjubSchnorrVerify`](exports.md#jubjubschnorrverify)

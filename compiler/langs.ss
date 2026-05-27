@@ -1188,8 +1188,8 @@
     (Program (p)
       (program src cdefn* ...) => (program #f cdefn* ...))
     (Circuit-Definition (cdefn)
-      (circuit src (name* ...) ((var-name* zkir-type*) ...) instr* ...) =>
-        (circuit (name* ...) ((var-name* zkir-type*) 0 ...) #f instr* ...))
+      (circuit src (name* ...) ((var-name* zkir-type*) ...) (zkir-type0* ...) instr* ...) =>
+        (circuit (name* ...) ((var-name* zkir-type*) 0 ...) #f (zkir-type0* 0 ...) instr* ...))
     (Instruction (instr)
       (add outp inp0 inp1)
       (assert inp)
@@ -1209,7 +1209,7 @@
       (less_than outp inp0 inp1 imm)
       (mul outp inp0 inp1)
       (neg outp inp)
-      (output inp)
+      (output inp* ...)
       (persistent_hash outp0 outp1 (alignment* ...) inp* ...)
       (private_input zkir-type outp)
       (private_input zkir-type outp inp)

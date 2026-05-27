@@ -92,6 +92,11 @@
    [y Field (discloses "a JubjubPoint containing y coordinate")])
   (TypeRef JubjubPoint))
 
+(declare-native-entry circuit jubjubScalarFromNative
+  "__compactRuntime.reduceModJubjubOrder"
+  ([x Field (discloses "a JubJub scalar equivalent to")])
+  Field)
+
 (declare-native-entry witness ownPublicKey
   "__compactRuntime.ownPublicKey"
   ()
