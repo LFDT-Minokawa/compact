@@ -15,8 +15,8 @@
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
 import { keccak_256 } from '@noble/hashes/sha3.js';
-import { MAX_FIELD } from './constants.js';
-import { CompactType, CompactTypeJubjubPoint, JubjubPoint } from './compact-types.js';
+import { MAX_FIELD, JUBJUB_SCALAR_MODULUS } from './constants.js';
+import { CompactType, CompactTypeJubjubPoint, JubjubPoint, JubjubSchnorrSignature } from './compact-types.js';
 import { CompactError } from './error.js';
 
 const FIELD_MODULUS: bigint = MAX_FIELD + 1n;
@@ -191,7 +191,7 @@ export function jubjubPointY(pt: JubjubPoint): bigint {
 }
 
 export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
-    return { x: x, y: y };
+  return { x, y };
 }
 
 /**
@@ -251,4 +251,99 @@ export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue
     res.alignment = res.alignment.concat(value.alignment);
   }
   return res;
+}
+
+/**
+ * Samples a random JubJub scalar.
+ *
+ * The returned value is in the range [0, JUBJUB_SCALAR_MODULUS).
+ */
+export function jubjubSampleScalar(): bigint {
+  return ocrt.valueToBigInt(ocrt.jubjubSampleScalar());
+}
+
+/**
+ * Alias for {@link jubjubSampleScalar}. Samples a random JubJub Schnorr signing key.
+ */
+export const sampleJubjubSchnorrSk = jubjubSampleScalar;
+
+/**
+ * Reduce modulo the JubJub scalar field order.
+ *
+ * The returned value is in the range [0, JUBJUB_SCALAR_MODULUS).
+ */
+export function reduceModJubjubOrder(value: bigint): bigint {
+  return value % JUBJUB_SCALAR_MODULUS;
+}
+
+/**
+ * Derives the Schnorr verifying key (public key) from a signing key.
+ *
+ * Equivalent to {@link ecMulGenerator}(signingKey).
+ */
+export function jubjubSchnorrVerifyingKey(signingKey: bigint): JubjubPoint {
+  return ecMulGenerator(reduceModJubjubOrder(signingKey));
+}
+
+/**
+ * Produces a Schnorr signature over the JubJub curve.
+ *
+ * - `rtType` / `msg`: the message as a typed Compact value
+ * - `sk`: signing key as a JubJub scalar (e.g. as returned by {@link jubjubSampleScalar})
+ *
+ * The signature scheme:
+ * - Nonce `r` sampled uniformly at random
+ * - Announcement `R = r·G`
+ * - Challenge `c = PoseidonHash(R.x, R.y, pk.x, pk.y, msg...)`
+ * - Response `s = r + c·sk` (in the JubJub scalar field)
+ */
+export function jubjubSchnorrSign<A>(rtType: CompactType<A>, msg: A, signingKey: bigint): JubjubSchnorrSignature {
+  const r = jubjubSampleScalar();
+  const announcement = ecMulGenerator(r);
+  const verifyingKey = ecMulGenerator(signingKey);
+
+  const challengeAlignment: ocrt.Alignment = [
+    ...CompactTypeJubjubPoint.alignment(),
+    ...CompactTypeJubjubPoint.alignment(),
+    ...rtType.alignment(),
+  ];
+  const challengeValue: ocrt.Value = [
+    ...CompactTypeJubjubPoint.toValue(announcement),
+    ...CompactTypeJubjubPoint.toValue(verifyingKey),
+    ...rtType.toValue(msg),
+  ];
+  const c = reduceModJubjubOrder(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
+
+  const response = reduceModJubjubOrder(r + c * signingKey);
+  return { announcement, response };
+}
+
+/**
+ * Verifies a Schnorr signature over the JubJub curve.
+ *
+ * - `rtType` / `msg`: the message as a typed Compact value
+ * - `pk`: verifying key (a JubJubPoint / EmbeddedGroupAffine)
+ * - `sig`: signature as returned by {@link jubjubSchnorrSign}
+ *
+ * Returns `true` if the signature is valid (i.e. `s·G == R + c·pk`).
+ */
+export function jubjubSchnorrVerify<A>(rtType: CompactType<A>, msg: A, verifyingKey: JubjubPoint, sig: JubjubSchnorrSignature): boolean {
+  const { announcement, response } = sig;
+
+  const challengeAlignment: ocrt.Alignment = [
+    ...CompactTypeJubjubPoint.alignment(),
+    ...CompactTypeJubjubPoint.alignment(),
+    ...rtType.alignment(),
+  ];
+  const challengeValue: ocrt.Value = [
+    ...CompactTypeJubjubPoint.toValue(announcement),
+    ...CompactTypeJubjubPoint.toValue(verifyingKey),
+    ...rtType.toValue(msg),
+  ];
+  const c = reduceModJubjubOrder(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
+
+  const lhs = ecMulGenerator(response);
+  const rhs = ecAdd(announcement, ecMul(verifyingKey, c));
+
+  return lhs.x === rhs.x && lhs.y === rhs.y;
 }

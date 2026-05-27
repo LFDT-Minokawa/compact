@@ -206,6 +206,9 @@
                 (lambda (src align res* a1 a2)
                   (bind-var! (car res*) a1)
                   (bind-var! (cadr res*) a2)))
+              (register-handler! 'jubjubScalarFromNative
+                (lambda (align res* a1)
+                  (bind-var! (car res*) a1)))
               (register-handler! 'transientCommit
                 ;; First n-1 args are the object being committed.
                 ;; Final arg is commitment nonce.
