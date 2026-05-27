@@ -67,7 +67,7 @@ describe('[Generated] Compiler', () => {
         const contractFilePath = saveContract(getMinimumContractContent());
         const result: Result = await compile([contractFilePath, tempPath]);
 
-        expectCompilerResult(result).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
         expectFiles(tempPath).thatGeneratedJSCodeIsValid();
     });
 
@@ -86,7 +86,7 @@ describe('[Generated] Compiler', () => {
         const contractFilePath = saveContract(generateContractEnums());
         const result: Result = await compile([contractFilePath, tempPath]);
 
-        expectCompilerResult(result).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
         expectFiles(tempPath).thatGeneratedJSCodeIsValid();
     });
 });

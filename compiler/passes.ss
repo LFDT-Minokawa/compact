@@ -83,14 +83,12 @@
                    (cons x extra*)
                    passes)))
              (let ([created-dir* '()] [created-file* '()])
-               (module (create-directory with-target-ports)
+               (module (with-target-ports)
                  (define (create-hierarchy path)
                    (unless (or (equal? path "") (file-directory? path))
                      (create-hierarchy (path-parent path))
                      (guard (c [else (error-accessing-file c "creating output directory")]) (mkdir path))
                      (set! created-dir* (cons path created-dir*))))
-                 (define (create-directory path)
-                   (create-hierarchy (format "~a/~a" output-directory-pathname path)))
                  (define ($with-target-ports alist th preserve-preexisting?)
                    (define (open-target-port path)
                      (let ([path (format "~a/~a" output-directory-pathname path)])
@@ -148,29 +146,27 @@
                           (with-target-ports
                             '((contract-info.json . "compiler/contract-info.json"))
                             (run-passes save-contract-info-passes analyzed-ir proof-circuit-name*))
-                          (create-directory "zkir")
                           (with-target-ports
                             (map (lambda (sym) (cons sym (format "zkir/~a.zkir" sym)))
                                  proof-circuit-name*)
                             (run-passes (if (feature-zkir-v3) zkir-v3-passes zkir-passes) circuit-ir))
                           (unless (null? (pending-conditions)) (raise (make-halt-condition)))
-                          (create-directory "keys")
                           (unless (skip-zk)
                             (if (zero? (system "command -v zkir > /dev/null"))
-                              ;; If we have zero circuits, the zkir directory won't exist,
-                              ;; and zkir will fail to read it. Skip in that case silently.
-                              (when (file-exists? (format "~a/zkir" output-directory-pathname))
-                                ;; TODO: Properly string escape!
-                                (let ([res (system (format "exec ~a compile-many '~a/zkir' '~a/keys'"
-                                                           (if (feature-zkir-v3) "zkir-v3" "zkir")
-                                                           output-directory-pathname
-                                                           output-directory-pathname))])
-                                  (unless (zero? res)
-                                    (external-errorf "zkir returned a non-zero exit status ~d" res))))
-                              (unless (zkir-warning-issued)
-                                (zkir-warning-issued #t)
-                                (fprintf (console-error-port)
-                                         "Warning: ZKIR not found; skipping final circuit compilation.\n"))))
+                                ;; If we have zero circuits, the zkir directory won't exist,
+                                ;; and zkir will fail to read it. Skip in that case silently.
+                                (when (file-exists? (format "~a/zkir" output-directory-pathname))
+                                  ;; TODO: Properly string escape!
+                                  (let ([res (system (format "exec ~a compile-many '~a/zkir' '~a/keys'"
+                                                       (if (feature-zkir-v3) "zkir-v3" "zkir")
+                                                       output-directory-pathname
+                                                       output-directory-pathname))])
+                                    (unless (zero? res)
+                                      (external-errorf "zkir returned a non-zero exit status ~d" res))))
+                                (unless (zkir-warning-issued)
+                                  (zkir-warning-issued #t)
+                                  (fprintf (console-error-port)
+                                    "Warning: ZKIR not found; skipping final circuit compilation.\n"))))
                           (with-target-ports
                            '((contract.js . "contract/index.js")
                              (contract.d.ts . "contract/index.d.ts")

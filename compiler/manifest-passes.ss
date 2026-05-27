@@ -78,7 +78,8 @@
           (cons
             "runtime-version"
             runtime-version-string)
-          (map (dir-entry output-directory-pathname) manifest-dir*))))
+          (map (dir-entry output-directory-pathname)
+               (filter file-exists? manifest-dir*)))))
     ir)
 
   (define-passes manifest-passes

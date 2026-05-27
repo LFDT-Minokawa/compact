@@ -34,7 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Schnorr signature verification over the JubJub embedded curve, via the new
   `JubjubSchnorrSignature` struct and `jubjubSchnorrVerify` circuit in the
   standard library.
->>>>>>> main
 
 ## [Toolchain 0.31.103, language 0.23.103, runtime 0.16.100]
 

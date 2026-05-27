@@ -187,7 +187,7 @@ describe('[Bugs] Compiler', () => {
                 testcase: 'should compile when contract includes multiple modules',
                 file: 'main.compact',
                 output: {
-                    stderr: 'Compiling 0 circuits:',
+                    stderr: '',
                     stdout: compilerDefaultOutput(),
                     exitCode: ExitCodes.Success,
                 },

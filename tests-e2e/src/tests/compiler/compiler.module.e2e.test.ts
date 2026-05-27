@@ -38,7 +38,7 @@ describe('[Module] PM-13947 - Selective import module exports', () => {
             const outputDir = createTempFolder();
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
-            expectCompilerResult(result).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
+            expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
             expectFiles(outputDir).thatGeneratedJSCodeIsValid();
         });
     });

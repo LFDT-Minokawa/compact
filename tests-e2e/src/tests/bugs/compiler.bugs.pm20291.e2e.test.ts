@@ -112,7 +112,7 @@ describe('[Bug] [PM-20291] Redundant incompatible functions', () => {
             copyFile(`${CONTRACTS_ROOT}negative/M1.compact`, outputDir);
 
             const firstContract = await compile([`${outputDir}/M1.compact`, `${outputDir}/M1`]);
-            expectCompilerResult(firstContract).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
+            expectCompilerResult(firstContract).toBeSuccess('', compilerDefaultOutput());
             expectFiles(`${outputDir}/M1`).thatGeneratedJSCodeIsValid();
 
             const secondContract: Result = await compile([Arguments.VSCODE, filePath, outputDir]);

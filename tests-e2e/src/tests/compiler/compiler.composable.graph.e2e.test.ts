@@ -68,7 +68,7 @@ describe('[Composable contracts dependency graph] Compiler', () => {
         expectCompilerResult(await compileWithContractName('A', contractsDir)).toCompileWithoutErrors();
 
         const returnValueMain = await compile([contractsDir + 'Main-A-and-B.compact', contractsDir + 'A']);
-        expectCompilerResult(returnValueMain).toBeSuccess('Compiling 0 circuits:', compilerDefaultOutput());
+        expectCompilerResult(returnValueMain).toBeSuccess('', compilerDefaultOutput());
         expectFiles(`${contractsDir}Main-A-and-B`).thatGeneratedJSCodeIsValid();
     });
 });
