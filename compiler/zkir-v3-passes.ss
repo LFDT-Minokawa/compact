@@ -619,11 +619,6 @@
            "Point<Jubjub>"]
           [(topaque ,opaque-type) "Scalar<BLS12-381>"]
           [else (assert cannot-happen)]))
-
-      (define (return-primitive-types->strings type)
-        (nanopass-case (Lflattened Type) type
-          [(ty (,alignment* ...) (,primitive-type* ...))
-           (map type->string primitive-type*)]))
       )
 
     (Program : Program (ir) -> Program ()
@@ -651,24 +646,21 @@
              '() pelt*) ...)])
 
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-      [(circuit ,src ,function-name (,arg* ...) ,type ,stmt* ... (,triv* ...))
+      [(circuit ,src ,function-name (,arg* ...) (ty (,alignment* ...) (,primitive-type* ...))
+         ,stmt* ... (,triv* ...))
        ;; - Replace the internal name with the exported ones
        ;; - Insert type constraints for inputs
        ;; - Translate the statements in the body
        ;; - Emit an (output ...) terminator with the result trivs as operands.
-       ;;   The Rust IR validates the operand list against the signature's
-       ;;   positional output types at this terminator; literals can be
-       ;;   passed directly without binding them to a temp name first.
        (fluid-let ([default-src src])
-         (let-values ([(var-name* type*) (unzip-arguments arg*)])
+         (let-values ([(var-name* arg-type*) (unzip-arguments arg*)])
            (let* ([constraint*
                     (fold-left (lambda (constraint* var-name type)
                                  (emit-constraints-for var-name type constraint*))
-                      '() var-name* type*)]
+                      '() var-name* arg-type*)]
                   [instr*
                     (fold-left (lambda (instr* stmt) (Statement stmt instr*))
                       constraint* stmt*)]
-                  [output-type-str* (return-primitive-types->strings type)]
                   [body
                     (if (null? triv*)
                         instr*
@@ -677,8 +669,8 @@
                             `(output ,triv* ...))
                           instr*))])
              `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...)
-                ((,var-name* ,(map type->string type*)) ...)
-                (,output-type-str* ...)
+                ((,var-name* ,(map type->string arg-type*)) ...)
+                (,(map type->string primitive-type*) ...)
                 ,(reverse body) ...))))])
 
     (Statement : Statement (ir instr*) -> * (instr*)
