@@ -646,27 +646,31 @@
              '() pelt*) ...)])
 
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-      [(circuit ,src ,function-name (,arg* ...) ,type ,stmt* ... (,triv* ...))
+      [(circuit ,src ,function-name (,arg* ...) (ty (,alignment* ...) (,primitive-type* ...))
+         ,stmt* ... (,triv* ...))
        ;; - Replace the internal name with the exported ones
        ;; - Insert type constraints for inputs
        ;; - Translate the statements in the body
-       ;; - Add instructions for the outputs
+       ;; - Emit an (output ...) terminator with the result trivs as operands.
        (fluid-let ([default-src src])
-         (let-values ([(var-name* type*) (unzip-arguments arg*)])
+         (let-values ([(var-name* arg-type*) (unzip-arguments arg*)])
            (let* ([constraint*
                     (fold-left (lambda (constraint* var-name type)
                                  (emit-constraints-for var-name type constraint*))
-                      '() var-name* type*)]
+                      '() var-name* arg-type*)]
                   [instr*
                     (fold-left (lambda (instr* stmt) (Statement stmt instr*))
                       constraint* stmt*)]
                   [body
-                    (fold-left (lambda (body triv)
-                                 (with-output-language (Lzkir Instruction)
-                                   (cons `(output ,triv) body)))
-                      instr* triv*)])
+                    (if (null? triv*)
+                        instr*
+                        (cons
+                          (with-output-language (Lzkir Instruction)
+                            `(output ,triv* ...))
+                          instr*))])
              `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...)
-                ((,var-name* ,(map type->string type*)) ...)
+                ((,var-name* ,(map type->string arg-type*)) ...)
+                (,(map type->string primitive-type*) ...)
                 ,(reverse body) ...))))])
 
     (Statement : Statement (ir instr*) -> * (instr*)
@@ -862,7 +866,7 @@
        (for-each Circuit-Definition cdefn*)
        ir])
     (Circuit-Definition : Circuit-Definition (ir) -> * ()
-      [(circuit ,src (,name* ...) ((,var-name* ,zkir-type*) ...) ,instr* ...)
+      [(circuit ,src (,name* ...) ((,var-name* ,zkir-type*) ...) (,zkir-type0* ...) ,instr* ...)
        (define (print-circuit op)
          (print-json-compact op
            (with-var-table
@@ -870,10 +874,12 @@
                                                    `((name . ,(var->string var-name))
                                                      (type . ,zkir-type)))
                                             var-name* zkir-type*))]
-                    [instructions (list->vector (maplr Instruction instr*))])
+                    [instructions (list->vector (maplr Instruction instr*))]
+                    [outputs (list->vector zkir-type0*)])
                `((version . ((major . 3) (minor . 0)))
-                 (do_communications_commitment . #f)
+                 (do_communications_commitment . #t)
                  (inputs . ,inputs)
+                 (outputs . ,outputs)
                  (instructions . ,instructions))))))
        (let ([output-port*
                (fold-left (lambda (output-port* name)
@@ -931,8 +937,8 @@
        `((op . "mul") (output . ,outp) (a . ,inp0) (b . ,inp1))]
       [(neg ,[* outp] ,[* inp])
        `((op . "neg") (output . ,outp) (a . ,inp))]
-      [(output ,[* inp])
-       `((op . "output") (val . ,inp))]
+      [(output ,[* inp*] ...)
+       `((op . "output") (vals . ,(list->vector inp*)))]
       [(persistent_hash ,outp0 ,outp1 (,alignment* ...) ,[* inp*] ...)
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
          `((op . "persistent_hash") (outputs . ,(vector outp0 outp1))

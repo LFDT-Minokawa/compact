@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.31.105, language 0.23.104, runtime 0.16.101]
+
+### Added
+
+- The ZKIR v3 format, behind the feature flag `--feature-zkir-v3`, has changed
+  so that:
+    - it contains an `outputs` field that is a list containing the type of each
+      output of the circuit
+    - it contains a single `output` instruction that specifies a list of output
+      operands and is the last instruction
+
 ## [Toolchain 0.31.104, language 0.23.104, runtime 0.16.101]
 
 ### Added
