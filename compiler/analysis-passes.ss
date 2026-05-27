@@ -3036,13 +3036,17 @@
                  (T type^
                     [(tfield ,src2 ,ftype2)
                      ;; We know that the field types are distinct because of `subtype?` above.
-                     (nanopass-case (Ltypes Field-Type) ftype2
-                       [(field-native) ; Field as JubjubScalar.
+                     (nanopass-case (Ltypes Field-Type) ftype1
+                       [(field-native) ; JubujubScalar as Field.
                         `(cast-to-field ,src ,ftype1 ,type^ ,expr)]
-                       [(field-scalar (curve-jubjub)) ; JubujubScalar as Field.
+                       [(field-scalar (curve-jubjub)) ; Field as JubjubScalar.
                         `(cast-to-field ,src ,ftype1 ,type^ ,expr)])]
                     [(tunsigned ,src2 ,nat)
-                     `(safe-cast ,src ,type ,type^ ,expr)]
+                     (nanopass-case (Ltypes Field-Type) ftype1
+                       [(field-native)
+                        `(safe-cast ,src ,type ,type^ ,expr)]
+                       [(field-scalar (curve-jubjub))
+                        `(cast-to-field ,src ,ftype1 ,type^ ,expr)])]
                     [(tbytes ,src2 ,len2)
                      (guard (not (= len2 0)))
                      `(cast-from-bytes ,src ,type ,len2 ,expr)]

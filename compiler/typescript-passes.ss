@@ -19,6 +19,7 @@
   (export typescript-passes)
   (import (except (chezscheme) errorf)
           (utils)
+          (config-params)
           (field)
           (datatype)
           (nanopass)
@@ -320,6 +321,7 @@
            "CompactError"
            "typeError"
            "assert"
+           "convertNumericToJubjubScalar"
            "convertFieldToBytes"
            "convertBytesToField"
            "convertBytesToUint"
@@ -1356,9 +1358,8 @@
                     [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
                     [(tfield ,src (field-native))
                      (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
-                    ;; JubjubScalar is not canonicalized, it can have representations greater than the maximum JubjubScalar value.
                     [(tfield ,src (field-scalar (curve-jubjub)))
-                     (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
+                     (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_JUBJUB_SCALAR" var)]
                     [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
                     [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
                     [(topaque ,src ,opaque-type) "true"]
@@ -3227,8 +3228,14 @@
        ;; all possible values are smaller than the native field modulus.
        (Expr expr level outer-pure?)]
       [(cast-to-field ,src (field-scalar (curve-jubjub)) ,type ,expr)
-       ;; TODO(kmillikin): should we eliminate this earlier?
-       (Expr expr level outer-pure?)]
+       (if (feature-zkir-v3)
+           (parenthesize level (precedence call)
+             (make-Qconcat
+               (compact-stdlib "convertNumericToJubjubScalar")
+               "("
+               (Expr expr (precedence add1 comma) outer-pure?)
+               ")"))
+           (Expr expr level outer-pure?))]
       [(cast-to-field ,src ,ftype ,type ,expr)
        (assert cannot-happen)]
       [(downcast-unsigned ,src ,nat? ,nat ,expr)

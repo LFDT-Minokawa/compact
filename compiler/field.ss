@@ -32,6 +32,7 @@
   (define (max-field) 52435875175126190479447740508185965837690552500527637822603658699938581184512)
   (define-field-predicate field? max-field)
 
+  ; This value should match `MAX_JUBJUB_SCALAR` in the Compact runtime.
   (define (max-jubjub-scalar)
     #xe7db4ea6533afa906673b0101343b00a6682093ccc81082d0970e5ed6f72cb6)
   (define-field-predicate jubjub-scalar? max-jubjub-scalar)

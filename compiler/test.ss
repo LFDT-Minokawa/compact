@@ -83533,31 +83533,32 @@ groups than for single tests.
     )
 
   (test ; Casts involving JubjubScalar.
-    '(
+    `(
       "import CompactStandardLibrary;"
+      ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
       "ledger fCell: Field;"
       "ledger jCell: JubjubScalar;"
-      "ledger uCell: Uint<64>;"
-      "export circuit testFtoJ(f: Field): [JubjubScalar, JubjubScalar, Field] {"
-      "  const j0 = f as JubjubScalar;"
+      "ledger uCell: MaxUint;"
+      ;; "export circuit testFtoJ(f: Field): [JubjubScalar, JubjubScalar, Field] {"
+      ;; "  const j0 = f as JubjubScalar;"
+      ;; "  jCell = disclose(j0);"
+      ;; "  const j1 = jCell;"
+      ;; "  return [j0, j1, j1 as Field];"
+      ;; "}"
+      ;; "export circuit testJtoF(j: JubjubScalar): [Field, Field, JubjubScalar] {"
+      ;; "  const f0 = j as Field;"
+      ;; "  fCell = disclose(f0);"
+      ;; "  const f1 = fCell;"
+      ;; "  return [f0, f1, f1 as JubjubScalar];"
+      ;; "}"
+      "export circuit testUtoJ(u: MaxUint): [JubjubScalar, JubjubScalar, MaxUint] {"
+      "  const j0 = u as JubjubScalar;"
       "  jCell = disclose(j0);"
       "  const j1 = jCell;"
-      "  return [j0, j1, j1 as Field];"
+      "  return [j0, j1, j1 as MaxUint];"
       "}"
-      "// export circuit testJtoF(j: JubjubScalar): [Field, Field, JubjubScalar] {"
-      "//   const f0 = j as Field;"
-      "//   fCell = disclose(f0);"
-      "//   const f1 = fCell;"
-      "//   return [f0, f1, f1 as JubjubScalar];"
-      "// }"
-      "// export circuit testUtoJ(u: Uint<64>): [JubjubScalar, JubjubScalar, Uint<64>] {"
-      "//   const j0 = u as JubjubScalar;"
-      "//   jCell = disclose(j0);"
-      "//   const j1 = jCell;"
-      "//   return [j0, j1, j1 as Uint<64>];"
-      "// }"
-      "// export circuit testJtoU(j: JubjubScalar): [Uint<64>, Uint<64>, JubjubScalar] {"
-      "//   const u0 = j as Uint<64>;"
+      "// export circuit testJtoU(j: JubjubScalar): [MaxUint, MaxUint, JubjubScalar] {"
+      "//   const u0 = j as MaxUint;"
       "//   uCell = disclose(u0);"
       "//   const u1 = uCell;"
       "//   return [u0, u1, u1 as JubjubScalar];"
@@ -83565,12 +83566,27 @@ groups than for single tests.
       )
     (stage-javascript
       `(
-        "test('check 0', () => {"
+        "test('JubjubScalar casts', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "//  expect(C.circuits.testFtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
-        "//  expect(C.circuits.testFtoJ(Ctxt, 1000n).result).toEqual([1000n, 1000n, 1000n]);"
-        ,(format "  const MAX_FIELD = ~dn;" (max-field))
-        "  expect(C.circuits.testFtoJ(Ctxt, MAX_FIELD).result).toEqual([MAX_FIELD, MAX_FIELD, MAX_FIELD]);"
+        ;; "  expect(C.circuits.testFtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
+        ;; "  expect(C.circuits.testFtoJ(Ctxt, 1000n).result).toEqual([1000n, 1000n, 1000n]);"
+        ;; ,(format "  const MAX_FIELD = ~dn;" (max-field))
+        ;; ,(format "  const EXPECT = ~dn;" (if (feature-zkir-v3)
+        ;;                                      (mod (max-field) (1+ (max-jubjub-scalar)))
+        ;;                                      (max-field)))
+        ;; "  expect(C.circuits.testFtoJ(Ctxt, MAX_FIELD).result).toEqual([EXPECT, EXPECT, EXPECT]);"
+        ;; ""
+        ;; "  expect(C.circuits.testJtoF(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
+        ;; "  expect(C.circuits.testJtoF(Ctxt, 1001n).result).toEqual([1001n, 1001n, 1001n]);"
+        ;; ,(format "  const MAX_JUBJUB_SCALAR = ~dn;" (max-jubjub-scalar))
+        ;; "  expect(C.circuits.testJtoF(Ctxt, MAX_JUBJUB_SCALAR).result).toEqual("
+        ;; "    [MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR]);"
+        ;; ""
+        "  expect(C.circuits.testUtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
+        "  expect(C.circuits.testUtoJ(Ctxt, 1002n).result).toEqual([1002n, 1002n, 1002n]);"
+        ,(format "  const MAX_UNSIGNED = ~dn;" (max-unsigned))
+        "  expect(C.circuits.testUtoJ(Ctxt, MAX_UNSIGNED).result).toEqual("
+        "    [MAX_UNSIGNED, MAX_UNSIGNED, MAX_UNSIGNED]);"
         "});"
         ))
     )

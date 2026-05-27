@@ -678,7 +678,8 @@
              '() pelt*) ...)])
 
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-      [(circuit ,src ,function-name (,arg* ...) ,type ,stmt* ... (,triv* ...))
+      [(circuit ,src ,function-name (,arg* ...) (ty (,alignment* ...) (,primitive-type* ...))
+         ,stmt* ... (,triv* ...))
        ;; - Replace the internal name with the exported ones
        ;; - Insert type constraints for inputs
        ;; - Translate the statements in the body
@@ -693,10 +694,22 @@
                     (fold-left (lambda (instr* stmt) (Statement stmt instr*))
                       constraint* stmt*)]
                   [body
-                    (fold-left (lambda (body triv)
+                    (fold-left (lambda (body primitive-type triv)
                                  (with-output-language (Lzkir Instruction)
-                                   (cons `(output ,triv) body)))
-                      instr* triv*)])
+                                   (nanopass-case (Lflattened Primitive-Type) primitive-type
+                                     [(tfield (field-scalar (curve-jubjub)))
+                                      (let ([fld (make-temp-id src 'fld)])
+                                        (cons* `(output ,fld) `(encode (,fld) ,triv) body))]
+                                     [(topaque ,opaque-type)
+                                      (guard (string=? opaque-type "JubjubPoint"))
+                                      (let* ([pt0 (make-temp-id src 'pt)]
+                                             [pt1 (make-temp-id src 'pt)])
+                                        (cons* `(output ,pt1) `(output ,pt0)
+                                          `(encode (,pt0 ,pt1) ,triv)
+                                          body))]
+                                     [else
+                                       (cons `(output ,triv) body)])))
+                      instr* primitive-type* triv*)])
              `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...)
                 ((,var-name* ,(map type->string type*)) ...)
                 ,(reverse body) ...))))])
