@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Toolchain 0.31.105, language 0.23.104, runtime 0.16.102]
 
 ### Changed
-- Pulls in ledger-9.0.1.0-alpha.1. Note for pulling in alpha versions of the ledger:
+- Pulls in ledger-9.0.1.0-alpha.1 and bumps compact-runtime to 0.16.102.
+  Note for pulling in alpha versions of the ledger:
   in `runtime/package.json` remove the onchain-runtime dependency and update the
   onchain-runtime nixDependency, in `runtime` run
   `npm install --package-lock-only --ignore-scripts`, in `compact` run `nix build`
