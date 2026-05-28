@@ -720,6 +720,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "compact-runtime-macros"
+version = "0.16.100"
+dependencies = [
+ "proc-macro2",
+ "quote 1.0.45",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "compression-codecs"
 version = "0.4.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"

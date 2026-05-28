@@ -1,0 +1,17 @@
+[package]
+name        = "compact-runtime-macros"
+version     = "0.16.100"
+edition     = "2021"
+license     = "Apache-2.0"
+description = "Procedural macros for compact-runtime — emits Witnesses<PS> trait impls."
+repository  = "https://github.com/LFDT-Minokawa/compact"
+
+[lib]
+name = "compact_runtime_macros"
+path = "src/lib.rs"
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+quote       = "1"
+syn         = { version = "2", features = ["full"] }
