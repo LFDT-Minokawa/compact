@@ -21,3 +21,4 @@ midnight-coin-structure   = { workspace = true }
 midnight-zswap            = { workspace = true }
 midnight-serialize        = { workspace = true }
 midnight-storage          = { workspace = true }
+compact-runtime-macros    = { path = "../runtime-rs-macros" }

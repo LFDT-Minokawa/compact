@@ -15,6 +15,8 @@ pub use midnight_coin_structure as coin_structure;
 pub use midnight_storage as storage;
 pub use midnight_zswap as zswap;
 
+pub use compact_runtime_macros::witnesses;
+
 // ---------------------------------------------------------------------------
 // Curated prelude — the symbols the codegen references directly.
 // ---------------------------------------------------------------------------

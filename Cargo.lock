@@ -708,6 +708,7 @@ dependencies = [
 name = "compact-runtime"
 version = "0.16.100"
 dependencies = [
+ "compact-runtime-macros",
  "midnight-base-crypto",
  "midnight-coin-structure",
  "midnight-onchain-runtime",
@@ -723,6 +724,7 @@ dependencies = [
 name = "compact-runtime-macros"
 version = "0.16.100"
 dependencies = [
+ "compact-runtime",
  "proc-macro2",
  "quote 1.0.45",
  "syn 2.0.117",
