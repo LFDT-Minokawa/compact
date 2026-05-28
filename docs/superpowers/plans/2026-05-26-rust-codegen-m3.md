@@ -6,14 +6,31 @@
 
 | Phase | Tasks | Status | Last commit |
 |---|---|---|---|
-| F — type-rust helper (real impl) | F1–F4 | pending | — |
-| G — Witnesses trait emission | G1–G3 | pending | — |
+| F — type-rust helper (real impl) | F1 ✅, F2–F4 pending | partial | `6747791` |
+| G — Witnesses trait emission | G1 partial (method shape works; arg emission pending), G2 ✅ ($ sanitisation + HRTB), G3 ✅ (conditional blanket already gated) | partial | `2ac8f8f` |
 | H — Enum + struct emission | H1–H4 | pending | — |
 | I — Per-circuit emission | I1–I4 | pending | — |
 | J — Constructor with parameters | J1–J2 | pending | — |
 | K — Multi-ledger-field | K1–K2 | pending | — |
 | L — Compact stdlib mapping | L1–L4 | pending | — |
 | M — Tests for tiny.compact | M1–M3 | pending | — |
+
+**Resume here:** finish G1 (emit witness arguments) — currently the method signature is `fn name<'a>(&self, ctx: ...) -> (PS, T);` with no args; needs to walk the `(witness src function-name (arg* ...) type)` arg list and emit `arg_name: arg_type` pairs per arg. After that, proceed to H1 (enum emission).
+
+**State at end of this session's M3 work:**
+
+- `compactc --rust tiny.compact /tmp/out/` no longer crashes (previously failed in `camel->snake` because witness function-name is an id record, not a plain symbol — fix in commit `2ac8f8f`).
+- The witness trait emits cleanly: `pub trait Witnesses<PS> { fn private_secret_key<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>) -> (PS, [u8; 32]); }`. Note `$` in `private$secret_key` is sanitised to `_`, and the `[u8; 32]` return type comes from F1's real `type-rust` walking `tbytes` properly.
+- counter.compact regression: no diff against the committed snapshot. M1+M2 work fully preserved.
+- The full tiny.compact emission is NOT yet a complete crate — circuit emission is still hardcoded to counter's `increment()` (I1+ replaces this), and enum/struct emission (H phase) is pending. So while the witness trait now emits, the broader contract is not yet compilable.
+
+**Key implementation notes for the next session:**
+
+- The Ltypescript Type IR was thoroughly mapped during F1; see `compiler/rust-passes.ss` `type-rust` for the canonical variant→Rust mapping. Add new variants there in F2/F3/F4 (talias, tenum, tstruct, etc.).
+- The witness IR's `function-name` field is an id record: always use `(id-sym function-name)` to extract the symbol. Same pattern applies to circuit declarations.
+- `camel->snake` now also handles `$` characters. If other special characters appear (e.g. backtick-quoted operators in identifiers), extend there.
+- The `(when (null? witness-decl*) ...)` guard around the `impl<PS> Witnesses<PS> for NoWitnesses {}` blanket is already in place — G3 effectively done.
+- F1 surfaced a parallel-work commit `9a5c0fc` ("test(m3a): minimal witness repro + diagnostic note") and a `compact-runtime-macros` crate (`51aac77`, `58b11ab`). Those are user-driven proc-macro experiments orthogonal to the compactc-side codegen path; leave them alone unless explicitly merging the two approaches.
 
 **Goal:** Make `compactc --rust examples/tiny.compact` produce a working Rust crate that compiles, runs, and byte-parity-matches the existing TS path's `ContractState`. tiny.compact exercises witnesses, enums, multiple circuits (pure + impure), hashing, `Maybe<T>` returns, `disclose()`, `default<T>`, and a parameterized constructor — the full generalisation surface.
 
