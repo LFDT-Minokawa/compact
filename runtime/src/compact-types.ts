@@ -190,6 +190,39 @@ export class CompactTypeMerkleTreePath<A> implements CompactType<MerkleTreePath<
 }
 
 /**
+ * A Schnorr signature over the JubJub curve. TypeScript representation of the
+ * Compact type of the same name.
+ */
+export interface JubjubSchnorrSignature {
+  readonly announcement: JubjubPoint;
+  readonly response: bigint;
+}
+
+/**
+ * Runtime type of {@link JubjubSchnorrSignature}
+ */
+export const CompactTypeJubjubSchnorrSignature: CompactType<JubjubSchnorrSignature> = {
+  alignment(): ocrt.Alignment {
+    return [
+      { tag: 'atom', value: { tag: 'field' } },
+      { tag: 'atom', value: { tag: 'field' } },
+      { tag: 'atom', value: { tag: 'field' } },
+    ];
+  },
+  fromValue(value: ocrt.Value): JubjubSchnorrSignature {
+    const announcement = CompactTypeJubjubPoint.fromValue(value);
+    const responseVal = value.shift();
+    if (responseVal == undefined) {
+      throw new CompactError('expected JubjubSchnorrSignature');
+    }
+    return { announcement, response: ocrt.valueToBigInt([responseVal]) };
+  },
+  toValue(value: JubjubSchnorrSignature): ocrt.Value {
+    return CompactTypeJubjubPoint.toValue(value.announcement).concat(ocrt.bigIntToValue(value.response));
+  },
+};
+
+/**
  * Runtime type of the builtin `Field` type
  */
 export const CompactTypeField: CompactType<bigint> = {
