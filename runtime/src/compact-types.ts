@@ -380,6 +380,123 @@ export const CompactTypeBoolean: CompactType<boolean> = {
   },
 };
 
+// Secp256k1 types. Mock representations: scalar and each point coordinate are
+// stored as a single native field element. Values exceeding the native field
+// size will be truncated; this is acceptable until real circuit gates land.
+
+export interface Secp256k1Scalar {
+  readonly value: bigint;
+}
+
+export interface Secp256k1Point {
+  readonly x: bigint;
+  readonly y: bigint;
+}
+
+export interface Secp256k1BaseField {
+  readonly value: bigint;
+}
+
+export interface Secp256k1EcdsaSignature {
+  readonly r: Secp256k1Scalar;
+  readonly s: Secp256k1Scalar;
+}
+
+export interface Secp256k1EcdsaSignatureWithRecovery {
+  readonly r: Secp256k1Scalar;
+  readonly s: Secp256k1Scalar;
+  readonly R: Secp256k1Point;
+}
+
+export const CompactTypeSecp256k1Scalar: CompactType<Secp256k1Scalar> = {
+  alignment(): ocrt.Alignment {
+    return [{ tag: 'atom', value: { tag: 'field' } }];
+  },
+  fromValue(value: ocrt.Value): Secp256k1Scalar {
+    const val = value.shift();
+    if (val == undefined) {
+      throw new CompactError('expected Secp256k1Scalar');
+    }
+    return { value: ocrt.valueToBigInt([val]) };
+  },
+  toValue(value: Secp256k1Scalar): ocrt.Value {
+    return ocrt.bigIntToValue(value.value);
+  },
+};
+
+export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
+  alignment(): ocrt.Alignment {
+    return [
+      { tag: 'atom', value: { tag: 'field' } },
+      { tag: 'atom', value: { tag: 'field' } },
+    ];
+  },
+  fromValue(value: ocrt.Value): Secp256k1Point {
+    const x = value.shift();
+    const y = value.shift();
+    if (x == undefined || y == undefined) {
+      throw new CompactError('expected Secp256k1Point');
+    }
+    return { x: ocrt.valueToBigInt([x]), y: ocrt.valueToBigInt([y]) };
+  },
+  toValue(value: Secp256k1Point): ocrt.Value {
+    return ocrt.bigIntToValue(value.x).concat(ocrt.bigIntToValue(value.y));
+  },
+};
+
+export const CompactTypeSecp256k1BaseField: CompactType<Secp256k1BaseField> = {
+  alignment(): ocrt.Alignment {
+    return [{ tag: 'atom', value: { tag: 'field' } }];
+  },
+  fromValue(value: ocrt.Value): Secp256k1BaseField {
+    const val = value.shift();
+    if (val == undefined) {
+      throw new CompactError('expected Secp256k1BaseField');
+    }
+    return { value: ocrt.valueToBigInt([val]) };
+  },
+  toValue(value: Secp256k1BaseField): ocrt.Value {
+    return ocrt.bigIntToValue(value.value);
+  },
+};
+
+export const CompactTypeSecp256k1EcdsaSignature: CompactType<Secp256k1EcdsaSignature> = {
+  alignment(): ocrt.Alignment {
+    return [...CompactTypeSecp256k1Scalar.alignment(), ...CompactTypeSecp256k1Scalar.alignment()];
+  },
+  fromValue(value: ocrt.Value): Secp256k1EcdsaSignature {
+    const r = CompactTypeSecp256k1Scalar.fromValue(value);
+    const s = CompactTypeSecp256k1Scalar.fromValue(value);
+    return { r, s };
+  },
+  toValue(value: Secp256k1EcdsaSignature): ocrt.Value {
+    return [...CompactTypeSecp256k1Scalar.toValue(value.r), ...CompactTypeSecp256k1Scalar.toValue(value.s)];
+  },
+};
+
+export const CompactTypeSecp256k1EcdsaSignatureWithRecovery: CompactType<Secp256k1EcdsaSignatureWithRecovery> = {
+  alignment(): ocrt.Alignment {
+    return [
+      ...CompactTypeSecp256k1Scalar.alignment(),
+      ...CompactTypeSecp256k1Scalar.alignment(),
+      ...CompactTypeSecp256k1Point.alignment(),
+    ];
+  },
+  fromValue(value: ocrt.Value): Secp256k1EcdsaSignatureWithRecovery {
+    const r = CompactTypeSecp256k1Scalar.fromValue(value);
+    const s = CompactTypeSecp256k1Scalar.fromValue(value);
+    const R = CompactTypeSecp256k1Point.fromValue(value);
+    return { r, s, R };
+  },
+  toValue(value: Secp256k1EcdsaSignatureWithRecovery): ocrt.Value {
+    return [
+      ...CompactTypeSecp256k1Scalar.toValue(value.r),
+      ...CompactTypeSecp256k1Scalar.toValue(value.s),
+      ...CompactTypeSecp256k1Point.toValue(value.R),
+    ];
+  },
+};
+
 /**
  * Runtime type of the builtin `Bytes` types
  */

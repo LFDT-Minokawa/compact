@@ -16,7 +16,15 @@
 import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { MAX_FIELD, JUBJUB_SCALAR_MODULUS } from './constants.js';
-import { CompactType, CompactTypeJubjubPoint, JubjubPoint, JubjubSchnorrSignature } from './compact-types.js';
+import {
+  CompactType,
+  CompactTypeJubjubPoint,
+  JubjubPoint,
+  JubjubSchnorrSignature,
+  Secp256k1BaseField,
+  Secp256k1Point,
+  Secp256k1Scalar,
+} from './compact-types.js';
 import { CompactError } from './error.js';
 
 const FIELD_MODULUS: bigint = MAX_FIELD + 1n;
@@ -316,6 +324,51 @@ export function jubjubSchnorrSign<A>(rtType: CompactType<A>, msg: A, signingKey:
 
   const response = reduceModJubjubOrder(r + c * signingKey);
   return { announcement, response };
+}
+
+// ==== Secp256k1 stubs ====
+// These functions are required for the __compactRuntime binding used by compiled
+// Compact circuits. They are not intended as user-facing SDK functions.
+// All stubs throw until real circuit gate implementations are provided.
+
+export function secp256k1ScalarFromBytes(_x: Uint8Array): Secp256k1Scalar {
+  throw new CompactError('secp256k1 operations are not yet implemented');
+}
+
+export function secp256k1ScalarToBytes(_s: Secp256k1Scalar): Uint8Array {
+  throw new CompactError('secp256k1 operations are not yet implemented');
+}
+
+export function secp256k1ScalarMul(_a: Secp256k1Scalar, _b: Secp256k1Scalar): Secp256k1Scalar {
+  throw new CompactError('secp256k1 operations are not yet implemented');
+}
+
+export function secp256k1ScalarInverse(_s: Secp256k1Scalar): Secp256k1Scalar {
+  throw new CompactError('secp256k1 operations are not yet implemented');
+}
+
+export function secp256k1ScalarNeg(_s: Secp256k1Scalar): Secp256k1Scalar {
+  throw new CompactError('secp256k1 operations are not yet implemented');
+}
+
+export function secp256k1Add(_a: Secp256k1Point, _b: Secp256k1Point): Secp256k1Point {
+  throw new CompactError('secp256k1 operations are not yet implemented');
+}
+
+export function secp256k1Mul(_pt: Secp256k1Point, _s: Secp256k1Scalar): Secp256k1Point {
+  throw new CompactError('secp256k1 operations are not yet implemented');
+}
+
+export function secp256k1MulGenerator(_s: Secp256k1Scalar): Secp256k1Point {
+  throw new CompactError('secp256k1 operations are not yet implemented');
+}
+
+export function secp256k1PointX(_pt: Secp256k1Point): Secp256k1BaseField {
+  throw new CompactError('secp256k1 operations are not yet implemented');
+}
+
+export function secp256k1BaseFieldToBytes(_x: Secp256k1BaseField): Uint8Array {
+  throw new CompactError('secp256k1 operations are not yet implemented');
 }
 
 /**
