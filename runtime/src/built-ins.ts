@@ -21,7 +21,13 @@ import {
   JUBJUB_SCALAR_MODULUS,
   SECP256K1_SCALAR_MODULUS,
 } from './constants.js';
-import { CompactType, CompactTypeJubjubPoint, JubjubPoint, JubjubSchnorrSignature, Secp256k1Point } from './compact-types.js';
+import {
+  CompactType,
+  CompactTypeJubjubPoint,
+  JubjubPoint,
+  JubjubSchnorrSignature,
+  Secp256k1Point,
+} from './compact-types.js';
 import { convertNumericToJubjubScalar } from './casts.js';
 import { CompactError } from './error.js';
 
