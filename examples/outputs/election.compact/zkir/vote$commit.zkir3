@@ -1,8 +1,10 @@
 {
   "version": { "major": 3, "minor": 0 },
-  "do_communications_commitment": false,
+  "do_communications_commitment": true,
   "inputs": [
     { "name": "%ballot.0", "type": "Scalar<BLS12-381>" }
+  ],
+  "outputs": [
   ],
   "instructions": [
     { "op": "constrain_to_boolean", "val": "%ballot.0" },
