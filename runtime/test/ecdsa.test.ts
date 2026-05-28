@@ -127,6 +127,13 @@ describe('Ethereum signature (secp256k1 + keccak256)', () => {
     // expect(recoveredPk.x).toBe(_expectedPk.x);
     // expect(recoveredPk.y).toBe(_expectedPk.y);
   });
+
+  test.skip('recoverEthereumAddress: returns first 20 bytes of keccak256(pk)', () => {
+    const _sig = toSecp256k1SigWithRecovery(ETH_SIG);
+
+    // const address = <call recoverEthereumAddress circuit>(ETH_MSG, _sig);
+    // expect(address.length).toBe(20);
+  });
 });
 
 describe('Bitcoin signature (secp256k1 + sha256)', () => {
