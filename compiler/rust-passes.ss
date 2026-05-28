@@ -52,14 +52,62 @@
                                (loop (cdr chars) #f)))]
                   [else (cons (string (car chars)) (loop (cdr chars) #f))]))))))
 
-      ;; type-rust: stub for M2. Real implementation lands in Task D5,
-      ;; which will dispatch on the Ltypescript Type variants
-      ;; (tbytes / tfield / tuint / tboolean / ttuple [] / tvec / tenum).
-      ;; Only the witness arg / return-type emission below calls into this,
-      ;; and counter.compact has zero witnesses, so the stub never fires
-      ;; in the M2 smoke run.
+      ;; uint-rust-width: given the declared max value `nat` of a
+      ;; (tunsigned src nat) Compact type, pick the smallest Rust
+      ;; unsigned integer type that fits. Compact's `tunsigned` stores
+      ;; the maximum value (not bit width), e.g. `Uint<0..65535>` lowers
+      ;; to (tunsigned src 65535). Mirrors the TS emitter's bigint
+      ;; pattern but specializes to a sized Rust primitive.
+      (define (uint-rust-width nat)
+        (cond
+          [(<= nat 255) "u8"]
+          [(<= nat 65535) "u16"]
+          [(<= nat 4294967295) "u32"]
+          [(<= nat 18446744073709551615) "u64"]
+          [else "u128"]))
+
+      ;; type-rust: walk an Ltypescript Type IR node and produce the
+      ;; corresponding Rust type string. Covers M3-F1 scope: primitives
+      ;; (tfield, tboolean, tunsigned, tbytes), ttuple, and tvector.
+      ;; Aggregate / nominal forms (talias, tenum, tstruct, tcontract,
+      ;; tjubjub, topaque, tunknown, ...) emit a placeholder TODO string
+      ;; tagged with the variant name so later tasks (F2-F4) can locate
+      ;; missing cases. Never crashes on unknown variants.
       (define (type-rust type)
-        "/* TODO(M3): type-rust */")
+        (nanopass-case (Ltypescript Type) type
+          [(tfield ,src) "Fr"]
+          [(tboolean ,src) "bool"]
+          [(tunsigned ,src ,nat) (uint-rust-width nat)]
+          [(tbytes ,src ,len) (format "[u8; ~a]" len)]
+          [(ttuple ,src ,type* ...)
+           (let ([parts (map type-rust type*)])
+             (cond
+               [(null? parts) "()"]
+               ;; Rust 1-tuples need a trailing comma: (T,)
+               [(null? (cdr parts)) (format "(~a,)" (car parts))]
+               [else
+                (format "(~a)"
+                  (let loop ([xs parts] [acc ""])
+                    (cond
+                      [(null? (cdr xs)) (string-append acc (car xs))]
+                      [else (loop (cdr xs)
+                                  (string-append acc (car xs) ", "))])))]))]
+          [(tvector ,src ,len ,type)
+           (format "[~a; ~a]" (type-rust type) len)]
+          [(talias ,src ,nominal? ,type-name ,type)
+           ;; Aliases are transparent; recurse. (Nominal aliases will
+           ;; later become named Rust types in F2/F3.)
+           (type-rust type)]
+          [(topaque ,src ,opaque-type)
+           (format "/* TODO M3-F4: topaque ~a */" opaque-type)]
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+           (format "/* TODO M3-F2: tstruct ~a */" struct-name)]
+          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+           (format "/* TODO M3-F3: tenum ~a */" enum-name)]
+          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+           (format "/* TODO M3-F4: tcontract ~a */" contract-name)]
+          [(tunknown) "/* TODO M3-F4: tunknown */"]
+          [else "/* TODO M3-F4: unhandled type variant */"]))
 
       (define (header)
         (out "// SPDX-License-Identifier: Apache-2.0\n")
