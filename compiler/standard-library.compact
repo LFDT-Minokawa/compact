@@ -366,6 +366,83 @@ struct JubjubSchnorrHashInput<#n> {
   msg: Vector<n, Field>
 }
 
+// Secp256k1 elliptic curve types.
+// These are mock opaque types — the underlying circuit gates are not yet implemented.
+export new type Secp256k1Point = Opaque<'Secp256k1Point'>;
+export new type Secp256k1Scalar = Opaque<'Secp256k1Scalar'>;
+export new type Secp256k1BaseField = Opaque<'Secp256k1BaseField'>;
+
+// ECDSA signature over Secp256k1.
+export struct Secp256k1EcdsaSignature {
+  r: Secp256k1Scalar,
+  s: Secp256k1Scalar,
+}
+
+// ECDSA signature with recoverable nonce commitment, for use with secp256k1EcdsaRecover.
+// R is the signing nonce commitment supplied by the prover off-circuit, avoiding an
+// expensive in-circuit square root (liftX). The circuit verifies R.x == r as bytes.
+export struct Secp256k1EcdsaSignatureWithRecovery {
+  r: Secp256k1Scalar,
+  s: Secp256k1Scalar,
+  R: Secp256k1Point,
+}
+
+// Verify an ECDSA signature over Secp256k1.
+//
+// msgHash must be the output of an in-circuit hash (keccak256 or persistentHash)
+// applied to the actual message. Computing the hash outside the circuit and
+// passing it as a witness breaks the binding between the proof and the message:
+// a malicious prover could supply a hash of a different message.
+//
+// Implements the standard ECDSA verification:
+//   w  = s^(-1) mod n
+//   u1 = (msgHash * w) mod n
+//   u2 = (r * w) mod n
+//   P  = u1*G + u2*pk
+//   valid iff P.x == r as 32-byte big-endian integers
+export circuit secp256k1EcdsaVerify(
+  msgHash: Bytes<32>,
+  sig: Secp256k1EcdsaSignature,
+  pk: Secp256k1Point
+): Boolean {
+  const z: Secp256k1Scalar = secp256k1ScalarFromBytes(msgHash);
+  const { r, s } = sig;
+  const w: Secp256k1Scalar = secp256k1ScalarInverse(s);
+  const u1: Secp256k1Scalar = secp256k1ScalarMul(z, w);
+  const u2: Secp256k1Scalar = secp256k1ScalarMul(r, w);
+  const point: Secp256k1Point = secp256k1Add(secp256k1MulGenerator(u1), secp256k1Mul(pk, u2));
+  return secp256k1BaseFieldToBytes(secp256k1PointX(point)) == secp256k1ScalarToBytes(r);
+}
+
+// Recover the Secp256k1 public key from an ECDSA signature.
+//
+// msgHash must be the output of an in-circuit hash (keccak256 or persistentHash)
+// applied to the actual message. Computing the hash outside the circuit and
+// passing it as a witness breaks the binding between the proof and the message:
+// a malicious prover could supply a hash of a different message.
+//
+// R (the signing nonce point) is supplied by the prover off-circuit, which avoids
+// an expensive square root in the base field (liftX). The circuit constrains R by
+// asserting that its x-coordinate matches r as 32-byte big-endian integers.
+//
+// Implements standard ECDSA public key recovery:
+//   assert R.x == r (bytes)
+//   u1 = (neg(msgHash) * r^(-1)) mod n
+//   u2 = (s * r^(-1)) mod n
+//   pk = u1*G + u2*R
+export circuit secp256k1EcdsaRecover(
+  msgHash: Bytes<32>,
+  sig: Secp256k1EcdsaSignatureWithRecovery
+): Secp256k1Point {
+  const z: Secp256k1Scalar = secp256k1ScalarFromBytes(msgHash);
+  const { r, s, R } = sig;
+  assert(secp256k1BaseFieldToBytes(secp256k1PointX(R)) == secp256k1ScalarToBytes(r), "R.x does not match r");
+  const r_inv: Secp256k1Scalar = secp256k1ScalarInverse(r);
+  const u1: Secp256k1Scalar = secp256k1ScalarMul(secp256k1ScalarNeg(z), r_inv);
+  const u2: Secp256k1Scalar = secp256k1ScalarMul(s, r_inv);
+  return secp256k1Add(secp256k1MulGenerator(u1), secp256k1Mul(R, u2));
+}
+
 // Verify Schnorr signature over the native curve with a message of size #n.
 export circuit jubjubSchnorrVerify<#n>(msg: Vector<n, Field>, signature: JubjubSchnorrSignature, pk: JubjubPoint): Boolean {
   const {announcement, response} = signature;
