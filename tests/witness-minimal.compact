@@ -1,0 +1,13 @@
+// Minimal repro for the %getSchnorrReduction-style crash on witness emission.
+// See docs/superpowers/notes/2026-05-29-m3a-witness-repro.md.
+
+import CompactStandardLibrary;
+
+export { try_witness }
+
+witness w_bytes32(): Bytes<32>;
+
+export circuit try_witness(): [] {
+  const v = w_bytes32();
+  disclose(v);
+}
