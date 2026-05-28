@@ -37,7 +37,9 @@
         (display-string s (get-target-port 'contract.rs)))
 
       ;; camel->snake: convert a CamelCase / mixedCase identifier symbol
-      ;; into snake_case. Used for witness method names.
+      ;; into snake_case. Used for witness method names. Also sanitises
+      ;; Compact-allowed `$` characters (which Rust doesn't permit in
+      ;; identifiers) by mapping them to `_`.
       (define (camel->snake s)
         (let* ([str (symbol->string s)]
                [chars (string->list str)])
@@ -50,6 +52,8 @@
                    (cons (if first? "" "_")
                          (cons (string (char-downcase (car chars)))
                                (loop (cdr chars) #f)))]
+                  [(char=? (car chars) #\$)
+                   (cons "_" (loop (cdr chars) #f))]
                   [else (cons (string (car chars)) (loop (cdr chars) #f))]))))))
 
       ;; uint-rust-width: given the declared max value `nat` of a
@@ -132,9 +136,12 @@
           (lambda (w)
             (nanopass-case (Ltypescript Witness-Declaration) w
               [(witness ,src ,function-name (,arg* ...) ,type)
-               (out (format "    fn ~a(&self, ctx: &WitnessContext<Ledger<'_>, PS>"
-                            (camel->snake function-name)))
-               ;; Argument emission deferred to M3.
+               ;; function-name is an id record with a uniquified internal symbol
+               ;; (e.g. %private$secret_key.14). Use (id-sym) to extract the
+               ;; original user-facing symbol before snake-casing.
+               (out (format "    fn ~a<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>"
+                            (camel->snake (id-sym function-name))))
+               ;; Argument emission deferred to a follow-up M3 task.
                (out (format ") -> (PS, ~a);\n" (type-rust type)))]))
           witness-decl*)
         (out "}\n")
