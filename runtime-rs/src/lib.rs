@@ -85,6 +85,7 @@ pub mod version;
 pub use version::COMPACT_RUNTIME_VERSION;
 
 pub mod std_lib;
+pub use std_lib::{disclose, none, pad, some, Bytes, Maybe};
 
 pub mod builders;
 pub use builders::{

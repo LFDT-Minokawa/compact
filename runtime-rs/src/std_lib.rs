@@ -89,3 +89,89 @@ pub fn serialize_contract_state<D: DB>(state: &ContractState<D>) -> Result<Vec<u
         .map_err(|e| CompactError::AssertionFailed(format!("serialize_contract_state: {e}")))?;
     Ok(buf)
 }
+
+// -------------------------------------------------------------------------
+// M3a universal helpers — Bytes<N>, Maybe<T>, pad, disclose
+// -------------------------------------------------------------------------
+
+/// Compact's `Bytes<N>` primitive maps directly to a fixed-width byte array.
+/// Generated code uses this alias rather than spelling `[u8; N]` everywhere.
+pub type Bytes<const N: usize> = [u8; N];
+
+/// Compact's standard-library `Maybe<T>` ADT — equivalent to `Option<T>`
+/// but kept as a distinct type so generated code matches the TS spelling.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Maybe<T> {
+    Some(T),
+    None,
+}
+
+impl<T> Maybe<T> {
+    #[inline]
+    pub fn is_some(&self) -> bool {
+        matches!(self, Maybe::Some(_))
+    }
+
+    #[inline]
+    pub fn unwrap(self) -> T {
+        match self {
+            Maybe::Some(v) => v,
+            Maybe::None => panic!("Maybe::unwrap on None"),
+        }
+    }
+}
+
+#[inline]
+pub fn some<T>(v: T) -> Maybe<T> {
+    Maybe::Some(v)
+}
+
+#[inline]
+pub fn none<T>() -> Maybe<T> {
+    Maybe::None
+}
+
+/// Compact's `pad(width, s)` — return the bytes of `s` resized to exactly
+/// `width` bytes. Truncates if `s` is longer; zero-extends if shorter.
+pub fn pad(width: usize, s: &str) -> Vec<u8> {
+    let mut v = s.as_bytes().to_vec();
+    v.resize(width, 0);
+    v
+}
+
+/// Compact's `disclose(x)` — identity in Rust. The compiler uses this to
+/// mark a value as publicly revealed; the runtime side has no operational
+/// difference.
+#[inline]
+pub fn disclose<T>(x: T) -> T {
+    x
+}
+
+#[cfg(test)]
+mod tests_m3a_helpers {
+    use super::*;
+
+    #[test]
+    fn maybe_some_unwraps() {
+        let m: Maybe<u32> = some(7);
+        assert!(m.is_some());
+        assert_eq!(m.unwrap(), 7);
+    }
+
+    #[test]
+    fn maybe_none_is_none() {
+        let m: Maybe<u32> = none();
+        assert!(!m.is_some());
+    }
+
+    #[test]
+    fn pad_truncates_and_zero_extends() {
+        assert_eq!(pad(5, "abc"), vec![b'a', b'b', b'c', 0, 0]);
+    }
+
+    #[test]
+    fn disclose_is_identity() {
+        let x = 42u64;
+        assert_eq!(disclose(x), 42u64);
+    }
+}
