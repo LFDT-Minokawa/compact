@@ -469,18 +469,90 @@
                         (id-sym function-name)))
            (out "    }\n\n")]))
 
+      ;; pl-array->public-bindings: flatten a `public-ledger-array` IR node
+      ;; into a list of `public-binding`s. Ported from
+      ;; typescript-passes.ss::pl-array->public-bindings — nested arrays are
+      ;; walked recursively; leaves (`public-binding`) accumulate.
+      (define (pl-array->public-bindings pl-array)
+        (let f ([pl-array pl-array] [pb* '()])
+          (nanopass-case (Ltypescript Public-Ledger-Array) pl-array
+            [(public-ledger-array ,pl-array-elt* ...)
+             (fold-right
+               (lambda (pl-array-elt pb*)
+                 (nanopass-case (Ltypescript Public-Ledger-Array-Element) pl-array-elt
+                   [,pl-array (f pl-array pb*)]
+                   [,public-binding (cons public-binding pb*)]))
+               pb*
+               pl-array-elt*)])))
+
+      ;; exported-public-binding?: #t if the binding's field-name id is
+      ;; marked `id-exported?`. Mirrors typescript-passes.ss's predicate of
+      ;; the same name. Non-exported ledger fields (e.g. tiny.compact's
+      ;; `authority`, `state`) are dropped from the Rust public surface.
+      (define (exported-public-binding? public-binding)
+        (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
+          [(,src ,ledger-field-name (,path-index* ...) ,type)
+           (id-exported? ledger-field-name)]))
+
+      ;; binding-field-name: extract the (snake-cased) Rust identifier for a
+      ;; reader method from a public-binding.
+      (define (binding-field-name public-binding)
+        (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
+          [(,src ,ledger-field-name (,path-index* ...) ,type)
+           (camel->snake (id-sym ledger-field-name))]))
+
+      ;; binding-path-indices: extract the list of path indices (integers)
+      ;; that locate this field inside the on-chain state.
+      (define (binding-path-indices public-binding)
+        (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
+          [(,src ,ledger-field-name (,path-index* ...) ,type) path-index*]))
+
+      ;; binding-type: extract the binding's declared type (the ADT, e.g.
+      ;; `(tadt Counter ...)` or `(tadt Cell ...)`).
+      (define (binding-type public-binding)
+        (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
+          [(,src ,ledger-field-name (,path-index* ...) ,type) type]))
+
+      ;; tadt-read-op-type: given a binding's tadt, find the ADT operation
+      ;; with op-class `read` and return its result type. Falls back to the
+      ;; binding type itself if no read op is present (shouldn't happen for
+      ;; ledger fields, but keep us robust).
+      (define (tadt-read-op-type type)
+        (nanopass-case (Ltypescript Type) type
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           (let loop ([ops adt-op*])
+             (cond
+               [(null? ops) type]
+               [else
+                (let ([result
+                       (nanopass-case (Ltypescript ADT-Op) (car ops)
+                         [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+                          (if (eq? op-class 'read) type #f)])])
+                  (or result (loop (cdr ops))))]))]
+          [else type]))
+
+      ;; decoder-for-type: pick the `compact_runtime::std_lib::decode_*`
+      ;; helper that turns an AlignedValue back into the Rust type returned
+      ;; by `type-rust`. Mirrors `uint-rust-width` for the integer cases.
+      (define (decoder-for-type type)
+        (nanopass-case (Ltypescript Type) type
+          [(tunsigned ,src ,nat)
+           (cond
+             [(<= nat 255) "compact_runtime::std_lib::decode_u8"]
+             [(<= nat 65535) "compact_runtime::std_lib::decode_u16"]
+             [(<= nat 4294967295) "compact_runtime::std_lib::decode_u32"]
+             [(<= nat 18446744073709551615) "compact_runtime::std_lib::decode_u64"]
+             [else "compact_runtime::std_lib::decode_u128"])]
+          [(tfield ,src) "compact_runtime::std_lib::decode_fr"]
+          [else #f]))
+
       ;; emit-ledger-view: emits the module-level `ledger()` factory and the
-      ;; `Ledger<'a, D>` view struct with one accessor method per ledger
-      ;; field. For counter.compact this is a single `round()` method that
-      ;; reads the Counter value via a dup+idx+popeq Op program. The popeq
-      ;; uses ResultModeGather so the read value is captured as a
-      ;; GatherEvent::Read(AlignedValue) event (ResultModeVerify would
-      ;; require the value to be known up-front, which is the opposite of
-      ;; what we want here).
-      ;;
-      ;; TODO(M3): hardcodes a single Counter field. Generalising requires
-      ;; walking the Ledger-Constructor body and emitting one accessor per
-      ;; field with the right decode path + type.
+      ;; `Ledger<'a, D>` view struct with one accessor method per *exported*
+      ;; ledger field. Each method reads its field via a dup + N idx_at_index
+      ;; ops + popeq Op program, then decodes the resulting AlignedValue
+      ;; through the appropriate `decode_*` helper based on the binding's
+      ;; ADT `read` op result type. The popeq uses ResultModeGather so the
+      ;; read value is captured as a GatherEvent::Read(AlignedValue).
       (define (emit-ledger-view ledger-field*)
         (out "pub struct Ledger<'a, D: DB = DefaultDB> {\n")
         (out "    state: &'a ChargedState<D>,\n")
@@ -489,25 +561,45 @@
         (out "    Ledger { state }\n")
         (out "}\n\n")
         (out "impl<'a, D: DB> Ledger<'a, D> {\n")
-        ;; Each ledger field → one method. Counter currently only.
-        (for-each
-          (lambda (lf)
-            (out "    pub fn round(&self) -> Result<u64, CompactError> {\n")
-            (out "        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());\n")
-            (out "        let ops = OpProgramGather::<D>::new()\n")
-            (out "            .dup(0)\n")
-            (out "            .idx_at_index(0u8, false)\n")
-            (out "            .popeq(true)\n")
-            (out "            .build();\n")
-            (out "        let results = query_for_read(&qctx, &ops, None, &initial_cost_model())\n")
-            (out "            .map_err(|e| CompactError::AssertionFailed(format!(\"ledger query failed: {:?}\", e)))?;\n")
-            (out "        let av = match results.events.last() {\n")
-            (out "            Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,\n")
-            (out "            _ => return Err(CompactError::AssertionFailed(\"ledger: expected Read event\".into())),\n")
-            (out "        };\n")
-            (out "        compact_runtime::std_lib::decode_u64(av)\n")
-            (out "    }\n"))
-          ledger-field*)
+        ;; Flatten ledger-declaration -> bindings, keep only exported ones.
+        (let* ([all-bindings
+                (apply append
+                  (map (lambda (ldecl)
+                         (nanopass-case (Ltypescript Program-Element) ldecl
+                           [(public-ledger-declaration ,pl-array ,lconstructor)
+                            (pl-array->public-bindings pl-array)]
+                           [else '()]))
+                       ledger-field*))]
+               [exported-bindings
+                (filter exported-public-binding? all-bindings)])
+          (for-each
+            (lambda (pb)
+              (let* ([name (binding-field-name pb)]
+                     [path* (binding-path-indices pb)]
+                     [read-type (tadt-read-op-type (binding-type pb))]
+                     [rust-ret (type-rust read-type)]
+                     [decoder (or (decoder-for-type read-type)
+                                  (format "/* TODO M3-K2.1: decoder for ~a */ compact_runtime::std_lib::decode_u64"
+                                          rust-ret))])
+                (out (format "    pub fn ~a(&self) -> Result<~a, CompactError> {\n" name rust-ret))
+                (out "        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());\n")
+                (out "        let ops = OpProgramGather::<D>::new()\n")
+                (out "            .dup(0)\n")
+                (for-each
+                  (lambda (idx)
+                    (out (format "            .idx_at_index(~au8, false)\n" idx)))
+                  path*)
+                (out "            .popeq(true)\n")
+                (out "            .build();\n")
+                (out "        let results = query_for_read(&qctx, &ops, None, &initial_cost_model())\n")
+                (out "            .map_err(|e| CompactError::AssertionFailed(format!(\"ledger query failed: {:?}\", e)))?;\n")
+                (out "        let av = match results.events.last() {\n")
+                (out "            Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,\n")
+                (out "            _ => return Err(CompactError::AssertionFailed(\"ledger: expected Read event\".into())),\n")
+                (out "        };\n")
+                (out (format "        ~a(av)\n" decoder))
+                (out "    }\n")))
+            exported-bindings))
         (out "}\n\n"))
 
       ;; emit-pure-circuits: emits the `pure_circuits` module containing one

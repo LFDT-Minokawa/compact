@@ -82,6 +82,21 @@ pub fn decode_u128(av: &AlignedValue) -> Result<u128, CompactError> {
     decode_unsigned(av, 16)
 }
 
+/// Decode an `AlignedValue` known to be a `Field` (i.e. a single `Fr` atom).
+///
+/// On the encode side, `Fr` lowers to a single `ValueAtom` via
+/// `midnight_transient_crypto::fab::From<Fr> for ValueAtom`, which writes
+/// `Fr::as_le_bytes` and `.normalize()`s trailing zeros. We invert by reading
+/// the first atom and running `Fr::try_from(&ValueAtom)`, which calls
+/// `Fr::from_le_bytes` and accepts ≤ `FR_BYTES` bytes.
+pub fn decode_fr(av: &AlignedValue) -> Result<Fr, CompactError> {
+    let atom = av.value.0.first().ok_or_else(|| {
+        CompactError::AssertionFailed("decode_fr: aligned value has no atoms".into())
+    })?;
+    Fr::try_from(atom)
+        .map_err(|e| CompactError::AssertionFailed(format!("decode_fr: {e:?}")))
+}
+
 /// Canonically serialise a `ContractState` to bytes via
 /// `midnight_serialize::tagged_serialize` — this is the byte format the
 /// TypeScript runtime's `cr.encode` produces. Use this for byte-parity tests
@@ -233,5 +248,16 @@ mod tests_m3a_helpers {
     fn disclose_is_identity() {
         let x = 42u64;
         assert_eq!(disclose(x), 42u64);
+    }
+
+    #[test]
+    fn decode_fr_roundtrips_via_aligned_value() {
+        // Encode an Fr → AlignedValue and recover it via decode_fr. Uses the
+        // upstream `From<Fr> for AlignedValue` chain (via DynAligned) so this
+        // exercises the same encode path generated contracts hit.
+        let original = Fr::from(123456789u64);
+        let av: AlignedValue = original.into();
+        let decoded = decode_fr(&av).expect("decode_fr should succeed");
+        assert_eq!(decoded, original);
     }
 }
