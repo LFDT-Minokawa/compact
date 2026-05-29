@@ -141,7 +141,17 @@
                ;; original user-facing symbol before snake-casing.
                (out (format "    fn ~a<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>"
                             (camel->snake (id-sym function-name))))
-               ;; Argument emission deferred to a follow-up M3 task.
+               ;; Emit each witness argument as `, name: type` after the
+               ;; ctx arg. var-name is an id record — use (id-sym) before
+               ;; snake-casing, matching the function-name treatment above.
+               (for-each
+                 (lambda (arg)
+                   (nanopass-case (Ltypescript Argument) arg
+                     [(,var-name ,type)
+                      (out (format ", ~a: ~a"
+                                   (camel->snake (id-sym var-name))
+                                   (type-rust type)))]))
+                 arg*)
                (out (format ") -> (PS, ~a);\n" (type-rust type)))]))
           witness-decl*)
         (out "}\n")
