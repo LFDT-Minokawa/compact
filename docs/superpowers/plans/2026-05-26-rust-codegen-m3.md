@@ -7,7 +7,7 @@
 | Phase | Tasks | Status | Last commit |
 |---|---|---|---|
 | F — type-rust helper (real impl) | F1 ✅, F2–F4 pending | partial | `6747791` |
-| G — Witnesses trait emission | G1 partial (method shape works; arg emission pending), G2 ✅ ($ sanitisation + HRTB), G3 ✅ (conditional blanket already gated) | partial | `2ac8f8f` |
+| G — Witnesses trait emission | G1 ✅, G2 ✅, G3 ✅ | done | `ef7bf13` |
 | H — Enum + struct emission | H1–H4 | pending | — |
 | I — Per-circuit emission | I1–I4 | pending | — |
 | J — Constructor with parameters | J1–J2 | pending | — |
@@ -15,7 +15,7 @@
 | L — Compact stdlib mapping | L1–L4 | pending | — |
 | M — Tests for tiny.compact | M1–M3 | pending | — |
 
-**Resume here:** finish G1 (emit witness arguments) — currently the method signature is `fn name<'a>(&self, ctx: ...) -> (PS, T);` with no args; needs to walk the `(witness src function-name (arg* ...) type)` arg list and emit `arg_name: arg_type` pairs per arg. After that, proceed to H1 (enum emission).
+**Resume here:** H1 (enum emission). Phases F1 + G are complete; F2–F4 (talias/tname, tenum, tstruct references) can be done as part of H or interleaved.
 
 **State at end of this session's M3 work:**
 
