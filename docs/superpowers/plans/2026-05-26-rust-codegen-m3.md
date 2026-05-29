@@ -9,7 +9,7 @@
 | F — type-rust helper (real impl) | F1 ✅, F2 pending, F3 ✅, F4 pending | partial | `d89861d` |
 | G — Witnesses trait emission | G1 ✅, G2 ✅, G3 ✅ | done | `ef7bf13` |
 | H — Enum + struct emission | H1 ✅, H2 ✅, H3 ✅, H4 ✅, H5–H7 (structs) pending | partial | `49fe847` |
-| I — Per-circuit emission | I1 ✅, I1.5 ✅, I2 ✅, I3a ✅, I3b/1 ✅ (public_key), I3b/2+ pending, I4 pending | partial | `5c76f9e` |
+| I — Per-circuit emission | I1 ✅, I1.5 ✅, I2 ✅, I3a ✅, I3b/1 ✅ (public_key), I3b/2 ✅ (set), I3b/3 (clear) + I3b/4 (get) pending, I4 partial | partial | `8dd74a3` |
 | J — Constructor with parameters | J1 ✅, J2 ✅ | done | `829d9d5` |
 | K — Multi-ledger-field | K1 ✅, K2 ✅ | done | `068d05c` |
 | L — Compact stdlib mapping | L1 ✅, L2 ✅, L3 ✅ (pre-existing), L4 ✅ (pre-existing) | done | `1d89a16` |
