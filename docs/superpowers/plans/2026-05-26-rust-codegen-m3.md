@@ -8,7 +8,7 @@
 |---|---|---|---|
 | F — type-rust helper (real impl) | F1 ✅, F2–F4 pending | partial | `6747791` |
 | G — Witnesses trait emission | G1 ✅, G2 ✅, G3 ✅ | done | `ef7bf13` |
-| H — Enum + struct emission | H1–H4 | pending | — |
+| H — Enum + struct emission | H1 ✅, H2–H4 pending, H5–H7 (structs) pending | partial | `45bf810` |
 | I — Per-circuit emission | I1–I4 | pending | — |
 | J — Constructor with parameters | J1–J2 | pending | — |
 | K — Multi-ledger-field | K1–K2 | pending | — |
@@ -23,6 +23,15 @@
 - The witness trait emits cleanly: `pub trait Witnesses<PS> { fn private_secret_key<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>) -> (PS, [u8; 32]); }`. Note `$` in `private$secret_key` is sanitised to `_`, and the `[u8; 32]` return type comes from F1's real `type-rust` walking `tbytes` properly.
 - counter.compact regression: no diff against the committed snapshot. M1+M2 work fully preserved.
 - The full tiny.compact emission is NOT yet a complete crate — circuit emission is still hardcoded to counter's `increment()` (I1+ replaces this), and enum/struct emission (H phase) is pending. So while the witness trait now emits, the broader contract is not yet compilable.
+
+**Architectural note discovered during G1 review (important for H + I):**
+
+- Non-exported enums and structs are dropped before reaching `Ltypescript`. The pass that builds `Ltypescript` only preserves type definitions that the program explicitly exported (`export { STATE }`). See `compiler/analysis-passes.ss:1001-1007` where only `Info-enum` records bound to an export-name make it into `export-typedef`.
+- In `Ltypescript`, user types appear *only* inside `(export-typedef src type-name (tvar-name* ...) type)` Program-Element forms (see `compiler/langs.ss:633-639`). The `type` slot is then a `(tenum ...)`, `(tstruct ...)`, or `(talias ...)`.
+- References to non-exported enum values (e.g. `STATE.set` in tiny.compact) are **lowered to numeric discriminants** in `Ltypescript` — see `compiler/typescript-passes.ss:2862-2871` which emits `"~d"` for the elt-name's index. The Rust emitter must do the same in Phase I (circuit body emission).
+- **Consequence:** tiny.compact's `enum STATE { unset, set }` does NOT appear in the Ltypescript IR (not exported). It will not be emitted by H1. Tiny.compact's `state = STATE.set` becomes a literal `1u8` in the circuit body during Phase I.
+- **H1 scope is therefore "emit any exported enums found via export-typedef"**, not "emit STATE for tiny.compact". To exercise the path, use a small `.compact` fixture with `export { SomeEnum }`, or test against a contract that exports an enum.
+- This matches TS behavior exactly: the TS `index.d.ts` for tiny.compact has no `STATE` type (only `Maybe`, which is exported). Rust mirrors this.
 
 **Key implementation notes for the next session:**
 
@@ -261,11 +270,11 @@ When the contract has witnesses, the emitter must NOT emit the `impl<PS> Witness
 
 ## Phase H — Enum and struct emission
 
-### Task H1: Emit user enums
+### Task H1: Emit user enums (exported only)
 
 **Files:** `compiler/rust-passes.ss`
 
-For tiny.compact's `enum STATE { unset, set }`, the Rust:
+For an *exported* `enum STATE { unset, set }`, the Rust:
 ```rust
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -275,15 +284,19 @@ pub enum STATE {
 }
 ```
 
-Walk the Ltypescript IR for enum declarations. Each enum is a list of variant names (no associated data in Compact's enum). Emit with `#[repr(u8)]` and explicit discriminants.
+In `Ltypescript`, user types live inside `(export-typedef src type-name (tvar-name* ...) type)` Program-Elements; enum cases have `type = (tenum src enum-name elt-name elt-name* ...)`. Walk those and emit Rust enums.
 
-- [ ] **Step 1: Add `enum?` predicate + `program-enums` collector**
+**Note:** tiny.compact's STATE is non-exported and lowered to literal discriminants, so H1 does NOT add a STATE definition to tiny's output. To exercise H1, use a fixture with `export { SomeEnum }`. counter.compact remains a no-diff regression target.
 
-- [ ] **Step 2: Add `emit-enum-decls` helper, call from Program after header**
+- [ ] **Step 1: Add `export-tdefn?` predicate + collector for export-typedef Program-Elements**
 
-- [ ] **Step 3: Smoke — tiny.compact emits the STATE enum**
+- [ ] **Step 2: Add `emit-type-decls` helper that walks export-tdefn list, dispatches on type variant (tenum, tstruct, talias), and emits the appropriate Rust. H1 implements only the `tenum` case; tstruct/talias emit placeholder `// TODO M3-Hx` comments**
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Call from Program right after header (before Witnesses)**
+
+- [ ] **Step 4: Smokes — counter.compact: no diff; tiny.compact: no STATE emitted (expected); manual smoke with a fixture that exports an enum**
+
+- [ ] **Step 5: Commit**
 
 ### Task H2: Emit `impl Aligned` for user enums
 
