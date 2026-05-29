@@ -15,7 +15,7 @@
 | **R3** — persistent_hash argument encoding fix | R3.1 | pending | — |
 | **R4** — Extended decoders | R4.1 | pending | — |
 | **E3** — Typed Ledger materialised view | E3.1 | pending | — |
-| **E4** — ADT method emission (Map, Set, MerkleTree, HMT) | E4.1–E4.4 | pending | — |
+| **E4** — ADT method emission | E4.1 ✅ infrastructure, E4.2+3 ✅ walker, E4.4 ✅ closure — zerocash_mint emits | mostly done | `cd3da3e` |
 | **E5** — Cross-circuit call (exported + general non-exported) | E5.1, E5.2 | pending | — |
 | **E6** — `if-statement` body shape | E6.1 | pending | — |
 | **F4** — `uints-fixture.compact` | F4.1 | pending | — |
