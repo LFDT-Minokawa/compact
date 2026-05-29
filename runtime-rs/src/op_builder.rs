@@ -61,6 +61,24 @@ impl<D: DB> OpProgramVerify<D> {
         self
     }
 
+    /// `dup` — duplicate the value at depth `n` (0 = top of stack). Emitted by
+    /// MerkleTree / HistoricMerkleTree `insert` vm-code when the same
+    /// container needs to appear in two stack positions before successive
+    /// `ins` ops update the tree and its first-free index / history map.
+    pub fn dup(mut self, n: u8) -> Self {
+        self.ops.push(Op::Dup { n });
+        self
+    }
+
+    /// `root` — replace the top-of-stack `BoundedMerkleTree` with its
+    /// digest (root hash). Used by HistoricMerkleTree `insert` to derive the
+    /// key for the history map entry that records the just-updated tree's
+    /// root.
+    pub fn root(mut self) -> Self {
+        self.ops.push(Op::Root);
+        self
+    }
+
     pub fn build(self) -> Vec<Op<ResultModeVerify, D>> {
         self.ops
     }

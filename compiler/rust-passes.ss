@@ -1655,18 +1655,43 @@
           [,path-index (VMalign path-index 1)]
           [else #f]))
 
+      ;; vm-rust-expr is a thin carrier record used to ferry a pre-rendered
+      ;; Rust expression string through `expand-vm-code`. It lets the I3a
+      ;; entry collapse non-literal circuit arguments (e.g. a Bytes32 var-ref
+      ;; like `pk` or a pure-circuit result like `cm`) into a single Scheme
+      ;; value that survives macro expansion intact, then surfaces back out
+      ;; at `vminstr->builder-call` time so the push for that arg lowers to
+      ;; the right Rust expression. Counter's literal-int path is preserved
+      ;; unchanged (integers are still plain Scheme numbers).
+      (define-record-type vm-rust-expr
+        (nongenerative)
+        (fields text))
+
       ;; expr->vm-value: turn a circuit argument Expression into a value
-      ;; that the VM code can consume. I3a only needs literal integers
-      ;; (counter's `round.increment(1)` passes the constant `1`); the
-      ;; vm-code wraps these in `(rt-value->int amount)`, producing
-      ;; `(VMvalue->int <int>)` after expansion, which we unwrap in
-      ;; vminstr->builder-call. For anything we don't recognise, return
-      ;; #f so the caller can bail out.
-      (define (expr->vm-value expr)
+      ;; that the VM code can consume. Counter's `round.increment(1)`
+      ;; passes the constant `1`; the vm-code wraps that in
+      ;; `(rt-value->int amount)`, producing `(VMvalue->int <int>)` after
+      ;; expansion, which we unwrap in vminstr->builder-call. For E4 the
+      ;; insert ops pass a non-literal (e.g. `pk` / `cm`), so we also
+      ;; accept any expression `expr-rust` can render and lift it into a
+      ;; `vm-rust-expr` carrier — vminstr->builder-call recognises the
+      ;; carrier when surfacing the push value. Returns #f only when the
+      ;; expression itself can't be rendered.
+      ;;
+      ;; `native-id-ht` lets us route var-refs to native bindings (e.g.
+      ;; arg names that came in via emit-circuit-args) when needed; the
+      ;; counter literal-only path doesn't need it (and historically
+      ;; didn't take it), so it defaults to #f and we only invoke
+      ;; expr-rust when the expression isn't a plain literal.
+      (define (expr->vm-value expr . opt-native-ht)
         (nanopass-case (Ltypescript Expression) expr
           [(quote ,src ,datum)
            (if (and (integer? datum) (exact? datum)) datum #f)]
-          [else #f]))
+          [else
+           (let ([native-ht (and (pair? opt-native-ht) (car opt-native-ht))])
+             (and native-ht
+                  (let ([rendered (guard (c [#t #f]) (expr-rust expr native-ht))])
+                    (and rendered (make-vm-rust-expr rendered)))))]))
 
       ;; vm-immediate->int: given the value the vm-code computed for an
       ;; `[immediate ...]` argument, unwrap a `(VMvalue->int n)` (the
@@ -1703,12 +1728,62 @@
                   [else #f])]
                [else #f]))]))
 
+      ;; vm-cell-elem->rust: render the inner expression of a
+      ;; (VMstate-value-cell <elem>) form as the Rust expression that
+      ;; should be wrapped in `new_cell(...)`. Recognises:
+      ;;   - a plain integer literal              → "<n>u8"  (counter-style)
+      ;;   - a VMalign with bytes=1               → "<n>u8"
+      ;;   - a vm-rust-expr carrier               → the carrier's text
+      ;;   - a VMleaf-hash wrapping any of the above
+      ;;       → "leaf_hash(&ValueReprAlignedValue(AlignedValue::from(<inner>)))"
+      ;;     (matches midnight-onchain-runtime's program_fragments shape)
+      ;; Returns #f for anything we don't yet know how to render so the
+      ;; caller can fall back to `unimplemented!()`.
+      (define (vm-cell-elem->rust elem)
+        (cond
+          [(and (integer? elem) (exact? elem))
+           (format "~au8" elem)]
+          [(vm-rust-expr? elem)
+           (vm-rust-expr-text elem)]
+          [(VMop? elem)
+           (VMop-case elem
+             [(VMalign value bytes)
+              (cond
+                [(and (= bytes 1) (integer? value) (exact? value))
+                 (format "~au8" value)]
+                [else #f])]
+             [(VMleaf-hash x)
+              (let ([inner (vm-cell-elem->rust x)])
+                (and inner
+                     (format
+                       "leaf_hash(&ValueReprAlignedValue(AlignedValue::from(~a)))"
+                       inner)))]
+             [else #f])]
+          [else #f]))
+
+      ;; vm-value->rust-state-value: render a state-value form (the kind
+      ;; that appears as the `value` arg of a `push` vm-instruction) as
+      ;; a Rust expression of type `StateValue<DefaultDB>`. Returns #f if
+      ;; the form isn't one we yet know how to translate.
+      (define (vm-value->rust-state-value val)
+        (cond
+          [(VMop? val)
+           (VMop-case val
+             [(VMstate-value-null) "StateValue::Null"]
+             [(VMstate-value-cell inner)
+              (let ([rust-inner (vm-cell-elem->rust inner)])
+                (and rust-inner (format "new_cell(~a)" rust-inner)))]
+             [else #f])]
+          [else #f]))
+
       ;; vminstr->builder-call: render a single vminstr as one line of the
       ;; OpProgramVerify builder chain (already indented for inclusion
       ;; inside the `let ops = ...` block). Recognises the ops needed by
-      ;; counter — `idx`, `addi`, `ins`. Anything else returns #f so the
-      ;; caller can bail out to the `unimplemented!()` fallback rather
-      ;; than emit syntactically-valid but semantically-wrong Rust.
+      ;; counter (`idx`, `addi`, `ins`) plus the vm-ops emitted by Set /
+      ;; MerkleTree / HistoricMerkleTree `insert` vm-code (`push`, `dup`,
+      ;; `root`). Anything else returns #f so the caller can bail out to
+      ;; the `unimplemented!()` fallback rather than emit syntactically-
+      ;; valid but semantically-wrong Rust.
       (define (vminstr->builder-call v)
         (let ([op (vminstr-op v)]
               [args (vminstr-arg* v)])
@@ -1749,6 +1824,29 @@
                          (format "            .ins(~a, ~a)\n"
                                  (if (cdr cached-pair) "true" "false")
                                  n)))]))]
+            [(string=? op "push")
+             (let ([storage-pair (assoc "storage" args)]
+                   [value-pair (assoc "value" args)])
+               (cond
+                 [(not (and storage-pair value-pair)) #f]
+                 [else
+                  (let ([rust-val (vm-value->rust-state-value (cdr value-pair))])
+                    (and rust-val
+                         (format "            .push(~a, ~a)\n"
+                                 (if (cdr storage-pair) "true" "false")
+                                 rust-val)))]))]
+            [(string=? op "dup")
+             (let ([n-pair (assoc "n" args)])
+               (cond
+                 [(not n-pair) #f]
+                 [else
+                  (let ([n (cdr n-pair)])
+                    (and (integer? n) (exact? n)
+                         (format "            .dup(~a)\n" n)))]))]
+            [(string=? op "root")
+             (cond
+               [(null? args) "            .root()\n"]
+               [else #f])]
             [else #f])))
 
       ;; emit-public-ledger-call-body: emit the I3a body — an
