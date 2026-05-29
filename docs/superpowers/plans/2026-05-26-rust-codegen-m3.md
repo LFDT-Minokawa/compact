@@ -9,7 +9,7 @@
 | F — type-rust helper (real impl) | F1 ✅, F2 pending, F3 ✅, F4 pending | partial | `d89861d` |
 | G — Witnesses trait emission | G1 ✅, G2 ✅, G3 ✅ | done | `ef7bf13` |
 | H — Enum + struct emission | H1 ✅, H2 ✅, H3 ✅, H4 ✅, H5–H7 (structs) pending | partial | `49fe847` |
-| I — Per-circuit emission | I1 ✅, I1.5 ✅, I2 ✅, I3a ✅, I3b/1 ✅ (public_key), I3b/2 ✅ (set), I3b/3 (clear) + I3b/4 (get) pending, I4 partial | partial | `8dd74a3` |
+| I — Per-circuit emission | I1 ✅, I1.5 ✅, I2 ✅, I3a ✅, I3b/1 ✅, I3b/2 ✅, I3b/3 ✅, I3b/4 ✅ — ALL tiny circuits emit; I4 absorbed | **done** | `1871e84` |
 | J — Constructor with parameters | J1 ✅, J2 ✅ | done | `829d9d5` |
 | K — Multi-ledger-field | K1 ✅, K2 ✅ | done | `068d05c` |
 | L — Compact stdlib mapping | L1 ✅, L2 ✅, L3 ✅ (pre-existing), L4 ✅ (pre-existing) | done | `1d89a16` |
@@ -18,6 +18,8 @@
 **Milestone reached (after K2):** `compactc --rust examples/tiny.compact /tmp/out/` produces a Rust crate that **compiles cleanly** against the local `compact-runtime`. `cargo build` succeeds end-to-end — all type references resolve, Witnesses trait + Maybe<T> + Ledger view + circuit signatures all type-check. Bodies remain `unimplemented!()` so the crate panics at runtime, but the surface is correct. This proves M3's "generalised emission" architectural goal is sound; remaining work is body correctness (K1/J2/I3) and byte-parity validation (M).
 
 **Counter byte-parity restored (I3a, commit `9456eaa`):** circuit body emission now walks the Statement IR. For the narrow shape "single `public-ledger` call as statement-expression", it uses `expand-vm-code` from `(vm)` to evaluate the ADT op's vm-code with concrete path indices + argument expressions, then emits each vminstr as an `OpProgramVerify` builder call. The frontend lowers `round.increment(1)` to a nested `seq` introducing a temp via `safe-cast`; the emitter handles this by flattening seqs, gathering leading `(const ...)` bindings into an alist, resolving `var-ref` through that alist, and stripping `safe-cast` layers before passing args to `expand-vm-code`. Counter's snapshot now contains real Op programs again.
+
+**Milestone reached after I3b/4 (commit `1871e84`):** `compactc --rust examples/tiny.compact` produces a Rust crate where **zero circuit bodies fall back to `unimplemented!()`**. All four circuits (`set`, `get`, `clear`, `public_key`) plus the parameterised constructor emit real bodies; the generated crate compiles cleanly against the local `compact-runtime`. Counter byte-parity preserved throughout. Remaining work is byte-parity (M-stage) — confirming the emitted Op programs and hash/runtime calls produce byte-identical ContractState envelopes vs the TypeScript reference.
 
 **Resume here:** I3b + J2 (body emission expansion). I3a's infrastructure is the foundation.
 
