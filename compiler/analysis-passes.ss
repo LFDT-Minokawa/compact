@@ -1028,6 +1028,121 @@
                        [else (export-oops src export-name info)])))
                  (reverse export*))))
            (let ([reachable* (process-frob-worklist seqno.pelt*)])
+             ;; M3.5-E2: auto-promote user struct/enum types referenced from
+             ;; publicly-reachable surfaces (exported circuit args/returns,
+             ;; ALL witness args/returns, native args/returns, public-ledger
+             ;; field types) into synthetic `export-typedef` entries so the
+             ;; Rust H5-H7 emitter can produce `pub struct` / `pub enum`
+             ;; declarations for them. References are followed transitively
+             ;; through struct field types via a worklist (e.g. coin_info
+             ;; pulls in Nonce / opening because they appear as field types).
+             ;; TS codegen ignores extra export-tdefns it doesn't recognise,
+             ;; and downstream Lexpanded → Ltypes passes treat them uniformly,
+             ;; so this is a no-op for non-affected examples (counter / tiny).
+             (let ([already-exported-name-ht (make-hashtable symbol-hash eq?)])
+               (for-each
+                 (lambda (etd)
+                   (nanopass-case (Lexpanded Export-Type-Definition) etd
+                     [(export-typedef ,src ,type-name (,tvar-name* ...) ,type)
+                      (nanopass-case (Lexpanded Type) type
+                        [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+                         (hashtable-set! already-exported-name-ht struct-name #t)]
+                        [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
+                         (hashtable-set! already-exported-name-ht enum-name #t)]
+                        [else (void)])]))
+                 exported-type*)
+               (let ([needed-name-ht (make-hashtable symbol-hash eq?)]
+                     [worklist '()])
+                 ;; Push a freshly-discovered tstruct/tenum type onto the worklist.
+                 ;; The type itself is the canonical Lexpanded form (carrying
+                 ;; field info for tstruct, variant list for tenum) so we
+                 ;; need no symbol-table lookup to synthesise the export entry.
+                 (define (push-type! type)
+                   (nanopass-case (Lexpanded Type) type
+                     [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+                      (unless (or (hashtable-ref already-exported-name-ht struct-name #f)
+                                  (hashtable-ref needed-name-ht struct-name #f))
+                        (hashtable-set! needed-name-ht struct-name type)
+                        (set! worklist (cons type worklist)))]
+                     [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
+                      (unless (or (hashtable-ref already-exported-name-ht enum-name #f)
+                                  (hashtable-ref needed-name-ht enum-name #f))
+                        (hashtable-set! needed-name-ht enum-name type)
+                        (set! worklist (cons type worklist)))]
+                     [else (void)]))
+                 ;; Recursively scan a type for tstruct/tenum references.
+                 ;; De-aliases so a talias wrapping a tstruct still triggers.
+                 (define (scan-type type)
+                   (let ([type (de-alias type #t)])
+                     (nanopass-case (Lexpanded Type) type
+                       [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+                        (push-type! type)
+                        (for-each scan-type type*)]
+                       [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
+                        (push-type! type)]
+                       [(tvector ,src^ ,len ,type^) (scan-type type^)]
+                       [(ttuple ,src^ ,type* ...) (for-each scan-type type*)]
+                       [(talias ,src^ ,nominal? ,type-name ,type^) (scan-type type^)]
+                       [(tadt ,src^ ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                        ;; Walk type-valued generic args; nat-valued are skipped.
+                        (for-each
+                          (lambda (gv)
+                            (nanopass-case (Lexpanded Generic-Value) gv
+                              [,nat (void)]
+                              [,type^ (scan-type type^)]))
+                          generic-value*)]
+                       [else (void)])))
+                 (define (scan-arg arg)
+                   (nanopass-case (Lexpanded Argument) arg
+                     [(,var-name ,type) (scan-type type)]))
+                 ;; Walk all publicly-reachable Program-Elements for type refs.
+                 (for-each
+                   (lambda (pelt)
+                     (nanopass-case (Lexpanded Program-Element) pelt
+                       [(circuit ,src^ ,function-name (,arg* ...) ,type ,expr)
+                        (when (id-exported? function-name)
+                          (for-each scan-arg arg*)
+                          (scan-type type))]
+                       [(witness ,src^ ,function-name (,arg* ...) ,type)
+                        (for-each scan-arg arg*)
+                        (scan-type type)]
+                       [(native ,src^ ,function-name ,native-entry (,arg* ...) ,type)
+                        (for-each scan-arg arg*)
+                        (scan-type type)]
+                       [(public-ledger-declaration ,src^ ,ledger-field-name ,type)
+                        (when (id-exported? ledger-field-name)
+                          (scan-type type))]
+                       [else (void)]))
+                   reachable*)
+                 ;; Drain worklist — for each tstruct discovered, follow its
+                 ;; field types (they may reference further user types).
+                 (let loop ()
+                   (unless (null? worklist)
+                     (let ([type (car worklist)])
+                       (set! worklist (cdr worklist))
+                       (nanopass-case (Lexpanded Type) type
+                         [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+                          (for-each scan-type type*)]
+                         [else (void)])
+                       (loop))))
+                 ;; Synthesise an export-typedef for each promoted type. Use
+                 ;; the struct/enum's own name as the export-name (it isn't
+                 ;; really exported — this name only feeds the H5-H7 emitter,
+                 ;; which uses the inner struct-name/enum-name anyway).
+                 (let-values ([(names types) (hashtable-entries needed-name-ht)])
+                   (vector-for-each
+                     (lambda (name type)
+                       (let ([src^ (nanopass-case (Lexpanded Type) type
+                                     [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...) src^]
+                                     [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...) src^]
+                                     [else src])])
+                         (set! exported-type*
+                           (cons
+                             (with-output-language (Lexpanded Export-Type-Definition)
+                               `(export-typedef ,src^ ,name () ,type))
+                             exported-type*))))
+                     names
+                     types))))
              ; process uninstantiated modules to catch any errors therein, skipping those
              ; with generic parameters since we have no generic values to supply
              (let loop ()
