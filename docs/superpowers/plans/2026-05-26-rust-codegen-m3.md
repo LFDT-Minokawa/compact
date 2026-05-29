@@ -12,10 +12,10 @@
 | I — Per-circuit emission | I1–I4 | pending | — |
 | J — Constructor with parameters | J1–J2 | pending | — |
 | K — Multi-ledger-field | K1–K2 | pending | — |
-| L — Compact stdlib mapping | L1–L4 | pending | — |
+| L — Compact stdlib mapping | L1 ✅, L2 pending, L3 ✅ (pre-existing), L4 ✅ (pre-existing) | partial | `2171d1c` |
 | M — Tests for tiny.compact | M1–M3 | pending | — |
 
-**Resume here:** L1 (Maybe<T> in compact-runtime) — `Maybe` is a tstruct exported by `CompactStandardLibrary`, so tiny.compact's `export {Maybe}` produces an `export-typedef Maybe ...` that currently emits a `// TODO M3-H5: struct Maybe` placeholder. The intended fix is to (a) define `Maybe<T>` in `compact-runtime` once, (b) teach `emit-type-decls` to skip stdlib-known names (Maybe, etc.) so we don't redefine them per contract, and (c) wire `type-rust` to map `(tstruct Maybe ...)` references to `compact_runtime::Maybe<T>`. After L1, H5–H7 emit *user-defined* structs (no tiny.compact pressure unless we add a fixture). Then I1 begins circuit emission.
+**Resume here:** I1 + I2 (per-circuit emission, signatures + args). Walk circuit declarations from the Ltypescript Program-Element list, classify pure vs impure (matching how `typescript-passes.ss` does via the `id-pure?` flag on the function-name id record), and emit one method signature per circuit on the `impl<PS, W> Contract<PS, W>` block (impure) or as free functions in `mod pure_circuits` (pure). Use `type-rust` for arg types and return type. Bodies stay as placeholders (`unimplemented!()` or a TODO comment) — Phase I3 fills them in. Critical: counter.compact's `increment` circuit MUST byte-match the existing snapshot, so the new generic emitter replaces `emit-increment-circuit` while producing identical output for counter.
 
 **State at end of this session's M3 work:**
 
