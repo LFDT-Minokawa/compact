@@ -6,23 +6,32 @@
 
 | Phase | Tasks | Status | Last commit |
 |---|---|---|---|
-| F — type-rust helper (real impl) | F1 ✅, F2–F4 pending | partial | `6747791` |
+| F — type-rust helper (real impl) | F1 ✅, F2 pending, F3 ✅, F4 pending | partial | `d89861d` |
 | G — Witnesses trait emission | G1 ✅, G2 ✅, G3 ✅ | done | `ef7bf13` |
 | H — Enum + struct emission | H1 ✅, H2 ✅, H3 ✅, H4 ✅, H5–H7 (structs) pending | partial | `49fe847` |
-| I — Per-circuit emission | I1–I4 | pending | — |
+| I — Per-circuit emission | I1 ✅, I2 ✅, I3 pending, I4 pending | partial | `899ec90` |
 | J — Constructor with parameters | J1–J2 | pending | — |
 | K — Multi-ledger-field | K1–K2 | pending | — |
 | L — Compact stdlib mapping | L1 ✅, L2 pending, L3 ✅ (pre-existing), L4 ✅ (pre-existing) | partial | `2171d1c` |
 | M — Tests for tiny.compact | M1–M3 | pending | — |
 
-**Resume here:** I1 + I2 (per-circuit emission, signatures + args). Walk circuit declarations from the Ltypescript Program-Element list, classify pure vs impure (matching how `typescript-passes.ss` does via the `id-pure?` flag on the function-name id record), and emit one method signature per circuit on the `impl<PS, W> Contract<PS, W>` block (impure) or as free functions in `mod pure_circuits` (pure). Use `type-rust` for arg types and return type. Bodies stay as placeholders (`unimplemented!()` or a TODO comment) — Phase I3 fills them in. Critical: counter.compact's `increment` circuit MUST byte-match the existing snapshot, so the new generic emitter replaces `emit-increment-circuit` while producing identical output for counter.
+**Resume here:** Two follow-ups surfaced during I1+I2 review (see commit `899ec90`'s DONE_WITH_CONCERNS notes), then I3 (circuit body emission):
+
+1. **Circuit filtering** — the I1+I2 walker emits every circuit in the Ltypescript IR, including internal helpers (`in_state` in tiny.compact) and stdlib imports (`some`, `none` from `CompactStandardLibrary`). The TS path scopes these differently. Decide whether the Rust path should also filter by `id-exported?` (likely yes for the public Contract impl; internal circuits can become private methods or be skipped entirely). This affects the `s: STATE` issue too — `in_state` is the only consumer of STATE-as-type in tiny.compact and STATE is non-exported, so filtering `in_state` out resolves the "STATE in scope but never emitted as a type" gap without needing to surface non-exported enums.
+2. **Non-exported type-as-arg gap** — if we keep emitting `in_state(s: STATE)`, we need STATE's `pub enum STATE` definition to be present. Currently it's not (STATE is non-exported, doesn't appear in `export-typedef`). Cleanest fix: filter `in_state` out per (1). Alternative: collect all `tenum` types referenced in emitted signatures, emit definitions for any not already covered by `emit-type-decls`.
+3. **I3 — circuit body emission** — the actual hard work. Walk each circuit's body expression and emit Op program builder calls + Rust expressions. Mirror `typescript-passes.ss::Stmt` and `Expr` passes. This is the largest remaining task.
+
+After I3 lands, the counter snapshot should be restored to byte-parity with the M2 reference (`tests-e2e-rust/tests/counter.rs` continues to verify ContractState bytes against the TS fixture).
 
 **State at end of this session's M3 work:**
 
-- `compactc --rust tiny.compact /tmp/out/` no longer crashes (previously failed in `camel->snake` because witness function-name is an id record, not a plain symbol — fix in commit `2ac8f8f`).
-- The witness trait emits cleanly: `pub trait Witnesses<PS> { fn private_secret_key<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>) -> (PS, [u8; 32]); }`. Note `$` in `private$secret_key` is sanitised to `_`, and the `[u8; 32]` return type comes from F1's real `type-rust` walking `tbytes` properly.
-- counter.compact regression: no diff against the committed snapshot. M1+M2 work fully preserved.
-- The full tiny.compact emission is NOT yet a complete crate — circuit emission is still hardcoded to counter's `increment()` (I1+ replaces this), and enum/struct emission (H phase) is pending. So while the witness trait now emits, the broader contract is not yet compilable.
+- Witnesses trait now emits arg lists too (G1, commit `ef7bf13`).
+- `emit-type-decls` walks Ltypescript `export-typedef` Program-Elements, emitting `#[derive(...)] #[repr(u8)] pub enum N { ... }` with Aligned/FieldRepr/FromFieldRepr impls per enum (H1–H4, commits `45bf810`, `49fe847`). tstruct/talias get TODO placeholders pending H5–H7.
+- `Maybe<T>` lives in `compact-runtime::std_lib` with full repr impls; `emit-type-decls` skips the per-contract definition and `type-rust` maps `(tstruct Maybe ...)` references to `Maybe<<value-type>>` (L1, commit `2171d1c`). The runtime also gained `pub use midnight_base_crypto::repr::MemWrite`.
+- `type-rust` now emits the bare enum name for `tenum` type references (F3, commit `d89861d`).
+- Circuit emission switched from hardcoded `emit-increment-circuit` to a real walk (I1+I2, commit `899ec90`). Impure circuits become methods on the Contract impl; pure circuits become free functions in `mod pure_circuits`. Bodies are placeholders `unimplemented!("M3-I3: ...")`. Counter snapshot updated to match — byte-parity restoration is gated on I3.
+- counter.compact emission still parses, builds, and (via the e2e parity test in `tests-e2e-rust/tests/counter.rs`) reproduces the TS ContractState bytes — that test hand-rolls Op sequences and doesn't depend on the generated lib.rs text.
+- The full tiny.compact emission is NOT yet a compilable crate — circuit bodies are unimplemented and the internal-circuit/stdlib-import filtering issue (see Resume Here #1) leaves `in_state(s: STATE)` referencing an undefined STATE type.
 
 **Architectural note discovered during G1 review (important for H + I):**
 
