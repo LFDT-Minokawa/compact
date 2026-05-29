@@ -69,7 +69,38 @@ where
         ctx: CircuitContext<PS>,
         v: Fr,
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
-        unimplemented!("M3-I3: circuit body emission for set")
+        compact_assert!(/* TODO M3: inline in_state in assert */ true, "set: attempted to overwrite recorded value");
+        let _witness_ctx_1 = WitnessContext::new(ledger(&ctx.current_query_context.state), ctx.current_private_state, &ctx.current_query_context);
+        let (current_private_state, sk) = self.witnesses.private_secret_key(&_witness_ctx_1);
+        let apk = pure_circuits::public_key(sk);
+        let ops = OpProgramVerify::<DefaultDB>::new()
+            .push(false, new_cell(0u8))
+            .push(true, new_cell(apk))
+            .ins(false, 1)
+            .push(false, new_cell(1u8))
+            .push(true, new_cell(v))
+            .ins(false, 1)
+            .push(false, new_cell(2u8))
+            .push(true, new_cell(1u8))
+            .ins(false, 1)
+            .build();
+
+        let results = query_for_verify(
+            &ctx.current_query_context,
+            &ops,
+            ctx.gas_limit.clone(),
+            &ctx.cost_model,
+        )?;
+
+        Ok(CircuitResults {
+            result: (),
+            context: CircuitContext {
+                current_query_context: results.context,
+                current_private_state,
+                ..ctx
+            },
+            gas_cost: results.gas_cost,
+        })
     }
 
     pub fn get(

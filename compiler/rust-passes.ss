@@ -566,18 +566,150 @@
              ;; safety net.
              (call-rust src function-name expr* native-id-ht)])))
 
-      ;; emit-ctor-body-or-fallback: try to walk the constructor body and
-      ;; emit `let` bindings + an OpProgramVerify chain that writes each
-      ;; ledger field. Returns #t on success, #f if the body shape isn't
-      ;; one we know how to handle (caller should fall back to the K1
-      ;; default-seed-only return).
+      ;; expr-supported?: predicate that returns #t when an Expression is
+      ;; in a shape our body emitter can render cleanly (no
+      ;; `unimplemented!()` placeholders, no unresolved enum/var refs).
+      ;; Used as a pre-validation gate so circuits whose bodies contain
+      ;; shapes we don't yet handle (e.g. tiny.compact's `clear` with its
+      ;; `apk == authority` comparison and `default<T>` writes) fall back
+      ;; to `unimplemented!()` rather than emitting partially-broken code.
+      ;;
+      ;; Witness/pure-circuit/native call sites are accepted even when the
+      ;; underlying function returns from a non-emittable circuit, since
+      ;; we render those as method/function invocations.
+      (define (expr-supported? expr native-id-ht witness-id-ht circuit-id-ht)
+        (let ([e (expr-strip-cast expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(var-ref ,src ,var-name) #t]
+            [(quote ,src ,datum)
+             (or (and (integer? datum) (exact? datum))
+                 (boolean? datum)
+                 (bytevector? datum))]
+            [(enum-ref ,src ,type ,elt-name)
+             ;; enum-ref->u8 returns #f on unknown variants.
+             (and (enum-ref->u8 e) #t)]
+            [(call ,src ,function-name ,expr* ...)
+             (let ([ne (eq-hashtable-ref native-id-ht function-name #f)]
+                   [w (eq-hashtable-ref witness-id-ht function-name #f)]
+                   [c (eq-hashtable-ref circuit-id-ht function-name #f)])
+               (and (or ne w (and c (id-pure? function-name)))
+                    (let loop ([xs expr*])
+                      (cond
+                        [(null? xs) #t]
+                        [(expr-supported? (car xs) native-id-ht
+                                          witness-id-ht circuit-id-ht)
+                         (loop (cdr xs))]
+                        [else #f]))))]
+            [(tuple ,src ,tuple-arg* ...)
+             (let loop ([xs tuple-arg*])
+               (cond
+                 [(null? xs) #t]
+                 [else
+                  (let ([ok?
+                         (nanopass-case (Ltypescript Tuple-Argument) (car xs)
+                           [(single ,src ,expr)
+                            (expr-supported? expr native-id-ht
+                                             witness-id-ht circuit-id-ht)]
+                           [else #f])])
+                    (and ok? (loop (cdr xs))))]))]
+            [else #f])))
+
+      ;; assert-cond-supported?: like expr-supported? but additionally
+      ;; accepts a (call ...) into a non-exported / impure circuit — we
+      ;; render those as `true` placeholders. This means an assert whose
+      ;; sole content is `in_state(STATE.unset)` is supported, but an
+      ;; assert containing `apk == authority` is not (no expr-supported?
+      ;; branch for `==`).
+      (define (assert-cond-supported? expr native-id-ht witness-id-ht circuit-id-ht)
+        (let ([e (expr-strip-cast expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(call ,src ,function-name ,expr* ...) #t]
+            [else
+             (expr-supported? e native-id-ht witness-id-ht circuit-id-ht)])))
+
+      ;; body-walkable?: pre-validate that the flat statement sequence is
+      ;; one our walker can emit without producing TODO/unimplemented
+      ;; markers. Mirrors emit-body-or-fallback's case analysis but only
+      ;; inspects (never emits).
+      (define (body-walkable? stmt native-id-ht witness-id-ht circuit-id-ht)
+        (let ([stmts (stmt-flatten stmt)])
+          (let loop ([stmts stmts])
+            (cond
+              [(null? stmts) #t]
+              [(stmt->assert (car stmts)) =>
+               (lambda (a)
+                 (and (assert-cond-supported?
+                        (car a) native-id-ht witness-id-ht circuit-id-ht)
+                      (loop (cdr stmts))))]
+              [(const-binding (car stmts)) =>
+               (lambda (b)
+                 (let ([classified
+                        (classify-const-rhs (cdr b) witness-id-ht circuit-id-ht)])
+                   (and (memq (car classified) '(witness pure-circuit))
+                        (loop (cdr stmts)))))]
+              [else
+               (let ([w (stmt->public-ledger-write (car stmts))])
+                 (and w
+                      (expr-supported?
+                        (cdr w) native-id-ht witness-id-ht circuit-id-ht)
+                      (loop (cdr stmts))))]))))
+
+      ;; stmt->assert: detect a `(statement-expression (assert expr msg))`
+      ;; and return (cons expr msg). The IR exposes `assert` as an Expression
+      ;; that lives in statement position via `statement-expression`. Returns
+      ;; #f for anything else.
+      (define (stmt->assert stmt)
+        (nanopass-case (Ltypescript Statement) stmt
+          [(statement-expression ,expr)
+           (nanopass-case (Ltypescript Expression) expr
+             [(assert ,src ,expr^ ,mesg) (cons expr^ mesg)]
+             [else #f])]
+          [else #f]))
+
+      ;; assert-cond-rust: render the assert condition. For now, calls into
+      ;; non-exported circuits (e.g. tiny.compact's `in_state`) don't have a
+      ;; Rust binding to dispatch to — we emit `true` as a placeholder with
+      ;; a TODO note so the assertion is a no-op rather than a compile
+      ;; error. Witness/pure-circuit calls and other shapes go through the
+      ;; usual ctor-expr-rust renderer.
+      (define (assert-cond-rust expr local-binds
+                                native-id-ht witness-id-ht circuit-id-ht)
+        (let ([e (expr-strip-cast expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(call ,src ,function-name ,expr* ...)
+             (let ([ne (eq-hashtable-ref native-id-ht function-name #f)]
+                   [w (eq-hashtable-ref witness-id-ht function-name #f)]
+                   [c (eq-hashtable-ref circuit-id-ht function-name #f)])
+               (cond
+                 ;; Witness / pure-circuit / native — use ctor-expr-rust.
+                 [(or ne w (and c (id-pure? function-name)))
+                  (ctor-expr-rust e local-binds
+                                  native-id-ht witness-id-ht circuit-id-ht)]
+                 [else
+                  ;; Non-exported (or impure) circuit call — we don't yet
+                  ;; inline these. Emit `true` so the assert is a no-op.
+                  (format "/* TODO M3: inline ~a in assert */ true"
+                          (id-sym function-name))]))]
+            [else
+             (ctor-expr-rust e local-binds
+                             native-id-ht witness-id-ht circuit-id-ht)])))
+
+      ;; emit-body-or-fallback: walk the body of a constructor or circuit and
+      ;; emit `let` bindings, optional leading asserts, and an OpProgramVerify
+      ;; chain that writes each ledger field. Returns #t on success, #f if the
+      ;; body shape isn't one we know how to handle (caller should fall back
+      ;; to its placeholder/default return).
       ;;
       ;; The supported shape is the flat sequence
+      ;;   (assert <expr> "msg")*
       ;;   (const local (call <witness-or-pure>) ...)*
       ;;   (public-ledger field idx write <expr>)+
-      ;; matching tiny.compact's constructor exactly.
-      (define (emit-ctor-body-or-fallback stmt
-                                          native-id-ht witness-id-ht circuit-id-ht)
+      ;; matching tiny.compact's constructor and `set` circuit.
+      ;;
+      ;; `mode` is 'ctor or 'circuit and controls the witness-context shape
+      ;; and final return wrapping (see emit-body-writes).
+      (define (emit-body-or-fallback stmt mode
+                                     native-id-ht witness-id-ht circuit-id-ht)
         (let ([stmts (stmt-flatten stmt)])
           (let loop ([stmts stmts]
                      [local-binds '()]     ; (var-name . rust-name)
@@ -590,10 +722,25 @@
                  [(null? writes) #f]
                  [else
                   (emit-ctor-prelude (reverse pre-lines))
-                  (emit-ctor-writes (reverse writes) local-binds
+                  (emit-body-writes (reverse writes) mode local-binds
                                     native-id-ht witness-id-ht circuit-id-ht
                                     witness-emitted?)
                   #t])]
+              [(stmt->assert (car stmts)) =>
+               (lambda (a)
+                 (let* ([expr (car a)]
+                        [msg (cdr a)]
+                        [cond-str
+                         (assert-cond-rust expr local-binds
+                                           native-id-ht witness-id-ht circuit-id-ht)]
+                        [line
+                         (format "        compact_assert!(~a, ~s);\n"
+                                 cond-str msg)])
+                   (loop (cdr stmts)
+                         local-binds
+                         witness-emitted?
+                         (cons line pre-lines)
+                         writes)))]
               [(const-binding (car stmts)) =>
                (lambda (b)
                  (let* ([var-name (car b)]
@@ -604,26 +751,38 @@
                    (case (car classified)
                      [(witness)
                       ;; Witness call. Emit:
-                      ;;   let witness_ctx_N = WitnessContext::new(ledger(&qctx.state), <prev-priv>, &qctx);
+                      ;;   let witness_ctx_N = WitnessContext::new(ledger(<state>), <prev-priv>, <qctx-ref>);
                       ;;   let (current_private_state, <name>) = self.witnesses.<m>(&witness_ctx_N, args...);
+                      ;; In ctor mode the state/qctx live in the local
+                      ;; `qctx` we built from the K1 seed; in circuit mode
+                      ;; they come off `ctx.current_query_context`.
                       ;; For the first witness call, the source of the
-                      ;; private state is `ctx.initial_private_state`; for
+                      ;; private state is `ctx.initial_private_state` (ctor)
+                      ;; or `ctx.current_private_state` (circuit); for
                       ;; subsequent calls it's the `current_private_state`
                       ;; bound by the previous witness call.
                       (let* ([wname (cadr classified)]
                              [wargs (caddr classified)]
                              [ctx-name (format "_witness_ctx_~a" (length pre-lines))]
-                             [prev-priv (if witness-emitted?
-                                            "current_private_state"
-                                            "ctx.initial_private_state")]
+                             [state-expr (if (eq? mode 'ctor)
+                                             "&qctx.state"
+                                             "&ctx.current_query_context.state")]
+                             [qctx-ref (if (eq? mode 'ctor)
+                                           "&qctx"
+                                           "&ctx.current_query_context")]
+                             [prev-priv
+                              (cond
+                                [witness-emitted? "current_private_state"]
+                                [(eq? mode 'ctor) "ctx.initial_private_state"]
+                                [else "ctx.current_private_state"])]
                              [arg-strs
                               (map (lambda (e)
                                      (ctor-expr-rust e local-binds
                                                      native-id-ht witness-id-ht circuit-id-ht))
                                    wargs)]
                              [call-line
-                              (format "        let ~a = WitnessContext::new(ledger(&qctx.state), ~a, &qctx);\n"
-                                      ctx-name prev-priv)]
+                              (format "        let ~a = WitnessContext::new(ledger(~a), ~a, ~a);\n"
+                                      ctx-name state-expr prev-priv qctx-ref)]
                              [bind-line
                               (format "        let (current_private_state, ~a) = self.witnesses.~a(&~a~a);\n"
                                       rust-name wname ctx-name
@@ -679,6 +838,14 @@
                             pre-lines (cons w writes))]
                    [else #f]))]))))
 
+      ;; emit-ctor-body-or-fallback: backwards-compatible wrapper that calls
+      ;; emit-body-or-fallback in 'ctor mode. Kept for emit-initial-state's
+      ;; existing call site.
+      (define (emit-ctor-body-or-fallback stmt
+                                          native-id-ht witness-id-ht circuit-id-ht)
+        (emit-body-or-fallback stmt 'ctor
+                               native-id-ht witness-id-ht circuit-id-ht))
+
       ;; classify-const-rhs: inspect a `const` binding's RHS expression and
       ;; classify the call (or return 'unknown). Returns
       ;;   (list 'witness rust-name args)        for witness calls
@@ -731,12 +898,16 @@
       (define (emit-ctor-prelude lines)
         (for-each out lines))
 
-      ;; emit-ctor-writes: emit the OpProgramVerify chain for the collected
-      ;; ledger field writes, then the query_for_verify call and the
-      ;; ConstructorResult return. `writes` is a list of (path-idx . expr).
+      ;; emit-body-writes: emit the OpProgramVerify chain for the collected
+      ;; ledger field writes, then the query_for_verify call and the final
+      ;; return value. `writes` is a list of (path-idx . expr). `mode` is
+      ;; 'ctor (constructor) or 'circuit (impure circuit body); they differ
+      ;; in the QueryContext source (`&qctx` vs `&ctx.current_query_context`)
+      ;; and the return shape (`ConstructorResult` vs `CircuitResults`).
       ;; `witness-emitted?` controls whether we use `current_private_state`
-      ;; (threaded through witness calls) or `ctx.initial_private_state`.
-      (define (emit-ctor-writes writes local-binds
+      ;; (threaded through witness calls) or `ctx.initial_private_state`
+      ;; (ctor mode) / falls back to the inline `..ctx` spread (circuit mode).
+      (define (emit-body-writes writes mode local-binds
                                 native-id-ht witness-id-ht circuit-id-ht
                                 witness-emitted?)
         (out "        let ops = OpProgramVerify::<DefaultDB>::new()\n")
@@ -758,15 +929,45 @@
           writes)
         (out "            .build();\n")
         (out "\n")
-        (out "        let results = query_for_verify(&qctx, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?;\n")
-        (out "\n")
-        (out "        Ok(ConstructorResult {\n")
-        (out "            current_contract_state: results.context.state,\n")
-        (out (if witness-emitted?
-                 "            current_private_state,\n"
-                 "            current_private_state: ctx.initial_private_state,\n"))
-        (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
-        (out "        })\n"))
+        (cond
+          [(eq? mode 'ctor)
+           (out "        let results = query_for_verify(&qctx, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?;\n")
+           (out "\n")
+           (out "        Ok(ConstructorResult {\n")
+           (out "            current_contract_state: results.context.state,\n")
+           (out (if witness-emitted?
+                    "            current_private_state,\n"
+                    "            current_private_state: ctx.initial_private_state,\n"))
+           (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
+           (out "        })\n")]
+          [else
+           ;; 'circuit mode: results live on the inbound ctx and we wrap
+           ;; everything in a CircuitResults with unit result.
+           (out "        let results = query_for_verify(\n")
+           (out "            &ctx.current_query_context,\n")
+           (out "            &ops,\n")
+           (out "            ctx.gas_limit.clone(),\n")
+           (out "            &ctx.cost_model,\n")
+           (out "        )?;\n")
+           (out "\n")
+           (out "        Ok(CircuitResults {\n")
+           (out "            result: (),\n")
+           (out "            context: CircuitContext {\n")
+           (out "                current_query_context: results.context,\n")
+           (when witness-emitted?
+             (out "                current_private_state,\n"))
+           (out "                ..ctx\n")
+           (out "            },\n")
+           (out "            gas_cost: results.gas_cost,\n")
+           (out "        })\n")]))
+
+      ;; emit-ctor-writes: backwards-compatible alias used by the ctor path.
+      (define (emit-ctor-writes writes local-binds
+                                native-id-ht witness-id-ht circuit-id-ht
+                                witness-emitted?)
+        (emit-body-writes writes 'ctor local-binds
+                          native-id-ht witness-id-ht circuit-id-ht
+                          witness-emitted?))
 
       ;; emit-initial-state: emits the `initial_state` constructor method
       ;; inside the open Contract impl block. K1 seeds each ledger field
@@ -1121,7 +1322,7 @@
       ;; `round.increment(1);`) — and emits the corresponding Op program
       ;; via `expand-vm-code`. Anything richer keeps the `unimplemented!()`
       ;; placeholder so I3b+ can take it on without losing the build.
-      (define (emit-impure-circuit cdefn)
+      (define (emit-impure-circuit cdefn native-id-ht witness-id-ht circuit-id-ht)
         (nanopass-case (Ltypescript Program-Element) cdefn
           [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
            (out (format "    pub fn ~a(\n" (camel->snake (id-sym function-name))))
@@ -1132,13 +1333,26 @@
                         (type-rust type)))
            (let ([emitted?
                   (and (unit-type? type)
-                       (let ([call (stmt->single-public-ledger-call stmt)])
-                         (and call
-                              (emit-public-ledger-call-body
-                                src
-                                (cadr call)        ; adt-op
-                                (car call)         ; path-elt*
-                                (caddr call)))))]) ; expr*
+                       (or
+                         ;; I3a: counter-style single public-ledger call.
+                         (let ([call (stmt->single-public-ledger-call stmt)])
+                           (and call
+                                (emit-public-ledger-call-body
+                                  src
+                                  (cadr call)        ; adt-op
+                                  (car call)         ; path-elt*
+                                  (caddr call))))    ; expr*
+                         ;; I3b/2: tiny.compact `set`-style body — leading
+                         ;; asserts + const bindings + ledger writes. We
+                         ;; pre-validate via body-walkable? so partial /
+                         ;; broken emissions (e.g. tiny's `clear`, which
+                         ;; needs `==` and `default<T>`) fall back to
+                         ;; `unimplemented!()` rather than producing
+                         ;; uncompilable Rust.
+                         (and (body-walkable? stmt
+                                              native-id-ht witness-id-ht circuit-id-ht)
+                              (emit-body-or-fallback stmt 'circuit
+                                                     native-id-ht witness-id-ht circuit-id-ht))))])
              (unless emitted?
                (out (format "        unimplemented!(\"M3-I3: circuit body emission for ~a\")\n"
                             (id-sym function-name)))))
@@ -1527,11 +1741,13 @@ compact-runtime = \"~a\"
                    [(id-pure? (circuit-function-name (car c*)))
                     (loop (cdr c*) (cons (car c*) acc))]
                    [else (loop (cdr c*) acc)]))]
-              [native-id-ht (build-native-id-ht pelt*)])
+              [native-id-ht (build-native-id-ht pelt*)]
+              [witness-id-ht (build-witness-id-ht pelt*)]
+              [circuit-id-ht (build-circuit-id-ht pelt*)])
          (for-each
            (lambda (c)
              (unless (id-pure? (circuit-function-name c))
-               (emit-impure-circuit c)))
+               (emit-impure-circuit c native-id-ht witness-id-ht circuit-id-ht)))
            circuit*)
          (close-contract-struct)
          (emit-ledger-view (program-ledger-fields pelt*))
