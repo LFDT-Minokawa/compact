@@ -17,25 +17,29 @@
 (declare-native-entry circuit transientHash [A]
   "__compactRuntime.transientHash"
   ([value A (discloses "a hash of")])
-  Field)
+  Field
+  (rust "compact_runtime::transient_hash"))
 
 (declare-native-entry circuit transientCommit [A]
   "__compactRuntime.transientCommit"
   ([value A (discloses nothing)]
    [rand Field (discloses nothing)])
-  Field)
+  Field
+  (rust "compact_runtime::transient_commit"))
 
 ;; ==== Persistent (SHA-256) hashing
 (declare-native-entry circuit persistentHash [A]
   "__compactRuntime.persistentHash"
   ([value A (discloses "a hash of")])
-  (Bytes 32))
+  (Bytes 32)
+  (rust "compact_runtime::persistent_hash"))
 
 (declare-native-entry circuit persistentCommit [A]
   "__compactRuntime.persistentCommit"
   ([value A (discloses nothing)]
    [rand (Bytes 32) (discloses nothing)])
-  (Bytes 32))
+  (Bytes 32)
+  (rust "compact_runtime::persistent_commit"))
 
 (declare-native-entry circuit degradeToTransient
   "__compactRuntime.degradeToTransient"

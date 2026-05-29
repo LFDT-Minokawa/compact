@@ -223,6 +223,38 @@
              (loop (cdr pelt*) (cons (car pelt*) acc))]
             [else (loop (cdr pelt*) acc)])))
 
+      ;; L2 — native bindings.
+      ;;
+      ;; Each `(native src function-name native-entry (arg* ...) type)`
+      ;; Program-Element carries a `native-entry` record (see langs.ss).
+      ;; The record now has two binding fields:
+      ;;   - `native-entry-function`      — the TS-side string
+      ;;     (e.g. "__compactRuntime.persistentHash")
+      ;;   - `native-entry-rust-function` — the Rust-side string
+      ;;     (e.g. "compact_runtime::persistent_hash"), or #f if not yet
+      ;;     mapped in midnight-natives.ss.
+      ;;
+      ;; `native-call-site-rust` extracts a usable Rust call-target from
+      ;; a native Program-Element (or from any function-name id record
+      ;; resolved to its native-entry by callers). When the binding hasn't
+      ;; been mapped yet, returns a TODO-tagged placeholder so the
+      ;; generated code makes the gap obvious. Used by I3b/J2 when
+      ;; emitting call sites for native circuits.
+      (define (native-pelt? pelt)
+        (nanopass-case (Ltypescript Program-Element) pelt
+          [(native ,src ,function-name ,native-entry (,arg* ...) ,type) #t]
+          [else #f]))
+
+      (define (native-pelt-entry pelt)
+        (nanopass-case (Ltypescript Program-Element) pelt
+          [(native ,src ,function-name ,native-entry (,arg* ...) ,type) native-entry]))
+
+      (define (native-call-site-rust ne)
+        (or (native-entry-rust-function ne)
+            (format "/* TODO M3-L2: no Rust binding for ~a */ ~a"
+                    (native-entry-function ne)
+                    "unimplemented!()")))
+
       ;; lfield?: returns #t if a Program-Element is a Ledger-Declaration
       ;; (i.e. a `public-ledger-declaration` form). In Ltypescript the
       ;; Program-Element nonterminal includes `ldecl`, whose Ltypescript

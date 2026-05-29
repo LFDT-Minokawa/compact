@@ -29,7 +29,7 @@
 
     (define-syntax declare-native-entry
       (lambda (q)
-        (define (f class name type-param* function argument-name* argument-type* disclosure* result-type)
+        (define (f class name type-param* function rust-function argument-name* argument-type* disclosure* result-type)
           (define (convert-outer-type type)
             (define (convert-native-type type)
               (define (convert-native-targ targ)
@@ -69,6 +69,7 @@
                   `(native ,native-src #t #,name
                      ,(make-native-entry
                         #,function
+                        #,rust-function
                         '#,(case (syntax->datum class)
                              [(circuit) class]
                              [(witness) class]
@@ -79,11 +80,20 @@
                      (#,@(map convert-native-argument argument-name* argument-type*))
                      #,(convert-outer-type result-type)))
                 ndecl*)))
-        (syntax-case q ()
+        ;; The new optional `(rust "...")` trailing form lets a native
+        ;; declaration carry its Rust-side binding alongside the TS one.
+        ;; Used by rust-passes.ss when emitting native call sites (M3-L2).
+        ;; Entries without `(rust ...)` keep #f in the new field; the
+        ;; Rust emitter falls back to a TODO comment for those.
+        (syntax-case q (rust)
+          [(_ class name [type-param ...] function ([argument-name argument-type disclosure] ...) result-type (rust rust-fn))
+           (f #'class #'name #'(type-param ...) #'function #'rust-fn #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)]
+          [(_ class name function ([argument-name argument-type disclosure] ...) result-type (rust rust-fn))
+           (f #'class #'name '() #'function #'rust-fn #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)]
           [(_ class name [type-param ...] function ([argument-name argument-type disclosure] ...) result-type)
-           (f #'class #'name #'(type-param ...) #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)]
+           (f #'class #'name #'(type-param ...) #'function #'#f #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)]
           [(_ class name function ([argument-name argument-type disclosure] ...) result-type)
-           (f #'class #'name '() #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)])))
+           (f #'class #'name '() #'function #'#f #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)])))
     (include "midnight-natives.ss")
     (reverse ndecl*))
 )
