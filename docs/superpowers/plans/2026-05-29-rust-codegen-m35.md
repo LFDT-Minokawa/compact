@@ -8,9 +8,9 @@
 
 | Phase | Tasks | Status | Last commit |
 |---|---|---|---|
-| **E1** — Implicit constructor support | E1.1 | pending | — |
+| **E1** — Implicit constructor support | E1.1 ✅ (verified, no fix needed) | done | — |
 | **E2** — Non-exported struct promotion | E2.1 | pending | — |
-| **R1** — Re-export ADT wrappers in compact-runtime | R1.1, R1.2 | pending | — |
+| **R1** — Re-export ADT wrappers in compact-runtime + builder helpers | R1.1, R1.2, R1.3 (K1.1 — extended defaults) | pending | — |
 | **R2** — Native function mapping audit | R2.1–R2.5 | pending | — |
 | **R3** — persistent_hash argument encoding fix | R3.1 | pending | — |
 | **R4** — Extended decoders | R4.1 | pending | — |
@@ -27,7 +27,7 @@
 | **F1** — zerocash.compact byte-parity | F1.1, F1.2 | pending | — |
 | **F2** — election.compact byte-parity | F2.1, F2.2 | pending | — |
 
-**Resume here:** E1 (implicit constructor) — smallest blocker, lands first.
+**Resume here:** R1 (ADT runtime re-exports). E1 was verified — implicit constructor works in shape (zerocash + election emit clean `pub fn initial_state` skeletons via the existing J1+J2 path); no code change needed. The actual blocker for getting zerocash to compile is the per-field default seeding — `new_cell(Default::default())` for Set/MerkleTree/HMT can't infer T. R1 exposes the upstream ADTs in compact-runtime + adds `new_set`/`new_map`/`new_merkle_tree`/`new_historic_merkle_tree` builder helpers; K1.1 (added below) then teaches `default-value-rust` + `emit-initial-state` to dispatch on the ADT and emit the right builder.
 
 **Goal:** every cell in the M3.5 design's test matrix flips to ✅ (or has a documented carve-out).
 
@@ -46,19 +46,13 @@
 
 ---
 
-## Phase E1 — Implicit constructor support
+## Phase E1 — Implicit constructor support ✅
 
-### Task E1.1: Verify + fix `emit-initial-state` for contracts without source-level constructor
+### Task E1.1: Verify + fix `emit-initial-state` for contracts without source-level constructor ✅
 
-**Files:** `compiler/rust-passes.ss`
+Verified by inspection (2026-05-29). Both zerocash.compact (no source-level constructor) and election.compact (no source-level constructor) emit clean `pub fn initial_state(...) -> Result<ConstructorResult<...>>` shells through the existing J1+J2 path. The frontend synthesises an implicit `(constructor src () (tuple))` form; the body-walker returns immediately on the `(tuple)` no-op terminator, producing zero body lines — same shape as counter's explicit `constructor() {}`. No code change required.
 
-A contract like zerocash.compact has no `constructor() { ... }`. The frontend synthesises one (the Ltypescript IR likely contains `(constructor src () (tuple))`). Verify the existing J1+J2 walker handles this cleanly; fix if it doesn't.
-
-- [ ] Run compactc on zerocash.compact; inspect the emitted `initial_state` method
-- [ ] If it emits unimplemented!() or fails, find which IR branch falls through and add the missing case
-- [ ] Counter snapshot must remain byte-identical (counter has an explicit empty constructor — this should NOT change its emission)
-- [ ] Tiny snapshot must remain byte-identical
-- [ ] Commit + push
+The actual zerocash compile failures (12 errors at last count) are downstream: ADT-typed ledger fields seeded as `new_cell(Default::default())` where the inner type can't be inferred. Addressed by R1 + K1.1.
 
 ---
 
