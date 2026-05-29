@@ -116,12 +116,13 @@
            ;; nominal form. F2 of M3.
            (if nominal? (symbol->string type-name) (type-rust type))]
           [(topaque ,src ,opaque-type)
-           ;; Compact's opaque types (e.g. `Opaque<"string">`) lower to
-           ;; the named string handle. Rust mirrors via a `String` or
-           ;; runtime-defined newtype. For now emit `String` for the
-           ;; canonical "string" opaque; other opaque types stay flagged.
+           ;; Compact's opaque types lower to runtime-defined Rust types.
+           ;; "string" uses an OpaqueString newtype (compact_runtime::std_lib)
+           ;; that carries the Aligned/FieldRepr impls bare String can't have
+           ;; under orphan rules. "Uint8Array" maps to Vec<u8> since Vec<u8>
+           ;; has the needed impls upstream. Other opaque tags stay flagged.
            (cond
-             [(equal? opaque-type "string") "String"]
+             [(equal? opaque-type "string") "compact_runtime::std_lib::OpaqueString"]
              [(equal? opaque-type "Uint8Array") "Vec<u8>"]
              [else (format "/* TODO M3-F4: topaque ~a */" opaque-type)])]
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
@@ -2362,8 +2363,11 @@
           [(topaque ,src ,opaque-type)
            ;; Cat 4: give Opaque<"X"> a typed default so `new_cell(...)`
            ;; doesn't need explicit turbofish at the call site.
+           ;; "string" goes through the OpaqueString newtype (orphan-rule
+           ;; workaround for Aligned/FieldRepr on bare String); other
+           ;; opaques stay as their direct mapping.
            (cond
-             [(equal? opaque-type "string") "String::new()"]
+             [(equal? opaque-type "string") "compact_runtime::std_lib::OpaqueString::default()"]
              [(equal? opaque-type "Uint8Array") "Vec::<u8>::new()"]
              [else "Default::default()"])]
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)

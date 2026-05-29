@@ -9,7 +9,7 @@
 
 use crate::{
     aligned_bytes, Aligned, AlignedValue, Alignment, CompactError, ContractState, FieldRepr,
-    FromFieldRepr, Fr, MemWrite, StateValue, DB,
+    FromFieldRepr, Fr, MemWrite, StateValue, Value, DB,
 };
 
 /// Compact's `Counter` ledger ADT. Represented at runtime as
@@ -202,6 +202,17 @@ impl<T: FromFieldRepr> FromFieldRepr for Maybe<T> {
     }
 }
 
+/// `From<Maybe<T>> for Value` so `Maybe<T>: DynAligned` lifts to
+/// `AlignedValue: From<Maybe<T>>` through the upstream blanket impl,
+/// which in turn satisfies `new_cell(Maybe::<T>::default())` at the
+/// codegen seeding site. Parallels upstream `From<Option<T>> for Value`
+/// (midnight-base-crypto/src/fab/conversions.rs:262).
+impl<T: Into<Value>> From<Maybe<T>> for Value {
+    fn from(inp: Maybe<T>) -> Value {
+        Value::concat([Value::from(inp.is_some), inp.value.into()].iter())
+    }
+}
+
 /// Construct a `Maybe<T>` in the "some" state. Mirrors Compact's
 /// `some<T>(value: T): Maybe<T>` circuit from `standard-library.compact`.
 #[inline]
@@ -279,6 +290,58 @@ pub fn vec_u8_from_field_repr(r: &[Fr]) -> Option<Vec<u8>> {
     }
     midnight_transient_crypto::repr::bytes_from_field_repr(&mut &r[..], r.len() * 31)
 }
+
+/// Compact's `Opaque<"string">` mapped to a newtype around `String`,
+/// implementing the trait set the codegen + ledger machinery require.
+/// String can't impl `Aligned` directly (orphan rules) and is needed
+/// in election.compact (`ledger topic: Maybe<Opaque<"string">>`) and
+/// elsewhere, so this newtype carries the impls.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct OpaqueString(pub String);
+
+impl From<String> for OpaqueString {
+    fn from(s: String) -> Self { OpaqueString(s) }
+}
+
+impl From<&str> for OpaqueString {
+    fn from(s: &str) -> Self { OpaqueString(s.to_string()) }
+}
+
+impl Aligned for OpaqueString {
+    fn alignment() -> Alignment {
+        // Same shape as Vec<u8>: variable-length byte buffer (Compress atom).
+        <Vec<u8> as Aligned>::alignment()
+    }
+}
+
+impl FieldRepr for OpaqueString {
+    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {
+        // UTF-8 byte serialisation; on-chain repr matches the byte stream
+        // the TS path produces via Buffer.from(string).
+        self.0.as_bytes().to_vec().field_repr(writer);
+    }
+    fn field_size(&self) -> usize { bytes_field_size(self.0.len()) }
+}
+
+impl FromFieldRepr for OpaqueString {
+    const FIELD_SIZE: usize = 0;  // variable; surrounding ADT carries length
+    fn from_field_repr(r: &[Fr]) -> Option<Self> {
+        let bytes = vec_u8_from_field_repr(r)?;
+        // Best-effort UTF-8 conversion; non-UTF-8 bytes round-trip as
+        // replacement characters. For strict round-tripping users should
+        // hold OpaqueString::from_lossless when we add it.
+        Some(OpaqueString(String::from_utf8_lossy(&bytes).into_owned()))
+    }
+}
+
+impl From<OpaqueString> for Value {
+    fn from(s: OpaqueString) -> Value {
+        Value::from(s.0.into_bytes())
+    }
+}
+// `From<OpaqueString> for AlignedValue` comes for free via the upstream
+// blanket `impl<T: DynAligned, Value: From<T>> From<T> for AlignedValue`
+// — adding it explicitly causes E0119 conflict.
 
 /// Parse a `[T; N]` of user-typed elements from an Fr-slice. Codegen
 /// calls this for struct/enum array fields where neither upstream nor
