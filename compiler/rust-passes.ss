@@ -240,6 +240,24 @@
              (loop (cdr pelt*) (cons (car pelt*) acc))]
             [else (loop (cdr pelt*) acc)])))
 
+      ;; ldecl-constructor-args: from a Program-Element of shape
+      ;; (public-ledger-declaration pl-array lconstructor), extract the
+      ;; constructor's Argument list. The lconstructor has shape
+      ;; (constructor src (arg* ...) stmt). Returns '() if none.
+      (define (ldecl-constructor-args ldecl)
+        (nanopass-case (Ltypescript Program-Element) ldecl
+          [(public-ledger-declaration ,pl-array ,lconstructor)
+           (nanopass-case (Ltypescript Ledger-Constructor) lconstructor
+             [(constructor ,src (,arg* ...) ,stmt) arg*])]
+          [else '()]))
+
+      ;; program-constructor-args: locate the (single) public-ledger-declaration
+      ;; in the Program and return its constructor's arg list. Used by
+      ;; emit-initial-state to emit user-supplied constructor parameters.
+      (define (program-constructor-args pelt*)
+        (let ([ldecl* (program-ledger-fields pelt*)])
+          (if (null? ldecl*) '() (ldecl-constructor-args (car ldecl*)))))
+
       ;; export-tdefn?: returns #t if a Program-Element is an
       ;; `export-typedef` form. Non-exported user enums/structs/aliases
       ;; are dropped before Ltypescript and therefore never appear here;
@@ -361,11 +379,23 @@
       ;; TODO(M3): this hardcodes Counter as the only supported ADT.
       ;; Generalising to Cell/Map/Set/MerkleTree/List requires walking the
       ;; Ledger-Constructor body and dispatching on each field's ADT type.
-      (define (emit-initial-state ledger-field*)
+      (define (emit-initial-state ledger-field* ctor-arg*)
         (out "    pub fn initial_state(\n")
         (out "        &self,\n")
-        (out "        ctx: ConstructorContext<PS>,\n")
-        (out "    ) -> Result<ConstructorResult<PS>, CompactError> {\n")
+        (out "        ctx: ConstructorContext<PS>")
+        ;; Constructor parameters: one per (var-name type) pair, emitted
+        ;; after ctx in the same multi-line shape used elsewhere. Names go
+        ;; through camel->snake (handles `$` and CamelCase); types via
+        ;; type-rust.
+        (for-each
+          (lambda (arg)
+            (nanopass-case (Ltypescript Argument) arg
+              [(,var-name ,type)
+               (out (format ",\n        ~a: ~a"
+                            (camel->snake (id-sym var-name))
+                            (type-rust type)))]))
+          ctor-arg*)
+        (out ",\n    ) -> Result<ConstructorResult<PS>, CompactError> {\n")
         ;; For each ledger field, build its initial StateValue. For M2 this
         ;; is hardcoded to Cell(0u64) (Counter's initial value).
         (out "        let sv = new_array(vec![\n")
@@ -515,7 +545,8 @@ compact-runtime = \"~a\"
        (emit-type-decls (program-export-tdefns pelt*))
        (emit-witnesses (program-witnesses pelt*))
        (emit-contract-struct)
-       (emit-initial-state (program-ledger-fields pelt*))
+       (emit-initial-state (program-ledger-fields pelt*)
+                           (program-constructor-args pelt*))
        ;; Walk circuit declarations and split on purity. Impure circuits
        ;; become methods on the open Contract impl block; pure circuits are
        ;; collected for the pure_circuits module below.
