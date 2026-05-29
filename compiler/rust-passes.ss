@@ -266,11 +266,18 @@
           [else #f]))
 
       ;; Collect circuit definitions from a list of program elements.
+      ;; Only exported circuits make the public surface — non-exported
+      ;; helpers (e.g. tiny.compact's `in_state`) and stdlib circuits
+      ;; reached via specialisation (e.g. `some<Field>`, `none<Field>`)
+      ;; live in the IR with id-exported? = #f. The TS path inlines them
+      ;; at the use site; the Rust path will do the same once I3 handles
+      ;; circuit body emission.
       (define (program-circuits pelt*)
         (let loop ([pelt* pelt*] [acc '()])
           (cond
             [(null? pelt*) (reverse acc)]
-            [(circuit? (car pelt*))
+            [(and (circuit? (car pelt*))
+                  (id-exported? (circuit-function-name (car pelt*))))
              (loop (cdr pelt*) (cons (car pelt*) acc))]
             [else (loop (cdr pelt*) acc)])))
 
