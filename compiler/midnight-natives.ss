@@ -97,6 +97,68 @@
   ([x Field (discloses "a JubJub scalar equivalent to")])
   Field)
 
+;; ==== Secp256k1 elliptic curve operations (MOCK; circuit gates not yet implemented)
+
+(declare-native-entry circuit secp256k1ScalarFromBytes
+  "__compactRuntime.secp256k1ScalarFromBytes"
+  ([x (Bytes 32) (discloses "a Secp256k1 scalar equivalent to")])
+  (TypeRef Secp256k1Scalar))
+
+(declare-native-entry circuit secp256k1ScalarToBytes
+  "__compactRuntime.secp256k1ScalarToBytes"
+  ([s (TypeRef Secp256k1Scalar) (discloses "a byte encoding of")])
+  (Bytes 32))
+
+(declare-native-entry circuit secp256k1ScalarMul
+  "__compactRuntime.secp256k1ScalarMul"
+  ([a (TypeRef Secp256k1Scalar) (discloses "a Secp256k1 scalar product including")]
+   [b (TypeRef Secp256k1Scalar) (discloses "a Secp256k1 scalar product including")])
+  (TypeRef Secp256k1Scalar))
+
+(declare-native-entry circuit secp256k1ScalarInverse
+  "__compactRuntime.secp256k1ScalarInverse"
+  ([s (TypeRef Secp256k1Scalar) (discloses "the Secp256k1 scalar inverse of")])
+  (TypeRef Secp256k1Scalar))
+
+(declare-native-entry circuit secp256k1ScalarNeg
+  "__compactRuntime.secp256k1ScalarNeg"
+  ([s (TypeRef Secp256k1Scalar) (discloses "the negation of")])
+  (TypeRef Secp256k1Scalar))
+
+(declare-native-entry circuit secp256k1Add
+  "__compactRuntime.secp256k1Add"
+  ([a (TypeRef Secp256k1Point) (discloses "a Secp256k1 point sum including")]
+   [b (TypeRef Secp256k1Point) (discloses "a Secp256k1 point sum including")])
+  (TypeRef Secp256k1Point))
+
+(declare-native-entry circuit secp256k1Mul
+  "__compactRuntime.secp256k1Mul"
+  ([pt (TypeRef Secp256k1Point) (discloses "a Secp256k1 point-scalar product including")]
+   [s (TypeRef Secp256k1Scalar) (discloses "a Secp256k1 point-scalar product including")])
+  (TypeRef Secp256k1Point))
+
+(declare-native-entry circuit secp256k1MulGenerator
+  "__compactRuntime.secp256k1MulGenerator"
+  ([s (TypeRef Secp256k1Scalar) (discloses "the product of the Secp256k1 generator with")])
+  (TypeRef Secp256k1Point))
+
+(declare-native-entry circuit secp256k1PointX
+  "__compactRuntime.secp256k1PointX"
+  ([pt (TypeRef Secp256k1Point) (discloses "the x-coordinate of")])
+  (TypeRef Secp256k1BaseField))
+
+(declare-native-entry circuit secp256k1PointY
+  "__compactRuntime.secp256k1PointY"
+  ([pt (TypeRef Secp256k1Point) (discloses "the y-coordinate of")])
+  (TypeRef Secp256k1BaseField))
+
+(declare-native-entry circuit secp256k1BaseFieldToBytes
+  "__compactRuntime.secp256k1BaseFieldToBytes"
+  ([x (TypeRef Secp256k1BaseField) (discloses "a byte encoding of")])
+  (Bytes 32))
+
+;; ====
+
 (declare-native-entry witness ownPublicKey
   "__compactRuntime.ownPublicKey"
   ()
