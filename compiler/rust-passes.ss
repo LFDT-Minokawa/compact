@@ -122,6 +122,7 @@
            ;; canonical "string" opaque; other opaque types stay flagged.
            (cond
              [(equal? opaque-type "string") "String"]
+             [(equal? opaque-type "Uint8Array") "Vec<u8>"]
              [else (format "/* TODO M3-F4: topaque ~a */" opaque-type)])]
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
            ;; L1: Maybe<T> resolves to the canonical struct exposed by
@@ -155,6 +156,140 @@
            "ContractAddress"]
           [(tunknown) "/* TODO M3-F4: tunknown */"]
           [else "/* TODO M3-F4: unhandled type variant */"]))
+
+      ;; -----------------------------------------------------------------
+      ;; M3.5 helpers: per-field codegen for Aligned / FieldRepr /
+      ;; FromFieldRepr impls of user structs.
+      ;;
+      ;; Rust's orphan rules forbid us from impl'ing those upstream traits
+      ;; on foreign types like `[u8; N]` (N != 32), `Vec<u8>`, or
+      ;; `[UserType; N]`. To sidestep that, when a struct field has one of
+      ;; these "problematic" types we emit:
+      ;;   - the FIELD_SIZE / Aligned::concat / field_size() / field_repr()
+      ;;     pieces inline (computing what `<T as Trait>::method` would
+      ;;     have returned), and
+      ;;   - a call to a free `compact_runtime::*_from_field_repr`
+      ;;     helper for the parse side.
+      ;; -----------------------------------------------------------------
+
+      ;; Recognise tbytes with a non-32 length.
+      (define (problematic-bytes? type)
+        (nanopass-case (Ltypescript Type) type
+          [(tbytes ,src ,len) (not (= len 32))]
+          [else #f]))
+
+      ;; Recognise tvector whose element is itself a user struct / enum.
+      ;; (Upstream provides no `[T; N]` impls for non-u8 T.)
+      (define (problematic-vector? type)
+        (nanopass-case (Ltypescript Type) type
+          [(tvector ,src ,len ,type)
+           (nanopass-case (Ltypescript Type) type
+             [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+              (not (eq? struct-name 'Maybe))]
+             [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
+             [else #f])]
+          [else #f]))
+
+      ;; Recognise Opaque<"Uint8Array"> which lowers to Vec<u8>.
+      (define (problematic-vec-u8? type)
+        (nanopass-case (Ltypescript Type) type
+          [(topaque ,src ,opaque-type) (equal? opaque-type "Uint8Array")]
+          [else #f]))
+
+      ;; field-size-const-expr: compile-time expression for
+      ;; `<T as FromFieldRepr>::FIELD_SIZE`. For problematic types,
+      ;; substitute a runtime helper / literal.
+      (define (field-size-const-expr type)
+        (cond
+          [(problematic-bytes? type)
+           (nanopass-case (Ltypescript Type) type
+             [(tbytes ,src ,len)
+              (format "compact_runtime::bytes_field_size(~a)" len)])]
+          [(problematic-vec-u8? type)
+           ;; Vec<u8> has no fixed FIELD_SIZE; codegen treats this as 0
+           ;; (the surrounding ADT carries the byte count).
+           "0"]
+          [(problematic-vector? type)
+           (nanopass-case (Ltypescript Type) type
+             [(tvector ,src ,len ,type)
+              (format "<~a as FromFieldRepr>::FIELD_SIZE * ~a"
+                      (type-rust type) len)])]
+          [else
+           (format "<~a as FromFieldRepr>::FIELD_SIZE" (type-rust type))]))
+
+      ;; field-from-repr-expr: parse one field from the slice
+      ;; `r[_offset.._offset + size]` and bind to `name`. For
+      ;; problematic types, call into runtime helpers.
+      (define (emit-field-from-repr name type)
+        (let ([size-expr (field-size-const-expr type)])
+          (cond
+            [(problematic-bytes? type)
+             (nanopass-case (Ltypescript Type) type
+               [(tbytes ,src ,len)
+                (out (format "        let ~a = compact_runtime::bytes_from_field_repr::<~a>(&r[_offset.._offset + ~a])?;\n"
+                             name len size-expr))
+                (out (format "        _offset += ~a;\n" size-expr))])]
+            [(problematic-vec-u8? type)
+             (out (format "        let ~a = compact_runtime::vec_u8_from_field_repr(&r[_offset.._offset])?;\n"
+                          name))]
+            [(problematic-vector? type)
+             (nanopass-case (Ltypescript Type) type
+               [(tvector ,src ,len ,type)
+                (out (format "        let ~a = compact_runtime::array_from_field_repr::<~a, ~a>(&r[_offset.._offset + ~a], <~a as FromFieldRepr>::FIELD_SIZE)?;\n"
+                             name (type-rust type) len size-expr (type-rust type)))
+                (out (format "        _offset += ~a;\n" size-expr))])]
+            [else
+             (let ([rust-ty (type-rust type)])
+               (out (format "        let ~a = <~a as FromFieldRepr>::from_field_repr(&r[_offset.._offset + <~a as FromFieldRepr>::FIELD_SIZE])?;\n"
+                            name rust-ty rust-ty))
+               (out (format "        _offset += <~a as FromFieldRepr>::FIELD_SIZE;\n" rust-ty)))])))
+
+      ;; alignment-expr: emit a `&Alignment` reference for use inside
+      ;; `Alignment::concat([...])`. For `[T; N]` of user types,
+      ;; Alignment::concat needs N references which we cannot easily
+      ;; produce inline — synthesise a small helper expression that
+      ;; builds a temporary Vec<&Alignment>.
+      ;;
+      ;; Since `Alignment::concat` takes `IntoIterator<Item = &Alignment>`,
+      ;; we can build an expression that does the work inline.
+      (define (emit-alignment-piece type first?)
+        (cond
+          [(problematic-vector? type)
+           (nanopass-case (Ltypescript Type) type
+             [(tvector ,src ,len ,type)
+              ;; Emit a Box-leaked vector of N copies of T's alignment.
+              ;; Simpler: just emit N comma-separated &T::alignment() calls.
+              (let loop ([i 0])
+                (when (< i len)
+                  (out (format "~a&<~a as Aligned>::alignment()"
+                               (if (and first? (= i 0)) "" ", ")
+                               (type-rust type)))
+                  (loop (+ i 1))))])]
+          [else
+           (out (format "~a&<~a as Aligned>::alignment()"
+                        (if first? "" ", ")
+                        (type-rust type)))]))
+
+      ;; field-size-instance-expr: runtime field.field_size() expression
+      ;; for use in the per-instance field_size() summation.
+      (define (field-size-instance-expr field-name type)
+        (cond
+          [(problematic-vector? type)
+           ;; iter().map(|e| e.field_size()).sum() avoids requiring
+           ;; FieldRepr to be impl'd on [T; N].
+           (format "self.~a.iter().map(|e| e.field_size()).sum::<usize>()" field-name)]
+          [else
+           (format "self.~a.field_size()" field-name)]))
+
+      ;; field-repr-emit: write the per-field `self.x.field_repr(writer)`
+      ;; or equivalent loop for `[T; N]` of user types.
+      (define (emit-field-repr-call field-name type)
+        (cond
+          [(problematic-vector? type)
+           (out (format "        for _e in self.~a.iter() { _e.field_repr(writer); }\n"
+                        field-name))]
+          [else
+           (out (format "        self.~a.field_repr(writer);\n" field-name))]))
 
       (define (header)
         (out "// SPDX-License-Identifier: Apache-2.0\n")
@@ -475,9 +610,7 @@
                          (cond
                            [(null? types) (void)]
                            [else
-                            (out (format "~a&<~a as Aligned>::alignment()"
-                                         (if first? "" ", ")
-                                         (type-rust (car types))))
+                            (emit-alignment-piece (car types) first?)
                             (loop (cdr types) #f)]))
                        (out "])\n")
                        (out "    }\n")
@@ -486,22 +619,22 @@
                        (out (format "impl FieldRepr for ~a {\n" struct-name))
                        (out "    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {\n")
                        (for-each
-                         (lambda (name)
-                           (out (format "        self.~a.field_repr(writer);\n" name)))
-                         elt-name*)
+                         (lambda (name type)
+                           (emit-field-repr-call name type))
+                         elt-name* type*)
                        (out "    }\n")
                        (out "    fn field_size(&self) -> usize {\n        ")
                        (cond
                          [(null? elt-name*) (out "0")]
                          [else
-                          (let loop ([names elt-name*] [first? #t])
+                          (let loop ([names elt-name*] [types type*] [first? #t])
                             (cond
                               [(null? names) (void)]
                               [else
-                               (out (format "~aself.~a.field_size()"
+                               (out (format "~a~a"
                                             (if first? "" " + ")
-                                            (car names)))
-                               (loop (cdr names) #f)]))])
+                                            (field-size-instance-expr (car names) (car types))))
+                               (loop (cdr names) (cdr types) #f)]))])
                        (out "\n    }\n")
                        (out "}\n")
                        ;; H7b: FromFieldRepr impl — parse each field by offset.
@@ -516,9 +649,9 @@
                             (cond
                               [(null? types) (void)]
                               [else
-                               (out (format "~a<~a as FromFieldRepr>::FIELD_SIZE"
+                               (out (format "~a~a"
                                             (if first? "" " + ")
-                                            (type-rust (car types))))
+                                            (field-size-const-expr (car types))))
                                (loop (cdr types) #f)]))])
                        (out ";\n")
                        (out "    fn from_field_repr(r: &[Fr]) -> Option<Self> {\n")
@@ -526,10 +659,7 @@
                        (out "        let mut _offset = 0usize;\n")
                        (for-each
                          (lambda (name type)
-                           (let ([rust-ty (type-rust type)])
-                             (out (format "        let ~a = <~a as FromFieldRepr>::from_field_repr(&r[_offset.._offset + <~a as FromFieldRepr>::FIELD_SIZE])?;\n"
-                                          name rust-ty rust-ty))
-                             (out (format "        _offset += <~a as FromFieldRepr>::FIELD_SIZE;\n" rust-ty))))
+                           (emit-field-from-repr name type))
                          elt-name* type*)
                        ;; Silence unused-assignment warning on the final
                        ;; _offset += that no field reads.
@@ -2229,6 +2359,26 @@
           [(tbytes ,src ,len) (format "[0u8; ~a]" len)]
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) "0u8"]
           [(talias ,src ,nominal? ,type-name ,type) (default-value-rust type)]
+          [(topaque ,src ,opaque-type)
+           ;; Cat 4: give Opaque<"X"> a typed default so `new_cell(...)`
+           ;; doesn't need explicit turbofish at the call site.
+           (cond
+             [(equal? opaque-type "string") "String::new()"]
+             [(equal? opaque-type "Uint8Array") "Vec::<u8>::new()"]
+             [else "Default::default()"])]
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+           ;; Maybe<T> needs an explicit type parameter so `Default::default()`
+           ;; can infer the payload. Other named structs derive Default
+           ;; (H5 emits `#[derive(... Default)]`), so the bare struct name works.
+           (cond
+             [(eq? struct-name 'Maybe)
+              (let loop ([names elt-name*] [types type*])
+                (cond
+                  [(null? names) "Maybe::<()>::default()"]
+                  [(eq? (car names) 'value)
+                   (format "Maybe::<~a>::default()" (type-rust (car types)))]
+                  [else (loop (cdr names) (cdr types))]))]
+             [else (format "~a::default()" struct-name)])]
           [else "Default::default()"]))
 
       ;; emit-ledger-view: emits the module-level `ledger()` factory and the

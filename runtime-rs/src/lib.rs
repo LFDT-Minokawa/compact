@@ -110,7 +110,10 @@ pub mod version;
 pub use version::COMPACT_RUNTIME_VERSION;
 
 pub mod std_lib;
-pub use std_lib::{disclose, none, pad, some, Bytes, Maybe};
+pub use std_lib::{
+    array_from_field_repr, bytes_from_field_repr, bytes_field_size, disclose, none, pad, some,
+    vec_u8_from_field_repr, Bytes, Maybe,
+};
 
 pub mod builders;
 pub use builders::{
