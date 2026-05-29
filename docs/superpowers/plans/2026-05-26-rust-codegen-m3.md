@@ -9,7 +9,7 @@
 | F — type-rust helper (real impl) | F1 ✅, F2 pending, F3 ✅, F4 pending | partial | `d89861d` |
 | G — Witnesses trait emission | G1 ✅, G2 ✅, G3 ✅ | done | `ef7bf13` |
 | H — Enum + struct emission | H1 ✅, H2 ✅, H3 ✅, H4 ✅, H5–H7 (structs) pending | partial | `49fe847` |
-| I — Per-circuit emission | I1 ✅, I1.5 ✅ (filter), I2 ✅, I3 pending, I4 pending | partial | `3238a3b` |
+| I — Per-circuit emission | I1 ✅, I1.5 ✅ (filter), I2 ✅, I3a ✅ (counter wedge), I3b+ pending, I4 pending | partial | `9456eaa` |
 | J — Constructor with parameters | J1 ✅, J2 pending | partial | `8102a6f` |
 | K — Multi-ledger-field | K1 ✅, K2 ✅ | done | `068d05c` |
 | L — Compact stdlib mapping | L1 ✅, L2 pending, L3 ✅ (pre-existing), L4 ✅ (pre-existing) | partial | `2171d1c` |
@@ -17,9 +17,16 @@
 
 **Milestone reached (after K2):** `compactc --rust examples/tiny.compact /tmp/out/` produces a Rust crate that **compiles cleanly** against the local `compact-runtime`. `cargo build` succeeds end-to-end — all type references resolve, Witnesses trait + Maybe<T> + Ledger view + circuit signatures all type-check. Bodies remain `unimplemented!()` so the crate panics at runtime, but the surface is correct. This proves M3's "generalised emission" architectural goal is sound; remaining work is body correctness (K1/J2/I3) and byte-parity validation (M).
 
-**Resume here:** J2 + I3 (body emission). K1 done.
+**Counter byte-parity restored (I3a, commit `9456eaa`):** circuit body emission now walks the Statement IR. For the narrow shape "single `public-ledger` call as statement-expression", it uses `expand-vm-code` from `(vm)` to evaluate the ADT op's vm-code with concrete path indices + argument expressions, then emits each vminstr as an `OpProgramVerify` builder call. The frontend lowers `round.increment(1)` to a nested `seq` introducing a temp via `safe-cast`; the emitter handles this by flattening seqs, gathering leading `(const ...)` bindings into an alist, resolving `var-ref` through that alist, and stripping `safe-cast` layers before passing args to `expand-vm-code`. Counter's snapshot now contains real Op programs again.
 
-- **I3** — the central remaining task: emit per-circuit Op programs + Rust expression bodies. The Ltypescript IR's Statement / Expression nonterminals need walkers analogous to `typescript-passes.ss::Stmt`/`Expr`. Practical starting wedge: handle the single `public-ledger` call case (e.g. counter's `round.increment(1)`) to restore counter byte-parity by emitting that one shape. Then expand to other statement forms (const-binding, if, assignment, return) and other expression forms (literals, var-refs, function calls, enum-refs already lowered to numeric literals upstream). For each ADT op's `vm-code`, the canonical Rust translation is `Op::<X> { ... }` → `.<op>_at_index(args)` / `.<op>(args)` on the OpProgram*Verify/Gather builder — mostly mechanical once the dispatch infrastructure exists.
+**Resume here:** I3b + J2 (body emission expansion). I3a's infrastructure is the foundation.
+
+- **I3b** — expand circuit body emission to cover tiny.compact's circuits. Each adds new shapes beyond I3a's "single public-ledger call":
+  - `set(v: Field)`: assert + 2 const bindings (witness call + pure circuit call) + 3 ledger writes (public-ledger calls with `update` op-class on Cell). Needs: `assert!` emission, ledger-write op handling, witness-call emission, pure-circuit-call emission.
+  - `get(): Maybe<Field>`: conditional return — ledger read of `state` + comparison to enum literal + ternary over `some`/`none` stdlib calls returning `Maybe<Fr>`. Needs: ledger-read inside circuit body (different from K2's view, this is mid-circuit-OpProgram), enum-ref literal lowering, ternary, function calls returning values, return-value packaging.
+  - `clear(): []`: assert + 3 ledger writes (similar to `set` but with constants).
+  - `public_key(sk: Bytes<32>)`: persistentHash native + `pad` stdlib + vector construction. Needs: native-call emission (uses `midnight-natives.ss` Rust-name mapping — likely needs L2 first), `pad` invocation, vector literal.
+- **I3c** — once I3b ships, handle non-trivial expression shapes: `tuple`/`vector` constructors, slicing, binary ops, etc. tiny.compact mostly avoids these but proposal.compact will need them.
 - **J2** — walk the Ledger-Constructor body. Overlaps heavily with I3 statement walking; in practice J2 should reuse I3's statement emitter. tiny.compact's constructor: `authority = public_key(sk); value = disclose(v); state = STATE.set;` — these are ledger writes (push value + idx + ins).
 - **I4** — `assert!` and `return-type` packaging once bodies exist (`compact_assert!`, `Ok(CircuitResults { result, context, gas_cost })` wrapping).
 - **K2.1** — extend `decoder-for-type` to cover any remaining read-result types (tbytes, etc.); currently a `decode_u64`-with-TODO fallback never gets hit by counter/tiny.
