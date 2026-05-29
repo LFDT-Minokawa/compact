@@ -6,9 +6,9 @@
 
 | Phase | Tasks | Status | Last commit |
 |---|---|---|---|
-| F — type-rust helper (real impl) | F1 ✅, F2 pending, F3 ✅, F4 pending | partial | `d89861d` |
+| F — type-rust helper (real impl) | F1 ✅, F2 ✅, F3 ✅, F4 ✅ | done | `2f3cf90` |
 | G — Witnesses trait emission | G1 ✅, G2 ✅, G3 ✅ | done | `ef7bf13` |
-| H — Enum + struct emission | H1 ✅, H2 ✅, H3 ✅, H4 ✅, H5–H7 (structs) pending | partial | `49fe847` |
+| H — Enum + struct emission | H1 ✅, H2 ✅, H3 ✅, H4 ✅, H5 ✅, H6 ✅, H7 ✅ | done | `48ec7ad` |
 | I — Per-circuit emission | I1 ✅, I1.5 ✅, I2 ✅, I3a ✅, I3b/1 ✅, I3b/2 ✅, I3b/3 ✅, I3b/4 ✅ — ALL tiny circuits emit; I4 absorbed | **done** | `1871e84` |
 | J — Constructor with parameters | J1 ✅, J2 ✅ | done | `829d9d5` |
 | K — Multi-ledger-field | K1 ✅, K2 ✅ | done | `068d05c` |
