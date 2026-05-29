@@ -26,6 +26,7 @@ pub use midnight_base_crypto::fab::{Aligned, AlignedValue, Alignment, Value};
 
 // Field arithmetic + proof-system primitives.
 pub use midnight_transient_crypto::curve::{EmbeddedGroupAffine as JubjubPoint, Fr};
+pub use midnight_base_crypto::repr::MemWrite;
 pub use midnight_transient_crypto::repr::{FieldRepr, FromFieldRepr};
 pub use midnight_transient_crypto::merkle_tree::{MerklePath, MerklePathEntry, MerkleTreeDigest};
 

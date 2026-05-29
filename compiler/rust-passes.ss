@@ -260,6 +260,33 @@
                       (unless (null? variants)
                         (out (format "    ~a = ~a,\n" (car variants) i))
                         (loop (cdr variants) (+ i 1))))
+                    (out "}\n")
+                    ;; H2: Aligned impl — delegate to u8.
+                    (out (format "impl Aligned for ~a {\n" enum-name))
+                    (out "    fn alignment() -> Alignment {\n")
+                    (out "        u8::alignment()\n")
+                    (out "    }\n")
+                    (out "}\n")
+                    ;; H3: FieldRepr impl — delegate to u8.
+                    (out (format "impl FieldRepr for ~a {\n" enum-name))
+                    (out "    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {\n")
+                    (out "        (*self as u8).field_repr(writer);\n")
+                    (out "    }\n")
+                    (out "    fn field_size(&self) -> usize { 1 }\n")
+                    (out "}\n")
+                    ;; H4: FromFieldRepr impl — match u8 discriminant to variant.
+                    (out (format "impl FromFieldRepr for ~a {\n" enum-name))
+                    (out "    const FIELD_SIZE: usize = 1;\n")
+                    (out "    fn from_field_repr(r: &[Fr]) -> Option<Self> {\n")
+                    (out "        let n = u8::from_field_repr(r)?;\n")
+                    (out "        match n {\n")
+                    (let loop ([variants (cons elt-name elt-name*)] [i 0])
+                      (unless (null? variants)
+                        (out (format "            ~a => Some(Self::~a),\n" i (car variants)))
+                        (loop (cdr variants) (+ i 1))))
+                    (out "            _ => None,\n")
+                    (out "        }\n")
+                    (out "    }\n")
                     (out "}\n")]
                    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                     (out (format "// TODO M3-H5: struct ~a\n" struct-name))]
