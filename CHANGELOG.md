@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   flag is used, the zkir binary isn't found, or none of the contracts circuits
   require proofs.
 
-## [Toolchain 0.31.106, language 0.23.104, runtime 0.16.101]
+## [Toolchain 0.31.105, language 0.23.104, runtime 0.16.101]
 
 - The ZKIR v3 format, behind the feature flag `--feature-zkir-v3`, has changed
   so that:
