@@ -547,6 +547,36 @@
              ;; quote/tuple/etc. fall through to the existing expr-rust.
              (expr-rust e native-id-ht)])))
 
+      ;; stdlib-circuit-rust-path: if `function-name` is a Compact stdlib
+      ;; circuit we map to a runtime-side function (currently `some` and
+      ;; `none`, both in `compact_runtime::std_lib`), return the qualified
+      ;; Rust path with the explicit generic `::<T>` ascription so Rust's
+      ;; type inference doesn't need extra hints. Returns #f for
+      ;; non-stdlib callees.
+      ;;
+      ;; `cdefn` is the circuit pelt looked up via circuit-id-ht (or #f).
+      ;; We use its return type (`Maybe<T>`) to extract T.
+      (define (stdlib-circuit-rust-path function-name cdefn)
+        (let ([sym (id-sym function-name)])
+          (cond
+            [(or (eq? sym 'some) (eq? sym 'none))
+             (let ([ret-type (and cdefn (circuit-return-type cdefn))])
+               (let ([t (and ret-type (maybe-value-type ret-type))])
+                 (format "compact_runtime::std_lib::~a~a"
+                         sym
+                         (if t
+                             (format "::<~a>" (type-rust t))
+                             ""))))]
+            [else #f])))
+
+      ;; circuit-return-type: pull the declared return type out of a
+      ;; Circuit-Definition Program-Element. Returns #f if `cdefn` is not
+      ;; a circuit (defensive).
+      (define (circuit-return-type cdefn)
+        (nanopass-case (Ltypescript Program-Element) cdefn
+          [(circuit ,src ,function-name (,arg* ...) ,type ,stmt) type]
+          [else #f]))
+
       ;; ctor-call-rust: render a `(call f args)` in the constructor body.
       ;; The witness case is special — witnesses don't appear as
       ;; sub-expressions in the constructor body, they always sit on the RHS
@@ -558,13 +588,30 @@
       (define (ctor-call-rust src function-name expr* local-binds
                               native-id-ht witness-id-ht circuit-id-ht)
         (let* ([w (eq-hashtable-ref witness-id-ht function-name #f)]
-               [c (eq-hashtable-ref circuit-id-ht function-name #f)])
+               [c (eq-hashtable-ref circuit-id-ht function-name #f)]
+               [stdlib (stdlib-circuit-rust-path function-name c)])
           (cond
             [w
              ;; Witness calls cannot be inlined as sub-expressions because
              ;; they return (PS, T). The constructor walker emits them as
              ;; `let` bindings above; this branch should be unreachable.
              "/* TODO M3-J2: witness inline */ unimplemented!()"]
+            [stdlib
+             ;; I3b/4: stdlib circuits (`some`, `none`) live in
+             ;; compact_runtime::std_lib. Render with the runtime path.
+             (let ([args
+                    (map (lambda (e)
+                           (ctor-expr-rust e local-binds
+                                           native-id-ht witness-id-ht circuit-id-ht))
+                         expr*)])
+               (format "~a(~a)"
+                       stdlib
+                       (let join ([xs args] [acc ""])
+                         (cond
+                           [(null? xs) acc]
+                           [(null? (cdr xs)) (string-append acc (car xs))]
+                           [else (join (cdr xs)
+                                       (string-append acc (car xs) ", "))]))))]
             [(and c (id-pure? function-name))
              (let ([rust-name (camel->snake (id-sym function-name))]
                    [args
@@ -1193,6 +1240,59 @@
           [(ttuple ,src ,type* ...) (null? type*)]
           [else #f]))
 
+      ;; maybe-value-type: if `type` is `Maybe<T>` (a tstruct named Maybe with
+      ;; a `value` field), return T. Otherwise return #f. Used by the
+      ;; I3b/4 if-expression emitter to render `some::<T>` / `none::<T>` with
+      ;; an explicit generic argument so Rust's type inference doesn't need
+      ;; help from surrounding context.
+      (define (maybe-value-type type)
+        (nanopass-case (Ltypescript Type) type
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+           (cond
+             [(eq? struct-name 'Maybe)
+              (let loop ([names elt-name*] [types type*])
+                (cond
+                  [(null? names) #f]
+                  [(eq? (car names) 'value) (car types)]
+                  [else (loop (cdr names) (cdr types))]))]
+             [else #f])]
+          [(talias ,src ,nominal? ,type-name ,type^) (maybe-value-type type^)]
+          [else #f]))
+
+      ;; stmt->if-expression-body: detect the I3b/4 "single if-expression body"
+      ;; shape — a flat statement sequence whose only element is
+      ;; `(if cond then-stmt else-stmt)`, where each branch is a
+      ;; `(statement-expression expr)` carrying a single expression
+      ;; representing the circuit's return value. Returns
+      ;;   (list cond-expr then-expr else-expr)
+      ;; on success, #f otherwise.
+      (define (stmt->if-expression-body stmt)
+        (let ([stmts (stmt-flatten stmt)])
+          (cond
+            [(or (null? stmts) (not (null? (cdr stmts)))) #f]
+            [else
+             (nanopass-case (Ltypescript Statement) (car stmts)
+               [(if ,src ,expr0 ,stmt1 ,stmt2)
+                (let ([then-expr (stmt->return-expr stmt1)]
+                      [else-expr (stmt->return-expr stmt2)])
+                  (and then-expr else-expr (list expr0 then-expr else-expr)))]
+               [else #f])])))
+
+      ;; stmt->return-expr: pull the single return expression out of a
+      ;; branch Statement. The branches of a return-value if-expression
+      ;; come out of typescript-passes lowering as a single
+      ;; `(statement-expression expr)` (possibly wrapped in a `seq` with
+      ;; a trailing unit tuple, which stmt-flatten strips). Returns the
+      ;; expression on success, #f otherwise.
+      (define (stmt->return-expr stmt)
+        (let ([stmts (stmt-flatten stmt)])
+          (cond
+            [(or (null? stmts) (not (null? (cdr stmts)))) #f]
+            [else
+             (nanopass-case (Ltypescript Statement) (car stmts)
+               [(statement-expression ,expr) expr]
+               [else #f])])))
+
       ;; stmt-flatten: collapse nested `seq`s and trailing-`(tuple)` unit
       ;; statements into a flat list of leaf Statements. The unit
       ;; `(statement-expression (tuple src))` at the end of a `seq` is
@@ -1444,6 +1544,92 @@
                         (out "        })\n")
                         #t]))]))])]))
 
+      ;; emit-if-expression-body: emit the I3b/4 body shape — a single
+      ;; if-expression in statement position producing a non-unit value.
+      ;; The cond / then / else are rendered via ctor-expr-rust so existing
+      ;; logic for inlining `in_state`, ledger reads in expression position,
+      ;; and `some` / `none` runtime mapping all apply uniformly.
+      ;;
+      ;; Returns #t on success, #f if any rendered sub-expression contains
+      ;; an `unimplemented!()` marker (caller falls back to `unimplemented!()`).
+      ;;
+      ;; The wrap uses `RunningCost::default()` since there are no ledger
+      ;; writes — pure read-only circuits don't run query_for_verify.
+      (define (emit-if-expression-body return-type cond-expr then-expr else-expr
+                                       native-id-ht witness-id-ht circuit-id-ht)
+        (let* ([cond-str (cond-rust cond-expr '()
+                                    native-id-ht witness-id-ht circuit-id-ht)]
+               [then-str (ctor-expr-rust then-expr '()
+                                         native-id-ht witness-id-ht circuit-id-ht)]
+               [else-str (ctor-expr-rust else-expr '()
+                                         native-id-ht witness-id-ht circuit-id-ht)])
+          (cond
+            [(or (rendered-has-todo? cond-str)
+                 (rendered-has-todo? then-str)
+                 (rendered-has-todo? else-str))
+             #f]
+            [else
+             (out (format "        let result = if ~a {\n" cond-str))
+             (out (format "            ~a\n" then-str))
+             (out "        } else {\n")
+             (out (format "            ~a\n" else-str))
+             (out "        };\n")
+             (out "        Ok(CircuitResults {\n")
+             (out "            result,\n")
+             (out "            context: ctx,\n")
+             (out "            gas_cost: compact_runtime::RunningCost::default(),\n")
+             (out "        })\n")
+             #t])))
+
+      ;; rendered-has-todo?: returns #t if the rendered Rust string contains
+      ;; a TODO marker (`/* TODO`) or an `unimplemented!(` call. Used by
+      ;; emit-if-expression-body to bail out (fall back to the method-level
+      ;; `unimplemented!()`) if any sub-render produced an incomplete result.
+      (define (rendered-has-todo? s)
+        (or (and (string? s)
+                 (or (substring? s "/* TODO")
+                     (substring? s "unimplemented!(")))))
+
+      ;; substring?: simple substring search. Returns #t if `needle` appears
+      ;; anywhere in `haystack`.
+      (define (substring? haystack needle)
+        (let ([hl (string-length haystack)]
+              [nl (string-length needle)])
+          (and (fx>= hl nl)
+               (let loop ([i 0])
+                 (cond
+                   [(fx> (fx+ i nl) hl) #f]
+                   [(string=? (substring haystack i (fx+ i nl)) needle) #t]
+                   [else (loop (fx+ i 1))])))))
+
+      ;; cond-rust: render a boolean condition expression. Like
+      ;; ctor-expr-rust but for `(call ...)` of an impure circuit
+      ;; (e.g. tiny.compact's `in_state`) we try inline-circuit-call
+      ;; first, since impure circuits can't be a direct Rust call target.
+      (define (cond-rust expr local-binds
+                         native-id-ht witness-id-ht circuit-id-ht)
+        (let ([e (expr-strip-cast expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(call ,src ,function-name ,expr* ...)
+             (let ([ne (eq-hashtable-ref native-id-ht function-name #f)]
+                   [w (eq-hashtable-ref witness-id-ht function-name #f)]
+                   [c (eq-hashtable-ref circuit-id-ht function-name #f)])
+               (cond
+                 [(or ne w (and c (id-pure? function-name)))
+                  (ctor-expr-rust e local-binds
+                                  native-id-ht witness-id-ht circuit-id-ht)]
+                 [c
+                  (or (inline-circuit-call c expr* local-binds
+                                           native-id-ht witness-id-ht circuit-id-ht)
+                      (format "/* TODO M3-I3b/4: inline ~a in if-cond */ true"
+                              (id-sym function-name)))]
+                 [else
+                  (format "/* TODO M3-I3b/4: inline ~a in if-cond */ true"
+                          (id-sym function-name))]))]
+            [else
+             (ctor-expr-rust e local-binds
+                             native-id-ht witness-id-ht circuit-id-ht)])))
+
       ;; emit-impure-circuit: emit an impure circuit as a method on
       ;; `impl<PS, W> Contract<PS, W>`. Takes `&self, ctx: CircuitContext<PS>`
       ;; plus the source-level args typed via type-rust, and returns
@@ -1464,27 +1650,38 @@
            (out (format ",\n    ) -> Result<CircuitResults<PS, ~a>, CompactError> {\n"
                         (type-rust type)))
            (let ([emitted?
-                  (and (unit-type? type)
-                       (or
-                         ;; I3a: counter-style single public-ledger call.
-                         (let ([call (stmt->single-public-ledger-call stmt)])
-                           (and call
-                                (emit-public-ledger-call-body
-                                  src
-                                  (cadr call)        ; adt-op
-                                  (car call)         ; path-elt*
-                                  (caddr call))))    ; expr*
-                         ;; I3b/2: tiny.compact `set`-style body — leading
-                         ;; asserts + const bindings + ledger writes. We
-                         ;; pre-validate via body-walkable? so partial /
-                         ;; broken emissions (e.g. tiny's `clear`, which
-                         ;; needs `==` and `default<T>`) fall back to
-                         ;; `unimplemented!()` rather than producing
-                         ;; uncompilable Rust.
-                         (and (body-walkable? stmt
-                                              native-id-ht witness-id-ht circuit-id-ht)
-                              (emit-body-or-fallback stmt 'circuit
-                                                     native-id-ht witness-id-ht circuit-id-ht))))])
+                  (or
+                    ;; I3b/4: single if-expression body returning non-unit.
+                    ;; tiny.compact's `get()` lowers to this shape. We dispatch
+                    ;; before the unit-only paths so a non-unit if-body
+                    ;; doesn't fall through to `unimplemented!()`.
+                    (let ([parts (stmt->if-expression-body stmt)])
+                      (and parts
+                           (not (unit-type? type))
+                           (emit-if-expression-body
+                             type (car parts) (cadr parts) (caddr parts)
+                             native-id-ht witness-id-ht circuit-id-ht)))
+                    (and (unit-type? type)
+                         (or
+                           ;; I3a: counter-style single public-ledger call.
+                           (let ([call (stmt->single-public-ledger-call stmt)])
+                             (and call
+                                  (emit-public-ledger-call-body
+                                    src
+                                    (cadr call)        ; adt-op
+                                    (car call)         ; path-elt*
+                                    (caddr call))))    ; expr*
+                           ;; I3b/2: tiny.compact `set`-style body — leading
+                           ;; asserts + const bindings + ledger writes. We
+                           ;; pre-validate via body-walkable? so partial /
+                           ;; broken emissions (e.g. tiny's `clear`, which
+                           ;; needs `==` and `default<T>`) fall back to
+                           ;; `unimplemented!()` rather than producing
+                           ;; uncompilable Rust.
+                           (and (body-walkable? stmt
+                                                native-id-ht witness-id-ht circuit-id-ht)
+                                (emit-body-or-fallback stmt 'circuit
+                                                       native-id-ht witness-id-ht circuit-id-ht)))))])
              (unless emitted?
                (out (format "        unimplemented!(\"M3-I3: circuit body emission for ~a\")\n"
                             (id-sym function-name)))))
@@ -1658,8 +1855,26 @@
       ;; snake-cased local name — a follow-up wedge will resolve these
       ;; properly.
       (define (call-rust src function-name expr* native-id-ht)
-        (let ([ne (eq-hashtable-ref native-id-ht function-name #f)])
+        (let ([ne (eq-hashtable-ref native-id-ht function-name #f)]
+              [sym (id-sym function-name)])
           (cond
+            [(or (eq? sym 'some) (eq? sym 'none))
+             ;; I3b/4: stdlib circuits with no native binding — go through
+             ;; the runtime-side `std_lib` path. Without the circuit pelt
+             ;; here we can't inject `::<T>`, but tiny.compact's get()
+             ;; reaches this through ctor-call-rust which does have the
+             ;; pelt and ascribes the generic — this branch is a safety
+             ;; net for any future ascription-free use site.
+             (let ([args
+                    (map (lambda (e) (expr-rust e native-id-ht)) expr*)])
+               (format "compact_runtime::std_lib::~a(~a)"
+                       sym
+                       (let join ([xs args] [acc ""])
+                         (cond
+                           [(null? xs) acc]
+                           [(null? (cdr xs)) (string-append acc (car xs))]
+                           [else (join (cdr xs)
+                                       (string-append acc (car xs) ", "))]))))]
             [(and ne (equal? (native-entry-rust-function ne)
                              "compact_runtime::persistent_hash"))
              ;; persistent_hash needs a flat `&[u8]`. Compact's argument is a

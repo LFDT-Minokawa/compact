@@ -125,7 +125,52 @@ where
         &self,
         ctx: CircuitContext<PS>,
     ) -> Result<CircuitResults<PS, Maybe<Fr>>, CompactError> {
-        unimplemented!("M3-I3: circuit body emission for get")
+        let result = if ({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(2u8, false)
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_u8(_av)?
+        } == 1u8) {
+            compact_runtime::std_lib::some::<Fr>({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(1u8, false)
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_fr(_av)?
+        })
+        } else {
+            compact_runtime::std_lib::none::<Fr>()
+        };
+        Ok(CircuitResults {
+            result,
+            context: ctx,
+            gas_cost: compact_runtime::RunningCost::default(),
+        })
     }
 
     pub fn clear(
