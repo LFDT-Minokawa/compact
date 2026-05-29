@@ -37,6 +37,15 @@
       (define (out s)
         (display-string s (get-target-port 'contract.rs)))
 
+      ;; current-qctx-ref: Rust expression string referring to the
+      ;; QueryContext that ledger-read sub-expressions should read from.
+      ;; In circuit bodies this is `&ctx.current_query_context`; in the
+      ;; constructor body it is `&qctx` (the local QueryContext we built
+      ;; from the K1 seed). emit-body-or-fallback parameterizes this
+      ;; before walking the body.
+      (define current-qctx-ref
+        (make-parameter "&ctx.current_query_context"))
+
       ;; camel->snake: convert a CamelCase / mixedCase identifier symbol
       ;; into snake_case. Used for witness method names. Also sanitises
       ;; Compact-allowed `$` characters (which Rust doesn't permit in
@@ -517,6 +526,23 @@
             [(call ,src ,function-name ,expr* ...)
              (ctor-call-rust src function-name expr* local-binds
                              native-id-ht witness-id-ht circuit-id-ht)]
+            [(default ,src ,type)
+             ;; I3b/3: reuse the K1 zero-value helper.
+             (default-value-rust type)]
+            [(== ,src ,type ,expr1 ,expr2)
+             ;; I3b/3: equality. Recurse via ctor-expr-rust so var-refs
+             ;; still resolve through the current local-binds (the
+             ;; inline-circuit-call formal substitution rides on this).
+             (format "(~a == ~a)"
+                     (ctor-expr-rust expr1 local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht)
+                     (ctor-expr-rust expr2 local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht))]
+            [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
+             ;; I3b/3: ledger read in expression position. Goes through
+             ;; emit-ledger-read-expr which uses current-qctx-ref to pick
+             ;; the right QueryContext source.
+             (emit-ledger-read-expr path-elt* adt-op)]
             [else
              ;; quote/tuple/etc. fall through to the existing expr-rust.
              (expr-rust e native-id-ht)])))
@@ -612,7 +638,60 @@
                                              witness-id-ht circuit-id-ht)]
                            [else #f])])
                     (and ok? (loop (cdr xs))))]))]
+            [(default ,src ,type)
+             ;; I3b/3: any type the default-value-rust helper can render
+             ;; is fine. The helper has a Default::default() fallback so
+             ;; this is effectively always supported, but we still gate
+             ;; on the helper's recognised shapes to keep the codegen
+             ;; faithful.
+             (default-supported? type)]
+            [(== ,src ,type ,expr1 ,expr2)
+             ;; I3b/3: equality. Recurse into both operands.
+             (and (expr-supported? expr1 native-id-ht
+                                   witness-id-ht circuit-id-ht)
+                  (expr-supported? expr2 native-id-ht
+                                   witness-id-ht circuit-id-ht))]
+            [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
+             ;; I3b/3: ledger read in expression position. Supported when
+             ;; op-class is `read`, the path is a single index, and the
+             ;; result type has a decoder.
+             (ledger-read-supported? path-elt* adt-op)]
             [else #f])))
+
+      ;; default-supported?: returns #t when default-value-rust would
+      ;; produce a faithful Rust expression for `type`. Mirrors the
+      ;; helper's case analysis (sans the catch-all `Default::default()`
+      ;; fallback) so we don't accept type shapes we'd silently lower
+      ;; to a generic default.
+      (define (default-supported? type)
+        (nanopass-case (Ltypescript Type) type
+          [(tunsigned ,src ,nat) #t]
+          [(tfield ,src) #t]
+          [(tboolean ,src) #t]
+          [(tbytes ,src ,len) #t]
+          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
+          [(talias ,src ,nominal? ,type-name ,type) (default-supported? type)]
+          [else #f]))
+
+      ;; ledger-read-supported?: returns #t for the `(public-ledger ...
+      ;; read)` shapes emit-ledger-read-expr can render — i.e. op-class
+      ;; is `read`, every path-elt is a path-index, and the result type
+      ;; has either a decoder-for-type or is a tbytes alias chain.
+      (define (ledger-read-supported? path-elt* adt-op)
+        (nanopass-case (Ltypescript ADT-Op) adt-op
+          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+           (and
+             (eq? op-class 'read)
+             (let loop ([xs path-elt*])
+               (cond
+                 [(null? xs) #t]
+                 [else
+                  (and
+                    (nanopass-case (Ltypescript Path-Element) (car xs)
+                      [,path-index #t]
+                      [else #f])
+                    (loop (cdr xs)))]))
+             (and (decoder-for-type type) #t))]))
 
       ;; assert-cond-supported?: like expr-supported? but additionally
       ;; accepts a (call ...) into a non-exported / impure circuit — we
@@ -645,7 +724,14 @@
                (lambda (b)
                  (let ([classified
                         (classify-const-rhs (cdr b) witness-id-ht circuit-id-ht)])
-                   (and (memq (car classified) '(witness pure-circuit))
+                   (and (or (memq (car classified) '(witness pure-circuit))
+                            ;; I3b/3: also accept plain const RHS shapes
+                            ;; (e.g. `const tmp = default<Bytes<32>>;`)
+                            ;; whose expression is something expr-rust
+                            ;; can render. emit-body-or-fallback's else
+                            ;; branch already handles these.
+                            (expr-supported? (cdr b) native-id-ht
+                                             witness-id-ht circuit-id-ht))
                         (loop (cdr stmts)))))]
               [else
                (let ([w (stmt->public-ledger-write (car stmts))])
@@ -666,12 +752,13 @@
              [else #f])]
           [else #f]))
 
-      ;; assert-cond-rust: render the assert condition. For now, calls into
-      ;; non-exported circuits (e.g. tiny.compact's `in_state`) don't have a
-      ;; Rust binding to dispatch to — we emit `true` as a placeholder with
-      ;; a TODO note so the assertion is a no-op rather than a compile
-      ;; error. Witness/pure-circuit calls and other shapes go through the
-      ;; usual ctor-expr-rust renderer.
+      ;; assert-cond-rust: render the assert condition. Witness / pure-
+      ;; circuit / native calls route through ctor-expr-rust. Non-exported
+      ;; circuit calls whose body we can inline (currently any circuit
+      ;; whose body is a single return-expression — e.g. tiny.compact's
+      ;; `in_state(s) => state == s`) get inlined via inline-circuit-call;
+      ;; everything else falls back to a `true` placeholder so the assert
+      ;; is a no-op rather than a compile error.
       (define (assert-cond-rust expr local-binds
                                 native-id-ht witness-id-ht circuit-id-ht)
         (let ([e (expr-strip-cast expr)])
@@ -685,14 +772,59 @@
                  [(or ne w (and c (id-pure? function-name)))
                   (ctor-expr-rust e local-binds
                                   native-id-ht witness-id-ht circuit-id-ht)]
+                 [c
+                  ;; Non-exported (or impure) circuit call. Try to inline
+                  ;; its body (the I3b/3 trick that turns the in_state
+                  ;; placeholder into a semantically real comparison).
+                  (or (inline-circuit-call c expr* local-binds
+                                           native-id-ht witness-id-ht circuit-id-ht)
+                      (format "/* TODO M3: inline ~a in assert */ true"
+                              (id-sym function-name)))]
                  [else
-                  ;; Non-exported (or impure) circuit call — we don't yet
-                  ;; inline these. Emit `true` so the assert is a no-op.
                   (format "/* TODO M3: inline ~a in assert */ true"
                           (id-sym function-name))]))]
             [else
              (ctor-expr-rust e local-binds
                              native-id-ht witness-id-ht circuit-id-ht)])))
+
+      ;; inline-circuit-call: attempt to inline a circuit invocation by
+      ;; rendering the callee's body as a Rust expression with the
+      ;; formals locally bound to the rendered actuals. Returns the
+      ;; Rust expression string on success, #f if the body shape isn't a
+      ;; single statement-expression we can render.
+      ;;
+      ;; The callee's body is walked via stmt-flatten — supported shape
+      ;; is a single `(statement-expression expr)`. The formal-to-actual
+      ;; map injects the rendered actual as the "Rust name" associated
+      ;; with the formal id, so any `(var-ref formal)` inside the body
+      ;; lowers to the actual's already-rendered Rust text. This works
+      ;; because local-binds is consulted by ctor-expr-rust before
+      ;; emitting var-ref's snake-cased name.
+      (define (inline-circuit-call cdefn actual-expr* outer-local-binds
+                                   native-id-ht witness-id-ht circuit-id-ht)
+        (nanopass-case (Ltypescript Program-Element) cdefn
+          [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
+           (let ([stmts (stmt-flatten stmt)])
+             (cond
+               [(or (null? stmts) (not (null? (cdr stmts)))) #f]
+               [else
+                (nanopass-case (Ltypescript Statement) (car stmts)
+                  [(statement-expression ,expr)
+                   (cond
+                     [(not (fx= (length arg*) (length actual-expr*))) #f]
+                     [else
+                      (let* ([formal-binds
+                              (map (lambda (formal actual)
+                                     (let ([rendered
+                                            (ctor-expr-rust actual outer-local-binds
+                                                            native-id-ht witness-id-ht circuit-id-ht)])
+                                       (nanopass-case (Ltypescript Argument) formal
+                                         [(,var-name ,type) (cons var-name rendered)])))
+                                   arg* actual-expr*)]
+                             [extended-binds (append formal-binds outer-local-binds)])
+                        (ctor-expr-rust expr extended-binds
+                                        native-id-ht witness-id-ht circuit-id-ht))])]
+                  [else #f])]))]))
 
       ;; emit-body-or-fallback: walk the body of a constructor or circuit and
       ;; emit `let` bindings, optional leading asserts, and an OpProgramVerify
@@ -1424,8 +1556,87 @@
                "]"))]
           [(call ,src ,function-name ,expr* ...)
            (call-rust src function-name expr* native-id-ht)]
+          [(default ,src ,type)
+           ;; I3b/3: `default<T>` lowers to the type's zero value. Reuses
+           ;; the K1 helper so tunsigned/tfield/tbytes/tenum/talias are
+           ;; handled consistently with initial_state's per-field seed.
+           (default-value-rust type)]
+          [(== ,src ,type ,expr1 ,expr2)
+           ;; I3b/3: equality comparison. Parenthesised so it composes
+           ;; safely inside larger expressions (e.g. inside a Rust assert
+           ;; macro call without surrounding parens being implicit).
+           (format "(~a == ~a)"
+                   (expr-rust expr1 native-id-ht)
+                   (expr-rust expr2 native-id-ht))]
+          [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
+           ;; I3b/3: ledger read in expression position (e.g. inside an
+           ;; `(==)` or as the RHS of a const-binding). Emits an inline
+           ;; gather query against (current-qctx-ref) and decodes the
+           ;; resulting AlignedValue using the same decoder table the
+           ;; Ledger view uses.
+           (emit-ledger-read-expr path-elt* adt-op)]
           [else
            (format "/* TODO M3-I3b: unhandled Expression variant */ unimplemented!()")]))
+
+      ;; emit-ledger-read-expr: render a `(public-ledger ... read)` IR
+      ;; node as a Rust block expression that runs a gather query and
+      ;; decodes the result. Used by expr-rust when the read appears in
+      ;; expression position (clear()'s `apk == authority`, in_state's
+      ;; inlined `state == s`).
+      ;;
+      ;; The qctx source comes from the (current-qctx-ref) dynamic
+      ;; parameter so circuit-body emissions read from
+      ;; `&ctx.current_query_context` while constructor-body emissions
+      ;; would read from `&qctx`.
+      (define (emit-ledger-read-expr path-elt* adt-op)
+        (nanopass-case (Ltypescript ADT-Op) adt-op
+          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+           (cond
+             [(not (eq? op-class 'read))
+              "/* TODO M3-I3b: non-read public-ledger in expr */ unimplemented!()"]
+             [else
+              (let* ([path-idx*
+                      (map (lambda (pe)
+                             (nanopass-case (Ltypescript Path-Element) pe
+                               [,path-index path-index]
+                               [else #f]))
+                           path-elt*)]
+                     [decoder (decoder-for-type type)])
+                (cond
+                  [(memv #f path-idx*)
+                   "/* TODO M3-I3b: ledger read with non-index path */ unimplemented!()"]
+                  [(not decoder)
+                   "/* TODO M3-I3b: ledger read decoder */ unimplemented!()"]
+                  [else
+                   (let ([idx-lines
+                          (let join ([xs path-idx*] [acc ""])
+                            (cond
+                              [(null? xs) acc]
+                              [else
+                               (join (cdr xs)
+                                     (string-append
+                                       acc
+                                       (format "                .idx_at_index(~au8, false)\n" (car xs))))]))])
+                     (string-append
+                       "{\n"
+                       "            let _gather_ops = OpProgramGather::<DefaultDB>::new()\n"
+                       "                .dup(0)\n"
+                       idx-lines
+                       "                .popeq(true)\n"
+                       "                .build();\n"
+                       "            let _gather_results = query_for_read(\n"
+                       "                " (current-qctx-ref) ",\n"
+                       "                &_gather_ops,\n"
+                       "                None,\n"
+                       "                &initial_cost_model(),\n"
+                       "            )\n"
+                       "            .map_err(|e| CompactError::AssertionFailed(format!(\"ledger query failed: {:?}\", e)))?;\n"
+                       "            let _av = match _gather_results.events.last() {\n"
+                       "                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,\n"
+                       "                _ => return Err(CompactError::AssertionFailed(\"ledger: expected Read event\".into())),\n"
+                       "            };\n"
+                       "            " decoder "(_av)?\n"
+                       "        }"))]))])]))
 
       ;; tuple-arg-rust: emit a Rust expression for a Tuple-Argument
       ;; (`single` or `spread`). I3b/1 only needs `single`; `spread` emits a
@@ -1613,6 +1824,16 @@
              [(<= nat 18446744073709551615) "compact_runtime::std_lib::decode_u64"]
              [else "compact_runtime::std_lib::decode_u128"])]
           [(tfield ,src) "compact_runtime::std_lib::decode_fr"]
+          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+           ;; Enums are FieldRepr'd as a u8 discriminant on chain. The
+           ;; in_state inlining (and any other tenum ledger read in
+           ;; expression position) decodes to u8 — the discriminant
+           ;; comparison stays a u8-vs-u8 check, matching the way
+           ;; enum-ref->u8 emits literals.
+           "compact_runtime::std_lib::decode_u8"]
+          [(tbytes ,src ,len)
+           (format "compact_runtime::std_lib::decode_bytes::<~a>" len)]
+          [(talias ,src ,nominal? ,type-name ,type) (decoder-for-type type)]
           [else #f]))
 
       ;; default-value-rust: emit the Rust expression for a type's default

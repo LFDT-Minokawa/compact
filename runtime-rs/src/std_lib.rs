@@ -82,6 +82,27 @@ pub fn decode_u128(av: &AlignedValue) -> Result<u128, CompactError> {
     decode_unsigned(av, 16)
 }
 
+/// Decode an `AlignedValue` known to be a fixed-width byte array `Bytes<N>`.
+///
+/// Compact's `Bytes<N>` lowers to a single `ValueAtom` carrying the raw
+/// bytes; upstream `normalize` may strip trailing zero bytes. We zero-pad
+/// up to `N` and return the full array. Returns
+/// `Err(AssertionFailed)` if the atom carries more than `N` bytes.
+pub fn decode_bytes<const N: usize>(av: &AlignedValue) -> Result<[u8; N], CompactError> {
+    let bytes = aligned_bytes(av).ok_or_else(|| {
+        CompactError::AssertionFailed("decode_bytes: aligned value is empty".into())
+    })?;
+    if bytes.len() > N {
+        return Err(CompactError::AssertionFailed(format!(
+            "decode_bytes: expected at most {N} bytes, got {}",
+            bytes.len()
+        )));
+    }
+    let mut out = [0u8; N];
+    out[..bytes.len()].copy_from_slice(bytes);
+    Ok(out)
+}
+
 /// Decode an `AlignedValue` known to be a `Field` (i.e. a single `Fr` atom).
 ///
 /// On the encode side, `Fr` lowers to a single `ValueAtom` via
