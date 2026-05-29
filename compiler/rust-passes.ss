@@ -303,6 +303,16 @@
              [(constructor ,src (,arg* ...) ,stmt) arg*])]
           [else '()]))
 
+      ;; ldecl-constructor-stmt: from a Program-Element of shape
+      ;; (public-ledger-declaration pl-array lconstructor), extract the
+      ;; constructor's body Statement. Returns #f if none.
+      (define (ldecl-constructor-stmt ldecl)
+        (nanopass-case (Ltypescript Program-Element) ldecl
+          [(public-ledger-declaration ,pl-array ,lconstructor)
+           (nanopass-case (Ltypescript Ledger-Constructor) lconstructor
+             [(constructor ,src (,arg* ...) ,stmt) stmt])]
+          [else #f]))
+
       ;; program-constructor-args: locate the (single) public-ledger-declaration
       ;; in the Program and return its constructor's arg list. Used by
       ;; emit-initial-state to emit user-supplied constructor parameters.
@@ -424,14 +434,348 @@
             export-tdefn*)
           (out "\n")))
 
-      ;; emit-initial-state: emits the `initial_state` constructor method
-      ;; inside the open Contract impl block. For counter.compact this
-      ;; seeds the single Counter ledger field to 0.
+      ;; witness-pelt?: returns #t if a Program-Element is a witness
+      ;; declaration. Used by build-witness-id-ht to index witnesses.
+      (define (witness-pelt? pelt)
+        (nanopass-case (Ltypescript Program-Element) pelt
+          [(witness ,src ,function-name (,arg* ...) ,type) #t]
+          [else #f]))
+
+      ;; witness-pelt-function-name: extract function-name id from a witness
+      ;; Program-Element.
+      (define (witness-pelt-function-name pelt)
+        (nanopass-case (Ltypescript Program-Element) pelt
+          [(witness ,src ,function-name (,arg* ...) ,type) function-name]))
+
+      ;; build-witness-id-ht: eq-hashtable from each witness function-name
+      ;; id to the witness Program-Element itself. Lets call-site emission
+      ;; recognise a `(call witness-id args)` and emit the matching
+      ;; `self.witnesses.<name>(...)` invocation with the right private-state
+      ;; threading shape.
+      (define (build-witness-id-ht pelt*)
+        (let ([ht (make-eq-hashtable)])
+          (for-each
+            (lambda (pelt)
+              (when (witness-pelt? pelt)
+                (eq-hashtable-set! ht
+                  (witness-pelt-function-name pelt)
+                  pelt)))
+            pelt*)
+          ht))
+
+      ;; build-circuit-id-ht: eq-hashtable from each circuit function-name id
+      ;; to the circuit Program-Element. Lets call-site emission recognise a
+      ;; `(call circuit-id args)` and dispatch on `id-pure?` to either
+      ;; `pure_circuits::<name>(...)` or (eventually) a circuit invocation.
+      (define (build-circuit-id-ht pelt*)
+        (let ([ht (make-eq-hashtable)])
+          (for-each
+            (lambda (pelt)
+              (when (circuit? pelt)
+                (eq-hashtable-set! ht
+                  (circuit-function-name pelt)
+                  pelt)))
+            pelt*)
+          ht))
+
+      ;; enum-ref->u8: render a `(enum-ref type elt-name)` Expression as the
+      ;; u8 discriminant of the named variant. Returns the integer or #f if
+      ;; the type isn't a tenum we recognise.
+      (define (enum-ref->u8 expr)
+        (nanopass-case (Ltypescript Expression) expr
+          [(enum-ref ,src ,type ,elt-name)
+           (nanopass-case (Ltypescript Type) type
+             [(tenum ,src ,enum-name ,elt-name^ ,elt-name* ...)
+              (let loop ([variants (cons elt-name^ elt-name*)] [i 0])
+                (cond
+                  [(null? variants) #f]
+                  [(eq? (car variants) elt-name) i]
+                  [else (loop (cdr variants) (+ i 1))]))]
+             [else #f])]
+          [else #f]))
+
+      ;; ctor-expr-rust: render a constructor-body Expression as a Rust
+      ;; expression string. Tracks a local binding alist (var-name id ->
+      ;; snake-cased Rust name) so var-refs resolve to the let-bound name
+      ;; we emitted earlier. Falls back to expr-rust (which handles natives
+      ;; etc.) for the remaining shapes.
       ;;
-      ;; TODO(M3): this hardcodes Counter as the only supported ADT.
-      ;; Generalising to Cell/Map/Set/MerkleTree/List requires walking the
-      ;; Ledger-Constructor body and dispatching on each field's ADT type.
-      (define (emit-initial-state ledger-field* ctor-arg*)
+      ;; native-id-ht / witness-id-ht / circuit-id-ht let call-site
+      ;; classification distinguish pure-circuit / witness / native calls.
+      (define (ctor-expr-rust expr local-binds
+                              native-id-ht witness-id-ht circuit-id-ht)
+        (let ([e (expr-strip-cast expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(var-ref ,src ,var-name)
+             (cond
+               [(assq var-name local-binds) => cdr]
+               [else (symbol->string (camel->snake (id-sym var-name)))])]
+            [(enum-ref ,src ,type ,elt-name)
+             (let ([n (enum-ref->u8 e)])
+               (if n (format "~au8" n)
+                   "/* TODO M3-J2: unresolved enum-ref */ 0u8"))]
+            [(call ,src ,function-name ,expr* ...)
+             (ctor-call-rust src function-name expr* local-binds
+                             native-id-ht witness-id-ht circuit-id-ht)]
+            [else
+             ;; quote/tuple/etc. fall through to the existing expr-rust.
+             (expr-rust e native-id-ht)])))
+
+      ;; ctor-call-rust: render a `(call f args)` in the constructor body.
+      ;; The witness case is special — witnesses don't appear as
+      ;; sub-expressions in the constructor body, they always sit on the RHS
+      ;; of a `const` binding, so the witness branch here just renders the
+      ;; method call with a witness-context placeholder name we'll have
+      ;; emitted on the line above. Pure circuit calls resolve to
+      ;; `pure_circuits::<name>(...)`. Native and other circuit calls fall
+      ;; back to call-rust.
+      (define (ctor-call-rust src function-name expr* local-binds
+                              native-id-ht witness-id-ht circuit-id-ht)
+        (let* ([w (eq-hashtable-ref witness-id-ht function-name #f)]
+               [c (eq-hashtable-ref circuit-id-ht function-name #f)])
+          (cond
+            [w
+             ;; Witness calls cannot be inlined as sub-expressions because
+             ;; they return (PS, T). The constructor walker emits them as
+             ;; `let` bindings above; this branch should be unreachable.
+             "/* TODO M3-J2: witness inline */ unimplemented!()"]
+            [(and c (id-pure? function-name))
+             (let ([rust-name (camel->snake (id-sym function-name))]
+                   [args
+                    (map (lambda (e)
+                           (ctor-expr-rust e local-binds
+                                           native-id-ht witness-id-ht circuit-id-ht))
+                         expr*)])
+               (format "pure_circuits::~a(~a)"
+                       rust-name
+                       (let join ([xs args] [acc ""])
+                         (cond
+                           [(null? xs) acc]
+                           [(null? (cdr xs)) (string-append acc (car xs))]
+                           [else (join (cdr xs)
+                                       (string-append acc (car xs) ", "))]))))]
+            [else
+             ;; Native or unrecognised — defer to existing call-rust. It
+             ;; expects to receive expressions, so first transform var-refs
+             ;; in expr* through local-binds. We do that by rendering each
+             ;; arg through ctor-expr-rust and wrapping the result back as
+             ;; the existing call-rust does after expr-rust on its args.
+             ;; Simplest: only support natives whose args are var-refs we
+             ;; can resolve. For tiny.compact, the constructor's only call
+             ;; sites are witness + pure circuit, so this branch is just a
+             ;; safety net.
+             (call-rust src function-name expr* native-id-ht)])))
+
+      ;; emit-ctor-body-or-fallback: try to walk the constructor body and
+      ;; emit `let` bindings + an OpProgramVerify chain that writes each
+      ;; ledger field. Returns #t on success, #f if the body shape isn't
+      ;; one we know how to handle (caller should fall back to the K1
+      ;; default-seed-only return).
+      ;;
+      ;; The supported shape is the flat sequence
+      ;;   (const local (call <witness-or-pure>) ...)*
+      ;;   (public-ledger field idx write <expr>)+
+      ;; matching tiny.compact's constructor exactly.
+      (define (emit-ctor-body-or-fallback stmt
+                                          native-id-ht witness-id-ht circuit-id-ht)
+        (let ([stmts (stmt-flatten stmt)])
+          (let loop ([stmts stmts]
+                     [local-binds '()]     ; (var-name . rust-name)
+                     [witness-emitted? #f] ; have we emitted any witness call?
+                     [pre-lines '()]       ; reverse-accumulated Rust lines
+                     [writes '()])         ; reverse-accumulated (path-idx . expr)
+            (cond
+              [(null? stmts)
+               (cond
+                 [(null? writes) #f]
+                 [else
+                  (emit-ctor-prelude (reverse pre-lines))
+                  (emit-ctor-writes (reverse writes) local-binds
+                                    native-id-ht witness-id-ht circuit-id-ht
+                                    witness-emitted?)
+                  #t])]
+              [(const-binding (car stmts)) =>
+               (lambda (b)
+                 (let* ([var-name (car b)]
+                        [rhs (cdr b)]
+                        [rust-name (symbol->string (camel->snake (id-sym var-name)))]
+                        [classified
+                         (classify-const-rhs rhs witness-id-ht circuit-id-ht)])
+                   (case (car classified)
+                     [(witness)
+                      ;; Witness call. Emit:
+                      ;;   let witness_ctx_N = WitnessContext::new(ledger(&qctx.state), <prev-priv>, &qctx);
+                      ;;   let (current_private_state, <name>) = self.witnesses.<m>(&witness_ctx_N, args...);
+                      ;; For the first witness call, the source of the
+                      ;; private state is `ctx.initial_private_state`; for
+                      ;; subsequent calls it's the `current_private_state`
+                      ;; bound by the previous witness call.
+                      (let* ([wname (cadr classified)]
+                             [wargs (caddr classified)]
+                             [ctx-name (format "_witness_ctx_~a" (length pre-lines))]
+                             [prev-priv (if witness-emitted?
+                                            "current_private_state"
+                                            "ctx.initial_private_state")]
+                             [arg-strs
+                              (map (lambda (e)
+                                     (ctor-expr-rust e local-binds
+                                                     native-id-ht witness-id-ht circuit-id-ht))
+                                   wargs)]
+                             [call-line
+                              (format "        let ~a = WitnessContext::new(ledger(&qctx.state), ~a, &qctx);\n"
+                                      ctx-name prev-priv)]
+                             [bind-line
+                              (format "        let (current_private_state, ~a) = self.witnesses.~a(&~a~a);\n"
+                                      rust-name wname ctx-name
+                                      (let join ([xs arg-strs] [acc ""])
+                                        (cond
+                                          [(null? xs) acc]
+                                          [else (join (cdr xs)
+                                                      (string-append acc ", " (car xs)))])))])
+                        (loop (cdr stmts)
+                              (cons (cons var-name rust-name) local-binds)
+                              #t
+                              (cons bind-line (cons call-line pre-lines))
+                              writes))]
+                     [(pure-circuit)
+                      (let* ([pname (cadr classified)]
+                             [pargs (caddr classified)]
+                             [arg-strs
+                              (map (lambda (e)
+                                     (ctor-expr-rust e local-binds
+                                                     native-id-ht witness-id-ht circuit-id-ht))
+                                   pargs)]
+                             [bind-line
+                              (format "        let ~a = pure_circuits::~a(~a);\n"
+                                      rust-name pname
+                                      (let join ([xs arg-strs] [acc ""])
+                                        (cond
+                                          [(null? xs) acc]
+                                          [(null? (cdr xs)) (string-append acc (car xs))]
+                                          [else (join (cdr xs)
+                                                      (string-append acc (car xs) ", "))])))])
+                        (loop (cdr stmts)
+                              (cons (cons var-name rust-name) local-binds)
+                              witness-emitted?
+                              (cons bind-line pre-lines)
+                              writes))]
+                     [else
+                      ;; Unknown rhs shape — try a generic ctor-expr-rust
+                      ;; render and emit a plain `let`.
+                      (let ([rendered
+                             (ctor-expr-rust rhs local-binds
+                                             native-id-ht witness-id-ht circuit-id-ht)])
+                        (loop (cdr stmts)
+                              (cons (cons var-name rust-name) local-binds)
+                              witness-emitted?
+                              (cons (format "        let ~a = ~a;\n" rust-name rendered)
+                                    pre-lines)
+                              writes))])))]
+              [else
+               ;; Expect a `(statement-expression (public-ledger ... write expr))`.
+               (let ([w (stmt->public-ledger-write (car stmts))])
+                 (cond
+                   [w (loop (cdr stmts) local-binds witness-emitted?
+                            pre-lines (cons w writes))]
+                   [else #f]))]))))
+
+      ;; classify-const-rhs: inspect a `const` binding's RHS expression and
+      ;; classify the call (or return 'unknown). Returns
+      ;;   (list 'witness rust-name args)        for witness calls
+      ;;   (list 'pure-circuit rust-name args)   for pure circuit calls
+      ;;   (list 'unknown)                       otherwise
+      (define (classify-const-rhs rhs witness-id-ht circuit-id-ht)
+        (let ([e (expr-strip-cast rhs)])
+          (nanopass-case (Ltypescript Expression) e
+            [(call ,src ,function-name ,expr* ...)
+             (cond
+               [(eq-hashtable-ref witness-id-ht function-name #f)
+                (list 'witness
+                      (camel->snake (id-sym function-name))
+                      expr*)]
+               [(and (eq-hashtable-ref circuit-id-ht function-name #f)
+                     (id-pure? function-name))
+                (list 'pure-circuit
+                      (camel->snake (id-sym function-name))
+                      expr*)]
+               [else (list 'unknown)])]
+            [else (list 'unknown)])))
+
+      ;; stmt->public-ledger-write: detect a single statement of shape
+      ;; `(statement-expression (public-ledger field (idx) write expr))` and
+      ;; return (cons path-idx expr). The path must be a single path-index;
+      ;; ledger-op must be `write`. Returns #f for anything else.
+      (define (stmt->public-ledger-write stmt)
+        (nanopass-case (Ltypescript Statement) stmt
+          [(statement-expression ,expr)
+           (nanopass-case (Ltypescript Expression) expr
+             [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
+              (nanopass-case (Ltypescript ADT-Op) adt-op
+                [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+                 (cond
+                   [(not (eq? ledger-op 'write)) #f]
+                   [(not (fx= (length path-elt*) 1)) #f]
+                   [(not (fx= (length expr*) 1)) #f]
+                   [else
+                    (let ([path-idx
+                           (nanopass-case (Ltypescript Path-Element) (car path-elt*)
+                             [,path-index path-index]
+                             [else #f])])
+                      (and path-idx (cons path-idx (car expr*))))])])]
+             [else #f])]
+          [else #f]))
+
+      ;; emit-ctor-prelude: emit the accumulated witness/pure-circuit/let
+      ;; lines from the constructor body walk. They're already complete Rust
+      ;; lines (with indentation + trailing newline), so just splat them out.
+      (define (emit-ctor-prelude lines)
+        (for-each out lines))
+
+      ;; emit-ctor-writes: emit the OpProgramVerify chain for the collected
+      ;; ledger field writes, then the query_for_verify call and the
+      ;; ConstructorResult return. `writes` is a list of (path-idx . expr).
+      ;; `witness-emitted?` controls whether we use `current_private_state`
+      ;; (threaded through witness calls) or `ctx.initial_private_state`.
+      (define (emit-ctor-writes writes local-binds
+                                native-id-ht witness-id-ht circuit-id-ht
+                                witness-emitted?)
+        (out "        let ops = OpProgramVerify::<DefaultDB>::new()\n")
+        (for-each
+          (lambda (w)
+            (let* ([idx (car w)]
+                   [val-expr (cdr w)]
+                   [rust-val (ctor-expr-rust val-expr local-binds
+                                             native-id-ht witness-id-ht circuit-id-ht)])
+              ;; Cell.write vm-code for a single-element path is exactly:
+              ;;   push false (state-value 'cell (align idx 1))
+              ;;   push true  (state-value 'cell <value>)
+              ;;   ins false 1
+              ;; (The leading idx and trailing ins are suppressed when the
+              ;; path before the last element is empty, which it is here.)
+              (out (format "            .push(false, new_cell(~au8))\n" idx))
+              (out (format "            .push(true, new_cell(~a))\n" rust-val))
+              (out "            .ins(false, 1)\n")))
+          writes)
+        (out "            .build();\n")
+        (out "\n")
+        (out "        let results = query_for_verify(&qctx, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?;\n")
+        (out "\n")
+        (out "        Ok(ConstructorResult {\n")
+        (out "            current_contract_state: results.context.state,\n")
+        (out (if witness-emitted?
+                 "            current_private_state,\n"
+                 "            current_private_state: ctx.initial_private_state,\n"))
+        (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
+        (out "        })\n"))
+
+      ;; emit-initial-state: emits the `initial_state` constructor method
+      ;; inside the open Contract impl block. K1 seeds each ledger field
+      ;; with its type's default value; J2 then walks the constructor body
+      ;; and emits the witness / pure-circuit prelude + a single
+      ;; OpProgramVerify chain that writes each field its source-declared
+      ;; value. If the constructor body shape isn't one we recognise, we
+      ;; fall back to the K1-only return.
+      (define (emit-initial-state ledger-field* ctor-arg* all-pelt*)
         (out "    pub fn initial_state(\n")
         (out "        &self,\n")
         (out "        ctx: ConstructorContext<PS>")
@@ -453,7 +797,7 @@
         ;; type as the source of truth for the default value. This produces
         ;; one Cell per field in declaration order — the path indices in
         ;; the IR confirm fields land at indices 0,1,2,...
-        ;; J2 (constructor body emission) later overrides these defaults
+        ;; J2 (constructor body emission) then overrides these defaults
         ;; with whatever the source constructor assigns.
         (out "        let sv = new_array(vec![\n")
         (let ([all-bindings
@@ -473,11 +817,24 @@
         (out "        ]);\n")
         (out "        let state = ChargedState::new(sv);\n")
         (out "        let qctx = QueryContext::new(state, ContractAddress::default());\n")
-        (out "        Ok(ConstructorResult {\n")
-        (out "            current_contract_state: qctx.state,\n")
-        (out "            current_private_state: ctx.initial_private_state,\n")
-        (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
-        (out "        })\n")
+        ;; J2: emit the constructor body if we have one and its shape
+        ;; matches. Fall back to the K1-only return otherwise (counter has
+        ;; no constructor body, so it lands here naturally).
+        (let* ([stmt (and (pair? ledger-field*)
+                          (ldecl-constructor-stmt (car ledger-field*)))]
+               [native-id-ht (build-native-id-ht all-pelt*)]
+               [witness-id-ht (build-witness-id-ht all-pelt*)]
+               [circuit-id-ht (build-circuit-id-ht all-pelt*)]
+               [emitted?
+                (and stmt
+                     (emit-ctor-body-or-fallback stmt
+                                                 native-id-ht witness-id-ht circuit-id-ht))])
+          (unless emitted?
+            (out "        Ok(ConstructorResult {\n")
+            (out "            current_contract_state: qctx.state,\n")
+            (out "            current_private_state: ctx.initial_private_state,\n")
+            (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
+            (out "        })\n")))
         (out "    }\n\n"))
 
       ;; emit-circuit-args: emit each Argument as ",\n        name: type"
@@ -1157,7 +1514,8 @@ compact-runtime = \"~a\"
        (emit-witnesses (program-witnesses pelt*))
        (emit-contract-struct)
        (emit-initial-state (program-ledger-fields pelt*)
-                           (program-constructor-args pelt*))
+                           (program-constructor-args pelt*)
+                           pelt*)
        ;; Walk circuit declarations and split on purity. Impure circuits
        ;; become methods on the open Contract impl block; pure circuits are
        ;; collected for the pure_circuits module below.

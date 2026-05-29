@@ -13,7 +13,7 @@
 // Build with `.build()` to obtain a `Vec<Op<M, D>>` ready to pass to
 // `query_for_verify` / `query_for_read`.
 
-use crate::{AlignedValue, Array, DefaultDB, Key, Op, ResultModeGather, ResultModeVerify, DB};
+use crate::{AlignedValue, Array, DefaultDB, Key, Op, ResultModeGather, ResultModeVerify, StateValue, DB};
 
 /// Builder for `Vec<Op<ResultModeVerify, D>>` — used by mutating circuits.
 pub struct OpProgramVerify<D: DB = DefaultDB> {
@@ -47,6 +47,17 @@ impl<D: DB> OpProgramVerify<D> {
 
     pub fn ins(mut self, cached: bool, n: u8) -> Self {
         self.ops.push(Op::Ins { cached, n });
+        self
+    }
+
+    /// `push` — pushes a `StateValue` onto the VM stack. The `storage` flag
+    /// distinguishes pushes that introduce new storage cells (the value being
+    /// written, `storage = true`) from pushes that supply path keys or
+    /// container shapes (`storage = false`). Mirrors the
+    /// `(push [storage ...] [value ...])` vminstruction emitted for ADT
+    /// `write` ops in compact's vm-code (see midnight-ledger.ss).
+    pub fn push(mut self, storage: bool, value: StateValue<D>) -> Self {
+        self.ops.push(Op::Push { storage, value });
         self
     }
 

@@ -20,6 +20,24 @@ where
     pub query_context: QueryContext<D>,
 }
 
+impl<L, PS, D> WitnessContext<L, PS, D>
+where
+    D: DB,
+{
+    /// Convenience constructor for the common case where the generated
+    /// circuit code has just a `QueryContext` and a projected ledger view
+    /// in hand. Pulls the contract address straight out of `qctx.address`
+    /// and clones the query context for the witness's read-only view.
+    pub fn new(ledger: L, private_state: PS, qctx: &QueryContext<D>) -> Self {
+        Self {
+            ledger,
+            private_state,
+            contract_address: qctx.address,
+            query_context: qctx.clone(),
+        }
+    }
+}
+
 /// Marker for contracts that declare zero witnesses. The compiler uses
 /// `NoWitnesses` as the default bound when a contract has no `witness`
 /// declarations, so users don't have to write an empty trait impl.

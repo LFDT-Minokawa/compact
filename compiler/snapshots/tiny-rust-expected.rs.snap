@@ -40,9 +40,26 @@ where
         ]);
         let state = ChargedState::new(sv);
         let qctx = QueryContext::new(state, ContractAddress::default());
+        let _witness_ctx_0 = WitnessContext::new(ledger(&qctx.state), ctx.initial_private_state, &qctx);
+        let (current_private_state, sk) = self.witnesses.private_secret_key(&_witness_ctx_0);
+        let tmp = pure_circuits::public_key(sk);
+        let ops = OpProgramVerify::<DefaultDB>::new()
+            .push(false, new_cell(0u8))
+            .push(true, new_cell(tmp))
+            .ins(false, 1)
+            .push(false, new_cell(1u8))
+            .push(true, new_cell(v))
+            .ins(false, 1)
+            .push(false, new_cell(2u8))
+            .push(true, new_cell(1u8))
+            .ins(false, 1)
+            .build();
+
+        let results = query_for_verify(&qctx, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?;
+
         Ok(ConstructorResult {
-            current_contract_state: qctx.state,
-            current_private_state: ctx.initial_private_state,
+            current_contract_state: results.context.state,
+            current_private_state,
             current_zswap_local_state: ctx.empty_zswap_local_state,
         })
     }
