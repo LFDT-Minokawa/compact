@@ -28,6 +28,7 @@
           (utils)
           (nanopass)
           (langs)
+          (vm)
           (pass-helpers)
           (runtime-version))
 
@@ -441,12 +442,277 @@
                             (type-rust type)))]))
           arg*))
 
+      ;; unit-type?: returns #t if a Type IR node is the empty tuple `()`
+      ;; (Compact's `Void` / Ltypescript `(ttuple src)` with no element
+      ;; types). I3a only emits bodies for unit-returning circuits; richer
+      ;; return shapes (e.g. tiny.compact's `get(): Maybe<Fr>`) keep the
+      ;; `unimplemented!()` fallback until I3b.
+      (define (unit-type? type)
+        (nanopass-case (Ltypescript Type) type
+          [(ttuple ,src ,type* ...) (null? type*)]
+          [else #f]))
+
+      ;; stmt-flatten: collapse nested `seq`s and trailing-`(tuple)` unit
+      ;; statements into a flat list of leaf Statements. The unit
+      ;; `(statement-expression (tuple src))` at the end of a `seq` is
+      ;; pure (returns ()), so dropping it preserves semantics for our
+      ;; void-returning circuits. Any other shape is left alone — callers
+      ;; treat unexpected leaves as a non-match and fall back.
+      (define (stmt-flatten stmt)
+        (nanopass-case (Ltypescript Statement) stmt
+          [(seq ,src ,stmt* ... ,stmt^)
+           (let ([all (append stmt* (list stmt^))])
+             (apply append (map stmt-flatten all)))]
+          [(statement-expression ,expr)
+           ;; Drop a bare unit `(tuple src)` — common terminal of a `seq`
+           ;; for void-returning circuits.
+           (nanopass-case (Ltypescript Expression) expr
+             [(tuple ,src ,tuple-arg* ...)
+              (if (null? tuple-arg*) '() (list stmt))]
+             [else (list stmt)])]
+          [else (list stmt)]))
+
+      ;; const-binding?: detect a `(const src local expr)` and pull out
+      ;; the binder's var-name and the bound expression. Returns
+      ;; (cons var-name expr) on a match, #f otherwise.
+      (define (const-binding stmt)
+        (nanopass-case (Ltypescript Statement) stmt
+          [(const ,src ,local ,expr)
+           (nanopass-case (Ltypescript Argument) local
+             [(,var-name ,type) (cons var-name expr)])]
+          [else #f]))
+
+      ;; expr-strip-cast: peel safe-cast layers from an Expression. The
+      ;; typechecker inserts `safe-cast` to widen the source literal
+      ;; (e.g. `1: Uint<1>`) up to the ADT op's declared parameter type
+      ;; (e.g. `Uint16` for `Counter.increment`). For literal-int
+      ;; arguments the cast is value-preserving, so we look through it
+      ;; before extracting the literal.
+      (define (expr-strip-cast expr)
+        (nanopass-case (Ltypescript Expression) expr
+          [(safe-cast ,src ,type ,type^ ,expr^) (expr-strip-cast expr^)]
+          [else expr]))
+
+      ;; expr-resolve: chase a `var-ref` through the local-binding alist
+      ;; built from preceding `const` statements, then strip any
+      ;; cast layers. Returns the underlying Expression or #f if the
+      ;; chain hits something we don't recognise.
+      (define (expr-resolve expr binds)
+        (let ([e (expr-strip-cast expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(var-ref ,src ,var-name)
+             (cond
+               [(assq var-name binds) =>
+                (lambda (p) (expr-resolve (cdr p) binds))]
+               [else #f])]
+            [else e])))
+
+      ;; stmt->single-public-ledger-call: detect the narrow I3a shape —
+      ;; a flat statement sequence consisting of zero or more `const`
+      ;; bindings followed by exactly one `(public-ledger ...)` call
+      ;; (e.g. counter.compact's `round.increment(1);` which the
+      ;; frontend lowers to `const tmp = safe-cast 1; round.increment(tmp);`).
+      ;; On a match returns
+      ;;   (list path-elt* adt-op resolved-expr*)
+      ;; where each resolved-expr has had var-refs chased through the
+      ;; const-binding alist and surrounding safe-casts peeled. Returns
+      ;; #f for anything we don't yet support.
+      (define (stmt->single-public-ledger-call stmt)
+        (let loop ([stmts (stmt-flatten stmt)] [binds '()])
+          (cond
+            [(null? stmts) #f]
+            [(const-binding (car stmts)) =>
+             (lambda (b) (loop (cdr stmts) (cons b binds)))]
+            [else
+             (and
+               ;; Exactly one terminal statement-expression.
+               (null? (cdr stmts))
+               (nanopass-case (Ltypescript Statement) (car stmts)
+                 [(statement-expression ,expr)
+                  (nanopass-case (Ltypescript Expression) expr
+                    [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
+                     (let ([resolved (map (lambda (e) (expr-resolve e binds)) expr*)])
+                       (if (memv #f resolved)
+                           #f
+                           (list path-elt* adt-op resolved)))]
+                    [else #f])]
+                 [else #f]))])))
+
+      ;; path-elt->vm-value: turn a Path-Element into the VM value that
+      ;; `expand-vm-code` expects to see in the `f` argument. For path
+      ;; indices (constant nats locating a ledger field) we emit a
+      ;; `(VMalign path-index 1)` exactly as typescript-passes.ss does
+      ;; (see line 695). Typed path elements (`(src type expr)`) — used
+      ;; when the path includes a runtime expression, e.g. a Map key —
+      ;; are not part of the I3a wedge; we return #f so the caller falls
+      ;; back to `unimplemented!()` for those.
+      (define (path-elt->vm-value path-elt)
+        (nanopass-case (Ltypescript Path-Element) path-elt
+          [,path-index (VMalign path-index 1)]
+          [else #f]))
+
+      ;; expr->vm-value: turn a circuit argument Expression into a value
+      ;; that the VM code can consume. I3a only needs literal integers
+      ;; (counter's `round.increment(1)` passes the constant `1`); the
+      ;; vm-code wraps these in `(rt-value->int amount)`, producing
+      ;; `(VMvalue->int <int>)` after expansion, which we unwrap in
+      ;; vminstr->builder-call. For anything we don't recognise, return
+      ;; #f so the caller can bail out.
+      (define (expr->vm-value expr)
+        (nanopass-case (Ltypescript Expression) expr
+          [(quote ,src ,datum)
+           (if (and (integer? datum) (exact? datum)) datum #f)]
+          [else #f]))
+
+      ;; vm-immediate->int: given the value the vm-code computed for an
+      ;; `[immediate ...]` argument, unwrap a `(VMvalue->int n)` (the
+      ;; standard wrap produced by `(rt-value->int amount)`) into the
+      ;; underlying integer. Returns #f if the value isn't a plain
+      ;; literal-flavoured immediate.
+      (define (vm-immediate->int v)
+        (cond
+          [(and (integer? v) (exact? v)) v]
+          [(VMop? v)
+           (VMop-case v
+             [(VMvalue->int x)
+              (if (and (integer? x) (exact? x)) x #f)]
+             [else #f])]
+          [else #f]))
+
+      ;; vm-path->indices: given the value bound to `path` (typically the
+      ;; whole `f` list in the vm-code), return a list of integer indices
+      ;; if every element is a `(VMalign nat 1)`. Returns #f otherwise so
+      ;; richer paths fall back to `unimplemented!()`.
+      (define (vm-path->indices v)
+        (cond
+          [(not (list? v)) #f]
+          [else
+           (let loop ([xs v] [acc '()])
+             (cond
+               [(null? xs) (reverse acc)]
+               [(VMop? (car xs))
+                (VMop-case (car xs)
+                  [(VMalign value bytes)
+                   (if (and (= bytes 1) (integer? value) (exact? value))
+                       (loop (cdr xs) (cons value acc))
+                       #f)]
+                  [else #f])]
+               [else #f]))]))
+
+      ;; vminstr->builder-call: render a single vminstr as one line of the
+      ;; OpProgramVerify builder chain (already indented for inclusion
+      ;; inside the `let ops = ...` block). Recognises the ops needed by
+      ;; counter — `idx`, `addi`, `ins`. Anything else returns #f so the
+      ;; caller can bail out to the `unimplemented!()` fallback rather
+      ;; than emit syntactically-valid but semantically-wrong Rust.
+      (define (vminstr->builder-call v)
+        (let ([op (vminstr-op v)]
+              [args (vminstr-arg* v)])
+          (cond
+            [(string=? op "idx")
+             (let* ([cached-pair (assoc "cached" args)]
+                    [push-pair (assoc "pushPath" args)]
+                    [path-pair (assoc "path" args)])
+               (cond
+                 [(not (and cached-pair push-pair path-pair)) #f]
+                 [else
+                  (let ([indices (vm-path->indices (cdr path-pair))]
+                        [push-path (cdr push-pair)])
+                    (cond
+                      ;; Single-element path → use the .idx_at_index
+                      ;; shorthand (matches the existing read template;
+                      ;; restores byte-parity with counter's snapshot).
+                      [(and indices (= (length indices) 1))
+                       (format "            .idx_at_index(~au8, ~a)\n"
+                               (car indices)
+                               (if push-path "true" "false"))]
+                      [else #f]))]))]
+            [(string=? op "addi")
+             (let ([imm-pair (assoc "immediate" args)])
+               (cond
+                 [(not imm-pair) #f]
+                 [else
+                  (let ([n (vm-immediate->int (cdr imm-pair))])
+                    (and n (format "            .addi(~a)\n" n)))]))]
+            [(string=? op "ins")
+             (let ([cached-pair (assoc "cached" args)]
+                   [n-pair (assoc "n" args)])
+               (cond
+                 [(not (and cached-pair n-pair)) #f]
+                 [else
+                  (let ([n (cdr n-pair)])
+                    (and (integer? n) (exact? n)
+                         (format "            .ins(~a, ~a)\n"
+                                 (if (cdr cached-pair) "true" "false")
+                                 n)))]))]
+            [else #f])))
+
+      ;; emit-public-ledger-call-body: emit the I3a body — an
+      ;; OpProgramVerify builder chain matching the adt-op's vm-code,
+      ;; followed by the query_for_verify wrapper + Ok return. Returns #t
+      ;; on success, #f if any step (path translation, vm-code expansion,
+      ;; vminstr rendering) couldn't be handled — the caller falls back
+      ;; to `unimplemented!()` in that case.
+      (define (emit-public-ledger-call-body src adt-op path-elt* expr*)
+        (nanopass-case (Ltypescript ADT-Op) adt-op
+          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+           (cond
+             [(not (fx= (length expr*) (length var-name*))) #f]
+             [else
+              ;; Lift each path-elt + expr to a VM value (#f on anything
+              ;; we don't yet know how to translate) before invoking
+              ;; expand-vm-code. We bail out as soon as we hit something
+              ;; unsupported so the placeholder is preserved.
+              (let ([path-vals (map path-elt->vm-value path-elt*)]
+                    [expr-vals (map expr->vm-value expr*)])
+                (cond
+                  [(memv #f path-vals) #f]
+                  [(memv #f expr-vals) #f]
+                  [else
+                   (let* ([arg-alist
+                           (append (map cons adt-formal* adt-arg*)
+                                   (map (lambda (var-name v)
+                                          (cons (id-sym var-name) v))
+                                        var-name*
+                                        expr-vals))]
+                          [vminstr*
+                           (expand-vm-code src path-vals #f arg-alist
+                             (vm-code-code vm-code))]
+                          [lines (map vminstr->builder-call vminstr*)])
+                     (cond
+                       [(memv #f lines) #f]
+                       [else
+                        (out "        let ops = OpProgramVerify::<DefaultDB>::new()\n")
+                        (for-each out lines)
+                        (out "            .build();\n")
+                        (out "\n")
+                        (out "        let results = query_for_verify(\n")
+                        (out "            &ctx.current_query_context,\n")
+                        (out "            &ops,\n")
+                        (out "            ctx.gas_limit.clone(),\n")
+                        (out "            &ctx.cost_model,\n")
+                        (out "        )?;\n")
+                        (out "\n")
+                        (out "        Ok(CircuitResults {\n")
+                        (out "            result: (),\n")
+                        (out "            context: CircuitContext {\n")
+                        (out "                current_query_context: results.context,\n")
+                        (out "                ..ctx\n")
+                        (out "            },\n")
+                        (out "            gas_cost: results.gas_cost,\n")
+                        (out "        })\n")
+                        #t]))]))])]))
+
       ;; emit-impure-circuit: emit an impure circuit as a method on
       ;; `impl<PS, W> Contract<PS, W>`. Takes `&self, ctx: CircuitContext<PS>`
       ;; plus the source-level args typed via type-rust, and returns
       ;; `Result<CircuitResults<PS, T>, CompactError>` for the declared T.
-      ;; The body is an `unimplemented!()` placeholder; M3-I3 will walk the
-      ;; circuit expression and emit Op programs here.
+      ;;
+      ;; I3a recognises the narrow shape — a single `(public-ledger ...)`
+      ;; statement returning `()` (e.g. counter.compact's
+      ;; `round.increment(1);`) — and emits the corresponding Op program
+      ;; via `expand-vm-code`. Anything richer keeps the `unimplemented!()`
+      ;; placeholder so I3b+ can take it on without losing the build.
       (define (emit-impure-circuit cdefn)
         (nanopass-case (Ltypescript Program-Element) cdefn
           [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
@@ -456,8 +722,18 @@
            (emit-circuit-args arg*)
            (out (format ",\n    ) -> Result<CircuitResults<PS, ~a>, CompactError> {\n"
                         (type-rust type)))
-           (out (format "        unimplemented!(\"M3-I3: circuit body emission for ~a\")\n"
-                        (id-sym function-name)))
+           (let ([emitted?
+                  (and (unit-type? type)
+                       (let ([call (stmt->single-public-ledger-call stmt)])
+                         (and call
+                              (emit-public-ledger-call-body
+                                src
+                                (cadr call)        ; adt-op
+                                (car call)         ; path-elt*
+                                (caddr call)))))]) ; expr*
+             (unless emitted?
+               (out (format "        unimplemented!(\"M3-I3: circuit body emission for ~a\")\n"
+                            (id-sym function-name)))))
            (out "    }\n\n")]))
 
       ;; emit-pure-circuit: emit a pure circuit as a free function inside
