@@ -705,6 +705,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "compact-contract-tiny"
+version = "0.1.0"
+dependencies = [
+ "compact-runtime",
+]
+
+[[package]]
 name = "compact-runtime"
 version = "0.16.100"
 dependencies = [
@@ -4553,6 +4560,7 @@ dependencies = [
 name = "tests-e2e-rust"
 version = "0.1.0"
 dependencies = [
+ "compact-contract-tiny",
  "compact-runtime",
  "hex",
  "midnight-base-crypto",

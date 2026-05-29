@@ -15,7 +15,13 @@
 
 [workspace]
 resolver = "3"
-members = ["tools/*", "runtime-rs", "runtime-rs-macros", "tests-e2e-rust"]
+members = [
+    "tools/*",
+    "runtime-rs",
+    "runtime-rs-macros",
+    "tests-e2e-rust",
+    "tests-e2e-rust/contracts/tiny",
+]
 
 [workspace.dependencies]
 # Pinned to the same midnight-ledger line the TS runtime uses (ledger-8.0.2 per flake.nix).
