@@ -59956,15 +59956,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -59981,16 +59984,19 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -60007,15 +60013,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 16 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"less_than\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x05\", \"bits\": 16 },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -60032,16 +60041,19 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 16 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x05\" },"
         "    { \"op\": \"less_than\", \"output\": \"%t.2\", \"a\": \"%a.0\", \"b\": \"%t.1\", \"bits\": 17 },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -60058,16 +60070,19 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"less_than\", \"output\": \"%t.1\", \"a\": \"0x00\", \"b\": \"%a.0\", \"bits\": 1 },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -60107,28 +60122,34 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"%a.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%a.0\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"%a.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%a.0\"] }"
         "  ]"
         "}"))
     )
@@ -60153,14 +60174,17 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"%a.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%a.0\"] }"
         "  ]"
         "}"))
     )
@@ -60193,35 +60217,41 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"%x.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"%x.0\"] }"
         "  ]"
         "}"))
     )
@@ -60241,12 +60271,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.2\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%z.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 8 },"
@@ -60265,7 +60298,7 @@ groups than for single tests.
         "    { \"op\": \"mul\", \"output\": \"%t.11\", \"a\": \"%q.4\", \"b\": \"%t.10\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.12\", \"a\": \"%t.11\" },"
         "    { \"op\": \"add\", \"output\": \"%t.13\", \"a\": \"%t.6\", \"b\": \"%neg.12\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.13\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.13\"] }"
         "  ]"
         "}"))
     )
@@ -60287,31 +60320,37 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 16 },"
         "    { \"op\": \"copy\", \"output\": \"%t.1\", \"val\": \"%x.0\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 32 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 16 },"
         "    { \"op\": \"copy\", \"output\": \"%t.1\", \"val\": \"%x.0\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -60327,10 +60366,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%p1.0\", \"type\": \"Point<Jubjub>\" },"
         "    { \"name\": \"%p2.1\", \"type\": \"Point<Jubjub>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"encode\", \"outputs\": [\"%t.2\", \"%ingore.3\"], \"input\": \"%p1.0\" },"
@@ -60341,13 +60383,12 @@ groups than for single tests.
         "    { \"op\": \"ec_mul_generator\", \"output\": \"%t.9\", \"scalar\": \"0x11\" },"
         "    { \"op\": \"add\", \"output\": \"%t.10\", \"a\": \"%t.8\", \"b\": \"%t.9\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.12\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%t.11\", \"%t.12\"] },"
-        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.13\", \"inputs\": [\"%t.11\", \"%t.12\"] },"
-        "    { \"op\": \"add\", \"output\": \"%t.14\", \"a\": \"%t.10\", \"b\": \"%t.13\" },"
-        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.15\", \"inputs\": [] },"
-        "    { \"op\": \"add\", \"output\": \"%t.16\", \"a\": \"%t.14\", \"b\": \"%t.15\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.16\" }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%t.10\", \"%t.11\"] },"
+        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.12\", \"inputs\": [\"%t.10\", \"%t.11\"] },"
+        "    { \"op\": \"add\", \"output\": \"%t.13\", \"a\": \"%t.9\", \"b\": \"%t.12\" },"
+        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.14\", \"inputs\": [] },"
+        "    { \"op\": \"add\", \"output\": \"%t.15\", \"a\": \"%t.13\", \"b\": \"%t.14\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.15\"] }"
         "  ]"
         "}"))
     )
@@ -60388,9 +60429,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -60401,24 +60444,29 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.1\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/init1.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -60429,10 +60477,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -60444,15 +60494,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -60479,9 +60532,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -60492,11 +60547,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -60508,9 +60565,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -60536,9 +60595,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60549,7 +60611,7 @@ groups than for single tests.
         "    { \"op\": \"neg\", \"output\": \"%neg.5\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.6\", \"a\": \"%n.0\", \"b\": \"%neg.5\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.7\", \"bit\": \"%t.4\", \"a\": \"%t.6\", \"b\": \"%n.1\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.7\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.7\"] }"
         "  ]"
         "}"))
     )
@@ -60564,8 +60626,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] }"
@@ -60587,12 +60651,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x01\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
         "  ]"
         "}"))
     )
@@ -60614,15 +60681,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"neg\", \"output\": \"%neg.1\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%n.0\", \"b\": \"%neg.1\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))    
     )
@@ -60644,9 +60714,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60657,7 +60730,7 @@ groups than for single tests.
         "    { \"op\": \"neg\", \"output\": \"%neg.5\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.6\", \"a\": \"%n.0\", \"b\": \"%neg.5\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.7\", \"bit\": \"%t.4\", \"a\": \"%t.6\", \"b\": \"%n.1\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.7\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.7\"] }"
         "  ]"
         "}"))
     )
@@ -60679,9 +60752,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60705,7 +60781,7 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%t.18\", \"a\": \"0x01\", \"b\": \"%t.17\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.19\", \"a\": \"%t.9\", \"b\": \"%t.18\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.20\", \"a\": \"%t.19\", \"b\": \"0x03\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.20\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.20\"] }"
         "  ]"
         "}"))
     )
@@ -60726,9 +60802,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -60736,7 +60815,7 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"0x01\", \"b\": \"%t.1\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.3\", \"a\": \"%t.1\", \"b\": \"%t.2\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.4\", \"a\": \"%t.3\", \"b\": \"0x03\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.4\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.4\"] }"
         "  ]"
         "}"))
     )
@@ -60753,10 +60832,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -60767,7 +60849,7 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%t.5\", \"a\": \"%b.2\", \"b\": \"0x01\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.6\", \"bit\": \"%b.0\", \"a\": \"%t.5\", \"b\": \"%t.4\" },"
         "    { \"op\": \"add\", \"output\": \"%t.7\", \"a\": \"0x01\", \"b\": \"%t.6\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.7\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.7\"] }"
         "  ]"
         "}"))
     )
@@ -60788,7 +60870,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60804,6 +60886,15 @@ groups than for single tests.
         "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -60842,13 +60933,7 @@ groups than for single tests.
         "    { \"op\": \"neg\", \"output\": \"%neg.39\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.40\", \"a\": \"%nv.6\", \"b\": \"%neg.39\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.41\", \"bit\": \"%bv.13\", \"a\": \"%t.38\", \"b\": \"%t.40\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.17\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.21\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.25\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.29\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.33\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.37\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.41\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.17\", \"%t.21\", \"%t.25\", \"%t.29\", \"%t.33\", \"%t.37\", \"%t.41\"] }"
         "  ]"
         "}"))
     )
@@ -60869,7 +60954,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60885,6 +60970,15 @@ groups than for single tests.
         "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -60923,13 +61017,7 @@ groups than for single tests.
         "    { \"op\": \"neg\", \"output\": \"%neg.39\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.40\", \"a\": \"%nv.6\", \"b\": \"%neg.39\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.41\", \"bit\": \"%bv.13\", \"a\": \"%t.38\", \"b\": \"%t.40\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.17\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.21\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.25\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.29\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.33\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.37\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.41\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.17\", \"%t.21\", \"%t.25\", \"%t.29\", \"%t.33\", \"%t.37\", \"%t.41\"] }"
         "  ]"
         "}"))
     )
@@ -60951,7 +61039,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -60967,6 +61055,15 @@ groups than for single tests.
         "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -61047,13 +61144,7 @@ groups than for single tests.
         "    { \"op\": \"neg\", \"output\": \"%neg.67\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.68\", \"a\": \"%t.41\", \"b\": \"%neg.67\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.69\", \"bit\": \"%bv.13\", \"a\": \"%t.66\", \"b\": \"%t.68\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.45\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.49\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.53\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.57\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.61\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.65\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.69\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.45\", \"%t.49\", \"%t.53\", \"%t.57\", \"%t.61\", \"%t.65\", \"%t.69\"] }"
         "  ]"
         "}"))
     )
@@ -61071,8 +61162,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
@@ -61081,7 +61175,7 @@ groups than for single tests.
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 248 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%t.2\", \"divisor\": \"%t.0\", \"modulus\": \"%t.1\", \"bits\": 248 },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -61103,7 +61197,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%nv.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -61119,6 +61213,9 @@ groups than for single tests.
         "    { \"name\": \"%bv.11\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%bv.12\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%bv.13\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.7\" },"
@@ -61171,7 +61268,7 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%t.46\", \"a\": \"%nv.6\", \"b\": \"%neg.45\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.47\", \"bit\": \"%bv.13\", \"a\": \"%t.44\", \"b\": \"%t.46\" },"
         "    { \"op\": \"add\", \"output\": \"%t.48\", \"a\": \"%a.43\", \"b\": \"%t.47\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.48\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.48\"] }"
         "  ]"
         "}"))
     )
@@ -61189,12 +61286,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x68656c6c6f21\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x68656c6c6f21\"] }"
         "  ]"
         "}"))
     )
@@ -61212,14 +61312,17 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x07\" },"
-        "    { \"op\": \"output\", \"val\": \"0x0b\" },"
-        "    { \"op\": \"output\", \"val\": \"0x13\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x07\", \"0x0b\", \"0x13\"] }"
         "  ]"
         "}"))
     )
@@ -61238,13 +61341,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x17\" },"
-        "    { \"op\": \"output\", \"val\": \"0x1f\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x17\", \"0x1f\"] }"
         "  ]"
         "}"))
     )
@@ -61263,17 +61369,20 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.3\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\", \"%t.3\"] }"
         "  ]"
         "}"))
     )
@@ -61292,17 +61401,20 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.3\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\", \"%t.3\"] }"
         "  ]"
         "}"))
     )
@@ -61321,12 +61433,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x03\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x03\"] }"
         "  ]"
         "}"))
     )
@@ -61343,9 +61458,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -61372,9 +61489,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -61382,7 +61502,7 @@ groups than for single tests.
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%x.0\", \"b\": \"0x11\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.1\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"0x05\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -61404,9 +61524,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -61415,7 +61538,7 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%t.1\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"0x05\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.3\", \"a\": \"%t.2\", \"b\": \"0x0a\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.3\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.3\"] }"
         "  ]"
         "}"))
     )
@@ -61442,13 +61565,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"%n.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%n.0\"] }"
         "  ]"
         "}"))
     )
@@ -61466,14 +61592,17 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"%x.0\" },"
-        "    { \"op\": \"output\", \"val\": \"%x.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%x.0\", \"%x.0\"] }"
         "  ]"
         "}"))
     )
@@ -61491,11 +61620,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 2 },"
@@ -61504,7 +61636,7 @@ groups than for single tests.
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%y.1\", \"b\": \"%z.2\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.4\", \"a\": \"0x02\", \"b\": \"0x00\" },"
         "    { \"op\": \"add\", \"output\": \"%t.6\", \"a\": \"%t.3\", \"b\": \"%t.5\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.6\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.6\"] }"
         "  ]"
         "}"))
     )
@@ -61521,10 +61653,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
@@ -61532,7 +61667,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%t.2\", \"a\": \"0x11\", \"b\": \"0x17\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.3\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.3\"] }"
         "  ]"
         "}"))
     )
@@ -61570,55 +61705,67 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.1\", \"bits\": 32 },"
         "    { \"op\": \"copy\", \"output\": \"%t.2\", \"val\": \"%y.1\" },"
-        "    { \"op\": \"output\", \"val\": \"0x01\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/bar2.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/bar3.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/bar4.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -61637,12 +61784,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x01\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
         "  ]"
         "}"))
     )
@@ -61664,12 +61814,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x01\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
         "  ]"
         "}"))
     )
@@ -61686,9 +61839,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -61712,9 +61867,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61736,9 +61893,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61760,9 +61919,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61784,9 +61945,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61810,9 +61973,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -61837,9 +62002,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -61847,7 +62015,7 @@ groups than for single tests.
         "    { \"op\": \"neg\", \"output\": \"%neg.2\", \"a\": \"%x.0\" },"
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%t.1\", \"b\": \"%neg.2\" },"
         "    { \"op\": \"add\", \"output\": \"%t.4\", \"a\": \"%t.3\", \"b\": \"0x04\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.4\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.4\"] }"
         "  ]"
         "}"))
     )
@@ -61864,10 +62032,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
@@ -61877,7 +62048,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%y.1\", \"a\": \"0x0b\", \"b\": \"0x11\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.4\", \"bit\": \"%t.2\", \"a\": \"0x07\", \"b\": \"%t.3\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.5\", \"a\": \"0x0a\", \"b\": \"%t.4\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.5\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.5\"] }"
         "  ]"
         "}"))
     )
@@ -61894,18 +62065,21 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%y.1\", \"b\": \"%z.2\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.5\", \"a\": \"%t.3\", \"b\": \"%t.4\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.5\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.5\"] }"
         "  ]"
         "}"))
     )
@@ -61922,18 +62096,21 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%y.1\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.3\", \"a\": \"0x01\", \"b\": \"%t.4\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.5\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.5\"] }"
         "  ]"
         "}"))
     )
@@ -61950,18 +62127,21 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%y.1\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.3\", \"a\": \"%t.4\", \"b\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.5\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.5\"] }"
         "  ]"
         "}"))
     )
@@ -61978,11 +62158,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -61990,7 +62173,7 @@ groups than for single tests.
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%y.1\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.3\", \"a\": \"%t.4\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.6\", \"bit\": \"%t.5\", \"a\": \"0x00\", \"b\": \"0x01\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.6\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.6\"] }"
         "  ]"
         "}"))
     )
@@ -62007,9 +62190,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -62023,7 +62209,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%t.8\", \"bit\": \"%t.7\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.9\", \"bit\": \"%t.6\", \"a\": \"%t.8\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.10\", \"bit\": \"%t.5\", \"a\": \"0x01\", \"b\": \"%t.9\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.10\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.10\"] }"
         "  ]"
         "}"))
     )
@@ -62040,17 +62226,20 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"mul\", \"output\": \"%t.1\", \"a\": \"%x.0\", \"b\": \"0x03\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"0x07\" },"
-        "    { \"op\": \"output\", \"val\": \"%x.0\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%x.0\", \"%t.1\", \"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -62067,14 +62256,17 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%arg.0\", \"bits\": 40 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"%arg.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%arg.0\"] }"
         "  ]"
         "}"))
     )
@@ -62091,17 +62283,20 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%arg.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%arg.0\", \"bits\": 72 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%arg.1\", \"bits\": 248 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%t.2\", \"divisor\": \"%arg.0\", \"modulus\": \"%arg.1\", \"bits\": 248 },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -62118,14 +62313,17 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%arg.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"%arg.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%arg.0\"] }"
         "  ]"
         "}"))
     )
@@ -62143,15 +62341,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.1\", \"a\": \"%arg.0\", \"b\": \"0x03\", \"bits\": 2 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.1\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"%arg.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%arg.0\"] }"
         "  ]"
         "}"))
     )
@@ -62168,15 +62369,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%arg.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -62194,15 +62398,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%x.1\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%x.1\", \"a\": \"0x01\", \"b\": \"0x02\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -62219,15 +62426,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"copy\", \"output\": \"%t.1\", \"val\": \"%arg.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 40 },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -62245,15 +62455,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%x.1\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%x.1\", \"a\": \"0x01\", \"b\": \"0x02\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -62271,13 +62484,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x08\", \"%t.0\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.0\"] }"
         "  ]"
         "}"))
     )
@@ -62297,10 +62513,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 8 },"
@@ -62308,7 +62527,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\", \"0x80\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%x.0\", \"%x.1\", \"0x10\", \"0x00\", \"0xa2\", \"0x40\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -62339,12 +62558,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%foo.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%foo.2\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%foo.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%foo.1\", \"bits\": 8 },"
@@ -62369,7 +62591,7 @@ groups than for single tests.
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%tmp.16\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.16\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.17\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.17\"] }"
         "  ]"
         "}"))
     )
@@ -62400,12 +62622,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%foo.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%foo.2\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%foo.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%foo.1\", \"bits\": 8 },"
@@ -62430,7 +62655,7 @@ groups than for single tests.
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%tmp.16\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.16\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.17\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.17\"] }"
         "  ]"
         "}"))
     )
@@ -62447,12 +62672,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62469,12 +62697,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62491,12 +62722,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62513,12 +62747,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62535,12 +62772,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62558,12 +62798,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62580,12 +62823,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62602,21 +62848,24 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62637,13 +62886,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62668,21 +62920,24 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"0x00\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62701,17 +62956,20 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.1\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%x.0\", \"a\": \"%x.1\", \"b\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -62728,10 +62986,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -62744,7 +63005,7 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%t2.5\" },"
         "    { \"op\": \"copy\", \"output\": \"%t.6\", \"val\": \"%t.2\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.7\", \"bit\": \"%b.0\", \"a\": \"%t.6\", \"b\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.7\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.7\"] }"
         "  ]"
         "}"))
     )
@@ -62761,10 +63022,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%x.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -62777,7 +63041,7 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%t2.5\" },"
         "    { \"op\": \"copy\", \"output\": \"%t.6\", \"val\": \"%t.2\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.7\", \"bit\": \"%b.0\", \"a\": \"%t.6\", \"b\": \"0x00\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.7\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.7\"] }"
         "  ]"
         "}"))
     )
@@ -62846,7 +63110,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -62863,6 +63127,9 @@ groups than for single tests.
         "    { \"name\": \"%ci.12\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%ci.13\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%ci.14\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.1\", \"bits\": 8 },"
@@ -62965,7 +63232,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%data.55\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.53\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.56\", \"%hash.57\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.54\", \"%data.55\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x0a\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x37\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.56\", \"%hash.57\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
-        "    { \"op\": \"output\", \"val\": \"%q.16\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%q.16\"] }"
         "  ]"
         "}"))
     )
@@ -62983,15 +63250,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%c.0\", \"type\": \"Point<Jubjub>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.1\", \"a\": \"%c.0\", \"scalar\": \"0x03\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"b\": \"%t.1\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -63011,15 +63281,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Point<Jubjub>\", \"output\": \"%c.0\", \"guard\": null },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.1\", \"a\": \"%c.0\", \"scalar\": \"0x03\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"b\": \"%t.1\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -63042,32 +63315,38 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%q.0\", \"a\": \"0x01\", \"b\": \"0x02\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%t.2\", \"a\": \"0x00\", \"b\": \"0x03\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.3\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.3\"] }"
         "  ]"
         "}"))
     )
@@ -63090,32 +63369,38 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%q.0\", \"a\": \"0x01\", \"b\": \"0x02\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%t.2\", \"a\": \"0x00\", \"b\": \"0x03\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.3\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.3\"] }"
         "  ]"
         "}"))
     )
@@ -63138,12 +63423,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -63152,14 +63440,14 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.3\", \"bits\": 32 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.4\", \"bit\": \"%q.0\", \"a\": \"0x01\", \"b\": \"0x02\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.4\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.4\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63167,6 +63455,9 @@ groups than for single tests.
         "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.4\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.5\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
@@ -63176,7 +63467,7 @@ groups than for single tests.
         "    { \"op\": \"test_eq\", \"output\": \"%t.9\", \"a\": \"%q.2\", \"b\": \"%q.5\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.10\", \"bit\": \"%t.8\", \"a\": \"%t.9\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.11\", \"bit\": \"%t.10\", \"a\": \"0x00\", \"b\": \"0x03\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.11\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.11\"] }"
         "  ]"
         "}"))
     )
@@ -63199,13 +63490,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.4\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -63221,26 +63515,29 @@ groups than for single tests.
         "    { \"op\": \"neg\", \"output\": \"%neg.9\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.10\", \"a\": \"%q.3\", \"b\": \"%neg.9\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.11\", \"bit\": \"%q.2\", \"a\": \"%t.5\", \"b\": \"%t.10\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.11\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.11\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.3\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.2\", \"bits\": 12 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.4\" },"
-        "    { \"op\": \"output\", \"val\": \"%q.3\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%q.3\"] }"
         "  ]"
         "}"))
     )
@@ -63277,11 +63574,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
@@ -63294,18 +63594,21 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%t.5\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.6\", \"a\": \"%q.2\" },"
         "    { \"op\": \"add\", \"output\": \"%t.7\", \"a\": \"%t.3\", \"b\": \"%neg.6\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.7\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.7\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
@@ -63314,18 +63617,21 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%q.0\", \"a\": \"%q.1\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.4\", \"bit\": \"%t.3\", \"a\": \"0x01\", \"b\": \"%q.2\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.4\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.4\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/tres.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
@@ -63335,7 +63641,7 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.4\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%q.2\", \"a\": \"%t.3\", \"b\": \"%t.4\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.5\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.5\"] }"
         "  ]"
         "}"))
     )
@@ -63362,18 +63668,21 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.4\", \"a\": \"%q.2\" },"
         "    { \"op\": \"add\", \"output\": \"%t.5\", \"a\": \"%t.3\", \"b\": \"%neg.4\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.5\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.5\"] }"
         "  ]"
         "}"))
     )
@@ -63400,11 +63709,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
@@ -63417,7 +63729,7 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%t.5\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.6\", \"a\": \"%q.2\" },"
         "    { \"op\": \"add\", \"output\": \"%t.7\", \"a\": \"%t.3\", \"b\": \"%neg.6\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.7\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.7\"] }"
         "  ]"
         "}"))
     )
@@ -63435,13 +63747,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"-0x01\", \"%t.0\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.0\"] }"
         "  ]"
         "}"))
     )
@@ -63465,11 +63780,14 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%_eval.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%_arguments.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%witnesses.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%_eval.0\", \"b\": \"%_arguments.1\" },"
@@ -63482,7 +63800,7 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.10\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.11\", \"a\": \"%t.9\", \"b\": \"%t.10\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.11\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.11\"] }"
         "  ]"
         "}"))
     )
@@ -63514,15 +63832,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%my_guess.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"neg\", \"output\": \"%neg.1\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%my_guess.0\", \"b\": \"%neg.1\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -63540,15 +63861,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 12 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"transient_hash\", \"output\": \"%t.1\", \"inputs\": [\"0x00\", \"%x.0\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -63567,16 +63891,19 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 12 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%t.1\", \"%t.2\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 2, \"tag\": \"bytes\" } }], \"inputs\": [\"0x32\", \"0x31323334353637383930313233343536373839303132333435363738393031\", \"%x.0\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -63594,15 +63921,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"hash_to_curve\", \"output\": \"%t.1\", \"inputs\": [\"%x.0\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -63629,8 +63959,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x2a\", \"0x91\"] },"
@@ -63659,12 +63991,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x03\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x03\"] }"
         "  ]"
         "}"))
     )
@@ -63687,12 +64022,15 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"output\", \"val\": \"0x03\" }"
+        "    { \"op\": \"output\", \"vals\": [\"0x03\"] }"
         "  ]"
         "}"))
     )
@@ -63765,9 +64103,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.1\", \"%hash.2\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"0x6d646e3a6c68\", \"%x.0\"] },"
@@ -63796,14 +64136,17 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\", \"0x80\", \"0x01\", \"0x01\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"0x00\", \"0x00\", \"0x31\", \"0x31\", \"0x18\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x05\", \"0x40\", \"0x08\", \"0x12\", \"0x04\", \"0x32\", \"0x32\", \"0x60\", \"-0x01\", \"0x14\", \"0xa2\", \"0x40\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0d\", \"0x01\", \"0x08\", \"%t.0\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.0\"] }"
         "  ]"
         "}"))
     )
@@ -63826,8 +64169,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\", \"0x91\", \"0xa1\"] },"
@@ -63858,8 +64203,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
@@ -63870,8 +64219,7 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x03\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x12\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0x16\", \"0x26\", \"0x13\", \"0x02\", \"0x0b\", \"0x10\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"0x00\", \"0x00\", \"0x0d\", \"0x02\", \"0x01\", \"-0x02\", \"%t.0\", \"%t.1\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.0\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.0\", \"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -63918,10 +64266,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -63934,17 +64284,20 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -64017,10 +64370,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -64033,10 +64388,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -64046,10 +64407,7 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.4\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x04\", \"0x01\", \"0x0a\", \"0x01\", \"0x01\", \"%t.2\", \"%t.3\", \"%t.4\", \"%t.5\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.3\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.4\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.5\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\", \"%t.3\", \"%t.4\", \"%t.5\"] }"
         "  ]"
         "}"))
     )
@@ -64076,9 +64434,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -64089,11 +64449,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -64105,17 +64467,20 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -64151,9 +64516,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -64164,10 +64531,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%k.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -64179,30 +64548,36 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/read_nested_counter2.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -64256,9 +64631,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
@@ -64268,11 +64645,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n1.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n2.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n3.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%n1.0\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n2.1\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%n3.2\", \"0x91\", \"0xa2\"] }"
@@ -64282,9 +64661,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
@@ -64357,9 +64738,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -64370,10 +64753,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -64384,11 +64769,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%k.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
@@ -64400,32 +64787,38 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x52\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/read_nested_counter2.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%n.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x52\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -64509,14 +64902,17 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"0x00\", \"b\": \"%q.0\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -64537,15 +64933,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"0x00\", \"b\": \"%q.0\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -64607,7 +65006,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%qcoin.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -64620,6 +65019,8 @@ groups than for single tests.
         "    { \"name\": \"%coin.8\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%coin.9\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%coin.10\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.0\", \"bits\": 8 },"
@@ -64707,7 +65108,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%qcoin.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -64720,6 +65121,8 @@ groups than for single tests.
         "    { \"name\": \"%coin.8\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%coin.9\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%coin.10\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.0\", \"bits\": 8 },"
@@ -64767,6 +65170,7 @@ groups than for single tests.
     (returns
       (program
         (circuit (init) ((%b.0 "Scalar<BLS12-381>") (%n.1 "Scalar<BLS12-381>"))
+          ()
           (constrain_to_boolean %b.0)
           (constrain_bits %n.1 16)
           (impact 1 112 1 1 0 16 1 1 1 %b.0 17 2 145 161)
@@ -64932,9 +65336,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.1\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -64958,10 +65364,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.2\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -64987,11 +65395,13 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%z.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.3\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -65021,10 +65431,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.2\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
@@ -65049,10 +65461,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 4 },"
@@ -65077,10 +65491,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 4 },"
@@ -65156,6 +65572,7 @@ groups than for single tests.
                         (%v.2 "Scalar<BLS12-381>")
                         (%v.3 "Scalar<BLS12-381>")
                         (%v.4 "Scalar<BLS12-381>"))
+          ("Scalar<BLS12-381>")
           (impact 1 16 1 1 1 0 17 1 1 -2 %v.3 145)
           (public_input "Scalar<BLS12-381>" %t.5)
           (impact 1 48 80 1 1 0 12 1 -2 %t.5)
@@ -65177,6 +65594,7 @@ groups than for single tests.
                         (%v.1 "Scalar<BLS12-381>")
                         (%v.4 "Scalar<BLS12-381>")
                         (%v.7 "Scalar<BLS12-381>"))
+          ()
           (constrain_bits %v.10 16)
           (constrain_bits %v.0 16)
           (constrain_bits %v.1 16)
@@ -65218,8 +65636,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x00\", \"0x91\"] },"
@@ -65244,9 +65664,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 8 },"
@@ -65254,7 +65677,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.1\", \"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x01\", \"%t.2\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -65275,9 +65698,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 40 },"
@@ -65293,11 +65723,7 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.13\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.14\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x05\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.10\", \"%t.11\", \"%t.12\", \"%t.13\", \"%t.14\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.10\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.11\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.12\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.13\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.14\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.10\", \"%t.11\", \"%t.12\", \"%t.13\", \"%t.14\"] }"
         "  ]"
         "}"))
     )
@@ -65318,9 +65744,42 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 248 },"
@@ -65388,37 +65847,7 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.91\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.92\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x1f\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.62\", \"%t.63\", \"%t.64\", \"%t.65\", \"%t.66\", \"%t.67\", \"%t.68\", \"%t.69\", \"%t.70\", \"%t.71\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.62\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.63\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.64\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.65\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.66\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.67\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.68\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.69\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.70\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.71\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.72\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.73\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.74\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.75\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.76\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.77\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.78\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.79\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.80\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.81\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.82\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.83\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.84\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.85\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.86\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.87\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.88\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.89\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.90\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.91\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.92\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.62\", \"%t.63\", \"%t.64\", \"%t.65\", \"%t.66\", \"%t.67\", \"%t.68\", \"%t.69\", \"%t.70\", \"%t.71\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\"] }"
         "  ]"
         "}"))
     )
@@ -65439,10 +65868,48 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%bv.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 40 },"
@@ -65521,42 +65988,7 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.106\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.107\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x24\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\", \"%t.93\", \"%t.94\", \"%t.95\", \"%t.96\", \"%t.97\", \"%t.98\", \"%t.99\", \"%t.100\", \"%t.101\", \"%t.102\", \"%t.103\", \"%t.104\", \"%t.105\", \"%t.106\", \"%t.107\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.72\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.73\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.74\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.75\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.76\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.77\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.78\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.79\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.80\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.81\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.82\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.83\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.84\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.85\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.86\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.87\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.88\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.89\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.90\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.91\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.92\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.93\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.94\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.95\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.96\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.97\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.98\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.99\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.100\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.101\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.102\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.103\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.104\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.105\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.106\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.107\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\", \"%t.93\", \"%t.94\", \"%t.95\", \"%t.96\", \"%t.97\", \"%t.98\", \"%t.99\", \"%t.100\", \"%t.101\", \"%t.102\", \"%t.103\", \"%t.104\", \"%t.105\", \"%t.106\", \"%t.107\"] }"
         "  ]"
         "}"))
     )
@@ -65577,8 +66009,10 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x00\", \"0x91\"] },"
@@ -65603,9 +66037,12 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
@@ -65613,7 +66050,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.1\", \"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x01\", \"%t.2\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -65634,13 +66071,16 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.2\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.3\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.4\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
@@ -65655,7 +66095,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x05\", \"%tmp.8\", \"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.9\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x05\", \"%t.9\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.9\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.9\"] }"
         "  ]"
         "}"))
     )
@@ -65676,7 +66116,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65709,6 +66149,9 @@ groups than for single tests.
         "    { \"name\": \"%v.28\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.29\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.30\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
@@ -65775,7 +66218,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x1f\", \"%tmp.60\", \"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.61\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x1f\", \"%t.61\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.61\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.61\"] }"
         "  ]"
         "}"))
     )
@@ -65796,7 +66239,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65859,6 +66302,10 @@ groups than for single tests.
         "    { \"name\": \"%v.58\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.59\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%v.60\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
@@ -65985,8 +66432,7 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.120\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.121\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x3d\", \"%t.120\", \"%t.121\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.120\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.121\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.120\", \"%t.121\"] }"
         "  ]"
         "}"))
     )
@@ -66006,9 +66452,11 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.0\", \"bits\": 8 },"
@@ -66035,7 +66483,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%param1.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66047,6 +66495,8 @@ groups than for single tests.
         "    { \"name\": \"%param1.7\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%param1.8\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%param1.9\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.0\", \"bits\": 8 },"
@@ -66097,7 +66547,7 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%param1.1\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66109,6 +66559,9 @@ groups than for single tests.
         "    { \"name\": \"%param1.7\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%param1.8\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%param1.9\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.0\", \"bits\": 8 },"
@@ -66133,7 +66586,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x0a\", \"%tmp.18\", \"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.19\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x0a\", \"%t.19\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.19\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.19\"] }"
         "  ]"
         "}"))
     )
@@ -66160,56 +66613,68 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"0xe803\", \"0x50\", \"0x01\", \"-0x02\", \"0xd007\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.0\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.0\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.0\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/test1.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"0xe803\", \"0x50\", \"0x01\", \"-0x02\", \"%x.0\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.1\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/test2.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%x.0\", \"0x50\", \"0x01\", \"-0x02\", \"0xe803\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.1\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/test3.zkir"
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%y.1\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%x.0\", \"0x50\", \"0x01\", \"-0x02\", \"%y.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -66228,15 +66693,18 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%scalar.0\", \"type\": \"Scalar<Jubjub>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Point<Jubjub>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.2\", \"a\": \"%t.1\", \"scalar\": \"%scalar.0\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.2\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
     )
@@ -66255,14 +66723,17 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%pt.0\", \"inputs\": [\"0x00\", \"0x01\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%pt.0\", \"b\": \"%pt.0\" },"
-        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
     )
@@ -67457,7 +67928,7 @@ groups than for single tests.
   )
 
 (with-parameter-values ([feature-zkir-v3 #f #t])
-(run-tests print-typescript
+(run-tests save-manifest
   (test-group
     ((create-file "C1.compact"
        '(
@@ -67595,7 +68066,7 @@ groups than for single tests.
          "  calc = disclose(c);"
          "}"
         ))
-     (returns
+     (pass-returns print-typescript
        (program
          (type-descriptors
            (%descriptor.0 (tunsigned 18446744073709551615))
@@ -67633,7 +68104,7 @@ groups than for single tests.
       "  return foo(n+1) ? n - 1 : n + 1;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.45 (tfield (field-native)))
@@ -67715,7 +68186,7 @@ groups than for single tests.
       "  return foo(n+1) ? n - 1 : n + 1;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.7 (tfield (field-native)))
@@ -67796,7 +68267,7 @@ groups than for single tests.
       "  return foo(n - 1) ? n -1 : n - 2;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.14 (tunsigned 64))
@@ -67890,7 +68361,7 @@ groups than for single tests.
       "  return foo(n - 1) ? n -1 : n - 2;"
       "}"
       )
-   (returns
+   (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.14 (tunsigned 18446744073709551615))
@@ -68366,7 +68837,7 @@ groups than for single tests.
       "  return 1 + ((b, x) => x ? b - 1 : b + 1)(x + 1, !b);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.7 (tboolean))
@@ -69465,7 +69936,7 @@ groups than for single tests.
       "  return field1.read() as Field;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tunsigned 18446744073709551615))
@@ -69584,7 +70055,7 @@ groups than for single tests.
       "  return field1.read() as Field;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tbytes 32))
@@ -73045,7 +73516,7 @@ groups than for single tests.
       "  fld.lookup(true).lookup(v);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tfield (field-native)))
@@ -73273,7 +73744,7 @@ groups than for single tests.
 
   (test
     '()
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.1 (tunsigned 255))
@@ -74353,7 +74824,7 @@ groups than for single tests.
       "  return bar(x), bar(x - 1), bar(x - 2);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.10 (tfield (field-native)))
@@ -74398,7 +74869,7 @@ groups than for single tests.
       "  return bar(x), bar(x - 1), bar(x - 2);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tfield (field-native)))
@@ -74443,7 +74914,7 @@ groups than for single tests.
       "  bar(x), bar(x - 1), bar(x - 2);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tfield (field-native)))
@@ -74562,7 +75033,7 @@ groups than for single tests.
       "    v);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tfield (field-native)))
@@ -74606,7 +75077,7 @@ groups than for single tests.
       "    v);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tfield (field-native)))
@@ -75498,7 +75969,7 @@ groups than for single tests.
       "  return b ? y : 2 * y;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tboolean))
@@ -77614,7 +78085,7 @@ groups than for single tests.
       "  return F;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors (%descriptor.108 (tbytes 32))
           (%descriptor.109 (tunsigned 255))
@@ -77874,7 +78345,7 @@ groups than for single tests.
       "  return F;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors (%descriptor.1086 (tbytes 70))
           (%descriptor.1087 (tunsigned 63))
@@ -80290,7 +80761,7 @@ groups than for single tests.
          "}"
          ))
      ; FIXME replace with stage-javascript checks for CC print-TS pass implementation
-     (returns
+     (pass-returns print-typescript
        (program
          (type-descriptors
            (%descriptor.0 (tunsigned 18446744073709551615))

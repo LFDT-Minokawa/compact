@@ -1,6 +1,6 @@
 {
   "version": { "major": 3, "minor": 0 },
-  "do_communications_commitment": false,
+  "do_communications_commitment": true,
   "inputs": [
     { "name": "%dest_public_key.0", "type": "Scalar<BLS12-381>" },
     { "name": "%dest_public_key.1", "type": "Scalar<BLS12-381>" },
@@ -9,6 +9,8 @@
     { "name": "%input_coin.4", "type": "Scalar<BLS12-381>" },
     { "name": "%input_coin.5", "type": "Scalar<BLS12-381>" },
     { "name": "%input_coin.6", "type": "Scalar<BLS12-381>" }
+  ],
+  "outputs": [
   ],
   "instructions": [
     { "op": "constrain_bits", "val": "%dest_public_key.0", "bits": 8 },

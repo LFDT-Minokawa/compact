@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.31.106, language 0.23.104, runtime 0.16.101]
+
+### Added
+
+- The compiler now writes a manifest to the file `contract-manifest.json` in the
+  `compiler` subdirectory of the target directory.  The manifest contains sizes
+  and sha256 sums for each of the generated files except `contract-manifest.json`
+  itself.
+
+### Changed
+
+- The compiler now removes and recreates the `contract` subdirectory of target
+  directory.  While previous versions removed and recreated the `compiler`, `zkir`,
+  and `keys` directory they left the `contract` subdirectory _and its contents_
+  in place and instead replaced only the target files `index.dts`, `index.js`,
+  and `index.js.map`.
+
+- The compiler now always creates the `keys` subdirectory of the target
+  directory.  The `keys` directory will be empty, however, if the --skip-zk
+  flag is used, the zkir binary isn't found, or none of the contracts circuits
+  require proofs.
+
+## [Toolchain 0.31.106, language 0.23.104, runtime 0.16.101]
+
+- The ZKIR v3 format, behind the feature flag `--feature-zkir-v3`, has changed
+  so that:
+    - it contains an `outputs` field that is a list containing the type of each
+      output of the circuit
+    - it contains a single `output` instruction that specifies a list of output
+      operands and is the last instruction
+
 ## [Toolchain 0.31.104, language 0.23.104, runtime 0.16.101]
 
 ### Added

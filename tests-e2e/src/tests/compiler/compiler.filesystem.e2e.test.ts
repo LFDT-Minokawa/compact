@@ -110,20 +110,21 @@ describe('[Filesystem] Compiler', () => {
         );
     });
 
-    test('[PM-10022] should throw error when any of the already existing files in output folder is not writeable', async () => {
-        const outputDir = createTempFolder();
-        const inputFile = prepareTempContract();
-
-        const result: Result = await compile([Arguments.VSCODE, inputFile, outputDir]);
-        expect(result.exitCode).toEqual(ExitCodes.Success);
-        fs.chmodSync(outputDir + 'contract/', '444');
-
-        const result2: Result = await compile([Arguments.VSCODE, inputFile, outputDir]);
-        expectCompilerResult(result2).toBeFailure(
-            new RegExp(
-                `Exception: error creating output file: failed for ${escapeRegExp(outputDir)}/contract/index\\.js\\.map: permission denied`,
-            ),
-            compilerDefaultOutput(),
-        );
-    }, 300000);
+//    The contract subdirectory is now removed and recreated, like the other directories
+//    test('[PM-10022] should throw error when any of the already existing files in output folder is not writeable', async () => {
+//        const outputDir = createTempFolder();
+//        const inputFile = prepareTempContract();
+//
+//        const result: Result = await compile([Arguments.VSCODE, inputFile, outputDir]);
+//        expect(result.exitCode).toEqual(ExitCodes.Success);
+//        fs.chmodSync(outputDir + 'contract/', '444');
+//
+//        const result2: Result = await compile([Arguments.VSCODE, inputFile, outputDir]);
+//        expectCompilerResult(result2).toBeFailure(
+//            new RegExp(
+//                `Exception: error creating output file: failed for ${escapeRegExp(outputDir)}/contract/index\\.js\\.map: permission denied`,
+//            ),
+//            compilerDefaultOutput(),
+//        );
+//    }, 300000);
 });
