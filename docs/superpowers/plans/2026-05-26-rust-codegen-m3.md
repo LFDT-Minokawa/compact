@@ -15,6 +15,8 @@
 | L — Compact stdlib mapping | L1 ✅, L2 pending, L3 ✅ (pre-existing), L4 ✅ (pre-existing) | partial | `2171d1c` |
 | M — Tests for tiny.compact | M1–M3 | pending | — |
 
+**Milestone reached (after K2):** `compactc --rust examples/tiny.compact /tmp/out/` produces a Rust crate that **compiles cleanly** against the local `compact-runtime`. `cargo build` succeeds end-to-end — all type references resolve, Witnesses trait + Maybe<T> + Ledger view + circuit signatures all type-check. Bodies remain `unimplemented!()` so the crate panics at runtime, but the surface is correct. This proves M3's "generalised emission" architectural goal is sound; remaining work is body correctness (K1/J2/I3) and byte-parity validation (M).
+
 **Resume here:** K1 + J2 + I3 (the body-emission work).
 
 - **K1** — generalise `emit-initial-state`'s hardcoded `new_cell(0u64)` seed to walk the pl-array and produce per-field initial StateValues based on each ADT's init op. Counter stays at `new_cell(0u64)`; tiny needs three different initial values (`authority: Bytes<32>` → 32 zero bytes; `value: Field` → Fr::zero(); `state: STATE` → enum discriminant 0).
