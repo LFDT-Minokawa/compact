@@ -16,6 +16,7 @@ use midnight_onchain_state::state::{
     ContractMaintenanceAuthority, ContractOperation, EntryPointBuf,
 };
 use midnight_storage::storage::HashMap;
+use midnight_transient_crypto::merkle_tree::MerkleTree;
 
 /// Returns a fresh `CostModel` initialised to upstream's `INITIAL_COST_MODEL`
 /// constant. Method-shaped for natural reading: `let cm = initial_cost_model();`.
@@ -75,6 +76,41 @@ pub fn new_contract_state<D: DB>(data: StateValue<D>, operations: &[&str]) -> Co
     ContractState::new(data, ops, ContractMaintenanceAuthority::default())
 }
 
+/// Builds an empty `StateValue::Map(...)` — the initial state for the
+/// Compact `Map` and `Set` ADTs (see compiler/midnight-ledger.ss:
+/// `(initial-value (state-value 'map ()))` for both).
+pub fn new_map<D: DB>() -> StateValue<D> {
+    StateValue::Map(HashMap::new())
+}
+
+/// Builds an empty `StateValue::Array([BoundedMerkleTree(blank), Cell(0u64)])`
+/// — the initial state for the Compact `MerkleTree<height, T>` ADT.
+/// See compiler/midnight-ledger.ss:
+///   (initial-value (state-value 'array ((state-value 'merkle-tree nat ())
+///                                       (state-value 'cell (align 0 8)))))
+pub fn new_merkle_tree<D: DB>(height: u8) -> StateValue<D> {
+    let mt: MerkleTree<(), D> = MerkleTree::blank(height);
+    new_array(vec![
+        StateValue::BoundedMerkleTree(mt),
+        new_cell(0u64),
+    ])
+}
+
+/// Builds an empty `StateValue::Array([BoundedMerkleTree(blank), Cell(0u64), Map(empty)])`
+/// — the initial state for the Compact `HistoricMerkleTree<height, T>` ADT.
+/// See compiler/midnight-ledger.ss:
+///   (initial-value (state-value 'array ((state-value 'merkle-tree nat ())
+///                                       (state-value 'cell (align 0 8))
+///                                       (state-value 'map ()))))
+pub fn new_historic_merkle_tree<D: DB>(height: u8) -> StateValue<D> {
+    let mt: MerkleTree<(), D> = MerkleTree::blank(height);
+    new_array(vec![
+        StateValue::BoundedMerkleTree(mt),
+        new_cell(0u64),
+        new_map(),
+    ])
+}
+
 /// Returns a reference to the inner `StateValue<D>` from a `QueryResults`
 /// without the user remembering `.context.state.get_ref()`.
 pub fn query_result_state<M, D>(r: &QueryResults<M, D>) -> &StateValue<D>
@@ -83,4 +119,41 @@ where
     D: DB,
 {
     r.context.state.get_ref()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use midnight_storage::db::InMemoryDB;
+
+    #[test]
+    fn new_map_is_empty_state_value_map() {
+        let sv: StateValue<InMemoryDB> = new_map();
+        match &sv {
+            StateValue::Map(m) => assert_eq!(m.size(), 0),
+            other => panic!("expected StateValue::Map, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn new_merkle_tree_has_blank_tree_and_zero_cursor() {
+        let sv: StateValue<InMemoryDB> = new_merkle_tree(32);
+        match &sv {
+            StateValue::Array(arr) => {
+                assert_eq!(arr.len(), 2);
+            }
+            other => panic!("expected StateValue::Array, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn new_historic_merkle_tree_has_three_slots() {
+        let sv: StateValue<InMemoryDB> = new_historic_merkle_tree(10);
+        match &sv {
+            StateValue::Array(arr) => {
+                assert_eq!(arr.len(), 3);
+            }
+            other => panic!("expected StateValue::Array, got {:?}", other),
+        }
+    }
 }

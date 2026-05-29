@@ -61,6 +61,28 @@ pub use midnight_storage::db::{InMemoryDB, DB};
 pub use midnight_storage::storage::Array;
 pub use midnight_storage::DefaultDB;
 
+// Compact ADT types — re-exports of upstream Midnight types under the
+// Compact-level names that the codegen references.
+//
+// - Map<K, V> ← midnight_storage::storage::HashMap (the upstream
+//   "map from key hashes to values"). The Compact `Map` ADT seeds its
+//   initial StateValue as `state-value 'map ()`, i.e. an empty
+//   `StateValue::Map(HashMap::new())`.
+// - Set<T>: the Compact ADT also lowers to `state-value 'map ()` at the
+//   StateValue level (a set is a map of values → null). For Rust-side
+//   typing, we surface it as the same HashMap type with a unit value;
+//   construction at the StateValue level is via `new_map()`.
+// - MerkleTree / HistoricMerkleTree: the on-chain Compact ADTs lower to
+//   StateValue::BoundedMerkleTree wrapped in an Array, see
+//   compiler/midnight-ledger.ss `(declare-ledger-adt MerkleTree ...)`.
+//   Construction goes through `new_merkle_tree(height)` /
+//   `new_historic_merkle_tree(height)`. The Rust-side `MerkleTree<A, D>`
+//   re-export is the cryptographic tree from midnight-transient-crypto;
+//   it's exposed mainly so generated code (E4 onwards) can name leaf /
+//   path types in method signatures.
+pub use midnight_storage::storage::HashMap as Map;
+pub use midnight_transient_crypto::merkle_tree::MerkleTree;
+
 // Hashes (re-exported as bare names — usability over fully-qualified paths).
 pub use midnight_base_crypto::hash::{persistent_commit, persistent_hash};
 pub use midnight_transient_crypto::hash::{hash_to_curve, transient_commit, transient_hash};
@@ -93,7 +115,8 @@ pub use std_lib::{disclose, none, pad, some, Bytes, Maybe};
 pub mod builders;
 pub use builders::{
     aligned_bytes, empty_charged_state, entry_point, initial_cost_model, new_array, new_cell,
-    new_contract_state, new_empty_array, query_result_state,
+    new_contract_state, new_empty_array, new_historic_merkle_tree, new_map, new_merkle_tree,
+    query_result_state,
 };
 
 pub mod query;

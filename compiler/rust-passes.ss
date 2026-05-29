@@ -1302,9 +1302,29 @@
                       ledger-field*))])
           (for-each
             (lambda (pb)
-              (let ([read-type (tadt-read-op-type (binding-type pb))])
-                (out (format "            new_cell(~a),\n"
-                             (default-value-rust read-type)))))
+              (let ([t (binding-type pb)])
+                (cond
+                  ;; ADT-aware seeding (R1 / K1.1). The Compact ADTs
+                  ;; whose initial-value isn't a plain Cell — Map, Set,
+                  ;; MerkleTree, HistoricMerkleTree — have dedicated
+                  ;; builders in compact-runtime that produce the exact
+                  ;; StateValue shape declared in midnight-ledger.ss.
+                  [(tadt-name=? t 'Set)
+                   (out "            new_map(),\n")]
+                  [(tadt-name=? t 'Map)
+                   (out "            new_map(),\n")]
+                  [(tadt-name=? t 'MerkleTree)
+                   (out (format "            new_merkle_tree(~a),\n"
+                                (tadt-merkle-height t)))]
+                  [(tadt-name=? t 'HistoricMerkleTree)
+                   (out (format "            new_historic_merkle_tree(~a),\n"
+                                (tadt-merkle-height t)))]
+                  ;; Cell / Counter / anything else with a read op:
+                  ;; keep the K1 path — emit new_cell(<default>).
+                  [else
+                   (let ([read-type (tadt-read-op-type t)])
+                     (out (format "            new_cell(~a),\n"
+                                  (default-value-rust read-type))))])))
             all-bindings))
         (out "        ]);\n")
         (out "        let state = ChargedState::new(sv);\n")
@@ -2119,6 +2139,33 @@
       (define (binding-type public-binding)
         (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
           [(,src ,ledger-field-name (,path-index* ...) ,type) type]))
+
+      ;; tadt-name=?: returns #t when `type` is a tadt with the given
+      ;; adt-name (symbol). Used by emit-initial-state's R1/K1.1 dispatch
+      ;; to pick the right per-ADT builder (new_map / new_merkle_tree /
+      ;; new_historic_merkle_tree) instead of new_cell(Default::default()).
+      (define (tadt-name=? type name)
+        (nanopass-case (Ltypescript Type) type
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           (eq? adt-name name)]
+          [(talias ,src ,nominal? ,type-name ,type) (tadt-name=? type name)]
+          [else #f]))
+
+      ;; tadt-merkle-height: given a MerkleTree / HistoricMerkleTree tadt,
+      ;; extract the Nat height argument (the first adt-arg). The Public-
+      ;; Ledger-ADT-Arg grammar permits either a nat or a type; for the
+      ;; height position we expect a nat literal (see midnight-ledger.ss
+      ;; declarations — `[Nat nat]` formal). Falls back to "32" if the
+      ;; shape is unexpected so the emitter never crashes.
+      (define (tadt-merkle-height type)
+        (nanopass-case (Ltypescript Type) type
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           (cond
+             [(and (pair? adt-arg*) (number? (car adt-arg*)))
+              (number->string (car adt-arg*))]
+             [else "32"])]
+          [(talias ,src ,nominal? ,type-name ,type) (tadt-merkle-height type)]
+          [else "32"]))
 
       ;; tadt-read-op-type: given a binding's tadt, find the ADT operation
       ;; with op-class `read` and return its result type. Falls back to the
