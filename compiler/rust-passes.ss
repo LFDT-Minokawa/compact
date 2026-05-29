@@ -249,6 +249,25 @@
         (nanopass-case (Ltypescript Program-Element) pelt
           [(native ,src ,function-name ,native-entry (,arg* ...) ,type) native-entry]))
 
+      (define (native-pelt-function-name pelt)
+        (nanopass-case (Ltypescript Program-Element) pelt
+          [(native ,src ,function-name ,native-entry (,arg* ...) ,type) function-name]))
+
+      ;; build-native-id-ht: eq-hashtable from each native's function-name id
+      ;; to its native-entry. Lets call-site emission look up the Rust binding
+      ;; by the call's function-name id (which references the same id record
+      ;; that appears in the native declaration).
+      (define (build-native-id-ht pelt*)
+        (let ([ht (make-eq-hashtable)])
+          (for-each
+            (lambda (pelt)
+              (when (native-pelt? pelt)
+                (eq-hashtable-set! ht
+                  (native-pelt-function-name pelt)
+                  (native-pelt-entry pelt))))
+            pelt*)
+          ht))
+
       (define (native-call-site-rust ne)
         (or (native-entry-rust-function ne)
             (format "/* TODO M3-L2: no Rust binding for ~a */ ~a"
@@ -768,11 +787,163 @@
                             (id-sym function-name)))))
            (out "    }\n\n")]))
 
+      ;; bytevector->rust-array-literal: render a Scheme bytevector as a Rust
+      ;; array literal `[N1u8, N2, ..., NK]`. The first element carries the
+      ;; explicit `u8` suffix so the literal infers as `[u8; K]` without an
+      ;; ascription. Used by expr-rust for `(quote src #vu8(...))`.
+      (define (bytevector->rust-array-literal bv)
+        (let* ([n (bytevector-length bv)]
+               [parts
+                (let loop ([i 0] [acc '()])
+                  (cond
+                    [(fx= i n) (reverse acc)]
+                    [else
+                     (let ([byte (bytevector-u8-ref bv i)])
+                       (loop (fx+ i 1)
+                             (cons
+                               (if (fx= i 0)
+                                   (format "~au8" byte)
+                                   (format "~a" byte))
+                               acc)))]))])
+          (string-append
+            "["
+            (let join ([xs parts] [acc ""])
+              (cond
+                [(null? xs) acc]
+                [(null? (cdr xs)) (string-append acc (car xs))]
+                [else (join (cdr xs) (string-append acc (car xs) ", "))]))
+            "]")))
+
+      ;; expr-rust: emit a Rust expression string for an Ltypescript
+      ;; Expression. I3b/1 covers the variants needed by tiny.compact's
+      ;; public_key body — bytevector literal, var-ref, tuple (array
+      ;; literal), and call. Unknown variants emit a TODO placeholder so
+      ;; the gap is visible in the generated code rather than crashing.
+      ;;
+      ;; `native-id-ht` is the eq-hashtable built by build-native-id-ht;
+      ;; consulted at every `call` site to resolve the function-name id
+      ;; back to its native-entry (and thus its Rust binding name).
+      (define (expr-rust expr native-id-ht)
+        (nanopass-case (Ltypescript Expression) expr
+          [(quote ,src ,datum)
+           (cond
+             [(bytevector? datum) (bytevector->rust-array-literal datum)]
+             [(boolean? datum) (if datum "true" "false")]
+             [(and (integer? datum) (exact? datum)) (format "~a" datum)]
+             [else (format "/* TODO M3-I3b: quote variant */ unimplemented!()")])]
+          [(var-ref ,src ,var-name)
+           (symbol->string (camel->snake (id-sym var-name)))]
+          [(tuple ,src ,tuple-arg* ...)
+           ;; Compact's `Vector<N, T>` lowers to a Rust `[T; N]`. The IR
+           ;; uses `tuple` for both tuples and vectors at the value level;
+           ;; the immediate caller (e.g. a native taking a Vector) knows
+           ;; which form is wanted. For I3b/1 we render every `tuple` as a
+           ;; Rust array literal — the only consumer is persistent_hash,
+           ;; where the elements have identical type ([u8; 32]).
+           (let ([parts
+                  (map (lambda (ta) (tuple-arg-rust ta native-id-ht))
+                       tuple-arg*)])
+             (string-append
+               "["
+               (let join ([xs parts] [acc ""])
+                 (cond
+                   [(null? xs) acc]
+                   [(null? (cdr xs)) (string-append acc (car xs))]
+                   [else (join (cdr xs) (string-append acc (car xs) ", "))]))
+               "]"))]
+          [(call ,src ,function-name ,expr* ...)
+           (call-rust src function-name expr* native-id-ht)]
+          [else
+           (format "/* TODO M3-I3b: unhandled Expression variant */ unimplemented!()")]))
+
+      ;; tuple-arg-rust: emit a Rust expression for a Tuple-Argument
+      ;; (`single` or `spread`). I3b/1 only needs `single`; `spread` emits a
+      ;; TODO placeholder.
+      (define (tuple-arg-rust ta native-id-ht)
+        (nanopass-case (Ltypescript Tuple-Argument) ta
+          [(single ,src ,expr) (expr-rust expr native-id-ht)]
+          [(spread ,src ,nat ,expr)
+           (format "/* TODO M3-I3b: tuple spread */ unimplemented!()")]))
+
+      ;; call-rust: emit a Rust call expression for `(call src function-name
+      ;; expr* ...)`. Resolves the function-name id to a native binding via
+      ;; native-id-ht. For native calls whose Rust signature doesn't line up
+      ;; 1:1 with Compact's (e.g. persistent_hash takes `&[u8]` whereas
+      ;; Compact's persistentHash takes a typed value), emit a specialised
+      ;; form. For natives with a clean 1:1 mapping (none yet exercised by
+      ;; tiny.compact), emit a vanilla `<rust-name>(<arg>, ...)`. For
+      ;; non-native (user-defined) circuit calls, fall back to the
+      ;; snake-cased local name — a follow-up wedge will resolve these
+      ;; properly.
+      (define (call-rust src function-name expr* native-id-ht)
+        (let ([ne (eq-hashtable-ref native-id-ht function-name #f)])
+          (cond
+            [(and ne (equal? (native-entry-rust-function ne)
+                             "compact_runtime::persistent_hash"))
+             ;; persistent_hash needs a flat `&[u8]`. Compact's argument is a
+             ;; Vector<N, T> which the IR represents as a `(tuple ...)` of T
+             ;; values. For the tiny.compact public_key shape both elements
+             ;; are `[u8; 32]` and we can build a flat byte slice via
+             ;; `[a, b].concat()`. The trailing `.0` unwraps HashOutput into
+             ;; `[u8; 32]`.
+             ;; TODO(M3-I3): generalise to other `persistentHash<T>` shapes
+             ;; once we have a FieldRepr-faithful Rust path.
+             (cond
+               [(fx= (length expr*) 1)
+                (format "compact_runtime::persistent_hash(&~a.concat()).0"
+                        (expr-rust (car expr*) native-id-ht))]
+               [else
+                "/* TODO M3-I3b: persistentHash arity */ unimplemented!()"])]
+            [ne
+             ;; A native with a 1:1 binding. Emit `<rust-name>(<arg>, ...)`.
+             (let ([rust-name (native-call-site-rust ne)]
+                   [args
+                    (map (lambda (e) (expr-rust e native-id-ht)) expr*)])
+               (string-append
+                 rust-name
+                 "("
+                 (let join ([xs args] [acc ""])
+                   (cond
+                     [(null? xs) acc]
+                     [(null? (cdr xs)) (string-append acc (car xs))]
+                     [else (join (cdr xs) (string-append acc (car xs) ", "))]))
+                 ")"))]
+            [else
+             ;; A user-defined circuit call. We don't yet resolve these to
+             ;; their Rust paths — leave a TODO so the next wedge can pick
+             ;; it up.
+             (format "/* TODO M3-I3b: call to ~a (non-native) */ unimplemented!()"
+                     (id-sym function-name))])))
+
+      ;; stmt-pure-body-rust: try to render the body of a pure circuit as a
+      ;; single Rust expression (no trailing semicolon — used in tail
+      ;; position). Accepts the narrow shape "a single statement-expression
+      ;; whose expression is a `call`" (the shape produced for tiny.compact's
+      ;; `public_key`). Returns the Rust expression string on success, #f to
+      ;; signal the caller should fall back to `unimplemented!()`.
+      (define (stmt-pure-body-rust stmt native-id-ht)
+        (let ([stmts (stmt-flatten stmt)])
+          (cond
+            [(or (null? stmts) (not (null? (cdr stmts)))) #f]
+            [else
+             (nanopass-case (Ltypescript Statement) (car stmts)
+               [(statement-expression ,expr)
+                ;; We currently only emit bodies whose return expression is
+                ;; itself a `call`. Other shapes (var-ref, tuple, …) are
+                ;; valid Rust expressions but won't appear in tiny.compact's
+                ;; pure circuits at this stage.
+                (nanopass-case (Ltypescript Expression) expr
+                  [(call ,src ,function-name ,expr* ...)
+                   (expr-rust expr native-id-ht)]
+                  [else #f])]
+               [else #f])])))
+
       ;; emit-pure-circuit: emit a pure circuit as a free function inside
       ;; `mod pure_circuits`. No ctx — just the declared args and a direct
-      ;; return type. Body is an `unimplemented!()` placeholder; M3-I3 fills
-      ;; this in.
-      (define (emit-pure-circuit cdefn)
+      ;; return type. For the narrow tiny.compact-style shape (a single
+      ;; expression in statement position) we render the expression
+      ;; directly; everything else keeps an `unimplemented!()` placeholder.
+      (define (emit-pure-circuit cdefn native-id-ht)
         (nanopass-case (Ltypescript Program-Element) cdefn
           [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
            (out (format "    pub fn ~a(" (camel->snake (id-sym function-name))))
@@ -788,8 +959,12 @@
                                 (type-rust type)))])
                 (loop (cdr arg*) #f)]))
            (out (format ") -> ~a {\n" (type-rust type)))
-           (out (format "        unimplemented!(\"M3-I3: pure circuit body emission for ~a\")\n"
-                        (id-sym function-name)))
+           (let ([body (stmt-pure-body-rust stmt native-id-ht)])
+             (cond
+               [body (out (format "        ~a\n" body))]
+               [else
+                (out (format "        unimplemented!(\"M3-I3: pure circuit body emission for ~a\")\n"
+                             (id-sym function-name)))]))
            (out "    }\n\n")]))
 
       ;; pl-array->public-bindings: flatten a `public-ledger-array` IR node
@@ -949,9 +1124,9 @@
       ;; emit-pure-circuits: emits the `pure_circuits` module containing one
       ;; free function per pure circuit declaration. Contracts with no pure
       ;; circuits (e.g. counter.compact) get an empty module.
-      (define (emit-pure-circuits pure-circuit*)
+      (define (emit-pure-circuits pure-circuit* native-id-ht)
         (out "pub mod pure_circuits {\n")
-        (for-each emit-pure-circuit pure-circuit*)
+        (for-each (lambda (c) (emit-pure-circuit c native-id-ht)) pure-circuit*)
         (out "}\n"))
 
       ;; emit-cargo-toml: emits a Cargo.toml alongside lib.rs so users can
@@ -993,7 +1168,8 @@ compact-runtime = \"~a\"
                    [(null? c*) (reverse acc)]
                    [(id-pure? (circuit-function-name (car c*)))
                     (loop (cdr c*) (cons (car c*) acc))]
-                   [else (loop (cdr c*) acc)]))])
+                   [else (loop (cdr c*) acc)]))]
+              [native-id-ht (build-native-id-ht pelt*)])
          (for-each
            (lambda (c)
              (unless (id-pure? (circuit-function-name c))
@@ -1001,7 +1177,7 @@ compact-runtime = \"~a\"
            circuit*)
          (close-contract-struct)
          (emit-ledger-view (program-ledger-fields pelt*))
-         (emit-pure-circuits pure-circuit*))
+         (emit-pure-circuits pure-circuit* native-id-ht))
        (emit-cargo-toml)
        ir]))
 

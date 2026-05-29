@@ -99,7 +99,7 @@ impl<'a, D: DB> Ledger<'a, D> {
 
 pub mod pure_circuits {
     pub fn public_key(sk: [u8; 32]) -> [u8; 32] {
-        unimplemented!("M3-I3: pure circuit body emission for public_key")
+        compact_runtime::persistent_hash(&[[108u8, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], sk].concat()).0
     }
 
 }
