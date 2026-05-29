@@ -252,6 +252,28 @@
              (loop (cdr pelt*) (cons (car pelt*) acc))]
             [else (loop (cdr pelt*) acc)])))
 
+      ;; circuit?: returns #t if a Program-Element is a Circuit-Definition.
+      (define (circuit? pelt)
+        (nanopass-case (Ltypescript Program-Element) pelt
+          [(circuit ,src ,function-name (,arg* ...) ,type ,stmt) #t]
+          [else #f]))
+
+      ;; Collect circuit definitions from a list of program elements.
+      (define (program-circuits pelt*)
+        (let loop ([pelt* pelt*] [acc '()])
+          (cond
+            [(null? pelt*) (reverse acc)]
+            [(circuit? (car pelt*))
+             (loop (cdr pelt*) (cons (car pelt*) acc))]
+            [else (loop (cdr pelt*) acc)])))
+
+      ;; circuit-function-name: extract the function-name id record from a
+      ;; Circuit-Definition Program-Element. Used to query (id-pure?) at the
+      ;; dispatch site without re-pattern-matching.
+      (define (circuit-function-name pelt)
+        (nanopass-case (Ltypescript Program-Element) pelt
+          [(circuit ,src ,function-name (,arg* ...) ,type ,stmt) function-name]))
+
       ;; emit-type-decls: emit one Rust type declaration per exported
       ;; user type. For `tenum`, emit a `#[repr(u8)] pub enum` with
       ;; explicit discriminants. `tstruct` and `talias` emit TODO
@@ -347,39 +369,61 @@
         (out "        })\n")
         (out "    }\n\n"))
 
-      ;; emit-increment-circuit: emits the `increment` circuit method
-      ;; inside the open Contract impl block. Hard-coded for
-      ;; counter.compact's single `increment()` circuit calling
-      ;; Counter.increment(1). The Op sequence (Idx + Addi + Ins) comes
-      ;; from compiler/midnight-ledger.ss:602-606. M3 will generalise to
-      ;; arbitrary circuit bodies via a proper IR walk.
-      (define (emit-increment-circuit)
-        (out "    pub fn increment(\n")
-        (out "        &self,\n")
-        (out "        ctx: CircuitContext<PS>,\n")
-        (out "    ) -> Result<CircuitResults<PS, ()>, CompactError> {\n")
-        (out "        let ops = OpProgramVerify::<DefaultDB>::new()\n")
-        (out "            .idx_at_index(0u8, true)\n")
-        (out "            .addi(1)\n")
-        (out "            .ins(true, 1)\n")
-        (out "            .build();\n")
-        (out "\n")
-        (out "        let results = query_for_verify(\n")
-        (out "            &ctx.current_query_context,\n")
-        (out "            &ops,\n")
-        (out "            ctx.gas_limit.clone(),\n")
-        (out "            &ctx.cost_model,\n")
-        (out "        )?;\n")
-        (out "\n")
-        (out "        Ok(CircuitResults {\n")
-        (out "            result: (),\n")
-        (out "            context: CircuitContext {\n")
-        (out "                current_query_context: results.context,\n")
-        (out "                ..ctx\n")
-        (out "            },\n")
-        (out "            gas_cost: results.gas_cost,\n")
-        (out "        })\n")
-        (out "    }\n\n"))
+      ;; emit-circuit-args: emit each Argument as ",\n        name: type"
+      ;; after the leading `&self` / `ctx` params on an impure circuit method,
+      ;; matching the existing multi-line method signature shape.
+      (define (emit-circuit-args arg*)
+        (for-each
+          (lambda (arg)
+            (nanopass-case (Ltypescript Argument) arg
+              [(,var-name ,type)
+               (out (format ",\n        ~a: ~a"
+                            (camel->snake (id-sym var-name))
+                            (type-rust type)))]))
+          arg*))
+
+      ;; emit-impure-circuit: emit an impure circuit as a method on
+      ;; `impl<PS, W> Contract<PS, W>`. Takes `&self, ctx: CircuitContext<PS>`
+      ;; plus the source-level args typed via type-rust, and returns
+      ;; `Result<CircuitResults<PS, T>, CompactError>` for the declared T.
+      ;; The body is an `unimplemented!()` placeholder; M3-I3 will walk the
+      ;; circuit expression and emit Op programs here.
+      (define (emit-impure-circuit cdefn)
+        (nanopass-case (Ltypescript Program-Element) cdefn
+          [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
+           (out (format "    pub fn ~a(\n" (camel->snake (id-sym function-name))))
+           (out "        &self,\n")
+           (out "        ctx: CircuitContext<PS>")
+           (emit-circuit-args arg*)
+           (out (format ",\n    ) -> Result<CircuitResults<PS, ~a>, CompactError> {\n"
+                        (type-rust type)))
+           (out (format "        unimplemented!(\"M3-I3: circuit body emission for ~a\")\n"
+                        (id-sym function-name)))
+           (out "    }\n\n")]))
+
+      ;; emit-pure-circuit: emit a pure circuit as a free function inside
+      ;; `mod pure_circuits`. No ctx — just the declared args and a direct
+      ;; return type. Body is an `unimplemented!()` placeholder; M3-I3 fills
+      ;; this in.
+      (define (emit-pure-circuit cdefn)
+        (nanopass-case (Ltypescript Program-Element) cdefn
+          [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
+           (out (format "    pub fn ~a(" (camel->snake (id-sym function-name))))
+           (let loop ([arg* arg*] [first? #t])
+             (cond
+               [(null? arg*) (void)]
+               [else
+                (nanopass-case (Ltypescript Argument) (car arg*)
+                  [(,var-name ,type)
+                   (out (format "~a~a: ~a"
+                                (if first? "" ", ")
+                                (camel->snake (id-sym var-name))
+                                (type-rust type)))])
+                (loop (cdr arg*) #f)]))
+           (out (format ") -> ~a {\n" (type-rust type)))
+           (out (format "        unimplemented!(\"M3-I3: pure circuit body emission for ~a\")\n"
+                        (id-sym function-name)))
+           (out "    }\n\n")]))
 
       ;; emit-ledger-view: emits the module-level `ledger()` factory and the
       ;; `Ledger<'a, D>` view struct with one accessor method per ledger
@@ -422,13 +466,12 @@
           ledger-field*)
         (out "}\n\n"))
 
-      ;; emit-pure-circuits: emits the `pure_circuits` module. counter.compact
-      ;; has no pure circuits, so the module is emitted empty. M3 fills it in
-      ;; for contracts that declare pure circuits.
+      ;; emit-pure-circuits: emits the `pure_circuits` module containing one
+      ;; free function per pure circuit declaration. Contracts with no pure
+      ;; circuits (e.g. counter.compact) get an empty module.
       (define (emit-pure-circuits pure-circuit*)
         (out "pub mod pure_circuits {\n")
-        ;; M3: emit one `pub fn` per pure circuit.
-        (for-each (lambda (c) (out "    // TODO(M3): emit pure circuit\n")) pure-circuit*)
+        (for-each emit-pure-circuit pure-circuit*)
         (out "}\n"))
 
       ;; emit-cargo-toml: emits a Cargo.toml alongside lib.rs so users can
@@ -459,13 +502,25 @@ compact-runtime = \"~a\"
        (emit-witnesses (program-witnesses pelt*))
        (emit-contract-struct)
        (emit-initial-state (program-ledger-fields pelt*))
-       ;; M2: hardcode the increment circuit for counter.compact.
-       ;; M3 replaces this with a real IR walk over circuit declarations.
-       (emit-increment-circuit)
-       (close-contract-struct)
-       (emit-ledger-view (program-ledger-fields pelt*))
-       ;; counter.compact has no pure circuits — emit an empty module.
-       (emit-pure-circuits '())
+       ;; Walk circuit declarations and split on purity. Impure circuits
+       ;; become methods on the open Contract impl block; pure circuits are
+       ;; collected for the pure_circuits module below.
+       (let* ([circuit* (program-circuits pelt*)]
+              [pure-circuit*
+               (let loop ([c* circuit*] [acc '()])
+                 (cond
+                   [(null? c*) (reverse acc)]
+                   [(id-pure? (circuit-function-name (car c*)))
+                    (loop (cdr c*) (cons (car c*) acc))]
+                   [else (loop (cdr c*) acc)]))])
+         (for-each
+           (lambda (c)
+             (unless (id-pure? (circuit-function-name c))
+               (emit-impure-circuit c)))
+           circuit*)
+         (close-contract-struct)
+         (emit-ledger-view (program-ledger-fields pelt*))
+         (emit-pure-circuits pure-circuit*))
        (emit-cargo-toml)
        ir]))
 

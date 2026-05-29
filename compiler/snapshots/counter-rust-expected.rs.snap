@@ -47,27 +47,7 @@ where
         &self,
         ctx: CircuitContext<PS>,
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
-        let ops = OpProgramVerify::<DefaultDB>::new()
-            .idx_at_index(0u8, true)
-            .addi(1)
-            .ins(true, 1)
-            .build();
-
-        let results = query_for_verify(
-            &ctx.current_query_context,
-            &ops,
-            ctx.gas_limit.clone(),
-            &ctx.cost_model,
-        )?;
-
-        Ok(CircuitResults {
-            result: (),
-            context: CircuitContext {
-                current_query_context: results.context,
-                ..ctx
-            },
-            gas_cost: results.gas_cost,
-        })
+        unimplemented!("M3-I3: circuit body emission for increment")
     }
 
 }
