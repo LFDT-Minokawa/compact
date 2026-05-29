@@ -119,7 +119,14 @@
                   [else (loop (cdr names) (cdr types))]))]
              [else (symbol->string struct-name)])]
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-           (format "/* TODO M3-F3: tenum ~a */" enum-name)]
+           ;; Enum references in type position emit the bare name. The
+           ;; definition (with #[repr(u8)] + variant discriminants) is
+           ;; emitted by emit-type-decls when the enum is exported.
+           ;; Non-exported enum references in circuit bodies are lowered
+           ;; to numeric literals before this pass (see typescript-passes.ss
+           ;; enum-ref handling), so a tenum here implies the enum *is*
+           ;; in scope as a Rust type.
+           (symbol->string enum-name)]
           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
            (format "/* TODO M3-F4: tcontract ~a */" contract-name)]
           [(tunknown) "/* TODO M3-F4: tunknown */"]
