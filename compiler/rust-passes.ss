@@ -221,6 +221,56 @@
              (loop (cdr pelt*) (cons (car pelt*) acc))]
             [else (loop (cdr pelt*) acc)])))
 
+      ;; export-tdefn?: returns #t if a Program-Element is an
+      ;; `export-typedef` form. Non-exported user enums/structs/aliases
+      ;; are dropped before Ltypescript and therefore never appear here;
+      ;; their values are lowered to numeric discriminants in expressions
+      ;; during the language transition (see typescript-passes.ss).
+      (define (export-tdefn? pelt)
+        (nanopass-case (Ltypescript Program-Element) pelt
+          [(export-typedef ,src ,type-name (,tvar-name* ...) ,type) #t]
+          [else #f]))
+
+      ;; Collect exported type definitions from a list of program elements.
+      (define (program-export-tdefns pelt*)
+        (let loop ([pelt* pelt*] [acc '()])
+          (cond
+            [(null? pelt*) (reverse acc)]
+            [(export-tdefn? (car pelt*))
+             (loop (cdr pelt*) (cons (car pelt*) acc))]
+            [else (loop (cdr pelt*) acc)])))
+
+      ;; emit-type-decls: emit one Rust type declaration per exported
+      ;; user type. For `tenum`, emit a `#[repr(u8)] pub enum` with
+      ;; explicit discriminants. `tstruct` and `talias` emit TODO
+      ;; placeholders for later M3 tasks; anything else also emits a
+      ;; TODO so unknown variants stay visible.
+      (define (emit-type-decls export-tdefn*)
+        (unless (null? export-tdefn*)
+          (for-each
+            (lambda (pelt)
+              (nanopass-case (Ltypescript Program-Element) pelt
+                [(export-typedef ,src ,type-name (,tvar-name* ...) ,type)
+                 (nanopass-case (Ltypescript Type) type
+                   [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+                    (out "#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n")
+                    (out "#[repr(u8)]\n")
+                    (out (format "pub enum ~a {\n" enum-name))
+                    (let loop ([variants (cons elt-name elt-name*)] [i 0])
+                      (unless (null? variants)
+                        (out (format "    ~a = ~a,\n" (car variants) i))
+                        (loop (cdr variants) (+ i 1))))
+                    (out "}\n")]
+                   [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                    (out (format "// TODO M3-H5: struct ~a\n" struct-name))]
+                   [(talias ,src ,nominal? ,type-name ,type)
+                    (out (format "// TODO M3-F2: talias ~a\n" type-name))]
+                   [else
+                    (out "// TODO M3: unhandled export-typedef variant\n")])]
+                [else (void)]))
+            export-tdefn*)
+          (out "\n")))
+
       ;; emit-initial-state: emits the `initial_state` constructor method
       ;; inside the open Contract impl block. For counter.compact this
       ;; seeds the single Counter ledger field to 0.
@@ -358,6 +408,7 @@ compact-runtime = \"~a\"
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,tdescs ,pelt* ...)
        (header)
+       (emit-type-decls (program-export-tdefns pelt*))
        (emit-witnesses (program-witnesses pelt*))
        (emit-contract-struct)
        (emit-initial-state (program-ledger-fields pelt*))
