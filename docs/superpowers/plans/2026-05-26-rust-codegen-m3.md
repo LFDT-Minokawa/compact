@@ -9,19 +9,21 @@
 | F — type-rust helper (real impl) | F1 ✅, F2 pending, F3 ✅, F4 pending | partial | `d89861d` |
 | G — Witnesses trait emission | G1 ✅, G2 ✅, G3 ✅ | done | `ef7bf13` |
 | H — Enum + struct emission | H1 ✅, H2 ✅, H3 ✅, H4 ✅, H5–H7 (structs) pending | partial | `49fe847` |
-| I — Per-circuit emission | I1 ✅, I2 ✅, I3 pending, I4 pending | partial | `899ec90` |
-| J — Constructor with parameters | J1–J2 | pending | — |
-| K — Multi-ledger-field | K1–K2 | pending | — |
+| I — Per-circuit emission | I1 ✅, I1.5 ✅ (filter), I2 ✅, I3 pending, I4 pending | partial | `3238a3b` |
+| J — Constructor with parameters | J1 ✅, J2 pending | partial | `8102a6f` |
+| K — Multi-ledger-field | K1 pending, K2 ✅ | partial | `4258b65` |
 | L — Compact stdlib mapping | L1 ✅, L2 pending, L3 ✅ (pre-existing), L4 ✅ (pre-existing) | partial | `2171d1c` |
 | M — Tests for tiny.compact | M1–M3 | pending | — |
 
-**Resume here:** Two follow-ups surfaced during I1+I2 review (see commit `899ec90`'s DONE_WITH_CONCERNS notes), then I3 (circuit body emission):
+**Resume here:** K1 + J2 + I3 (the body-emission work).
 
-1. **Circuit filtering** — the I1+I2 walker emits every circuit in the Ltypescript IR, including internal helpers (`in_state` in tiny.compact) and stdlib imports (`some`, `none` from `CompactStandardLibrary`). The TS path scopes these differently. Decide whether the Rust path should also filter by `id-exported?` (likely yes for the public Contract impl; internal circuits can become private methods or be skipped entirely). This affects the `s: STATE` issue too — `in_state` is the only consumer of STATE-as-type in tiny.compact and STATE is non-exported, so filtering `in_state` out resolves the "STATE in scope but never emitted as a type" gap without needing to surface non-exported enums.
-2. **Non-exported type-as-arg gap** — if we keep emitting `in_state(s: STATE)`, we need STATE's `pub enum STATE` definition to be present. Currently it's not (STATE is non-exported, doesn't appear in `export-typedef`). Cleanest fix: filter `in_state` out per (1). Alternative: collect all `tenum` types referenced in emitted signatures, emit definitions for any not already covered by `emit-type-decls`.
-3. **I3 — circuit body emission** — the actual hard work. Walk each circuit's body expression and emit Op program builder calls + Rust expressions. Mirror `typescript-passes.ss::Stmt` and `Expr` passes. This is the largest remaining task.
+- **K1** — generalise `emit-initial-state`'s hardcoded `new_cell(0u64)` seed to walk the pl-array and produce per-field initial StateValues based on each ADT's init op. Counter stays at `new_cell(0u64)`; tiny needs three different initial values (`authority: Bytes<32>` → 32 zero bytes; `value: Field` → Fr::zero(); `state: STATE` → enum discriminant 0).
+- **J2** — walk the Ledger-Constructor body and emit the initialisation Op program reflecting source statements (`authority = public_key(sk)`, `value = disclose(v)`, `state = STATE.set`). Overlaps with I3 expression emission.
+- **I3** — the big one: circuit body emission. Mirror `typescript-passes.ss`'s `Stmt`/`Expr` passes, lowering each statement to Op program builder calls plus Rust expressions. Once I3 lands, the counter snapshot returns to byte-parity (the M2 e2e test in `tests-e2e-rust/tests/counter.rs` continues to verify ContractState bytes against the TS fixture independently).
+- **I4** — `assert!`/error mapping and return type packaging once bodies exist.
+- **K2.1** — extend `decoder-for-type` to cover `tbytes` and any other read-result types we hit; currently it falls back to `decode_u64` with a TODO comment (never hit by counter/tiny).
 
-After I3 lands, the counter snapshot should be restored to byte-parity with the M2 reference (`tests-e2e-rust/tests/counter.rs` continues to verify ContractState bytes against the TS fixture).
+After I3+J2+K1, tiny.compact emission should be a compilable Rust crate. Then M (snapshot + e2e byte-parity tests) closes M3.
 
 **State at end of this session's M3 work:**
 
