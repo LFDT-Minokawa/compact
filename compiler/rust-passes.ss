@@ -393,9 +393,12 @@
 
       ;; emit-type-decls: emit one Rust type declaration per exported
       ;; user type. For `tenum`, emit a `#[repr(u8)] pub enum` with
-      ;; explicit discriminants. `tstruct` and `talias` emit TODO
-      ;; placeholders for later M3 tasks; anything else also emits a
-      ;; TODO so unknown variants stay visible.
+      ;; explicit discriminants (H1-H4). For `tstruct`, emit a
+      ;; `pub struct` with `Aligned` / `FieldRepr` / `FromFieldRepr`
+      ;; impls (H5-H7); `Maybe<T>` is runtime-provided and skipped;
+      ;; generic structs emit a TODO. `talias` emits a TODO placeholder
+      ;; for later M3 tasks; anything else also emits a TODO so unknown
+      ;; variants stay visible.
       (define (emit-type-decls export-tdefn*)
         (unless (null? export-tdefn*)
           (for-each
@@ -444,11 +447,106 @@
                       [(eq? struct-name 'Maybe)
                        ;; L1: Maybe<T> is provided by compact-runtime as a
                        ;; canonical generic struct — skip per-contract
-                       ;; redefinition. Other named structs still emit a
-                       ;; TODO placeholder until H5 lands.
+                       ;; redefinition.
                        (void)]
+                      [(not (null? tvar-name*))
+                       ;; H5: generic structs not yet handled. Emit a TODO so
+                       ;; non-zero `tvar-name*` is visible to downstream
+                       ;; tasks. Monomorphic structs fall through to real
+                       ;; emission below.
+                       (out (format "// TODO M3-H5: generic struct ~a<~{~a~^, ~}>\n"
+                                    struct-name tvar-name*))]
                       [else
-                       (out (format "// TODO M3-H5: struct ~a\n" struct-name))])]
+                       ;; H5: derive + struct decl. Conservative: skip Copy
+                       ;; (user may add manually); always derive Default so
+                       ;; ledger init can `Pair::default()` if needed.
+                       (out "#[derive(Clone, Debug, PartialEq, Eq, Default)]\n")
+                       (out (format "pub struct ~a {\n" struct-name))
+                       (for-each
+                         (lambda (name type)
+                           (out (format "    pub ~a: ~a,\n" name (type-rust type))))
+                         elt-name* type*)
+                       (out "}\n")
+                       ;; H6: Aligned impl — concat of field alignments.
+                       (out (format "impl Aligned for ~a {\n" struct-name))
+                       (out "    fn alignment() -> Alignment {\n")
+                       (out "        Alignment::concat([")
+                       (let loop ([types type*] [first? #t])
+                         (cond
+                           [(null? types) (void)]
+                           [else
+                            (out (format "~a&<~a as Aligned>::alignment()"
+                                         (if first? "" ", ")
+                                         (type-rust (car types))))
+                            (loop (cdr types) #f)]))
+                       (out "])\n")
+                       (out "    }\n")
+                       (out "}\n")
+                       ;; H7a: FieldRepr impl — delegate to each field.
+                       (out (format "impl FieldRepr for ~a {\n" struct-name))
+                       (out "    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {\n")
+                       (for-each
+                         (lambda (name)
+                           (out (format "        self.~a.field_repr(writer);\n" name)))
+                         elt-name*)
+                       (out "    }\n")
+                       (out "    fn field_size(&self) -> usize {\n        ")
+                       (cond
+                         [(null? elt-name*) (out "0")]
+                         [else
+                          (let loop ([names elt-name*] [first? #t])
+                            (cond
+                              [(null? names) (void)]
+                              [else
+                               (out (format "~aself.~a.field_size()"
+                                            (if first? "" " + ")
+                                            (car names)))
+                               (loop (cdr names) #f)]))])
+                       (out "\n    }\n")
+                       (out "}\n")
+                       ;; H7b: FromFieldRepr impl — parse each field by offset.
+                       ;; Uses fully-qualified `<T as FromFieldRepr>::FIELD_SIZE`
+                       ;; to avoid associated-const resolution ambiguity.
+                       (out (format "impl FromFieldRepr for ~a {\n" struct-name))
+                       (out "    const FIELD_SIZE: usize = ")
+                       (cond
+                         [(null? type*) (out "0")]
+                         [else
+                          (let loop ([types type*] [first? #t])
+                            (cond
+                              [(null? types) (void)]
+                              [else
+                               (out (format "~a<~a as FromFieldRepr>::FIELD_SIZE"
+                                            (if first? "" " + ")
+                                            (type-rust (car types))))
+                               (loop (cdr types) #f)]))])
+                       (out ";\n")
+                       (out "    fn from_field_repr(r: &[Fr]) -> Option<Self> {\n")
+                       (out "        if r.len() < Self::FIELD_SIZE { return None; }\n")
+                       (out "        let mut _offset = 0usize;\n")
+                       (for-each
+                         (lambda (name type)
+                           (let ([rust-ty (type-rust type)])
+                             (out (format "        let ~a = <~a as FromFieldRepr>::from_field_repr(&r[_offset.._offset + <~a as FromFieldRepr>::FIELD_SIZE])?;\n"
+                                          name rust-ty rust-ty))
+                             (out (format "        _offset += <~a as FromFieldRepr>::FIELD_SIZE;\n" rust-ty))))
+                         elt-name* type*)
+                       ;; Silence unused-assignment warning on the final
+                       ;; _offset += that no field reads.
+                       (out "        let _ = _offset;\n")
+                       (out (format "        Some(~a {" struct-name))
+                       (let loop ([names elt-name*] [first? #t])
+                         (cond
+                           [(null? names) (void)]
+                           [else
+                            (out (format "~a ~a"
+                                         (if first? "" ",")
+                                         (car names)))
+                            (loop (cdr names) #f)]))
+                       (out " })\n")
+                       (out "    }\n")
+                       (out "}\n")
+                       (out "\n")])]
                    [(talias ,src ,nominal? ,type-name ,type)
                     (out (format "// TODO M3-F2: talias ~a\n" type-name))]
                    [else
