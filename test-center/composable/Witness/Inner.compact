@@ -13,28 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { beforeAll, afterAll, beforeEach, afterEach, test, expect } from 'vitest';
-import { runSmartContract } from '../src/contract.js';
+import CompactStandardLibrary;
 
-beforeAll(() => {
-  console.log('Add something to beforeAll');
-});
+export ledger v: Field;
 
-afterAll(() => {
-  runSmartContract(false);
-});
-
-beforeEach(() => {
-  console.log('Running test');
-});
-
-afterEach(() => {
-  console.log('Finished!');
-});
-
-test('example jest debugging', async () => {
-  const result = await runSmartContract(true);
-  expect(result.nested.is_some).toBe(true);
-  expect(result.priv.is_some).toBe(false);
-  expect(result.stdLib.is_some).toBeTruthy();
-});
+export circuit add(value: Field): Field {
+    v = v + disclose(value);
+    return v;
+}

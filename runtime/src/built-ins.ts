@@ -327,7 +327,12 @@ export function jubjubSchnorrSign<A>(rtType: CompactType<A>, msg: A, signingKey:
  *
  * Returns `true` if the signature is valid (i.e. `s·G == R + c·pk`).
  */
-export function jubjubSchnorrVerify<A>(rtType: CompactType<A>, msg: A, verifyingKey: JubjubPoint, sig: JubjubSchnorrSignature): boolean {
+export function jubjubSchnorrVerify<A>(
+  rtType: CompactType<A>,
+  msg: A,
+  verifyingKey: JubjubPoint,
+  sig: JubjubSchnorrSignature,
+): boolean {
   const { announcement, response } = sig;
 
   const challengeAlignment: ocrt.Alignment = [

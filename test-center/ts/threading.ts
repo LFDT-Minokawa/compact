@@ -27,124 +27,122 @@ const witnesses = {
     }
 };
 
-test('Check fib 0', () => {
-    var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(1n)
+test('Check fib 0', async () => {
+    var [c, Ctxt] =  await startContract(contractCode, witnesses, 0);
+    expect((await c.circuits.fib2(Ctxt, false)).result).toEqual(1n)
 });
 
-test('Check fib 1', () => {
-    var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(1n)
+test('Check fib 1', async () => {
+    var [c, Ctxt] =  await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect((await c.circuits.fib2(Ctxt, false)).result).toEqual(1n)
 });
 
-test('Check fib 2', () => {
-    var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(2n)
+test('Check fib 2', async () => {
+    var [c, Ctxt] =  await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect((await c.circuits.fib2(Ctxt, false)).result).toEqual(2n)
 });
 
-test('Check fib 3', () => {
-    var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(3n)
+test('Check fib 3', async () => {
+    var [c, Ctxt] =  await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect((await c.circuits.fib2(Ctxt, false)).result).toEqual(3n)
 });
 
-test('Check fib 4', () => {
-    var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(5n)
+test('Check fib 4', async () => {
+    var [c, Ctxt] =  await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect((await c.circuits.fib2(Ctxt, false)).result).toEqual(5n)
 });
 
-test('Check fib 1', () => {
-    var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(1n)
+test('Check fib 1', async () => {
+    var [c, Ctxt] = await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect((await c.circuits.fib2(Ctxt, false)).result).toEqual(1n)
 });
 
-test('Check reset', () => {
-    var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, true).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(1n)
+test('Check reset', async () => {
+    var [c, Ctxt] = await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, true)).context;
+    expect((await c.circuits.fib2(Ctxt, false)).result).toEqual(1n)
 });
 
-test('Check reset + fib 0', () => {
-    var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, true).result).toEqual(0n)
+test('Check reset + fib 0', async () => {
+    var [c, Ctxt] = await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect((await c.circuits.fib2(Ctxt, true)).result).toEqual(0n)
 });
 
-test('Check reset + fib 1', () => {
-    var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, true).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(1n)
+test('Check reset + fib 1', async () => {
+    var [c, Ctxt] = await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, true)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect((await c.circuits.fib2(Ctxt, false)).result).toEqual(1n)
 });
 
-test('Check reset + fib 2', () => {
-    var [c, Ctxt] =  startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, true).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(c.circuits.fib2(Ctxt, false).result).toEqual(2n)
+test('Check reset + fib 2', async () => {
+    var [c, Ctxt] = await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, true)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect((await c.circuits.fib2(Ctxt, false)).result).toEqual(2n)
 });
 
-test('check access counter differently', () => {
-    var  [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    const ps = contractCode.ledger(Ctxt.currentQueryContext.state);
+test('check access counter differently', async () => {
+    var  [c, Ctxt] = await startContract(contractCode, witnesses, 0);
+    const ps = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);
     expect(ps.counter).toEqual(0n)
 });
 
-test('check fib2 again', () => {
-    var  [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    const ps = contractCode.ledger(Ctxt.currentQueryContext.state);
+test('check fib2 again', async () => {
+    var  [c, Ctxt] = await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    const ps = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);
     expect(ps.counter).toEqual(1n)
 });
 
-test('check entire current private state', () => {
-    var  [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(contractCode.ledger(Ctxt.currentQueryContext.state).counter).toEqual(1n)
+test('check entire current private state', async () => {
+    var  [c, Ctxt] = await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect(contractCode.ledger(Ctxt.callContext.currentQueryContext.state).counter).toEqual(1n)
 });
 
-test('check private state', () => {
-    var  [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(Ctxt.currentPrivateState).toEqual(0)
+test('check private state', async () => {
+    var  [c, Ctxt] = await startContract(contractCode, witnesses, 0);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect(Ctxt.callContext.currentPrivateState).toEqual(0)
 });
 
-test('check private state', () => {
-    var  [c, Ctxt] = startContract(contractCode, witnesses, 1);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(Ctxt.currentPrivateState).toEqual(1)
+test('check private state', async () => {
+    var  [c, Ctxt] = await startContract(contractCode, witnesses, 1);
+    Ctxt = (await c.circuits.fib2(Ctxt, false)).context;
+    expect(Ctxt.callContext.currentPrivateState).toEqual(1)
 });
 
-test('check contract address', () => {
-    var  [c, Ctxt] = startContract(contractCode, witnesses, 0);
-    Ctxt = c.circuits.fib2(Ctxt, false).context;
-    expect(Ctxt.currentQueryContext.address).toEqual("0000000000000000000000000000000000000000000000000000000000000000")
+test('check contract address', async () => {
+    const  [c, Ctxt0] = await startContract(contractCode, witnesses, 0);
+    const Ctxt1 = (await c.circuits.fib2(Ctxt0, false)).context;
+    expect(Ctxt1.callContext.currentQueryContext.address).toEqual(Ctxt0.callContext.contractAddress)
 });
-
-

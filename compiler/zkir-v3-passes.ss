@@ -159,7 +159,7 @@
         (nanopass-case (Lflattened Program-Element) pelt
           [(witness ,src ,function-name (,arg* ...) (ty (,alignment* ...)
                                                       (,primitive-type* ...)))
-           (assert (not (hashtable-contains? callable-ht function-name))) 
+           (assert (not (hashtable-contains? callable-ht function-name)))
            (hashtable-set! callable-ht function-name (make-witness alignment* primitive-type*))]
           [(native ,src ,function-name ,native-entry (,arg* ...) (ty (,alignment* ...)
                                                                      (,primitive-type* ...)))
@@ -411,7 +411,6 @@
           [(acompress) -1]
           [(afield) -2]
           [(aadt) -3]
-          [(acontract) -4]
           [(anative ,opaque-type)
            ;; These are handled specially because (1) they assemble into a sequence of alignment
            ;; atoms and (2) they need ZKIR instructions to be emitted.
@@ -678,8 +677,48 @@
        (let ([code-generator (hashtable-ref callable-ht function-name #f)])
          (assert code-generator)
          (code-generator var-name* src test triv* instr*))]
-      [(= ,test (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...))
-       (source-errorf src "cross-contract calls are not yet supported")]
+      [(= ,test (,var-name* ...) (contract-call ,src ,elt-name ((,recv* ...) ,primitive-type) ,triv* ...))
+       (nanopass-case (Lflattened Primitive-Type) primitive-type
+         [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          (let loop ([elt-name* elt-name*] [type** type**] [type* type*])
+            (cond
+              [(null? elt-name*)
+               (internal-errorf 'reduce-to-zkir
+                 "contract-call references unknown circuit ~s on contract ~s"
+                 elt-name contract-name)]
+              [(eq? (car elt-name*) elt-name)
+               (let ([callee-arg-type* (car type**)])
+                 (let ([callee-input-primitive-type*
+                        (apply append
+                          (map (lambda (arg-ty)
+                                 (nanopass-case (Lflattened Type) arg-ty
+                                   [(ty (,alignment* ...) (,primitive-type* ...))
+                                    primitive-type*]))
+                               callee-arg-type*))])
+                   (unless (fx= (length callee-input-primitive-type*) (length triv*))
+                     (internal-errorf 'reduce-to-zkir
+                       "contract-call argument arity mismatch for ~s.~s: ~s expected, ~s actual"
+                       contract-name elt-name
+                       (length callee-input-primitive-type*) (length triv*)))
+                   (nanopass-case (Lflattened Type) (car type*)
+                     [(ty (,alignment* ...) (,primitive-type* ...))
+                      (unless (fx= (length primitive-type*) (length var-name*))
+                        (internal-errorf 'reduce-to-zkir
+                          "contract-call result arity mismatch for ~s.~s: ~s expected, ~s var-names"
+                          contract-name elt-name
+                          (length primitive-type*) (length var-name*)))
+                      ;; The `desugar-contract-calls` circuit pass has already rewritten this
+                      ;; cross-contract call into an extended contract-call whose result
+                      ;; vector carries cc-rand / ep-mod / ep-div as extra witnessed values,
+                      ;; plus an explicit transientCommit `call` and a kernel.claimContractCall
+                      ;; `public-ledger`. So all that remains here is to witness the
+                      ;; (extended) result vector — the transient hash and the claim are
+                      ;; lowered by the generic call / public-ledger handlers.
+                      ((make-witness alignment* primitive-type*) var-name* src test triv* instr*)])))]
+              [else (loop (cdr elt-name*) (cdr type**) (cdr type*))]))]
+         [else
+          (internal-errorf 'reduce-to-zkir
+            "contract-call primitive-type is not a tcontract")])]
       [(= ,test (,var-name) (default ,opaque-type))
        (assert (string=? opaque-type "JubjubPoint"))
        (with-output-language (Lzkir Instruction)

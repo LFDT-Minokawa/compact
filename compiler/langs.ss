@@ -1137,9 +1137,12 @@
          (div-mod-power-of-two triv bits)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
            (public-ledger ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
-         (contract-call src elt-name (triv primitive-type) triv* ...) =>
-           (contract-call elt-name 4 (triv primitive-type) #f triv* ...)))
-    (Triv (triv test)
+         ; Receiver of a cross-contract call has Bytes<32> shape: its alignment is
+         ; (abytes 32) and it occupies multiple primitive-types (e.g. two `tfield`s).
+         ; So the receiver-triv slot is a list, not a single triv.
+         (contract-call src elt-name ((recv* ...) primitive-type) triv* ...) =>
+           (contract-call elt-name 4 ((recv* 0 ...) primitive-type) #f triv* ...)))
+    (Triv (triv test recv)
       (- (quote datum))
       (+ nat))
     (Tuple-Argument (tuple-arg)
@@ -1153,7 +1156,6 @@
          (abytes nat)
          (afield)
          (aadt)
-         (acontract)
          (anative opaque-type)))
     (Type (type)
       (- (tboolean src)
