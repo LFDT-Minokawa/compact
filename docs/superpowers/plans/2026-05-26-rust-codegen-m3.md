@@ -8,14 +8,14 @@
 |---|---|---|---|
 | F — type-rust helper (real impl) | F1 ✅, F2–F4 pending | partial | `6747791` |
 | G — Witnesses trait emission | G1 ✅, G2 ✅, G3 ✅ | done | `ef7bf13` |
-| H — Enum + struct emission | H1 ✅, H2–H4 pending, H5–H7 (structs) pending | partial | `45bf810` |
+| H — Enum + struct emission | H1 ✅, H2 ✅, H3 ✅, H4 ✅, H5–H7 (structs) pending | partial | `49fe847` |
 | I — Per-circuit emission | I1–I4 | pending | — |
 | J — Constructor with parameters | J1–J2 | pending | — |
 | K — Multi-ledger-field | K1–K2 | pending | — |
 | L — Compact stdlib mapping | L1–L4 | pending | — |
 | M — Tests for tiny.compact | M1–M3 | pending | — |
 
-**Resume here:** H1 (enum emission). Phases F1 + G are complete; F2–F4 (talias/tname, tenum, tstruct references) can be done as part of H or interleaved.
+**Resume here:** L1 (Maybe<T> in compact-runtime) — `Maybe` is a tstruct exported by `CompactStandardLibrary`, so tiny.compact's `export {Maybe}` produces an `export-typedef Maybe ...` that currently emits a `// TODO M3-H5: struct Maybe` placeholder. The intended fix is to (a) define `Maybe<T>` in `compact-runtime` once, (b) teach `emit-type-decls` to skip stdlib-known names (Maybe, etc.) so we don't redefine them per contract, and (c) wire `type-rust` to map `(tstruct Maybe ...)` references to `compact_runtime::Maybe<T>`. After L1, H5–H7 emit *user-defined* structs (no tiny.compact pressure unless we add a fixture). Then I1 begins circuit emission.
 
 **State at end of this session's M3 work:**
 
