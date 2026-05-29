@@ -12,7 +12,7 @@
 | I — Per-circuit emission | I1 ✅, I1.5 ✅ (filter), I2 ✅, I3a ✅ (counter wedge), I3b+ pending, I4 pending | partial | `9456eaa` |
 | J — Constructor with parameters | J1 ✅, J2 pending | partial | `8102a6f` |
 | K — Multi-ledger-field | K1 ✅, K2 ✅ | done | `068d05c` |
-| L — Compact stdlib mapping | L1 ✅, L2 pending, L3 ✅ (pre-existing), L4 ✅ (pre-existing) | partial | `2171d1c` |
+| L — Compact stdlib mapping | L1 ✅, L2 ✅, L3 ✅ (pre-existing), L4 ✅ (pre-existing) | done | `1d89a16` |
 | M — Tests for tiny.compact | M1–M3 | pending | — |
 
 **Milestone reached (after K2):** `compactc --rust examples/tiny.compact /tmp/out/` produces a Rust crate that **compiles cleanly** against the local `compact-runtime`. `cargo build` succeeds end-to-end — all type references resolve, Witnesses trait + Maybe<T> + Ledger view + circuit signatures all type-check. Bodies remain `unimplemented!()` so the crate panics at runtime, but the surface is correct. This proves M3's "generalised emission" architectural goal is sound; remaining work is body correctness (K1/J2/I3) and byte-parity validation (M).
