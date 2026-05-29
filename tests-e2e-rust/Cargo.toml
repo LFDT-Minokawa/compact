@@ -24,3 +24,4 @@ hex         = "0.4"
 
 [dev-dependencies]
 compact-contract-tiny = { path = "contracts/tiny" }
+compact-contract-zerocash = { path = "contracts/zerocash" }

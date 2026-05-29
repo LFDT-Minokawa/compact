@@ -21,6 +21,7 @@ members = [
     "runtime-rs-macros",
     "tests-e2e-rust",
     "tests-e2e-rust/contracts/tiny",
+    "tests-e2e-rust/contracts/zerocash",
 ]
 
 [workspace.dependencies]

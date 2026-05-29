@@ -85,3 +85,31 @@ impl TinyTsReferenceState {
         hex::decode(&self.state_hex).expect("decode hex")
     }
 }
+
+/// Fixture shape for zerocash.compact's initial_state() byte-parity test
+/// (F1.1 of the M3.5 plan). zerocash has no source-level constructor, so the
+/// fixture only carries the post-init snapshot.
+#[derive(Deserialize, Debug)]
+pub struct ZerocashTsReferenceState {
+    #[serde(rename = "afterInit")]
+    pub after_init: ZerocashStepSnapshot,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ZerocashStepSnapshot {
+    #[serde(rename = "stateHex")]
+    pub state_hex: String,
+}
+
+impl ZerocashStepSnapshot {
+    pub fn state_bytes(&self) -> Vec<u8> {
+        hex::decode(&self.state_hex).expect("decode hex")
+    }
+}
+
+impl ZerocashTsReferenceState {
+    pub fn load(path: impl AsRef<Path>) -> Self {
+        let raw = std::fs::read_to_string(path).expect("read fixture");
+        serde_json::from_str(&raw).expect("parse fixture")
+    }
+}

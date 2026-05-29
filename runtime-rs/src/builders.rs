@@ -96,18 +96,30 @@ pub fn new_merkle_tree<D: DB>(height: u8) -> StateValue<D> {
     ])
 }
 
-/// Builds an empty `StateValue::Array([BoundedMerkleTree(blank), Cell(0u64), Map(empty)])`
-/// — the initial state for the Compact `HistoricMerkleTree<height, T>` ADT.
-/// See compiler/midnight-ledger.ss:
-///   (initial-value (state-value 'array ((state-value 'merkle-tree nat ())
-///                                       (state-value 'cell (align 0 8))
-///                                       (state-value 'map ()))))
+/// Builds the initial `StateValue` for the Compact `HistoricMerkleTree<h, T>`
+/// ADT: a 3-slot array containing `[BoundedMerkleTree(blank), Cell(0u64),
+/// Map { root_of_blank_tree -> Null }]`.
+///
+/// Note: the TS frontend lowers `HistoricMerkleTree<h, T>` initial-state via
+/// the on-chain VM by first creating the 3-slot array (with an *empty* history
+/// map) and then explicitly inserting the blank tree's root into the history.
+/// We do that final step here so the seeded `StateValue` is byte-identical to
+/// what TS produces — see `examples/zerocash.compact` byte-parity test.
 pub fn new_historic_merkle_tree<D: DB>(height: u8) -> StateValue<D> {
     let mt: MerkleTree<(), D> = MerkleTree::blank(height);
+    let rehashed = mt.rehash();
+    let root_digest = rehashed
+        .root()
+        .expect("blank merkle tree should have a root after rehash");
+    // The on-chain ledger keys the history map by the digest's AlignedValue
+    // encoding (one Fr cell, alignment derived from MerkleTreeDigest).
+    let key: AlignedValue = AlignedValue::from(root_digest);
+    let mut history: HashMap<AlignedValue, StateValue<D>, D> = HashMap::new();
+    history = history.insert(key, StateValue::Null);
     new_array(vec![
-        StateValue::BoundedMerkleTree(mt),
+        StateValue::BoundedMerkleTree(rehashed),
         new_cell(0u64),
-        new_map(),
+        StateValue::Map(history),
     ])
 }
 
