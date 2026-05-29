@@ -396,13 +396,28 @@
                             (type-rust type)))]))
           ctor-arg*)
         (out ",\n    ) -> Result<ConstructorResult<PS>, CompactError> {\n")
-        ;; For each ledger field, build its initial StateValue. For M2 this
-        ;; is hardcoded to Cell(0u64) (Counter's initial value).
+        ;; K1: walk the pl-array bindings (all fields, not just exported)
+        ;; and emit one new_cell per binding using the read-op's result
+        ;; type as the source of truth for the default value. This produces
+        ;; one Cell per field in declaration order — the path indices in
+        ;; the IR confirm fields land at indices 0,1,2,...
+        ;; J2 (constructor body emission) later overrides these defaults
+        ;; with whatever the source constructor assigns.
         (out "        let sv = new_array(vec![\n")
-        (for-each
-          (lambda (lf)
-            (out "            new_cell(0u64),\n"))
-          ledger-field*)
+        (let ([all-bindings
+               (apply append
+                 (map (lambda (lf)
+                        (nanopass-case (Ltypescript Program-Element) lf
+                          [(public-ledger-declaration ,pl-array ,lconstructor)
+                           (pl-array->public-bindings pl-array)]
+                          [else '()]))
+                      ledger-field*))])
+          (for-each
+            (lambda (pb)
+              (let ([read-type (tadt-read-op-type (binding-type pb))])
+                (out (format "            new_cell(~a),\n"
+                             (default-value-rust read-type)))))
+            all-bindings))
         (out "        ]);\n")
         (out "        let state = ChargedState::new(sv);\n")
         (out "        let qctx = QueryContext::new(state, ContractAddress::default());\n")
@@ -545,6 +560,27 @@
              [else "compact_runtime::std_lib::decode_u128"])]
           [(tfield ,src) "compact_runtime::std_lib::decode_fr"]
           [else #f]))
+
+      ;; default-value-rust: emit the Rust expression for a type's default
+      ;; (zero) value. Used by emit-initial-state to seed each ledger field
+      ;; before the constructor body runs. Mirrors `type-rust`'s structure.
+      ;; - tunsigned → `0u<width>` matching uint-rust-width
+      ;; - tfield → `Fr::default()` (Fr derives Default = zero)
+      ;; - tboolean → `false`
+      ;; - tbytes N → `[0u8; N]`
+      ;; - tenum → `0u8` (the first variant's discriminant; works whether
+      ;;   the enum is exported as a Rust type or not, since the on-chain
+      ;;   FieldRepr is u8 regardless)
+      ;; - else → `Default::default()` as a best-effort fallback.
+      (define (default-value-rust type)
+        (nanopass-case (Ltypescript Type) type
+          [(tunsigned ,src ,nat) (format "0~a" (uint-rust-width nat))]
+          [(tfield ,src) "Fr::default()"]
+          [(tboolean ,src) "false"]
+          [(tbytes ,src ,len) (format "[0u8; ~a]" len)]
+          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) "0u8"]
+          [(talias ,src ,nominal? ,type-name ,type) (default-value-rust type)]
+          [else "Default::default()"]))
 
       ;; emit-ledger-view: emits the module-level `ledger()` factory and the
       ;; `Ledger<'a, D>` view struct with one accessor method per *exported*
