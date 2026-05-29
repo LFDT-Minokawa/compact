@@ -109,11 +109,20 @@
           [(tvector ,src ,len ,type)
            (format "[~a; ~a]" (type-rust type) len)]
           [(talias ,src ,nominal? ,type-name ,type)
-           ;; Aliases are transparent; recurse. (Nominal aliases will
-           ;; later become named Rust types in F2/F3.)
-           (type-rust type)]
+           ;; Nominal aliases emit the alias name (the user expects to see
+           ;; `MyId` in signatures, not the expanded underlying form);
+           ;; transparent aliases expand. Compact's `type X = ...` is a
+           ;; transparent alias by default; `nominal type X = ...` is the
+           ;; nominal form. F2 of M3.
+           (if nominal? (symbol->string type-name) (type-rust type))]
           [(topaque ,src ,opaque-type)
-           (format "/* TODO M3-F4: topaque ~a */" opaque-type)]
+           ;; Compact's opaque types (e.g. `Opaque<"string">`) lower to
+           ;; the named string handle. Rust mirrors via a `String` or
+           ;; runtime-defined newtype. For now emit `String` for the
+           ;; canonical "string" opaque; other opaque types stay flagged.
+           (cond
+             [(equal? opaque-type "string") "String"]
+             [else (format "/* TODO M3-F4: topaque ~a */" opaque-type)])]
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
            ;; L1: Maybe<T> resolves to the canonical struct exposed by
            ;; compact-runtime. We locate the `value` field's type and
@@ -138,7 +147,12 @@
            ;; in scope as a Rust type.
            (symbol->string enum-name)]
           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-           (format "/* TODO M3-F4: tcontract ~a */" contract-name)]
+           ;; External contract types appear when a contract calls into
+           ;; another. The Compact reference for one contract from another
+           ;; lowers to a `ContractAddress` at runtime (32-byte hash). Mirror
+           ;; the TS path: emit `ContractAddress`. F4 partial; refinements
+           ;; (typed handles per external-contract-name) can come later.
+           "ContractAddress"]
           [(tunknown) "/* TODO M3-F4: tunknown */"]
           [else "/* TODO M3-F4: unhandled type variant */"]))
 
