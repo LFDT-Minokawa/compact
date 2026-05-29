@@ -24,8 +24,8 @@
 | **F7** — `witnesses-fixture.compact` | F7.1 | pending | — |
 | **F8** — `if-stmt-fixture.compact` | F8.1 | pending | — |
 | **F3** — `map-fixture.compact` + byte-parity | F3.1, F3.2 | pending | — |
-| **F1** — zerocash.compact byte-parity | F1.1, F1.2 | pending | — |
-| **F2** — election.compact byte-parity | F2.1, F2.2 | pending | — |
+| **F1** — zerocash.compact byte-parity | F1.1 ✅ (init), F1.2 (circuits) pending | partial | `3c64488` |
+| **F2** — election.compact byte-parity | F2.1 ✅ (init), F2.2 (circuits) pending | partial | `f80e22e` |
 
 **Resume here:** Phase F (fixtures) + Phase E4 (ADT method emission in circuit bodies) + Phase F1/F2 (zerocash + election byte-parity).
 
