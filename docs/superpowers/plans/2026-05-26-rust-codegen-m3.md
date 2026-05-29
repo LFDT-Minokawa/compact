@@ -11,21 +11,20 @@
 | H — Enum + struct emission | H1 ✅, H2 ✅, H3 ✅, H4 ✅, H5–H7 (structs) pending | partial | `49fe847` |
 | I — Per-circuit emission | I1 ✅, I1.5 ✅ (filter), I2 ✅, I3 pending, I4 pending | partial | `3238a3b` |
 | J — Constructor with parameters | J1 ✅, J2 pending | partial | `8102a6f` |
-| K — Multi-ledger-field | K1 pending, K2 ✅ | partial | `4258b65` |
+| K — Multi-ledger-field | K1 ✅, K2 ✅ | done | `068d05c` |
 | L — Compact stdlib mapping | L1 ✅, L2 pending, L3 ✅ (pre-existing), L4 ✅ (pre-existing) | partial | `2171d1c` |
 | M — Tests for tiny.compact | M1–M3 | pending | — |
 
 **Milestone reached (after K2):** `compactc --rust examples/tiny.compact /tmp/out/` produces a Rust crate that **compiles cleanly** against the local `compact-runtime`. `cargo build` succeeds end-to-end — all type references resolve, Witnesses trait + Maybe<T> + Ledger view + circuit signatures all type-check. Bodies remain `unimplemented!()` so the crate panics at runtime, but the surface is correct. This proves M3's "generalised emission" architectural goal is sound; remaining work is body correctness (K1/J2/I3) and byte-parity validation (M).
 
-**Resume here:** K1 + J2 + I3 (the body-emission work).
+**Resume here:** J2 + I3 (body emission). K1 done.
 
-- **K1** — generalise `emit-initial-state`'s hardcoded `new_cell(0u64)` seed to walk the pl-array and produce per-field initial StateValues based on each ADT's init op. Counter stays at `new_cell(0u64)`; tiny needs three different initial values (`authority: Bytes<32>` → 32 zero bytes; `value: Field` → Fr::zero(); `state: STATE` → enum discriminant 0).
-- **J2** — walk the Ledger-Constructor body and emit the initialisation Op program reflecting source statements (`authority = public_key(sk)`, `value = disclose(v)`, `state = STATE.set`). Overlaps with I3 expression emission.
-- **I3** — the big one: circuit body emission. Mirror `typescript-passes.ss`'s `Stmt`/`Expr` passes, lowering each statement to Op program builder calls plus Rust expressions. Once I3 lands, the counter snapshot returns to byte-parity (the M2 e2e test in `tests-e2e-rust/tests/counter.rs` continues to verify ContractState bytes against the TS fixture independently).
-- **I4** — `assert!`/error mapping and return type packaging once bodies exist.
-- **K2.1** — extend `decoder-for-type` to cover `tbytes` and any other read-result types we hit; currently it falls back to `decode_u64` with a TODO comment (never hit by counter/tiny).
+- **I3** — the central remaining task: emit per-circuit Op programs + Rust expression bodies. The Ltypescript IR's Statement / Expression nonterminals need walkers analogous to `typescript-passes.ss::Stmt`/`Expr`. Practical starting wedge: handle the single `public-ledger` call case (e.g. counter's `round.increment(1)`) to restore counter byte-parity by emitting that one shape. Then expand to other statement forms (const-binding, if, assignment, return) and other expression forms (literals, var-refs, function calls, enum-refs already lowered to numeric literals upstream). For each ADT op's `vm-code`, the canonical Rust translation is `Op::<X> { ... }` → `.<op>_at_index(args)` / `.<op>(args)` on the OpProgram*Verify/Gather builder — mostly mechanical once the dispatch infrastructure exists.
+- **J2** — walk the Ledger-Constructor body. Overlaps heavily with I3 statement walking; in practice J2 should reuse I3's statement emitter. tiny.compact's constructor: `authority = public_key(sk); value = disclose(v); state = STATE.set;` — these are ledger writes (push value + idx + ins).
+- **I4** — `assert!` and `return-type` packaging once bodies exist (`compact_assert!`, `Ok(CircuitResults { result, context, gas_cost })` wrapping).
+- **K2.1** — extend `decoder-for-type` to cover any remaining read-result types (tbytes, etc.); currently a `decode_u64`-with-TODO fallback never gets hit by counter/tiny.
 
-After I3+J2+K1, tiny.compact emission should be a compilable Rust crate. Then M (snapshot + e2e byte-parity tests) closes M3.
+After I3 + J2 + I4, tiny.compact's emitted crate has correct bodies. Then M (snapshot diff + ContractState byte-parity vs TS reference) closes M3.
 
 **State at end of this session's M3 work:**
 
