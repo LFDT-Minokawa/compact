@@ -36,6 +36,13 @@ impl FromFieldRepr for commitment {
         Some(commitment { bytes })
     }
 }
+impl From<commitment> for compact_runtime::Value {
+    fn from(s: commitment) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.bytes));
+        compact_runtime::Value::concat(_v.iter())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct coin_info {
@@ -67,6 +74,14 @@ impl FromFieldRepr for coin_info {
         _offset += <opening as FromFieldRepr>::FIELD_SIZE;
         let _ = _offset;
         Some(coin_info { nonce, opening })
+    }
+}
+impl From<coin_info> for compact_runtime::Value {
+    fn from(s: coin_info) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.nonce));
+        _v.push(compact_runtime::Value::from(s.opening));
+        compact_runtime::Value::concat(_v.iter())
     }
 }
 
@@ -102,6 +117,14 @@ impl FromFieldRepr for LeafPreimage {
         Some(LeafPreimage { domain_sep, data })
     }
 }
+impl From<LeafPreimage> for compact_runtime::Value {
+    fn from(s: LeafPreimage) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.domain_sep));
+        _v.push(compact_runtime::Value::from(s.data));
+        compact_runtime::Value::concat(_v.iter())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct MerkleTreePath {
@@ -133,6 +156,14 @@ impl FromFieldRepr for MerkleTreePath {
         _offset += <MerkleTreePathEntry as FromFieldRepr>::FIELD_SIZE * 32;
         let _ = _offset;
         Some(MerkleTreePath { leaf, path })
+    }
+}
+impl From<MerkleTreePath> for compact_runtime::Value {
+    fn from(s: MerkleTreePath) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.leaf));
+        for _e in s.path.iter() { _v.push(compact_runtime::Value::from(_e.clone())); }
+        compact_runtime::Value::concat(_v.iter())
     }
 }
 
@@ -168,6 +199,14 @@ impl FromFieldRepr for MerkleTreePathEntry {
         Some(MerkleTreePathEntry { sibling, goes_left })
     }
 }
+impl From<MerkleTreePathEntry> for compact_runtime::Value {
+    fn from(s: MerkleTreePathEntry) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.sibling));
+        _v.push(compact_runtime::Value::from(s.goes_left));
+        compact_runtime::Value::concat(_v.iter())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct public_key {
@@ -200,6 +239,14 @@ impl FromFieldRepr for public_key {
         Some(public_key { zk, encryption })
     }
 }
+impl From<public_key> for compact_runtime::Value {
+    fn from(s: public_key) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.zk));
+        _v.push(compact_runtime::Value::from(s.encryption));
+        compact_runtime::Value::concat(_v.iter())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct Nonce {
@@ -227,6 +274,13 @@ impl FromFieldRepr for Nonce {
         _offset += <[u8; 32] as FromFieldRepr>::FIELD_SIZE;
         let _ = _offset;
         Some(Nonce { bytes })
+    }
+}
+impl From<Nonce> for compact_runtime::Value {
+    fn from(s: Nonce) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.bytes));
+        compact_runtime::Value::concat(_v.iter())
     }
 }
 
@@ -258,6 +312,13 @@ impl FromFieldRepr for MerkleTreeDigest {
         Some(MerkleTreeDigest { field })
     }
 }
+impl From<MerkleTreeDigest> for compact_runtime::Value {
+    fn from(s: MerkleTreeDigest) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.field));
+        compact_runtime::Value::concat(_v.iter())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct zk_secret_key {
@@ -285,6 +346,13 @@ impl FromFieldRepr for zk_secret_key {
         _offset += <[u8; 32] as FromFieldRepr>::FIELD_SIZE;
         let _ = _offset;
         Some(zk_secret_key { bytes })
+    }
+}
+impl From<zk_secret_key> for compact_runtime::Value {
+    fn from(s: zk_secret_key) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.bytes));
+        compact_runtime::Value::concat(_v.iter())
     }
 }
 
@@ -316,6 +384,13 @@ impl FromFieldRepr for zk_public_key {
         Some(zk_public_key { bytes })
     }
 }
+impl From<zk_public_key> for compact_runtime::Value {
+    fn from(s: zk_public_key) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.bytes));
+        compact_runtime::Value::concat(_v.iter())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct opening {
@@ -343,6 +418,49 @@ impl FromFieldRepr for opening {
         _offset += <[u8; 32] as FromFieldRepr>::FIELD_SIZE;
         let _ = _offset;
         Some(opening { bytes })
+    }
+}
+impl From<opening> for compact_runtime::Value {
+    fn from(s: opening) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.bytes));
+        compact_runtime::Value::concat(_v.iter())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct nullifier {
+    pub bytes: [u8; 32],
+}
+impl Aligned for nullifier {
+    fn alignment() -> Alignment {
+        Alignment::concat([&<[u8; 32] as Aligned>::alignment()])
+    }
+}
+impl FieldRepr for nullifier {
+    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {
+        self.bytes.field_repr(writer);
+    }
+    fn field_size(&self) -> usize {
+        self.bytes.field_size()
+    }
+}
+impl FromFieldRepr for nullifier {
+    const FIELD_SIZE: usize = <[u8; 32] as FromFieldRepr>::FIELD_SIZE;
+    fn from_field_repr(r: &[Fr]) -> Option<Self> {
+        if r.len() < Self::FIELD_SIZE { return None; }
+        let mut _offset = 0usize;
+        let bytes = <[u8; 32] as FromFieldRepr>::from_field_repr(&r[_offset.._offset + <[u8; 32] as FromFieldRepr>::FIELD_SIZE])?;
+        _offset += <[u8; 32] as FromFieldRepr>::FIELD_SIZE;
+        let _ = _offset;
+        Some(nullifier { bytes })
+    }
+}
+impl From<nullifier> for compact_runtime::Value {
+    fn from(s: nullifier) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.bytes));
+        compact_runtime::Value::concat(_v.iter())
     }
 }
 
@@ -403,7 +521,49 @@ where
         &self,
         ctx: CircuitContext<PS>,
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
-        unimplemented!("M3-I3: circuit body emission for zerocash_mint")
+        let _witness_ctx_0 = WitnessContext::new(ledger(&ctx.current_query_context.state), ctx.current_private_state, &ctx.current_query_context);
+        let (current_private_state, coin) = self.witnesses.context_new_coin_info(&_witness_ctx_0);
+        let _witness_ctx_2 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
+        let (current_private_state, pk) = self.witnesses.private_zk_public_key(&_witness_ctx_2);
+        let _witness_ctx_4 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
+        let (current_private_state, _) = self.witnesses.private_add_coin(&_witness_ctx_4, coin.clone());
+        let cm = pure_circuits::commitment_from_coin_info(coin, pk);
+        let ops = OpProgramVerify::<DefaultDB>::new()
+            .idx_at_index(1u8, true)
+            .idx_at_index(0u8, true)
+            .dup(2)
+            .idx_at_index(1u8, false)
+            .push(true, new_cell(leaf_hash(&ValueReprAlignedValue(AlignedValue::from(cm)))))
+            .ins(false, 1)
+            .ins(true, 1)
+            .idx_at_index(1u8, true)
+            .addi(1)
+            .ins(true, 1)
+            .idx_at_index(2u8, true)
+            .dup(2)
+            .idx_at_index(0u8, false)
+            .root()
+            .push(true, StateValue::Null)
+            .ins(false, 1)
+            .ins(true, 2)
+            .build();
+
+        let results = query_for_verify(
+            &ctx.current_query_context,
+            &ops,
+            ctx.gas_limit.clone(),
+            &ctx.cost_model,
+        )?;
+
+        Ok(CircuitResults {
+            result: (),
+            context: CircuitContext {
+                current_query_context: results.context,
+                current_private_state,
+                ..ctx
+            },
+            gas_cost: results.gas_cost,
+        })
     }
 
 }
@@ -420,4 +580,18 @@ impl<'a, D: DB> Ledger<'a, D> {
 }
 
 pub mod pure_circuits {
+    use super::*;
+
+    pub(crate) fn derive_nullifier(coin: coin_info, sk: zk_secret_key) -> nullifier {
+        unimplemented!("M3-I3: pure circuit body emission for derive_nullifier")
+    }
+
+    pub(crate) fn derive_zk_public_key(sk: zk_secret_key) -> zk_public_key {
+        unimplemented!("M3-I3: pure circuit body emission for derive_zk_public_key")
+    }
+
+    pub(crate) fn commitment_from_coin_info(coin: coin_info, pk: zk_public_key) -> commitment {
+        unimplemented!("M3-I3: pure circuit body emission for commitment_from_coin_info")
+    }
+
 }

@@ -46,6 +46,26 @@
       (define current-qctx-ref
         (make-parameter "&ctx.current_query_context"))
 
+      ;; rust-keyword?: returns #t when the symbol matches a Rust reserved
+      ;; keyword (strict + reserved). Enum variant names like
+      ;; `final` (election.compact's PublicState.final) collide otherwise.
+      ;; Callers escape such names with the `r#` raw-identifier prefix.
+      (define rust-keyword?
+        (let ([kws '(as async await break const continue crate do dyn
+                     else enum extern false final fn for if impl in
+                     let loop macro match mod move mut override priv
+                     pub ref return self Self static struct super trait
+                     true try type typeof unsafe unsized use virtual
+                     where while yield abstract become box)])
+          (lambda (sym) (and (memq sym kws) #t))))
+
+      ;; rust-variant-name: render an enum variant name, escaping Rust
+      ;; keywords via the raw-identifier `r#` prefix.
+      (define (rust-variant-name sym)
+        (if (rust-keyword? sym)
+            (string-append "r#" (symbol->string sym))
+            (symbol->string sym)))
+
       ;; camel->snake: convert a CamelCase / mixedCase identifier symbol
       ;; into snake_case. Used for witness method names. Also sanitises
       ;; Compact-allowed `$` characters (which Rust doesn't permit in
@@ -504,19 +524,30 @@
           [(circuit ,src ,function-name (,arg* ...) ,type ,stmt) #t]
           [else #f]))
 
-      ;; Collect circuit definitions from a list of program elements.
-      ;; Only exported circuits make the public surface — non-exported
-      ;; helpers (e.g. tiny.compact's `in_state`) and stdlib circuits
-      ;; reached via specialisation (e.g. `some<Field>`, `none<Field>`)
-      ;; live in the IR with id-exported? = #f. The TS path inlines them
-      ;; at the use site; the Rust path will do the same once I3 handles
-      ;; circuit body emission.
+      ;; circuit-pelt-src: extract the src record from a Circuit-Definition
+      ;; Program-Element. Used by program-circuits to distinguish
+      ;; user-defined circuits from stdlib specialisations
+      ;; (e.g. `some<Field>`, `none<Field>`) via `stdlib-src?`.
+      (define (circuit-pelt-src pelt)
+        (nanopass-case (Ltypescript Program-Element) pelt
+          [(circuit ,src ,function-name (,arg* ...) ,type ,stmt) src]))
+
+      ;; Collect user-defined circuit definitions from a list of program
+      ;; elements. Includes both exported circuits (which become the public
+      ;; Contract impl surface / `pub fn`s in `mod pure_circuits`) and
+      ;; non-exported user circuits (internal helpers like
+      ;; tiny.compact's `in_state` or zerocash's
+      ;; `commitment_from_coin_info`). Stdlib specialisations like
+      ;; `some<Field>` / `none<Field>` are excluded — they live in the
+      ;; runtime as fixed Rust functions and the call-site dispatcher
+      ;; rewrites references to `compact_runtime::std_lib::some` etc.
       (define (program-circuits pelt*)
         (let loop ([pelt* pelt*] [acc '()])
           (cond
             [(null? pelt*) (reverse acc)]
             [(and (circuit? (car pelt*))
-                  (id-exported? (circuit-function-name (car pelt*))))
+                  (or (id-exported? (circuit-function-name (car pelt*)))
+                      (not (stdlib-src? (circuit-pelt-src (car pelt*))))))
              (loop (cdr pelt*) (cons (car pelt*) acc))]
             [else (loop (cdr pelt*) acc)])))
 
@@ -526,6 +557,79 @@
       (define (circuit-function-name pelt)
         (nanopass-case (Ltypescript Program-Element) pelt
           [(circuit ,src ,function-name (,arg* ...) ,type ,stmt) function-name]))
+
+      ;; collect-pure-circuit-tdefns: scan non-exported user pure circuit
+      ;; sigs and synthesise Ltypescript export-typedef pelts for any
+      ;; tstruct/tenum types referenced there but not already in
+      ;; `existing-tdefns`. Used by the Rust path to close the E2 walker
+      ;; gap for circuits whose sigs introduce user types that no
+      ;; publicly-reachable surface mentions (e.g. zerocash's
+      ;; `derive_nullifier(...): nullifier`).
+      ;;
+      ;; We run this in rust-passes (not analysis-passes) because
+      ;; purity-inference runs AFTER the analysis-passes Program pass,
+      ;; so `id-pure?` is only reliable here on the Ltypescript IR.
+      ;; Stdlib pure circuits (`some`, `none`, merkle-tree helpers) are
+      ;; excluded via `stdlib-src?` — their referenced types are
+      ;; runtime-provided and must not be per-contract re-emitted.
+      (define (collect-pure-circuit-tdefns pelt* existing-tdefns)
+        (let ([seen-names (make-hashtable symbol-hash eq?)]
+              [out-tdefns '()])
+          (define (push-type! src^ name type)
+            (unless (hashtable-ref seen-names name #f)
+              (hashtable-set! seen-names name #t)
+              (set! out-tdefns
+                (cons
+                  (with-output-language (Ltypescript Program-Element)
+                    `(export-typedef ,src^ ,name () ,type))
+                  out-tdefns))
+              ;; Recurse into the new type's fields (for tstruct).
+              (nanopass-case (Ltypescript Type) type
+                [(tstruct ,src^^ ,struct-name^ (,elt-name^* ,type^*) ...)
+                 (for-each scan-type type^*)]
+                [else (void)])))
+          (define (scan-type type)
+            (nanopass-case (Ltypescript Type) type
+              [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+               (push-type! src^ struct-name type)
+               (for-each scan-type type*)]
+              [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
+               (push-type! src^ enum-name type)]
+              [(tvector ,src^ ,len ,type^) (scan-type type^)]
+              [(ttuple ,src^ ,type* ...) (for-each scan-type type*)]
+              [else (void)]))
+          (define (scan-arg arg)
+            (nanopass-case (Ltypescript Argument) arg
+              [(,var-name ,type) (scan-type type)]))
+          ;; Seed the seen set with names already in existing-tdefns so
+          ;; we don't synthesise duplicates.
+          (for-each
+            (lambda (etd)
+              (nanopass-case (Ltypescript Program-Element) etd
+                [(export-typedef ,src ,type-name (,tvar-name* ...) ,type)
+                 (nanopass-case (Ltypescript Type) type
+                   [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+                    (hashtable-set! seen-names struct-name #t)]
+                   [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
+                    (hashtable-set! seen-names enum-name #t)]
+                   [else (void)])
+                 (hashtable-set! seen-names type-name #t)]
+                [else (void)]))
+            existing-tdefns)
+          ;; Walk every circuit pelt. Gate on (id-pure? AND not stdlib).
+          ;; Exported pure circuits already feed E2's walker; this is a
+          ;; safety net so the same logic catches non-exported ones too.
+          (for-each
+            (lambda (pelt)
+              (nanopass-case (Ltypescript Program-Element) pelt
+                [(circuit ,src^ ,function-name (,arg* ...) ,type ,stmt)
+                 (when (and (id-pure? function-name)
+                            (not (stdlib-src? src^)))
+                   (for-each scan-arg arg*)
+                   (scan-type type))]
+                [else (void)]))
+            pelt*)
+          (reverse out-tdefns)))
 
       ;; emit-type-decls: emit one Rust type declaration per exported
       ;; user type. For `tenum`, emit a `#[repr(u8)] pub enum` with
@@ -548,7 +652,9 @@
                     (out (format "pub enum ~a {\n" enum-name))
                     (let loop ([variants (cons elt-name elt-name*)] [i 0])
                       (unless (null? variants)
-                        (out (format "    ~a = ~a,\n" (car variants) i))
+                        (out (format "    ~a = ~a,\n"
+                                     (rust-variant-name (car variants))
+                                     i))
                         (loop (cdr variants) (+ i 1))))
                     (out "}\n")
                     ;; H2: Aligned impl — delegate to u8.
@@ -572,7 +678,9 @@
                     (out "        match n {\n")
                     (let loop ([variants (cons elt-name elt-name*)] [i 0])
                       (unless (null? variants)
-                        (out (format "            ~a => Some(Self::~a),\n" i (car variants)))
+                        (out (format "            ~a => Some(Self::~a),\n"
+                                     i
+                                     (rust-variant-name (car variants))))
                         (loop (cdr variants) (+ i 1))))
                     (out "            _ => None,\n")
                     (out "        }\n")
@@ -675,6 +783,50 @@
                                          (car names)))
                             (loop (cdr names) #f)]))
                        (out " })\n")
+                       (out "    }\n")
+                       (out "}\n")
+                       ;; M3.5-E4.4 Blocker 3: From<S> for Value so callers
+                       ;; can pass a user-struct value where an AlignedValue
+                       ;; is needed (e.g. leaf_hash's arg in HMT.insert).
+                       ;; The upstream blanket
+                       ;;   impl<T: DynAligned, Value: From<T>> From<T>
+                       ;;     for AlignedValue
+                       ;; turns `Value: From<S>` into `AlignedValue: From<S>`
+                       ;; automatically. Each field's `.into()` produces a
+                       ;; Value (primitives + Maybe<T> + recursively user
+                       ;; structs that go through this same impl), which we
+                       ;; concat in field order — matching FieldRepr.
+                       (out (format "impl From<~a> for compact_runtime::Value {\n"
+                                    struct-name))
+                       (out (format "    fn from(s: ~a) -> compact_runtime::Value {\n"
+                                    struct-name))
+                       (cond
+                         [(null? elt-name*)
+                          (out "        compact_runtime::Value::concat(core::iter::empty::<&compact_runtime::Value>())\n")]
+                         [else
+                          ;; Build a Vec<Value> field-by-field, then concat.
+                          ;; Use explicit `Value::from(...)` per field rather
+                          ;; than `.into()` to avoid trait-resolution
+                          ;; ambiguity — some primitive field types
+                          ;; (e.g. [u8; 32]) have multiple `From<[u8; 32]>`
+                          ;; impls in transitive deps. Naming the target
+                          ;; type pins inference.
+                          ;;
+                          ;; For `[T; N]` where T is a user struct, upstream
+                          ;; has no `From<[T; N]> for Value`, so we expand
+                          ;; the array element-by-element into the Vec.
+                          (out "        let mut _v: Vec<compact_runtime::Value> = Vec::new();\n")
+                          (for-each
+                            (lambda (name type)
+                              (cond
+                                [(problematic-vector? type)
+                                 (out (format "        for _e in s.~a.iter() { _v.push(compact_runtime::Value::from(_e.clone())); }\n"
+                                              name))]
+                                [else
+                                 (out (format "        _v.push(compact_runtime::Value::from(s.~a));\n"
+                                              name))]))
+                            elt-name* type*)
+                          (out "        compact_runtime::Value::concat(_v.iter())\n")])
                        (out "    }\n")
                        (out "}\n")
                        (out "\n")])]
@@ -789,6 +941,25 @@
             [else
              ;; quote/tuple/etc. fall through to the existing expr-rust.
              (expr-rust e native-id-ht)])))
+
+      ;; arg-rust-clone-if-var: render a call argument expression and
+      ;; suffix `.clone()` if the rendered form is a bare var-ref. Used
+      ;; by E4.4's bare-call emitter so passing the same Compact-level
+      ;; var as an argument twice (e.g. `private$add_coin(coin)` followed
+      ;; by `pure_circuits::commitment_from_coin_info(coin, pk)`) doesn't
+      ;; trip Rust's move semantics. Defensive: we don't have liveness
+      ;; analysis, so we clone every var-ref arg. User structs derive
+      ;; Clone (H5), so the clone is a no-op semantically and cheap for
+      ;; the small struct shapes Compact emits.
+      (define (arg-rust-clone-if-var e local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht)
+        (let ([rendered (ctor-expr-rust e local-binds
+                                        native-id-ht witness-id-ht circuit-id-ht)])
+          (let ([stripped (expr-strip-cast e)])
+            (nanopass-case (Ltypescript Expression) stripped
+              [(var-ref ,src ,var-name)
+               (string-append rendered ".clone()")]
+              [else rendered]))))
 
       ;; stdlib-circuit-rust-path: if `function-name` is a Compact stdlib
       ;; circuit we map to a runtime-side function (currently `some` and
@@ -1026,18 +1197,12 @@
                         [classified
                          (classify-const-rhs rhs witness-id-ht circuit-id-ht)])
                    (and (or (eq? (car classified) 'witness)
-                            (and (eq? (car classified) 'pure-circuit)
-                                 ;; The callee must be exported — only
-                                 ;; those land in `pure_circuits`. Walk
-                                 ;; the stripped-cast call to find the
-                                 ;; fn-id.
-                                 (let ([fn-id
-                                        (nanopass-case (Ltypescript Expression)
-                                                       (expr-strip-cast rhs)
-                                          [(call ,src ,function-name ,expr* ...)
-                                           function-name]
-                                          [else #f])])
-                                   (and fn-id (id-exported? fn-id))))
+                            ;; M3.5-E4.4: accept ALL user pure-circuit
+                            ;; callees (both exported and non-exported).
+                            ;; Non-exported ones now land in
+                            ;; `pure_circuits` as `pub(crate) fn`
+                            ;; (Blocker 1), so they're equally callable.
+                            (eq? (car classified) 'pure-circuit)
                             ;; I3b/3: also accept plain const RHS shapes
                             ;; (e.g. `const tmp = default<Bytes<32>>;`)
                             ;; whose expression is something expr-rust
@@ -1063,8 +1228,10 @@
                         [classified
                          (classify-call fn-id arg* witness-id-ht circuit-id-ht)])
                    (and (or (eq? (car classified) 'witness)
-                            (and (eq? (car classified) 'pure-circuit)
-                                 (id-exported? fn-id)))
+                            ;; M3.5-E4.4: accept ALL user pure-circuit
+                            ;; bare-call callees, exported or not — both
+                            ;; now land in pure_circuits.
+                            (eq? (car classified) 'pure-circuit))
                         (for-all (lambda (e)
                                    (expr-supported?
                                      e native-id-ht witness-id-ht circuit-id-ht))
@@ -1291,8 +1458,9 @@
                                 [else "ctx.current_private_state"])]
                              [arg-strs
                               (map (lambda (e)
-                                     (ctor-expr-rust e local-binds
-                                                     native-id-ht witness-id-ht circuit-id-ht))
+                                     (arg-rust-clone-if-var
+                                       e local-binds
+                                       native-id-ht witness-id-ht circuit-id-ht))
                                    wargs)]
                              [call-line
                               (format "        let ~a = WitnessContext::new(ledger(~a), ~a, ~a);\n"
@@ -1373,8 +1541,9 @@
                                 [else "ctx.current_private_state"])]
                              [arg-strs
                               (map (lambda (e)
-                                     (ctor-expr-rust e local-binds
-                                                     native-id-ht witness-id-ht circuit-id-ht))
+                                     (arg-rust-clone-if-var
+                                       e local-binds
+                                       native-id-ht witness-id-ht circuit-id-ht))
                                    wargs)]
                              [call-line
                               (format "        let ~a = WitnessContext::new(ledger(~a), ~a, ~a);\n"
@@ -1397,8 +1566,9 @@
                              [pargs (caddr classified)]
                              [arg-strs
                               (map (lambda (e)
-                                     (ctor-expr-rust e local-binds
-                                                     native-id-ht witness-id-ht circuit-id-ht))
+                                     (arg-rust-clone-if-var
+                                       e local-binds
+                                       native-id-ht witness-id-ht circuit-id-ht))
                                    pargs)]
                              [bind-line
                               (format "        let _ = pure_circuits::~a(~a);\n"
@@ -2605,10 +2775,20 @@
       ;; return type. For the narrow tiny.compact-style shape (a single
       ;; expression in statement position) we render the expression
       ;; directly; everything else keeps an `unimplemented!()` placeholder.
+      ;;
+      ;; Exported circuits become `pub fn` (part of the crate's public
+      ;; surface). Non-exported user pure circuits (e.g. zerocash's
+      ;; `commitment_from_coin_info`, `derive_nullifier`) become
+      ;; `pub(crate) fn` — callable from anywhere in the generated
+      ;; contract crate (notably impure-circuit bodies via
+      ;; `pure_circuits::foo(...)`) but not part of the contract's
+      ;; downstream API.
       (define (emit-pure-circuit cdefn native-id-ht)
         (nanopass-case (Ltypescript Program-Element) cdefn
           [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
-           (out (format "    pub fn ~a(" (camel->snake (id-sym function-name))))
+           (out (format "    ~a fn ~a("
+                        (if (id-exported? function-name) "pub" "pub(crate)")
+                        (camel->snake (id-sym function-name))))
            (let loop ([arg* arg*] [first? #t])
              (cond
                [(null? arg*) (void)]
@@ -2846,8 +3026,24 @@
       ;; emit-pure-circuits: emits the `pure_circuits` module containing one
       ;; free function per pure circuit declaration. Contracts with no pure
       ;; circuits (e.g. counter.compact) get an empty module.
+      ;;
+      ;; When any non-exported user pure circuit is present (e.g. zerocash's
+      ;; `commitment_from_coin_info`), inject `use super::*;` at the top
+      ;; so the function body can refer to crate-level types (user structs
+      ;; emitted by H5-H7, Maybe<T> re-exports, etc.) without qualification.
+      ;; For contracts whose pure_circuits module contains only exported
+      ;; circuits or is empty (counter, tiny), no `use` is emitted — keeping
+      ;; their snapshots byte-identical.
       (define (emit-pure-circuits pure-circuit* native-id-ht)
         (out "pub mod pure_circuits {\n")
+        (let ([has-non-exported?
+               (let loop ([c* pure-circuit*])
+                 (cond
+                   [(null? c*) #f]
+                   [(not (id-exported? (circuit-function-name (car c*)))) #t]
+                   [else (loop (cdr c*))]))])
+          (when has-non-exported?
+            (out "    use super::*;\n\n")))
         (for-each (lambda (c) (emit-pure-circuit c native-id-ht)) pure-circuit*)
         (out "}\n"))
 
@@ -2875,7 +3071,18 @@ compact-runtime = \"~a\"
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,tdescs ,pelt* ...)
        (header)
-       (emit-type-decls (program-export-tdefns pelt*))
+       ;; M3.5-E4.4 Blocker 2: promote user types referenced ONLY by
+       ;; non-exported pure circuits (e.g. zerocash's
+       ;; `derive_nullifier(...): nullifier` — `nullifier` is mentioned
+       ;; nowhere else on a publicly-reachable surface so the E2 walker
+       ;; (analysis-passes) didn't promote it). We run a tiny scan here,
+       ;; AFTER purity inference has set `id-pure?` correctly: collect
+       ;; tstruct/tenum types referenced in non-exported user-pure
+       ;; circuit sigs, then synthesise additional Ltypescript
+       ;; export-typedef pelts and pass them to emit-type-decls.
+       (let* ([all-tdefns (program-export-tdefns pelt*)]
+              [extra-tdefns (collect-pure-circuit-tdefns pelt* all-tdefns)])
+         (emit-type-decls (append all-tdefns extra-tdefns)))
        (emit-witnesses (program-witnesses pelt*))
        (emit-contract-struct)
        (emit-initial-state (program-ledger-fields pelt*)
@@ -2897,7 +3104,8 @@ compact-runtime = \"~a\"
               [circuit-id-ht (build-circuit-id-ht pelt*)])
          (for-each
            (lambda (c)
-             (unless (id-pure? (circuit-function-name c))
+             (when (and (not (id-pure? (circuit-function-name c)))
+                        (id-exported? (circuit-function-name c)))
                (emit-impure-circuit c native-id-ht witness-id-ht circuit-id-ht)))
            circuit*)
          (close-contract-struct)

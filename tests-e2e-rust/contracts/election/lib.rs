@@ -36,6 +36,13 @@ impl FromFieldRepr for MerkleTreeDigest {
         Some(MerkleTreeDigest { field })
     }
 }
+impl From<MerkleTreeDigest> for compact_runtime::Value {
+    fn from(s: MerkleTreeDigest) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.field));
+        compact_runtime::Value::concat(_v.iter())
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -97,6 +104,14 @@ impl FromFieldRepr for LeafPreimage {
         Some(LeafPreimage { domain_sep, data })
     }
 }
+impl From<LeafPreimage> for compact_runtime::Value {
+    fn from(s: LeafPreimage) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.domain_sep));
+        _v.push(compact_runtime::Value::from(s.data));
+        compact_runtime::Value::concat(_v.iter())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct MerkleTreePath {
@@ -128,6 +143,14 @@ impl FromFieldRepr for MerkleTreePath {
         _offset += <MerkleTreePathEntry as FromFieldRepr>::FIELD_SIZE * 10;
         let _ = _offset;
         Some(MerkleTreePath { leaf, path })
+    }
+}
+impl From<MerkleTreePath> for compact_runtime::Value {
+    fn from(s: MerkleTreePath) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.leaf));
+        for _e in s.path.iter() { _v.push(compact_runtime::Value::from(_e.clone())); }
+        compact_runtime::Value::concat(_v.iter())
     }
 }
 
@@ -163,6 +186,14 @@ impl FromFieldRepr for MerkleTreePathEntry {
         Some(MerkleTreePathEntry { sibling, goes_left })
     }
 }
+impl From<MerkleTreePathEntry> for compact_runtime::Value {
+    fn from(s: MerkleTreePathEntry) -> compact_runtime::Value {
+        let mut _v: Vec<compact_runtime::Value> = Vec::new();
+        _v.push(compact_runtime::Value::from(s.sibling));
+        _v.push(compact_runtime::Value::from(s.goes_left));
+        compact_runtime::Value::concat(_v.iter())
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -190,6 +221,38 @@ impl FromFieldRepr for PrivateState {
             0 => Some(Self::initial),
             1 => Some(Self::committed),
             2 => Some(Self::revealed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum PublicState {
+    setup = 0,
+    commit = 1,
+    reveal = 2,
+    r#final = 3,
+}
+impl Aligned for PublicState {
+    fn alignment() -> Alignment {
+        u8::alignment()
+    }
+}
+impl FieldRepr for PublicState {
+    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {
+        (*self as u8).field_repr(writer);
+    }
+    fn field_size(&self) -> usize { 1 }
+}
+impl FromFieldRepr for PublicState {
+    const FIELD_SIZE: usize = 1;
+    fn from_field_repr(r: &[Fr]) -> Option<Self> {
+        let n = u8::from_field_repr(r)?;
+        match n {
+            0 => Some(Self::setup),
+            1 => Some(Self::commit),
+            2 => Some(Self::reveal),
+            3 => Some(Self::r#final),
             _ => None,
         }
     }
@@ -296,4 +359,30 @@ impl<'a, D: DB> Ledger<'a, D> {
 }
 
 pub mod pure_circuits {
+    use super::*;
+
+    pub(crate) fn ballot_repr(ballot: PermissibleVotes) -> [u8; 32] {
+        unimplemented!("M3-I3: pure circuit body emission for ballot_repr")
+    }
+
+    pub(crate) fn successor(state: PublicState) -> PublicState {
+        unimplemented!("M3-I3: pure circuit body emission for successor")
+    }
+
+    pub(crate) fn commitment_nullifier(sk: [u8; 32]) -> [u8; 32] {
+        compact_runtime::persistent_hash(&[[108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58, 99, 109, 45, 110, 117, 108, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], sk].concat()).0
+    }
+
+    pub(crate) fn reveal_nullifier(sk: [u8; 32]) -> [u8; 32] {
+        compact_runtime::persistent_hash(&[[108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58, 114, 118, 45, 110, 117, 108, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], sk].concat()).0
+    }
+
+    pub(crate) fn public_key(sk: [u8; 32]) -> [u8; 32] {
+        compact_runtime::persistent_hash(&[[108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], sk].concat()).0
+    }
+
+    pub(crate) fn commit_with_sk(ballot: [u8; 32], sk: [u8; 32]) -> [u8; 32] {
+        compact_runtime::persistent_hash(&[ballot, sk].concat()).0
+    }
+
 }
