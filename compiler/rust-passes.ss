@@ -105,7 +105,19 @@
           [(topaque ,src ,opaque-type)
            (format "/* TODO M3-F4: topaque ~a */" opaque-type)]
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-           (format "/* TODO M3-F2: tstruct ~a */" struct-name)]
+           ;; L1: Maybe<T> resolves to the canonical struct exposed by
+           ;; compact-runtime. We locate the `value` field's type and
+           ;; emit Maybe<<that-type>>. Other named structs lower to their
+           ;; bare name; their definitions are emitted by emit-type-decls
+           ;; (H5 / future tasks).
+           (cond
+             [(eq? struct-name 'Maybe)
+              (let loop ([names elt-name*] [types type*])
+                (cond
+                  [(null? names) "Maybe</* L1: no value field */>"]
+                  [(eq? (car names) 'value) (format "Maybe<~a>" (type-rust (car types)))]
+                  [else (loop (cdr names) (cdr types))]))]
+             [else (symbol->string struct-name)])]
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
            (format "/* TODO M3-F3: tenum ~a */" enum-name)]
           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
@@ -289,7 +301,15 @@
                     (out "    }\n")
                     (out "}\n")]
                    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-                    (out (format "// TODO M3-H5: struct ~a\n" struct-name))]
+                    (cond
+                      [(eq? struct-name 'Maybe)
+                       ;; L1: Maybe<T> is provided by compact-runtime as a
+                       ;; canonical generic struct — skip per-contract
+                       ;; redefinition. Other named structs still emit a
+                       ;; TODO placeholder until H5 lands.
+                       (void)]
+                      [else
+                       (out (format "// TODO M3-H5: struct ~a\n" struct-name))])]
                    [(talias ,src ,nominal? ,type-name ,type)
                     (out (format "// TODO M3-F2: talias ~a\n" type-name))]
                    [else

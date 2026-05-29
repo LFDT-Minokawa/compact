@@ -7,7 +7,10 @@
 // lowers mutating operations (e.g., `round.increment(1)`) directly to
 // Op programs, so the wrappers don't need methods for those.
 
-use crate::{aligned_bytes, AlignedValue, CompactError, ContractState, StateValue, DB};
+use crate::{
+    aligned_bytes, Aligned, AlignedValue, Alignment, CompactError, ContractState, FieldRepr,
+    FromFieldRepr, Fr, MemWrite, StateValue, DB,
+};
 
 /// Compact's `Counter` ledger ADT. Represented at runtime as
 /// `StateValue::Cell` containing a u64 aligned-value.
@@ -98,37 +101,85 @@ pub fn serialize_contract_state<D: DB>(state: &ContractState<D>) -> Result<Vec<u
 /// Generated code uses this alias rather than spelling `[u8; N]` everywhere.
 pub type Bytes<const N: usize> = [u8; N];
 
-/// Compact's standard-library `Maybe<T>` ADT — equivalent to `Option<T>`
-/// but kept as a distinct type so generated code matches the TS spelling.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Maybe<T> {
-    Some(T),
-    None,
+/// Compact's standard-library `Maybe<T>` ADT — a struct with an explicit
+/// `is_some` discriminant plus a `value` payload. Mirrors the on-chain
+/// wire format (1-byte is_some + T's repr) used by `standard-library.compact`:
+///
+/// ```compact
+/// export struct Maybe<T> { is_some: Boolean; value: T; }
+/// ```
+///
+/// Generated code references `Maybe<T>` directly; the `some(v)` / `none()`
+/// helpers below construct values in the same shape Compact's circuits do.
+/// `Copy` is implemented when `T: Copy` so the struct composes cheaply with
+/// primitive payloads (e.g. `Maybe<Field>`, `Maybe<u64>`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Maybe<T> {
+    pub is_some: bool,
+    pub value: T,
 }
 
 impl<T> Maybe<T> {
+    /// Returns the `is_some` discriminant. Provided as a method for ergonomic
+    /// parity with `Option::is_some` even though the field itself is public.
     #[inline]
     pub fn is_some(&self) -> bool {
-        matches!(self, Maybe::Some(_))
+        self.is_some
     }
 
+    /// Returns the inner `value`, panicking if `is_some` is false. Matches the
+    /// Compact `Maybe::unwrap` circuit's runtime check semantics.
     #[inline]
     pub fn unwrap(self) -> T {
-        match self {
-            Maybe::Some(v) => v,
-            Maybe::None => panic!("Maybe::unwrap on None"),
+        if !self.is_some {
+            panic!("Maybe::unwrap on None");
         }
+        self.value
     }
 }
 
-#[inline]
-pub fn some<T>(v: T) -> Maybe<T> {
-    Maybe::Some(v)
+impl<T: Aligned> Aligned for Maybe<T> {
+    fn alignment() -> Alignment {
+        Alignment::concat([&bool::alignment(), &T::alignment()])
+    }
 }
 
+impl<T: FieldRepr> FieldRepr for Maybe<T> {
+    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {
+        self.is_some.field_repr(writer);
+        self.value.field_repr(writer);
+    }
+    fn field_size(&self) -> usize {
+        self.is_some.field_size() + self.value.field_size()
+    }
+}
+
+impl<T: FromFieldRepr> FromFieldRepr for Maybe<T> {
+    const FIELD_SIZE: usize = 1 + T::FIELD_SIZE;
+    fn from_field_repr(r: &[Fr]) -> Option<Self> {
+        if r.len() < Self::FIELD_SIZE {
+            return None;
+        }
+        let is_some = bool::from_field_repr(&r[..bool::FIELD_SIZE])?;
+        let value = T::from_field_repr(&r[bool::FIELD_SIZE..Self::FIELD_SIZE])?;
+        Some(Maybe { is_some, value })
+    }
+}
+
+/// Construct a `Maybe<T>` in the "some" state. Mirrors Compact's
+/// `some<T>(value: T): Maybe<T>` circuit from `standard-library.compact`.
 #[inline]
-pub fn none<T>() -> Maybe<T> {
-    Maybe::None
+pub fn some<T>(v: T) -> Maybe<T> {
+    Maybe { is_some: true, value: v }
+}
+
+/// Construct a `Maybe<T>` in the "none" state. The caller supplies a
+/// default-shaped value for the inert `value` field; Compact's
+/// `none<T>(): Maybe<T>` uses `default<T>` for this, which Rust can mirror
+/// via `T::default()` at the call site.
+#[inline]
+pub fn none<T: Default>() -> Maybe<T> {
+    Maybe { is_some: false, value: T::default() }
 }
 
 /// Compact's `pad(width, s)` — return the bytes of `s` resized to exactly
@@ -162,6 +213,15 @@ mod tests_m3a_helpers {
     fn maybe_none_is_none() {
         let m: Maybe<u32> = none();
         assert!(!m.is_some());
+    }
+
+    #[test]
+    fn maybe_some_some_roundtrip() {
+        // Sanity check: field_size of `Maybe<u8>` is 1 (is_some) + 1 (u8) = 2.
+        let m: Maybe<u8> = Maybe { is_some: true, value: 42 };
+        assert_eq!(m.field_size(), 1 + 42_u8.field_size());
+        // FIELD_SIZE associated const matches.
+        assert_eq!(<Maybe<u8> as FromFieldRepr>::FIELD_SIZE, 1 + <u8 as FromFieldRepr>::FIELD_SIZE);
     }
 
     #[test]
