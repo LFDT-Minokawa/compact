@@ -9,8 +9,8 @@
 | Phase | Tasks | Status | Last commit |
 |---|---|---|---|
 | **E1** — Implicit constructor support | E1.1 ✅ (verified, no fix needed) | done | — |
-| **E2** — Non-exported struct promotion | E2.1 | pending | — |
-| **R1** — Re-export ADT wrappers in compact-runtime + builder helpers | R1.1, R1.2, R1.3 (K1.1 — extended defaults) | pending | — |
+| **E2** — Non-exported struct promotion | E2.1 ✅ | done | `c56372e` |
+| **R1** — Re-export ADT wrappers in compact-runtime + builder helpers | R1.1 ✅, R1.2 ✅, R1.3 ✅ | done | `3e0bb74` |
 | **R2** — Native function mapping audit | R2.1–R2.5 | pending | — |
 | **R3** — persistent_hash argument encoding fix | R3.1 | pending | — |
 | **R4** — Extended decoders | R4.1 | pending | — |
@@ -27,7 +27,18 @@
 | **F1** — zerocash.compact byte-parity | F1.1, F1.2 | pending | — |
 | **F2** — election.compact byte-parity | F2.1, F2.2 | pending | — |
 
-**Resume here:** R1 (ADT runtime re-exports). E1 was verified — implicit constructor works in shape (zerocash + election emit clean `pub fn initial_state` skeletons via the existing J1+J2 path); no code change needed. The actual blocker for getting zerocash to compile is the per-field default seeding — `new_cell(Default::default())` for Set/MerkleTree/HMT can't infer T. R1 exposes the upstream ADTs in compact-runtime + adds `new_set`/`new_map`/`new_merkle_tree`/`new_historic_merkle_tree` builder helpers; K1.1 (added below) then teaches `default-value-rust` + `emit-initial-state` to dispatch on the ADT and emit the right builder.
+**Resume here:** Phase F (fixtures) + Phase E4 (ADT method emission in circuit bodies) + Phase F1/F2 (zerocash + election byte-parity).
+
+**Milestone reached (commit `0d4f393`):** all four example contracts (counter, tiny, zerocash, election) now **compile cleanly** as Rust crates via the M3.5 emitter + runtime work. Path here, in order: E1 verified ✅ → R1 (ADT runtime + builders) ✅ → E2 (struct/enum promotion) ✅ → close-zerocash (Opaque/[u8;N]/aliases via codegen specials) ✅ → OpaqueString + Maybe<T> Value conv (election) ✅.
+
+Counter + tiny snapshots remain byte-identical throughout. 5 e2e parity tests still pass.
+
+What's left:
+- **Byte-parity tests for zerocash + election** (F1, F2): TS capture driver + Rust e2e test. Some emission may need refinement to match TS byte-for-byte; the Vec<u8>/OpaqueString FieldRepr semantics flagged by the close-zerocash subagent need verification.
+- **Map fixture** (F3): no current example contract uses Map; needs a small purpose-built fixture + byte-parity test.
+- **ADT method emission in circuit bodies** (E4): zerocash + election circuits invoke Set.insert / MerkleTree.check_root / Map.lookup etc. as ledger writes. The current emitter emits `unimplemented!()` for circuit bodies that contain these. E4 lights up real Op programs for them.
+- **Small targeted fixtures** (F4-F8): uints, vector, aliases, witnesses, if-statement.
+- **R2 (native audit)** + **R3 (persistent_hash encoding fix)** + **R4 (extended decoders)** remain.
 
 **Goal:** every cell in the M3.5 design's test matrix flips to ✅ (or has a documented carve-out).
 
