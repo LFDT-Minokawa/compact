@@ -22,6 +22,7 @@ members = [
     "tests-e2e-rust",
     "tests-e2e-rust/contracts/tiny",
     "tests-e2e-rust/contracts/zerocash",
+    "tests-e2e-rust/contracts/election",
 ]
 
 [workspace.dependencies]

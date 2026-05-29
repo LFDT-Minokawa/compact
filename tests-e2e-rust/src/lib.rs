@@ -113,3 +113,31 @@ impl ZerocashTsReferenceState {
         serde_json::from_str(&raw).expect("parse fixture")
     }
 }
+
+/// Fixture shape for election.compact's initial_state() byte-parity test
+/// (F2.1 of the M3.5 plan). election has an implicit constructor, so the
+/// fixture only carries the post-init snapshot.
+#[derive(Deserialize, Debug)]
+pub struct ElectionTsReferenceState {
+    #[serde(rename = "afterInit")]
+    pub after_init: ElectionStepSnapshot,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ElectionStepSnapshot {
+    #[serde(rename = "stateHex")]
+    pub state_hex: String,
+}
+
+impl ElectionStepSnapshot {
+    pub fn state_bytes(&self) -> Vec<u8> {
+        hex::decode(&self.state_hex).expect("decode hex")
+    }
+}
+
+impl ElectionTsReferenceState {
+    pub fn load(path: impl AsRef<Path>) -> Self {
+        let raw = std::fs::read_to_string(path).expect("read fixture");
+        serde_json::from_str(&raw).expect("parse fixture")
+    }
+}
