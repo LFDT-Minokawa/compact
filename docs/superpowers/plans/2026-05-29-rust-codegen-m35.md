@@ -14,10 +14,15 @@
 | **R2** — Native function mapping audit | R2.1 ✅ (TODO), R2.2 ✅, R2.3 ✅, R2.4 ✅ (TODO), R2.5 ✅ | done | `8f71d7f` |
 | **R3** — persistent_hash argument encoding fix | R3.1 ✅ | done | — |
 | **R4** — Extended decoders + collection-ADT view skip | R4.1 ✅ | done | `88af088` |
-| **E3** — Typed Ledger materialised view | E3.1 | pending | — |
-| **E4** — ADT method emission | E4.1 ✅ infrastructure, E4.2+3 ✅ walker, E4.4 ✅ closure — zerocash_mint emits | mostly done | `cd3da3e` |
-| **E5** — Cross-circuit call (exported + general non-exported) | E5.1, E5.2 | pending | — |
-| **E6** — `if-statement` body shape | E6.1 | pending | — |
+| **E3** — Typed Ledger materialised view | E3.1 | deferred (UX, not blocking matrix) | — |
+| **E4** — ADT method emission | E4.1 ✅, E4.2+3 ✅, E4.4 ✅ (zerocash_mint emits) | done | `cd3da3e` |
+| **E5** — Cross-circuit call (exported + general non-exported) | E5.1 ✅ (with cross_circuit fixture) | done | `6ca2089` |
+| **E6** — `if-statement` body shape | E6.1 ✅ pure-circuit case | done; impure-mid-body deferred | `697de1b` |
+| **F1.2** — zerocash.spend body | partial — expr-rust operators landed; spend still falls back | partial | `cffdc7c` |
+| **F2.2** — election circuits | 5/7 bodies emit (add_voter, advance, set_topic, ballot_repr, successor); vote$commit, vote$reveal pending | partial | `cf58bc7` |
+| **F8** — `if-stmt-fixture.compact` | F8.1 ✅ byte-parity | done | `30c45f1` |
+| **set fixture** | byte-parity ✅ (validates F1.2/2) | done | `dd65e9d` |
+| **nominal alias decl** | ✅ | done | `30c45f1` |
 | **F4** — `uints-fixture.compact` | F4.1 ✅ byte-parity | done | `56c049f` |
 | **F5** — `vector-fixture.compact` | F5.1 ✅ byte-parity | done | `4df8e22` |
 | **F6** — `aliases-fixture.compact` | F6.1 ✅ byte-parity (transparent only — nominal emits alias name but no decl) | done | `56c049f` |
