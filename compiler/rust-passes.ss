@@ -971,8 +971,11 @@
             [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
              ;; I3b/3: ledger read in expression position. Goes through
              ;; emit-ledger-read-expr which uses current-qctx-ref to pick
-             ;; the right QueryContext source.
-             (emit-ledger-read-expr path-elt* adt-op)]
+             ;; the right QueryContext source. F1.2/2: passes expr* +
+             ;; native-id-ht so ADT read-with-arg (Set.member, HMT.
+             ;; checkRoot, Map.lookup) routes through the vm-code
+             ;; expansion path.
+             (emit-ledger-read-expr path-elt* adt-op expr* native-id-ht)]
             [else
              ;; quote/tuple/etc. fall through to the existing expr-rust.
              (expr-rust e native-id-ht)])))
@@ -2488,6 +2491,76 @@
                [else #f])]
             [else #f])))
 
+      ;; vminstr->gather-builder-call: like vminstr->builder-call but for
+      ;; OpProgramGather chains emitted inline by emit-ledger-read-expr
+      ;; (ADT `read` ops with args, e.g. Set.member, HistoricMerkleTree
+      ;; .checkRoot, Map.member). Uses 16-space indentation to match the
+      ;; existing read-expr block template and emits the additional ops
+      ;; that read vm-code uses but write vm-code doesn't: `popeq` (no
+      ;; result value in Gather mode), `member`, and `eq`. The `popeq`
+      ;; arg layout matches Op::Popeq's `(cached, ())` Gather signature
+      ;; via OpProgramGather::popeq(cached). Returns #f for ops we don't
+      ;; know how to render so the caller falls back to the no-arg
+      ;; hardcoded template.
+      (define (vminstr->gather-builder-call v)
+        (let ([op (vminstr-op v)]
+              [args (vminstr-arg* v)])
+          (cond
+            [(string=? op "idx")
+             (let* ([cached-pair (assoc "cached" args)]
+                    [push-pair (assoc "pushPath" args)]
+                    [path-pair (assoc "path" args)])
+               (cond
+                 [(not (and cached-pair push-pair path-pair)) #f]
+                 [else
+                  (let ([indices (vm-path->indices (cdr path-pair))]
+                        [push-path (cdr push-pair)])
+                    (cond
+                      [(and indices (= (length indices) 1))
+                       (format "                .idx_at_index(~au8, ~a)\n"
+                               (car indices)
+                               (if push-path "true" "false"))]
+                      [else #f]))]))]
+            [(string=? op "dup")
+             (let ([n-pair (assoc "n" args)])
+               (cond
+                 [(not n-pair) #f]
+                 [else
+                  (let ([n (cdr n-pair)])
+                    (and (integer? n) (exact? n)
+                         (format "                .dup(~a)\n" n)))]))]
+            [(string=? op "push")
+             (let ([storage-pair (assoc "storage" args)]
+                   [value-pair (assoc "value" args)])
+               (cond
+                 [(not (and storage-pair value-pair)) #f]
+                 [else
+                  (let ([rust-val (vm-value->rust-state-value (cdr value-pair))])
+                    (and rust-val
+                         (format "                .push(~a, ~a)\n"
+                                 (if (cdr storage-pair) "true" "false")
+                                 rust-val)))]))]
+            [(string=? op "member")
+             (cond
+               [(null? args) "                .member()\n"]
+               [else #f])]
+            [(string=? op "eq")
+             (cond
+               [(null? args) "                .eq()\n"]
+               [else #f])]
+            [(string=? op "root")
+             (cond
+               [(null? args) "                .root()\n"]
+               [else #f])]
+            [(string=? op "popeq")
+             (let ([cached-pair (assoc "cached" args)])
+               (cond
+                 [(not cached-pair) #f]
+                 [else
+                  (format "                .popeq(~a)\n"
+                          (if (cdr cached-pair) "true" "false"))]))]
+            [else #f])))
+
       ;; emit-public-ledger-call-body: emit the I3a body — an
       ;; OpProgramVerify builder chain matching the adt-op's vm-code,
       ;; followed by the query_for_verify wrapper + Ok return. Returns #t
@@ -2788,8 +2861,9 @@
            ;; `(==)` or as the RHS of a const-binding). Emits an inline
            ;; gather query against (current-qctx-ref) and decodes the
            ;; resulting AlignedValue using the same decoder table the
-           ;; Ledger view uses.
-           (emit-ledger-read-expr path-elt* adt-op)]
+           ;; Ledger view uses. F1.2/2: passes expr* + native-id-ht to
+           ;; cover ADT read-with-arg (Set.member etc).
+           (emit-ledger-read-expr path-elt* adt-op expr* native-id-ht)]
           [(enum-ref ,src ,type ,elt-name)
            ;; E6: enum variant in expression position (pure circuit body).
            ;; Render as `EnumName::variant` (with Rust keyword escaping
@@ -2808,63 +2882,145 @@
 
       ;; emit-ledger-read-expr: render a `(public-ledger ... read)` IR
       ;; node as a Rust block expression that runs a gather query and
-      ;; decodes the result. Used by expr-rust when the read appears in
-      ;; expression position (clear()'s `apk == authority`, in_state's
-      ;; inlined `state == s`).
+      ;; decodes the result. Used by expr-rust / ctor-expr-rust when the
+      ;; read appears in expression position (clear()'s `apk == authority`,
+      ;; in_state's inlined `state == s`, zerocash.spend's
+      ;; `nullifiers.member(old)` and `commitments.checkRoot(...)`).
       ;;
       ;; The qctx source comes from the (current-qctx-ref) dynamic
       ;; parameter so circuit-body emissions read from
       ;; `&ctx.current_query_context` while constructor-body emissions
       ;; would read from `&qctx`.
-      (define (emit-ledger-read-expr path-elt* adt-op)
+      ;;
+      ;; Optional `expr*` carries the ADT-read's runtime arguments (the
+      ;; element for Set.member, the candidate root for
+      ;; HistoricMerkleTree.checkRoot, the key for Map.member / lookup).
+      ;; When present, we route through expand-vm-code + the gather
+      ;; vminstr renderer so the resulting OpProgramGather chain mirrors
+      ;; the adt-op's vm-code (including the additional push and
+      ;; member / eq / root steps). When absent — the no-arg
+      ;; Counter.read / cell.read case — we keep the original hardcoded
+      ;; dup / idx / popeq template intact (no behaviour change for the
+      ;; counter / tiny snapshots).
+      (define (emit-ledger-read-expr path-elt* adt-op . opt-args)
+        (let* ([expr* (if (pair? opt-args) (car opt-args) '())]
+               [native-ht (and (pair? opt-args) (pair? (cdr opt-args)) (cadr opt-args))])
+          (nanopass-case (Ltypescript ADT-Op) adt-op
+            [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+             (cond
+               [(not (eq? op-class 'read))
+                "/* TODO M3-I3b: non-read public-ledger in expr */ unimplemented!()"]
+               [else
+                (let* ([path-idx*
+                        (map (lambda (pe)
+                               (nanopass-case (Ltypescript Path-Element) pe
+                                 [,path-index path-index]
+                                 [else #f]))
+                             path-elt*)]
+                       [decoder (decoder-for-type type)])
+                  (cond
+                    [(memv #f path-idx*)
+                     "/* TODO M3-I3b: ledger read with non-index path */ unimplemented!()"]
+                    [(not decoder)
+                     "/* TODO M3-I3b: ledger read decoder */ unimplemented!()"]
+                    [(not (null? expr*))
+                     ;; F1.2/2: ADT read-with-arg path. Run the adt-op's
+                     ;; vm-code through expand-vm-code with the concrete
+                     ;; path + lifted-arg substitutions, then render each
+                     ;; vminstr as one line of the OpProgramGather chain.
+                     ;; Falls back to `unimplemented!()` if any step is
+                     ;; unsupported (e.g. an arg shape vm-value->rust
+                     ;; doesn't yet handle).
+                     (or
+                       (emit-ledger-read-expr-with-args
+                         path-elt* adt-op expr* native-ht decoder)
+                       "/* TODO M3-F1.2/2: ADT read-with-arg lowering */ unimplemented!()")]
+                    [else
+                     (let ([idx-lines
+                            (let join ([xs path-idx*] [acc ""])
+                              (cond
+                                [(null? xs) acc]
+                                [else
+                                 (join (cdr xs)
+                                       (string-append
+                                         acc
+                                         (format "                .idx_at_index(~au8, false)\n" (car xs))))]))])
+                       (string-append
+                         "{\n"
+                         "            let _gather_ops = OpProgramGather::<DefaultDB>::new()\n"
+                         "                .dup(0)\n"
+                         idx-lines
+                         "                .popeq(true)\n"
+                         "                .build();\n"
+                         "            let _gather_results = query_for_read(\n"
+                         "                " (current-qctx-ref) ",\n"
+                         "                &_gather_ops,\n"
+                         "                None,\n"
+                         "                &initial_cost_model(),\n"
+                         "            )\n"
+                         "            .map_err(|e| CompactError::AssertionFailed(format!(\"ledger query failed: {:?}\", e)))?;\n"
+                         "            let _av = match _gather_results.events.last() {\n"
+                         "                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,\n"
+                         "                _ => return Err(CompactError::AssertionFailed(\"ledger: expected Read event\".into())),\n"
+                         "            };\n"
+                         "            " decoder "(_av)?\n"
+                         "        }"))]))])])))
+
+      ;; emit-ledger-read-expr-with-args: F1.2/2 — render the ADT read
+      ;; via expand-vm-code, producing a Rust block expression. Returns
+      ;; #f if the path / args / vminstrs can't be lowered, so the
+      ;; caller can fall back to the placeholder. `native-ht` may be #f
+      ;; for cases where the caller didn't supply one — we then can't
+      ;; render non-literal args and bail out.
+      (define (emit-ledger-read-expr-with-args path-elt* adt-op expr* native-ht decoder)
         (nanopass-case (Ltypescript ADT-Op) adt-op
           [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
            (cond
-             [(not (eq? op-class 'read))
-              "/* TODO M3-I3b: non-read public-ledger in expr */ unimplemented!()"]
+             [(not (fx= (length expr*) (length var-name*))) #f]
              [else
-              (let* ([path-idx*
-                      (map (lambda (pe)
-                             (nanopass-case (Ltypescript Path-Element) pe
-                               [,path-index path-index]
-                               [else #f]))
-                           path-elt*)]
-                     [decoder (decoder-for-type type)])
+              (let ([path-vals (map path-elt->vm-value path-elt*)]
+                    [expr-vals
+                     (map (lambda (e)
+                            (if native-ht
+                                (expr->vm-value e native-ht)
+                                (expr->vm-value e)))
+                          expr*)])
                 (cond
-                  [(memv #f path-idx*)
-                   "/* TODO M3-I3b: ledger read with non-index path */ unimplemented!()"]
-                  [(not decoder)
-                   "/* TODO M3-I3b: ledger read decoder */ unimplemented!()"]
+                  [(memv #f path-vals) #f]
+                  [(memv #f expr-vals) #f]
                   [else
-                   (let ([idx-lines
-                          (let join ([xs path-idx*] [acc ""])
-                            (cond
-                              [(null? xs) acc]
-                              [else
-                               (join (cdr xs)
-                                     (string-append
-                                       acc
-                                       (format "                .idx_at_index(~au8, false)\n" (car xs))))]))])
-                     (string-append
-                       "{\n"
-                       "            let _gather_ops = OpProgramGather::<DefaultDB>::new()\n"
-                       "                .dup(0)\n"
-                       idx-lines
-                       "                .popeq(true)\n"
-                       "                .build();\n"
-                       "            let _gather_results = query_for_read(\n"
-                       "                " (current-qctx-ref) ",\n"
-                       "                &_gather_ops,\n"
-                       "                None,\n"
-                       "                &initial_cost_model(),\n"
-                       "            )\n"
-                       "            .map_err(|e| CompactError::AssertionFailed(format!(\"ledger query failed: {:?}\", e)))?;\n"
-                       "            let _av = match _gather_results.events.last() {\n"
-                       "                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,\n"
-                       "                _ => return Err(CompactError::AssertionFailed(\"ledger: expected Read event\".into())),\n"
-                       "            };\n"
-                       "            " decoder "(_av)?\n"
-                       "        }"))]))])]))
+                   (let* ([arg-alist
+                           (append (map cons adt-formal* adt-arg*)
+                                   (map (lambda (vn v)
+                                          (cons (id-sym vn) v))
+                                        var-name* expr-vals))]
+                          [vminstr*
+                           (guard (c [#t #f])
+                             (expand-vm-code #f path-vals #f arg-alist
+                               (vm-code-code vm-code)))]
+                          [lines (and vminstr*
+                                      (map vminstr->gather-builder-call vminstr*))])
+                     (cond
+                       [(or (not lines) (memv #f lines)) #f]
+                       [else
+                        (string-append
+                          "{\n"
+                          "            let _gather_ops = OpProgramGather::<DefaultDB>::new()\n"
+                          (apply string-append lines)
+                          "                .build();\n"
+                          "            let _gather_results = query_for_read(\n"
+                          "                " (current-qctx-ref) ",\n"
+                          "                &_gather_ops,\n"
+                          "                None,\n"
+                          "                &initial_cost_model(),\n"
+                          "            )\n"
+                          "            .map_err(|e| CompactError::AssertionFailed(format!(\"ledger query failed: {:?}\", e)))?;\n"
+                          "            let _av = match _gather_results.events.last() {\n"
+                          "                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,\n"
+                          "                _ => return Err(CompactError::AssertionFailed(\"ledger: expected Read event\".into())),\n"
+                          "            };\n"
+                          "            " decoder "(_av)?\n"
+                          "        }")]))]))])]))
 
       ;; tuple-arg-rust: emit a Rust expression for a Tuple-Argument
       ;; (`single` or `spread`). I3b/1 only needs `single`; `spread` emits a

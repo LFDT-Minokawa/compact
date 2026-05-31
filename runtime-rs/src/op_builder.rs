@@ -118,6 +118,38 @@ impl<D: DB> OpProgramGather<D> {
         self.idx(false, push_path, vec![Key::Value(AlignedValue::from(idx))])
     }
 
+    /// `push` — pushes a `StateValue` onto the VM stack. Mirrors the
+    /// `OpProgramVerify::push` method but for read paths. Used by ADT
+    /// read-with-arg vm-code (Set.member, HistoricMerkleTree.checkRoot,
+    /// Map.member, …) where the read takes a runtime value.
+    pub fn push(mut self, storage: bool, value: StateValue<D>) -> Self {
+        self.ops.push(Op::Push { storage, value });
+        self
+    }
+
+    /// `member` — replaces the top two stack values (a container and a key)
+    /// with a boolean indicating membership. Emitted by Set.member and
+    /// HistoricMerkleTree.checkRoot vm-code.
+    pub fn member(mut self) -> Self {
+        self.ops.push(Op::Member);
+        self
+    }
+
+    /// `eq` — replaces the top two stack values with a boolean indicating
+    /// equality. Emitted by MerkleTree.checkRoot's `(root) (push rt) (eq)`
+    /// sequence.
+    pub fn eq(mut self) -> Self {
+        self.ops.push(Op::Eq);
+        self
+    }
+
+    /// `root` — replaces the top-of-stack `BoundedMerkleTree` with its
+    /// digest. Emitted by MerkleTree.checkRoot before the `eq`.
+    pub fn root(mut self) -> Self {
+        self.ops.push(Op::Root);
+        self
+    }
+
     /// `popeq` for read paths. In `ResultModeGather`, `ReadResult` is `()`.
     pub fn popeq(mut self, cached: bool) -> Self {
         self.ops.push(Op::Popeq { cached, result: () });
