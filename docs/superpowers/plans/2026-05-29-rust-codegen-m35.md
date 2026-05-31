@@ -13,17 +13,17 @@
 | **R1** — Re-export ADT wrappers in compact-runtime + builder helpers | R1.1 ✅, R1.2 ✅, R1.3 ✅ | done | `3e0bb74` |
 | **R2** — Native function mapping audit | R2.1 ✅ (TODO), R2.2 ✅, R2.3 ✅, R2.4 ✅ (TODO), R2.5 ✅ | done | `8f71d7f` |
 | **R3** — persistent_hash argument encoding fix | R3.1 ✅ | done | — |
-| **R4** — Extended decoders | R4.1 | pending | — |
+| **R4** — Extended decoders + collection-ADT view skip | R4.1 ✅ | done | `88af088` |
 | **E3** — Typed Ledger materialised view | E3.1 | pending | — |
 | **E4** — ADT method emission | E4.1 ✅ infrastructure, E4.2+3 ✅ walker, E4.4 ✅ closure — zerocash_mint emits | mostly done | `cd3da3e` |
 | **E5** — Cross-circuit call (exported + general non-exported) | E5.1, E5.2 | pending | — |
 | **E6** — `if-statement` body shape | E6.1 | pending | — |
-| **F4** — `uints-fixture.compact` | F4.1 | pending | — |
-| **F5** — `vector-fixture.compact` | F5.1 | pending | — |
-| **F6** — `aliases-fixture.compact` | F6.1 | pending | — |
-| **F7** — `witnesses-fixture.compact` | F7.1 | pending | — |
-| **F8** — `if-stmt-fixture.compact` | F8.1 | pending | — |
-| **F3** — `map-fixture.compact` + byte-parity | F3.1, F3.2 | pending | — |
+| **F4** — `uints-fixture.compact` | F4.1 ✅ byte-parity | done | `56c049f` |
+| **F5** — `vector-fixture.compact` | F5.1 ⏸ blocked (Vector emitter gaps) | partial | `56c049f` |
+| **F6** — `aliases-fixture.compact` | F6.1 ✅ byte-parity (transparent only — nominal emits alias name but no decl) | done | `56c049f` |
+| **F7** — `witnesses-fixture.compact` | F7.1 ✅ byte-parity | done | `56c049f` |
+| **F8** — `if-stmt-fixture.compact` | F8.1 | pending — needs E6 first | — |
+| **F3** — `map-fixture.compact` + byte-parity | F3.1 ✅ | done | `e1a53d6` |
 | **F1** — zerocash.compact byte-parity | F1.1 ✅ (init), F1.2 (circuits) pending | partial | `3c64488` |
 | **F2** — election.compact byte-parity | F2.1 ✅ (init), F2.2 (circuits) pending | partial | `f80e22e` |
 
