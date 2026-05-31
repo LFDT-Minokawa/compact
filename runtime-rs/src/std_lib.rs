@@ -91,6 +91,26 @@ pub fn decode_bool(av: &AlignedValue) -> Result<bool, CompactError> {
     decode_u8(av).map(|n| n != 0)
 }
 
+/// Decode an `AlignedValue` known to be a `Vector<N, Field>` — i.e. N
+/// consecutive `Fr` atoms in the value. Each atom is parsed via
+/// `Fr::try_from(&ValueAtom)` (same path as `decode_fr`). Returns
+/// `Err(AssertionFailed)` if the value has fewer than N atoms or any
+/// individual atom fails to parse.
+pub fn decode_vector_fr<const N: usize>(av: &AlignedValue) -> Result<[Fr; N], CompactError> {
+    if av.value.0.len() < N {
+        return Err(CompactError::AssertionFailed(format!(
+            "decode_vector_fr: expected at least {N} atoms, got {}",
+            av.value.0.len()
+        )));
+    }
+    let mut out = [Fr::default(); N];
+    for (i, atom) in av.value.0.iter().take(N).enumerate() {
+        out[i] = Fr::try_from(atom)
+            .map_err(|e| CompactError::AssertionFailed(format!("decode_vector_fr[{i}]: {e:?}")))?;
+    }
+    Ok(out)
+}
+
 /// Decode an `AlignedValue` known to be a fixed-width byte array `Bytes<N>`.
 ///
 /// Compact's `Bytes<N>` lowers to a single `ValueAtom` carrying the raw

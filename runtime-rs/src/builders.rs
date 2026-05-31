@@ -36,6 +36,21 @@ pub fn new_cell<D: DB, T: Into<AlignedValue>>(v: T) -> StateValue<D> {
     StateValue::from(v.into())
 }
 
+/// Builds a `StateValue::Cell(...)` from a fixed-size array `[T; N]` of
+/// values each convertible to `AlignedValue`. Concatenates each element's
+/// AlignedValue into one. Used by codegen for Vector<N, T> ledger fields
+/// where `[T; N]: Into<AlignedValue>` isn't impl'd upstream — orphan rules
+/// block us from adding that impl directly, so we provide this helper.
+pub fn new_cell_array<T, D, const N: usize>(v: [T; N]) -> StateValue<D>
+where
+    D: DB,
+    T: Into<AlignedValue> + Copy,
+{
+    let avs: Vec<AlignedValue> = v.iter().copied().map(Into::into).collect();
+    let av = AlignedValue::concat(avs.iter());
+    StateValue::from(av)
+}
+
 /// Builds a `StateValue::Array(...)` from a vector of nested `StateValue`s.
 /// Mirrors the TypeScript `StateValue.newArray().arrayPush(...)` chain.
 pub fn new_array<D: DB>(items: Vec<StateValue<D>>) -> StateValue<D> {

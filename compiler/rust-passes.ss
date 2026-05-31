@@ -1926,9 +1926,15 @@
                                 (tadt-merkle-height t)))]
                   ;; Cell / Counter / anything else with a read op:
                   ;; keep the K1 path — emit new_cell(<default>).
+                  ;; Special case: tvector defaults to [T; N] which doesn't
+                  ;; impl Into<AlignedValue> upstream — route through
+                  ;; new_cell_array which concatenates per-element AVs.
                   [else
                    (let ([read-type (tadt-read-op-type t)])
-                     (out (format "            new_cell(~a),\n"
+                     (out (format "            ~a(~a),\n"
+                                  (if (type-is-tvector? read-type)
+                                      "new_cell_array"
+                                      "new_cell")
                                   (default-value-rust read-type))))])))
             all-bindings))
         (out "        ]);\n")
@@ -2903,6 +2909,16 @@
           [(talias ,src ,nominal? ,type-name ,type) (tadt-name=? type name)]
           [else #f]))
 
+      ;; type-is-tvector?: returns #t when `type` is a tvector (after
+      ;; de-aliasing). Used by emit-initial-state to route vector ledger
+      ;; field seeds through new_cell_array (since `[T; N]: Into<AlignedValue>`
+      ;; isn't impl'd upstream).
+      (define (type-is-tvector? type)
+        (nanopass-case (Ltypescript Type) type
+          [(tvector ,src ,len ,type) #t]
+          [(talias ,src ,nominal? ,type-name ,type) (type-is-tvector? type)]
+          [else #f]))
+
       ;; tadt-merkle-height: given a MerkleTree / HistoricMerkleTree tadt,
       ;; extract the Nat height argument (the first adt-arg). The Public-
       ;; Ledger-ADT-Arg grammar permits either a nat or a type; for the
@@ -2960,6 +2976,15 @@
            "compact_runtime::std_lib::decode_u8"]
           [(tbytes ,src ,len)
            (format "compact_runtime::std_lib::decode_bytes::<~a>" len)]
+          [(tvector ,src ,len ,type)
+           ;; Vector<N, T>: dispatch on element type. For Vector<N, Field>
+           ;; we have a dedicated decoder. Other element types (Bytes<M>,
+           ;; user structs, nested vectors) need their own helpers — leave
+           ;; them flagged so the gap is visible.
+           (nanopass-case (Ltypescript Type) type
+             [(tfield ,src)
+              (format "compact_runtime::std_lib::decode_vector_fr::<~a>" len)]
+             [else #f])]
           [(talias ,src ,nominal? ,type-name ,type) (decoder-for-type type)]
           [else #f]))
 
@@ -2993,6 +3018,11 @@
           [(tboolean ,src) "false"]
           [(tbytes ,src ,len) (format "[0u8; ~a]" len)]
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) "0u8"]
+          [(tvector ,src ,len ,type)
+           ;; Vector<N, T> defaults to an N-element array of T's default.
+           ;; Requires T's default expression to be Copy (true for the
+           ;; common primitives Fr/u*/bool/Bytes<M>).
+           (format "[~a; ~a]" (default-value-rust type) len)]
           [(talias ,src ,nominal? ,type-name ,type) (default-value-rust type)]
           [(topaque ,src ,opaque-type)
            ;; Cat 4: give Opaque<"X"> a typed default so `new_cell(...)`

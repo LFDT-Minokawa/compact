@@ -740,6 +740,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "compact-contract-vector-fixture"
+version = "0.1.0"
+dependencies = [
+ "compact-runtime",
+]
+
+[[package]]
 name = "compact-contract-witnesses-fixture"
 version = "0.1.0"
 dependencies = [
@@ -4607,6 +4614,7 @@ dependencies = [
  "compact-contract-map-fixture",
  "compact-contract-tiny",
  "compact-contract-uints-fixture",
+ "compact-contract-vector-fixture",
  "compact-contract-witnesses-fixture",
  "compact-contract-zerocash",
  "compact-runtime",
