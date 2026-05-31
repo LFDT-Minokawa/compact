@@ -147,6 +147,29 @@ pub fn decode_fr(av: &AlignedValue) -> Result<Fr, CompactError> {
         .map_err(|e| CompactError::AssertionFailed(format!("decode_fr: {e:?}")))
 }
 
+/// Decode an `AlignedValue` into a user type `T: FromFieldRepr` by
+/// converting each atom in the value to `Fr` and feeding the resulting
+/// slice into `T::from_field_repr`. Used by the codegen for tenum
+/// ledger reads where the runtime call site expects the actual enum
+/// variant (e.g. `pure_circuits::successor(state.read())` on
+/// election's `PublicState`) rather than the raw u8 discriminant.
+///
+/// Returns `Err(AssertionFailed)` if any atom fails the
+/// `Fr::try_from(&ValueAtom)` round-trip or if `T::from_field_repr`
+/// rejects the resulting Fr slice (e.g. unknown enum discriminant).
+pub fn decode_via_field_repr<T: FromFieldRepr>(av: &AlignedValue) -> Result<T, CompactError> {
+    let mut frs: Vec<Fr> = Vec::with_capacity(av.value.0.len());
+    for (i, atom) in av.value.0.iter().enumerate() {
+        let fr = Fr::try_from(atom).map_err(|e| {
+            CompactError::AssertionFailed(format!("decode_via_field_repr[{i}]: {e:?}"))
+        })?;
+        frs.push(fr);
+    }
+    T::from_field_repr(&frs).ok_or_else(|| {
+        CompactError::AssertionFailed("decode_via_field_repr: from_field_repr returned None".into())
+    })
+}
+
 /// Canonically serialise a `ContractState` to bytes via
 /// `midnight_serialize::tagged_serialize` — this is the byte format the
 /// TypeScript runtime's `cr.encode` produces. Use this for byte-parity tests

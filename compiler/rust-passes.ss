@@ -696,6 +696,16 @@
                     (out "            _ => None,\n")
                     (out "        }\n")
                     (out "    }\n")
+                    (out "}\n")
+                    ;; F2.2: From<EnumName> for Value — delegate via the u8
+                    ;; discriminant. Lifts the enum into AlignedValue (via
+                    ;; the upstream DynAligned blanket) so `new_cell(<enum>)`
+                    ;; type-checks at ledger-write sites (e.g.
+                    ;; election.advance's `state.write(successor(...))`).
+                    (out (format "impl From<~a> for compact_runtime::Value {\n" enum-name))
+                    (out (format "    fn from(v: ~a) -> compact_runtime::Value {\n" enum-name))
+                    (out "        compact_runtime::Value::from(v as u8)\n")
+                    (out "    }\n")
                     (out "}\n")]
                    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                     (cond
@@ -975,10 +985,26 @@
              ;; F1.2: struct field access (`struct.field`). The field
              ;; name comes from the source language; rust-variant-name
              ;; handles reserved-word escapes.
-             (format "~a.~a"
-                     (ctor-expr-rust expr local-binds
-                                     native-id-ht witness-id-ht circuit-id-ht)
-                     (symbol->string elt-name))]
+             ;;
+             ;; F2.2: special-case `(elt-ref (public-ledger ... read) f 0)`
+             ;; when the read returns a tstruct — the whole-struct
+             ;; decoder doesn't exist (e.g. Maybe<Opaque<string>>), but
+             ;; the first field's decoder applies directly to the
+             ;; gathered AlignedValue (its layout starts with the
+             ;; leading field's atoms). We render a gather block + the
+             ;; field-0 decoder, skipping the intermediate
+             ;; `<struct>.field` projection.
+             (cond
+               [(and (fx= nat 0)
+                     (elt-ref-of-struct-read? expr))
+                (emit-struct-field-zero-read
+                  (struct-read-path-elts expr)
+                  (struct-read-first-field-decoder expr))]
+               [else
+                (format "~a.~a"
+                        (ctor-expr-rust expr local-binds
+                                        native-id-ht witness-id-ht circuit-id-ht)
+                        (symbol->string elt-name))])]
             [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
              ;; I3b/3: ledger read in expression position. Goes through
              ;; emit-ledger-read-expr which uses current-qctx-ref to pick
@@ -1137,17 +1163,15 @@
              (let ([ne (eq-hashtable-ref native-id-ht function-name #f)]
                    [w (eq-hashtable-ref witness-id-ht function-name #f)]
                    [c (eq-hashtable-ref circuit-id-ht function-name #f)])
-               ;; Pure-circuit calls must target an EXPORTED circuit
-               ;; (the only ones that land in the `pure_circuits` mod).
-               ;; Non-exported helpers exist in the IR but aren't
-               ;; emitted, so a `pure_circuits::<name>(...)` reference
-               ;; would fail to compile. Reject here so the body walker
-               ;; falls back to `unimplemented!()` cleanly.
+               ;; F2.2: accept ALL user pure-circuit callees (exported
+               ;; or not). Non-exported helpers (e.g. election's
+               ;; `successor`) now land in the `pure_circuits` mod as
+               ;; `pub(crate) fn` (per E4.4 / emit-pure-circuit), so
+               ;; `pure_circuits::<name>(...)` is a valid in-crate
+               ;; reference from impure-circuit bodies.
                (and (or ne
                         w
-                        (and c
-                             (id-pure? function-name)
-                             (id-exported? function-name)))
+                        (and c (id-pure? function-name)))
                     (let loop ([xs expr*])
                       (cond
                         [(null? xs) #t]
@@ -1202,8 +1226,20 @@
              ;; supported (Rust structs use the same `.field` syntax,
              ;; emitter doesn't know whether the field name is a Rust
              ;; reserved word — current zerocash structs use safe names).
-             (expr-supported? expr native-id-ht
-                              witness-id-ht circuit-id-ht)]
+             ;;
+             ;; F2.2: also accept `(elt-ref (public-ledger ... read) field N)`
+             ;; when the read returns a tstruct and the projected field at
+             ;; offset 0 has a decoder. The whole-struct path through
+             ;; `ledger-read-supported?` would reject (no struct decoder),
+             ;; so we provide a narrower acceptance criterion that lines
+             ;; up with the special-case in `ctor-expr-rust`. Currently
+             ;; only the leading boolean field is supported (e.g.
+             ;; `topic.read().is_some` on `Maybe<T>` — `decode_bool` on the
+             ;; resulting AlignedValue reads exactly the first atom).
+             (or (expr-supported? expr native-id-ht
+                                  witness-id-ht circuit-id-ht)
+                 (and (fx= nat 0)
+                      (elt-ref-of-struct-read? expr)))]
             [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
              ;; I3b/3: ledger read in expression position. Supported when
              ;; op-class is `read`, the path is a single index, and the
@@ -1225,6 +1261,130 @@
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
           [(talias ,src ,nominal? ,type-name ,type) (default-supported? type)]
           [else #f]))
+
+      ;; tenum-name-of-type: if `type` is a tenum (possibly through a
+      ;; talias chain), return the enum's name symbol; otherwise #f.
+      ;; Used at pure-circuit call sites to detect that the formal arg
+      ;; expects a user enum and a runtime coercion from the gathered
+      ;; AlignedValue is needed.
+      (define (tenum-name-of-type type)
+        (nanopass-case (Ltypescript Type) type
+          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) enum-name]
+          [(talias ,src ,nominal? ,type-name ,type) (tenum-name-of-type type)]
+          [else #f]))
+
+      ;; circuit-formal-arg-types: pull the list of formal arg types from a
+      ;; circuit Program-Element. Returns '() if cdefn is #f or not a
+      ;; circuit. Used by F2.2 to align actual args with their declared
+      ;; types when emitting pure-circuit call args.
+      (define (circuit-formal-arg-types cdefn)
+        (cond
+          [(not cdefn) '()]
+          [else
+           (nanopass-case (Ltypescript Program-Element) cdefn
+             [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
+              (map (lambda (a)
+                     (nanopass-case (Ltypescript Argument) a
+                       [(,var-name ,type) type]))
+                   arg*)]
+             [else '()])]))
+
+      ;; render-pure-circuit-arg: render a single actual arg expression
+      ;; for a pure-circuit call. If the formal type is a tenum AND the
+      ;; actual is a `(public-ledger ... read)` returning the matching
+      ;; tenum, emit a gather block decoded via the enum's FromFieldRepr
+      ;; (decode_via_field_repr::<EnumName>) so the call receives the
+      ;; actual enum variant rather than the bare u8 discriminant. Other
+      ;; shapes fall through to ctor-expr-rust.
+      (define (render-pure-circuit-arg actual formal-type local-binds
+                                       native-id-ht witness-id-ht circuit-id-ht)
+        (let* ([enum-name (tenum-name-of-type formal-type)]
+               [e (expr-strip-cast actual)])
+          (cond
+            [(and enum-name
+                  (nanopass-case (Ltypescript Expression) e
+                    [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
+                     (and (null? expr*)
+                          (nanopass-case (Ltypescript ADT-Op) adt-op
+                            [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+                             (and (eq? op-class 'read)
+                                  (tenum-name-of-type type))])
+                          path-elt*)]
+                    [else #f]))
+             =>
+             (lambda (path-elt*)
+               (emit-struct-field-zero-read
+                 path-elt*
+                 (format "compact_runtime::std_lib::decode_via_field_repr::<~a>"
+                         enum-name)))]
+            [else
+             (ctor-expr-rust actual local-binds
+                             native-id-ht witness-id-ht circuit-id-ht)])))
+
+      ;; elt-ref-of-struct-read?: predicate for the F2.2 narrow case
+      ;; `(elt-ref (public-ledger ... read with tstruct return) field 0)`.
+      ;; Returns #t when the inner expression is a public-ledger `read`
+      ;; whose return type is a tstruct AND the field at index 0 has a
+      ;; decoder-for-type. Used by expr-supported? + ctor-expr-rust to
+      ;; light up `topic.read().is_some` on Maybe<Opaque<string>>: the
+      ;; whole-struct read has no decoder, but projecting `.is_some`
+      ;; only needs to decode the leading boolean field, which
+      ;; `decode_bool` does on the gathered AlignedValue.
+      (define (elt-ref-of-struct-read? inner-expr)
+        (let ([e (expr-strip-cast inner-expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
+             (nanopass-case (Ltypescript ADT-Op) adt-op
+               [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+                (and
+                  (eq? op-class 'read)
+                  (null? expr*)
+                  (let loop ([xs path-elt*])
+                    (cond
+                      [(null? xs) #t]
+                      [else
+                       (and (nanopass-case (Ltypescript Path-Element) (car xs)
+                              [,path-index #t]
+                              [else #f])
+                            (loop (cdr xs)))]))
+                  ;; Result type is a tstruct whose first field has a
+                  ;; decoder. We grab field-0's type via the tstruct's
+                  ;; type list.
+                  (nanopass-case (Ltypescript Type) type
+                    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                     (and (pair? type*)
+                          (decoder-for-type (car type*))
+                          #t)]
+                    [else #f]))])]
+            [else #f])))
+
+      ;; struct-read-first-field-decoder: pull the decoder for the leading
+      ;; field of the tstruct returned by `(public-ledger ... read)`. The
+      ;; caller has already validated the inner shape via
+      ;; elt-ref-of-struct-read?, so we just project here. Returns the
+      ;; decoder string, or #f defensively.
+      (define (struct-read-first-field-decoder inner-expr)
+        (let ([e (expr-strip-cast inner-expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
+             (nanopass-case (Ltypescript ADT-Op) adt-op
+               [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+                (nanopass-case (Ltypescript Type) type
+                  [(tstruct ,src ,struct-name (,elt-name* ,type^*) ...)
+                   (and (pair? type^*) (decoder-for-type (car type^*)))]
+                  [else #f])])]
+            [else #f])))
+
+      ;; struct-read-path-elts: pull the path-elt* out of an inner
+      ;; (public-ledger ... read) expression. Used by F2.2's elt-ref
+      ;; projection emission to build the gather idx_at_index chain
+      ;; against the original cell path.
+      (define (struct-read-path-elts inner-expr)
+        (let ([e (expr-strip-cast inner-expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
+             path-elt*]
+            [else #f])))
 
       ;; ledger-read-supported?: returns #t for the `(public-ledger ...
       ;; read)` shapes emit-ledger-read-expr can render — i.e. op-class
@@ -1702,11 +1862,30 @@
                      [(pure-circuit)
                       (let* ([pname (cadr classified)]
                              [pargs (caddr classified)]
+                             ;; F2.2: peek at the callee's formal types so
+                             ;; per-arg rendering can coerce tenum ledger
+                             ;; reads to the actual enum variant.
+                             [callee
+                              (nanopass-case (Ltypescript Expression) (expr-strip-cast rhs)
+                                [(call ,src ,function-name ,expr* ...)
+                                 (eq-hashtable-ref circuit-id-ht function-name #f)]
+                                [else #f])]
+                             [formal-types (circuit-formal-arg-types callee)]
                              [arg-strs
-                              (map (lambda (e)
-                                     (ctor-expr-rust e local-binds
-                                                     native-id-ht witness-id-ht circuit-id-ht))
-                                   pargs)]
+                              (let loop ([as pargs] [fs formal-types] [acc '()])
+                                (cond
+                                  [(null? as) (reverse acc)]
+                                  [else
+                                   (let* ([ft (and (pair? fs) (car fs))]
+                                          [s (if ft
+                                                 (render-pure-circuit-arg
+                                                   (car as) ft local-binds
+                                                   native-id-ht witness-id-ht circuit-id-ht)
+                                                 (ctor-expr-rust (car as) local-binds
+                                                                 native-id-ht witness-id-ht circuit-id-ht))])
+                                     (loop (cdr as)
+                                           (if (pair? fs) (cdr fs) '())
+                                           (cons s acc)))]))]
                              [bind-line
                               (format "        let ~a = pure_circuits::~a(~a);\n"
                                       rust-name pname
@@ -3052,6 +3231,50 @@
       ;; Counter.read / cell.read case — we keep the original hardcoded
       ;; dup / idx / popeq template intact (no behaviour change for the
       ;; counter / tiny snapshots).
+      ;; emit-struct-field-zero-read: F2.2 — emit a gather block for
+      ;; reading a ledger cell whose value is a tstruct, decoding only
+      ;; the leading (field-0) atom with the provided decoder. The
+      ;; AlignedValue layout for a tstruct prepends field-0's atoms,
+      ;; so `decoder(_av)` reads exactly the projected field's bytes.
+      ;; Mirrors the no-arg branch of emit-ledger-read-expr but skips
+      ;; the whole-struct decoder check.
+      (define (emit-struct-field-zero-read path-elt* decoder)
+        (let* ([path-idx*
+                (map (lambda (pe)
+                       (nanopass-case (Ltypescript Path-Element) pe
+                         [,path-index path-index]
+                         [else #f]))
+                     path-elt*)]
+               [idx-lines
+                (let join ([xs path-idx*] [acc ""])
+                  (cond
+                    [(null? xs) acc]
+                    [else
+                     (join (cdr xs)
+                           (string-append
+                             acc
+                             (format "                .idx_at_index(~au8, false)\n" (car xs))))]))])
+          (string-append
+            "{\n"
+            "            let _gather_ops = OpProgramGather::<DefaultDB>::new()\n"
+            "                .dup(0)\n"
+            idx-lines
+            "                .popeq(true)\n"
+            "                .build();\n"
+            "            let _gather_results = query_for_read(\n"
+            "                " (current-qctx-ref) ",\n"
+            "                &_gather_ops,\n"
+            "                None,\n"
+            "                &initial_cost_model(),\n"
+            "            )\n"
+            "            .map_err(|e| CompactError::AssertionFailed(format!(\"ledger query failed: {:?}\", e)))?;\n"
+            "            let _av = match _gather_results.events.last() {\n"
+            "                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,\n"
+            "                _ => return Err(CompactError::AssertionFailed(\"ledger: expected Read event\".into())),\n"
+            "            };\n"
+            "            " decoder "(_av)?\n"
+            "        }")))
+
       (define (emit-ledger-read-expr path-elt* adt-op . opt-args)
         (let* ([expr* (if (pair? opt-args) (car opt-args) '())]
                [native-ht (and (pair? opt-args) (pair? (cdr opt-args)) (cadr opt-args))])

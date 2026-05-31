@@ -72,6 +72,11 @@ impl FromFieldRepr for PermissibleVotes {
         }
     }
 }
+impl From<PermissibleVotes> for compact_runtime::Value {
+    fn from(v: PermissibleVotes) -> compact_runtime::Value {
+        compact_runtime::Value::from(v as u8)
+    }
+}
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct LeafPreimage {
     pub domain_sep: [u8; 6],
@@ -225,6 +230,11 @@ impl FromFieldRepr for PrivateState {
         }
     }
 }
+impl From<PrivateState> for compact_runtime::Value {
+    fn from(v: PrivateState) -> compact_runtime::Value {
+        compact_runtime::Value::from(v as u8)
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum PublicState {
@@ -255,6 +265,11 @@ impl FromFieldRepr for PublicState {
             3 => Some(Self::r#final),
             _ => None,
         }
+    }
+}
+impl From<PublicState> for compact_runtime::Value {
+    fn from(v: PublicState) -> compact_runtime::Value {
+        compact_runtime::Value::from(v as u8)
     }
 }
 
@@ -326,7 +341,88 @@ where
         &self,
         ctx: CircuitContext<PS>,
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
-        unimplemented!("M3-I3: circuit body emission for advance")
+        let _witness_ctx_0 = WitnessContext::new(ledger(&ctx.current_query_context.state), ctx.current_private_state, &ctx.current_query_context);
+        let (current_private_state, sk) = self.witnesses.private_secret_key(&_witness_ctx_0);
+        let apk = pure_circuits::public_key(sk);
+        compact_assert!((apk == {
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(0u8, false)
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_bytes::<32>(_av)?
+        }), "Attempted to advance state without authorization");
+        compact_assert!({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(2u8, false)
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_bool(_av)?
+        }, "Attempted to start election without a topic");
+        let tmp = pure_circuits::successor({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(1u8, false)
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_via_field_repr::<PublicState>(_av)?
+        });
+        let ops = OpProgramVerify::<DefaultDB>::new()
+            .push(false, new_cell(1u8))
+            .push(true, new_cell(tmp))
+            .ins(false, 1)
+            .build();
+
+        let results = query_for_verify(
+            &ctx.current_query_context,
+            &ops,
+            ctx.gas_limit.clone(),
+            &ctx.cost_model,
+        )?;
+
+        Ok(CircuitResults {
+            result: (),
+            context: CircuitContext {
+                current_query_context: results.context,
+                current_private_state,
+                ..ctx
+            },
+            gas_cost: results.gas_cost,
+        })
     }
 
     pub fn set_topic(
