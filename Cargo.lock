@@ -712,6 +712,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "compact-contract-map-fixture"
+version = "0.1.0"
+dependencies = [
+ "compact-runtime",
+]
+
+[[package]]
 name = "compact-contract-tiny"
 version = "0.1.0"
 dependencies = [
@@ -4575,6 +4582,7 @@ name = "tests-e2e-rust"
 version = "0.1.0"
 dependencies = [
  "compact-contract-election",
+ "compact-contract-map-fixture",
  "compact-contract-tiny",
  "compact-contract-zerocash",
  "compact-runtime",

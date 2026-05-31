@@ -26,3 +26,4 @@ hex         = "0.4"
 compact-contract-tiny = { path = "contracts/tiny" }
 compact-contract-zerocash = { path = "contracts/zerocash" }
 compact-contract-election = { path = "contracts/election" }
+compact-contract-map-fixture = { path = "contracts/map-fixture" }
