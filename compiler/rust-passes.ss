@@ -1013,6 +1013,17 @@
              ;; checkRoot, Map.lookup) routes through the vm-code
              ;; expansion path.
              (emit-ledger-read-expr path-elt* adt-op expr* native-id-ht)]
+            [(new ,src ,type ,expr* ...)
+             ;; F2.2: struct-literal construction
+             ;; (`Maybe<...>{ is_some: true, value: t }` or
+             ;; `UserStruct{ f1: v1, ... }`). The IR carries the field
+             ;; initialisers in source order; field names come off the
+             ;; type. Maybe<T> renders as the L1 alias `Maybe`; other
+             ;; tstructs render as their bare name (H5-H7 emit them as
+             ;; concrete Rust structs in the contract module).
+             (render-struct-literal
+               type expr* local-binds
+               native-id-ht witness-id-ht circuit-id-ht)]
             [else
              ;; quote/tuple/etc. fall through to the existing expr-rust.
              (expr-rust e native-id-ht)])))
@@ -1245,6 +1256,21 @@
              ;; op-class is `read`, the path is a single index, and the
              ;; result type has a decoder.
              (ledger-read-supported? path-elt* adt-op)]
+            [(new ,src ,type ,expr* ...)
+             ;; F2.2: struct-literal construction (e.g. election.set_topic's
+             ;; `Maybe<Opaque<"string">>{ is_some: true, value: t }`).
+             ;; Accept when the type is a tstruct (Maybe or user struct) and
+             ;; all field initialiser exprs render. The arg count must equal
+             ;; the struct's field count (lowered from named field initialisers
+             ;; in source order). The Maybe path reuses the L1 runtime alias;
+             ;; user structs are referenced by their bare name (H5-H7).
+             (let ([st (struct-of-type type)])
+               (and st
+                    (fx= (length expr*) (length (cadr st)))
+                    (for-all (lambda (e)
+                               (expr-supported? e native-id-ht
+                                                witness-id-ht circuit-id-ht))
+                             expr*)))]
             [else #f])))
 
       ;; default-supported?: returns #t when default-value-rust would
@@ -2474,6 +2500,58 @@
           [(ttuple ,src ,type* ...) (null? type*)]
           [else #f]))
 
+      ;; struct-of-type: if `type` is a tstruct (possibly through a talias
+      ;; chain), return (list struct-name elt-name* type*); otherwise #f.
+      ;; Used by F2.2's struct-literal emission to recover the field-name
+      ;; list (the IR's `(new ...)` carries field initialisers in source
+      ;; order but not the names — those come off the struct's type).
+      (define (struct-of-type type)
+        (nanopass-case (Ltypescript Type) type
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+           (list struct-name elt-name* type*)]
+          [(talias ,src ,nominal? ,type-name ,type) (struct-of-type type)]
+          [else #f]))
+
+      ;; render-struct-literal: F2.2 — emit a Rust struct construction
+      ;; expression for an Ltypescript `(new src type expr*)`. The struct
+      ;; name comes off the type (via struct-of-type); for Maybe<T> we emit
+      ;; the L1 runtime alias `Maybe` (in scope via the contract module
+      ;; preamble), for user structs the bare struct name (H5-H7 emit the
+      ;; struct definition into the contract module).
+      ;;
+      ;; Field initialiser exprs are rendered through ctor-expr-rust so
+      ;; var-refs resolve against the current local-binds and nested
+      ;; ledger reads / calls / etc. lower correctly.
+      (define (render-struct-literal type expr* local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht)
+        (let* ([st (struct-of-type type)]
+               [struct-name (and st (car st))]
+               [elt-name* (and st (cadr st))])
+          (cond
+            [(not st)
+             "/* TODO M3-F2.2: struct-literal of non-tstruct type */ unimplemented!()"]
+            [(not (fx= (length expr*) (length elt-name*)))
+             "/* TODO M3-F2.2: struct-literal field-count mismatch */ unimplemented!()"]
+            [else
+             (let* ([rust-struct-name (symbol->string struct-name)]
+                    [field-strs
+                     (map (lambda (name e)
+                            (format "~a: ~a"
+                                    (symbol->string name)
+                                    (ctor-expr-rust e local-binds
+                                                    native-id-ht witness-id-ht circuit-id-ht)))
+                          elt-name* expr*)])
+               (string-append
+                 rust-struct-name
+                 " { "
+                 (let join ([xs field-strs] [acc ""])
+                   (cond
+                     [(null? xs) acc]
+                     [(null? (cdr xs)) (string-append acc (car xs))]
+                     [else (join (cdr xs)
+                                 (string-append acc (car xs) ", "))]))
+                 " }"))])))
+
       ;; maybe-value-type: if `type` is `Maybe<T>` (a tstruct named Maybe with
       ;; a `value` field), return T. Otherwise return #f. Used by the
       ;; I3b/4 if-expression emitter to render `some::<T>` / `none::<T>` with
@@ -3206,6 +3284,35 @@
                       (rust-variant-name elt-name))]
              [else
               (format "/* TODO M3-E6: enum-ref of non-tenum type */ unimplemented!()")])]
+          [(new ,src ,type ,expr* ...)
+           ;; F2.2: struct-literal in pure-expression context (e.g. nested
+           ;; inside a quote/tuple consumer). Renders each field via the
+           ;; raw expr-rust path; for the body-walker context the
+           ;; corresponding case in ctor-expr-rust is used instead.
+           (let* ([st (struct-of-type type)]
+                  [struct-name (and st (car st))]
+                  [elt-name* (and st (cadr st))])
+             (cond
+               [(or (not st)
+                    (not (fx= (length expr*) (length elt-name*))))
+                "/* TODO M3-F2.2: struct-literal mismatch */ unimplemented!()"]
+               [else
+                (let* ([field-strs
+                        (map (lambda (name e)
+                               (format "~a: ~a"
+                                       (symbol->string name)
+                                       (expr-rust e native-id-ht)))
+                             elt-name* expr*)])
+                  (string-append
+                    (symbol->string struct-name)
+                    " { "
+                    (let join ([xs field-strs] [acc ""])
+                      (cond
+                        [(null? xs) acc]
+                        [(null? (cdr xs)) (string-append acc (car xs))]
+                        [else (join (cdr xs)
+                                    (string-append acc (car xs) ", "))]))
+                    " }"))]))]
           [else
            (format "/* TODO M3-I3b: unhandled Expression variant */ unimplemented!()")]))
 
