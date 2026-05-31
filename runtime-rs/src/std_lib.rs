@@ -84,6 +84,13 @@ pub fn decode_u128(av: &AlignedValue) -> Result<u128, CompactError> {
     decode_unsigned(av, 16)
 }
 
+/// Decode an `AlignedValue` known to be a bool. Booleans encode as a
+/// single byte (0 or 1); we accept anything via the u8 decoder and
+/// coerce non-zero to true.
+pub fn decode_bool(av: &AlignedValue) -> Result<bool, CompactError> {
+    decode_u8(av).map(|n| n != 0)
+}
+
 /// Decode an `AlignedValue` known to be a fixed-width byte array `Bytes<N>`.
 ///
 /// Compact's `Bytes<N>` lowers to a single `ValueAtom` carrying the raw

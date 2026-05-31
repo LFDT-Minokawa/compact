@@ -2950,6 +2950,7 @@
              [(<= nat 18446744073709551615) "compact_runtime::std_lib::decode_u64"]
              [else "compact_runtime::std_lib::decode_u128"])]
           [(tfield ,src) "compact_runtime::std_lib::decode_fr"]
+          [(tboolean ,src) "compact_runtime::std_lib::decode_bool"]
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
            ;; Enums are FieldRepr'd as a u8 discriminant on chain. The
            ;; in_state inlining (and any other tenum ledger read in
@@ -2960,6 +2961,18 @@
           [(tbytes ,src ,len)
            (format "compact_runtime::std_lib::decode_bytes::<~a>" len)]
           [(talias ,src ,nominal? ,type-name ,type) (decoder-for-type type)]
+          [else #f]))
+
+      ;; adt-is-collection?: ADTs whose `read` op-class is a per-element
+      ;; presence/lookup check rather than a value extractor. For these,
+      ;; the ledger view method (which currently decodes a single
+      ;; AlignedValue → T) has incoherent semantics. Skip view emission
+      ;; for collection-shaped ADTs; users access them through the typed
+      ;; wrapper (E3 territory) or via direct StateValue inspection.
+      (define (adt-is-collection? type)
+        (nanopass-case (Ltypescript Type) type
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           (memq adt-name '(Map Set MerkleTree HistoricMerkleTree List))]
           [else #f]))
 
       ;; default-value-rust: emit the Rust expression for a type's default
@@ -3034,12 +3047,19 @@
                 (filter exported-public-binding? all-bindings)])
           (for-each
             (lambda (pb)
+              ;; R4: skip collection-shaped ADTs (Map/Set/MerkleTree/HMT/List).
+              ;; Their `read` op returns Boolean (presence check), not a value
+              ;; extractor — emitting a `fn name(&self) -> Result<bool, ...>`
+              ;; that ignores the key/element being checked produces a
+              ;; nonsensical API. Direct StateValue inspection or the typed
+              ;; wrapper (E3) is the right access path for these.
+              (unless (adt-is-collection? (binding-type pb))
               (let* ([name (binding-field-name pb)]
                      [path* (binding-path-indices pb)]
                      [read-type (tadt-read-op-type (binding-type pb))]
                      [rust-ret (type-rust read-type)]
                      [decoder (or (decoder-for-type read-type)
-                                  (format "/* TODO M3-K2.1: decoder for ~a */ compact_runtime::std_lib::decode_u64"
+                                  (format "/* TODO M3-R4: decoder for ~a */ compact_runtime::std_lib::decode_u64"
                                           rust-ret))])
                 (out (format "    pub fn ~a(&self) -> Result<~a, CompactError> {\n" name rust-ret))
                 (out "        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());\n")
@@ -3058,7 +3078,7 @@
                 (out "            _ => return Err(CompactError::AssertionFailed(\"ledger: expected Read event\".into())),\n")
                 (out "        };\n")
                 (out (format "        ~a(av)\n" decoder))
-                (out "    }\n")))
+                (out "    }\n"))))
             exported-bindings))
         (out "}\n\n"))
 
