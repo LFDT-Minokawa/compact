@@ -114,8 +114,10 @@ pub use version::COMPACT_RUNTIME_VERSION;
 
 pub mod std_lib;
 pub use std_lib::{
-    array_from_field_repr, bytes_from_field_repr, bytes_field_size, disclose, none, pad, some,
-    vec_u8_from_field_repr, Bytes, Maybe,
+    array_from_field_repr, bytes_from_field_repr, bytes_field_size, construct_jubjub_point,
+    degrade_to_transient, disclose, ec_add, ec_mul, ec_mul_generator, jubjub_point_x,
+    jubjub_point_y, none, pad, some, upgrade_from_transient, vec_u8_from_field_repr, Bytes,
+    Maybe,
 };
 
 pub mod builders;
