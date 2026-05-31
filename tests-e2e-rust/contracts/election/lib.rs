@@ -370,19 +370,19 @@ pub mod pure_circuits {
     }
 
     pub(crate) fn commitment_nullifier(sk: [u8; 32]) -> [u8; 32] {
-        compact_runtime::persistent_hash(&[[108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58, 99, 109, 45, 110, 117, 108, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], sk].concat()).0
+        compact_runtime::std_lib::persistent_hash_aligned(&[compact_runtime::AlignedValue::from([108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58, 99, 109, 45, 110, 117, 108, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), compact_runtime::AlignedValue::from(sk)])
     }
 
     pub(crate) fn reveal_nullifier(sk: [u8; 32]) -> [u8; 32] {
-        compact_runtime::persistent_hash(&[[108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58, 114, 118, 45, 110, 117, 108, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], sk].concat()).0
+        compact_runtime::std_lib::persistent_hash_aligned(&[compact_runtime::AlignedValue::from([108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58, 114, 118, 45, 110, 117, 108, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), compact_runtime::AlignedValue::from(sk)])
     }
 
     pub(crate) fn public_key(sk: [u8; 32]) -> [u8; 32] {
-        compact_runtime::persistent_hash(&[[108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], sk].concat()).0
+        compact_runtime::std_lib::persistent_hash_aligned(&[compact_runtime::AlignedValue::from([108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), compact_runtime::AlignedValue::from(sk)])
     }
 
     pub(crate) fn commit_with_sk(ballot: [u8; 32], sk: [u8; 32]) -> [u8; 32] {
-        compact_runtime::persistent_hash(&[ballot, sk].concat()).0
+        compact_runtime::std_lib::persistent_hash_aligned(&[compact_runtime::AlignedValue::from(ballot), compact_runtime::AlignedValue::from(sk)])
     }
 
 }

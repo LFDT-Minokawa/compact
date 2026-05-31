@@ -279,7 +279,7 @@ impl<'a, D: DB> Ledger<'a, D> {
 
 pub mod pure_circuits {
     pub fn public_key(sk: [u8; 32]) -> [u8; 32] {
-        compact_runtime::persistent_hash(&[[108u8, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], sk].concat()).0
+        compact_runtime::std_lib::persistent_hash_aligned(&[compact_runtime::AlignedValue::from([108u8, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), compact_runtime::AlignedValue::from(sk)])
     }
 
 }

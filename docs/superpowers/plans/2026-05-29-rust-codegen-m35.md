@@ -11,8 +11,8 @@
 | **E1** — Implicit constructor support | E1.1 ✅ (verified, no fix needed) | done | — |
 | **E2** — Non-exported struct promotion | E2.1 ✅ | done | `c56372e` |
 | **R1** — Re-export ADT wrappers in compact-runtime + builder helpers | R1.1 ✅, R1.2 ✅, R1.3 ✅ | done | `3e0bb74` |
-| **R2** — Native function mapping audit | R2.1–R2.5 | pending | — |
-| **R3** — persistent_hash argument encoding fix | R3.1 | pending | — |
+| **R2** — Native function mapping audit | R2.1 ✅ (TODO), R2.2 ✅, R2.3 ✅, R2.4 ✅ (TODO), R2.5 ✅ | done | `8f71d7f` |
+| **R3** — persistent_hash argument encoding fix | R3.1 ✅ | done | — |
 | **R4** — Extended decoders | R4.1 | pending | — |
 | **E3** — Typed Ledger materialised view | E3.1 | pending | — |
 | **E4** — ADT method emission | E4.1 ✅ infrastructure, E4.2+3 ✅ walker, E4.4 ✅ closure — zerocash_mint emits | mostly done | `cd3da3e` |

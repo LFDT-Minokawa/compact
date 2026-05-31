@@ -2712,18 +2712,57 @@
                                        (string-append acc (car xs) ", "))]))))]
             [(and ne (equal? (native-entry-rust-function ne)
                              "compact_runtime::persistent_hash"))
-             ;; persistent_hash needs a flat `&[u8]`. Compact's argument is a
-             ;; Vector<N, T> which the IR represents as a `(tuple ...)` of T
-             ;; values. For the tiny.compact public_key shape both elements
-             ;; are `[u8; 32]` and we can build a flat byte slice via
-             ;; `[a, b].concat()`. The trailing `.0` unwraps HashOutput into
-             ;; `[u8; 32]`.
-             ;; TODO(M3-I3): generalise to other `persistentHash<T>` shapes
-             ;; once we have a FieldRepr-faithful Rust path.
+             ;; R3: alignment-aware lowering of Compact's
+             ;; `persistentHash<T>(value)`. The TS path constructs an
+             ;; `AlignedValue` from `value` (via the runtime type
+             ;; descriptor) and feeds the alignment-framed byte stream to
+             ;; SHA-256; see `node_modules/@midnight-ntwrk/compact-runtime/
+             ;; src/built-ins.ts::persistentHash` and the wasm-side
+             ;; `onchain-runtime-wasm/src/primitives.rs::persistent_hash`.
+             ;;
+             ;; We mirror that by converting each constituent of the
+             ;; argument to an `AlignedValue` and calling
+             ;; `persistent_hash_aligned`, which delegates to
+             ;; `ValueReprAlignedValue::binary_repr` + the upstream SHA-256
+             ;; persistent hash. When the argument is a `Vector<N, T>` the
+             ;; IR represents it as a `(tuple ...)` and we lift each
+             ;; element separately so each gets its own alignment atom; for
+             ;; any other shape we wrap the single argument in a one-element
+             ;; slice.
+             ;;
+             ;; Previous emit (I3b/1):
+             ;;   `persistent_hash(&[a, b, ...].concat()).0`
+             ;; produces byte-identical output for uniform `Bytes<N>` inputs
+             ;; (tiny.compact's `public_key`), but diverges for mixed-type,
+             ;; `Field`-, or `Compress`-bearing inputs because raw byte
+             ;; concat skips the per-atom framing (Bytes<n> zero-padding,
+             ;; Fr little-endian normalisation, Compress hashing).
              (cond
                [(fx= (length expr*) 1)
-                (format "compact_runtime::persistent_hash(&~a.concat()).0"
-                        (expr-rust (car expr*) native-id-ht))]
+                (let ([arg (car expr*)])
+                  (let ([elt-strs
+                         ;; If the single argument is a `tuple` IR node
+                         ;; (Compact-level Vector), break it apart so each
+                         ;; element becomes its own AlignedValue. Otherwise,
+                         ;; emit a one-element slice.
+                         (nanopass-case (Ltypescript Expression) arg
+                           [(tuple ,src ,tuple-arg* ...)
+                            (map (lambda (ta)
+                                   (format "compact_runtime::AlignedValue::from(~a)"
+                                           (tuple-arg-rust ta native-id-ht)))
+                                 tuple-arg*)]
+                           [else
+                            (list (format "compact_runtime::AlignedValue::from(~a)"
+                                          (expr-rust arg native-id-ht)))])])
+                    (string-append
+                      "compact_runtime::std_lib::persistent_hash_aligned(&["
+                      (let join ([xs elt-strs] [acc ""])
+                        (cond
+                          [(null? xs) acc]
+                          [(null? (cdr xs)) (string-append acc (car xs))]
+                          [else (join (cdr xs)
+                                      (string-append acc (car xs) ", "))]))
+                      "])")))]
                [else
                 "/* TODO M3-I3b: persistentHash arity */ unimplemented!()"])]
             [ne
