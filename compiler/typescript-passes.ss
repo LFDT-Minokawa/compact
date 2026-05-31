@@ -29,7 +29,7 @@
           (vm)
           (sourcemaps))
 
-  (define-pass prepare-for-typescript : Lnodisclose (ir) -> Ltypescript ()
+  (define-pass prepare-for-typescript : Lloweredlog (ir) -> Ltypescript ()
     (definitions
       (define program-src)
       (define local-local*)
@@ -301,6 +301,12 @@
           (for-each register-descriptor! type*)
           (maybe-register-descriptor! type)
           `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)])]
+      ;; [(log ,src ,event-version ,event-tag ,type ,len ,[Expr : expr -> * expr] ,vm-code)
+      ;;  (let ([bytes-type (with-output-language (Ltypescript Type)
+      ;;                      `(tbytes ,src ,len))])
+      ;;    ;; (register-descriptor! bytes-type)
+      ;;    ;; (maybe-register-descriptor! type)  ; struct type too, in case anything else needs it
+      ;;    `(log ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code))]
       [(return ,src ,expr) (Expr expr)])
     (Path-Element : Path-Element (ir) -> Path-Element ()
       [,path-index path-index]
@@ -493,196 +499,219 @@
            (format "alignment: ~a.alignment()" descriptor-name))
           " }"))
 
-      (module (construct-query)
-        (define (construct-vm-instructions src path-elt* adt-formal* adt-arg* adt-op expr*)
-          (define-record-type vmref
-            (nongenerative)
-            (fields type q)
-            (protocol
-              (lambda (new)
-                (lambda (type q)
-                  (new type q)))))
-          (define-condition-type &suppressed &condition make-suppressed-condition suppressed-condition?)
-          (define (construct-query-value v top-level?)
-            (cond
-              [(eq? v #f) "false"]
-              [(eq? v #t) "true"]
-              [(and (integer? v) (exact? v)) (format "~d" v)]
-              [(list? v)
-               (make-Qconcat
-                 "["
-                 1 (apply
-                     (make-Qsep ",")
-                     (map
-                       (lambda (v)
-                         (let ([is-stack (and (VMop? v) (VMop-case v
-                                                          [(VMstack) #t]
-                                                          [else #f]))])
-                           (if is-stack
-                               (construct-query-value v #f)
-                               (make-Qconcat
-                                 "{ "
-                                 ((make-Qsep ",")
-                                  "tag: 'value'"
-                                  (make-Qconcat
-                                    "value: "
-                                    (construct-query-value v #f)))
-                                 " }"))))
-                       v))
-                 "]")]
-              [(vmref? v)
-               (let ([v-type (vmref-type v)] [q (vmref-q v)])
-                 (nanopass-case (Ltypescript Type) (de-alias v-type)
-                   [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                    ; FIXME: at present, we can assume that whenever we passs a value of some
-                    ; public-adt as a query argument, it must be the result of default<public-adt>,
-                    ; since that's all that can get past the type checker.  if we generalize to
-                    ; allow first-class public-adt values, this code will no longer be valid.
-                    (construct-query-value
-                      (expand-vm-expr
-                        src
-                        (map cons adt-formal* adt-arg*)
-                        (vm-expr-expr vm-expr))
-                      top-level?)]
-                   [else (construct-typed-value (type->descriptor-name v-type) q)]))]
-              [(VMop? v)
-               (VMop-case v
-                 [(VMstack) "{ tag: 'stack' }"]
-                 [(VMvoid) "undefined"]
-                 [(VMsuppress) (raise (make-suppressed-condition))]
-                 [(VM+ x y)
-                  (make-Qconcat
-                    "("
-                    (construct-query-value x #f)
-                    "+"
-                    (construct-query-value y #f)
-                    ")")]
-                 [(VMvalue->int v)
-                  (make-Qconcat
-                    "parseInt(__compactRuntime.valueToBigInt("
-                    2 (construct-query-value v #f)
-                    4 ".value"
-                    0 "))")]
-                 [(VMalign value bytes)
-                  (assert (or (= bytes 1) (= bytes 8) (= bytes 16)))
-                  (construct-typed-value
-                    (type->descriptor-name (with-output-language (Ltypescript Type) `(tunsigned ,src ,(- (expt 2 (* bytes 8)) 1))))
-                    (format "~dn" value))]
-                 [(VMnull type)
-                  (nanopass-case (Ltypescript Type) (de-alias type)
-                    [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                     (construct-query-value
-                       (expand-vm-expr
-                         src
-                         (map cons adt-formal* adt-arg*)
-                         (vm-expr-expr vm-expr))
-                       top-level?)]
-                    [else
-                     (construct-typed-value
-                       (type->descriptor-name type)
-                       (Expr (with-output-language (Ltypescript Expression) `(default ,src ,type))
-                             (precedence add1 comma)
-                             #f))])]
-                 [(VMmax-sizeof type)
-                  (assert (not (public-adt? type)))
-                  (make-Qconcat
-                    "Number(__compactRuntime.maxAlignedSize("
-                    2 (type->descriptor-name type)
-                    2 ".alignment()"
-                    0 "))")]
-                 [(VMstate-value-cell val)
-                  (make-Qconcat
-                    "__compactRuntime.StateValue.newCell("
-                    (construct-query-value val #f)
-                    (if top-level?
+      (module (construct-query vminstr->q-array make-vmref)
+        (define (vminstr->q-array src vminstr*)
+          (make-Qconcat
+             "["
+             1 (apply (make-Qsep ",")
+                      (fold-right
+                        (lambda (vminstr q*)
+                          (guard (c [(suppressed-condition? c) q*])
+                            (cons (let ([op (vminstr-op vminstr)] [arg* (vminstr-arg* vminstr)])
+                                    (if (null? arg*)
+                                        (format "'~a'" op)
+                                        (make-Qconcat
+                                          "{ " op ": { "
+                                          (apply (make-Qsep ",")
+                                                 (map (lambda (arg)
+                                                        (let ([name (car arg)] [val (cdr arg)])
+                                                          (make-Qconcat name ": " (construct-query-value src val #t))))
+                                                      arg*))
+                                          " } }")))
+                                  q*)))
+                        '()
+                        vminstr*))
+             "]"))
+        (define-record-type vmref
+          (nongenerative)
+          (fields type q)
+          (protocol
+            (lambda (new)
+              (lambda (type q)
+                (new type q)))))
+        (define-condition-type &suppressed &condition make-suppressed-condition suppressed-condition?)
+        (define (construct-query-value src v top-level?)
+          (cond
+            [(eq? v #f) "false"]
+            [(eq? v #t) "true"]
+            [(and (integer? v) (exact? v)) (format "~d" v)]
+            [(list? v)
+             (make-Qconcat
+               "["
+               1 (apply
+                   (make-Qsep ",")
+                   (map
+                     (lambda (v)
+                       (let ([is-stack (and (VMop? v) (VMop-case v
+                                                        [(VMstack) #t]
+                                                        [else #f]))])
+                         (if is-stack
+                             (construct-query-value src v #f)
+                             (make-Qconcat
+                               "{ "
+                               ((make-Qsep ",")
+                                "tag: 'value'"
+                                (make-Qconcat
+                                  "value: "
+                                  (construct-query-value src v #f)))
+                               " }"))))
+                     v))
+               "]")]
+            [(vmref? v)
+             (let ([v-type (vmref-type v)] [q (vmref-q v)])
+               (nanopass-case (Ltypescript Type) (de-alias v-type)
+                 [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                  ; FIXME: at present, we can assume that whenever we passs a value of some
+                  ; public-adt as a query argument, it must be the result of default<public-adt>,
+                  ; since that's all that can get past the type checker.  if we generalize to
+                  ; allow first-class public-adt values, this code will no longer be valid.
+                  (construct-query-value src
+                    (expand-vm-expr
+                      src
+                      (map cons adt-formal* adt-arg*)
+                      (vm-expr-expr vm-expr))
+                    top-level?)]
+                 [else (construct-typed-value (type->descriptor-name v-type) q)]))]
+            [(VMop? v)
+             (VMop-case v
+               [(VMstack) "{ tag: 'stack' }"]
+               [(VMvoid) "undefined"]
+               [(VMsuppress) (raise (make-suppressed-condition))]
+               [(VM+ x y)
+                (make-Qconcat
+                  "("
+                  (construct-query-value src x #f)
+                  "+"
+                  (construct-query-value src y #f)
+                  ")")]
+               [(VMvalue->int v)
+                (make-Qconcat
+                  "parseInt(__compactRuntime.valueToBigInt("
+                  2 (construct-query-value src v #f)
+                  4 ".value"
+                  0 "))")]
+               [(VMalign value bytes)
+                ; log-version uses u32 in ocrt ==> (= bytes 4)
+                (assert (or (= bytes 1) (= bytes 4) (= bytes 8) (= bytes 16)))
+                (construct-typed-value
+                  (type->descriptor-name (with-output-language (Ltypescript Type) `(tunsigned ,src ,(- (expt 2 (* bytes 8)) 1))))
+                  (format "~dn" value))]
+               [(VMnull type)
+                (nanopass-case (Ltypescript Type) (de-alias type)
+                  [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                   (construct-query-value src
+                     (expand-vm-expr
+                       src
+                       (map cons adt-formal* adt-arg*)
+                       (vm-expr-expr vm-expr))
+                     top-level?)]
+                  [else
+                   (construct-typed-value
+                     (type->descriptor-name type)
+                     (Expr (with-output-language (Ltypescript Expression) `(default ,src ,type))
+                           (precedence add1 comma)
+                           #f))])]
+               [(VMmax-sizeof type)
+                (assert (not (public-adt? type)))
+                (make-Qconcat
+                  "Number(__compactRuntime.maxAlignedSize("
+                  2 (type->descriptor-name type)
+                  2 ".alignment()"
+                  0 "))")]
+               [(VMstate-value-cell val)
+                (make-Qconcat
+                  "__compactRuntime.StateValue.newCell("
+                  (construct-query-value src val #f)
+                  (if top-level?
+                      ").encode()"
+                      ")"))]
+               [(VMstate-value-ADT val v-type)
+                (if (public-adt? v-type)
+                    (construct-query-value src val top-level?)
+                    (make-Qconcat
+                      "__compactRuntime.StateValue.newCell("
+                      (construct-query-value src val #f)
+                      (if top-level?
+                          ").encode()"
+                          ")")))]
+               [(VMstate-value-null)
+                (if top-level?
+                    "__compactRuntime.StateValue.newNull().encode()"
+                    "__compactRuntime.StateValue.newNull()")]
+               [(VMstate-value-map key* val*)
+                (make-Qconcat
+                  "__compactRuntime.StateValue.newMap("
+                  2 (apply (make-Qsep ",")
+                      "new __compactRuntime.StateMap()"
+                      (map (lambda (key val)
+                             ; at present, midnight-ledger.ss doesn't create maps with arguments
+                             (make-Qconcat
+                               ".insert("
+                               ((make-Qsep ",")
+                                (construct-query-value src key #f)
+                                (construct-query-value src val #f))
+                               ")"))
+                           key*
+                           val*))
+                  0 (if top-level?
                         ").encode()"
                         ")"))]
-                 [(VMstate-value-ADT val v-type)
-                  (if (public-adt? v-type)
-                      (construct-query-value val top-level?)
+               [(VMstate-value-merkle-tree nat key* val*)
+                (make-Qconcat
+                  "__compactRuntime.StateValue.newBoundedMerkleTree("
+                  2 (apply (make-Qsep ",")
                       (make-Qconcat
-                        "__compactRuntime.StateValue.newCell("
-                        (construct-query-value val #f)
-                        (if top-level?
-                            ").encode()"
-                            ")")))]
-                 [(VMstate-value-null)
-                  (if top-level?
-                      "__compactRuntime.StateValue.newNull().encode()"
-                      "__compactRuntime.StateValue.newNull()")]
-                 [(VMstate-value-map key* val*)
-                  (make-Qconcat
-                    "__compactRuntime.StateValue.newMap("
-                    2 (apply (make-Qsep ",")
-                        "new __compactRuntime.StateMap()"
-                        (map (lambda (key val)
-                               ; at present, midnight-ledger.ss doesn't create maps with arguments
-                               (make-Qconcat
-                                 ".insert("
-                                 ((make-Qsep ",")
-                                  (construct-query-value key #f)
-                                  (construct-query-value val #f))
-                                 ")"))
-                             key*
-                             val*))
-                    0 (if top-level?
-                          ").encode()"
-                          ")"))]
-                 [(VMstate-value-merkle-tree nat key* val*)
-                  (make-Qconcat
-                    "__compactRuntime.StateValue.newBoundedMerkleTree("
-                    2 (apply (make-Qsep ",")
-                        (make-Qconcat
-                          "new __compactRuntime.StateBoundedMerkleTree("
-                          (construct-query-value nat #f)
-                          ")")
-                        (map (lambda (key val)
-                               ; at present, midnight-ledger.ss doesn't create MerkleTrees with arguments
-                               (make-Qconcat
-                                 ".update("
-                                 ((make-Qsep ",")
-                                  (construct-query-value key #f)
-                                  (construct-query-value val #f))
-                                 ")"))
-                             key*
-                             val*))
-                    0 (if top-level?
-                          ").encode()"
-                          ")"))]
-                 [(VMstate-value-array val*)
-                  (make-Qconcat
-                    "__compactRuntime.StateValue.newArray()"
-                    2 (apply make-Qconcat
-                             (map (lambda (val)
-                                    (make-Qconcat
-                                      ".arrayPush("
-                                      (construct-query-value val #f)
-                                      ")"))
-                                  val*))
-                    2 (if top-level?
-                          ".encode()"
-                          ""))]
-                 [(VMaligned-concat x*)
-                  (make-Qconcat
-                    "__compactRuntime.alignedConcat("
-                    2 (apply (make-Qsep ",")
-                             (map (lambda (x) (construct-query-value x #f)) x*))
-                    0 (if top-level?
-                          ").encode()"
-                          ")"))]
-                 [(VMcoin-commit coin recipient)
-                  (make-Qconcat
-                    "__compactRuntime.runtimeCoinCommitment("
-                    2 ((make-Qsep ",")
-                        (construct-query-value coin #f)
-                        (construct-query-value recipient #f))
-                    0 ")")]
-                 [(VMleaf-hash x)
-                  (make-Qconcat
-                    "__compactRuntime.leafHash("
-                    2 (construct-query-value x #f)
-                    0 ")")])]
-              [else (internal-errorf 'construct-query-value "unhandled case ~s" v)]))
+                        "new __compactRuntime.StateBoundedMerkleTree("
+                        (construct-query-value src nat #f)
+                        ")")
+                      (map (lambda (key val)
+                             ; at present, midnight-ledger.ss doesn't create MerkleTrees with arguments
+                             (make-Qconcat
+                               ".update("
+                               ((make-Qsep ",")
+                                (construct-query-value src key #f)
+                                (construct-query-value src val #f))
+                               ")"))
+                           key*
+                           val*))
+                  0 (if top-level?
+                        ").encode()"
+                        ")"))]
+               [(VMstate-value-array val*)
+                (make-Qconcat
+                  "__compactRuntime.StateValue.newArray()"
+                  2 (apply make-Qconcat
+                           (map (lambda (val)
+                                  (make-Qconcat
+                                    ".arrayPush("
+                                    (construct-query-value src val #f)
+                                    ")"))
+                                val*))
+                  2 (if top-level?
+                        ".encode()"
+                        ""))]
+               [(VMaligned-concat x*)
+                (make-Qconcat
+                  "__compactRuntime.alignedConcat("
+                  2 (apply (make-Qsep ",")
+                           (map (lambda (x) (construct-query-value src x #f)) x*))
+                  0 (if top-level?
+                        ").encode()"
+                        ")"))]
+               [(VMcoin-commit coin recipient)
+                (make-Qconcat
+                  "__compactRuntime.runtimeCoinCommitment("
+                  2 ((make-Qsep ",")
+                      (construct-query-value src coin #f)
+                      (construct-query-value src recipient #f))
+                  0 ")")]
+               [(VMleaf-hash x)
+                (make-Qconcat
+                  "__compactRuntime.leafHash("
+                  2 (construct-query-value src x #f)
+                  0 ")")])]
+            [else (internal-errorf 'construct-query-value src "unhandled case ~s" v)]))
+        (define (construct-vm-instructions src path-elt* adt-formal* adt-arg* adt-op expr*)
           (nanopass-case (Ltypescript ADT-Op) adt-op
             [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
              (assert (fx= (length expr*) (length var-name*)))
@@ -702,27 +731,7 @@
                                             type*
                                             expr*))
                                (vm-code-code vm-code))])
-               (make-Qconcat
-                 "["
-                 1 (apply (make-Qsep ",")
-                          (fold-right
-                            (lambda (vminstr q*)
-                              (guard (c [(suppressed-condition? c) q*])
-                                (cons (let ([op (vminstr-op vminstr)] [arg* (vminstr-arg* vminstr)])
-                                        (if (null? arg*)
-                                            (format "'~a'" op)
-                                            (make-Qconcat
-                                              "{ " op ": { "
-                                              (apply (make-Qsep ",")
-                                                     (map (lambda (arg)
-                                                            (let ([name (car arg)] [val (cdr arg)])
-                                                              (make-Qconcat name ": " (construct-query-value val #t))))
-                                                          arg*))
-                                              " } }")))
-                                      q*)))
-                            '()
-                            vminstr*))
-                 "]"))]))
+               (vminstr->q-array src vminstr*))]))
 
         (define (coin-recipient-indices adt-op)
           (nanopass-case (Ltypescript ADT-Op) adt-op
@@ -2857,6 +2866,20 @@
            expr
            "."
            (format "~s" elt-name)))]
+      [(log ,src ,event-version ,event-tag ,type ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,vm-code)
+       (let* ([bytes-type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))]
+              [vminstr*   (expand-vm-code src #f #f
+                            `((log-version . ,event-version)
+                              (log-tag     . ,event-tag)
+                              (log-payload . ,(make-vmref bytes-type expr)))
+                            (vm-code-code vm-code))])
+         (make-Qconcat
+           "__compactRuntime.queryLedgerState("
+           ((make-Qsep ",")
+            "context"
+            "partialProofData"
+            (vminstr->q-array src vminstr*))
+           ")"))]
       [(enum-ref ,src ,type ,elt-name^)
        (parenthesize level (precedence call)
          (nanopass-case (Ltypescript Type) (de-alias type)

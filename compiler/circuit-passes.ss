@@ -26,17 +26,6 @@
           (langs)
           (pass-helpers))
 
-  (define-pass lower-log : Lnodisclose (ir) -> Lloweredlog ()
-    (Expression : Expression (ir) -> Expression ()
-      [(log ,src ,[type] ,[expr] ,[expr^])
-       (nanopass-case (Lloweredlog Type) type
-         [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
-          (let ([event-tag (or (event-tag-of struct-name)
-                            (source-errorf src "~a is not a declared event type" struct-name))])
-            `(log ,src ,event-version ,event-tag ,type ,expr^))]
-         [else (assert cannot-happen)])
-       ]))
-
   (define-pass drop-ledger-runtime : Lloweredlog (ir) -> Lposttypescript ()
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -671,7 +660,7 @@
                     (loop (cdr elt-name*) (cdr type*)))))]
          [else (source-errorf src "expected structure type, received ~a"
                               (format-type type))])]
-      [(log ,src ,event-version ,event-tag ,type ,[Care : expr -> * type^])
+      [(log ,src ,event-version ,event-tag ,type ,len ,[Care : expr -> * type^] ,vm-code)
        ; TODO add more check for event version and tag
        (nanopass-case (Linlined Type) type^
          [(tbytes ,src^ ,len) type]
@@ -1467,8 +1456,8 @@
            [else (assert cannot-happen)]))]
       [(elt-ref ,src ,[expr ctv] ,elt-name)
        (handle-elt-ref src expr ctv elt-name)]
-      [(log ,src ,event-version ,event-tag ,[type] ,[expr ctv]) ; TODO fix this
-       (values `(log ,src ,event-version ,event-tag ,type ,expr) ctv)]
+      [(log ,src ,event-version ,event-tag ,[type] ,len ,[expr ctv] ,vm-code) ; TODO fix this
+       (values `(log ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code) ctv)]
       [(+ ,src ,mbits ,expr1 ,expr2)
        (define (add x y)
          (let ([a (+ x y)])
@@ -3826,7 +3815,6 @@
   (define optimize-circuit2 (lambda (x) (optimize-circuit x)))
 
   (define-passes circuit-passes
-    (lower-log                       Lloweredlog)
     (drop-ledger-runtime             Lposttypescript)
     (replace-enums                   Lnoenums)
     (unroll-loops                    Lunrolled)
@@ -3839,7 +3827,7 @@
     (flatten-datatypes               Lflattened)
     (optimize-circuit                Lflattened)
     (missing-guard-workarounds       Lflattened)
-    ; rereun optimize-circuit to optimize code added by missing-guard-workarounds
+    ; rerun optimize-circuit to optimize code added by missing-guard-workarounds
     (optimize-circuit2               Lflattened))
 
   (define-checker check-types/Linlined Linlined)

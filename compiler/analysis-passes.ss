@@ -2821,7 +2821,10 @@
          [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
           (unless (hashtable-ref (event-ht) struct-name #f)
             (source-errorf src "~a is not a declared event type" struct-name))
-          (values `(log ,src ,type ,expr ,expr^) type)]
+          (nanopass-case (Ltypes Type) (de-alias type^ #t)
+            [(tbytes ,src^ ,len)
+             (values `(log ,src ,type ,expr ,len ,expr^) type)]
+            [else (assert cannot-happen)])]
          ; can't presently happen it is checked in serialized-payload
          [else (source-errorf src "expected structure type (representation of an event), received ~a"
                               (format-type type))])]
@@ -4214,7 +4217,7 @@
                     (loop (cdr elt-name*) (cdr type*) (fx+ i 1)))))]
          [else (source-errorf src "expected structure type, received ~a"
                               (format-type type))])]
-      [(log ,src ,type ,[Care : expr -> * type^] ,[Care : expr^ -> * type^^])
+      [(log ,src ,type ,[Care : expr -> * type^] ,len ,[Care : expr^ -> * type^^])
        (nanopass-case (Lnodca Type) (de-alias type^)
          [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
           (unless (hashtable-ref (event-ht) struct-name #f)
@@ -4747,6 +4750,87 @@
       [(call ,src ,function-name ,[expr*] ...)
        (process-function-name! function-name)
        ir])
+    (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
+    (Function : Function (ir function-name) -> Function ()
+      [(fref ,src ,function-name)
+       (process-function-name! function-name)
+       ir]))
+
+  (define-pass reject-constructor-log : Lnodca (ir) -> Lnodca ()
+    ; this pass raises an exception if the constructor attempts a log
+    (definitions
+      (define-condition-type &log-condition &condition
+        make-log-condition log-condition?
+        (function-name log-condition-function-name)
+        (src log-condition-src)
+        (reason log-condition-reason))
+      ; function-ht maps ids (circuit names) to one of:
+      ;   an Lnodca Expression:  a circuit that has yet to be processed
+      ;   inprocess-circuit:     a circuit that is being processed; used to detect cycles
+      ;   #f:                    a processed circuit, determined not to log
+      ;   a sealed condition:    a processed circuit, determined to at least log once
+      (define function-ht (make-eq-hashtable))
+      (define (process-circuit! a)
+        (let ([function-name (car a)] [maybe-expr (cdr a)])
+          (when (Lnodca-Expression? maybe-expr)
+            (guard (c [(log-condition? c) (set-cdr! a c)]
+                      [else (raise-continuable c)])
+              (set-cdr! a 'inprocess-circuit)
+              (Expression maybe-expr function-name)
+              (set-cdr! a #f)))))
+      (define (process-function-name! function-name)
+        (let ([a (eq-hashtable-cell function-ht function-name #f)])
+          (process-circuit! a)
+          (let ([result (cdr a)])
+            (assert (not (eq? result 'inprocess-circuit)))
+            (when (log-condition? result)
+              (raise-continuable result)))))
+      (define (de-alias type)
+        (nanopass-case (Lnodca Type) type
+          [(talias ,src ,nominal? ,type-name ,type)
+           (de-alias type)]
+          [else type]))
+    )
+    (Program : Program (ir) -> Program ()
+      [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
+       (for-each record-function-kind! pelt*)
+       (for-each Program-Element pelt*)
+       ir])
+    (record-function-kind! : Program-Element (ir) -> * (void)
+      [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
+       (eq-hashtable-set! function-ht function-name expr)]
+      [else (void)])
+    (Program-Element : Program-Element (ir) -> Program-Element ()
+      [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
+       (process-circuit! (eq-hashtable-cell function-ht function-name #f))
+       ir])
+    (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
+      [(constructor ,src (,arg* ... ) ,expr)
+       (let ([a (cons #f expr)])
+         (process-circuit! a)
+         (let ([result (cdr a)])
+           (when (log-condition? result)
+             (let ([offending-function-name (log-condition-function-name result)])
+               (if (eq? offending-function-name #f)
+                   (source-errorf src "constructor cannot log an event but ~a at ~a"
+                                  (log-condition-reason result)
+                                  (format-source-object (log-condition-src result)))
+                   (source-errorf src "constructor cannot log an event but calls (directly or indirectly) ~a, which ~a at ~a"
+                                  (id-sym offending-function-name)
+                                  ;; offending-function-name
+                                  (log-condition-reason result)
+                                  (format-source-object (log-condition-src result))))))))
+       ir])
+    (Expression : Expression (ir function-name) -> Expression ()
+      [(call ,src ,function-name^ ,[expr*] ...)
+       (process-function-name! function-name^)
+       ir]
+      [(log ,src ,type ,expr ,len ,expr^)
+       (nanopass-case (Lnodca Type) (de-alias type)
+         [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+          (raise (make-log-condition function-name src
+                   (format "logs event ~a" struct-name)))]
+         [else (assert cannot-happen)])])
     (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
     (Function : Function (ir function-name) -> Function ()
       [(fref ,src ,function-name)
@@ -5788,7 +5872,7 @@
          [(Abs-multiple abs*) (list-ref abs* nat)]
          [else (assert cannot-happen)])]
 
-      [(log ,src ,type ,[* abs] ,expr)
+      [(log ,src ,type ,[* abs] ,len ,expr)
        (unless (null? control-witness*)
          (record-leak! src "performing this log operation" control-witness*))
        (let ([witness* (abs->witnesses
@@ -6065,6 +6149,29 @@
     (Expression : Expression (ir) -> Expression ()
       [(disclose ,src ,[expr]) expr]))
 
+  (define-pass lower-log : Lnodisclose (ir) -> Lloweredlog ()
+    (definitions
+      ;; Source syntax for log's vm-code template. The free identifiers
+      ;; `version`, `tag`, `payload` are resolved by the backend's arg-alist
+      ;; when it runs expand-vm-code on (vm-code-code vm-code).
+      ;;   - `version` and `tag` bind to numeric literals (event-version, event-tag)
+      ;;   - `payload` binds to a vmref over the emitted expr^
+      (define log-vm-code-source
+        #'((push   [storage #f] [value (state-value 'cell (align log-version 8))])
+           (push   [storage #f] [value (state-value 'cell (align log-tag 1))])
+           (push   [storage #f] [value (state-value 'cell log-payload)])
+           (concat [cached #f]  [n 3])
+           (log))))
+    (Expression : Expression (ir) -> Expression ()
+      [(log ,src ,[type] ,[expr] ,len ,[expr^])
+       (nanopass-case (Lloweredlog Type) type
+         [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+          (let ([event-tag (or (event-tag-of struct-name)
+                               (source-errorf src "~a is not a declared event type" struct-name))])
+            `(log ,src ,event-version ,event-tag ,type ,len ,expr^
+                  ,(make-vm-code log-vm-code-source)))]
+         [else (assert cannot-happen)])]))
+
   (define-passes analysis-passes
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
@@ -6076,12 +6183,14 @@
     (reject-recursive-circuits       Loneledger)
     (recognize-let                   Lnodca)
     (check-sealed-fields             Lnodca)
+    (reject-constructor-log          Lnodca)
     (reject-constructor-cc-calls     Lnodca)
     (identify-pure-circuits          Lnodca)
     (determine-ledger-paths          Lwithpaths0)
     (propagate-ledger-paths          Lwithpaths)
     (track-witness-data              Lwithpaths)
-    (remove-disclose                 Lnodisclose))
+    (remove-disclose                 Lnodisclose)
+    (lower-log                       Lloweredlog))
 
   (define-passes fixup-analysis-passes
     (expand-modules-and-types        Lexpanded)

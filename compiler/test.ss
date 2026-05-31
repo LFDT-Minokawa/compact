@@ -31374,6 +31374,54 @@ groups than for single tests.
     )
 )
 
+(run-tests reject-constructor-log
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  log (ShieldedSpend { pad(32, 'a') });"
+      "  return;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot log an event but ~a at ~a" ("logs event ShieldedSpend" "line 3 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "  return;"
+      "}"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {pad(32, 'a')} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot log an event but calls (directly or indirectly) ~a, which ~a at ~a" (foo "logs event ShieldedSpend" "line 7 char 10")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  bar ();"
+      "  return;"
+      "}"
+      "export circuit bar (): ShieldedSpend { foo (); }"
+      "circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {pad(32, 'a')} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+  )
+
 (run-tests identify-pure-circuits
   (test
     '(
@@ -84858,9 +84906,279 @@ groups than for single tests.
       "  return log ( disclose (ShieldedSpend {bar()} ));"
       "}"
       )
-    (returns what)
-    (output-file "compiler/testdir/contract/index.d.ts" '())
-    (output-file "compiler/testdir/contract/index.js" '())
+    (returns
+      (program
+        (type-descriptors
+          (%descriptor.0 (tbytes 32))
+          (%descriptor.1 (tstruct ShieldedSpend
+                           (nullifier (tbytes 32))))
+          (%descriptor.2 (tunsigned 18446744073709551615))
+          (%descriptor.3 (tboolean))
+          (%descriptor.4 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tbytes 32))
+                           (right (tbytes 32))))
+          (%descriptor.5 (tunsigned
+                           340282366920938463463374607431768211455))
+          (%descriptor.6 (tstruct ContractAddress
+                           (bytes (tbytes 32))))
+          (%descriptor.7 (tunsigned 255)))
+        (kernel-declaration (%kernel.8 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (export-typedef S () (tstruct S (F (tfield))))
+        (witness %bar.9 () (tbytes 32))
+        (circuit %foo.10 ()
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (log 1 0 (tstruct ShieldedSpend (nullifier (tbytes 32))) 32
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (call %bar.9))
+                 nullifier
+                 0)))))
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type S = { F: bigint };"
+        ""
+        "export type Witnesses<PS> = {"
+        "  bar(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, { nullifier: Uint8Array"
+        "                                                                                         }>;"
+        "}"
+        ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, { nullifier: Uint8Array"
+        "                                                                                         }>;"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
+    ; TODO fix verbatim number of version
+    (output-file "compiler/testdir/contract/index.js"
+      '(
+        "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        "__compactRuntime.checkRuntimeVersion('0.16.0');"
+        ""
+        "const _descriptor_0 = new __compactRuntime.CompactTypeBytes(32);"
+        ""
+        "class _ShieldedSpend_0 {"
+        "  alignment() {"
+        "    return _descriptor_0.alignment();"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      nullifier: _descriptor_0.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_0.toValue(value_0.nullifier);"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_1 = new _ShieldedSpend_0();"
+        ""
+        "const _descriptor_2 = new __compactRuntime.CompactTypeUnsignedInteger(18446744073709551615n, 8);"
+        ""
+        "const _descriptor_3 = __compactRuntime.CompactTypeBoolean;"
+        ""
+        "class _Either_0 {"
+        "  alignment() {"
+        "    return _descriptor_3.alignment().concat(_descriptor_0.alignment().concat(_descriptor_0.alignment()));"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_left: _descriptor_3.fromValue(value_0),"
+        "      left: _descriptor_0.fromValue(value_0),"
+        "      right: _descriptor_0.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_3.toValue(value_0.is_left).concat(_descriptor_0.toValue(value_0.left).concat(_descriptor_0.toValue(value_0.right)));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_4 = new _Either_0();"
+        ""
+        "const _descriptor_5 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
+        ""
+        "class _ContractAddress_0 {"
+        "  alignment() {"
+        "    return _descriptor_0.alignment();"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      bytes: _descriptor_0.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_0.toValue(value_0.bytes);"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_6 = new _ContractAddress_0();"
+        ""
+        "const _descriptor_7 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        ""
+        "export class Contract {"
+        "  witnesses;"
+        "  constructor(...args_0) {"
+        "    if (args_0.length !== 1) {"
+        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 1 argument, received ${args_0.length}`);"
+        "    }"
+        "    const witnesses_0 = args_0[0];"
+        "    if (typeof(witnesses_0) !== 'object') {"
+        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor is not an object');"
+        "    }"
+        "    if (typeof(witnesses_0.bar) !== 'function') {"
+        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor does not contain a function-valued field named bar');"
+        "    }"
+        "    this.witnesses = witnesses_0;"
+        "    this.circuits = {"
+        "      foo: (...args_1) => {"
+        "        if (args_1.length !== 1) {"
+        "          throw new __compactRuntime.CompactError(`foo: expected 1 argument (as invoked from Typescript), received ${args_1.length}`);"
+        "        }"
+        "        const contextOrig_0 = args_1[0];"
+        "        if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {"
+        "          __compactRuntime.typeError('foo',"
+        "                                     'argument 1 (as invoked from Typescript)',"
+        "                                     'testfile.compact line 4 char 1',"
+        "                                     'CircuitContext',"
+        "                                     contextOrig_0)"
+        "        }"
+        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost() };"
+        "        const partialProofData = {"
+        "          input: { value: [], alignment: [] },"
+        "          output: undefined,"
+        "          publicTranscript: [],"
+        "          privateTranscriptOutputs: []"
+        "        };"
+        "        const result_0 = this._foo_0(context, partialProofData);"
+        "        partialProofData.output = { value: _descriptor_1.toValue(result_0), alignment: _descriptor_1.alignment() };"
+        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost };"
+        "      }"
+        "    };"
+        "    this.impureCircuits = { foo: this.circuits.foo };"
+        "    this.provableCircuits = {};"
+        "  }"
+        "  initialState(...args_0) {"
+        "    if (args_0.length !== 1) {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 1 argument (as invoked from Typescript), received ${args_0.length}`);"
+        "    }"
+        "    const constructorContext_0 = args_0[0];"
+        "    if (typeof(constructorContext_0) !== 'object') {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'constructorContext' in argument 1 (as invoked from Typescript) to be an object`);"
+        "    }"
+        "    if (!('initialPrivateState' in constructorContext_0)) {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialPrivateState' in argument 1 (as invoked from Typescript)`);"
+        "    }"
+        "    if (!('initialZswapLocalState' in constructorContext_0)) {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript)`);"
+        "    }"
+        "    if (typeof(constructorContext_0.initialZswapLocalState) !== 'object') {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript) to be an object`);"
+        "    }"
+        "    const state_0 = new __compactRuntime.ContractState();"
+        "    let stateValue_0 = __compactRuntime.StateValue.newArray();"
+        "    state_0.data = new __compactRuntime.ChargedState(stateValue_0);"
+        "    const context = __compactRuntime.createCircuitContext(__compactRuntime.dummyContractAddress(), constructorContext_0.initialZswapLocalState.coinPublicKey, state_0.data, constructorContext_0.initialPrivateState);"
+        "    const partialProofData = {"
+        "      input: { value: [], alignment: [] },"
+        "      output: undefined,"
+        "      publicTranscript: [],"
+        "      privateTranscriptOutputs: []"
+        "    };"
+        "    state_0.data = new __compactRuntime.ChargedState(context.currentQueryContext.state.state);"
+        "    return {"
+        "      currentContractState: state_0,"
+        "      currentPrivateState: context.currentPrivateState,"
+        "      currentZswapLocalState: context.currentZswapLocalState"
+        "    }"
+        "  }"
+        "  _bar_0(context, partialProofData) {"
+        "    const witnessContext_0 = __compactRuntime.createWitnessContext(ledger(context.currentQueryContext.state), context.currentPrivateState, context.currentQueryContext.address);"
+        "    const [nextPrivateState_0, result_0] = this.witnesses.bar(witnessContext_0);"
+        "    context.currentPrivateState = nextPrivateState_0;"
+        "    if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {"
+        "      __compactRuntime.typeError('bar',"
+        "                                 'return value',"
+        "                                 'testfile.compact line 2 char 1',"
+        "                                 'Bytes<32>',"
+        "                                 result_0)"
+        "    }"
+        "    partialProofData.privateTranscriptOutputs.push({"
+        "      value: _descriptor_0.toValue(result_0),"
+        "      alignment: _descriptor_0.alignment()"
+        "    });"
+        "    return result_0;"
+        "  }"
+        "  _foo_0(context, partialProofData) {"
+        "    return __compactRuntime.queryLedgerState(context,"
+        "                                             partialProofData,"
+        "                                             ["
+        "                                              { push: { storage: false,"
+        "                                                        value: __compactRuntime.StateValue.newCell(1).encode() } },"
+        "                                              { push: { storage: false,"
+        "                                                        value: __compactRuntime.StateValue.newCell(0).encode() } },"
+        "                                              { push: { storage: false,"
+        "                                                        value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
+        "                                                                                                                                      this._bar_0(context,"
+        "                                                                                                                                                  partialProofData) }.nullifier),"
+        "                                                                                                     alignment: _descriptor_0.alignment() }).encode() } },"
+        "                                              { concat: { cached: false, n: 3 } },"
+        "                                              'log']);"
+        "  }"
+        "}"
+        "export function ledger(stateOrChargedState) {"
+        "  const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
+        "  const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
+        "  const context = {"
+        "    currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()),"
+        "    costModel: __compactRuntime.CostModel.initialCostModel()"
+        "  };"
+        "  const partialProofData = {"
+        "    input: { value: [], alignment: [] },"
+        "    output: undefined,"
+        "    publicTranscript: [],"
+        "    privateTranscriptOutputs: []"
+        "  };"
+        "  return {"
+        "  };"
+        "}"
+        "const _emptyContext = {"
+        "  currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress())"
+        "};"
+        "const _dummyContract = new Contract({ bar: (...args) => undefined });"
+        "export const pureCircuits = {};"
+        "export const contractReferenceLocations ="
+        "  { tag: 'publicLedgerArray', indices: { } };"
+        "//# sourceMappingURL=index.js.map"))
     )
 
   #;(test
@@ -84884,4 +85202,3 @@ groups than for single tests.
 ;; (run-javascript)
 )
 
-#!eof

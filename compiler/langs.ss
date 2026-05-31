@@ -688,7 +688,7 @@
       (elt-ref src expr elt-name nat)         => (elt-ref expr elt-name nat)
       ; type is needed for type-checking of later passes
       ; expr is the deserialized form and expr^ is the serialized form
-      (log src type expr expr^)               => (log expr expr^)
+      (log src type expr len expr^)           => (log expr expr^)
       (enum-ref src type elt-name)            => (enum-ref type elt-name)
       ; for tuple, the elements can have different, even unrelated types
       (tuple src tuple-arg* ...)              => (tuple tuple-arg* ...)
@@ -858,10 +858,10 @@
       (- (field (nat kindex)))
       (+ (field (nat kindex event-version event-tag))))
     (Expression (expr index)
-      (- (log src type expr expr^))
+      (- (log src type expr len expr^))
       ; expr is the serialized format of an expr of type struct
-      (+ (log src event-version event-tag type expr) =>
-           (log event-version event-tag type expr))))
+      (+ (log src event-version event-tag type len expr vm-code) =>
+           (log event-version event-tag type len expr))))
 
   (define-language/pretty Ltypescript (extends Lloweredlog)
     (terminals
