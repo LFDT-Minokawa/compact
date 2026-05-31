@@ -350,3 +350,36 @@ export circuit unshieldedBalanceGt(color: Bytes<32>, amount: Uint<128>): Boolean
 export circuit unshieldedBalanceLte(color: Bytes<32>, amount: Uint<128>): Boolean {
   return !unshieldedBalanceGt(color, amount);
 }
+
+// Schnorr signature
+export struct JubjubSchnorrSignature {
+  announcement: JubjubPoint,
+  response: Field,
+}
+
+// Schnorr signature over the native curve
+struct JubjubSchnorrHashInput<#n> {
+  ann_x: Field,
+  ann_y: Field,
+  pk_x: Field,
+  pk_y: Field,
+  msg: Vector<n, Field>
+}
+
+// Verify Schnorr signature over the native curve with a message of size #n.
+export circuit jubjubSchnorrVerify<#n>(msg: Vector<n, Field>, signature: JubjubSchnorrSignature, pk: JubjubPoint): Boolean {
+  const {announcement, response} = signature;
+  const cNative: Field = transientHash<JubjubSchnorrHashInput<n>>(JubjubSchnorrHashInput<n>{
+    ann_x: jubjubPointX(announcement),
+    ann_y: jubjubPointY(announcement),
+    pk_x: jubjubPointX(pk),
+    pk_y: jubjubPointY(pk),
+    msg: msg
+  });
+  const c: Field = jubjubScalarFromNative(cNative);
+
+  const lhs: JubjubPoint = ecMulGenerator(jubjubScalarFromNative(response));
+  const rhs: JubjubPoint = ecAdd(announcement, ecMul(pk, c));
+
+  return lhs == rhs;
+}
