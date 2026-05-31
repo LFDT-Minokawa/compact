@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Minimal Uint primitives fixture for M3.5 F4 byte-parity test.
+// Exercises Uint<N> at three representative widths (u8, u32, u128).
+// Mirrors the F3 pattern: ledger fields only, with a trivial circuit
+// to make compactc happy and force the operations map ordering.
+
+import CompactStandardLibrary;
+
+export ledger byte_field: Uint<8>;
+export ledger word_field: Uint<32>;
+export ledger huge_field: Uint<128>;
+
+export circuit set_byte(v: Uint<8>): [] {
+  byte_field.write(disclose(v));
+}

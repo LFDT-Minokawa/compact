@@ -170,3 +170,33 @@ impl MapFixtureTsReferenceState {
         serde_json::from_str(&raw).expect("parse fixture")
     }
 }
+
+/// Generic loader for the small fixtures introduced in M3.5 F4–F7
+/// (uints, aliases, witnesses, …). Each fixture has the identical
+/// `{ "afterInit": { "stateHex": "…" } }` shape — one post-init snapshot
+/// of `ContractState.serialize()` — so they all share one loader rather
+/// than spawning a wave of one-off types.
+#[derive(Deserialize, Debug)]
+pub struct SmallFixtureTsReference {
+    #[serde(rename = "afterInit")]
+    pub after_init: SmallFixtureStepSnapshot,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SmallFixtureStepSnapshot {
+    #[serde(rename = "stateHex")]
+    pub state_hex: String,
+}
+
+impl SmallFixtureStepSnapshot {
+    pub fn state_bytes(&self) -> Vec<u8> {
+        hex::decode(&self.state_hex).expect("decode hex")
+    }
+}
+
+impl SmallFixtureTsReference {
+    pub fn load(path: impl AsRef<Path>) -> Self {
+        let raw = std::fs::read_to_string(path).expect("read fixture");
+        serde_json::from_str(&raw).expect("parse fixture")
+    }
+}

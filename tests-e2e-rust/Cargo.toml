@@ -27,3 +27,6 @@ compact-contract-tiny = { path = "contracts/tiny" }
 compact-contract-zerocash = { path = "contracts/zerocash" }
 compact-contract-election = { path = "contracts/election" }
 compact-contract-map-fixture = { path = "contracts/map-fixture" }
+compact-contract-uints-fixture = { path = "contracts/uints-fixture" }
+compact-contract-aliases-fixture = { path = "contracts/aliases-fixture" }
+compact-contract-witnesses-fixture = { path = "contracts/witnesses-fixture" }

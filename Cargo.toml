@@ -24,6 +24,9 @@ members = [
     "tests-e2e-rust/contracts/zerocash",
     "tests-e2e-rust/contracts/election",
     "tests-e2e-rust/contracts/map-fixture",
+    "tests-e2e-rust/contracts/uints-fixture",
+    "tests-e2e-rust/contracts/aliases-fixture",
+    "tests-e2e-rust/contracts/witnesses-fixture",
 ]
 
 [workspace.dependencies]

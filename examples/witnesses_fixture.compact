@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Minimal witness-shape fixture for M3.5 F7 byte-parity test.
+// Exercises three witness signatures we don't otherwise cover:
+//   - zero-arg Field return
+//   - zero-arg Maybe<T> return
+//   - non-zero-arg Field return
+
+import CompactStandardLibrary;
+
+witness fetch_field(): Field;
+witness fetch_maybe(): Maybe<Field>;
+witness echo(x: Field): Field;
+
+export ledger v: Field;
+
+export circuit pull(): [] {
+  const x = fetch_field();
+  v.write(disclose(x));
+}

@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Minimal Vector<N, T> fixture for M3.5 F5 byte-parity test.
+// Init-state only — exercise the Vector<3, Field> ledger seed shape.
+// (No circuit, to avoid emitter gap on Vector arg passing.)
+
+import CompactStandardLibrary;
+
+export ledger v: Vector<3, Field>;

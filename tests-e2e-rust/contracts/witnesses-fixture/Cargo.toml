@@ -1,0 +1,13 @@
+[package]
+name = "compact-contract-witnesses-fixture"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Generated Rust crate for examples/witnesses_fixture.compact, used by tests-e2e-rust byte-parity tests."
+
+[lib]
+name = "compact_contract_witnesses_fixture"
+path = "lib.rs"
+
+[dependencies]
+compact-runtime = { path = "../../../runtime-rs" }
