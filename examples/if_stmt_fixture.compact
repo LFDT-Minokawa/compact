@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// M3.5 F8 fixture: exercises E6's if-then-else statement-position emission.
+// The byte-parity test runs against initial_state(); the `classify` circuit
+// body is emitted via E6's pure-circuit path but is not invoked by the
+// byte-parity assertion (which only checks the seed ContractState).
+
+import CompactStandardLibrary;
+
+export ledger flag: Boolean;
+
+export pure circuit classify(b: Boolean): Boolean {
+  if (b) {
+    return false;
+  } else {
+    return true;
+  }
+}

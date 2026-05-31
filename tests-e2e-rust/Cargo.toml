@@ -31,3 +31,4 @@ compact-contract-uints-fixture = { path = "contracts/uints-fixture" }
 compact-contract-vector-fixture = { path = "contracts/vector-fixture" }
 compact-contract-aliases-fixture = { path = "contracts/aliases-fixture" }
 compact-contract-witnesses-fixture = { path = "contracts/witnesses-fixture" }
+compact-contract-if-stmt-fixture = { path = "contracts/if-stmt-fixture" }

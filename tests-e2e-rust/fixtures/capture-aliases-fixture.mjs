@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // F6 of the M3.5 plan: capture TS reference state for aliases_fixture.compact's
-// initial_state(). Two transparent type aliases (Uint<16>, Bytes<8>) over
-// ledger fields. No constructor, no witnesses.
+// initial_state(). Two transparent type aliases (Uint<16>, Bytes<8>) plus one
+// nominal alias (`export new type Tag = Bytes<8>;`) over ledger fields.
+// No constructor, no witnesses.
 //
 // Usage:
 //   compactc --skip-zk examples/aliases_fixture.compact /tmp/aliases-ts-driver/

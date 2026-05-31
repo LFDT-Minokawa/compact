@@ -8,9 +8,6 @@ use std::marker::PhantomData;
 
 compact_runtime::check_runtime_version!("0.16.100");
 
-pub type Tag = [u8; 8];
-
-
 pub trait Witnesses<PS> {
 }
 impl<PS> Witnesses<PS> for NoWitnesses {}
@@ -35,9 +32,7 @@ where
         ctx: ConstructorContext<PS>,
     ) -> Result<ConstructorResult<PS>, CompactError> {
         let sv = new_array(vec![
-            new_cell(0u16),
-            new_cell([0u8; 8]),
-            new_cell([0u8; 8]),
+            new_cell(false),
         ]);
         let state = ChargedState::new(sv);
         let qctx = QueryContext::new(state, ContractAddress::default());
@@ -59,7 +54,7 @@ pub fn ledger<D: DB>(state: &ChargedState<D>) -> Ledger<'_, D> {
 }
 
 impl<'a, D: DB> Ledger<'a, D> {
-    pub fn score(&self) -> Result<u16, CompactError> {
+    pub fn flag(&self) -> Result<bool, CompactError> {
         let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
         let ops = OpProgramGather::<D>::new()
             .dup(0)
@@ -72,39 +67,17 @@ impl<'a, D: DB> Ledger<'a, D> {
             Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
             _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
         };
-        compact_runtime::std_lib::decode_u16(av)
-    }
-    pub fn raw(&self) -> Result<[u8; 8], CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
-        let ops = OpProgramGather::<D>::new()
-            .dup(0)
-            .idx_at_index(1u8, false)
-            .popeq(true)
-            .build();
-        let results = query_for_read(&qctx, &ops, None, &initial_cost_model())
-            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
-        let av = match results.events.last() {
-            Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
-            _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
-        };
-        compact_runtime::std_lib::decode_bytes::<8>(av)
-    }
-    pub fn tag(&self) -> Result<Tag, CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
-        let ops = OpProgramGather::<D>::new()
-            .dup(0)
-            .idx_at_index(2u8, false)
-            .popeq(true)
-            .build();
-        let results = query_for_read(&qctx, &ops, None, &initial_cost_model())
-            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
-        let av = match results.events.last() {
-            Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
-            _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
-        };
-        compact_runtime::std_lib::decode_bytes::<8>(av)
+        compact_runtime::std_lib::decode_bool(av)
     }
 }
 
 pub mod pure_circuits {
+    pub fn classify(b: bool) -> bool {
+        if b {
+            false
+        } else {
+            true
+        }
+    }
+
 }

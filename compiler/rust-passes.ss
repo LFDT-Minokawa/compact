@@ -831,7 +831,13 @@
                        (out "}\n")
                        (out "\n")])]
                    [(talias ,src ,nominal? ,type-name ,type)
-                    (out (format "// TODO M3-F2: talias ~a\n" type-name))]
+                    ;; F6 follow-up: emit `pub type X = Y;` for nominal
+                    ;; aliases (`new type X = Y;`). Transparent aliases
+                    ;; (`type X = Y;`) expand at use sites via type-rust,
+                    ;; so we don't need a top-level decl for them.
+                    (when nominal?
+                      (out (format "pub type ~a = ~a;\n\n"
+                                   type-name (type-rust type))))]
                    [else
                     (out "// TODO M3: unhandled export-typedef variant\n")])]
                 [else (void)]))

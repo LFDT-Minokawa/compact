@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Minimal transparent type-alias fixture for M3.5 F6 byte-parity test.
-// (Nominal `new type` alias omitted: current Rust emitter references the
-// alias name in ledger view signatures without emitting its definition.
-// That is a separate emitter gap, not a fixture-content issue.)
+// Type-alias fixture for M3.5 F6 + F8 follow-up byte-parity test.
+//
+// Exercises both transparent aliases (which expand at use sites) and a
+// nominal alias (`export new type`) which now emits a `pub type X = Y;`
+// declaration in the generated Rust.
 
 import CompactStandardLibrary;
 
 type Score = Uint<16>;          // transparent alias
 type Bytes8 = Bytes<8>;          // transparent alias
+export new type Tag = Bytes<8>;  // nominal alias — emits `pub type Tag = [u8; 8];`
 
 export ledger score: Score;
 export ledger raw: Bytes8;
+export ledger tag: Tag;

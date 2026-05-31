@@ -1009,7 +1009,7 @@
                         (unless (already-exported? src export-name info)
                           (set! exported-type*
                             (cons
-                              (let ([type (apply-type-alias src src^ #f type-name type-param* type p^
+                              (let ([type (apply-type-alias src src^ nominal? type-name type-param* type p^
                                             (map Info-free-tvar (map type-param->tvar-name type-param*)))]
                                     [tvar-name* (fold-right
                                                   (lambda (type-param tvar-name*)

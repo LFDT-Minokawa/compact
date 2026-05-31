@@ -28,6 +28,7 @@ members = [
     "tests-e2e-rust/contracts/vector-fixture",
     "tests-e2e-rust/contracts/aliases-fixture",
     "tests-e2e-rust/contracts/witnesses-fixture",
+    "tests-e2e-rust/contracts/if-stmt-fixture",
 ]
 
 [workspace.dependencies]
