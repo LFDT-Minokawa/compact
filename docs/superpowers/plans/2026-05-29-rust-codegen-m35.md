@@ -19,7 +19,7 @@
 | **E5** — Cross-circuit call (exported + general non-exported) | E5.1, E5.2 | pending | — |
 | **E6** — `if-statement` body shape | E6.1 | pending | — |
 | **F4** — `uints-fixture.compact` | F4.1 ✅ byte-parity | done | `56c049f` |
-| **F5** — `vector-fixture.compact` | F5.1 ⏸ blocked (Vector emitter gaps) | partial | `56c049f` |
+| **F5** — `vector-fixture.compact` | F5.1 ✅ byte-parity | done | `4df8e22` |
 | **F6** — `aliases-fixture.compact` | F6.1 ✅ byte-parity (transparent only — nominal emits alias name but no decl) | done | `56c049f` |
 | **F7** — `witnesses-fixture.compact` | F7.1 ✅ byte-parity | done | `56c049f` |
 | **F8** — `if-stmt-fixture.compact` | F8.1 | pending — needs E6 first | — |
