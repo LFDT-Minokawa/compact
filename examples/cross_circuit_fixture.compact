@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// M3.5 E5 fixture: exercises the body walker's `impure-exported` call
+// classification — a bare statement-position call from one exported
+// impure circuit to another exported impure circuit. The byte-parity
+// test only checks initial_state(); the `reset_and_set` body invoking
+// `reset()` is emitted (and compiled) but not invoked here.
+
+import CompactStandardLibrary;
+
+export ledger n: Uint<64>;
+
+export circuit reset(): [] {
+  n.write(default<Uint<64>>);
+}
+
+export circuit reset_and_set(v: Uint<64>): [] {
+  reset();
+  n.write(disclose(v));
+}

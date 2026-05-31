@@ -1209,6 +1209,10 @@
                             ;; `pure_circuits` as `pub(crate) fn`
                             ;; (Blocker 1), so they're equally callable.
                             (eq? (car classified) 'pure-circuit)
+                            ;; M3.5-E5: accept exported impure circuit
+                            ;; callees — emitted as `self.<name>(ctx, ...)`
+                            ;; with context threading via `_cr_N`.
+                            (eq? (car classified) 'impure-exported)
                             ;; I3b/3: also accept plain const RHS shapes
                             ;; (e.g. `const tmp = default<Bytes<32>>;`)
                             ;; whose expression is something expr-rust
@@ -1237,7 +1241,12 @@
                             ;; M3.5-E4.4: accept ALL user pure-circuit
                             ;; bare-call callees, exported or not — both
                             ;; now land in pure_circuits.
-                            (eq? (car classified) 'pure-circuit))
+                            (eq? (car classified) 'pure-circuit)
+                            ;; M3.5-E5: accept bare calls to exported
+                            ;; impure circuits — emitted as
+                            ;; `self.<name>(ctx, ...)?` with context
+                            ;; rebound from the returned CircuitResults.
+                            (eq? (car classified) 'impure-exported))
                         (for-all (lambda (e)
                                    (expr-supported?
                                      e native-id-ht witness-id-ht circuit-id-ht))
@@ -1506,6 +1515,46 @@
                               witness-emitted?
                               (cons bind-line pre-lines)
                               writes))]
+                     [(impure-exported)
+                      ;; E5: const binding whose RHS is a call to an
+                      ;; exported impure circuit. Emit
+                      ;;     let _cr_N = self.<name>(ctx, args)?;
+                      ;;     let ctx = _cr_N.context;
+                      ;;     let <rust-name> = _cr_N.result;
+                      ;; Subsequent witness / write code reads off the
+                      ;; rebound `ctx`, so private state and gas state
+                      ;; flow through transparently.
+                      (let* ([cname (cadr classified)]
+                             [cargs (caddr classified)]
+                             [counter (length pre-lines)]
+                             [cr-name (format "_cr_~a" counter)]
+                             [arg-strs
+                              (map (lambda (e)
+                                     (arg-rust-clone-if-var
+                                       e local-binds
+                                       native-id-ht witness-id-ht circuit-id-ht))
+                                   cargs)]
+                             [arg-tail
+                              (let join ([xs arg-strs] [acc ""])
+                                (cond
+                                  [(null? xs) acc]
+                                  [else (join (cdr xs)
+                                              (string-append acc ", " (car xs)))]))]
+                             [call-line
+                              (format "        let ~a = self.~a(ctx~a)?;\n"
+                                      cr-name cname arg-tail)]
+                             [ctx-line
+                              (format "        let ctx = ~a.context;\n" cr-name)]
+                             [bind-line
+                              (format "        let ~a = ~a.result;\n"
+                                      rust-name cr-name)])
+                        (loop (cdr stmts)
+                              (cons (cons var-name rust-name) local-binds)
+                              witness-emitted?
+                              (cons bind-line
+                                    (cons ctx-line
+                                          (cons call-line pre-lines)))
+                              writes))]
                      [else
                       ;; Unknown rhs shape — try a generic ctor-expr-rust
                       ;; render and emit a plain `let`.
@@ -1590,6 +1639,37 @@
                               witness-emitted?
                               (cons bind-line pre-lines)
                               writes))]
+                     [(impure-exported)
+                      ;; E5: bare statement-position call to an exported
+                      ;; impure circuit. Discard the result value, but
+                      ;; thread the returned context into a rebound `ctx`
+                      ;; so subsequent statements see the updated state.
+                      (let* ([cname (cadr classified)]
+                             [cargs (caddr classified)]
+                             [counter (length pre-lines)]
+                             [cr-name (format "_cr_~a" counter)]
+                             [arg-strs
+                              (map (lambda (e)
+                                     (arg-rust-clone-if-var
+                                       e local-binds
+                                       native-id-ht witness-id-ht circuit-id-ht))
+                                   cargs)]
+                             [arg-tail
+                              (let join ([xs arg-strs] [acc ""])
+                                (cond
+                                  [(null? xs) acc]
+                                  [else (join (cdr xs)
+                                              (string-append acc ", " (car xs)))]))]
+                             [call-line
+                              (format "        let ~a = self.~a(ctx~a)?;\n"
+                                      cr-name cname arg-tail)]
+                             [ctx-line
+                              (format "        let ctx = ~a.context;\n" cr-name)])
+                        (loop (cdr stmts)
+                              local-binds
+                              witness-emitted?
+                              (cons ctx-line (cons call-line pre-lines))
+                              writes))]
                      [else #f])))]
               [else
                ;; Expect a `(statement-expression (public-ledger ... write expr))`.
@@ -1609,9 +1689,11 @@
 
       ;; classify-const-rhs: inspect a `const` binding's RHS expression and
       ;; classify the call (or return 'unknown). Returns
-      ;;   (list 'witness rust-name args)        for witness calls
-      ;;   (list 'pure-circuit rust-name args)   for pure circuit calls
-      ;;   (list 'unknown)                       otherwise
+      ;;   (list 'witness rust-name args)         for witness calls
+      ;;   (list 'pure-circuit rust-name args)    for pure circuit calls
+      ;;   (list 'impure-exported rust-name args) for exported impure circuit
+      ;;                                          method calls (`self.<name>`)
+      ;;   (list 'unknown)                        otherwise
       (define (classify-const-rhs rhs witness-id-ht circuit-id-ht)
         (let ([e (expr-strip-cast rhs)])
           (nanopass-case (Ltypescript Expression) e
@@ -1624,6 +1706,16 @@
                [(and (eq-hashtable-ref circuit-id-ht function-name #f)
                      (id-pure? function-name))
                 (list 'pure-circuit
+                      (camel->snake (id-sym function-name))
+                      expr*)]
+               ;; E5: exported impure circuit. The callee is emitted as
+               ;; `pub fn <name>(&self, ctx, ...) -> Result<CircuitResults<PS,T>>`
+               ;; on the Contract impl, so the call shape is
+               ;; `self.<snake>(ctx, args)?` returning a CircuitResults.
+               [(and (eq-hashtable-ref circuit-id-ht function-name #f)
+                     (id-exported? function-name)
+                     (not (id-pure? function-name)))
+                (list 'impure-exported
                       (camel->snake (id-sym function-name))
                       expr*)]
                [else (list 'unknown)])]
@@ -1688,6 +1780,7 @@
       ;; (call <fn-id> args*) at statement position. Returns
       ;;   (list 'witness rust-name args)
       ;;   (list 'pure-circuit rust-name args)
+      ;;   (list 'impure-exported rust-name args)
       ;;   (list 'unknown)
       (define (classify-call fn-id arg* witness-id-ht circuit-id-ht)
         (cond
@@ -1696,6 +1789,13 @@
           [(and (eq-hashtable-ref circuit-id-ht fn-id #f)
                 (id-pure? fn-id))
            (list 'pure-circuit (camel->snake (id-sym fn-id)) arg*)]
+          ;; E5: bare-call to an exported impure circuit (statement
+          ;; position, return value discarded). Emit `self.<snake>(ctx, ...)`
+          ;; and thread the returned context into a rebound `ctx`.
+          [(and (eq-hashtable-ref circuit-id-ht fn-id #f)
+                (id-exported? fn-id)
+                (not (id-pure? fn-id)))
+           (list 'impure-exported (camel->snake (id-sym fn-id)) arg*)]
           [else (list 'unknown)]))
 
       ;; emit-ctor-prelude: emit the accumulated witness/pure-circuit/let
