@@ -46,6 +46,17 @@
       (define current-qctx-ref
         (make-parameter "&ctx.current_query_context"))
 
+      ;; current-witness-call-binds: alist of (witness-call-expr-node .
+      ;; rust-name). Populated when the body walker hoists witness calls
+      ;; out of an assert/condition expression to top-level `let`-bindings
+      ;; (election.add_voter's `!path_of(pk).is_some` shape). Consulted by
+      ;; ctor-call-rust before the "witness inline" TODO branch — when the
+      ;; current call expression matches (by eq?-identity), we emit the
+      ;; bound name instead of a TODO. Keys use eq? identity, so the same
+      ;; IR node reference must flow from hoist to render.
+      (define current-witness-call-binds
+        (make-parameter '()))
+
       ;; rust-keyword?: returns #t when the symbol matches a Rust reserved
       ;; keyword (strict + reserved). Enum variant names like
       ;; `final` (election.compact's PublicState.final) collide otherwise.
@@ -1045,9 +1056,18 @@
           (cond
             [w
              ;; Witness calls cannot be inlined as sub-expressions because
-             ;; they return (PS, T). The constructor walker emits them as
-             ;; `let` bindings above; this branch should be unreachable.
-             "/* TODO M3-J2: witness inline */ unimplemented!()"]
+             ;; they return (PS, T). The body walker hoists witness calls
+             ;; nested in assert-conditions to top-level `let`-bindings;
+             ;; consult current-witness-call-binds (an alist keyed by
+             ;; function-name + arg expr*) before falling back to a TODO.
+             ;; We compare arg lists by eq?-on-each since assert-cond
+             ;; rendering walks the same IR nodes the hoister scanned.
+             (cond
+               [(witness-call-bound function-name expr*
+                                    (current-witness-call-binds))
+                => (lambda (rust-name) rust-name)]
+               [else
+                "/* TODO M3-J2: witness inline */ unimplemented!()"])]
             [stdlib
              ;; I3b/4: stdlib circuits (`some`, `none`) live in
              ;; compact_runtime::std_lib. Render with the runtime path.
@@ -1225,6 +1245,124 @@
                       [else #f])
                     (loop (cdr xs)))]))
              (and (decoder-for-type type) #t))]))
+
+      ;; witness-call-bound: alist lookup for current-witness-call-binds.
+      ;; Each entry is (list function-name arg-expr* rust-name). Match by
+      ;; eq? on function-name and list of eq?-on-each arg expressions.
+      ;; Returns the rust-name string on hit, #f otherwise.
+      (define (witness-call-bound function-name expr* binds)
+        (let loop ([bs binds])
+          (cond
+            [(null? bs) #f]
+            [(and (eq? (car (car bs)) function-name)
+                  (let walk ([as (cadr (car bs))] [bs2 expr*])
+                    (cond
+                      [(and (null? as) (null? bs2)) #t]
+                      [(or (null? as) (null? bs2)) #f]
+                      [(eq? (car as) (car bs2))
+                       (walk (cdr as) (cdr bs2))]
+                      [else #f])))
+             (caddr (car bs))]
+            [else (loop (cdr bs))])))
+
+      ;; collect-witness-subcalls: walk an Expression and return the list
+      ;; of (call <witness> args*) sub-expressions in source order. Used
+      ;; by the body walker to hoist witness sub-calls out of assert
+      ;; conditions before rendering them. Duplicates are dropped — a
+      ;; second occurrence of the same eq?-identical node returns the
+      ;; binding from the first hoist.
+      (define (collect-witness-subcalls expr witness-id-ht)
+        (let ([seen '()])
+          (let walk ([e expr])
+            (let ([e (expr-strip-cast e)])
+              (nanopass-case (Ltypescript Expression) e
+                [(call ,src ,function-name ,expr* ...)
+                 (when (eq-hashtable-ref witness-id-ht function-name #f)
+                   (unless (memq e seen)
+                     (set! seen (cons e seen))))
+                 (for-each walk expr*)]
+                [(not ,src ,expr) (walk expr)]
+                [(and ,src ,expr1 ,expr2) (walk expr1) (walk expr2)]
+                [(or ,src ,expr1 ,expr2) (walk expr1) (walk expr2)]
+                [(== ,src ,type ,expr1 ,expr2) (walk expr1) (walk expr2)]
+                [(elt-ref ,src ,expr ,elt-name ,nat) (walk expr)]
+                [(tuple ,src ,tuple-arg* ...)
+                 (for-each
+                   (lambda (ta)
+                     (nanopass-case (Ltypescript Tuple-Argument) ta
+                       [(single ,src ,expr) (walk expr)]
+                       [(spread ,src ,nat ,expr) (walk expr)]
+                       [else (void)]))
+                   tuple-arg*)]
+                [else (void)])))
+          (reverse seen)))
+
+      ;; emit-hoisted-witnesses: for each witness call expression in
+      ;; subcalls, emit the witness-context + bind lines and return a
+      ;; list of (lines binds witness-emitted?) tracking the accumulated
+      ;; pre-lines, the per-call rust-name bindings (to feed
+      ;; current-witness-call-binds), and the updated witness-emitted?
+      ;; flag. `counter-start` is the starting index for _witness_ctx_N
+      ;; numbering (typically `(length pre-lines)`).
+      ;;
+      ;; Returns (list rev-lines new-binds new-witness-emitted?), where
+      ;; rev-lines is in reverse (so the caller can prepend them onto
+      ;; pre-lines in the natural order) and new-binds is the list of
+      ;; (list function-name arg-expr* rust-name) entries.
+      (define (emit-hoisted-witnesses subcalls counter-start mode
+                                      local-binds witness-emitted?
+                                      native-id-ht witness-id-ht circuit-id-ht)
+        (let loop ([subs subcalls]
+                   [counter counter-start]
+                   [we? witness-emitted?]
+                   [rev-lines '()]
+                   [binds '()])
+          (cond
+            [(null? subs) (list rev-lines binds we?)]
+            [else
+             (let* ([call-expr (car subs)]
+                    [function-name
+                     (nanopass-case (Ltypescript Expression) call-expr
+                       [(call ,src ,function-name ,expr* ...) function-name])]
+                    [arg-exprs
+                     (nanopass-case (Ltypescript Expression) call-expr
+                       [(call ,src ,function-name ,expr* ...) expr*])]
+                    [wname (camel->snake (id-sym function-name))]
+                    [rust-name (format "_w_~a_~a" wname counter)]
+                    [ctx-name (format "_witness_ctx_h~a" counter)]
+                    [state-expr (if (eq? mode 'ctor)
+                                    "&qctx.state"
+                                    "&ctx.current_query_context.state")]
+                    [qctx-ref (if (eq? mode 'ctor)
+                                  "&qctx"
+                                  "&ctx.current_query_context")]
+                    [prev-priv
+                     (cond
+                       [we? "current_private_state"]
+                       [(eq? mode 'ctor) "ctx.initial_private_state"]
+                       [else "ctx.current_private_state"])]
+                    [arg-strs
+                     (map (lambda (e)
+                            (arg-rust-clone-if-var
+                              e local-binds
+                              native-id-ht witness-id-ht circuit-id-ht))
+                          arg-exprs)]
+                    [call-line
+                     (format "        let ~a = WitnessContext::new(ledger(~a), ~a, ~a);\n"
+                             ctx-name state-expr prev-priv qctx-ref)]
+                    [bind-line
+                     (format "        let (current_private_state, ~a) = self.witnesses.~a(&~a~a);\n"
+                             rust-name wname ctx-name
+                             (let join ([xs arg-strs] [acc ""])
+                               (cond
+                                 [(null? xs) acc]
+                                 [else (join (cdr xs)
+                                             (string-append acc ", " (car xs)))])))])
+               (loop (cdr subs)
+                     (fx+ counter 1)
+                     #t
+                     (cons bind-line (cons call-line rev-lines))
+                     (cons (list function-name arg-exprs rust-name) binds)))])))
 
       ;; assert-cond-supported?: like expr-supported? but additionally
       ;; accepts a (call ...) into a non-exported / impure circuit — we
@@ -1482,16 +1620,28 @@
                (lambda (a)
                  (let* ([expr (car a)]
                         [msg (cdr a)]
+                        [subcalls (collect-witness-subcalls
+                                    expr witness-id-ht)]
+                        [hoist (emit-hoisted-witnesses
+                                 subcalls (length pre-lines) mode
+                                 local-binds witness-emitted?
+                                 native-id-ht witness-id-ht circuit-id-ht)]
+                        [hoist-lines (car hoist)]
+                        [hoist-binds (cadr hoist)]
+                        [we2 (caddr hoist)]
                         [cond-str
-                         (assert-cond-rust expr local-binds
-                                           native-id-ht witness-id-ht circuit-id-ht)]
+                         (parameterize ([current-witness-call-binds
+                                          (append hoist-binds
+                                                  (current-witness-call-binds))])
+                           (assert-cond-rust expr local-binds
+                                             native-id-ht witness-id-ht circuit-id-ht))]
                         [line
                          (format "        compact_assert!(~a, ~s);\n"
                                  cond-str msg)])
                    (loop (cdr stmts)
                          local-binds
-                         witness-emitted?
-                         (cons line pre-lines)
+                         we2
+                         (cons line (append hoist-lines pre-lines))
                          writes)))]
               [(const-binding (car stmts)) =>
                (lambda (b)

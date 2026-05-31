@@ -342,7 +342,79 @@ where
         ctx: CircuitContext<PS>,
         pk: [u8; 32],
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
-        unimplemented!("M3-I3: circuit body emission for add_voter")
+        let _witness_ctx_h0 = WitnessContext::new(ledger(&ctx.current_query_context.state), ctx.current_private_state, &ctx.current_query_context);
+        let (current_private_state, _w_context_eligible_voters_path_of_0) = self.witnesses.context_eligible_voters_path_of(&_witness_ctx_h0, pk.clone());
+        compact_assert!((!(_w_context_eligible_voters_path_of_0.is_some)), "Attempted to add a voter twice");
+        let _witness_ctx_3 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
+        let (current_private_state, sk) = self.witnesses.private_secret_key(&_witness_ctx_3);
+        let apk = pure_circuits::public_key(sk);
+        compact_assert!((apk == {
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(0u8, false)
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_bytes::<32>(_av)?
+        }), "Attempted to add a voter without authorization");
+        compact_assert!(({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(1u8, false)
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_u8(_av)?
+        } == 0u8), "Attempted to add a voter after setup phase");
+        let ops = OpProgramVerify::<DefaultDB>::new()
+            .idx_at_index(6u8, true)
+            .idx_at_index(0u8, true)
+            .dup(2)
+            .idx_at_index(1u8, false)
+            .push(true, new_cell(leaf_hash(&ValueReprAlignedValue(AlignedValue::from(pk)))))
+            .ins(false, 1)
+            .ins(true, 1)
+            .idx_at_index(1u8, true)
+            .addi(1)
+            .ins(true, 2)
+            .build();
+
+        let results = query_for_verify(
+            &ctx.current_query_context,
+            &ops,
+            ctx.gas_limit.clone(),
+            &ctx.cost_model,
+        )?;
+
+        Ok(CircuitResults {
+            result: (),
+            context: CircuitContext {
+                current_query_context: results.context,
+                current_private_state,
+                ..ctx
+            },
+            gas_cost: results.gas_cost,
+        })
     }
 
 }
