@@ -939,6 +939,35 @@
                                      native-id-ht witness-id-ht circuit-id-ht)
                      (ctor-expr-rust expr2 local-binds
                                      native-id-ht witness-id-ht circuit-id-ht))]
+            [(not ,src ,expr)
+             ;; F1.2: Boolean negation. Recurse through ctor-expr-rust to
+             ;; keep local-binds threading. Parenthesise the operand so
+             ;; the surrounding context can compose safely.
+             (format "(!(~a))"
+                     (ctor-expr-rust expr local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht))]
+            [(and ,src ,expr1 ,expr2)
+             ;; F1.2: short-circuit Boolean AND.
+             (format "(~a && ~a)"
+                     (ctor-expr-rust expr1 local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht)
+                     (ctor-expr-rust expr2 local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht))]
+            [(or ,src ,expr1 ,expr2)
+             ;; F1.2: short-circuit Boolean OR.
+             (format "(~a || ~a)"
+                     (ctor-expr-rust expr1 local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht)
+                     (ctor-expr-rust expr2 local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht))]
+            [(elt-ref ,src ,expr ,elt-name ,nat)
+             ;; F1.2: struct field access (`struct.field`). The field
+             ;; name comes from the source language; rust-variant-name
+             ;; handles reserved-word escapes.
+             (format "~a.~a"
+                     (ctor-expr-rust expr local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht)
+                     (symbol->string elt-name))]
             [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
              ;; I3b/3: ledger read in expression position. Goes through
              ;; emit-ledger-read-expr which uses current-qctx-ref to pick
@@ -1128,6 +1157,30 @@
                                    witness-id-ht circuit-id-ht)
                   (expr-supported? expr2 native-id-ht
                                    witness-id-ht circuit-id-ht))]
+            [(not ,src ,expr)
+             ;; F1.2: Boolean negation. Recurse into the operand.
+             (expr-supported? expr native-id-ht
+                              witness-id-ht circuit-id-ht)]
+            [(and ,src ,expr1 ,expr2)
+             ;; F1.2: short-circuit AND.
+             (and (expr-supported? expr1 native-id-ht
+                                   witness-id-ht circuit-id-ht)
+                  (expr-supported? expr2 native-id-ht
+                                   witness-id-ht circuit-id-ht))]
+            [(or ,src ,expr1 ,expr2)
+             ;; F1.2: short-circuit OR.
+             (and (expr-supported? expr1 native-id-ht
+                                   witness-id-ht circuit-id-ht)
+                  (expr-supported? expr2 native-id-ht
+                                   witness-id-ht circuit-id-ht))]
+            [(elt-ref ,src ,expr ,elt-name ,nat)
+             ;; F1.2: struct field access. The inner expression must be
+             ;; renderable; the field selection itself is unconditionally
+             ;; supported (Rust structs use the same `.field` syntax,
+             ;; emitter doesn't know whether the field name is a Rust
+             ;; reserved word — current zerocash structs use safe names).
+             (expr-supported? expr native-id-ht
+                              witness-id-ht circuit-id-ht)]
             [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
              ;; I3b/3: ledger read in expression position. Supported when
              ;; op-class is `read`, the path is a single index, and the
@@ -2712,6 +2765,24 @@
            (format "(~a == ~a)"
                    (expr-rust expr1 native-id-ht)
                    (expr-rust expr2 native-id-ht))]
+          [(not ,src ,expr)
+           ;; F1.2: Boolean negation.
+           (format "(!(~a))" (expr-rust expr native-id-ht))]
+          [(and ,src ,expr1 ,expr2)
+           ;; F1.2: short-circuit Boolean AND.
+           (format "(~a && ~a)"
+                   (expr-rust expr1 native-id-ht)
+                   (expr-rust expr2 native-id-ht))]
+          [(or ,src ,expr1 ,expr2)
+           ;; F1.2: short-circuit Boolean OR.
+           (format "(~a || ~a)"
+                   (expr-rust expr1 native-id-ht)
+                   (expr-rust expr2 native-id-ht))]
+          [(elt-ref ,src ,expr ,elt-name ,nat)
+           ;; F1.2: struct field access.
+           (format "~a.~a"
+                   (expr-rust expr native-id-ht)
+                   (symbol->string elt-name))]
           [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)
            ;; I3b/3: ledger read in expression position (e.g. inside an
            ;; `(==)` or as the RHS of a const-binding). Emits an inline
