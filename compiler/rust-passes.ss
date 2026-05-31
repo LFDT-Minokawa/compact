@@ -2613,6 +2613,19 @@
            ;; resulting AlignedValue using the same decoder table the
            ;; Ledger view uses.
            (emit-ledger-read-expr path-elt* adt-op)]
+          [(enum-ref ,src ,type ,elt-name)
+           ;; E6: enum variant in expression position (pure circuit body).
+           ;; Render as `EnumName::variant` (with Rust keyword escaping
+           ;; via rust-variant-name). Used by election.successor — the
+           ;; declared return type is the enum itself, so we must emit
+           ;; typed variants rather than the bare u8 discriminant.
+           (nanopass-case (Ltypescript Type) type
+             [(tenum ,src^ ,enum-name ,elt-name^ ,elt-name* ...)
+              (format "~a::~a"
+                      (symbol->string enum-name)
+                      (rust-variant-name elt-name))]
+             [else
+              (format "/* TODO M3-E6: enum-ref of non-tenum type */ unimplemented!()")])]
           [else
            (format "/* TODO M3-I3b: unhandled Expression variant */ unimplemented!()")]))
 
@@ -2794,25 +2807,46 @@
 
       ;; stmt-pure-body-rust: try to render the body of a pure circuit as a
       ;; single Rust expression (no trailing semicolon — used in tail
-      ;; position). Accepts the narrow shape "a single statement-expression
-      ;; whose expression is a `call`" (the shape produced for tiny.compact's
-      ;; `public_key`). Returns the Rust expression string on success, #f to
-      ;; signal the caller should fall back to `unimplemented!()`.
+      ;; position). Accepts:
+      ;;   - a `statement-expression` whose expression is a `call`
+      ;;     (tiny.compact's `public_key` shape)
+      ;;   - a statement-level `(if cond then-stmt else-stmt)` (election's
+      ;;     `successor` / `ballot_repr` shape — branches recurse so an
+      ;;     if/else-if/else chain emits nested Rust `if … else { if … }`)
+      ;; Returns the Rust expression string on success, #f to signal the
+      ;; caller should fall back to `unimplemented!()`.
       (define (stmt-pure-body-rust stmt native-id-ht)
         (let ([stmts (stmt-flatten stmt)])
           (cond
             [(or (null? stmts) (not (null? (cdr stmts)))) #f]
             [else
              (nanopass-case (Ltypescript Statement) (car stmts)
+               [(if ,src ,expr0 ,stmt1 ,stmt2)
+                ;; E6: statement-position if-then-else. Render the cond via
+                ;; expr-rust and recurse into each branch. A failing branch
+                ;; (returns #f) propagates so the whole body falls back to
+                ;; `unimplemented!()` rather than emitting a half-built if.
+                (let ([cond-str (expr-rust expr0 native-id-ht)]
+                      [then-str (stmt-pure-body-rust stmt1 native-id-ht)]
+                      [else-str (stmt-pure-body-rust stmt2 native-id-ht)])
+                  (cond
+                    [(or (not then-str) (not else-str)) #f]
+                    [(or (rendered-has-todo? cond-str)
+                         (rendered-has-todo? then-str)
+                         (rendered-has-todo? else-str))
+                     #f]
+                    [else
+                     (format "if ~a {\n            ~a\n        } else {\n            ~a\n        }"
+                             cond-str then-str else-str)]))]
                [(statement-expression ,expr)
-                ;; We currently only emit bodies whose return expression is
-                ;; itself a `call`. Other shapes (var-ref, tuple, …) are
-                ;; valid Rust expressions but won't appear in tiny.compact's
-                ;; pure circuits at this stage.
-                (nanopass-case (Ltypescript Expression) expr
-                  [(call ,src ,function-name ,expr* ...)
-                   (expr-rust expr native-id-ht)]
-                  [else #f])]
+                ;; Render the trailing expression through expr-rust. Any
+                ;; variant expr-rust can't handle falls through to its
+                ;; TODO placeholder, which rendered-has-todo? catches at
+                ;; the caller (or here, for nested if branches).
+                (let ([s (expr-rust expr native-id-ht)])
+                  (cond
+                    [(rendered-has-todo? s) #f]
+                    [else s]))]
                [else #f])])))
 
       ;; emit-pure-circuit: emit a pure circuit as a free function inside

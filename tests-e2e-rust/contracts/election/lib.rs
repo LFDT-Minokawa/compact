@@ -362,11 +362,23 @@ pub mod pure_circuits {
     use super::*;
 
     pub(crate) fn ballot_repr(ballot: PermissibleVotes) -> [u8; 32] {
-        unimplemented!("M3-I3: pure circuit body emission for ballot_repr")
+        if (ballot == PermissibleVotes::yes) {
+            [121u8, 101, 115, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        } else {
+            [110u8, 111, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        }
     }
 
     pub(crate) fn successor(state: PublicState) -> PublicState {
-        unimplemented!("M3-I3: pure circuit body emission for successor")
+        if (state == PublicState::setup) {
+            PublicState::commit
+        } else {
+            if (state == PublicState::commit) {
+            PublicState::reveal
+        } else {
+            PublicState::r#final
+        }
+        }
     }
 
     pub(crate) fn commitment_nullifier(sk: [u8; 32]) -> [u8; 32] {
