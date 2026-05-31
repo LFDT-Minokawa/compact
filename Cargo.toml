@@ -30,6 +30,7 @@ members = [
     "tests-e2e-rust/contracts/witnesses-fixture",
     "tests-e2e-rust/contracts/if-stmt-fixture",
     "tests-e2e-rust/contracts/cross-circuit-fixture",
+    "tests-e2e-rust/contracts/set-fixture",
 ]
 
 [workspace.dependencies]

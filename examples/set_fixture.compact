@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Set<T> + Set.member fixture for M3.5 F1.2/2 byte-parity + emission test.
+// Mirrors the F3 / F4-F7 pattern: a single Set ledger field plus a
+// minimal exported circuit that exercises `member` so the F1.2/2
+// gather-with-arg lowering has a target circuit body to (potentially)
+// emit.
+
+import CompactStandardLibrary;
+
+export ledger flag: Boolean;
+export ledger s: Set<Field>;
+
+export circuit check(x: Field): [] {
+  flag.write(s.member(disclose(x)));
+}
