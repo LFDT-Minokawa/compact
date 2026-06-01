@@ -25,11 +25,11 @@ module T {
 import { test2 } from T;
 
 circuit test(): Field {
-   const a = test2(1);
+   const a = test2(1 as Field);
    return a;
 }
 
 export circuit test1(a: Field): Field {
-   const a = disclose(test2(1));
+   const a = disclose(test2(1 as Field));
    return a;
 }

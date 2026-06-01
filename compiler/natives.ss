@@ -19,6 +19,7 @@
   (export native-declarations)
   (import (except (chezscheme) errorf)
           (utils)
+          (field)
           (datatype)
           (nanopass)
           (langs))
@@ -34,11 +35,12 @@
             (define (convert-native-type type)
               (define (convert-native-targ targ)
                 #`(targ-type ,native-src #,(convert-native-type targ)))
-              (syntax-case type (TypeRef Boolean Field Bytes Void)
+              (syntax-case type (TypeRef Boolean Bytes Field JubjubScalar Void)
                 [(TypeRef id targ ...) #`(type-ref ,native-src id #,@(map convert-native-targ #'(targ ...)))]
                 [Boolean #'(tboolean ,native-src)]
-                [Field #'(tfield ,native-src)]
                 [(Bytes nat) (field? (datum nat)) #`(tbytes ,native-src (type-size ,native-src ,nat))]
+                [Field #'(tfield ,native-src (field-native))]
+                [JubjubScalar #'(tfield ,native-src (field-scalar (curve-jubjub)))]
                 [Void #`(ttuple ,native-src)]
                 [other (syntax-error #'other "unrecognized native type")]))
             (syntax-case type ()

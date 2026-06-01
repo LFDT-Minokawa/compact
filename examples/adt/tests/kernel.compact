@@ -29,7 +29,7 @@ export circuit test(): [] {
   const nul = pad(32, "nul");
   const addr = k.bytes;
   const entry_point = pad(32, "entry");
-  const comm = 1;
+  const comm = 1 as Field;
 
   kernel.claimZswapCoinReceive(note);
   kernel.claimZswapCoinSpend(note);

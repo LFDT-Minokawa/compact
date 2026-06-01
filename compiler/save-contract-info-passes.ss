@@ -203,9 +203,12 @@
       [(tboolean ,src)
        (list
          (cons "type-name" "Boolean"))]
-      [(tfield ,src)
+      [(tfield ,src (field-native))
        (list
          (cons "type-name" "Field"))]
+      [(tfield ,src (field-scalar (curve-jubjub)))
+       (list
+         (cons "type-name" "JubjubScalar"))]
       [(tunsigned ,src ,nat)
        (list
          (cons "type-name" "Uint")

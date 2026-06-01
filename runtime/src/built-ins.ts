@@ -15,11 +15,10 @@
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
 import { keccak_256 } from '@noble/hashes/sha3.js';
-import { MAX_FIELD, JUBJUB_SCALAR_MODULUS } from './constants.js';
+import { FIELD_MODULUS, JUBJUB_SCALAR_MODULUS } from './constants.js';
 import { CompactType, CompactTypeJubjubPoint, JubjubPoint, JubjubSchnorrSignature } from './compact-types.js';
+import { convertNumericToJubjubScalar } from './casts.js';
 import { CompactError } from './error.js';
-
-const FIELD_MODULUS: bigint = MAX_FIELD + 1n;
 
 /**
  * Field addition
@@ -268,21 +267,12 @@ export function jubjubSampleScalar(): bigint {
 export const sampleJubjubSchnorrSk = jubjubSampleScalar;
 
 /**
- * Reduce modulo the JubJub scalar field order.
- *
- * The returned value is in the range [0, JUBJUB_SCALAR_MODULUS).
- */
-export function reduceModJubjubOrder(value: bigint): bigint {
-  return value % JUBJUB_SCALAR_MODULUS;
-}
-
-/**
  * Derives the Schnorr verifying key (public key) from a signing key.
  *
  * Equivalent to {@link ecMulGenerator}(signingKey).
  */
 export function jubjubSchnorrVerifyingKey(signingKey: bigint): JubjubPoint {
-  return ecMulGenerator(reduceModJubjubOrder(signingKey));
+  return ecMulGenerator(convertNumericToJubjubScalar(signingKey));
 }
 
 /**
@@ -312,9 +302,9 @@ export function jubjubSchnorrSign<A>(rtType: CompactType<A>, msg: A, signingKey:
     ...CompactTypeJubjubPoint.toValue(verifyingKey),
     ...rtType.toValue(msg),
   ];
-  const c = reduceModJubjubOrder(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
+  const c = convertNumericToJubjubScalar(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
 
-  const response = reduceModJubjubOrder(r + c * signingKey);
+  const response = convertNumericToJubjubScalar(r + c * signingKey);
   return { announcement, response };
 }
 
@@ -340,7 +330,7 @@ export function jubjubSchnorrVerify<A>(rtType: CompactType<A>, msg: A, verifying
     ...CompactTypeJubjubPoint.toValue(verifyingKey),
     ...rtType.toValue(msg),
   ];
-  const c = reduceModJubjubOrder(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
+  const c = convertNumericToJubjubScalar(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
 
   const lhs = ecMulGenerator(response);
   const rhs = ecAdd(announcement, ecMul(verifyingKey, c));

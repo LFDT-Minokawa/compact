@@ -20,6 +20,7 @@
   (import (except (chezscheme) errorf)
           (config-params)
           (utils)
+          (field)
           (datatype)
           (nanopass)
           (langs)
@@ -136,8 +137,8 @@
             (map alignment->json-atom align))
           (define (constrain-type type pos)
             (nanopass-case (Lflattened Primitive-Type) type
-              [(tfield) (void)]
-              [(tfield ,nat)
+              [(tfield ,ftype) (void)]
+              [(tunsigned ,nat)
                (cond
                  [(= nat 0) (print-gate "constrain_eq" `[a ,pos] `[b ,(literal 0)])]
                  [(= nat 1) (print-gate "constrain_to_boolean" `[var ,pos])]
@@ -206,9 +207,6 @@
                 (lambda (src align res* a1 a2)
                   (bind-var! (car res*) a1)
                   (bind-var! (cadr res*) a2)))
-              (register-handler! 'jubjubScalarFromNative
-                (lambda (align res* a1)
-                  (bind-var! (car res*) a1)))
               (register-handler! 'transientCommit
                 ;; First n-1 args are the object being committed.
                 ;; Final arg is commitment nonce.
@@ -353,10 +351,20 @@
           ; FIXME: zkir downcast-unsigned needs to respect test
           ; NB: missing-guard-workarounds now implements a workaround that ensures
           ; downcast-unsigned's safe flag is #t whenever the test might be false.
-          [(= ,[* test] ,var-name (downcast-unsigned ,src ,safe ,nat? ,nat ,[* triv]))
+          [(= ,[* test] ,var-name (downcast-unsigned ,src ,safe ,nat2 ,nat1 ,[* triv]))
            (unless safe
              (constrain-type (with-output-language (Lflattened Primitive-Type)
-                                                   `(tfield ,nat))
+                                                   `(tunsigned ,nat1))
+                             triv))
+           ; triv is a stack index for a literal or variable
+           (hashtable-set! varid-ht var-name triv)]
+          ; FIXME: zkir cast-from-field needs to respect test
+          ; NB: missing-guard-workarounds now implements a workaround that ensures
+          ; cast-from-field's safe flag is #t whenever the test might be false.
+          [(= ,[* test] ,var-name (cast-from-field ,src ,safe ,nat ,ftype ,[* triv]))
+           (unless safe
+             (constrain-type (with-output-language (Lflattened Primitive-Type)
+                                                   `(tunsigned ,nat))
                              triv))
            ; triv is a stack index for a literal or variable
            (hashtable-set! varid-ht var-name triv)]
@@ -740,7 +748,7 @@
            (let ([q ctr])
              (set! ctr (+ ctr 2))
              ; FIXME: is there a better way to mask the higher bits?
-             (print-gate "div_mod_power_of_two" `[var ,q] `[bits ,8])
+             (print-gate "div_mod_power_of_two" `[var ,q] '[bits 8])
              (set! ctr (add1 ctr)))]
           ; FIXME: zkir bytes->field needs to respect test
           ; NB: missing-guard-workarounds now implements a workaround that ensures
@@ -764,8 +772,12 @@
                    ; FIXME: use of reconstitute_field should be conditioned on test
                    ; NB: missing-guard-workarounds now implements a workaround that ensures
                    ; vector->bytes gets valid inputs when test turns out to be false
-                   (print-gate "reconstitute_field" `[divisor ,d] `[modulus ,triv] `[bits 8]))))]
-          [(downcast-unsigned ,src ,safe ,nat? ,nat ,[* triv])
+                   (print-gate "reconstitute_field" `[divisor ,d] `[modulus ,triv] '[bits 8]))))]
+          [(cast-to-field ,ftype ,primitive-type ,[* triv])
+           (print-gate "copy" `[var ,triv])]
+          [(cast-from-field ,src ,safe ,nat ,ftype ,triv)
+           (assertf cannot-happen "handled directly by Statement")]
+          [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv)
            (assertf cannot-happen "handled directly by Statement")]
           [(select ,[* triv0] ,[* triv1] ,[* triv2])
            (print-gate "cond_select" `[bit ,triv0] `[a ,triv1] `[b ,triv2])])
