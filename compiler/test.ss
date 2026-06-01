@@ -171,7 +171,7 @@ groups than for single tests.
 
   (define (print-pass-result pass-name pretty-formats result)
     (pretty-print/formats
-      (cons 
+      (cons
         (cons 'pass-returns '(pass-returns pass-name #f e))
         pretty-formats)
       (list 'pass-returns pass-name result)))
@@ -391,7 +391,7 @@ groups than for single tests.
                                      sfn
                                      (and maybe-src (format-source-object maybe-src))))
                   (unless (and (list? code) (andmap string? code))
-                    (internal-errorf #f "supplied code is not a list of strings~@[ at ~a~]" 
+                    (internal-errorf #f "supplied code is not a list of strings~@[ at ~a~]"
                                      (and maybe-src (format-source-object maybe-src))))
                   (mkdir-p (path-parent sfn))
                   (with-output-to-file sfn
@@ -13460,6 +13460,37 @@ groups than for single tests.
 
   (test
     '(
+      "module M1 {"
+      "  import CompactStandardLibrary;"
+      "  export circuit foo1(x: Field): Bytes<32> {"
+      "    return keccak256<Field>(x);"
+      "  }"
+      "}"
+      "module M2 {"
+      "  import CompactStandardLibrary;"
+      "  export circuit foo2(x: Field): Bytes<32> {"
+      "    return keccak256<Field>(x);"
+      "  }"
+      "}"
+      "import M1;"
+      "import M2;"
+      "export { foo1, foo2 };"
+      )
+    (returns
+      (program ((foo1 %foo1.0) (foo2 %foo2.1))
+        (public-ledger-declaration %kernel.2 (Kernel))
+        (native %keccak256.3 ([%value.4 (tfield)])
+             (tbytes 32))
+        (circuit %foo1.0 ([%x.5 (tfield)])
+             (tbytes 32)
+          (call (fref ((%keccak256.3))) %x.5))
+        (circuit %foo2.1 ([%x.6 (tfield)])
+             (tbytes 32)
+          (call (fref ((%keccak256.3))) %x.6))))
+    )
+
+  (test
+    '(
       "import CompactStandardLibrary;"
       "export circuit CompactStandardLibrary(x: Field): Bytes<32> {"
       " return persistentHash<Field>(x);"
@@ -18027,6 +18058,48 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 38" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (persistentHash #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<0..43>)\n      declared argument types for function at <standard library>:\n        (Bytes<32>)" #f)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+
+      "export { keccak256 };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native keccak256)))
+    )
+
+  (test
+    '(
+      "import {keccak256} from CompactStandardLibrary;"
+      "export circuit foo(): Bytes<32> { return keccak256<1>([3]); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 42" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (keccak256 "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 1>\n      declared generics for function at <standard library>:\n        <type>" #f #f)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger counter: Counter;"
+      "export circuit foo(): Bytes<32> { return keccak256<Counter>(counter); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("argument 'value'" "Counter")))
+    )
+
+  (test
+    '(
+      "import {keccak256} from CompactStandardLibrary;"
+      "export circuit foo(): Field { return keccak256<Bytes<32>>(42); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 38" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (keccak256 #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<0..43>)\n      declared argument types for function at <standard library>:\n        (Bytes<32>)" #f)))
     )
 
   (test
@@ -31066,7 +31139,7 @@ groups than for single tests.
                       [%n.5 (tunsigned 65535)])
                  (tunsigned 4294967295)
               (downcast-unsigned
-                4295032830 
+                4295032830
                 4294967295
                 (+ 33
                    (safe-cast (tunsigned 4295032830) (tunsigned 4294967295) %a.4)
@@ -59302,6 +59375,20 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantZkir: Boolean;"
+      "export circuit foo(v: Vector<4, Uint<8>>): Bytes<32> {"
+      "  wantZkir = true;"
+      "  return keccak256<Vector<4, Uint<8>>>(v);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 10" "keccak256 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+    )
   )
 
 (parameterize ([feature-zkir-v3 #t])
@@ -59381,6 +59468,33 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger hash: Bytes<32>;"
+      ""
+      "export circuit foo(msg: Opaque<'string'>): [] {"
+      "  hash = disclose(keccak256<Opaque<'string'>>(msg));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/foo.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%msg.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"keccak256\", \"outputs\": [\"%tmp.1\", \"%tmp.2\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"tag\": \"compress\" } }], \"inputs\": [\"%msg.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.1\", \"%tmp.2\", \"0x91\"] }"
         "  ]"
         "}"))
     )
@@ -60107,7 +60221,7 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%n.0\", \"b\": \"%neg.1\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
-        "}"))    
+        "}"))
     )
 
   (test
@@ -67588,6 +67702,33 @@ groups than for single tests.
         ))
     )
 
+  ; keccak256 of an Opaque<"string"> must match @noble/hashes' keccak_256 of the UTF-8 bytes
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit doKeccak256(s: Opaque<'string'>): Bytes<32> {"
+      "  return keccak256<Opaque<'string'>>(s);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('keccak256 of an Opaque string matches @noble/hashes', async () => {"
+        "  const { keccak_256 } = await import('@noble/hashes/sha3.js');"
+        "  const utf8 = new TextEncoder();"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.doKeccak256(Ctxt, '').result).toEqual(keccak_256(utf8.encode('')));"
+        "  expect(C.circuits.doKeccak256(Ctxt, 'abc').result).toEqual(keccak_256(utf8.encode('abc')));"
+        "  });"
+        "test('keccak256 of an Opaque string matches known digests', () => {"
+        "  const fromHex = (h) => Uint8Array.from(h.match(/../g).map((b) => parseInt(b, 16)));"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.doKeccak256(Ctxt, '').result).toEqual(fromHex('c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, 'abc').result).toEqual(fromHex('4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, 'hello-world').result).toEqual(fromHex('d41bad2284cfa351467b5db9418bbe3a5c02162c02ee585f07e5553d823ebad9'));"
+        "  });"
+        ))
+    )
+
   (test
     '(
       "circuit foo(n: Field): Boolean {"
@@ -68133,7 +68274,7 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt).result).toEqual([]);"
         "});"
         ))
-    ) 
+    )
   )
 
  (with-compact-path '(".")

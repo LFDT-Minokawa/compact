@@ -26,6 +26,7 @@ import {
     buildPathTo,
 } from '@';
 import path from 'node:path';
+import fs from 'fs/promises';
 
 describe('[Std] Compiler', () => {
     const CONTRACTS_ROOT = buildPathTo('/std_lib/import');
@@ -77,6 +78,25 @@ describe('[Std] Compiler', () => {
 
         const result: Result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(contractsDir).thatGeneratedJSCodeIsValid();
+    });
+
+    test(`should be able to compile contract with keccak256 hash function: keccak256.compact with only feature v3 enabled`, async () => {
+        const CONTRACTS_ROOT = buildPathTo('/std_lib');
+        const filePath = path.join(CONTRACTS_ROOT, 'keccak256.compact');
+
+        // clear contractsDir before compiling
+        await fs.rm(contractsDir, { recursive: true, force: true });
+
+        const v2Result: Result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
+        expectCompilerResult(v2Result).toBeFailure(
+            'Exception: keccak256.compact line 22 char 10:\n  keccak256 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`',
+            compilerDefaultOutput(),
+        );
+        expectFiles(contractsDir).thatNoFilesAreGenerated();
+
+        const v3Result: Result = await compile([Arguments.SKIP_ZK, Arguments.FEATURE_V3, filePath, contractsDir], CONTRACTS_ROOT);
+        expectCompilerResult(v3Result).toBeSuccess('', compilerDefaultOutput());
         expectFiles(contractsDir).thatGeneratedJSCodeIsValid();
     });
 });
