@@ -59922,7 +59922,240 @@ groups than for single tests.
         "  ]"
         "}"))
     )
-  )
+
+
+  (test ; Casts involving JubjubScalar.
+    `(
+      ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
+      "ledger fCell: Field;"
+      "ledger jCell: JubjubScalar;"
+      "ledger uCell: MaxUint;"
+      "export circuit testFtoJ(f: Field): [JubjubScalar, JubjubScalar, Field] {"
+      "  const j0 = f as JubjubScalar;"
+      "  jCell = disclose(j0);"
+      "  const j1 = jCell;"
+      "  return [j0, j1, j1 as Field];"
+      "}"
+      "export circuit testJtoF(j: JubjubScalar): [Field, Field, JubjubScalar] {"
+      "  const f0 = j as Field;"
+      "  fCell = disclose(f0);"
+      "  const f1 = fCell;"
+      "  return [f0, f1, f1 as JubjubScalar];"
+      "}"
+      "export circuit testUtoJ(u: MaxUint): [JubjubScalar, JubjubScalar, MaxUint] {"
+      "  const j0 = u as JubjubScalar;"
+      "  jCell = disclose(j0);"
+      "  const j1 = jCell;"
+      "  return [j0, j1, j1 as MaxUint];"
+      "}"
+      "export circuit testJtoU(j: JubjubScalar): [MaxUint, MaxUint, JubjubScalar] {"
+      "  const u0 = j as MaxUint;"
+      "  uCell = disclose(u0);"
+      "  const u1 = uCell;"
+      "  return [u0, u1, u1 as JubjubScalar];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/testFtoJ.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 1,"
+        "  \"instructions\": ["
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"copy\", \"var\": 0 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
+        "    { \"op\": \"copy\", \"var\": 9 },"
+        "    { \"op\": \"output\", \"var\": 2 },"
+        "    { \"op\": \"output\", \"var\": 9 },"
+        "    { \"op\": \"output\", \"var\": 11 }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/testJtoF.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 1,"
+        "  \"instructions\": ["
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"copy\", \"var\": 0 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
+        "    { \"op\": \"copy\", \"var\": 10 },"
+        "    { \"op\": \"output\", \"var\": 2 },"
+        "    { \"op\": \"output\", \"var\": 10 },"
+        "    { \"op\": \"output\", \"var\": 12 }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/testUtoJ.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 1,"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 248 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"copy\", \"var\": 0 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
+        "    { \"op\": \"constrain_bits\", \"var\": 9, \"bits\": 248 },"
+        "    { \"op\": \"output\", \"var\": 2 },"
+        "    { \"op\": \"output\", \"var\": 9 },"
+        "    { \"op\": \"output\", \"var\": 9 }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/testJtoU.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 1,"
+        "  \"instructions\": ["
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 248 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"1F\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
+        "    { \"op\": \"copy\", \"var\": 9 },"
+        "    { \"op\": \"output\", \"var\": 0 },"
+        "    { \"op\": \"output\", \"var\": 9 },"
+        "    { \"op\": \"output\", \"var\": 11 }"
+        "  ]"
+        "}"))
+    )
+)
 
 (parameterize ([feature-zkir-v3 #t])
 (run-tests print-zkir-v3
@@ -66771,6 +67004,134 @@ groups than for single tests.
         "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%pt.0\", \"inputs\": [\"0x00\", \"0x01\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%pt.0\", \"b\": \"%pt.0\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test ; Casts involving JubjubScalar.
+    `(
+      ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
+      "ledger fCell: Field;"
+      "ledger jCell: JubjubScalar;"
+      "ledger uCell: MaxUint;"
+      "export circuit testFtoJ(f: Field): [JubjubScalar, JubjubScalar, Field] {"
+      "  const j0 = f as JubjubScalar;"
+      "  jCell = disclose(j0);"
+      "  const j1 = jCell;"
+      "  return [j0, j1, j1 as Field];"
+      "}"
+      "export circuit testJtoF(j: JubjubScalar): [Field, Field, JubjubScalar] {"
+      "  const f0 = j as Field;"
+      "  fCell = disclose(f0);"
+      "  const f1 = fCell;"
+      "  return [f0, f1, f1 as JubjubScalar];"
+      "}"
+      "export circuit testUtoJ(u: MaxUint): [JubjubScalar, JubjubScalar, MaxUint] {"
+      "  const j0 = u as JubjubScalar;"
+      "  jCell = disclose(j0);"
+      "  const j1 = jCell;"
+      "  return [j0, j1, j1 as MaxUint];"
+      "}"
+      "export circuit testJtoU(j: JubjubScalar): [MaxUint, MaxUint, JubjubScalar] {"
+      "  const u0 = j as MaxUint;"
+      "  uCell = disclose(u0);"
+      "  const u1 = uCell;"
+      "  return [u0, u1, u1 as JubjubScalar];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/testFtoJ.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%f.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Jubjub>\","
+        "    \"Scalar<Jubjub>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"decode\", \"type\": \"Scalar<Jubjub>\", \"output\": \"%j0.1\", \"inputs\": [\"%f.0\"] },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%fld.2\"], \"input\": \"%j0.1\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%fld.2\", \"0x91\"] },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<Jubjub>\", \"output\": \"%j1.3\", \"guard\": null },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%fld.4\"], \"input\": \"%j1.3\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x0c\", \"0x01\", \"-0x02\", \"%fld.4\"] },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%t.5\"], \"input\": \"%j1.3\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%j0.1\", \"%j1.3\", \"%t.5\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/testJtoF.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%j.0\", \"type\": \"Scalar<Jubjub>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<Jubjub>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"encode\", \"outputs\": [\"%f0.1\"], \"input\": \"%j.0\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%f0.1\", \"0x91\"] },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%f1.2\", \"guard\": null },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"-0x02\", \"%f1.2\"] },"
+        "    { \"op\": \"decode\", \"type\": \"Scalar<Jubjub>\", \"output\": \"%t.3\", \"inputs\": [\"%f1.2\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"%f0.1\", \"%f1.2\", \"%t.3\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/testUtoJ.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%u.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Jubjub>\","
+        "    \"Scalar<Jubjub>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%u.0\", \"bits\": 248 },"
+        "    { \"op\": \"decode\", \"type\": \"Scalar<Jubjub>\", \"output\": \"%j0.1\", \"inputs\": [\"%u.0\"] },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%fld.2\"], \"input\": \"%j0.1\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%fld.2\", \"0x91\"] },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<Jubjub>\", \"output\": \"%j1.3\", \"guard\": null },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%fld.4\"], \"input\": \"%j1.3\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x0c\", \"0x01\", \"-0x02\", \"%fld.4\"] },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%t.5\"], \"input\": \"%j1.3\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.5\", \"bits\": 248 },"
+        "    { \"op\": \"output\", \"vals\": [\"%j0.1\", \"%j1.3\", \"%t.5\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/testJtoU.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%j.0\", \"type\": \"Scalar<Jubjub>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<Jubjub>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"encode\", \"outputs\": [\"%u0.1\"], \"input\": \"%j.0\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%u0.1\", \"bits\": 248 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x11\", \"0x01\", \"0x01\", \"0x1f\", \"%u0.1\", \"0x91\"] },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%u1.2\", \"guard\": null },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0c\", \"0x01\", \"0x1f\", \"%u1.2\"] },"
+        "    { \"op\": \"decode\", \"type\": \"Scalar<Jubjub>\", \"output\": \"%t.3\", \"inputs\": [\"%u1.2\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"%u0.1\", \"%u1.2\", \"%t.3\"] }"
         "  ]"
         "}"))
     )
@@ -84042,7 +84403,6 @@ groups than for single tests.
 
   (test ; Casts involving JubjubScalar.
     `(
-      "import CompactStandardLibrary;"
       ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
       "ledger fCell: Field;"
       "ledger jCell: JubjubScalar;"
@@ -84101,6 +84461,129 @@ groups than for single tests.
         "  expect(() => C.circuits.testJtoU(Ctxt, MAX_JUBJUB_SCALAR)).toThrow(runtime.CompactError);"
         "});"
         ))
+    )
+
+  (test ; Arithmetic and comparisons involving JubjubScalar
+    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 61" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "left" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: JubjubScalar, y: Field): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 54" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "left" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: JubjubScalar, y: Uint<64>): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "left" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: Field, y: JubjubScalar): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 54" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+    )
+
+  (test
+    '(
+      "export circuit equals(x: JubjubScalar, y: JubjubScalar): Boolean { return x == y; }"
+      "export circuit notEquals(x: JubjubScalar, y: JubjubScalar): Boolean { return x != y; }"
+      )
+    (stage-javascript
+      `("test('JubjubScalar equality', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        ,(format "  const MAX_JUBJUB_SCALAR = ~dn;" (max-jubjub-scalar))
+        "  expect(C.circuits.equals(Ctxt, 0n, 0n).result).toEqual(true);"
+        "  expect(C.circuits.equals(Ctxt, 0n, 1000n).result).toEqual(false);"
+        "  expect(C.circuits.equals(Ctxt, 0n, MAX_JUBJUB_SCALAR).result).toEqual(false);"
+        "  expect(C.circuits.equals(Ctxt, 1000n, 0n).result).toEqual(false);"
+        "  expect(C.circuits.equals(Ctxt, 1000n, 1000n).result).toEqual(true);"
+        "  expect(C.circuits.equals(Ctxt, 1000n, MAX_JUBJUB_SCALAR).result).toEqual(false);"
+        "  expect(C.circuits.equals(Ctxt, MAX_JUBJUB_SCALAR, 0n).result).toEqual(false);"
+        "  expect(C.circuits.equals(Ctxt, MAX_JUBJUB_SCALAR, 1000n).result).toEqual(false);"
+        "  expect(C.circuits.equals(Ctxt, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR).result).toEqual(true);"
+        "  expect(C.circuits.notEquals(Ctxt, 0n, 0n).result).toEqual(false);"
+        "  expect(C.circuits.notEquals(Ctxt, 0n, 1000n).result).toEqual(true);"
+        "  expect(C.circuits.notEquals(Ctxt, 0n, MAX_JUBJUB_SCALAR).result).toEqual(true);"
+        "  expect(C.circuits.notEquals(Ctxt, 1000n, 0n).result).toEqual(true);"
+        "  expect(C.circuits.notEquals(Ctxt, 1000n, 1000n).result).toEqual(false);"
+        "  expect(C.circuits.notEquals(Ctxt, 1000n, MAX_JUBJUB_SCALAR).result).toEqual(true);"
+        "  expect(C.circuits.notEquals(Ctxt, MAX_JUBJUB_SCALAR, 0n).result).toEqual(true);"
+        "  expect(C.circuits.notEquals(Ctxt, MAX_JUBJUB_SCALAR, 1000n).result).toEqual(true);"
+        "  expect(C.circuits.notEquals(Ctxt, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR).result).toEqual(false);"
+        "});"
+        ))
+    )
+
+  (test
+    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x < y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x <= y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x >= y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x > y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+    )
+  (test
+    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
     )
   )
 

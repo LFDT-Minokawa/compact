@@ -1986,7 +1986,7 @@
                  (values
                    (if nominal? (cons type-name type-name*) type-name*)
                    nat))]
-              [(tfield ,src1 ,ftype) (values '() #f)]
+              [(tfield ,src1 (field-native)) (values '() #f)]
               [(tunsigned ,src ,nat) (values '() nat)]
               [else (source-errorf src "~a requires its ~a operand to be a Field or Uint; the actual type is ~a"
                                    op
