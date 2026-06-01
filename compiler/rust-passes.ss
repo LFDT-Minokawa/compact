@@ -4095,10 +4095,35 @@
              [else #f])]
           [else #f]))
 
+      ;; ltypescript-type-is-tadt?: returns #t when an Ltypescript Type is a
+      ;; tadt (public-adt) form, peeling talias layers. Used by
+      ;; vm-value->rust-state-value below to decide whether a
+      ;; `VMstate-value-ADT val type` form wraps its `val` in `new_cell(...)`
+      ;; (the leaf path — value_type is a non-ADT like Field/Uint/Bytes) or
+      ;; surfaces the ADT directly (the recursive path — value_type is a
+      ;; nested Map/Set/MerkleTree). Mirrors typescript-passes.ss's
+      ;; `public-adt?` branch for `VMstate-value-ADT`.
+      (define (ltypescript-type-is-tadt? type)
+        (nanopass-case (Ltypescript Type) type
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
+          [(talias ,src ,nominal? ,type-name ,type) (ltypescript-type-is-tadt? type)]
+          [else #f]))
+
       ;; vm-value->rust-state-value: render a state-value form (the kind
       ;; that appears as the `value` arg of a `push` vm-instruction) as
       ;; a Rust expression of type `StateValue<DefaultDB>`. Returns #f if
       ;; the form isn't one we yet know how to translate.
+      ;;
+      ;; G: `VMstate-value-ADT val type` — Map.insert's value-side push uses
+      ;; this form because `state-value 'ADT value value_type` carries the
+      ;; declared value_type. For non-public-adt value types (Field, Uint*,
+      ;; Bytes<N>, …) the runtime semantics are identical to a plain
+      ;; `VMstate-value-cell val` (typescript-passes wraps with
+      ;; `StateValue.newCell`); we mirror that here so Map<K, leaf> insert
+      ;; lowers to the same `.push(true, new_cell(<v>))` shape Set.insert
+      ;; uses with its `(state-value 'null)`. tadt-typed values aren't yet
+      ;; needed (Map<K, Map<…>> etc.) — return #f for those so the caller
+      ;; falls back to `unimplemented!()`.
       (define (vm-value->rust-state-value val)
         (cond
           [(VMop? val)
@@ -4107,6 +4132,12 @@
              [(VMstate-value-cell inner)
               (let ([rust-inner (vm-cell-elem->rust inner)])
                 (and rust-inner (format "new_cell(~a)" rust-inner)))]
+             [(VMstate-value-ADT inner adt-type)
+              (cond
+                [(ltypescript-type-is-tadt? adt-type) #f]
+                [else
+                 (let ([rust-inner (vm-cell-elem->rust inner)])
+                   (and rust-inner (format "new_cell(~a)" rust-inner)))])]
              [else #f])]
           [else #f]))
 

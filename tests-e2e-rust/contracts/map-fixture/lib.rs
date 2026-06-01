@@ -49,7 +49,29 @@ where
         k: Fr,
         v: Fr,
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
-        unimplemented!("M3-I3: circuit body emission for put")
+        let ops = OpProgramVerify::<DefaultDB>::new()
+            .idx_at_index(0u8, true)
+            .push(false, new_cell(k))
+            .push(true, new_cell(v))
+            .ins(false, 1)
+            .ins(true, 1)
+            .build();
+
+        let results = query_for_verify(
+            &ctx.current_query_context,
+            &ops,
+            ctx.gas_limit.clone(),
+            &ctx.cost_model,
+        )?;
+
+        Ok(CircuitResults {
+            result: (),
+            context: CircuitContext {
+                current_query_context: results.context,
+                ..ctx
+            },
+            gas_cost: results.gas_cost,
+        })
     }
 
 }
