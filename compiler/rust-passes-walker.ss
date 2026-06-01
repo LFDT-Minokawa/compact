@@ -1723,30 +1723,26 @@
           [(if ,src ,expr0 ,stmt1 ,stmt2) (list expr0 stmt1 stmt2)]
           [else #f]))
 
-      ;; tsize->int: extract the literal integer bound from a Ltypescript
-      ;; Type-Size node. Returns the nat for `(type-size src nat)` and #f
-      ;; otherwise (e.g. `(type-size-ref src tsize-name)` for non-literal
-      ;; bounds, which Iter 4 doesn't yet support). The bare nat shape
-      ;; is what `(for var-name tsize0 tsize1 #f stmt)` carries in the
-      ;; constructor / circuit body — see langs.ss:295-298.
-      (define (tsize->int t)
-        (nanopass-case (Ltypescript Type-Size) t
-          [(type-size ,src ,nat) nat]
-          [else #f]))
-
-      ;; stmt->for-range: detect a `(for var-name tsize0 tsize1 #f body-stmt)`
-      ;; Statement whose bounds are literal tsize nats. Returns
-      ;; (list var-name lo hi body-stmt) on match, #f otherwise. Iter 4
-      ;; scope: only literal-bounds range loops. Variable bounds
-      ;; (`type-size-ref`) and iterable loops (`(for var-name expr stmt)`)
-      ;; are deferred.
-      (define (stmt->for-range stmt)
-        (nanopass-case (Ltypescript Statement) stmt
-          [(for ,var-name ,tsize0 ,tsize1 #f ,stmt^)
-           (let ([lo (tsize->int tsize0)]
-                 [hi (tsize->int tsize1)])
-             (and lo hi (list var-name lo hi stmt^)))]
-          [else #f]))
+      ;; tsize->int / stmt->for-range: HISTORICAL — the original Iter 4
+      ;; path dispatched on Ltypescript Type-Size + Statement `for` forms,
+      ;; but those non-terminals/forms don't exist at the Ltypescript
+      ;; layer. Type-Size is removed at the Lexpanded boundary
+      ;; (langs.ss:611-613), and the Statement `for` form is removed at
+      ;; Lexpr (langs.ss:367-376). The frontend lowers range loops
+      ;;   `for (const i of N..M) { body }`
+      ;; to an iterable form `(for src var-name (tuple ... lits ...) body)`
+      ;; in expand-modules-and-types (analysis-passes.ss:1247-1261), and
+      ;; infer-types then desugars the iterable form to a `(fold ...)`
+      ;; expression (analysis-passes.ss:2878-2894). By the time we reach
+      ;; Ltypescript every for-loop — range or iterable — is a `fold`.
+      ;;
+      ;; The dispatch sites in body-walkable? / emit-body-or-fallback
+      ;; still reference these helpers; they're kept as always-#f stubs
+      ;; so the call sites are no-ops and the fold-based Iter 5/6 path
+      ;; (extended below to also recognise the lowered range form's
+      ;; `(tuple src ...)` iterable shape) handles every case.
+      (define (tsize->int t) #f)
+      (define (stmt->for-range stmt) #f)
 
       ;; Iter 5: detect a Compact `for (const _ of <static-len iterable>)
       ;; { body }` after frontend desugaring. The Ltypescript IR has
@@ -1782,7 +1778,7 @@
               ;; destructure them so `map-arg` lines up.
               (and (null? map-arg*)
                    (nanopass-case (Ltypescript Function) fun
-                     [(circuit (,arg* ...) ,type ,stmt^)
+                     [(circuit ,src (,arg* ...) ,type ,stmt^)
                       ;; Expect exactly two args: (acc, elt).
                       (cond
                         [(not (fx= (length arg*) 2)) #f]
@@ -1818,23 +1814,33 @@
 
       ;; iterable-expr->literals: returns a list of N literal Expression
       ;; nodes when `expr` is a statically-extractable iterable, #f
-      ;; otherwise. Iter 6 MVP recognises `(vector src (single src lit)
-      ;; ... )` where every element is a `(quote src datum)` with an
-      ;; exact integer datum — the shape Compact's `[1, 2, 3]` array
-      ;; literal lowers to in Ltypescript.
+      ;; otherwise. Recognises two shapes:
+      ;;
+      ;;   (vector src (single src lit) ...)   ; user-written `[1,2,3]`
+      ;;   (tuple  src (single src lit) ...)   ; synthesised by
+      ;;                                       ; expand-modules-and-types
+      ;;                                       ; for range loops
+      ;;                                       ; `for (const i of N..M)`
+      ;;                                       ; (analysis-passes.ss:1257-1258)
+      ;;
+      ;; Every element must be a `(quote src datum)` with an exact-
+      ;; integer datum (optionally wrapped in safe-cast layers, peeled
+      ;; by `tuple-arg->literal`).
       ;;
       ;; The returned list is in iteration order: the i-th element is
       ;; what `elt-name` binds to during iteration i.
       (define (iterable-expr->literals expr)
         (let ([e (expr-strip-cast expr)])
+          (define (peel-tuple-args xs)
+            (let loop ([xs xs] [acc '()])
+              (cond
+                [(null? xs) (reverse acc)]
+                [else
+                 (let ([elt (tuple-arg->literal (car xs))])
+                   (and elt (loop (cdr xs) (cons elt acc))))])))
           (nanopass-case (Ltypescript Expression) e
-            [(vector ,src ,tuple-arg* ...)
-             (let loop ([xs tuple-arg*] [acc '()])
-               (cond
-                 [(null? xs) (reverse acc)]
-                 [else
-                  (let ([elt (tuple-arg->literal (car xs))])
-                    (and elt (loop (cdr xs) (cons elt acc))))]))]
+            [(vector ,src ,tuple-arg* ...) (peel-tuple-args tuple-arg*)]
+            [(tuple ,src ,tuple-arg* ...) (peel-tuple-args tuple-arg*)]
             [else #f])))
 
       ;; tuple-arg->literal: peel a `(single src expr)` Tuple-Argument
@@ -1883,7 +1889,15 @@
       ;; The returned Statement is what we feed to branch->single-pl-call
       ;; to extract the side-effecting public-ledger call.
       (define (fold-body-strip-acc-return stmt acc-name)
-        (let ([flat (stmt-flatten stmt)])
+        ;; Extract the outer stmt's src once; we reuse it as the
+        ;; rebuilt-seq's src below. The `seq` form's src field is
+        ;; constructor-validated as source-object?, so passing #f
+        ;; would error at IR-construction time.
+        (let ([outer-src
+               (nanopass-case (Ltypescript Statement) stmt
+                 [(seq ,src ,stmt* ... ,stmt^) src]
+                 [else #f])]
+              [flat (stmt-flatten stmt)])
           (cond
             [(null? flat) #f]
             [else
@@ -1897,14 +1911,16 @@
                       (cond
                         [(null? rest) #f]
                         [(null? (cdr rest)) (car rest)]
+                        [(not outer-src) #f]
                         [else
                          ;; rest = (stmt0 stmt1 ... stmtN). seq's shape is
-                         ;; (seq src stmt* ... stmt) — last in tail position.
+                         ;; (seq src stmt* ... stmt) — last in tail
+                         ;; position.
                          (let ([rest-rev (reverse rest)])
                            (let ([last-stmt (car rest-rev)]
                                  [stmt* (reverse (cdr rest-rev))])
                              (with-output-language (Ltypescript Statement)
-                               `(seq #f ,stmt* ... ,last-stmt))))]))))])))
+                               `(seq ,outer-src ,stmt* ... ,last-stmt))))]))))])))
 
       ;; stmt-is-var-ref?: detect `(statement-expression (var-ref name))`
       ;; matching `target-name`.

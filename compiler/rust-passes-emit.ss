@@ -393,13 +393,25 @@
       ;; cast layers. Returns the underlying Expression or #f if the
       ;; chain hits something we don't recognise.
       (define (expr-resolve expr binds)
+        ;; Pass through unknown var-refs unchanged. Originally this
+        ;; returned #f to signal "unresolvable", but that prevented
+        ;; legitimate Iter 6 use cases (the fold loop variable is bound
+        ;; outside `binds` and substituted per-iteration by
+        ;; emit-for-iter-terminal). Downstream callers (e.g.
+        ;; branch->single-pl-call, stmt->single-public-ledger-call)
+        ;; still test for #f via `(memv #f resolved)`; with this change
+        ;; that test never fires for var-refs alone. Other shapes (e.g.
+        ;; an unsupported expression form via expr-strip-cast) still
+        ;; fall through to the `[else e]` arm — they keep their original
+        ;; representation, and downstream emission rejects them through
+        ;; `expr-supported?` / vm-code expansion rather than via #f here.
         (let ([e (expr-strip-cast expr)])
           (nanopass-case (Ltypescript Expression) e
             [(var-ref ,src ,var-name)
              (cond
                [(assq var-name binds) =>
                 (lambda (p) (expr-resolve (cdr p) binds))]
-               [else #f])]
+               [else e])]
             [else e])))
 
       ;; stmt->single-public-ledger-call: detect the narrow I3a shape —
