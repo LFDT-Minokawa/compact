@@ -18,6 +18,7 @@ midnight-onchain-runtime  = { workspace = true }
 midnight-coin-structure   = { workspace = true }
 midnight-storage          = { workspace = true }
 midnight-serialize        = { workspace = true }
+midnight-transient-crypto = { workspace = true }
 serde       = { version = "1",   features = ["derive"] }
 serde_json  = "1"
 hex         = "0.4"

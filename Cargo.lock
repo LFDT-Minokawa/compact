@@ -4650,6 +4650,7 @@ dependencies = [
  "midnight-onchain-vm",
  "midnight-serialize",
  "midnight-storage",
+ "midnight-transient-crypto",
  "serde",
  "serde_json",
 ]

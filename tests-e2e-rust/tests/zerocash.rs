@@ -19,16 +19,35 @@ use compact_contract_zerocash::{
 use compact_runtime::*;
 use midnight_serialize::tagged_serialize;
 use midnight_storage::storage::HashMap;
-use tests_e2e_rust::{ZerocashStepSnapshot, ZerocashTsReferenceState};
+use std::cell::RefCell;
+use tests_e2e_rust::{CapturedMerklePath, ZerocashStepSnapshot, ZerocashTsReferenceState};
 
 // Fixed deterministic witness payloads — must match capture-zerocash.mjs
 // byte for byte, so that both drivers fold the same persistent_hash
 // arguments and produce byte-identical ContractStates.
 const FIXED_SK: [u8; 32] = [1u8; 32];
-const FIXED_PK: [u8; 32] = [2u8; 32];
+// FIXED_PK is derived as `persistentHash<Bytes<32>>(FIXED_SK)`, i.e.
+// the same value `derive_zk_public_key(FIXED_SK)` would compute. This
+// keeps mint and spend coherent: both fold the same commitment into
+// the on-chain merkle tree. The TS capture and the Rust test both
+// hardcode this — kept here as bytes rather than recomputing to avoid
+// pulling in the field/hash plumbing at test time.
+const FIXED_PK: [u8; 32] = [
+    0x72, 0xcd, 0x6e, 0x84, 0x22, 0xc4, 0x07, 0xfb,
+    0x6d, 0x09, 0x86, 0x90, 0xf1, 0x13, 0x0b, 0x7d,
+    0xed, 0x7e, 0xc2, 0xf7, 0xf5, 0xe1, 0xd3, 0x0b,
+    0xd9, 0xd5, 0x21, 0xf0, 0x15, 0x36, 0x37, 0x93,
+];
 const FIXED_NONCE: [u8; 32] = [3u8; 32];
 const FIXED_OPENING: [u8; 32] = [4u8; 32];
 const FIXED_CIPHERTEXT: [u8; 3] = [10u8, 11u8, 12u8];
+
+thread_local! {
+    /// The captured spend `path_of` reply. Set by the test before
+    /// driving `spend()`; the witness consults it to return the same
+    /// MerklePath bytes the TS driver did. None outside of spend.
+    static SPEND_PATH: RefCell<Option<CapturedMerklePath>> = const { RefCell::new(None) };
+}
 
 fn fixed_coin_info() -> coin_info {
     coin_info {
@@ -74,9 +93,26 @@ impl Witnesses<()> for ZerocashWitnesses {
     fn context_path_of<'a>(
         &self,
         _ctx: &WitnessContext<Ledger<'a>, ()>,
-        _cm: commitment,
+        cm: commitment,
     ) -> ((), compact_runtime::MerklePath<commitment>) {
-        ((), compact_runtime::default_merkle_path::<commitment>())
+        // If the test has stashed a captured path (spend-only), replay
+        // it. Otherwise return a default empty path. The Rust spend
+        // body unwraps this into the same byte-for-byte MerklePath the
+        // TS driver pushed into its private transcript.
+        let path = SPEND_PATH.with(|cell| cell.borrow().clone());
+        match path {
+            Some(p) => (
+                (),
+                compact_runtime::MerklePath {
+                    leaf: commitment { bytes: p.leaf_bytes() },
+                    path: p.into_entries(),
+                },
+            ),
+            None => {
+                let _ = cm; // suppress unused warning
+                ((), compact_runtime::default_merkle_path::<commitment>())
+            }
+        }
     }
     fn context_new_coin_info<'a>(
         &self,
@@ -185,32 +221,35 @@ fn zerocash_init_then_mint_byte_parity() {
 }
 
 /// spend() asserts that the supplied MerklePath's root matches a root
-/// recorded in the HistoricMerkleTree. The deterministic witness we
-/// share with the TS driver returns a stub path (all-zero siblings,
-/// leaf = the requested commitment) which won't claim a real position
-/// in the tree — so the TS driver fails the in-circuit assertion
-/// `commitments.checkRoot(merkleTreePathRoot(path))` and reports
-/// "spend: Illegal state: merkle path not recognized by public state".
+/// recorded in the HistoricMerkleTree. We replay the same path the TS
+/// driver computed (capture-zerocash.mjs extracts it from the
+/// post-mint BoundedMerkleTree via `pathForLeaf`) by stashing it into
+/// the thread-local SPEND_PATH before calling `spend()` — the
+/// `context_path_of` witness then returns it instead of the default
+/// empty placeholder.
 ///
-/// To close this test we'd need either:
-///   1. A path-extraction helper exposed in TS that pulls the actual
-///      MerklePath of an inserted commitment out of the on-chain
-///      HistoricMerkleTree (so context$path_of can return a real path
-///      rooted in the post-mint tree state), or
-///   2. An off-chain HMT mirror in the test driver that tracks
-///      insertions and produces the matching path on demand.
-///
-/// Until one of those is in place, the multi-step driver captures
-/// `afterSpend.error` instead of `afterSpend.stateHex`, and this test
-/// is ignored.
+/// FIXED_PK is also tweaked from the original `[2u8; 32]` placeholder
+/// to `persistentHash<Bytes<32>>(FIXED_SK)`. That way mint inserts a
+/// commitment under the same pk that `derive_zk_public_key(source_sk)`
+/// produces during spend — so the lookup hits the inserted leaf.
 #[test]
-#[ignore = "spend requires a real MerklePath for the just-minted commitment; stub witness paths fail commitments.checkRoot. See test doc-comment."]
 fn zerocash_init_mint_spend_byte_parity() {
     let ts_ref = fixture();
     let after_spend = ts_ref
         .after_spend
         .as_ref()
         .expect("TS fixture missing afterSpend snapshot");
+    if after_spend.state_hex.is_none() {
+        panic!(
+            "TS driver errored on spend: {:?}",
+            after_spend.error.as_deref().unwrap_or("(no error message)")
+        );
+    }
+    let spend_path = ts_ref
+        .spend_path
+        .as_ref()
+        .expect("TS fixture missing spendPath — capture-zerocash.mjs must emit it");
+
     let contract: Contract<(), ZerocashWitnesses> = Contract::new(ZerocashWitnesses);
     let init = contract.initial_state(ctor_ctx()).expect("initial_state");
     let circ_ctx = CircuitContext::new(init.current_contract_state, init.current_private_state);
@@ -221,9 +260,14 @@ fn zerocash_init_mint_spend_byte_parity() {
         encryption: vec![6u8; 32],
     };
     let input_coin = fixed_coin_info();
-    let spend = contract
-        .spend(mint.context, dest_pk, input_coin)
-        .expect("spend");
+
+    // Stash the captured path for the witness; clear it after spend
+    // so other tests aren't accidentally affected.
+    SPEND_PATH.with(|cell| *cell.borrow_mut() = Some(spend_path.clone()));
+    let spend_result = contract.spend(mint.context, dest_pk, input_coin);
+    SPEND_PATH.with(|cell| *cell.borrow_mut() = None);
+
+    let spend = spend_result.expect("spend");
     let envelope = make_envelope(spend.context.current_query_context.state.clone());
     assert_step_bytes_eq("spend", &envelope, after_spend);
 }

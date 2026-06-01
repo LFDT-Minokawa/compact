@@ -99,6 +99,68 @@ pub struct ZerocashTsReferenceState {
     pub after_mint: Option<ZerocashStepSnapshot>,
     #[serde(rename = "afterSpend", default)]
     pub after_spend: Option<ZerocashStepSnapshot>,
+    /// Captured MerklePath for the spend's `old_commitment` lookup,
+    /// emitted by capture-zerocash.mjs so the Rust witness can replay
+    /// the same bytes. `None` when the TS driver did not reach spend.
+    #[serde(rename = "spendPath", default)]
+    pub spend_path: Option<CapturedMerklePath>,
+}
+
+/// One MerklePath captured from the TS driver. The structure mirrors
+/// the in-circuit `MerkleTreePath<n, T>`: a leaf (here the user's
+/// `commitment` struct as 32-byte hex) and a Vec of entries — each
+/// `(sibling.field, goes_left)` — totalling `n` entries.
+#[derive(Deserialize, Debug, Clone)]
+pub struct CapturedMerklePath {
+    /// Hex of the leaf bytes (the user struct's `bytes` field).
+    #[serde(rename = "leafHex")]
+    pub leaf_hex: String,
+    pub path: Vec<CapturedMerklePathEntry>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct CapturedMerklePathEntry {
+    /// Hex of the sibling field element, big-endian, 32 bytes.
+    #[serde(rename = "siblingHex")]
+    pub sibling_hex: String,
+    #[serde(rename = "goesLeft")]
+    pub goes_left: bool,
+}
+
+impl CapturedMerklePath {
+    /// Decode the leaf as a `[u8; 32]`.
+    pub fn leaf_bytes(&self) -> [u8; 32] {
+        let bytes = hex::decode(&self.leaf_hex).expect("decode leaf hex");
+        let mut out = [0u8; 32];
+        out.copy_from_slice(&bytes);
+        out
+    }
+
+    /// Decode the path entries into upstream `MerklePathEntry` form.
+    /// Each `siblingHex` is big-endian 32 bytes; `Fr::from_le_bytes`
+    /// expects little-endian, so we reverse before passing.
+    pub fn into_entries(
+        &self,
+    ) -> Vec<midnight_transient_crypto::merkle_tree::MerklePathEntry> {
+        use midnight_transient_crypto::curve::Fr;
+        use midnight_transient_crypto::merkle_tree::{
+            MerklePathEntry, MerkleTreeDigest,
+        };
+        self.path
+            .iter()
+            .map(|e| {
+                let mut be = hex::decode(&e.sibling_hex).expect("decode sibling hex");
+                // big-endian -> little-endian
+                be.reverse();
+                let fr =
+                    Fr::from_le_bytes(&be).expect("sibling field bytes are not a valid Fr");
+                MerklePathEntry {
+                    sibling: MerkleTreeDigest(fr),
+                    goes_left: e.goes_left,
+                }
+            })
+            .collect()
+    }
 }
 
 /// One step's snapshot. Either `state_hex` is present (driver succeeded) or
@@ -156,6 +218,14 @@ pub struct ElectionTsReferenceState {
     pub after_vote_commit: Option<ElectionStepSnapshot>,
     #[serde(rename = "afterVoteReveal", default)]
     pub after_vote_reveal: Option<ElectionStepSnapshot>,
+    /// Captured `eligible_voters.path_of(VOTER_PK)` from the TS
+    /// driver, used by vote$commit's witness.
+    #[serde(rename = "votePathEligible", default)]
+    pub vote_path_eligible: Option<CapturedMerklePath>,
+    /// Captured `committed_votes.path_of(commit_cm)` from the TS
+    /// driver, used by vote$reveal's witness.
+    #[serde(rename = "votePathCommitted", default)]
+    pub vote_path_committed: Option<CapturedMerklePath>,
 }
 
 #[derive(Deserialize, Debug)]
