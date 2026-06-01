@@ -32,13 +32,22 @@
 | **F1** — zerocash.compact byte-parity | F1.1 ✅ (init), F1.2 (circuits) pending | partial | `3c64488` |
 | **F2** — election.compact byte-parity | F2.1 ✅ (init), F2.2 (circuits) pending | partial | `f80e22e` |
 
-**🎊 M3.5 EMISSION COMPLETE:** All 4 example contracts (counter, tiny, zerocash, election) + all 7 small fixtures (map, set, uints, vector, aliases, witnesses, if-stmt, cross-circuit) now emit Rust crates with **zero `unimplemented!()` circuit bodies** and compile cleanly. 16 e2e byte-parity tests cover initial_state for each contract; full-circuit byte-parity for the heavy circuits (spend / vote$commit / vote$reveal / etc.) is the natural follow-on.
+**🎊🎊 M3.5 EMITTER VALIDATION COMPLETE:** All 4 example contracts (counter, tiny, zerocash, election) + 8 small fixtures (map, set, uints, vector, aliases, witnesses, if-stmt, cross-circuit) emit Rust crates with **zero `unimplemented!()` bodies**, compile cleanly, AND pass byte-parity vs TS through their full multi-step circuit chains: **23/23 e2e tests passing, 0 ignored**.
+
+The closing chain (after `5b110c1`'s blocker-closure):
+- **`62ecb6d`** F1.2 zerocash init→mint byte-parity ✅ (spend gated on MerklePath harness)
+- **`6921ff1`** F2.2 election scaffolding (5 owner-driven ignored due to no constructor)
+- **`4b2170f`** F2.2/2 election constructor + 3 unblocked tests (set_topic, advance, add_voter byte-parity)
+- **`ab105b1`** MerkleTree harness mirror via `StateBoundedMerkleTree.pathForLeaf` — closes the LAST 3 ignored tests (zerocash.spend + election.vote$commit + election.vote$reveal)
+
+Every Compact circuit shape (witness calls, asserts with ADT reads, ADT inserts, struct field access, if-then-else mid-body, compound `&&` asserts, native merkleTreePathRoot, multi-witness composition, pure circuit calls, exported cross-circuit calls) now has end-to-end byte-parity validation vs the TypeScript reference path.
 
 The d408829 blocker chain (5 commits): MerkleTreePath unification (`d08e5a2`) → E6.2 terminal if-then-else (`92d64d6`) → streaming walker (`36fdba7`) → BinaryHashRepr + enum-typed asserts (`8f98bc9`) → defensive var-ref clones (`e39d447`).
 
-**Remaining work for full M3.5 closure:**
-- Add byte-parity tests that DRIVE the impure circuits (not just initial_state) and assert the resulting ContractState matches TS. The current tests only cover init-stage for zerocash + election; the new circuit bodies are surfaced and compile, but their runtime semantics aren't end-to-end verified against TS yet.
-- Optional polish: address the naming-convention warnings (snake_case structs/variants emitted from the Compact source) via `#![allow(non_camel_case_types)]` in the generated header or via consistent conversion.
+**M3.5 closed.** All major emitter, runtime, walker, and validation work landed. Remaining polish items (optional):
+- Naming-convention warnings (snake_case structs/variants from the Compact source) — could be silenced via `#![allow(non_camel_case_types)]` in the generated header.
+- Hardcoded constants in some test fixtures (FIXED_PK in zerocash test; AUTHORITY in election test) could compute at runtime via the Rust `pure_circuits` modules to remove TS↔Rust manual coupling.
+- M3.5 → M4 (next milestone) territory: additional contracts (counter-with-witnesses, governance, NFT marketplace, etc.) to widen the validation matrix beyond the 12 currently covered.
 
 **Milestone reached (commit `0d4f393`):** all four example contracts (counter, tiny, zerocash, election) now **compile cleanly** as Rust crates via the M3.5 emitter + runtime work. Path here, in order: E1 verified ✅ → R1 (ADT runtime + builders) ✅ → E2 (struct/enum promotion) ✅ → close-zerocash (Opaque/[u8;N]/aliases via codegen specials) ✅ → OpaqueString + Maybe<T> Value conv (election) ✅.
 
