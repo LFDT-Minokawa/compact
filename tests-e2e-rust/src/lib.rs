@@ -86,24 +86,38 @@ impl TinyTsReferenceState {
     }
 }
 
-/// Fixture shape for zerocash.compact's initial_state() byte-parity test
-/// (F1.1 of the M3.5 plan). zerocash has no source-level constructor, so the
-/// fixture only carries the post-init snapshot.
+/// Fixture shape for zerocash.compact's byte-parity tests (F1.1 + F1.2 of
+/// the M3.5 plan). F1.1 captures only `after_init`. F1.2 adds `after_mint`
+/// (post zerocash_mint) and optionally `after_spend`. Either step may be
+/// absent if the TS driver threw before producing it; the Rust test gates
+/// on presence.
 #[derive(Deserialize, Debug)]
 pub struct ZerocashTsReferenceState {
     #[serde(rename = "afterInit")]
     pub after_init: ZerocashStepSnapshot,
+    #[serde(rename = "afterMint", default)]
+    pub after_mint: Option<ZerocashStepSnapshot>,
+    #[serde(rename = "afterSpend", default)]
+    pub after_spend: Option<ZerocashStepSnapshot>,
 }
 
+/// One step's snapshot. Either `state_hex` is present (driver succeeded) or
+/// `error` is present (driver threw — useful for fixture diagnostics).
 #[derive(Deserialize, Debug)]
 pub struct ZerocashStepSnapshot {
-    #[serde(rename = "stateHex")]
-    pub state_hex: String,
+    #[serde(rename = "stateHex", default)]
+    pub state_hex: Option<String>,
+    #[serde(default)]
+    pub error: Option<String>,
 }
 
 impl ZerocashStepSnapshot {
     pub fn state_bytes(&self) -> Vec<u8> {
-        hex::decode(&self.state_hex).expect("decode hex")
+        let hex = self
+            .state_hex
+            .as_ref()
+            .expect("snapshot has no stateHex (driver errored)");
+        hex::decode(hex).expect("decode hex")
     }
 }
 
