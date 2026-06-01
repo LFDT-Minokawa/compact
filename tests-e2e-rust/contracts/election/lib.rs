@@ -43,6 +43,14 @@ impl From<MerkleTreeDigest> for compact_runtime::Value {
         compact_runtime::Value::concat(_v.iter())
     }
 }
+impl compact_runtime::BinaryHashRepr for MerkleTreeDigest {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.field.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.field.binary_len()
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -76,6 +84,12 @@ impl From<PermissibleVotes> for compact_runtime::Value {
     fn from(v: PermissibleVotes) -> compact_runtime::Value {
         compact_runtime::Value::from(v as u8)
     }
+}
+impl compact_runtime::BinaryHashRepr for PermissibleVotes {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        (*self as u8).binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize { 1 }
 }
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct LeafPreimage {
@@ -117,6 +131,15 @@ impl From<LeafPreimage> for compact_runtime::Value {
         compact_runtime::Value::concat(_v.iter())
     }
 }
+impl compact_runtime::BinaryHashRepr for LeafPreimage {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.domain_sep.binary_repr(writer);
+        self.data.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.domain_sep.binary_len() + self.data.binary_len()
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -152,6 +175,12 @@ impl From<PrivateState> for compact_runtime::Value {
     fn from(v: PrivateState) -> compact_runtime::Value {
         compact_runtime::Value::from(v as u8)
     }
+}
+impl compact_runtime::BinaryHashRepr for PrivateState {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        (*self as u8).binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize { 1 }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -189,6 +218,12 @@ impl From<PublicState> for compact_runtime::Value {
     fn from(v: PublicState) -> compact_runtime::Value {
         compact_runtime::Value::from(v as u8)
     }
+}
+impl compact_runtime::BinaryHashRepr for PublicState {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        (*self as u8).binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize { 1 }
 }
 
 pub trait Witnesses<PS> {
@@ -245,14 +280,239 @@ where
         ctx: CircuitContext<PS>,
         ballot: PermissibleVotes,
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
-        unimplemented!("M3-I3: circuit body emission for vote$commit")
+        let mut __gas_acc = compact_runtime::RunningCost::default();
+        let _witness_ctx_h0 = WitnessContext::new(ledger(&ctx.current_query_context.state), ctx.current_private_state, &ctx.current_query_context);
+        let (current_private_state, _w_private_state_0) = self.witnesses.private_state(&_witness_ctx_h0);
+        compact_assert!((({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(1u8, false)
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_u8(_av)?
+        } == 1u8) && (_w_private_state_0 == PrivateState::initial)), "In illegal state for committing");
+        let _witness_ctx_2 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
+        let (current_private_state, _) = self.witnesses.private_vote_record(&_witness_ctx_2, ballot.clone());
+        let _witness_ctx_4 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
+        let (current_private_state, sk) = self.witnesses.private_secret_key(&_witness_ctx_4);
+        let com_nul = pure_circuits::commitment_nullifier(sk);
+        compact_assert!((!({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(7u8, false)
+                .push(false, new_cell(com_nul))
+                .member()
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_bool(_av)?
+        })), "Unexpected attempt to double use of nullifier");
+        let pk = pure_circuits::public_key(sk);
+        let _witness_ctx_8 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
+        let (current_private_state, path) = self.witnesses.context_eligible_voters_path_of(&_witness_ctx_8, pk);
+        let tmp = compact_runtime::std_lib::merkle_tree_path_root(path.value.clone());
+        compact_assert!(((path.is_some && {
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(6u8, false)
+                .idx_at_index(0u8, false)
+                .root()
+                .push(false, new_cell(tmp.clone()))
+                .eq()
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_bool(_av)?
+        }) && (pk == path.value.leaf)), "Attempted to vote without authorization - need to add-voter");
+        let cm = pure_circuits::commit_with_sk(pure_circuits::ballot_repr(ballot.clone()), sk);
+
+        let _ops_12 = OpProgramVerify::<DefaultDB>::new()
+            .idx_at_index(5u8, true)
+            .idx_at_index(0u8, true)
+            .dup(2)
+            .idx_at_index(1u8, false)
+            .push(true, new_cell(leaf_hash(&ValueReprAlignedValue(AlignedValue::from(cm)))))
+            .ins(false, 1)
+            .ins(true, 1)
+            .idx_at_index(1u8, true)
+            .addi(1)
+            .ins(true, 2)
+            .build();
+        let _results_12 = query_for_verify(&ctx.current_query_context, &_ops_12, ctx.gas_limit.clone(), &ctx.cost_model)?;
+        __gas_acc += _results_12.gas_cost.clone();
+
+        let _ops_13 = OpProgramVerify::<DefaultDB>::new()
+            .idx_at_index(7u8, true)
+            .push(false, new_cell(com_nul))
+            .push(true, StateValue::Null)
+            .ins(false, 1)
+            .ins(true, 1)
+            .build();
+        let _results_13 = query_for_verify(&_results_12.context, &_ops_13, ctx.gas_limit.clone(), &ctx.cost_model)?;
+        __gas_acc += _results_13.gas_cost.clone();
+        let _witness_ctx_14 = WitnessContext::new(ledger(&_results_13.context.state), current_private_state, &_results_13.context);
+        let (current_private_state, _) = self.witnesses.private_state_advance(&_witness_ctx_14);
+
+        Ok(CircuitResults {
+            result: (),
+            context: CircuitContext {
+                current_query_context: _results_13.context,
+                current_private_state,
+                ..ctx
+            },
+            gas_cost: __gas_acc,
+        })
     }
 
     pub fn vote_reveal(
         &self,
         ctx: CircuitContext<PS>,
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
-        unimplemented!("M3-I3: circuit body emission for vote$reveal")
+        let mut __gas_acc = compact_runtime::RunningCost::default();
+        let _witness_ctx_h0 = WitnessContext::new(ledger(&ctx.current_query_context.state), ctx.current_private_state, &ctx.current_query_context);
+        let (current_private_state, _w_private_state_0) = self.witnesses.private_state(&_witness_ctx_h0);
+        compact_assert!((({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(1u8, false)
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_u8(_av)?
+        } == 2u8) && (_w_private_state_0 == PrivateState::committed)), "In illegal state for revealing");
+        let _witness_ctx_2 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
+        let (current_private_state, sk) = self.witnesses.private_secret_key(&_witness_ctx_2);
+        let rev_nul = pure_circuits::reveal_nullifier(sk);
+        compact_assert!((!({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(8u8, false)
+                .push(false, new_cell(rev_nul))
+                .member()
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_bool(_av)?
+        })), "Attempted to double vote");
+        let _witness_ctx_5 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
+        let (current_private_state, vote) = self.witnesses.private_vote(&_witness_ctx_5);
+        let cm = pure_circuits::commit_with_sk(pure_circuits::ballot_repr(vote.clone()), sk);
+        let _witness_ctx_8 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
+        let (current_private_state, path) = self.witnesses.context_committed_votes_path_of(&_witness_ctx_8, cm);
+        let tmp = compact_runtime::std_lib::merkle_tree_path_root(path.value.clone());
+        compact_assert!(((path.is_some && {
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(5u8, false)
+                .idx_at_index(0u8, false)
+                .root()
+                .push(false, new_cell(tmp.clone()))
+                .eq()
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_bool(_av)?
+        }) && (cm == path.value.leaf)), "Attempted to reveal incorrectly");
+
+        let _if_results_11 = if (vote == PermissibleVotes::yes) {
+            let ops = OpProgramVerify::<DefaultDB>::new()
+                .idx_at_index(3u8, true)
+                .addi(1)
+                .ins(true, 1)
+                .build();
+            query_for_verify(&ctx.current_query_context, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?
+        } else {
+            let ops = OpProgramVerify::<DefaultDB>::new()
+                .idx_at_index(4u8, true)
+                .addi(1)
+                .ins(true, 1)
+                .build();
+            query_for_verify(&ctx.current_query_context, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?
+        };
+        __gas_acc += _if_results_11.gas_cost.clone();
+
+        let _ops_12 = OpProgramVerify::<DefaultDB>::new()
+            .idx_at_index(8u8, true)
+            .push(false, new_cell(rev_nul))
+            .push(true, StateValue::Null)
+            .ins(false, 1)
+            .ins(true, 1)
+            .build();
+        let _results_12 = query_for_verify(&_if_results_11.context, &_ops_12, ctx.gas_limit.clone(), &ctx.cost_model)?;
+        __gas_acc += _results_12.gas_cost.clone();
+        let _witness_ctx_13 = WitnessContext::new(ledger(&_results_12.context.state), current_private_state, &_results_12.context);
+        let (current_private_state, _) = self.witnesses.private_state_advance(&_witness_ctx_13);
+
+        Ok(CircuitResults {
+            result: (),
+            context: CircuitContext {
+                current_query_context: _results_12.context,
+                current_private_state,
+                ..ctx
+            },
+            gas_cost: __gas_acc,
+        })
     }
 
     pub fn advance(
@@ -321,7 +581,7 @@ where
         });
         let ops = OpProgramVerify::<DefaultDB>::new()
             .push(false, new_cell(1u8))
-            .push(true, new_cell(tmp))
+            .push(true, new_cell(tmp.clone()))
             .ins(false, 1)
             .build();
 
@@ -392,7 +652,7 @@ where
         let tmp = Maybe { is_some: true, value: t };
         let ops = OpProgramVerify::<DefaultDB>::new()
             .push(false, new_cell(2u8))
-            .push(true, new_cell(tmp))
+            .push(true, new_cell(tmp.clone()))
             .ins(false, 1)
             .build();
 
@@ -420,7 +680,7 @@ where
         pk: [u8; 32],
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
         let _witness_ctx_h0 = WitnessContext::new(ledger(&ctx.current_query_context.state), ctx.current_private_state, &ctx.current_query_context);
-        let (current_private_state, _w_context_eligible_voters_path_of_0) = self.witnesses.context_eligible_voters_path_of(&_witness_ctx_h0, pk.clone());
+        let (current_private_state, _w_context_eligible_voters_path_of_0) = self.witnesses.context_eligible_voters_path_of(&_witness_ctx_h0, pk);
         compact_assert!((!(_w_context_eligible_voters_path_of_0.is_some)), "Attempted to add a voter twice");
         let _witness_ctx_3 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
         let (current_private_state, sk) = self.witnesses.private_secret_key(&_witness_ctx_3);

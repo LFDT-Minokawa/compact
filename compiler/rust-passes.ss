@@ -130,6 +130,10 @@
                     [else #f])]
                  [c (circuit-return-type c)]
                  [else #f]))]
+            ;; `const tmp = default<T>;` — type is carried directly on
+            ;; the node, so record it so arg-rust-clone-if-var can skip
+            ;; redundant clones on Copy default values.
+            [(default ,src ,type) type]
             [else #f])))
 
       ;; rust-keyword?: returns #t when the symbol matches a Rust reserved
@@ -1267,8 +1271,65 @@
           (let ([stripped (expr-strip-cast e)])
             (nanopass-case (Ltypescript Expression) stripped
               [(var-ref ,src ,var-name)
-               (string-append rendered ".clone()")]
+               (if (var-ref-known-copy? var-name)
+                   rendered
+                   (string-append rendered ".clone()"))]
+              ;; elt-ref of a (chain of) var-ref(s): `path.value`,
+              ;; `dest_public_key.zk` etc. Borrow-of-moved-value errors
+              ;; surface when the same field is passed to one call then
+              ;; re-read after — defensive clone keeps the owner intact.
+              ;; We clone whenever the leaf field's type is unknown or
+              ;; non-Copy; for known-Copy field types we skip the clone.
+              [(elt-ref ,src ,expr ,elt-name ,nat)
+               (cond
+                 [(not (elt-ref-rooted-in-var? stripped)) rendered]
+                 [(elt-ref-known-copy? stripped) rendered]
+                 [else (string-append rendered ".clone()")])]
               [else rendered]))))
+
+      ;; var-ref-known-copy?: returns #t when the local has a declared
+      ;; type recorded in `current-formal-arg-types` that lowers to a
+      ;; Rust `Copy` type. Locals without a recorded type default to #f
+      ;; (caller will clone — safe and a no-op for Copy types in
+      ;; practice, but explicit knowledge keeps emitted code clean).
+      (define (var-ref-known-copy? var-name)
+        (let ([ht (current-formal-arg-types)])
+          (and ht
+               (let ([t (eq-hashtable-ref ht (id-sym var-name) #f)])
+                 (and t (type-rust-copy? t))))))
+
+      ;; elt-ref-rooted-in-var?: walk an elt-ref chain to its base; return
+      ;; #t when the chain's leftmost expression is a var-ref (i.e. a
+      ;; field projection on a local). Used by arg-rust-clone-if-var so
+      ;; passing `path.value` as a call arg suffixes `.clone()`.
+      (define (elt-ref-rooted-in-var? e)
+        (nanopass-case (Ltypescript Expression) e
+          [(var-ref ,src ,var-name) #t]
+          [(elt-ref ,src ,expr ,elt-name ,nat)
+           (elt-ref-rooted-in-var? (expr-strip-cast expr))]
+          [else #f]))
+
+      ;; elt-ref-known-copy?: walk an elt-ref to the base var; if the
+      ;; base var has a recorded struct type, project to the named field
+      ;; and check whether THAT field's type is Copy. Returns #f when any
+      ;; step is unknown (caller defaults to cloning).
+      (define (elt-ref-known-copy? e)
+        (let walk ([n e])
+          (nanopass-case (Ltypescript Expression) n
+            [(var-ref ,src ,var-name)
+             (let ([ht (current-formal-arg-types)])
+               (and ht
+                    (let ([t (eq-hashtable-ref ht (id-sym var-name) #f)])
+                      (and t (type-rust-copy? t)))))]
+            [(elt-ref ,src ,expr ,elt-name ,nat)
+             ;; If inner is a known-Copy struct it doesn't matter (Copy
+             ;; struct -> Copy fields). Otherwise we'd need to descend
+             ;; into struct definitions to type the projected field; for
+             ;; now, return #f (clone). This keeps the predicate
+             ;; conservative — extra clones on field projections are
+             ;; always safe.
+             (walk (expr-strip-cast expr))]
+            [else #f])))
 
       ;; stdlib-circuit-rust-path: if `function-name` is a Compact stdlib
       ;; circuit we map to a runtime-side function (currently `some` and
@@ -1342,8 +1403,8 @@
              ;; compact_runtime::std_lib. Render with the runtime path.
              (let ([args
                     (map (lambda (e)
-                           (ctor-expr-rust e local-binds
-                                           native-id-ht witness-id-ht circuit-id-ht))
+                           (arg-rust-clone-if-var e local-binds
+                                                  native-id-ht witness-id-ht circuit-id-ht))
                          expr*)])
                (format "~a(~a)"
                        stdlib
@@ -1357,8 +1418,8 @@
              (let ([rust-name (camel->snake (id-sym function-name))]
                    [args
                     (map (lambda (e)
-                           (ctor-expr-rust e local-binds
-                                           native-id-ht witness-id-ht circuit-id-ht))
+                           (arg-rust-clone-if-var e local-binds
+                                                  native-id-ht witness-id-ht circuit-id-ht))
                          expr*)])
                (format "pure_circuits::~a(~a)"
                        rust-name
@@ -1531,6 +1592,48 @@
           [(talias ,src ,nominal? ,type-name ,type) (tenum-name-of-type type)]
           [else #f]))
 
+      ;; type-rust-copy?: returns #t when the Rust lowering of `type` is
+      ;; `Copy` (so passing it to a callee doesn't move the original).
+      ;; Used by `arg-rust-clone-if-var` to suppress redundant `.clone()`
+      ;; on primitive locals — keeps counter / tiny snapshots byte-stable
+      ;; while still defending non-Copy locals (user structs, MerklePath,
+      ;; Vec<u8>, OpaqueString, ...) against move-then-reuse.
+      ;;
+      ;; Returns #f when we don't have a type (so the caller defaults to
+      ;; cloning) — the defensive over-clone is safe for non-Copy types
+      ;; and a no-op for Copy types we missed.
+      (define (type-rust-copy? type)
+        (and type
+             (nanopass-case (Ltypescript Type) type
+               [(tfield ,src) #t]
+               [(tboolean ,src) #t]
+               [(tunsigned ,src ,nat) #t]
+               [(tbytes ,src ,len) #t]
+               [(ttuple ,src ,type* ...)
+                ;; A tuple is Copy iff every element is.
+                (let loop ([ts type*])
+                  (cond
+                    [(null? ts) #t]
+                    [(type-rust-copy? (car ts)) (loop (cdr ts))]
+                    [else #f]))]
+               [(tvector ,src ,len ,type)
+                ;; Fixed-size array `[T; N]` is Copy iff T is. (We don't
+                ;; lower tvector to Vec for bounded arrays.)
+                (type-rust-copy? type)]
+               [(talias ,src ,nominal? ,type-name ,type)
+                (type-rust-copy? type)]
+               [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+                ;; User enums derive Clone but not Copy (the emitted
+                ;; `#[derive]` at H1 does not include Copy).
+                #f]
+               [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+                ;; User structs derive Clone but not Copy.
+                #f]
+               [(topaque ,src ,opaque-type) #f]
+               [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...) #f]
+               [(tunknown) #f]
+               [else #f])))
+
       ;; circuit-formal-arg-types: pull the list of formal arg types from a
       ;; circuit Program-Element. Returns '() if cdefn is #f or not a
       ;; circuit. Used by F2.2 to align actual args with their declared
@@ -1576,8 +1679,8 @@
                  (format "compact_runtime::std_lib::decode_via_field_repr::<~a>"
                          enum-name)))]
             [else
-             (ctor-expr-rust actual local-binds
-                             native-id-ht witness-id-ht circuit-id-ht)])))
+             (arg-rust-clone-if-var actual local-binds
+                                    native-id-ht witness-id-ht circuit-id-ht)])))
 
       ;; elt-ref-of-struct-read?: predicate for the F2.2 narrow case
       ;; `(elt-ref (public-ledger ... read with tstruct return) field 0)`.
@@ -2217,8 +2320,8 @@
                                                  (render-pure-circuit-arg
                                                    (car as) ft local-binds
                                                    native-id-ht witness-id-ht circuit-id-ht)
-                                                 (ctor-expr-rust (car as) local-binds
-                                                                 native-id-ht witness-id-ht circuit-id-ht))])
+                                                 (arg-rust-clone-if-var (car as) local-binds
+                                                                        native-id-ht witness-id-ht circuit-id-ht))])
                                      (loop (cdr as)
                                            (if (pair? fs) (cdr fs) '())
                                            (cons s acc)))]))]
@@ -2593,18 +2696,18 @@
                                      datum
                                      (let ([rendered
                                             (guard (c [#t #f])
-                                              (ctor-expr-rust e local-binds
-                                                              native-id-ht
-                                                              witness-id-ht
-                                                              circuit-id-ht))])
+                                              (arg-rust-clone-if-var e local-binds
+                                                                     native-id-ht
+                                                                     witness-id-ht
+                                                                     circuit-id-ht))])
                                        (and rendered (make-vm-rust-expr rendered))))]
                                 [else
                                  (let ([rendered
                                         (guard (c [#t #f])
-                                          (ctor-expr-rust e local-binds
-                                                          native-id-ht
-                                                          witness-id-ht
-                                                          circuit-id-ht))])
+                                          (arg-rust-clone-if-var e local-binds
+                                                                 native-id-ht
+                                                                 witness-id-ht
+                                                                 circuit-id-ht))])
                                    (and rendered (make-vm-rust-expr rendered)))])))
                           expr*)])
                 (cond
@@ -2673,8 +2776,8 @@
           (lambda (w)
             (let* ([idx (car w)]
                    [val-expr (cdr w)]
-                   [rust-val (ctor-expr-rust val-expr local-binds
-                                             native-id-ht witness-id-ht circuit-id-ht)])
+                   [rust-val (arg-rust-clone-if-var val-expr local-binds
+                                                    native-id-ht witness-id-ht circuit-id-ht)])
               ;; Cell.write vm-code for a single-element path is exactly:
               ;;   push false (state-value 'cell (align idx 1))
               ;;   push true  (state-value 'cell <value>)
@@ -2761,10 +2864,10 @@
                             ;; the walker accumulated above.
                             (let ([rendered
                                    (guard (c [#t #f])
-                                     (ctor-expr-rust e local-binds
-                                                     native-id-ht
-                                                     witness-id-ht
-                                                     circuit-id-ht))])
+                                     (arg-rust-clone-if-var e local-binds
+                                                            native-id-ht
+                                                            witness-id-ht
+                                                            circuit-id-ht))])
                               (and rendered (make-vm-rust-expr rendered))))
                           expr*)])
                 (cond
@@ -3192,8 +3295,8 @@
                                                (render-pure-circuit-arg
                                                  (car as) ft local-binds
                                                  native-id-ht witness-id-ht circuit-id-ht)
-                                               (ctor-expr-rust (car as) local-binds
-                                                               native-id-ht witness-id-ht circuit-id-ht))])
+                                               (arg-rust-clone-if-var (car as) local-binds
+                                                                      native-id-ht witness-id-ht circuit-id-ht))])
                                    (loop2 (cdr as)
                                           (if (pair? fs) (cdr fs) '())
                                           (cons s acc)))]))])
@@ -3352,8 +3455,8 @@
                                  [val-expr (cdr w)]
                                  [rust-val
                                   (guard (c [#t #f])
-                                    (ctor-expr-rust val-expr local-binds
-                                                    native-id-ht witness-id-ht circuit-id-ht))])
+                                    (arg-rust-clone-if-var val-expr local-binds
+                                                           native-id-ht witness-id-ht circuit-id-ht))])
                             (and rust-val (cell-write-builder-lines idx rust-val)))]
                          [else
                           (compute-pl-builder-lines
@@ -3512,8 +3615,18 @@
                [circuit-id-ht (build-circuit-id-ht all-pelt*)]
                [emitted?
                 (and stmt
-                     (emit-ctor-body-or-fallback stmt
-                                                 native-id-ht witness-id-ht circuit-id-ht))])
+                     ;; Seed current-formal-arg-types with the
+                     ;; constructor's args so var-ref-known-copy? can
+                     ;; suppress redundant `.clone()` on primitive ctor
+                     ;; parameters (`v: Field` in tiny.compact, etc.).
+                     ;; The body walker mutates the same hashtable as it
+                     ;; classifies const-bindings, so witness/pure-circuit
+                     ;; results get their declared types recorded too.
+                     (parameterize
+                       ([current-formal-arg-types
+                          (build-formal-arg-type-ht ctor-arg*)])
+                       (emit-ctor-body-or-fallback stmt
+                                                   native-id-ht witness-id-ht circuit-id-ht)))])
           (unless emitted?
             (out "        Ok(ConstructorResult {\n")
             (out "            current_contract_state: qctx.state,\n")
@@ -3889,7 +4002,30 @@
            (let ([native-ht (and (pair? opt-native-ht) (car opt-native-ht))])
              (and native-ht
                   (let ([rendered (guard (c [#t #f]) (expr-rust expr native-ht))])
-                    (and rendered (make-vm-rust-expr rendered)))))]))
+                    (and rendered
+                         (make-vm-rust-expr
+                           (expr-rust-arg-cloned expr rendered))))))]))
+
+      ;; expr-rust-arg-cloned: given the original expression and its
+      ;; expr-rust-rendered text, suffix `.clone()` when the expression
+      ;; is a var-ref / elt-ref to a non-Copy local. Mirrors
+      ;; arg-rust-clone-if-var's predicate (without re-rendering, since
+      ;; expr-rust has already produced the text). Used by the
+      ;; assert-cond / read-with-arg path where `expr-rust` (not
+      ;; `ctor-expr-rust`) produces the inner text.
+      (define (expr-rust-arg-cloned expr rendered)
+        (let ([stripped (expr-strip-cast expr)])
+          (nanopass-case (Ltypescript Expression) stripped
+            [(var-ref ,src ,var-name)
+             (if (var-ref-known-copy? var-name)
+                 rendered
+                 (string-append rendered ".clone()"))]
+            [(elt-ref ,src ,expr ,elt-name ,nat)
+             (cond
+               [(not (elt-ref-rooted-in-var? stripped)) rendered]
+               [(elt-ref-known-copy? stripped) rendered]
+               [else (string-append rendered ".clone()")])]
+            [else rendered])))
 
       ;; vm-immediate->int: given the value the vm-code computed for an
       ;; `[immediate ...]` argument, unwrap a `(VMvalue->int n)` (the

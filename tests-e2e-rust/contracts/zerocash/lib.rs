@@ -43,6 +43,14 @@ impl From<commitment> for compact_runtime::Value {
         compact_runtime::Value::concat(_v.iter())
     }
 }
+impl compact_runtime::BinaryHashRepr for commitment {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.bytes.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.bytes.binary_len()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct coin_info {
@@ -82,6 +90,15 @@ impl From<coin_info> for compact_runtime::Value {
         _v.push(compact_runtime::Value::from(s.nonce));
         _v.push(compact_runtime::Value::from(s.opening));
         compact_runtime::Value::concat(_v.iter())
+    }
+}
+impl compact_runtime::BinaryHashRepr for coin_info {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.nonce.binary_repr(writer);
+        self.opening.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.nonce.binary_len() + self.opening.binary_len()
     }
 }
 
@@ -125,6 +142,15 @@ impl From<LeafPreimage> for compact_runtime::Value {
         compact_runtime::Value::concat(_v.iter())
     }
 }
+impl compact_runtime::BinaryHashRepr for LeafPreimage {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.domain_sep.binary_repr(writer);
+        self.data.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.domain_sep.binary_len() + self.data.binary_len()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct public_key {
@@ -165,6 +191,15 @@ impl From<public_key> for compact_runtime::Value {
         compact_runtime::Value::concat(_v.iter())
     }
 }
+impl compact_runtime::BinaryHashRepr for public_key {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.zk.binary_repr(writer);
+        self.encryption.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.zk.binary_len() + self.encryption.binary_len()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct Nonce {
@@ -199,6 +234,14 @@ impl From<Nonce> for compact_runtime::Value {
         let mut _v: Vec<compact_runtime::Value> = Vec::new();
         _v.push(compact_runtime::Value::from(s.bytes));
         compact_runtime::Value::concat(_v.iter())
+    }
+}
+impl compact_runtime::BinaryHashRepr for Nonce {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.bytes.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.bytes.binary_len()
     }
 }
 
@@ -237,6 +280,14 @@ impl From<MerkleTreeDigest> for compact_runtime::Value {
         compact_runtime::Value::concat(_v.iter())
     }
 }
+impl compact_runtime::BinaryHashRepr for MerkleTreeDigest {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.field.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.field.binary_len()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct zk_secret_key {
@@ -271,6 +322,14 @@ impl From<zk_secret_key> for compact_runtime::Value {
         let mut _v: Vec<compact_runtime::Value> = Vec::new();
         _v.push(compact_runtime::Value::from(s.bytes));
         compact_runtime::Value::concat(_v.iter())
+    }
+}
+impl compact_runtime::BinaryHashRepr for zk_secret_key {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.bytes.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.bytes.binary_len()
     }
 }
 
@@ -309,6 +368,14 @@ impl From<zk_public_key> for compact_runtime::Value {
         compact_runtime::Value::concat(_v.iter())
     }
 }
+impl compact_runtime::BinaryHashRepr for zk_public_key {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.bytes.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.bytes.binary_len()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct opening {
@@ -345,6 +412,14 @@ impl From<opening> for compact_runtime::Value {
         compact_runtime::Value::concat(_v.iter())
     }
 }
+impl compact_runtime::BinaryHashRepr for opening {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.bytes.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.bytes.binary_len()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct nullifier {
@@ -379,6 +454,14 @@ impl From<nullifier> for compact_runtime::Value {
         let mut _v: Vec<compact_runtime::Value> = Vec::new();
         _v.push(compact_runtime::Value::from(s.bytes));
         compact_runtime::Value::concat(_v.iter())
+    }
+}
+impl compact_runtime::BinaryHashRepr for nullifier {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        self.bytes.binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.bytes.binary_len()
     }
 }
 
@@ -432,7 +515,115 @@ where
         dest_public_key: public_key,
         input_coin: coin_info,
     ) -> Result<CircuitResults<PS, ()>, CompactError> {
-        unimplemented!("M3-I3: circuit body emission for spend")
+        let mut __gas_acc = compact_runtime::RunningCost::default();
+        let _witness_ctx_0 = WitnessContext::new(ledger(&ctx.current_query_context.state), ctx.current_private_state, &ctx.current_query_context);
+        let (current_private_state, source_secret_key) = self.witnesses.private_zk_secret_key(&_witness_ctx_0);
+        let old_nullifier = pure_circuits::derive_nullifier(input_coin.clone(), source_secret_key.clone());
+        compact_assert!((!({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(0u8, false)
+                .push(false, new_cell(old_nullifier.clone()))
+                .member()
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_bool(_av)?
+        })), "spend: Coin already spent");
+
+        let _ops_3 = OpProgramVerify::<DefaultDB>::new()
+            .idx_at_index(0u8, true)
+            .push(false, new_cell(old_nullifier.clone()))
+            .push(true, StateValue::Null)
+            .ins(false, 1)
+            .ins(true, 1)
+            .build();
+        let _results_3 = query_for_verify(&ctx.current_query_context, &_ops_3, ctx.gas_limit.clone(), &ctx.cost_model)?;
+        __gas_acc += _results_3.gas_cost.clone();
+        let source_public_key = pure_circuits::derive_zk_public_key(source_secret_key.clone());
+        let old_commitment = pure_circuits::commitment_from_coin_info(input_coin.clone(), source_public_key.clone());
+        let _witness_ctx_6 = WitnessContext::new(ledger(&_results_3.context.state), current_private_state, &_results_3.context);
+        let (current_private_state, commitment_path) = self.witnesses.context_path_of(&_witness_ctx_6, old_commitment.clone());
+        let tmp = compact_runtime::std_lib::merkle_tree_path_root(commitment_path.clone());
+        compact_assert!(({
+            let _gather_ops = OpProgramGather::<DefaultDB>::new()
+                .dup(0)
+                .idx_at_index(1u8, false)
+                .idx_at_index(2u8, false)
+                .push(false, new_cell(tmp.clone()))
+                .member()
+                .popeq(true)
+                .build();
+            let _gather_results = query_for_read(
+                &ctx.current_query_context,
+                &_gather_ops,
+                None,
+                &initial_cost_model(),
+            )
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+            let _av = match _gather_results.events.last() {
+                Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+                _ => return Err(CompactError::AssertionFailed("ledger: expected Read event".into())),
+            };
+            compact_runtime::std_lib::decode_bool(_av)?
+        } && (old_commitment == commitment_path.leaf)), "spend: Illegal state: merkle path not recognized by public state");
+        let _witness_ctx_9 = WitnessContext::new(ledger(&_results_3.context.state), current_private_state, &_results_3.context);
+        let (current_private_state, fresh_coin_info) = self.witnesses.context_new_coin_info(&_witness_ctx_9);
+        let fresh_commitment = pure_circuits::commitment_from_coin_info(fresh_coin_info.clone(), dest_public_key.zk.clone());
+
+        let _ops_12 = OpProgramVerify::<DefaultDB>::new()
+            .idx_at_index(1u8, true)
+            .idx_at_index(0u8, true)
+            .dup(2)
+            .idx_at_index(1u8, false)
+            .push(true, new_cell(leaf_hash(&ValueReprAlignedValue(AlignedValue::from(fresh_commitment.clone())))))
+            .ins(false, 1)
+            .ins(true, 1)
+            .idx_at_index(1u8, true)
+            .addi(1)
+            .ins(true, 1)
+            .idx_at_index(2u8, true)
+            .dup(2)
+            .idx_at_index(0u8, false)
+            .root()
+            .push(true, StateValue::Null)
+            .ins(false, 1)
+            .ins(true, 2)
+            .build();
+        let _results_12 = query_for_verify(&_results_3.context, &_ops_12, ctx.gas_limit.clone(), &ctx.cost_model)?;
+        __gas_acc += _results_12.gas_cost.clone();
+        let _witness_ctx_13 = WitnessContext::new(ledger(&_results_12.context.state), current_private_state, &_results_12.context);
+        let (current_private_state, ciphertext) = self.witnesses.context_encrypt(&_witness_ctx_13, dest_public_key.encryption.clone(), fresh_coin_info.clone());
+
+        let _ops_15 = OpProgramVerify::<DefaultDB>::new()
+            .push(false, new_cell(2u8))
+            .push(true, new_cell(ciphertext.clone()))
+            .ins(false, 1)
+            .build();
+        let _results_15 = query_for_verify(&_results_12.context, &_ops_15, ctx.gas_limit.clone(), &ctx.cost_model)?;
+        __gas_acc += _results_15.gas_cost.clone();
+        let _witness_ctx_16 = WitnessContext::new(ledger(&_results_15.context.state), current_private_state, &_results_15.context);
+        let (current_private_state, _) = self.witnesses.private_remove_coin(&_witness_ctx_16, input_coin.clone());
+
+        Ok(CircuitResults {
+            result: (),
+            context: CircuitContext {
+                current_query_context: _results_15.context,
+                current_private_state,
+                ..ctx
+            },
+            gas_cost: __gas_acc,
+        })
     }
 
     pub fn zerocash_mint(
@@ -445,13 +636,13 @@ where
         let (current_private_state, pk) = self.witnesses.private_zk_public_key(&_witness_ctx_2);
         let _witness_ctx_4 = WitnessContext::new(ledger(&ctx.current_query_context.state), current_private_state, &ctx.current_query_context);
         let (current_private_state, _) = self.witnesses.private_add_coin(&_witness_ctx_4, coin.clone());
-        let cm = pure_circuits::commitment_from_coin_info(coin, pk);
+        let cm = pure_circuits::commitment_from_coin_info(coin.clone(), pk.clone());
         let ops = OpProgramVerify::<DefaultDB>::new()
             .idx_at_index(1u8, true)
             .idx_at_index(0u8, true)
             .dup(2)
             .idx_at_index(1u8, false)
-            .push(true, new_cell(leaf_hash(&ValueReprAlignedValue(AlignedValue::from(cm)))))
+            .push(true, new_cell(leaf_hash(&ValueReprAlignedValue(AlignedValue::from(cm.clone())))))
             .ins(false, 1)
             .ins(true, 1)
             .idx_at_index(1u8, true)
