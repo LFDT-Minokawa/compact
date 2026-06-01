@@ -430,3 +430,42 @@ fn election_vote_reveal_byte_parity() {
     let envelope = make_envelope(out.context.current_query_context.state.clone());
     assert_step_bytes_eq("vote_reveal", &envelope, after);
 }
+
+/// Drift detector for the hardcoded AUTHORITY constant.
+///
+/// AUTHORITY is the byte image of `public_key(FIXED_SK)` computed by
+/// the TS capture driver. Owner-driven circuits (`set_topic`, `advance`,
+/// `add_voter`) assert `public_key(sk) == authority.read()`, so the
+/// constructor must seed `authority` with exactly this value or every
+/// owner-action e2e test fails with an opaque ContractState hex mismatch.
+///
+/// Re-derive via the same Rust hash primitive
+/// (`persistent_hash_aligned` with the `"lares:election:pk:"` domain
+/// separator padded to 32 bytes — see `pure_circuits::public_key` in
+/// `tests-e2e-rust/contracts/election/lib.rs`) and assert equality.
+/// If `FIXED_SK` changes (or the persistent_hash semantics shift), this
+/// test fails with a clear "constant drift" message before the
+/// byte-parity tests fail.
+#[test]
+fn authority_matches_pure_circuit_derivation() {
+    // "lares:election:pk:" (18 bytes) padded with NUL to 32 bytes —
+    // the exact domain separator used by election's pure_circuits::public_key.
+    const DOMAIN_SEP: [u8; 32] = [
+        108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58,
+        112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ];
+    let derived = compact_runtime::std_lib::persistent_hash_aligned(&[
+        AlignedValue::from(DOMAIN_SEP),
+        AlignedValue::from(FIXED_SK),
+    ]);
+    assert_eq!(
+        derived,
+        AUTHORITY,
+        "AUTHORITY drift: persistent_hash_aligned(\"lares:election:pk:\", FIXED_SK) = {} but \
+         hardcoded AUTHORITY = {}. FIXED_SK, the domain separator, or the Rust persistent_hash \
+         semantics changed — regenerate the constant by re-running tools/capture-election.mjs \
+         and update AUTHORITY in this file.",
+        hex::encode(derived),
+        hex::encode(AUTHORITY),
+    );
+}

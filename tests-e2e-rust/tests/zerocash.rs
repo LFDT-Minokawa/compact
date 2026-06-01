@@ -271,3 +271,35 @@ fn zerocash_init_mint_spend_byte_parity() {
     let envelope = make_envelope(spend.context.current_query_context.state.clone());
     assert_step_bytes_eq("spend", &envelope, after_spend);
 }
+
+/// Drift detector for the hardcoded FIXED_PK constant.
+///
+/// FIXED_PK is the byte image of `persistentHash<Bytes<32>>(FIXED_SK)`
+/// computed by the TS capture driver and pasted into this file. The
+/// byte-parity tests rely on it matching what the Rust contract folds
+/// into the commitment tree via `pure_circuits::derive_zk_public_key`.
+///
+/// If anyone tweaks `FIXED_SK` (or the underlying persistent_hash
+/// semantics shift), the hardcoded constant becomes stale and the
+/// byte-parity tests would fail with an opaque hex mismatch deep
+/// inside a ContractState dump. This test re-derives the value via
+/// the same Rust hash primitive the contract uses
+/// (`persistent_hash_aligned` with a single `AlignedValue::from(sk)`
+/// argument — see `pure_circuits::derive_zk_public_key` in
+/// `tests-e2e-rust/contracts/zerocash/lib.rs`) and asserts equality
+/// with a clear "constant drift" error message.
+#[test]
+fn fixed_pk_matches_pure_circuit_derivation() {
+    let derived = compact_runtime::std_lib::persistent_hash_aligned(&[
+        AlignedValue::from(FIXED_SK),
+    ]);
+    assert_eq!(
+        derived,
+        FIXED_PK,
+        "FIXED_PK drift: persistent_hash_aligned(FIXED_SK) = {} but hardcoded FIXED_PK = {}. \
+         FIXED_SK or the Rust persistent_hash semantics changed — regenerate the constant by \
+         re-running tools/capture-zerocash.mjs and update FIXED_PK in this file.",
+        hex::encode(derived),
+        hex::encode(FIXED_PK),
+    );
+}
