@@ -190,6 +190,78 @@
           [(<= nat 18446744073709551615) "u64"]
           [else "u128"]))
 
+      ;; -----------------------------------------------------------------
+      ;; Stdlib lookup tables.
+      ;;
+      ;; Two alists drive every place the emitter must special-case a
+      ;; runtime-provided struct or stdlib pure circuit:
+      ;;
+      ;;   stdlib-struct-mappings  : struct-name → (type-rust-fn skip-decl?)
+      ;;     - type-rust-fn (lambda elt-name* type*) → Rust type string,
+      ;;       called from type-rust's tstruct branch.
+      ;;     - skip-decl? boolean; when #t, emit-type-decls's tstruct branch
+      ;;       skips per-contract emission (runtime provides the type).
+      ;;
+      ;;   stdlib-circuit-mappings : compact-name → (rust-path-fn)
+      ;;     - rust-path-fn (lambda cdefn) → Rust callee path string,
+      ;;       called from stdlib-circuit-rust-path. cdefn is the looked-up
+      ;;       circuit pelt (or #f); the lambda may inspect its return type
+      ;;       for turbofish ascription.
+      ;;
+      ;; Adding a new stdlib mapping is a single table-entry edit instead
+      ;; of touching 3-5 scattered cond clauses.
+      ;; -----------------------------------------------------------------
+
+      (define stdlib-struct-mappings
+        `((Maybe
+            ,(lambda (elt-name* type*)
+               (let loop ([names elt-name*] [types type*])
+                 (cond
+                   [(null? names) "Maybe</* L1: no value field */>"]
+                   [(eq? (car names) 'value) (format "Maybe<~a>" (type-rust (car types)))]
+                   [else (loop (cdr names) (cdr types))])))
+            #t)
+          (MerkleTreePath
+            ,(lambda (elt-name* type*)
+               (let loop ([names elt-name*] [types type*])
+                 (cond
+                   [(null? names) "compact_runtime::MerklePath</* no leaf field */>"]
+                   [(eq? (car names) 'leaf)
+                    (format "compact_runtime::MerklePath<~a>" (type-rust (car types)))]
+                   [else (loop (cdr names) (cdr types))])))
+            #t)
+          (MerkleTreePathEntry
+            ,(lambda (elt-name* type*) "compact_runtime::MerklePathEntry")
+            #t)))
+
+      (define stdlib-circuit-mappings
+        `((some
+            ,(lambda (cdefn)
+               (let ([t (and cdefn (maybe-value-type (circuit-return-type cdefn)))])
+                 (format "compact_runtime::std_lib::some~a"
+                         (if t (format "::<~a>" (type-rust t)) "")))))
+          (none
+            ,(lambda (cdefn)
+               (let ([t (and cdefn (maybe-value-type (circuit-return-type cdefn)))])
+                 (format "compact_runtime::std_lib::none~a"
+                         (if t (format "::<~a>" (type-rust t)) "")))))
+          (merkleTreePathRoot
+            ,(lambda (cdefn) "compact_runtime::std_lib::merkle_tree_path_root"))
+          (merkleTreePathRootNoLeafHash
+            ,(lambda (cdefn) "compact_runtime::std_lib::merkle_tree_path_root_no_leaf_hash"))))
+
+      ;; lookup-stdlib-struct: return (type-rust-fn skip-decl?) list for a
+      ;; struct-name, or #f if not a stdlib struct.
+      (define (lookup-stdlib-struct struct-name)
+        (let ([entry (assq struct-name stdlib-struct-mappings)])
+          (and entry (cdr entry))))
+
+      ;; lookup-stdlib-circuit: return (rust-path-fn) list for a Compact
+      ;; stdlib circuit symbol, or #f if not a stdlib circuit.
+      (define (lookup-stdlib-circuit sym)
+        (let ([entry (assq sym stdlib-circuit-mappings)])
+          (and entry (cdr entry))))
+
       ;; type-rust: walk an Ltypescript Type IR node and produce the
       ;; corresponding Rust type string. Covers M3-F1 scope: primitives
       ;; (tfield, tboolean, tunsigned, tbytes), ttuple, and tvector.
@@ -236,30 +308,15 @@
              [(equal? opaque-type "Uint8Array") "Vec<u8>"]
              [else (format "/* TODO M3-F4: topaque ~a */" opaque-type)])]
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-           ;; L1: Maybe<T> resolves to the canonical struct exposed by
-           ;; compact-runtime. We locate the `value` field's type and
-           ;; emit Maybe<<that-type>>. Similarly MerkleTreePath<#n, T> /
-           ;; MerkleTreePathEntry lower to compact_runtime::MerklePath<T> /
-           ;; MerklePathEntry. Other named structs lower to their bare
-           ;; name; their definitions are emitted by emit-type-decls
-           ;; (H5 / future tasks).
-           (cond
-             [(eq? struct-name 'Maybe)
-              (let loop ([names elt-name*] [types type*])
-                (cond
-                  [(null? names) "Maybe</* L1: no value field */>"]
-                  [(eq? (car names) 'value) (format "Maybe<~a>" (type-rust (car types)))]
-                  [else (loop (cdr names) (cdr types))]))]
-             [(eq? struct-name 'MerkleTreePath)
-              (let loop ([names elt-name*] [types type*])
-                (cond
-                  [(null? names) "compact_runtime::MerklePath</* no leaf field */>"]
-                  [(eq? (car names) 'leaf)
-                   (format "compact_runtime::MerklePath<~a>" (type-rust (car types)))]
-                  [else (loop (cdr names) (cdr types))]))]
-             [(eq? struct-name 'MerkleTreePathEntry)
-              "compact_runtime::MerklePathEntry"]
-             [else (symbol->string struct-name)])]
+           ;; Stdlib structs (Maybe<T>, MerkleTreePath<#n, T>,
+           ;; MerkleTreePathEntry) resolve to runtime-provided Rust types
+           ;; via stdlib-struct-mappings. Other named structs lower to
+           ;; their bare name; their definitions are emitted by
+           ;; emit-type-decls (H5 / future tasks).
+           (let ([entry (lookup-stdlib-struct struct-name)])
+             (if entry
+                 ((car entry) elt-name* type*)
+                 (symbol->string struct-name)))]
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
            ;; Enum references in type position emit the bare name. The
            ;; definition (with #[repr(u8)] + variant discriminants) is
@@ -810,20 +867,11 @@
                     (out "}\n")]
                    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                     (cond
-                      [(eq? struct-name 'Maybe)
-                       ;; L1: Maybe<T> is provided by compact-runtime as a
-                       ;; canonical generic struct — skip per-contract
-                       ;; redefinition.
-                       (void)]
-                      [(eq? struct-name 'MerkleTreePath)
-                       ;; MerkleTreePath<#n, T> lowers to upstream
-                       ;; compact_runtime::MerklePath<T> — skip per-contract
-                       ;; emission.
-                       (void)]
-                      [(eq? struct-name 'MerkleTreePathEntry)
-                       ;; MerkleTreePathEntry lowers to upstream
-                       ;; compact_runtime::MerklePathEntry — skip per-contract
-                       ;; emission.
+                      [(let ([entry (lookup-stdlib-struct struct-name)])
+                         (and entry (cadr entry)))
+                       ;; Stdlib struct (Maybe / MerkleTreePath /
+                       ;; MerkleTreePathEntry) is provided by
+                       ;; compact-runtime — skip per-contract emission.
                        (void)]
                       [(not (null? tvar-name*))
                        ;; H5: generic structs not yet handled. Emit a TODO so
@@ -1332,35 +1380,16 @@
             [else #f])))
 
       ;; stdlib-circuit-rust-path: if `function-name` is a Compact stdlib
-      ;; circuit we map to a runtime-side function (currently `some` and
-      ;; `none`, both in `compact_runtime::std_lib`), return the qualified
-      ;; Rust path with the explicit generic `::<T>` ascription so Rust's
-      ;; type inference doesn't need extra hints. Returns #f for
-      ;; non-stdlib callees.
+      ;; circuit registered in stdlib-circuit-mappings, return its
+      ;; runtime-side Rust callee path (with `::<T>` ascription where the
+      ;; mapping needs it). Returns #f for non-stdlib callees.
       ;;
-      ;; `cdefn` is the circuit pelt looked up via circuit-id-ht (or #f).
-      ;; We use its return type (`Maybe<T>`) to extract T.
+      ;; `cdefn` is the circuit pelt looked up via circuit-id-ht (or #f),
+      ;; passed through to the mapping's rust-path-fn so it can inspect
+      ;; the return type (e.g. some/none extract T from `Maybe<T>`).
       (define (stdlib-circuit-rust-path function-name cdefn)
-        (let ([sym (id-sym function-name)])
-          (cond
-            [(or (eq? sym 'some) (eq? sym 'none))
-             (let ([ret-type (and cdefn (circuit-return-type cdefn))])
-               (let ([t (and ret-type (maybe-value-type ret-type))])
-                 (format "compact_runtime::std_lib::~a~a"
-                         sym
-                         (if t
-                             (format "::<~a>" (type-rust t))
-                             ""))))]
-            [(eq? sym 'merkleTreePathRoot)
-             ;; `merkleTreePathRoot<#n, T>(path) -> MerkleTreeDigest`. Rust
-             ;; wrapper takes `MerklePath<T>` and infers T from the arg, so
-             ;; no turbofish needed.
-             "compact_runtime::std_lib::merkle_tree_path_root"]
-            [(eq? sym 'merkleTreePathRootNoLeafHash)
-             ;; `merkleTreePathRootNoLeafHash<#n>(path) -> MerkleTreeDigest`.
-             ;; Leaf is always `Bytes<32>`; wrapper has no generics.
-             "compact_runtime::std_lib::merkle_tree_path_root_no_leaf_hash"]
-            [else #f])))
+        (let ([entry (lookup-stdlib-circuit (id-sym function-name))])
+          (and entry ((car entry) cdefn))))
 
       ;; circuit-return-type: pull the declared return type out of a
       ;; Circuit-Definition Program-Element. Returns #f if `cdefn` is not
