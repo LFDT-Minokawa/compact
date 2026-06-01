@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Iter 4 fixture: for-range loop emission. The constructor seeds a
+// Counter to 10 via a literal-bounds for-range loop. The exported
+// `ping` circuit is a no-op (.increment(0)) — present only to satisfy
+// the "at least one exported circuit" invariant.
+
+import CompactStandardLibrary;
+
+export ledger c: Counter;
+
+constructor() {
+  for (const i of 0..10) {
+    c.increment(1);
+  }
+}
+
+export circuit ping(): [] {
+  c.increment(0);
+}

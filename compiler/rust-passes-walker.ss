@@ -1006,6 +1006,38 @@
                                         else-exprs)
                                (expr-supported?
                                  (car parts) native-id-ht witness-id-ht circuit-id-ht))))))]
+              ;; Iter 4: terminal `(for var-name tsize0 tsize1 #f body)`
+              ;; range loop with literal nat bounds whose body is a
+              ;; single non-write public-ledger ADT update call (e.g.
+              ;; `c.increment(1);`). Emitted by unrolling the body's
+              ;; builder lines (hi - lo) times into a single
+              ;; OpProgramVerify chain. Bounds must be literal tsize
+              ;; nats — variable bounds and iterable loops are deferred
+              ;; to a future iteration.
+              [(and (null? (cdr stmts))
+                    (stmt->for-range (car stmts))) =>
+               (lambda (fr)
+                 (let* ([lo (cadr fr)]
+                        [hi (caddr fr)]
+                        [body-stmt (cadddr fr)]
+                        [body-call (branch->single-pl-call body-stmt)])
+                   (and body-call
+                        ;; Body must be a single non-write public-ledger
+                        ;; ADT-update call whose arg expressions are
+                        ;; expr-supported?. Reject Cell.write (the
+                        ;; emit-body-writes path) so we stick to ADT-update
+                        ;; vm-code emission.
+                        (not (stmt->public-ledger-write body-stmt))
+                        (let ([body-path (caddr body-call)]
+                              [body-exprs (cadddr body-call)])
+                          (and (fx= (length body-path) 1)
+                               (nanopass-case (Ltypescript Path-Element) (car body-path)
+                                 [,path-index #t]
+                                 [else #f])
+                               (for-all (lambda (e)
+                                          (expr-supported?
+                                            e native-id-ht witness-id-ht circuit-id-ht))
+                                        body-exprs))))))]
               [else
                (let ([w (stmt->public-ledger-write (car stmts))])
                  (and w
@@ -1182,6 +1214,32 @@
                    (car bundle) (cadr bundle) (caddr bundle)
                    local-binds mode witness-emitted? (reverse pre-lines)
                    native-id-ht witness-id-ht circuit-id-ht))]
+              ;; Iter 4: terminal `(for var-name tsize0 tsize1 #f body)`
+              ;; range loop with literal nat bounds. Body must be a single
+              ;; non-write public-ledger ADT update call (e.g. Counter
+              ;; increment). Unroll (hi - lo) iterations of the body's
+              ;; builder lines into a single OpProgramVerify chain. The
+              ;; loop var is not currently substituted into the body —
+              ;; bodies that read `i` (e.g. `mp.insert(i)`) are deferred.
+              [(and (null? (cdr stmts))
+                    (null? writes)
+                    (let ([fr (stmt->for-range (car stmts))])
+                      (and fr
+                           (let ([body-parts
+                                  (branch->single-pl-call (cadddr fr))])
+                             (and body-parts
+                                  (not (stmt->public-ledger-write (cadddr fr)))
+                                  (list (cadr fr) (caddr fr) body-parts)))))) =>
+               (lambda (bundle)
+                 (let ([lo (car bundle)]
+                       [hi (cadr bundle)]
+                       [body-parts (caddr bundle)])
+                   (emit-for-range-terminal
+                     lo hi
+                     (car body-parts) (cadr body-parts)
+                     (caddr body-parts) (cadddr body-parts)
+                     local-binds mode witness-emitted? (reverse pre-lines)
+                     native-id-ht witness-id-ht circuit-id-ht)))]
               [(stmt->assert (car stmts)) =>
                (lambda (a)
                  (let* ([expr (car a)]
@@ -1601,6 +1659,31 @@
           [(if ,src ,expr0 ,stmt1 ,stmt2) (list expr0 stmt1 stmt2)]
           [else #f]))
 
+      ;; tsize->int: extract the literal integer bound from a Ltypescript
+      ;; Type-Size node. Returns the nat for `(type-size src nat)` and #f
+      ;; otherwise (e.g. `(type-size-ref src tsize-name)` for non-literal
+      ;; bounds, which Iter 4 doesn't yet support). The bare nat shape
+      ;; is what `(for var-name tsize0 tsize1 #f stmt)` carries in the
+      ;; constructor / circuit body — see langs.ss:295-298.
+      (define (tsize->int t)
+        (nanopass-case (Ltypescript Type-Size) t
+          [(type-size ,src ,nat) nat]
+          [else #f]))
+
+      ;; stmt->for-range: detect a `(for var-name tsize0 tsize1 #f body-stmt)`
+      ;; Statement whose bounds are literal tsize nats. Returns
+      ;; (list var-name lo hi body-stmt) on match, #f otherwise. Iter 4
+      ;; scope: only literal-bounds range loops. Variable bounds
+      ;; (`type-size-ref`) and iterable loops (`(for var-name expr stmt)`)
+      ;; are deferred.
+      (define (stmt->for-range stmt)
+        (nanopass-case (Ltypescript Statement) stmt
+          [(for ,var-name ,tsize0 ,tsize1 #f ,stmt^)
+           (let ([lo (tsize->int tsize0)]
+                 [hi (tsize->int tsize1)])
+             (and lo hi (list var-name lo hi stmt^)))]
+          [else #f]))
+
       ;; branch->single-pl-call: walk a single branch of an if-then-else
       ;; and extract a single `(public-ledger ...)` ADT-update call,
       ;; possibly preceded by safe-cast `const` bindings (which the
@@ -1974,5 +2057,73 @@
                 (out "                ..ctx\n")
                 (out "            },\n")
                 (out "            gas_cost: _if_results.gas_cost,\n")
+                (out "        })\n")])
+             #t])))
+
+      ;; emit-for-range-terminal: Iter 4 — emit a terminal
+      ;; `(for var-name lo..hi body)` range loop whose body is a single
+      ;; non-write public-ledger ADT update call. Compile-time unrolls
+      ;; the body's builder lines (hi - lo) times into a single
+      ;; OpProgramVerify chain, then emits one `query_for_verify` plus
+      ;; the standard ConstructorResult / CircuitResults return. The
+      ;; loop var is not substituted into the body — bodies that
+      ;; reference `i` (e.g. `mp.insert(i)`) currently fall back to the
+      ;; emitter's unimplemented path. Returns #t on success, #f
+      ;; otherwise so the caller falls back.
+      (define (emit-for-range-terminal
+                lo hi
+                src adt-op path-elt* expr* local-binds mode witness-emitted?
+                pre-lines native-id-ht witness-id-ht circuit-id-ht)
+        (let ([body-lines
+               (compute-pl-builder-lines
+                 src adt-op path-elt* expr* local-binds
+                 native-id-ht witness-id-ht circuit-id-ht)]
+              [iter-count (- hi lo)])
+          (cond
+            [(or (not body-lines) (< iter-count 0)) #f]
+            [else
+             (emit-ctor-prelude pre-lines)
+             (out "        let ops = OpProgramVerify::<DefaultDB>::new()\n")
+             ;; Compile-time unroll: emit the body's builder lines N
+             ;; times. Since the loop body doesn't read `i`, the N
+             ;; emitted line groups are identical — the VM state
+             ;; mutates N times because each .ins() commits an in-place
+             ;; update independently.
+             (let loop ([k 0])
+               (cond
+                 [(fx= k iter-count) #f]
+                 [else
+                  (for-each out body-lines)
+                  (loop (+ k 1))]))
+             (out "            .build();\n")
+             (out "\n")
+             (cond
+               [(eq? mode 'ctor)
+                (out "        let results = query_for_verify(&qctx, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?;\n")
+                (out "\n")
+                (out "        Ok(ConstructorResult {\n")
+                (out "            current_contract_state: results.context.state,\n")
+                (out (if witness-emitted?
+                         "            current_private_state,\n"
+                         "            current_private_state: ctx.initial_private_state,\n"))
+                (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
+                (out "        })\n")]
+               [else
+                (out "        let results = query_for_verify(\n")
+                (out "            &ctx.current_query_context,\n")
+                (out "            &ops,\n")
+                (out "            ctx.gas_limit.clone(),\n")
+                (out "            &ctx.cost_model,\n")
+                (out "        )?;\n")
+                (out "\n")
+                (out "        Ok(CircuitResults {\n")
+                (out "            result: (),\n")
+                (out "            context: CircuitContext {\n")
+                (out "                current_query_context: results.context,\n")
+                (when witness-emitted?
+                  (out "                current_private_state,\n"))
+                (out "                ..ctx\n")
+                (out "            },\n")
+                (out "            gas_cost: results.gas_cost,\n")
                 (out "        })\n")])
              #t])))

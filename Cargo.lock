@@ -726,6 +726,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "compact-contract-for-range-fixture"
+version = "0.1.0"
+dependencies = [
+ "compact-runtime",
+]
+
+[[package]]
 name = "compact-contract-if-stmt-fixture"
 version = "0.1.0"
 dependencies = [
@@ -4640,6 +4647,7 @@ dependencies = [
  "compact-contract-aliases-fixture",
  "compact-contract-cross-circuit-fixture",
  "compact-contract-election",
+ "compact-contract-for-range-fixture",
  "compact-contract-if-stmt-fixture",
  "compact-contract-list-fixture",
  "compact-contract-map-fixture",

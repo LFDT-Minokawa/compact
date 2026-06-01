@@ -36,3 +36,4 @@ compact-contract-if-stmt-fixture = { path = "contracts/if-stmt-fixture" }
 compact-contract-cross-circuit-fixture = { path = "contracts/cross-circuit-fixture" }
 compact-contract-set-fixture = { path = "contracts/set-fixture" }
 compact-contract-list-fixture = { path = "contracts/list-fixture" }
+compact-contract-for-range-fixture = { path = "contracts/for-range-fixture" }
