@@ -1038,20 +1038,27 @@
                                           (expr-supported?
                                             e native-id-ht witness-id-ht circuit-id-ht))
                                         body-exprs))))))]
-              ;; Iter 5: terminal `(statement-expression (fold ...))`
-              ;; from a desugared `for (const _ of <static-len iterable>)
-              ;; { body }`. Same MVP constraints as Iter 4's for-range —
-              ;; body must be a single non-write public-ledger ADT
-              ;; update call with a literal-index path. The loop var is
-              ;; not substituted; bodies that reference the element
-              ;; (e.g. `mp.insert(elt)`) would surface as an unresolved
-              ;; var-ref and fail expr-supported?.
+              ;; Iter 5/6: terminal `(statement-expression (fold ...))`
+              ;; from a desugared `for (const x of <static-len iterable>)
+              ;; { body }`. Body must be a single non-write public-
+              ;; ledger ADT update call with a literal-index path. The
+              ;; loop variable may appear in the body's args — Iter 6's
+              ;; emit-for-iter-terminal substitutes per-iteration via
+              ;; iterable-expr->literals. We require the iterable to be
+              ;; a static array literal whose elements are integer
+              ;; constants (or safe-cast over the same), so the
+              ;; substitution can always materialise a `(quote …)`
+              ;; integer at each iteration.
               [(and (null? (cdr stmts))
                     (stmt->for-iter (car stmts))) =>
                (lambda (fi)
                  (let* ([body-stmt (caddr fi)]
+                        [iter-expr (cadddr fi)]
+                        [literals (iterable-expr->literals iter-expr)]
                         [body-call (branch->single-pl-call body-stmt)])
                    (and body-call
+                        literals
+                        (fx= (length literals) (car fi))
                         (not (stmt->public-ledger-write body-stmt))
                         (let ([body-path (caddr body-call)]
                               [body-exprs (cadddr body-call)])
@@ -1265,26 +1272,34 @@
                      (caddr body-parts) (cadddr body-parts)
                      local-binds mode witness-emitted? (reverse pre-lines)
                      native-id-ht witness-id-ht circuit-id-ht)))]
-              ;; Iter 5: terminal `(statement-expression (fold ...))`
-              ;; from a desugared `for (const _ of <static-len iterable>)
-              ;; { body }`. Unroll `len` iterations of the body's builder
-              ;; lines into a single OpProgramVerify chain — same shape
-              ;; as Iter 4's for-range path, with `len` taken from the
-              ;; fold IR node and the loop var unsubstituted.
+              ;; Iter 5/6: terminal `(statement-expression (fold ...))`
+              ;; from a desugared `for (const x of <static-len iterable>)
+              ;; { body }`. Unroll `len` iterations of the body's
+              ;; builder lines into a single OpProgramVerify chain, with
+              ;; the loop var substituted to the i-th literal from the
+              ;; iterable on each iteration (Iter 6). The literals are
+              ;; extracted up front so the loop body's expr* shape we
+              ;; need to substitute into is captured once.
               [(and (null? (cdr stmts))
                     (null? writes)
                     (let ([fi (stmt->for-iter (car stmts))])
                       (and fi
-                           (let ([body-parts
-                                  (branch->single-pl-call (caddr fi))])
+                           (let* ([body-parts
+                                   (branch->single-pl-call (caddr fi))]
+                                  [literals
+                                   (iterable-expr->literals (cadddr fi))])
                              (and body-parts
+                                  literals
+                                  (fx= (length literals) (car fi))
                                   (not (stmt->public-ledger-write (caddr fi)))
-                                  (list (car fi) body-parts)))))) =>
+                                  (list (car fi) (cadr fi) body-parts literals)))))) =>
                (lambda (bundle)
                  (let ([len (car bundle)]
-                       [body-parts (cadr bundle)])
+                       [elt-name (cadr bundle)]
+                       [body-parts (caddr bundle)]
+                       [literals (cadddr bundle)])
                    (emit-for-iter-terminal
-                     len
+                     len elt-name literals
                      (car body-parts) (cadr body-parts)
                      (caddr body-parts) (cadddr body-parts)
                      local-binds mode witness-emitted? (reverse pre-lines)
@@ -1747,17 +1762,24 @@
       ;; degenerates into N side-effecting body executions — the same
       ;; semantics Iter 4's for-range covers.
       ;;
-      ;; Returns (list len elt-var body-stmt) on match, #f otherwise.
-      ;; `elt-var` is the loop-variable name (unused in Iter 5's MVP —
-      ;; bodies referencing it bail out via fold-body->pl-call's reuse
-      ;; of branch->single-pl-call, which doesn't substitute `elt-var`).
+      ;; Returns (list len elt-var body-stmt iterable-expr) on match,
+      ;; #f otherwise. `elt-var` is the loop-variable name (the element
+      ;; binding in the desugared fold lambda). `iterable-expr` is the
+      ;; iterable Expression extracted from the fold's single Map-
+      ;; Argument slot — Iter 6 consumers (emit-for-iter-terminal) walk
+      ;; it via `iterable-expr->literals` to recover the per-iteration
+      ;; literal values used to substitute `elt-var` in the body.
       (define (stmt->for-iter stmt)
         (nanopass-case (Ltypescript Statement) stmt
           [(statement-expression ,expr)
            (nanopass-case (Ltypescript Expression) expr
-             [(fold ,src ,len ,fun ,expr0 ,map-arg ,map-arg* ...)
+             [(fold ,src ,len ,fun (,expr0 ,type0) ,map-arg ,map-arg* ...)
               ;; Single map-arg only — multi-zip folds (multiple
-              ;; iterables) aren't covered by Iter 5's MVP.
+              ;; iterables) aren't covered by the MVP. The `(expr0
+              ;; type0)` grouping is the fold's initial-accumulator
+              ;; value + its type; we don't use either (Iter 6 only
+              ;; substitutes the element binding) but the pattern must
+              ;; destructure them so `map-arg` lines up.
               (and (null? map-arg*)
                    (nanopass-case (Ltypescript Function) fun
                      [(circuit (,arg* ...) ,type ,stmt^)
@@ -1775,12 +1797,83 @@
                                    (let ([elt-name var-name]
                                          [stripped
                                           (fold-body-strip-acc-return
-                                            stmt^ acc-name)])
+                                            stmt^ acc-name)]
+                                         [iter-expr
+                                          (map-arg->expr map-arg)])
                                      (and stripped
-                                          (list len elt-name stripped)))]))]))])]
+                                          iter-expr
+                                          (list len elt-name stripped iter-expr)))]))]))])]
                      [else #f]))]
              [else #f])]
           [else #f]))
+
+      ;; map-arg->expr: peel the leading Expression out of a fold's
+      ;; Map-Argument node. The Map-Argument shape is `(expr type type^)`
+      ;; per langs.ss's Ltypescript Map-Argument definition. Returns the
+      ;; inner Expression, or #f if the node isn't recognised.
+      (define (map-arg->expr m)
+        (nanopass-case (Ltypescript Map-Argument) m
+          [(,expr ,type ,type^) expr]
+          [else #f]))
+
+      ;; iterable-expr->literals: returns a list of N literal Expression
+      ;; nodes when `expr` is a statically-extractable iterable, #f
+      ;; otherwise. Iter 6 MVP recognises `(vector src (single src lit)
+      ;; ... )` where every element is a `(quote src datum)` with an
+      ;; exact integer datum — the shape Compact's `[1, 2, 3]` array
+      ;; literal lowers to in Ltypescript.
+      ;;
+      ;; The returned list is in iteration order: the i-th element is
+      ;; what `elt-name` binds to during iteration i.
+      (define (iterable-expr->literals expr)
+        (let ([e (expr-strip-cast expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(vector ,src ,tuple-arg* ...)
+             (let loop ([xs tuple-arg*] [acc '()])
+               (cond
+                 [(null? xs) (reverse acc)]
+                 [else
+                  (let ([elt (tuple-arg->literal (car xs))])
+                    (and elt (loop (cdr xs) (cons elt acc))))]))]
+            [else #f])))
+
+      ;; tuple-arg->literal: peel a `(single src expr)` Tuple-Argument
+      ;; and return the inner Expression iff it strips down to a
+      ;; `(quote src <int>)` literal. Spread args (`(spread src nat
+      ;; expr)`) are rejected — Iter 6 only handles flat array
+      ;; literals. Returns the original Expression (with casts intact)
+      ;; on success, #f otherwise.
+      (define (tuple-arg->literal t)
+        (nanopass-case (Ltypescript Tuple-Argument) t
+          [(single ,src ,expr)
+           (let ([stripped (expr-strip-cast expr)])
+             (nanopass-case (Ltypescript Expression) stripped
+               [(quote ,src ,datum)
+                (and (integer? datum) (exact? datum) expr)]
+               [else #f]))]
+          [else #f]))
+
+      ;; expr-subst-var-ref: walk an Expression and replace every
+      ;; `(var-ref src target-name)` with `replacement` (also an
+      ;; Expression). Recurses through safe-cast layers, leaves all
+      ;; other shapes alone — the Iter 6 MVP only needs to handle the
+      ;; loop variable appearing directly (or under a safe-cast) as a
+      ;; top-level `c.increment(x)` arg.
+      ;;
+      ;; Returns the (possibly identical) Expression. Used by
+      ;; emit-for-iter-terminal to specialise the body's expr-list
+      ;; per iteration before feeding it to compute-pl-builder-lines.
+      (define (expr-subst-var-ref e target-name replacement)
+        (nanopass-case (Ltypescript Expression) e
+          [(var-ref ,src ,var-name)
+           (if (eq? (id-sym var-name) (id-sym target-name))
+               replacement
+               e)]
+          [(safe-cast ,src ,type ,type^ ,expr)
+           (let ([sub (expr-subst-var-ref expr target-name replacement)])
+             (with-output-language (Ltypescript Expression)
+               `(safe-cast ,src ,type ,type^ ,sub)))]
+          [else e]))
 
       ;; fold-body-strip-acc-return: given a fold body (Statement) and
       ;; the accumulator's var-name, peel off a trailing
@@ -2210,23 +2303,78 @@
       ;; reference `i` (e.g. `mp.insert(i)`) currently fall back to the
       ;; emitter's unimplemented path. Returns #t on success, #f
       ;; otherwise so the caller falls back.
-      ;; emit-for-iter-terminal: Iter 5 — emit a terminal
+      ;; emit-for-iter-terminal: Iter 5/6 — emit a terminal
       ;; `(statement-expression (fold ...))` desugared from a Compact
-      ;; `for (const _ of <static-len iterable>) { body }`. Unrolls the
-      ;; body's builder lines `len` times, mirroring emit-for-range-
-      ;; terminal's emission shape. Returns #t on success, #f
-      ;; otherwise. The element variable is not substituted into the
-      ;; body — bodies that reference it would have surfaced as an
-      ;; unresolved var-ref during compute-pl-builder-lines and we'd
-      ;; return #f.
+      ;; `for (const x of <static-len iterable>) { body }`. Unrolls the
+      ;; body's builder lines `len` times, substituting `elt-name` with
+      ;; the i-th literal expression from `literals` before computing
+      ;; the per-iteration builder lines. Returns #t on success, #f
+      ;; otherwise.
+      ;;
+      ;; When the body doesn't reference `elt-name`, the substitution
+      ;; is a no-op and each iteration produces identical builder
+      ;; lines — recovering Iter 5's behaviour. When the body uses the
+      ;; element directly as a call argument (e.g. `c.increment(x)`),
+      ;; the per-iteration substitution materialises the literal
+      ;; integer at compute-pl-builder-lines time so addi's immediate
+      ;; resolves to a plain integer.
       (define (emit-for-iter-terminal
-                len
+                len elt-name literals
                 src adt-op path-elt* expr* local-binds mode witness-emitted?
                 pre-lines native-id-ht witness-id-ht circuit-id-ht)
-        (emit-for-range-terminal
-          0 len
-          src adt-op path-elt* expr* local-binds mode witness-emitted?
-          pre-lines native-id-ht witness-id-ht circuit-id-ht))
+        (let ([per-iter-lines
+               (let loop ([lits literals] [acc '()])
+                 (cond
+                   [(null? lits) (and (not (memv #f acc)) (reverse acc))]
+                   [else
+                    (let* ([lit (car lits)]
+                           [subst-expr*
+                            (map (lambda (e)
+                                   (expr-subst-var-ref e elt-name lit))
+                                 expr*)]
+                           [lines
+                            (compute-pl-builder-lines
+                              src adt-op path-elt* subst-expr* local-binds
+                              native-id-ht witness-id-ht circuit-id-ht)])
+                      (loop (cdr lits) (cons lines acc)))]))])
+          (cond
+            [(or (not per-iter-lines) (not (fx= (length per-iter-lines) len))) #f]
+            [else
+             (emit-ctor-prelude pre-lines)
+             (out "        let ops = OpProgramVerify::<DefaultDB>::new()\n")
+             (for-each (lambda (group) (for-each out group)) per-iter-lines)
+             (out "            .build();\n")
+             (out "\n")
+             (cond
+               [(eq? mode 'ctor)
+                (out "        let results = query_for_verify(&qctx, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?;\n")
+                (out "\n")
+                (out "        Ok(ConstructorResult {\n")
+                (out "            current_contract_state: results.context.state,\n")
+                (out (if witness-emitted?
+                         "            current_private_state,\n"
+                         "            current_private_state: ctx.initial_private_state,\n"))
+                (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
+                (out "        })\n")]
+               [else
+                (out "        let results = query_for_verify(\n")
+                (out "            &ctx.current_query_context,\n")
+                (out "            &ops,\n")
+                (out "            ctx.gas_limit.clone(),\n")
+                (out "            &ctx.cost_model,\n")
+                (out "        )?;\n")
+                (out "\n")
+                (out "        Ok(CircuitResults {\n")
+                (out "            result: (),\n")
+                (out "            context: CircuitContext {\n")
+                (out "                current_query_context: results.context,\n")
+                (when witness-emitted?
+                  (out "                current_private_state,\n"))
+                (out "                ..ctx\n")
+                (out "            },\n")
+                (out "            gas_cost: results.gas_cost,\n")
+                (out "        })\n")])
+             #t])))
 
       (define (emit-for-range-terminal
                 lo hi

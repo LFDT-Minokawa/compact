@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Iter 6 fixture: fold with loop-var substitution. The constructor seeds
+// a Counter by iterating over a literal array, with the loop variable
+// USED in the body (each iteration increments by the element value).
+// The exported `ping` circuit is a no-op (.increment(0)) — present only
+// to satisfy the "at least one exported circuit" invariant.
+//
+// After init, c.read() == 1 + 2 + 3 == 6.
+
+import CompactStandardLibrary;
+
+export ledger c: Counter;
+
+constructor() {
+  for (const x of [1 as Uint<16>, 2, 3]) {
+    c.increment(x);
+  }
+}
+
+export circuit ping(): [] {
+  c.increment(0);
+}

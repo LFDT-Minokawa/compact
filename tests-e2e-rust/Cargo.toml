@@ -38,3 +38,4 @@ compact-contract-set-fixture = { path = "contracts/set-fixture" }
 compact-contract-list-fixture = { path = "contracts/list-fixture" }
 compact-contract-for-range-fixture = { path = "contracts/for-range-fixture" }
 compact-contract-for-iter-fixture = { path = "contracts/for-iter-fixture" }
+compact-contract-fold-fixture = { path = "contracts/fold-fixture" }
