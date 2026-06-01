@@ -1683,6 +1683,53 @@
                                    (expr-supported?
                                      e native-id-ht witness-id-ht circuit-id-ht))
                                  expr*))))]
+              ;; E6.2: terminal `(if cond then-stmt else-stmt)` where
+              ;; each branch is a single non-write public-ledger ADT
+              ;; update call (e.g. `tally_yes.increment(1);`). The
+              ;; emission path emits an `if` whose branches each carry
+              ;; their own OpProgramVerify + query_for_verify; ctx is
+              ;; threaded out via the if-expression's QueryResults.
+              ;;
+              ;; Local-binds aren't available in body-walkable? (we only
+              ;; have the flat-statement view), so the per-branch
+              ;; emittability check here is a coarse one — match the
+              ;; shape but defer expr support to expr-supported?. The
+              ;; emitter does the precise check via
+              ;; if-then-else-branch-pl-call? and falls back if either
+              ;; branch's builder lines can't be computed.
+              [(and (null? (cdr stmts))
+                    (stmt->if-then-else (car stmts))) =>
+               (lambda (parts)
+                 (let* ([then-stmt (cadr parts)]
+                        [else-stmt (caddr parts)]
+                        [then-call (branch->single-pl-call then-stmt)]
+                        [else-call (branch->single-pl-call else-stmt)])
+                   (and then-call else-call
+                        ;; Both branches must be single-index path
+                        ;; public-ledger calls whose arg expressions are
+                        ;; expr-supported?. Mirror the predicate above.
+                        (let ([then-path (caddr then-call)]
+                              [then-exprs (cadddr then-call)]
+                              [else-path (caddr else-call)]
+                              [else-exprs (cadddr else-call)])
+                          (and (fx= (length then-path) 1)
+                               (fx= (length else-path) 1)
+                               (nanopass-case (Ltypescript Path-Element) (car then-path)
+                                 [,path-index #t]
+                                 [else #f])
+                               (nanopass-case (Ltypescript Path-Element) (car else-path)
+                                 [,path-index #t]
+                                 [else #f])
+                               (for-all (lambda (e)
+                                          (expr-supported?
+                                            e native-id-ht witness-id-ht circuit-id-ht))
+                                        then-exprs)
+                               (for-all (lambda (e)
+                                          (expr-supported?
+                                            e native-id-ht witness-id-ht circuit-id-ht))
+                                        else-exprs)
+                               (expr-supported?
+                                 (car parts) native-id-ht witness-id-ht circuit-id-ht))))))]
               [else
                (let ([w (stmt->public-ledger-write (car stmts))])
                  (and w
@@ -1832,6 +1879,33 @@
                        src adt-op path-elt* expr* local-binds mode witness-emitted?
                        (reverse pre-lines)
                        native-id-ht witness-id-ht circuit-id-ht))))]
+              ;; E6.2: terminal `(if cond then-stmt else-stmt)` whose
+              ;; branches are each a single non-write public-ledger
+              ;; ADT-update call. Emit Rust `if/else` where each branch
+              ;; carries its own OpProgramVerify + query_for_verify; the
+              ;; if-expression's QueryResults is threaded into the final
+              ;; CircuitResults return. Mirrors the constraint above:
+              ;; only fire when no plain writes accumulated and this is
+              ;; the body's last statement.
+              [(and (null? (cdr stmts))
+                    (null? writes)
+                    (let ([if-parts (stmt->if-then-else (car stmts))])
+                      (and if-parts
+                           (let ([then-parts
+                                  (if-then-else-branch-pl-call?
+                                    (cadr if-parts) local-binds
+                                    native-id-ht witness-id-ht circuit-id-ht)]
+                                 [else-parts
+                                  (if-then-else-branch-pl-call?
+                                    (caddr if-parts) local-binds
+                                    native-id-ht witness-id-ht circuit-id-ht)])
+                             (and then-parts else-parts
+                                  (list (car if-parts) then-parts else-parts)))))) =>
+               (lambda (bundle)
+                 (emit-if-then-else-terminal
+                   (car bundle) (cadr bundle) (caddr bundle)
+                   local-binds mode witness-emitted? (reverse pre-lines)
+                   native-id-ht witness-id-ht circuit-id-ht))]
               [(stmt->assert (car stmts)) =>
                (lambda (a)
                  (let* ([expr (car a)]
@@ -2239,6 +2313,137 @@
            (list 'impure-exported (camel->snake (id-sym fn-id)) arg*)]
           [else (list 'unknown)]))
 
+      ;; stmt->if-then-else: detect a `(if cond then-stmt else-stmt)`
+      ;; statement and return (list cond then-stmt else-stmt). Used by
+      ;; E6.2's impure if-mid-body walker extension.
+      (define (stmt->if-then-else stmt)
+        (nanopass-case (Ltypescript Statement) stmt
+          [(if ,src ,expr0 ,stmt1 ,stmt2) (list expr0 stmt1 stmt2)]
+          [else #f]))
+
+      ;; branch->single-pl-call: walk a single branch of an if-then-else
+      ;; and extract a single `(public-ledger ...)` ADT-update call,
+      ;; possibly preceded by safe-cast `const` bindings (which the
+      ;; frontend inserts for literal-typed args, e.g. lowering
+      ;; `tally_yes.increment(1)` to `const _tmp = safe-cast 1;
+      ;; tally_yes.increment(_tmp);`).
+      ;;
+      ;; Returns (list src adt-op path-elt* resolved-expr*) on match
+      ;; (mirroring `stmt->public-ledger-call`'s shape), #f otherwise.
+      ;; `resolved-expr*` has had var-refs chased through any preceding
+      ;; consts in the branch, and safe-cast layers stripped.
+      (define (branch->single-pl-call stmt)
+        (let loop ([stmts (stmt-flatten stmt)] [binds '()])
+          (cond
+            [(null? stmts) #f]
+            [(const-binding (car stmts)) =>
+             (lambda (b) (loop (cdr stmts) (cons b binds)))]
+            [(and (null? (cdr stmts))
+                  (stmt->public-ledger-call (car stmts))) =>
+             (lambda (parts)
+               ;; stmt->public-ledger-call returns (src adt-op path-elt*
+               ;; expr*); rewrite expr* through `expr-resolve` so any
+               ;; var-refs to preceding consts get chased.
+               (let* ([src (car parts)]
+                      [adt-op (cadr parts)]
+                      [path-elt* (caddr parts)]
+                      [expr* (cadddr parts)]
+                      [resolved-expr* (map (lambda (e) (expr-resolve e binds))
+                                           expr*)])
+                 (and (not (memv #f resolved-expr*))
+                      (list src adt-op path-elt* resolved-expr*))))]
+            [else #f])))
+
+      ;; compute-pl-builder-lines: given a public-ledger ADT-op + path +
+      ;; arg expressions + local bindings, compute the list of builder-
+      ;; call lines for the OpProgramVerify chain (push/idx/ins/...) via
+      ;; expand-vm-code + vminstr->builder-call. Returns the list of
+      ;; strings on success, #f on any failure (so caller falls back).
+      ;;
+      ;; Extracted from emit-non-write-public-ledger-terminal so both
+      ;; that emitter and the E6.2 if-branch emitter can share the
+      ;; vm-code translation without duplicating logic.
+      (define (compute-pl-builder-lines
+                src adt-op path-elt* expr* local-binds
+                native-id-ht witness-id-ht circuit-id-ht)
+        (nanopass-case (Ltypescript ADT-Op) adt-op
+          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+           (cond
+             [(not (fx= (length expr*) (length var-name*))) #f]
+             [else
+              (let ([path-vals (map path-elt->vm-value path-elt*)]
+                    [expr-vals
+                     (map (lambda (e)
+                            ;; Integer literals must stay as plain Scheme
+                            ;; integers so `addi`'s `vm-immediate->int`
+                            ;; unwraps the `(VMvalue->int n)` cleanly.
+                            ;; Non-literal args go through the
+                            ;; `vm-rust-expr` carrier (lifts the rendered
+                            ;; Rust string into expand-vm-code).
+                            (let ([stripped (expr-strip-cast e)])
+                              (nanopass-case (Ltypescript Expression) stripped
+                                [(quote ,src ,datum)
+                                 (if (and (integer? datum) (exact? datum))
+                                     datum
+                                     (let ([rendered
+                                            (guard (c [#t #f])
+                                              (ctor-expr-rust e local-binds
+                                                              native-id-ht
+                                                              witness-id-ht
+                                                              circuit-id-ht))])
+                                       (and rendered (make-vm-rust-expr rendered))))]
+                                [else
+                                 (let ([rendered
+                                        (guard (c [#t #f])
+                                          (ctor-expr-rust e local-binds
+                                                          native-id-ht
+                                                          witness-id-ht
+                                                          circuit-id-ht))])
+                                   (and rendered (make-vm-rust-expr rendered)))])))
+                          expr*)])
+                (cond
+                  [(memv #f path-vals) #f]
+                  [(memv #f expr-vals) #f]
+                  [else
+                   (let* ([arg-alist
+                           (append (map cons adt-formal* adt-arg*)
+                                   (map (lambda (vn v)
+                                          (cons (id-sym vn) v))
+                                        var-name* expr-vals))]
+                          [vminstr*
+                           (guard (c [#t #f])
+                             (expand-vm-code src path-vals #f arg-alist
+                               (vm-code-code vm-code)))]
+                          [lines (and vminstr* (map vminstr->builder-call vminstr*))])
+                     (cond
+                       [(or (not lines) (memv #f lines)) #f]
+                       [else lines]))]))])]))
+
+      ;; if-then-else-branch-pl-call?: returns the (list src adt-op
+      ;; path-elt* expr*) parts when `branch-stmt` is a single non-write
+      ;; public-ledger call, AND the builder lines compute successfully
+      ;; against the given local-binds. Returns #f otherwise.
+      ;;
+      ;; This is the predicate used by both body-walkable? (E6.2
+      ;; pre-validation) and emit-body-or-fallback (E6.2 emission) to
+      ;; decide if a branch is emittable.
+      (define (if-then-else-branch-pl-call?
+                branch-stmt local-binds
+                native-id-ht witness-id-ht circuit-id-ht)
+        (let ([parts (branch->single-pl-call branch-stmt)])
+          (and parts
+               ;; Reject write-class (Cell.write) — its emission lives in
+               ;; the emit-body-writes path and would need a different
+               ;; OpProgramVerify chain shape. ADT-update calls (insert,
+               ;; increment, etc.) are what E6.2 targets.
+               (let ([adt-op (cadr parts)])
+                 (not (stmt->public-ledger-write branch-stmt)))
+               (let ([lines (compute-pl-builder-lines
+                              (car parts) (cadr parts) (caddr parts)
+                              (cadddr parts) local-binds
+                              native-id-ht witness-id-ht circuit-id-ht)])
+                 (and lines parts)))))
+
       ;; emit-ctor-prelude: emit the accumulated witness/pure-circuit/let
       ;; lines from the constructor body walk. They're already complete Rust
       ;; lines (with indentation + trailing newline), so just splat them out.
@@ -2411,6 +2616,86 @@
                            (out "            gas_cost: results.gas_cost,\n")
                            (out "        })\n")])
                         #t]))]))])]))
+
+      ;; emit-if-then-else-terminal: E6.2's impure if-mid-body emission.
+      ;; Emits the prelude (witness / pure-circuit / assert lines the
+      ;; walker accumulated), then a Rust `if cond { ... } else { ... }`
+      ;; where each branch is an OpProgramVerify chain + query_for_verify
+      ;; producing a QueryResults; the if-expression yields that
+      ;; QueryResults, which we unpack into the final CircuitResults
+      ;; return.
+      ;;
+      ;; Narrow shape:
+      ;;   - terminal `(if cond then-stmt else-stmt)` (last statement
+      ;;     of the body's flat sequence; no post-if statements yet)
+      ;;   - each branch is a single non-write public-ledger ADT-update
+      ;;     call (e.g. `tally_yes.increment(1);`)
+      ;;
+      ;; Returns #t on success, #f if any sub-step fails (caller falls
+      ;; back to `unimplemented!()`).
+      (define (emit-if-then-else-terminal
+                cond-expr then-parts else-parts
+                local-binds mode witness-emitted? pre-lines
+                native-id-ht witness-id-ht circuit-id-ht)
+        (let* ([cond-str
+                (guard (c [#t #f])
+                  (cond-rust cond-expr local-binds
+                             native-id-ht witness-id-ht circuit-id-ht))]
+               [then-lines
+                (and then-parts
+                     (compute-pl-builder-lines
+                       (car then-parts) (cadr then-parts) (caddr then-parts)
+                       (cadddr then-parts) local-binds
+                       native-id-ht witness-id-ht circuit-id-ht))]
+               [else-lines
+                (and else-parts
+                     (compute-pl-builder-lines
+                       (car else-parts) (cadr else-parts) (caddr else-parts)
+                       (cadddr else-parts) local-binds
+                       native-id-ht witness-id-ht circuit-id-ht))])
+          (cond
+            [(or (not cond-str) (not then-lines) (not else-lines)) #f]
+            [(rendered-has-todo? cond-str) #f]
+            [else
+             (emit-ctor-prelude pre-lines)
+             (let ([qctx-ref (if (eq? mode 'ctor)
+                                 "&qctx"
+                                 "&ctx.current_query_context")])
+               (out (format "        let _if_results = if ~a {\n" cond-str))
+               (out "            let ops = OpProgramVerify::<DefaultDB>::new()\n")
+               (for-each (lambda (l) (out (format "    ~a" l))) then-lines)
+               (out "                .build();\n")
+               (out (format "            query_for_verify(~a, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
+                            qctx-ref))
+               (out "        } else {\n")
+               (out "            let ops = OpProgramVerify::<DefaultDB>::new()\n")
+               (for-each (lambda (l) (out (format "    ~a" l))) else-lines)
+               (out "                .build();\n")
+               (out (format "            query_for_verify(~a, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
+                            qctx-ref))
+               (out "        };\n")
+               (out "\n"))
+             (cond
+               [(eq? mode 'ctor)
+                (out "        Ok(ConstructorResult {\n")
+                (out "            current_contract_state: _if_results.context.state,\n")
+                (out (if witness-emitted?
+                         "            current_private_state,\n"
+                         "            current_private_state: ctx.initial_private_state,\n"))
+                (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
+                (out "        })\n")]
+               [else
+                (out "        Ok(CircuitResults {\n")
+                (out "            result: (),\n")
+                (out "            context: CircuitContext {\n")
+                (out "                current_query_context: _if_results.context,\n")
+                (when witness-emitted?
+                  (out "                current_private_state,\n"))
+                (out "                ..ctx\n")
+                (out "            },\n")
+                (out "            gas_cost: _if_results.gas_cost,\n")
+                (out "        })\n")])
+             #t])))
 
       ;; emit-initial-state: emits the `initial_state` constructor method
       ;; inside the open Contract impl block. K1 seeds each ledger field
