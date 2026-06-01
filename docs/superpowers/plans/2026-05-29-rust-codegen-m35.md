@@ -18,8 +18,8 @@
 | **E4** — ADT method emission | E4.1 ✅, E4.2+3 ✅, E4.4 ✅ (zerocash_mint emits) | done | `cd3da3e` |
 | **E5** — Cross-circuit call (exported + general non-exported) | E5.1 ✅ (with cross_circuit fixture) | done | `6ca2089` |
 | **E6** — `if-statement` body shape | E6.1 ✅ pure-circuit case | done; impure-mid-body deferred | `697de1b` |
-| **F1.2** — zerocash.spend body | partial — expr-rust operators landed; spend still falls back | partial | `cffdc7c` |
-| **F2.2** — election circuits | 5/7 bodies emit (add_voter, advance, set_topic, ballot_repr, successor); vote$commit, vote$reveal pending | partial | `cf58bc7` |
+| **F1.2** — zerocash.spend body | partial — operators + ADT-read-with-arg + merkleTreePathRoot routing landed; spend still falls back on **MerkleTreePath type unification** (codegen emits per-contract struct; upstream MerklePath<T> differs) | partial | `2862410` |
+| **F2.2** — election circuits | 5/7 bodies emit (add_voter, advance, set_topic, ballot_repr, successor); vote$commit, vote$reveal pending on the same MerkleTreePath gap as spend | partial | `cf58bc7` |
 | **F8** — `if-stmt-fixture.compact` | F8.1 ✅ byte-parity | done | `30c45f1` |
 | **set fixture** | byte-parity ✅ (validates F1.2/2) | done | `dd65e9d` |
 | **nominal alias decl** | ✅ | done | `30c45f1` |
@@ -32,7 +32,15 @@
 | **F1** — zerocash.compact byte-parity | F1.1 ✅ (init), F1.2 (circuits) pending | partial | `3c64488` |
 | **F2** — election.compact byte-parity | F2.1 ✅ (init), F2.2 (circuits) pending | partial | `f80e22e` |
 
-**Resume here:** Phase F (fixtures) + Phase E4 (ADT method emission in circuit bodies) + Phase F1/F2 (zerocash + election byte-parity).
+**Resume here:** MerkleTreePath unification + spend / vote$commit / vote$reveal closure.
+
+The blockers for the 3 remaining heavy circuit bodies (zerocash.spend, election.vote$commit, election.vote$reveal) are:
+
+1. **MerkleTreePath type unification.** Codegen emits a per-contract `pub struct MerkleTreePath { leaf, path }` (via E2 promotion). The merkleTreePathRoot wrapper in `compact_runtime::std_lib` (commit `2862410`) expects upstream `compact_runtime::MerklePath<T>`. A type-rust special-case mapping `MerkleTreePath → compact_runtime::MerklePath<T>` (analogous to L1's Maybe pattern) was attempted in this session and reverted because it broke the test-file imports for zerocash + election (they currently `use MerkleTreePath`). Re-attempting needs paired test-file updates. Alternative: emit a conversion shim per-contract.
+2. **Walker shape: multi-stage const/assert/insert interleavings.** spend has assert-with-Set.member-call interleaved with consts; the current walker's seq-flattening assumptions need loosening.
+3. **Impure if-statement mid-body.** vote$reveal has `if(disclose(vote) == PermissibleVotes.yes) { tally_yes.increment(1); } else { tally_no.increment(1); }` — E6 explicitly deferred this. Each branch is a statement sequence with its own ledger writes; needs walker support for threading OpProgramVerify state through branches.
+
+Suggested order: tackle (1) first (smallest), then (3), then (2) which composes the others.
 
 **Milestone reached (commit `0d4f393`):** all four example contracts (counter, tiny, zerocash, election) now **compile cleanly** as Rust crates via the M3.5 emitter + runtime work. Path here, in order: E1 verified ✅ → R1 (ADT runtime + builders) ✅ → E2 (struct/enum promotion) ✅ → close-zerocash (Opaque/[u8;N]/aliases via codegen specials) ✅ → OpaqueString + Maybe<T> Value conv (election) ✅.
 
