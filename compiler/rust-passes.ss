@@ -57,6 +57,81 @@
       (define current-witness-call-binds
         (make-parameter '()))
 
+      ;; current-enum-ref-typed?: when #t, ctor-expr-rust renders an
+      ;; `enum-ref` as `EnumName::r#variant` instead of the integer
+      ;; discriminant. Used inside an `==` comparison whose other operand
+      ;; renders as a typed enum value (e.g. a witness call returning a
+      ;; tenum). The default #f preserves the existing integer rendering
+      ;; against u8-decoded ledger reads — that path covers tiny.compact's
+      ;; `state == STATE.unset` and election.commit/reveal's
+      ;; `state.read() == PublicState.commit` where the ledger decoder
+      ;; produces u8.
+      (define current-enum-ref-typed?
+        (make-parameter #f))
+
+      ;; current-formal-arg-types: eq-hashtable mapping a var-name id-sym
+      ;; → its declared Compact Type. Initialised from a circuit's formal
+      ;; args by emit-impure-circuit / emit-pure-circuit before walking
+      ;; the body. The body walker additionally mutates this table as it
+      ;; processes const-bindings (so a const-bound witness result whose
+      ;; declared return type is a tenum can flow into `==` rendering).
+      ;;
+      ;; Used by `==` rendering (via operand-typed-enum?) to detect when
+      ;; a var-ref operand resolves to a tenum-typed name, so an
+      ;; `enum-ref` on the other side renders as `EnumName::variant`
+      ;; rather than the integer discriminant.
+      (define current-formal-arg-types
+        (make-parameter #f))
+
+      ;; build-formal-arg-type-ht: build an eq-hashtable seeded with a
+      ;; circuit's (Argument*) list, mapping id-sym → Type. Always returns
+      ;; a fresh table (even when arg* is empty) so the body walker has a
+      ;; mutable home for const-binding types it discovers later.
+      (define (build-formal-arg-type-ht arg*)
+        (let ([ht (make-eq-hashtable)])
+          (for-each
+            (lambda (a)
+              (nanopass-case (Ltypescript Argument) a
+                [(,var-name ,type)
+                 (eq-hashtable-set! ht (id-sym var-name) type)]))
+            arg*)
+          ht))
+
+      ;; record-const-binding-type!: if rhs is a direct call into a
+      ;; witness or pure circuit whose declared return type we know, add
+      ;; `var-name → type` to current-formal-arg-types. Called from the
+      ;; body walker on each const-binding so subsequent `==` rendering
+      ;; can detect tenum-typed locals (e.g. election.vote$reveal's
+      ;; `const vote = private$vote();` where private$vote returns
+      ;; PermissibleVotes).
+      (define (record-const-binding-type! var-name rhs
+                                          witness-id-ht circuit-id-ht)
+        (let ([ht (current-formal-arg-types)])
+          (when ht
+            (let ([t (infer-rhs-type rhs witness-id-ht circuit-id-ht)])
+              (when t
+                (eq-hashtable-set! ht (id-sym var-name) t))))))
+
+      ;; infer-rhs-type: best-effort declared type of a const-binding RHS.
+      ;; Currently recognises direct witness calls (the only shape we care
+      ;; about for tenum detection); pure-circuit calls are handled too
+      ;; for completeness. Strips talias / casts. Returns #f when the
+      ;; shape isn't a recognised call.
+      (define (infer-rhs-type rhs witness-id-ht circuit-id-ht)
+        (let ([e (expr-strip-cast rhs)])
+          (nanopass-case (Ltypescript Expression) e
+            [(call ,src ,function-name ,expr* ...)
+             (let ([w (eq-hashtable-ref witness-id-ht function-name #f)]
+                   [c (eq-hashtable-ref circuit-id-ht function-name #f)])
+               (cond
+                 [w
+                  (nanopass-case (Ltypescript Program-Element) w
+                    [(witness ,src ,function-name (,arg* ...) ,type) type]
+                    [else #f])]
+                 [c (circuit-return-type c)]
+                 [else #f]))]
+            [else #f])))
+
       ;; rust-keyword?: returns #t when the symbol matches a Rust reserved
       ;; keyword (strict + reserved). Enum variant names like
       ;; `final` (election.compact's PublicState.final) collide otherwise.
@@ -717,6 +792,17 @@
                     (out (format "    fn from(v: ~a) -> compact_runtime::Value {\n" enum-name))
                     (out "        compact_runtime::Value::from(v as u8)\n")
                     (out "    }\n")
+                    (out "}\n")
+                    ;; M3.5: BinaryHashRepr for the enum — delegate via the
+                    ;; u8 discriminant. Lets enum values flow through stdlib
+                    ;; wrappers whose generic params require BinaryHashRepr
+                    ;; (e.g. merkle_tree_path_root::<T>(path) when T is or
+                    ;; contains a user enum, transitively).
+                    (out (format "impl compact_runtime::BinaryHashRepr for ~a {\n" enum-name))
+                    (out "    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {\n")
+                    (out "        (*self as u8).binary_repr(writer);\n")
+                    (out "    }\n")
+                    (out "    fn binary_len(&self) -> usize { 1 }\n")
                     (out "}\n")]
                    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
                     (cond
@@ -871,6 +957,38 @@
                           (out "        compact_runtime::Value::concat(_v.iter())\n")])
                        (out "    }\n")
                        (out "}\n")
+                       ;; M3.5: BinaryHashRepr for the struct — delegate
+                       ;; field-by-field (same shape as FieldRepr / FromFieldRepr).
+                       ;; Required by stdlib wrappers like
+                       ;; merkle_tree_path_root::<T>(path) where T: BinaryHashRepr
+                       ;; (e.g. zerocash.spend's `commitments.path_root::<commitment>(path)`).
+                       (out (format "impl compact_runtime::BinaryHashRepr for ~a {\n"
+                                    struct-name))
+                       (out "    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {\n")
+                       (cond
+                         [(null? elt-name*)
+                          (out "        let _ = writer;\n")]
+                         [else
+                          (for-each
+                            (lambda (name)
+                              (out (format "        self.~a.binary_repr(writer);\n"
+                                           name)))
+                            elt-name*)])
+                       (out "    }\n")
+                       (out "    fn binary_len(&self) -> usize {\n        ")
+                       (cond
+                         [(null? elt-name*) (out "0")]
+                         [else
+                          (let loop ([names elt-name*] [first? #t])
+                            (cond
+                              [(null? names) (void)]
+                              [else
+                               (out (format "~aself.~a.binary_len()"
+                                            (if first? "" " + ")
+                                            (car names)))
+                               (loop (cdr names) #f)]))])
+                       (out "\n    }\n")
+                       (out "}\n")
                        (out "\n")])]
                    [(talias ,src ,nominal? ,type-name ,type)
                     ;; F6 follow-up: emit `pub type X = Y;` for nominal
@@ -946,6 +1064,61 @@
              [else #f])]
           [else #f]))
 
+      ;; enum-ref->typed-rust: render `(enum-ref type elt-name)` as
+      ;; `EnumName::r#variant`. Returns #f if the type isn't a tenum.
+      ;; Used when the surrounding context (current-enum-ref-typed?)
+      ;; expects a typed enum value rather than the integer discriminant.
+      (define (enum-ref->typed-rust expr)
+        (nanopass-case (Ltypescript Expression) expr
+          [(enum-ref ,src ,type ,elt-name)
+           (nanopass-case (Ltypescript Type) type
+             [(tenum ,src ,enum-name ,elt-name^ ,elt-name* ...)
+              (format "~a::~a"
+                      (symbol->string enum-name)
+                      (rust-variant-name elt-name))]
+             [else #f])]
+          [else #f]))
+
+      ;; witness-call-return-tenum?: returns #t when `expr` is a direct call
+      ;; into a witness whose declared return type is a tenum (possibly via
+      ;; talias). Used by the `==` rendering to detect that one operand
+      ;; renders as a typed enum value, so an `enum-ref` on the other side
+      ;; needs to render as `EnumName::variant` rather than as the integer
+      ;; discriminant. Strips talias chains.
+      (define (witness-call-return-tenum? expr witness-id-ht)
+        (let ([e (expr-strip-cast expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(call ,src ,function-name ,expr* ...)
+             (let ([w (eq-hashtable-ref witness-id-ht function-name #f)])
+               (and w
+                    (let ([ret-type
+                           (nanopass-case (Ltypescript Program-Element) w
+                             [(witness ,src ,function-name (,arg* ...) ,type) type]
+                             [else #f])])
+                      (and ret-type (tenum-name-of-type ret-type) #t))))]
+            [else #f])))
+
+      ;; operand-typed-enum?: returns #t when `expr` should render as a
+      ;; typed enum value in Rust. Currently triggers on:
+      ;;   1. a direct witness call whose declared return type is a tenum
+      ;;      (e.g. election's `private$state()` returns `PrivateState`)
+      ;;   2. a var-ref resolving to a formal arg whose declared type is a
+      ;;      tenum (e.g. election.vote_for's `vote: PermissibleVotes`)
+      ;; Both flow through the current-formal-arg-types hashtable
+      ;; (populated by the impure-circuit emitter) for the var-ref case.
+      ;; Used by `ctor-expr-rust`'s `==` rendering to opt into typed
+      ;; enum-ref emission on the other operand.
+      (define (operand-typed-enum? expr witness-id-ht)
+        (or (witness-call-return-tenum? expr witness-id-ht)
+            (let ([e (expr-strip-cast expr)]
+                  [ht (current-formal-arg-types)])
+              (and ht
+                   (nanopass-case (Ltypescript Expression) e
+                     [(var-ref ,src ,var-name)
+                      (let ([t (eq-hashtable-ref ht (id-sym var-name) #f)])
+                        (and t (tenum-name-of-type t) #t))]
+                     [else #f])))))
+
       ;; ctor-expr-rust: render a constructor-body Expression as a Rust
       ;; expression string. Tracks a local binding alist (var-name id ->
       ;; snake-cased Rust name) so var-refs resolve to the let-bound name
@@ -963,9 +1136,21 @@
                [(assq var-name local-binds) => cdr]
                [else (symbol->string (camel->snake (id-sym var-name)))])]
             [(enum-ref ,src ,type ,elt-name)
-             (let ([n (enum-ref->u8 e)])
-               (if n (format "~au8" n)
-                   "/* TODO M3-J2: unresolved enum-ref */ 0u8"))]
+             (cond
+               [(current-enum-ref-typed?)
+                ;; M3.5: typed-enum context — render as `EnumName::r#variant`.
+                ;; The `==` case below opts in to this rendering when the
+                ;; other operand renders as a typed enum (e.g. a witness
+                ;; call returning a tenum). Falls back to the integer
+                ;; literal if the type isn't a recognised tenum.
+                (or (enum-ref->typed-rust e)
+                    (let ([n (enum-ref->u8 e)])
+                      (if n (format "~au8" n)
+                          "/* TODO M3-J2: unresolved enum-ref */ 0u8")))]
+               [else
+                (let ([n (enum-ref->u8 e)])
+                  (if n (format "~au8" n)
+                      "/* TODO M3-J2: unresolved enum-ref */ 0u8"))])]
             [(call ,src ,function-name ,expr* ...)
              (ctor-call-rust src function-name expr* local-binds
                              native-id-ht witness-id-ht circuit-id-ht)]
@@ -976,11 +1161,28 @@
              ;; I3b/3: equality. Recurse via ctor-expr-rust so var-refs
              ;; still resolve through the current local-binds (the
              ;; inline-circuit-call formal substitution rides on this).
-             (format "(~a == ~a)"
-                     (ctor-expr-rust expr1 local-binds
-                                     native-id-ht witness-id-ht circuit-id-ht)
-                     (ctor-expr-rust expr2 local-binds
-                                     native-id-ht witness-id-ht circuit-id-ht))]
+             ;;
+             ;; M3.5: if either operand renders as a typed enum (currently
+             ;; detected as: direct witness call whose return type is a
+             ;; tenum), parameterize the recursion so any enum-ref on the
+             ;; other side renders as `EnumName::variant` rather than the
+             ;; integer discriminant. Election's
+             ;; `private$state() == PrivateState.initial` hits this path:
+             ;; the witness returns `PrivateState`, so `PrivateState.initial`
+             ;; needs to be typed. The default integer rendering still
+             ;; covers tiny.compact's `state == STATE.unset` (LHS is a
+             ;; u8-decoded ledger read) and election's
+             ;; `state.read() == PublicState.commit` (same: ledger decoder
+             ;; produces u8).
+             (let ([typed?
+                    (or (operand-typed-enum? expr1 witness-id-ht)
+                        (operand-typed-enum? expr2 witness-id-ht))])
+               (parameterize ([current-enum-ref-typed? typed?])
+                 (format "(~a == ~a)"
+                         (ctor-expr-rust expr1 local-binds
+                                         native-id-ht witness-id-ht circuit-id-ht)
+                         (ctor-expr-rust expr2 local-binds
+                                         native-id-ht witness-id-ht circuit-id-ht))))]
             [(not ,src ,expr)
              ;; F1.2: Boolean negation. Recurse through ctor-expr-rust to
              ;; keep local-binds threading. Parenthesise the operand so
@@ -1940,6 +2142,10 @@
                         [rust-name (symbol->string (camel->snake (id-sym var-name)))]
                         [classified
                          (classify-const-rhs rhs witness-id-ht circuit-id-ht)])
+                   ;; M3.5: record the var's declared type so later `==`
+                   ;; rendering can detect tenum-typed locals.
+                   (record-const-binding-type! var-name rhs
+                                               witness-id-ht circuit-id-ht)
                    (case (car classified)
                      [(witness)
                       ;; Witness call. Emit:
@@ -2928,6 +3134,12 @@
                       [rust-name (symbol->string (camel->snake (id-sym var-name)))]
                       [classified
                        (classify-const-rhs rhs witness-id-ht circuit-id-ht)])
+                 ;; M3.5: record the var's declared type (when inferable
+                 ;; from the RHS — currently direct witness / pure-circuit
+                 ;; calls) so later `==` rendering can detect tenum-typed
+                 ;; locals.
+                 (record-const-binding-type! var-name rhs
+                                             witness-id-ht circuit-id-ht)
                  (case (car classified)
                    [(witness)
                     (let* ([wname (cadr classified)]
@@ -4066,6 +4278,7 @@
            (emit-circuit-args arg*)
            (out (format ",\n    ) -> Result<CircuitResults<PS, ~a>, CompactError> {\n"
                         (type-rust type)))
+           (parameterize ([current-formal-arg-types (build-formal-arg-type-ht arg*)])
            (let ([emitted?
                   (or
                     ;; I3b/4: single if-expression body returning non-unit.
@@ -4112,7 +4325,7 @@
              (unless emitted?
                (out (format "        unimplemented!(\"M3-I3: circuit body emission for ~a\")\n"
                             (id-sym function-name)))))
-           (out "    }\n\n")]))
+           (out "    }\n\n"))]))
 
       ;; bytevector->rust-array-literal: render a Scheme bytevector as a Rust
       ;; array literal `[N1u8, N2, ..., NK]`. The first element carries the
@@ -4640,12 +4853,13 @@
                                 (type-rust type)))])
                 (loop (cdr arg*) #f)]))
            (out (format ") -> ~a {\n" (type-rust type)))
-           (let ([body (stmt-pure-body-rust stmt native-id-ht)])
-             (cond
-               [body (out (format "        ~a\n" body))]
-               [else
-                (out (format "        unimplemented!(\"M3-I3: pure circuit body emission for ~a\")\n"
-                             (id-sym function-name)))]))
+           (parameterize ([current-formal-arg-types (build-formal-arg-type-ht arg*)])
+             (let ([body (stmt-pure-body-rust stmt native-id-ht)])
+               (cond
+                 [body (out (format "        ~a\n" body))]
+                 [else
+                  (out (format "        unimplemented!(\"M3-I3: pure circuit body emission for ~a\")\n"
+                               (id-sym function-name)))])))
            (out "    }\n\n")]))
 
       ;; pl-array->public-bindings: flatten a `public-ledger-array` IR node
