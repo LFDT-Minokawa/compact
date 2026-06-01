@@ -254,6 +254,7 @@ where
     pub fn initial_state(
         &self,
         ctx: ConstructorContext<PS>,
+        authority_init: [u8; 32],
     ) -> Result<ConstructorResult<PS>, CompactError> {
         let sv = new_array(vec![
             new_cell([0u8; 32]),
@@ -268,8 +269,16 @@ where
         ]);
         let state = ChargedState::new(sv);
         let qctx = QueryContext::new(state, ContractAddress::default());
+        let ops = OpProgramVerify::<DefaultDB>::new()
+            .push(false, new_cell(0u8))
+            .push(true, new_cell(authority_init))
+            .ins(false, 1)
+            .build();
+
+        let results = query_for_verify(&qctx, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?;
+
         Ok(ConstructorResult {
-            current_contract_state: qctx.state,
+            current_contract_state: results.context.state,
             current_private_state: ctx.initial_private_state,
             current_zswap_local_state: ctx.empty_zswap_local_state,
         })

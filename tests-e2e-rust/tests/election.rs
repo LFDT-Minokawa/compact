@@ -5,20 +5,20 @@
 // F2.1 drives initial_state() and asserts the serialized ContractState
 // matches the TS reference fixture captured by capture-election.mjs.
 //
-// F2.2 attempts to extend to the owner-driven impure circuits
-// (set_topic, advance, add_voter) and the vote circuits (vote$commit,
-// vote$reveal). election.compact has no source-level constructor, so the
-// implicit initial_state() seeds `authority` to `[0u8; 32]` and every
-// owner-driven circuit asserts `public_key(sk) == authority.read()` —
-// which the witness's fixed `sk` cannot satisfy (the assertion would
-// require a hash preimage of `[0u8; 32]` under the contract's
-// "lares:election:pk:" domain separator). The TS driver's capture
-// records `error` rather than `state_hex` for every post-init step,
-// and the Rust tests are `#[ignore]`'d with a gating check so the
-// captured TS error is shown when run with `--include-ignored`.
+// F2.2/2 extends to the owner-driven impure circuits (set_topic,
+// advance, add_voter). election.compact now has a source-level
+// constructor `constructor(authority_init: Bytes<32>) { authority =
+// authority_init; }` — initial_state() takes the authority bytes
+// directly, and the owner-driven asserts `public_key(sk) ==
+// authority.read()` are satisfied by passing AUTHORITY = the
+// pre-computed `public_key(FIXED_SK)`.
+//
+// vote$commit / vote$reveal remain `#[ignore]`'d: they additionally
+// need a MerklePath rooted in eligible_voters / committed_votes that
+// our stub witness does not synthesize.
 //
 // Exercises ADT seeding for the broadest type matrix of M3.5:
-//   - authority: Bytes<32>                       (cell of [0u8; 32])
+//   - authority: Bytes<32>                       (cell of AUTHORITY)
 //   - state: PublicState (enum)                  (cell of 0u8)
 //   - topic: Maybe<Opaque<"string">>             (cell of Maybe<OpaqueString>::default())
 //   - tally_yes / tally_no: Counter              (cell of 0u64)
@@ -36,6 +36,19 @@ use tests_e2e_rust::{ElectionStepSnapshot, ElectionTsReferenceState};
 /// Fixed deterministic witness payloads — must match capture-election.mjs.
 const FIXED_SK: [u8; 32] = [7u8; 32];
 const VOTER_PK: [u8; 32] = [0x11u8; 32];
+
+/// Hardcoded `public_key(FIXED_SK)` — i.e. persistent_hash with the
+/// "lares:election:pk:" domain separator of the all-7s secret key.
+/// Must match the AUTHORITY computed by capture-election.mjs via
+/// `contract._public_key_0(FIXED_SK)`. The constructor seeds this
+/// into the `authority` ledger field so the owner-driven asserts
+/// `public_key(sk) == authority.read()` are satisfied.
+const AUTHORITY: [u8; 32] = [
+    0x33, 0xef, 0xf3, 0xd5, 0x7e, 0x66, 0xfd, 0x14,
+    0x2b, 0xb4, 0x08, 0xe4, 0x89, 0x44, 0xa4, 0xd6,
+    0xb8, 0xf2, 0xdb, 0xf5, 0xc1, 0x80, 0x96, 0xf8,
+    0x27, 0xb0, 0x28, 0x3d, 0xbf, 0x91, 0x11, 0xc8,
+];
 
 /// Trivial Witnesses impl for election. None of these are invoked during
 /// initial_state() (the implicit constructor has no body), so we just need
@@ -197,37 +210,37 @@ fn require_state_hex<'a>(label: &str, snap: Option<&'a ElectionStepSnapshot>) ->
 fn election_init_byte_parity() {
     let ts_ref = fixture();
     let contract: Contract<(), ElectionWitnesses> = Contract::new(ElectionWitnesses);
-    let result = contract.initial_state(ctor_ctx()).expect("initial_state");
+    let result = contract
+        .initial_state(ctor_ctx(), AUTHORITY)
+        .expect("initial_state");
 
     let envelope = make_envelope(result.current_contract_state.clone());
     assert_step_bytes_eq("init", &envelope, &ts_ref.after_init);
 }
 
 // --------------------------------------------------------------------
-// F2.2: owner-driven and voting circuits.
+// F2.2/2: owner-driven and voting circuits.
 //
-// All five of these are gated by `#[ignore]`. election.compact lacks a
-// source-level constructor, so `authority` is seeded to `[0u8; 32]` and
-// the asserts `public_key(sk) == authority.read()` in set_topic /
-// advance / add_voter cannot succeed (the witness's `FIXED_SK` does not
-// hash to all-zero bytes, and the contract's domain-separated
-// persistent-hash is preimage-resistant). The vote$commit / vote$reveal
-// circuits are doubly blocked: they additionally require a MerklePath
-// recognised by the on-chain MerkleTree.
+// With the source-level constructor now seeding `authority` to
+// `public_key(FIXED_SK)`, the asserts `public_key(sk) ==
+// authority.read()` in set_topic / advance / add_voter succeed.
 //
-// Each test gates on `require_state_hex` so that, if a future
-// constructor or path-extraction helper lands and the TS driver
-// captures the post-step state, the test fails loudly until the
-// `#[ignore]` is removed.
+// vote$commit / vote$reveal remain `#[ignore]`'d: they additionally
+// require a MerklePath rooted in the on-chain MerkleTree, which our
+// stub witness does not synthesize.
+//
+// Each test gates on `require_state_hex` so a divergence between the
+// TS capture and the Rust driver shows up as a clear diagnostic.
 // --------------------------------------------------------------------
 
 #[test]
-#[ignore = "election.compact has no source-level constructor; authority defaults to [0u8;32] which the witness sk cannot hash to. Drop ignore once a constructor lands."]
 fn election_init_then_set_topic_byte_parity() {
     let ts_ref = fixture();
     let after = require_state_hex("after_set_topic", ts_ref.after_set_topic.as_ref());
     let contract: Contract<(), ElectionWitnesses> = Contract::new(ElectionWitnesses);
-    let init = contract.initial_state(ctor_ctx()).expect("initial_state");
+    let init = contract
+        .initial_state(ctor_ctx(), AUTHORITY)
+        .expect("initial_state");
     let circ_ctx = CircuitContext::new(init.current_contract_state, init.current_private_state);
     let out = contract
         .set_topic(circ_ctx, compact_runtime::std_lib::OpaqueString::from("hello"))
@@ -237,25 +250,32 @@ fn election_init_then_set_topic_byte_parity() {
 }
 
 #[test]
-#[ignore = "election.compact has no source-level constructor; authority defaults to [0u8;32] which the witness sk cannot hash to. Drop ignore once a constructor lands."]
 fn election_init_then_advance_byte_parity() {
+    // advance() asserts `topic.read().is_some`; therefore the only
+    // legal prefix from initial_state is set_topic → advance.
     let ts_ref = fixture();
     let after = require_state_hex("after_advance", ts_ref.after_advance.as_ref());
     let contract: Contract<(), ElectionWitnesses> = Contract::new(ElectionWitnesses);
-    let init = contract.initial_state(ctor_ctx()).expect("initial_state");
+    let init = contract
+        .initial_state(ctor_ctx(), AUTHORITY)
+        .expect("initial_state");
     let circ_ctx = CircuitContext::new(init.current_contract_state, init.current_private_state);
-    let out = contract.advance(circ_ctx).expect("advance");
+    let after_set_topic = contract
+        .set_topic(circ_ctx, compact_runtime::std_lib::OpaqueString::from("hello"))
+        .expect("set_topic");
+    let out = contract.advance(after_set_topic.context).expect("advance");
     let envelope = make_envelope(out.context.current_query_context.state.clone());
     assert_step_bytes_eq("advance", &envelope, after);
 }
 
 #[test]
-#[ignore = "election.compact has no source-level constructor; authority defaults to [0u8;32] which the witness sk cannot hash to. Drop ignore once a constructor lands."]
 fn election_init_then_add_voter_byte_parity() {
     let ts_ref = fixture();
     let after = require_state_hex("after_add_voter", ts_ref.after_add_voter.as_ref());
     let contract: Contract<(), ElectionWitnesses> = Contract::new(ElectionWitnesses);
-    let init = contract.initial_state(ctor_ctx()).expect("initial_state");
+    let init = contract
+        .initial_state(ctor_ctx(), AUTHORITY)
+        .expect("initial_state");
     let circ_ctx = CircuitContext::new(init.current_contract_state, init.current_private_state);
     let out = contract.add_voter(circ_ctx, VOTER_PK).expect("add_voter");
     let envelope = make_envelope(out.context.current_query_context.state.clone());
@@ -263,12 +283,14 @@ fn election_init_then_add_voter_byte_parity() {
 }
 
 #[test]
-#[ignore = "vote$commit asserts state==commit AND a MerklePath rooted in eligible_voters; blocked by missing constructor + stub merkle path."]
+#[ignore = "vote$commit asserts a MerklePath rooted in eligible_voters; the stub witness path does not satisfy checkRoot. Drop once MerklePath harness lands."]
 fn election_vote_commit_byte_parity() {
     let ts_ref = fixture();
     let after = require_state_hex("after_vote_commit", ts_ref.after_vote_commit.as_ref());
     let contract: Contract<(), ElectionWitnesses> = Contract::new(ElectionWitnesses);
-    let init = contract.initial_state(ctor_ctx()).expect("initial_state");
+    let init = contract
+        .initial_state(ctor_ctx(), AUTHORITY)
+        .expect("initial_state");
     let circ_ctx = CircuitContext::new(init.current_contract_state, init.current_private_state);
     let out = contract
         .vote_commit(circ_ctx, PermissibleVotes::yes)
@@ -278,12 +300,14 @@ fn election_vote_commit_byte_parity() {
 }
 
 #[test]
-#[ignore = "vote$reveal asserts state==reveal AND a MerklePath rooted in committed_votes; blocked by missing constructor + stub merkle path."]
+#[ignore = "vote$reveal asserts a MerklePath rooted in committed_votes; blocked by stub merkle path. Drop once MerklePath harness lands."]
 fn election_vote_reveal_byte_parity() {
     let ts_ref = fixture();
     let after = require_state_hex("after_vote_reveal", ts_ref.after_vote_reveal.as_ref());
     let contract: Contract<(), ElectionWitnesses> = Contract::new(ElectionWitnesses);
-    let init = contract.initial_state(ctor_ctx()).expect("initial_state");
+    let init = contract
+        .initial_state(ctor_ctx(), AUTHORITY)
+        .expect("initial_state");
     let circ_ctx = CircuitContext::new(init.current_contract_state, init.current_private_state);
     let out = contract.vote_reveal(circ_ctx).expect("vote_reveal");
     let envelope = make_envelope(out.context.current_query_context.state.clone());

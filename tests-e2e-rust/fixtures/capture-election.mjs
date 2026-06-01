@@ -1,22 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// F2.2 of the M3.5 plan: multi-step TS reference state capture for
+// F2.2/2 of the M3.5 plan: multi-step TS reference state capture for
 // election.compact. Mirrors F1.2 (zerocash) structure.
 //
-// election.compact has no source-level constructor, so initial_state()
-// seeds `authority` to `Bytes<32>::default()` = all zeros. The
-// owner-driven circuits (set_topic / advance / add_voter) all assert
-// `public_key(sk) == authority.read()`, which means the witness-side
-// secret_key must hash (via persistent_hash with the "lares:election:pk:"
-// domain separator) to all-zero bytes. That is hash-resistant, so
-// every owner-driven step is expected to fail unless we can synthesize
-// a preimage — which we cannot.
+// election.compact now exposes a source-level constructor
+// `constructor(authority_init: Bytes<32>) { authority = authority_init; }`
+// so we can seed `authority` to `public_key(FIXED_SK)` and unblock
+// the owner-driven asserts `public_key(sk) == authority.read()` in
+// set_topic / advance / add_voter.
 //
-// We still drive the chain: any successful step is captured as
-// `stateHex`; any failure is captured as `error`. The Rust test gates
-// each step on the presence of `stateHex` (panics with the captured
-// error if absent), giving us a clear diagnostic if upstream behavior
-// ever changes.
+// We still drive the chain robustly: any successful step is captured
+// as `stateHex`; any failure is captured as `error`. The Rust test
+// gates each step on the presence of `stateHex` (panics with the
+// captured error if absent). vote$commit / vote$reveal additionally
+// need a MerklePath rooted in the on-chain tree, which we don't
+// synthesize here — those steps remain expected-error.
 //
 // Usage:
 //   compactc --skip-zk examples/election.compact /tmp/election-ts-driver/
@@ -67,17 +65,16 @@ const constructorCtx = {
   initialZswapLocalState: cr.emptyZswapLocalState(emptyCpk),
 };
 
+// Compute authority = public_key(FIXED_SK) via the Contract's private
+// helper. This matches the Rust side, which hardcodes the same bytes
+// as AUTHORITY (computed via persistent_hash with domain separator
+// "lares:election:pk:"). Keep these two in sync.
+const AUTHORITY = contract._public_key_0(new Uint8Array(FIXED_SK));
+
 // ---- Step 1: initialState -----------------------------------------
-const initResult = contract.initialState(constructorCtx);
+const initResult = contract.initialState(constructorCtx, AUTHORITY);
 const afterInitContractState = initResult.currentContractState;
 const afterInitHex = Buffer.from(afterInitContractState.serialize()).toString('hex');
-
-let circuitCtx = cr.createCircuitContext(
-  cr.dummyContractAddress(),
-  emptyCpk,
-  afterInitContractState.data,
-  initResult.currentPrivateState,
-);
 
 // Rewrap helper: carry over operations + authority + balance from a
 // prior ContractState envelope onto a freshly produced ChargedState.
@@ -96,41 +93,83 @@ function chargedStateFromCtx(ctx) {
   return new cr.ChargedState(ctx.currentQueryContext.state.state);
 }
 
+// Build a fresh circuit context anchored at the post-init contract
+// state. Each "independent" sub-chain calls this to get its own
+// starting ctx + prior-envelope; that way each labelled step's
+// captured stateHex matches what the Rust test produces when it
+// runs the same prefix from initial_state().
+function freshCtx() {
+  return {
+    ctx: cr.createCircuitContext(
+      cr.dummyContractAddress(),
+      emptyCpk,
+      afterInitContractState.data,
+      initResult.currentPrivateState,
+    ),
+    envelope: afterInitContractState,
+  };
+}
+
 const fixture = {
   afterInit: { stateHex: afterInitHex },
 };
 
-let lastContractState = afterInitContractState;
-
-function tryStep(label, runner) {
+// runChain: applies a sequence of (label, runner) steps starting from
+// a fresh post-init context. Each step's captured stateHex is the
+// post-step ContractState bytes, ready to byte-compare against Rust.
+// `recordLabel` is the slot we write into the top-level fixture; this
+// is the final step. Earlier steps are run but not exported.
+function runChain(recordLabel, steps) {
+  let { ctx, envelope } = freshCtx();
   try {
-    const out = runner(circuitCtx);
-    circuitCtx = out.context;
-    const nextState = rewrapEnvelope(lastContractState, chargedStateFromCtx(circuitCtx));
-    const hex = Buffer.from(nextState.serialize()).toString('hex');
-    lastContractState = nextState;
-    fixture[label] = { stateHex: hex };
-    return true;
+    for (let i = 0; i < steps.length; i++) {
+      const [_stepLabel, runner] = steps[i];
+      const out = runner(ctx);
+      ctx = out.context;
+      envelope = rewrapEnvelope(envelope, chargedStateFromCtx(ctx));
+    }
+    const hex = Buffer.from(envelope.serialize()).toString('hex');
+    fixture[recordLabel] = { stateHex: hex };
   } catch (e) {
-    fixture[label] = { error: String((e && e.message) || e) };
-    return false;
+    fixture[recordLabel] = { error: String((e && e.message) || e) };
   }
 }
 
-// ---- Step 2: set_topic("hello") -----------------------------------
-tryStep('afterSetTopic', (ctx) => contract.circuits.set_topic(ctx, 'hello'));
-
-// ---- Step 3: advance() --------------------------------------------
-tryStep('afterAdvance', (ctx) => contract.circuits.advance(ctx));
-
-// ---- Step 4: add_voter(pk) ----------------------------------------
 const VOTER_PK = new Uint8Array(32).fill(0x11);
-tryStep('afterAddVoter', (ctx) => contract.circuits.add_voter(ctx, VOTER_PK));
 
-// ---- Step 5: vote$commit(yes) -------------------------------------
-tryStep('afterVoteCommit', (ctx) => contract.circuits['vote$commit'](ctx, 0));
+// init → set_topic("hello")
+runChain('afterSetTopic', [
+  ['set_topic', (ctx) => contract.circuits.set_topic(ctx, 'hello')],
+]);
 
-// ---- Step 6: vote$reveal() ----------------------------------------
-tryStep('afterVoteReveal', (ctx) => contract.circuits['vote$reveal'](ctx));
+// init → set_topic("hello") → advance (advance requires topic.is_some)
+runChain('afterAdvance', [
+  ['set_topic', (ctx) => contract.circuits.set_topic(ctx, 'hello')],
+  ['advance', (ctx) => contract.circuits.advance(ctx)],
+]);
+
+// init → add_voter(pk) — must run before any state advance.
+runChain('afterAddVoter', [
+  ['add_voter', (ctx) => contract.circuits.add_voter(ctx, VOTER_PK)],
+]);
+
+// vote$commit / vote$reveal both need a real MerklePath rooted in the
+// on-chain tree. We don't synthesize one here; expect an assertion
+// error capturing the diagnostic.
+runChain('afterVoteCommit', [
+  ['set_topic', (ctx) => contract.circuits.set_topic(ctx, 'hello')],
+  ['add_voter', (ctx) => contract.circuits.add_voter(ctx, VOTER_PK)],
+  ['advance', (ctx) => contract.circuits.advance(ctx)],
+  ['vote_commit', (ctx) => contract.circuits['vote$commit'](ctx, 0)],
+]);
+
+runChain('afterVoteReveal', [
+  ['set_topic', (ctx) => contract.circuits.set_topic(ctx, 'hello')],
+  ['add_voter', (ctx) => contract.circuits.add_voter(ctx, VOTER_PK)],
+  ['advance', (ctx) => contract.circuits.advance(ctx)],
+  ['vote_commit', (ctx) => contract.circuits['vote$commit'](ctx, 0)],
+  ['advance', (ctx) => contract.circuits.advance(ctx)],
+  ['vote_reveal', (ctx) => contract.circuits['vote$reveal'](ctx)],
+]);
 
 process.stdout.write(JSON.stringify(fixture, null, 2) + '\n');
