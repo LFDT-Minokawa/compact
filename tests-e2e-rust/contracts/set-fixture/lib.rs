@@ -72,7 +72,7 @@ where
         };
         let ops = OpProgramVerify::<DefaultDB>::new()
             .push(false, new_cell(0u8))
-            .push(true, new_cell(tmp))
+            .push(true, new_cell(tmp.clone()))
             .ins(false, 1)
             .build();
 
