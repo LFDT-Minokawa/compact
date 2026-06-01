@@ -24,6 +24,10 @@ import {
 import { PartialProofData, ProofData } from './proof-data.js';
 import { CompactError } from './error.js';
 
+/** A `GatherResult` narrowed to log emissions;
+ * `content` is the encoded `VersionedLogItem` array. */
+export type LogEvent = Extract<ocrt.GatherResult, { tag: 'log' }>;
+
 /**
  * The external information accessible from within a Compact circuit call
  */
@@ -48,6 +52,12 @@ export interface CircuitContext<PS = any> {
    * The gas limit for this circuit.
    */
   gasLimit?: ocrt.RunningCost;
+  /**
+   * Events emitted by the on-chain VM during circuit execution from
+   * `log` operations. Accumulates across all `queryLedgerState` calls within a
+   * single circuit invocation. Reset by the circuit wrapper on each call.
+   */
+  events: LogEvent[];
 }
 
 /**
@@ -148,6 +158,7 @@ export const createCircuitContext = <PS>(
     currentQueryContext: initialQueryContext,
     costModel: costModel ?? ocrt.CostModel.initialCostModel(),
     gasLimit,
+    events: [],
   };
 };
 
@@ -184,6 +195,11 @@ export interface CircuitResults<PS = any, R = any> {
    * The gas consumption of the circuit execution
    */
   gasCost: ocrt.RunningCost;
+  /**
+   * Events emitted by the on-chain VM during this circuit invocation.
+   * Same reference as `context.events` at the moment the circuit returned.
+   */
+  events: LogEvent[];
 }
 
 /**
@@ -198,33 +214,41 @@ export const queryLedgerState = (
   circuitContext: CircuitContext,
   partialProofData: PartialProofData,
   program: ocrt.Op<null>[],
-): ocrt.AlignedValue | ocrt.GatherResult[] => {
+): ocrt.AlignedValue | undefined => {
   try {
-    const res = circuitContext.currentQueryContext.query(program, circuitContext.costModel, circuitContext.gasLimit);
+    const res = circuitContext.currentQueryContext.query(
+      program,
+      circuitContext.costModel,
+      circuitContext.gasLimit,
+    );
     circuitContext.currentQueryContext = res.context;
-    // @ts-expect-error: We use a hidden variable to track running cost so we can move it to `CircuitResults` at the end
+    // @ts-expect-error: hidden variable to track running cost for CircuitResults
     circuitContext['gasCost'] = res.gasCost;
+
+    // Accumulate all gather events (log) on the context. Log events
+    // surface through CircuitResults.events; read events are also used below
+    // to fill in popeq results in the public transcript.
+    for (const ev of res.events) {
+      if (ev.tag === 'log') {
+        circuitContext.events.push(ev);
+      }
+    }
+
     const reads = res.events.filter((e) => e.tag === 'read');
     let i = 0;
     partialProofData.publicTranscript = partialProofData.publicTranscript.concat(
       program.map((op) =>
         typeof op === 'object' && 'popeq' in op
-          ? {
-              popeq: {
-                ...op.popeq,
-                result: reads[i++].content,
-              },
-            }
+          ? { popeq: { ...op.popeq, result: reads[i++].content } }
           : op,
       ) as ocrt.Op<ocrt.AlignedValue>[],
     );
-    if (res.events.length === 1) {
-      const event = res.events[0];
-      if (event.tag === 'read') {
-        return event.content;
-      }
+
+    // Single-read fast path
+    if (res.events.length === 1 && res.events[0].tag === 'read') {
+      return res.events[0].content;
     }
-    return res.events;
+    return undefined;
   } catch (err) {
     if (err instanceof Error) {
       throw new CompactError(err.toString());

@@ -2307,26 +2307,29 @@
                 (list (cons expr cur-len)
                       (cons (make-zero-bytes src (- target-len cur-len)) (- target-len cur-len)))
                 target-len)))
-        (define (make-bytes-slice src bytes-expr offset-nat len)
+        (define (make-bytes-slice src source-type bytes-expr offset-nat len)
           ; Bytes<len> = bytes-expr[offset .. offset+len].
+          ; source-type is the type of bytes-expr (e.g., Bytes<578>); required by
+          ; the bytes-slice type-check rule in check-types/Lnodca.
           (with-output-language (Ltypes Expression)
-            `(bytes-slice ,src (tbytes ,src ,len) ,bytes-expr
+            `(bytes-slice ,src ,source-type ,bytes-expr
                           (quote ,src ,offset-nat) ,len)))
-        (define (make-bytes-ref src bytes-expr offset-nat)
+        (define (make-bytes-ref src source-type bytes-expr offset-nat)
           ; Bytes<1> at offset — implemented as a 1-byte slice (so it has a tbytes type
           ; we can compare with ==).
-          (make-bytes-slice src bytes-expr offset-nat 1))
+          (make-bytes-slice src source-type bytes-expr offset-nat 1))
         (define (make-tag-eq? src tag-expr n)
           ; compare a Bytes<1> tag-expr to a Bytes<1> literal of value n; returns Boolean.
           (with-output-language (Ltypes Expression)
             `(== ,src (tbytes ,src 1) ,tag-expr ,(make-byte-literal src n))))
-        (define (make-uint->bytes src byte-len expr)
+        (define (make-uint->bytes src nat byte-len expr)
           (with-output-language (Ltypes Expression)
-            `(field->bytes ,src ,byte-len ,expr)))
-        (define (make-bytes->uint src bytes-expr offset-nat byte-len max-val)
+            `(field->bytes ,src ,byte-len
+                           (safe-cast ,src (tfield ,src) (tunsigned ,src ,nat) ,expr))))
+        (define (make-bytes->uint src source-type bytes-expr offset-nat byte-len max-val)
           (with-output-language (Ltypes Expression)
             `(cast-from-bytes ,src (tunsigned ,src ,max-val) ,byte-len
-                              ,(make-bytes-slice src bytes-expr offset-nat byte-len))))
+                              ,(make-bytes-slice src source-type bytes-expr offset-nat byte-len))))
 
         (define (build-serialize src type expr)
           (define (adt-arg->type arg)
@@ -2337,7 +2340,7 @@
             [(tbytes ,src ,len) expr]
             [(tunsigned ,src^ ,nat)
              (let ([byte-len (quotient (+ (integer-length nat) 7) 8)])
-               (make-uint->bytes src byte-len expr))]
+               (make-uint->bytes src nat byte-len expr))]
             [(tboolean ,src^)
              (make-if src expr
                (make-byte-literal src 1)
@@ -2417,78 +2420,83 @@
             (nanopass-case (Ltypes Public-Ledger-ADT-Arg) arg
               [,nat (source-errorf src "expected type, got nat ~a" nat)]
               [,type type]))
+          ; The bytes-expr passed in has type Bytes<size>, where size is the canonical
+          ; serialized size of `type`. All nested slices read from this same bytes-expr
+          ; with varying offsets/lengths, so they share one source-type annotation.
           ; recursive walker with offset threading. returns (expr next-offset).
           ; expr is an Ltypes Expression of type `type` parsed from bytes-expr starting at `offset`.
-          (define (recur type offset)
-            (nanopass-case (Ltypes Type) (de-alias type #t)
-              [(tbytes ,src^ ,len)
-               (values (make-bytes-slice src bytes-expr offset len)
-                       (+ offset len))]
-              [(tunsigned ,src^ ,nat)
-               (let ([byte-len (quotient (+ (integer-length nat) 7) 8)])
-                 (values (make-bytes->uint src bytes-expr offset byte-len nat)
-                         (+ offset byte-len)))]
-              [(tboolean ,src^)
-               (values (make-tag-eq? src (make-bytes-ref src bytes-expr offset) 1)
-                       (+ offset 1))]
-              [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
-               (case struct-name
-                 ; Maybe<T>: read tag byte at offset, value bytes at offset+1.
-                 ; construct struct { is_some: tag==1, value: deserialize(slice) }.
-                 ; when tag==0 the value bytes are zeros; deserializing them still produces
-                 ; a well-typed value (callers should check is_some before using it).
-                 [(Maybe)
-                  (assert (= (length elt-name*) 2))
-                  (let* ([inner-type   (cadr type*)]
-                         [inner-size   (serialized-size-of src inner-type)]
-                         [tag-expr     (make-bytes-ref src bytes-expr offset)])
-                    (let-values ([(value-expr _) (recur inner-type (+ offset 1))])
-                      (values (make-struct-new src type
-                                (list (make-tag-eq? src tag-expr 1)
-                                      value-expr))
-                              (+ offset 1 inner-size))))]
-                 ; Either<A,B>: read tag, then construct either Left or Right shape
-                 ; with the unused side filled by `default`.
-                 [(Either)
-                  (assert (= (length elt-name*) 3))
-                  (let* ([left-type    (cadr type*)]
-                         [right-type   (caddr type*)]
-                         [left-size    (serialized-size-of src left-type)]
-                         [right-size   (serialized-size-of src right-type)]
-                         [max-size     (max left-size right-size)]
-                         [tag-expr     (make-bytes-ref src bytes-expr offset)])
-                    (let-values ([(left-expr  _) (recur left-type  (+ offset 1))]
-                                 [(right-expr _^) (recur right-type (+ offset 1))])
-                      (values
-                        (make-if src
-                          (make-tag-eq? src tag-expr 0)
-                          (make-struct-new src type
-                            (list (make-bool-literal src #t)
-                                  left-expr
-                                  (make-default src right-type)))
-                          (make-struct-new src type
-                            (list (make-bool-literal src #f)
-                                  (make-default src left-type)
-                                  right-expr)))
-                        (+ offset 1 max-size))))]
-                 ; other struct: deserialize each field in order, then construct.
-                 [else
-                  (let loop ([elt-name* elt-name*]
-                             [type*     type*]
-                             [i         0]
-                             [offset    offset]
-                             [acc-rev   '()])
-                    (if (null? elt-name*)
-                        (values (make-struct-new src type (reverse acc-rev))
-                                offset)
-                        (let-values ([(field-expr next-offset) (recur (car type*) offset)])
-                          (loop (cdr elt-name*) (cdr type*) (+ i 1) next-offset
-                                (cons field-expr acc-rev)))))])]
-              [else
-               (source-errorf src "type ~a is not supported in event deserialization"
-                              (format-type type))]))
-          (let-values ([(expr _) (recur type 0)])
-            expr)))
+          (let* ([source-size (serialized-size-of src type)]
+                 [source-type (with-output-language (Ltypes Type) `(tbytes ,src ,source-size))])
+            (define (recur type offset)
+              (nanopass-case (Ltypes Type) (de-alias type #t)
+                [(tbytes ,src^ ,len)
+                 (values (make-bytes-slice src source-type bytes-expr offset len)
+                         (+ offset len))]
+                [(tunsigned ,src^ ,nat)
+                 (let ([byte-len (quotient (+ (integer-length nat) 7) 8)])
+                   (values (make-bytes->uint src source-type bytes-expr offset byte-len nat)
+                           (+ offset byte-len)))]
+                [(tboolean ,src^)
+                 (values (make-tag-eq? src (make-bytes-ref src source-type bytes-expr offset) 1)
+                         (+ offset 1))]
+                [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+                 (case struct-name
+                   ; Maybe<T>: read tag byte at offset, value bytes at offset+1.
+                   ; construct struct { is_some: tag==1, value: deserialize(slice) }.
+                   ; when tag==0 the value bytes are zeros; deserializing them still produces
+                   ; a well-typed value (callers should check is_some before using it).
+                   [(Maybe)
+                    (assert (= (length elt-name*) 2))
+                    (let* ([inner-type (cadr type*)]
+                           [inner-size (serialized-size-of src inner-type)]
+                           [tag-expr   (make-bytes-ref src source-type bytes-expr offset)])
+                      (let-values ([(value-expr _) (recur inner-type (+ offset 1))])
+                        (values (make-struct-new src type
+                                  (list (make-tag-eq? src tag-expr 1)
+                                        value-expr))
+                                (+ offset 1 inner-size))))]
+                   ; Either<A,B>: read tag, then construct either Left or Right shape
+                   ; with the unused side filled by `default`.
+                   [(Either)
+                    (assert (= (length elt-name*) 3))
+                    (let* ([left-type  (cadr type*)]
+                           [right-type (caddr type*)]
+                           [left-size  (serialized-size-of src left-type)]
+                           [right-size (serialized-size-of src right-type)]
+                           [max-size   (max left-size right-size)]
+                           [tag-expr   (make-bytes-ref src source-type bytes-expr offset)])
+                      (let-values ([(left-expr  _)  (recur left-type  (+ offset 1))]
+                                   [(right-expr _^) (recur right-type (+ offset 1))])
+                        (values
+                          (make-if src
+                            (make-tag-eq? src tag-expr 0)
+                            (make-struct-new src type
+                              (list (make-bool-literal src #t)
+                                    left-expr
+                                    (make-default src right-type)))
+                            (make-struct-new src type
+                              (list (make-bool-literal src #f)
+                                    (make-default src left-type)
+                                    right-expr)))
+                          (+ offset 1 max-size))))]
+                   ; other struct: deserialize each field in order, then construct.
+                   [else
+                    (let loop ([elt-name* elt-name*]
+                               [type*     type*]
+                               [i         0]
+                               [offset    offset]
+                               [acc-rev   '()])
+                      (if (null? elt-name*)
+                          (values (make-struct-new src type (reverse acc-rev))
+                                  offset)
+                          (let-values ([(field-expr next-offset) (recur (car type*) offset)])
+                            (loop (cdr elt-name*) (cdr type*) (+ i 1) next-offset
+                                  (cons field-expr acc-rev)))))])]
+                [else
+                 (source-errorf src "type ~a is not supported in event deserialization"
+                                (format-type type))]))
+            (let-values ([(expr _) (recur type 0)])
+              expr))))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) (,unused-pelt* ...) (,ecdecl* ...) ,pelt* ...)
@@ -2823,7 +2831,8 @@
             (source-errorf src "~a is not a declared event type" struct-name))
           (nanopass-case (Ltypes Type) (de-alias type^ #t)
             [(tbytes ,src^ ,len)
-             (values `(log ,src ,type ,expr ,len ,expr^) type)]
+             (values `(log ,src ,type ,expr ,len ,expr^)
+                     (with-output-language (Ltypes Type) `(ttuple ,src)))]
             [else (assert cannot-happen)])]
          ; can't presently happen it is checked in serialized-payload
          [else (source-errorf src "expected structure type (representation of an event), received ~a"
@@ -4223,7 +4232,8 @@
           (unless (hashtable-ref (event-ht) struct-name #f)
             (source-errorf src "~a is not a declared event type" struct-name))
           (nanopass-case (Lnodca Type) (de-alias type^^)
-            [(tbytes ,src^ ,len) type^]
+            [(tbytes ,src^ ,len)
+             (with-output-language (Lnodca Type) `(ttuple ,src))]
             [else (assert cannot-happen)])]
          ; can't presently happen it is checked in serialized-payload
          [else (source-errorf src "expected structure type (representation of an event), received ~a"
@@ -4923,7 +4933,8 @@
        ir]))
 
   (define-pass identify-pure-circuits : Lnodca (ir) -> Lnodca ()
-    ; impure circuits are those that might touch public state, call any witnesses, or
+    ; impure circuits are those that might touch public state (including logging),
+    ; call any witnesses, or
     ; call any other impure circuits.  pure circuits are those that are not impure.
     ; we presently assume that all native circuits are pure.
     (definitions
@@ -5018,6 +5029,12 @@
       [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...)
        (raise (make-impure-condition function-name src
                 (format "accesses ledger field ~s" (id-sym ledger-field-name))))]
+      [(log ,src ,type ,[expr] ,len ,[expr^])
+       (nanopass-case (Lnodca Type) (de-alias type)
+         [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+          (raise (make-impure-condition function-name src
+                   (format "emits a log event of type ~s" struct-name)))]
+         [else (assert cannot-happen)])]
       [(call ,src ,function-name^ ,[expr*] ...)
        (process-function-name! function-name src function-name^)
        ir]
@@ -6157,10 +6174,11 @@
       ;;   - `version` and `tag` bind to numeric literals (event-version, event-tag)
       ;;   - `payload` binds to a vmref over the emitted expr^
       (define log-vm-code-source
-        #'((push   [storage #f] [value (state-value 'cell (align log-version 8))])
-           (push   [storage #f] [value (state-value 'cell (align log-tag 1))])
-           (push   [storage #f] [value (state-value 'cell log-payload)])
-           (concat [cached #f]  [n 3])
+        #'((push [storage #f]
+                 [value (state-value 'array
+                          ((state-value 'cell (align log-version 4))
+                           (state-value 'cell (align log-tag 1))
+                           (state-value 'cell log-payload)))])
            (log))))
     (Expression : Expression (ir) -> Expression ()
       [(log ,src ,[type] ,[expr] ,len ,[expr^])

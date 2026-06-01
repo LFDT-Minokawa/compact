@@ -184,6 +184,9 @@
            (register-descriptor! ; for align with bytes = 1
              (with-output-language (Ltypescript Type)
                `(tunsigned ,src ,(- (expt 2 8) 1))))
+           (register-descriptor! ; for align with bytes = 4
+             (with-output-language (Ltypescript Type)
+               `(tunsigned ,src ,(- (expt 2 32) 1))))
            (register-descriptor! ; for align with bytes = 8
              (with-output-language (Ltypescript Type)
                `(tunsigned ,src ,(- (expt 2 64) 1))))
@@ -1598,7 +1601,7 @@
                                           (argument-type-checks src external-name 1 (map arg->id arg*) (map arg->type arg*)
                                             (list
                                               ; Shallow clone context to ensure no-one else has a reference to it
-                                              2 (format "const context = { ...~a, gasCost: __compactRuntime.emptyRunningCost() };" contextOrig)
+                                              2 (format "const context = { ...~a, gasCost: __compactRuntime.emptyRunningCost(), events: [] };" contextOrig)
                                               2 "const partialProofData = {"
                                               4 (make-Qconcat
                                                   "input: {"
@@ -1664,7 +1667,8 @@
                                                 "result: " result ", "
                                                 "context: " "context" ", "
                                                 "proofData: " "partialProofData" ", "
-                                                "gasCost: " "context.gasCost"
+                                                "gasCost: " "context.gasCost" ", "
+                                                "events: " "context.events"
                                                 " };"
                                               0 "}"))))))
                                   external-name*)

@@ -663,7 +663,8 @@
       [(log ,src ,event-version ,event-tag ,type ,len ,[Care : expr -> * type^] ,vm-code)
        ; TODO add more check for event version and tag
        (nanopass-case (Linlined Type) type^
-         [(tbytes ,src^ ,len) type]
+         [(tbytes ,src^ ,len)
+          (with-output-language (Linlined Type) `(ttuple ,src))]
          [else (source-errorf src "expected Bytes type, received ~a" (format-type type))])]
       [(tuple-ref ,src ,[Care : expr -> * expr-type] ,kindex)
        (define (bounds-check len)
@@ -1456,8 +1457,10 @@
            [else (assert cannot-happen)]))]
       [(elt-ref ,src ,[expr ctv] ,elt-name)
        (handle-elt-ref src expr ctv elt-name)]
-      [(log ,src ,event-version ,event-tag ,[type] ,len ,[expr ctv] ,vm-code) ; TODO fix this
-       (values `(log ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code) ctv)]
+      [(log ,src ,event-version ,event-tag ,[type] ,len ,[expr ctv] ,vm-code)
+       (values
+         `(log ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
+         (CTV-unknown no-var-name))]
       [(+ ,src ,mbits ,expr1 ,expr2)
        (define (add x y)
          (let ([a (+ x y)])
@@ -1716,6 +1719,10 @@
       [(elt-ref ,src ,[Value : expr idset] ,elt-name)
        (values
          `(elt-ref ,src ,expr ,elt-name)
+         idset)]
+      [(log ,src ,event-version ,event-tag ,type ,len ,[Value : expr idset] ,vm-code)
+       (values
+         `(log ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
          idset)]
       [(+ ,src ,mbits ,[Value : expr1 idset1] ,[Value : expr2 idset2])
        (values
