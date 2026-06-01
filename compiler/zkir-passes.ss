@@ -705,6 +705,7 @@
                   (expand-vm-code src
                                   path-elt*
                                   #f
+                                  type
                                   (append (map cons adt-formal* adt-arg*)
                                           (map (lambda (ledger-op-formal type triv*)
                                                  (cons ledger-op-formal
