@@ -51,6 +51,8 @@
                    (out "            new_map(),\n")]
                   [(tadt-name=? t 'Map)
                    (out "            new_map(),\n")]
+                  [(tadt-name=? t 'List)
+                   (out "            new_list(),\n")]
                   [(tadt-name=? t 'MerkleTree)
                    (out (format "            new_merkle_tree(~a),\n"
                                 (tadt-merkle-height t)))]

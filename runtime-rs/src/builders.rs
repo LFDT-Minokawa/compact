@@ -98,6 +98,24 @@ pub fn new_map<D: DB>() -> StateValue<D> {
     StateValue::Map(HashMap::new())
 }
 
+/// Builds the initial `StateValue` for the Compact `List<T>` ADT: a 3-slot
+/// array `[Null, Null, Cell(0u64)]` — i.e. an empty linked-list cell where
+/// the first slot holds the head value (or Null when empty), the second
+/// holds the tail-list (or Null), and the third holds the u64 length.
+///
+/// See compiler/midnight-ledger.ss:
+///   (declare-ledger-adt List ([Type value_type])
+///     (initial-value (state-value 'array ((state-value 'null)
+///                                         (state-value 'null)
+///                                         (state-value 'cell (align 0 8))))) ...)
+pub fn new_list<D: DB>() -> StateValue<D> {
+    new_array(vec![
+        StateValue::Null,
+        StateValue::Null,
+        new_cell(0u64),
+    ])
+}
+
 /// Builds an empty `StateValue::Array([BoundedMerkleTree(blank), Cell(0u64)])`
 /// — the initial state for the Compact `MerkleTree<height, T>` ADT.
 /// See compiler/midnight-ledger.ss:
@@ -168,6 +186,30 @@ mod tests {
         match &sv {
             StateValue::Array(arr) => {
                 assert_eq!(arr.len(), 2);
+            }
+            other => panic!("expected StateValue::Array, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn new_list_has_three_slots_null_null_zero() {
+        let sv: StateValue<InMemoryDB> = new_list();
+        match &sv {
+            StateValue::Array(arr) => {
+                assert_eq!(arr.len(), 3);
+                // slot 0 and 1 are Null, slot 2 is Cell(0u64)
+                match arr.get(0) {
+                    Some(StateValue::Null) => {}
+                    other => panic!("expected slot 0 Null, got {:?}", other),
+                }
+                match arr.get(1) {
+                    Some(StateValue::Null) => {}
+                    other => panic!("expected slot 1 Null, got {:?}", other),
+                }
+                match arr.get(2) {
+                    Some(StateValue::Cell(_)) => {}
+                    other => panic!("expected slot 2 Cell, got {:?}", other),
+                }
             }
             other => panic!("expected StateValue::Array, got {:?}", other),
         }

@@ -35,3 +35,4 @@ compact-contract-witnesses-fixture = { path = "contracts/witnesses-fixture" }
 compact-contract-if-stmt-fixture = { path = "contracts/if-stmt-fixture" }
 compact-contract-cross-circuit-fixture = { path = "contracts/cross-circuit-fixture" }
 compact-contract-set-fixture = { path = "contracts/set-fixture" }
+compact-contract-list-fixture = { path = "contracts/list-fixture" }

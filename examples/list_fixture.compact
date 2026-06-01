@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// List<T> ADT fixture for Iter 3 byte-parity test. Mirrors the F-set /
+// map-fixture / vector-fixture shape: a single List<Field> ledger field
+// plus a minimal companion Boolean field so the contract has a body to
+// emit. The exported circuit `ping` is a no-op-ish that writes `true`
+// into `flag` — kept deliberately simple so this iteration is strictly
+// an ADT-seeding milestone. pushFront / popFront / head / length /
+// isEmpty method emission lands in a follow-up iteration.
+
+import CompactStandardLibrary;
+
+export ledger flag: Boolean;
+export ledger lst: List<Field>;
+
+export circuit ping(): [] {
+  flag.write(true);
+}
