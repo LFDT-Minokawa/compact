@@ -32,8 +32,8 @@ where
         ctx: ConstructorContext<PS>,
     ) -> Result<ConstructorResult<PS>, CompactError> {
         let sv = new_array(vec![
-            new_cell_bounded_uint(0u128, 1),
-            new_cell_bounded_uint(0u128, 2),
+            new_cell(0u8),
+            new_cell(0u16),
             new_cell_bounded_uint(0u128, 3),
             new_cell_bounded_uint(0u128, 5),
         ]);
