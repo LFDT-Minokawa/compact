@@ -154,6 +154,29 @@
           [(<= nat 18446744073709551615) "u64"]
           [else "u128"]))
 
+      ;; uint-byte-length: number of bytes the on-state alignment uses to
+      ;; hold values up to `nat`. ceil(bit_length / 8). Mirrors the TS
+      ;; emitter's `(byte-length nat)` helper used by
+      ;; `CompactTypeUnsignedInteger(maxValue, length)`. This is the
+      ;; `AlignmentAtom::Bytes { length: ... }` parameter on the wire and
+      ;; can differ from the Rust integer width's byte count for bounded
+      ;; ranges (e.g. `Uint<0..70000>` is u32 in Rust but 3 bytes on state).
+      (define (uint-byte-length nat)
+        (let loop ([n nat] [bits 0])
+          (if (= n 0)
+              (if (= bits 0) 1 (div (+ bits 7) 8))
+              (loop (div n 2) (+ bits 1)))))
+
+      ;; uint-byte-length-matches-rust-width?: true when the on-state
+      ;; byte-length equals the Rust integer width's byte count, i.e. the
+      ;; fixed-width `Uint<N>` cases where N ∈ {8,16,32,64,128}. False for
+      ;; bounded ranges with non-power-of-two byte-lengths (e.g. 3, 5, 6,
+      ;; 7, 9..15). When false, codegen must route through
+      ;; `new_cell_bounded_uint(value, byte_len)` to get TS-parity.
+      (define (uint-byte-length-matches-rust-width? nat)
+        (let ([bl (uint-byte-length nat)])
+          (or (= bl 1) (= bl 2) (= bl 4) (= bl 8) (= bl 16))))
+
       ;; -----------------------------------------------------------------
       ;; Stdlib lookup tables.
       ;;

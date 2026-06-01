@@ -9,8 +9,8 @@
 // readability of generated code, not performance.
 
 use crate::{
-    AlignedValue, Array, ChargedState, ContractState, CostModel, QueryResults, ResultMode,
-    StateValue, INITIAL_COST_MODEL, DB,
+    AlignedValue, Alignment, AlignmentAtom, Array, ChargedState, ContractState, CostModel,
+    QueryResults, ResultMode, StateValue, Value, ValueAtom, INITIAL_COST_MODEL, DB,
 };
 use midnight_onchain_state::state::{
     ContractMaintenanceAuthority, ContractOperation, EntryPointBuf,
@@ -34,6 +34,27 @@ pub fn empty_charged_state<D: DB>() -> ChargedState<D> {
 /// `AlignedValue`. Mirrors the TypeScript `StateValue.newCell` factory.
 pub fn new_cell<D: DB, T: Into<AlignedValue>>(v: T) -> StateValue<D> {
     StateValue::from(v.into())
+}
+
+/// Builds a `StateValue::Cell(...)` for a bounded-range unsigned integer
+/// `Uint<L..U>`. The bit-width of the type is `ceil(log2(U+1))` and the
+/// on-state byte-width is `ceil(bits/8)`, which does **not** always match
+/// the underlying Rust integer width (e.g. `Uint<0..70000>` needs 17 bits =
+/// 3 bytes, but is held in a `u32`). Mirrors TS's
+/// `CompactTypeUnsignedInteger(maxValue, length).alignment()` path:
+/// emits a single `AlignmentAtom::Bytes { length: byte_len }` atom with
+/// the value's little-endian bytes, normalised (trailing zeros stripped)
+/// by `ValueAtom::from(u128)`. Used by codegen for `Uint<L..U>` ledger
+/// fields and call-site cell values where the byte-width diverges from
+/// the Rust integer width.
+pub fn new_cell_bounded_uint<D: DB>(value: u128, byte_len: usize) -> StateValue<D> {
+    let atom = ValueAtom::from(value);
+    let alignment = Alignment::singleton(AlignmentAtom::Bytes {
+        length: byte_len as u32,
+    });
+    let av = AlignedValue::new(Value(vec![atom]), alignment)
+        .expect("new_cell_bounded_uint: value exceeds declared byte_len");
+    StateValue::from(av)
 }
 
 /// Builds a `StateValue::Cell(...)` from a fixed-size array `[T; N]` of

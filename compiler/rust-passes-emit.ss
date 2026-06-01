@@ -64,13 +64,23 @@
                   ;; Special case: tvector defaults to [T; N] which doesn't
                   ;; impl Into<AlignedValue> upstream — route through
                   ;; new_cell_array which concatenates per-element AVs.
+                  ;; Special case: tunsigned with a byte-length that doesn't
+                  ;; match the Rust integer width's byte count (e.g.
+                  ;; `Uint<0..70000>` is u32 in Rust but uses 3 bytes on
+                  ;; state) — route through `new_cell_bounded_uint(0u128, N)`
+                  ;; so the on-state `AlignmentAtom::Bytes` width matches TS.
                   [else
                    (let ([read-type (tadt-read-op-type t)])
-                     (out (format "            ~a(~a),\n"
-                                  (if (type-is-tvector? read-type)
-                                      "new_cell_array"
-                                      "new_cell")
-                                  (default-value-rust read-type))))])))
+                     (cond
+                       [(type-is-tvector? read-type)
+                        (out (format "            new_cell_array(~a),\n"
+                                     (default-value-rust read-type)))]
+                       [(tunsigned-bounded? read-type)
+                        (out (format "            new_cell_bounded_uint(0u128, ~a),\n"
+                                     (tunsigned-byte-length read-type)))]
+                       [else
+                        (out (format "            new_cell(~a),\n"
+                                     (default-value-rust read-type)))]))])))
             all-bindings))
         (out "        ]);\n")
         (out "        let state = ChargedState::new(sv);\n")
@@ -1563,6 +1573,28 @@
           [(tvector ,src ,len ,type) #t]
           [(talias ,src ,nominal? ,type-name ,type) (type-is-tvector? type)]
           [else #f]))
+
+      ;; tunsigned-bounded?: returns #t when `type` is a `tunsigned` whose
+      ;; byte-length doesn't match the underlying Rust integer width's byte
+      ;; count — i.e. a `Uint<L..U>` with a non-power-of-two byte-length.
+      ;; Used by emit-initial-state to route those seeds through
+      ;; `new_cell_bounded_uint(0u128, N)` so the on-state alignment
+      ;; descriptor matches TS. Fixed-width `Uint<N>` (N ∈ {8,16,32,64,128})
+      ;; stays on the `new_cell(0uN)` path.
+      (define (tunsigned-bounded? type)
+        (nanopass-case (Ltypescript Type) type
+          [(tunsigned ,src ,nat) (not (uint-byte-length-matches-rust-width? nat))]
+          [(talias ,src ,nominal? ,type-name ,type) (tunsigned-bounded? type)]
+          [else #f]))
+
+      ;; tunsigned-byte-length: byte-length of the `AlignmentAtom::Bytes`
+      ;; descriptor for a `tunsigned` type. Mirrors TS's `byte-length` —
+      ;; ceil(bit_length(max_value) / 8). Used by tunsigned-bounded? routing.
+      (define (tunsigned-byte-length type)
+        (nanopass-case (Ltypescript Type) type
+          [(tunsigned ,src ,nat) (number->string (uint-byte-length nat))]
+          [(talias ,src ,nominal? ,type-name ,type) (tunsigned-byte-length type)]
+          [else "0"]))
 
       ;; tadt-merkle-height: given a MerkleTree / HistoricMerkleTree tadt,
       ;; extract the Nat height argument (the first adt-arg). The Public-

@@ -22,7 +22,7 @@ pub use compact_runtime_macros::witnesses;
 // ---------------------------------------------------------------------------
 
 // Encoding / alignment / value bus.
-pub use midnight_base_crypto::fab::{Aligned, AlignedValue, Alignment, Value};
+pub use midnight_base_crypto::fab::{Aligned, AlignedValue, Alignment, AlignmentAtom, Value, ValueAtom};
 
 // Field arithmetic + proof-system primitives.
 pub use midnight_transient_crypto::curve::{EmbeddedGroupAffine as JubjubPoint, Fr};
@@ -123,8 +123,8 @@ pub use std_lib::{
 pub mod builders;
 pub use builders::{
     aligned_bytes, empty_charged_state, entry_point, initial_cost_model, new_array, new_cell,
-    new_cell_array, new_contract_state, new_empty_array, new_historic_merkle_tree, new_list,
-    new_map, new_merkle_tree,
+    new_cell_array, new_cell_bounded_uint, new_contract_state, new_empty_array,
+    new_historic_merkle_tree, new_list, new_map, new_merkle_tree,
     query_result_state,
 };
 

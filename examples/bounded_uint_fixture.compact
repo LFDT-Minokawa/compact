@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Iter 8 of the codegen-rust polish: Uint<L..U> bounded-range support.
+//
+// Compact's `Uint<L..U>` constrains a value to L ≤ x ≤ U at compile time
+// but, at the StateValue / AlignedValue level, serializes identically to
+// the smallest fixed-width `Uint<N>` that can hold U. The frontend lowers
+// `(tunsigned src lo hi)` to `(tunsigned src nat)` (nat = hi) before the
+// IR reaches rust-passes, so the Rust emitter shares the exact same path
+// as the fixed-width form. This fixture is regression coverage for that
+// invariant — width picks across u8/u32/u64.
+//
+// Mirrors the F4/uints_fixture pattern: ledger fields + trivial circuit.
+
+import CompactStandardLibrary;
+
+export ledger small: Uint<0..100>;          // fits in u8
+export ledger short: Uint<0..50000>;        // exceeds u8  -> u16
+export ledger medium: Uint<0..70000>;       // exceeds u16 -> u32
+export ledger huge: Uint<0..5000000000>;    // exceeds u32 -> u64
+
+export circuit set_small(v: Uint<0..100>): [] {
+  small.write(disclose(v));
+}
