@@ -720,15 +720,23 @@
       (cast-from-bytes src type len expr)     => (cast-from-bytes type len #f expr)
       (vector->bytes src len expr)            => (vector->bytes len expr)
       (bytes->vector src len expr)            => (bytes->vector len expr)
-      ;; type (below) is numeric (tfield or tunsigned), type^ is tenum
+
+      ;; type is numeric (tfield or tunsigned), type^ is tenum
       (cast-from-enum src type type^ expr)    => (cast-from-enum type type^ #f expr)
+
       ;; type is tenum, type^ is numeric
       (cast-to-enum src type type^ expr)      => (cast-to-enum type type^ #f expr)
-      ;; type is numeric
+
+      ;; Cast from `type` to a distinct type `(tfield ftype)`, `type` is numeric (tfield or tunsigned).
       (cast-to-field src ftype type expr)     => (cast-to-field ftype type #f expr)
+
+      ;; Cast from `(tfield ftype)` to `(tunsigned nat)`.
+      (cast-from-field src nat ftype expr)    => (cast-from-field nat ftype #f expr)
       (safe-cast src type type^ expr)         => (safe-cast type 10 type^ #f expr)
-      (downcast-unsigned src (maybe nat?) nat expr) =>
-        (downcast-unsigned nat? nat #f expr)
+
+      ;; Cast from `(tunsigned nat2)` to `(tunsigned nat1)` where nat2 > nat1.
+      ;; TODO(kmillikin): the order of these is reversed from other casting operations.  Flip them.
+      (downcast-unsigned src nat2 nat1 expr)  => (downcast-unsigned nat2 nat1 #f expr)
       (disclose src expr)                     => (disclose expr)
       (ledger-call src ledger-op (maybe sugar) expr expr* ...) =>
         (ledger-call ledger-op #f expr #f expr* ...)
@@ -1046,9 +1054,10 @@
         (contract-call elt-name 4 (triv 0 type) #f triv* ...)
       (field->bytes src len triv)            => (field->bytes len triv)
       (bytes->field src len triv)            => (bytes->field len triv)
-      (downcast-unsigned src (maybe nat?) nat triv) =>
-        (downcast-unsigned nat? nat triv)
-      (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv))
+      (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv)
+      (cast-from-field src nat ftype triv)   => (cast-from-field nat ftype #f triv)
+      (downcast-unsigned src nat2 nat1 triv) => (downcast-unsigned nat2 nat1 triv)
+      )
     (Triv (triv test)
       var-name
       (quote datum)                          => datum
@@ -1135,21 +1144,22 @@
          (contract-call src elt-name (triv type) triv* ...)
          (field->bytes src len triv)
          (bytes->field src len triv)
-         (downcast-unsigned src (maybe nat?) nat triv)))
+         (downcast-unsigned src nat2 nat1 triv)))
     (Single (single)
       (+ triv
          (+ mbits triv1 triv2)
          (- mbits triv1 triv2)
          (* mbits triv1 triv2)
          (< bits triv1 triv2)
-         (== triv1 triv2)                          => (== triv1 3 triv2)
-         (select triv0 triv1 triv2)                => (select triv0 triv1 triv2)
+         (== triv1 triv2)                            => (== triv1 3 triv2)
+         (select triv0 triv1 triv2)                  => (select triv0 triv1 triv2)
          (bytes-ref triv nat)
-         (bytes->field src len triv1 triv2)        => (bytes->field len #f triv1 #f triv2)
-         (vector->bytes triv triv* ...)            => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
+         (bytes->field src len triv1 triv2)          => (bytes->field len #f triv1 #f triv2)
+         (vector->bytes triv triv* ...)              => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
          (cast-to-field ftype primitive-type triv)
-         (downcast-unsigned src safe (maybe nat?) nat triv) =>
-           (downcast-unsigned safe nat? nat triv)))
+         (cast-from-field src safe nat ftype triv)   => (cast-from-field safe nat ftype triv)
+         (downcast-unsigned src safe nat2 nat1 triv) => (downcast-unsigned safe nat2 nat1 triv)
+         ))
     (Multiple (multiple)
       (+ (call src function-name triv* ...)        => (call function-name #f triv* ...)
          (default opaque-type)

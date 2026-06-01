@@ -852,7 +852,24 @@
                  [(field-native) `(encode (,var-name) ,triv)]
                  [(field-scalar (curve-jubjub)) `(decode "Scalar<Jubjub>" ,var-name ,triv)])
            instr*))]
-      [(downcast-unsigned ,src ,safe ,nat? ,nat ,triv)
+      [(cast-from-field ,src ,safe ,nat ,ftype ,triv)
+       ;; TODO(kmillikin): This needs to be conditional on test.
+       ;; NB: missing-guard-workarounds now implements a workaround that ensures
+       ;; cast-from-field's safe flag is #t whenever the test might be false.
+       (let ([instr* (cons (with-output-language (Lzkir Instruction)
+                             (nanopass-case (Lflattened Field-Type) ftype
+                               [(field-native)
+                                ;; TODO(kmillikin): The `copy` here is unnecessary.  Remove it.
+                                `(copy ,var-name ,triv)]
+                               [(field-scalar (curve-jubjub))
+                                `(encode (,var-name) ,triv)]))
+                       instr*)])
+         (if safe
+             instr*
+             (emit-constraints-for var-name
+               (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat))
+               instr*)))]
+      [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv)
        ;; TODO(kmillikin): This needs to be conditional on test.
        ;; NB: missing-guard-workarounds now implements a workaround that ensures
        ;; downcast-unsigned's safe flag is #t whenever the test might be false.
@@ -862,7 +879,7 @@
            (if safe
                instr*
                (emit-constraints-for triv
-                 (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat))
+                 (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat1))
                  instr*))))]
       [else
         (fprintf (current-error-port) "unimplemented: ~s\n" ir)

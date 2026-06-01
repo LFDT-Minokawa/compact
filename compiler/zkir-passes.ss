@@ -351,7 +351,17 @@
           ; FIXME: zkir downcast-unsigned needs to respect test
           ; NB: missing-guard-workarounds now implements a workaround that ensures
           ; downcast-unsigned's safe flag is #t whenever the test might be false.
-          [(= ,[* test] ,var-name (downcast-unsigned ,src ,safe ,nat? ,nat ,[* triv]))
+          [(= ,[* test] ,var-name (downcast-unsigned ,src ,safe ,nat2 ,nat1 ,[* triv]))
+           (unless safe
+             (constrain-type (with-output-language (Lflattened Primitive-Type)
+                                                   `(tunsigned ,nat1))
+                             triv))
+           ; triv is a stack index for a literal or variable
+           (hashtable-set! varid-ht var-name triv)]
+          ; FIXME: zkir cast-from-field needs to respect test
+          ; NB: missing-guard-workarounds now implements a workaround that ensures
+          ; cast-from-field's safe flag is #t whenever the test might be false.
+          [(= ,[* test] ,var-name (cast-from-field ,src ,safe ,nat ,ftype ,[* triv]))
            (unless safe
              (constrain-type (with-output-language (Lflattened Primitive-Type)
                                                    `(tunsigned ,nat))
@@ -765,7 +775,9 @@
                    (print-gate "reconstitute_field" `[divisor ,d] `[modulus ,triv] '[bits 8]))))]
           [(cast-to-field ,ftype ,primitive-type ,[* triv])
            (print-gate "copy" `[var ,triv])]
-          [(downcast-unsigned ,src ,safe ,nat? ,nat ,[* triv])
+          [(cast-from-field ,src ,safe ,nat ,ftype ,triv)
+           (assertf cannot-happen "handled directly by Statement")]
+          [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv)
            (assertf cannot-happen "handled directly by Statement")]
           [(select ,[* triv0] ,[* triv1] ,[* triv2])
            (print-gate "cond_select" `[bit ,triv0] `[a ,triv1] `[b ,triv2])])

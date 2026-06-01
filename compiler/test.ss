@@ -17942,13 +17942,19 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %foo.0 ([%x.1 (tunsigned ,maxval)])
-             (tunsigned ,maxval)
-          (downcast-unsigned #f ,maxval
+        (circuit %foo.0 ([%x.1 (tunsigned
+                                 56539106072908298546665520023773392506479484700019806659891398441363832831)])
+             (tunsigned
+               56539106072908298546665520023773392506479484700019806659891398441363832831)
+          (cast-from-field 56539106072908298546665520023773392506479484700019806659891398441363832831 (field-native)
             (* #f
-               (safe-cast (tfield (field-native)) (tunsigned ,maxval)
+               (safe-cast (tfield (field-native))
+                          (tunsigned
+                            56539106072908298546665520023773392506479484700019806659891398441363832831)
                  %x.1)
-               (safe-cast (tfield (field-native)) (tunsigned ,maxval)
+               (safe-cast (tfield (field-native))
+                          (tunsigned
+                            56539106072908298546665520023773392506479484700019806659891398441363832831)
                  %x.1))))))
     ))
 
@@ -18384,8 +18390,7 @@ groups than for single tests.
             %c.8
             (call %ecMul.4
               %c.8
-              (safe-cast (tfield (field-scalar (curve-jubjub)))
-                         (tunsigned 3)
+              (cast-to-field (field-scalar (curve-jubjub)) (tunsigned 3)
                 3))))))
     )
 
@@ -29025,7 +29030,7 @@ groups than for single tests.
         (public-ledger-declaration (constructor () (tuple)))
         (circuit %foo.0 ([%n1.1 (tfield (field-native))])
              (tunsigned 7)
-          (downcast-unsigned #f 7 %n1.1))))
+          (cast-from-field 7 (field-native) %n1.1))))
     )
 
   (test
@@ -32445,31 +32450,31 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%counter.2 (0) (Counter)))
+          ((%counter.1 (0) (Counter)))
           (constructor () (tuple)))
-        (circuit %adonis.3 ([%p.4 (tfield (field-native))])
+        (circuit %adonis.2 ([%p.3 (tfield (field-native))])
              (ttuple)
           (seq
             (fold
-              (circuit ([%t.5 (ttuple)] [%y.6 (tunknown)])
+              (circuit ([%t.4 (ttuple)] [%y.5 (tunknown)])
                    (ttuple)
                 (seq
                   (seq
-                    (let* ([[%tmp.7 (tunsigned 65535)]
-                            (downcast-unsigned #f 65535 %p.4)])
-                      (public-ledger %counter.2 (0) increment %tmp.7))
+                    (let* ([[%tmp.6 (tunsigned 65535)]
+                            (cast-from-field 65535 (field-native) %p.3)])
+                      (public-ledger %counter.1 (0) increment %tmp.6))
                     (tuple))
-                  %t.5))
+                  %t.4))
               (tuple)
               (seq
-                (let* ([[%tmp.8 (tunsigned 65535)]
+                (let* ([[%tmp.7 (tunsigned 65535)]
                         (safe-cast (tunsigned 65535) (tunsigned 7) 7)])
-                  (public-ledger %counter.2 (0) decrement %tmp.8))
-                (let* ([[%tmp.9 (tunsigned 65535)]
+                  (public-ledger %counter.1 (0) decrement %tmp.7))
+                (let* ([[%tmp.8 (tunsigned 65535)]
                         (safe-cast (tunsigned 65535) (tunsigned 3) 3)])
-                  (public-ledger %counter.2 (0) increment %tmp.9))))
+                  (public-ledger %counter.1 (0) increment %tmp.8))))
             (tuple)))))
     )
 
@@ -32487,31 +32492,31 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%counter.2 (0) (Counter)))
+          ((%counter.1 (0) (Counter)))
           (constructor () (tuple)))
-        (circuit %adonis.3 ([%p.4 (tfield (field-native))])
+        (circuit %adonis.2 ([%p.3 (tfield (field-native))])
              (ttuple)
           (seq
             (fold
-              (circuit ([%t.5 (ttuple)] [%y.6 (tunknown)])
+              (circuit ([%t.4 (ttuple)] [%y.5 (tunknown)])
                    (ttuple)
                 (seq
                   (seq
-                    (let* ([[%tmp.7 (tunsigned 65535)]
-                            (downcast-unsigned #f 65535 %p.4)])
-                      (public-ledger %counter.2 (0) increment %tmp.7))
+                    (let* ([[%tmp.6 (tunsigned 65535)]
+                            (cast-from-field 65535 (field-native) %p.3)])
+                      (public-ledger %counter.1 (0) increment %tmp.6))
                     (tuple))
-                  %t.5))
+                  %t.4))
               (tuple)
               (seq
-                (let* ([[%tmp.8 (tunsigned 65535)]
+                (let* ([[%tmp.7 (tunsigned 65535)]
                         (safe-cast (tunsigned 65535) (tunsigned 7) 7)])
-                  (public-ledger %counter.2 (0) decrement %tmp.8))
-                (let* ([[%tmp.9 (tunsigned 65535)]
+                  (public-ledger %counter.1 (0) decrement %tmp.7))
+                (let* ([[%tmp.8 (tunsigned 65535)]
                         (safe-cast (tunsigned 65535) (tunsigned 3) 3)])
-                  (public-ledger %counter.2 (0) increment %tmp.9))))
+                  (public-ledger %counter.1 (0) increment %tmp.8))))
             (tuple)))))
     )
 
@@ -40662,11 +40667,13 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%forceField.1 (0) (__compact_Cell (tfield (field-native))))))
+          ((%forceField.1
+             (0)
+             (__compact_Cell (tfield (field-native))))))
         (circuit %foo.2 ([%x.3 (tfield (field-native))])
              (tunsigned 65535)
           (= #t %t.4 (public-ledger %forceField.1 (0) write 7))
-          (= #t %t.5 (downcast-unsigned #f 65535 %x.3))
+          (= #t %t.5 (cast-from-field 65535 (field-native) %x.3))
           %t.5)
         (circuit %bar.6 ([%x.7 (tunsigned 4294967295)])
              (tunsigned 65535)
@@ -42732,11 +42739,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ((argument
                            (%f.3)
                            (ty ((afield)) ((tfield (field-native)))))
-                         (argument (%x.4) (ty ((afield)) ((tfield (field-native))))))
+                         (argument
+                           (%x.4)
+                           (ty ((afield)) ((tfield (field-native))))))
              (ty () ())
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t.5 (== %x.4 0))
@@ -42744,7 +42754,7 @@ groups than for single tests.
           (= 1 %t.7 %t.6)
           (= 1 %t.8 (select %t.6 1 0))
           (= 1 %t.9 (select %t.6 0 1))
-          (= %t.8 %t.10 (downcast-unsigned #f #f 7 %f.3))
+          (= %t.8 %t.10 (cast-from-field #f 7 (field-native) %f.3))
           ())))
     )
 
@@ -42766,11 +42776,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ((argument
                            (%f.3)
                            (ty ((afield)) ((tfield (field-native)))))
-                         (argument (%x.4) (ty ((afield)) ((tfield (field-native))))))
+                         (argument
+                           (%x.4)
+                           (ty ((afield)) ((tfield (field-native))))))
              (ty () ())
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t.5 (== %x.4 0))
@@ -42778,7 +42791,7 @@ groups than for single tests.
           (= 1 %t.7 %t.6)
           (= 1 %t.8 (select %t.6 1 0))
           (= 1 %t.9 (select %t.6 0 1))
-          (= %t.8 %t.10 (downcast-unsigned #f #f 7 %f.3))
+          (= %t.8 %t.10 (cast-from-field #f 7 (field-native) %f.3))
           ())))
     )
 
@@ -42800,11 +42813,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ((argument
                            (%f.3)
                            (ty ((afield)) ((tfield (field-native)))))
-                         (argument (%x.4) (ty ((afield)) ((tfield (field-native))))))
+                         (argument
+                           (%x.4)
+                           (ty ((afield)) ((tfield (field-native))))))
              (ty () ())
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t.5 (== %x.4 0))
@@ -42812,7 +42828,7 @@ groups than for single tests.
           (= 1 %t.7 %t.6)
           (= 1 %t.8 (select %t.6 1 0))
           (= 1 %t.9 (select %t.6 0 1))
-          (= %t.8 %t.10 (downcast-unsigned #f #f 7 %f.3))
+          (= %t.8 %t.10 (cast-from-field #f 7 (field-native) %f.3))
           ())))
     )
 
@@ -45731,11 +45747,16 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.18 () (Kernel)))
         (public-ledger-declaration
-          ((%X.19 (0) (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+          ((%X.19
+             (0)
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.20 ((argument
                             (%x.0)
                             (ty ((abytes 4)) ((tunsigned 4294967295))))
-                          (argument (%y.1) (ty ((afield)) ((tfield (field-native)))))
+                          (argument
+                            (%y.1)
+                            (ty ((afield)) ((tfield (field-native)))))
                           (argument
                             (%z.2 %z.4 %z.6 %z.8 %z.10 %z.12 %z.14 %z.17 %z.16)
                             (ty ((abytes 256))
@@ -45757,25 +45778,25 @@ groups than for single tests.
                                   (tunsigned
                                     452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((abytes 1)) ((tunsigned 1)))
-          (= 1 %t1.21 (downcast-unsigned #f 4294967295 255 %x.0))
-          (= 1 %t2.22 (downcast-unsigned #f #f 255 %y.1))
-          (= 1 (%t3.23) (public-ledger %X.19 (0) read))
-          (= 1 %t6.3 (== %z.2 0))
-          (assert %t6.3 "bytes value is too big to fit in a field")
-          (= 1 %t6.5 (== %z.4 0))
-          (assert %t6.5 "bytes value is too big to fit in a field")
-          (= 1 %t6.7 (== %z.6 0))
-          (assert %t6.7 "bytes value is too big to fit in a field")
-          (= 1 %t6.9 (== %z.8 0))
-          (assert %t6.9 "bytes value is too big to fit in a field")
-          (= 1 %t6.11 (== %z.10 0))
-          (assert %t6.11 "bytes value is too big to fit in a field")
-          (= 1 %t6.13 (== %z.12 0))
-          (assert %t6.13 "bytes value is too big to fit in a field")
-          (= 1 %t6.15 (== %z.14 0))
-          (assert %t6.15 "bytes value is too big to fit in a field")
-          (= 1 %t6.24 (bytes->field 256 %z.17 %z.16))
-          (= 1 (%t7.25 %t7.26) (field->bytes 8 %y.1))
+          (= 1 %t.21 (downcast-unsigned #f 4294967295 255 %x.0))
+          (= 1 %t.22 (cast-from-field #f 255 (field-native) %y.1))
+          (= 1 (%t.23) (public-ledger %X.19 (0) read))
+          (= 1 %t1.3 (== %z.2 0))
+          (assert %t1.3 "bytes value is too big to fit in a field")
+          (= 1 %t1.5 (== %z.4 0))
+          (assert %t1.5 "bytes value is too big to fit in a field")
+          (= 1 %t1.7 (== %z.6 0))
+          (assert %t1.7 "bytes value is too big to fit in a field")
+          (= 1 %t1.9 (== %z.8 0))
+          (assert %t1.9 "bytes value is too big to fit in a field")
+          (= 1 %t1.11 (== %z.10 0))
+          (assert %t1.11 "bytes value is too big to fit in a field")
+          (= 1 %t1.13 (== %z.12 0))
+          (assert %t1.13 "bytes value is too big to fit in a field")
+          (= 1 %t1.15 (== %z.14 0))
+          (assert %t1.15 "bytes value is too big to fit in a field")
+          (= 1 %t.24 (bytes->field 256 %z.17 %z.16))
+          (= 1 (%t.25 %t.26) (field->bytes 8 %y.1))
           (1))))
     )
 
@@ -45821,15 +45842,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                52435875175126190479447740508185965837690552500527637822603658699938581184512))
           (%t4.3))))
     )
@@ -45852,15 +45872,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                52435875175126190479447740508185965837690552500527637822603658699938581184512))
           (%t4.3))))
     )
@@ -45883,15 +45902,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                52435875175126190479447740508185965837690552500527637822603658699938581184512))
           (%t4.3))))
     )
@@ -45931,15 +45949,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                52435875175126190479447740508185965837690552500527637822603658699938581184512))
           (%t4.3))))
     )
@@ -45962,15 +45979,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                452312848583266388373324160190187140051835877600158453279131187530910662656))
           (%t4.3))))
     )
@@ -45993,15 +46009,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                452312848583266388373324160190187140051835877600158453279131187530910662656))
           (%t4.3))))
     )
@@ -46024,15 +46039,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                452312848583266388373324160190187140051835877600158453279131187530910662656))
           (%t4.3))))
     )
@@ -46056,15 +46070,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                452312848583266388373324160190187140051835877600158453279131187530910662656))
           (%t4.3))))
     )
@@ -46087,15 +46100,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                452312848583266388373324160190187140051835877600158453279131187530910662655))
           (%t4.3))))
     )
@@ -46118,15 +46130,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                452312848583266388373324160190187140051835877600158453279131187530910662655))
           (%t4.3))))
     )
@@ -46150,15 +46161,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456789
+             (cast-from-field #f 123456789123456789
+               (field-native)
                452312848583266388373324160190187140051835877600158453279131187530910662655))
           (%t4.3))))
     )
@@ -46183,12 +46193,16 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.2
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.3 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.2 (0) write 7))
           (= 1 (%t2.4 %t2.0) (field->bytes 4 123456789123456789))
-          (= 1 %t4.5 (downcast-unsigned #f #f 123456789123456789 %t2.0))
+          (= 1 %t4.5
+             (cast-from-field #f 123456789123456789
+               (field-native)
+               %t2.0))
           (%t4.5))))
     )
 
@@ -46210,15 +46224,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned
-               #f
-               #f
-               123456789123456788
+             (cast-from-field #f 123456789123456788
+               (field-native)
                52435875175126190479447740508185965837690552500527637822603658699938581184511))
           (%t4.3))))
     )
@@ -46241,12 +46254,15 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (= 1 %t4.3
-             (downcast-unsigned #f #f 123456789123456788 123456789123456789))
+             (cast-from-field #f 123456789123456788
+               (field-native)
+               123456789123456789))
           (%t4.3))))
     )
 
@@ -46268,11 +46284,16 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (123456789123456789))))
+          (= 1 %t4.3
+             (cast-from-field #f 123456789123456789
+               (field-native)
+               123456789123456789))
+          (%t4.3))))
     )
 
   (test
@@ -46292,7 +46313,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.2
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.3 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.2 (0) write 7))
@@ -46301,7 +46323,10 @@ groups than for single tests.
              (bytes->field 256
                63855931564696431299763410850379360948494476837669428698230285298481505316
                63855931564696431299763410850379360948494476837669428698230285298481505316))
-          (= 1 %t4.4 (downcast-unsigned #f #f 123456789123456788 %t3.0))
+          (= 1 %t4.4
+             (cast-from-field #f 123456789123456788
+               (field-native)
+               %t3.0))
           (%t4.4))))
     )
 
@@ -48513,12 +48538,15 @@ groups than for single tests.
            (%B2.11
              (1)
              (__compact_Cell
-               (ty ((abytes 10)) ((tunsigned 1208925819614629174706175)))))))
+               (ty ((abytes 10))
+                   ((tunsigned 1208925819614629174706175)))))))
         (circuit %foo.12 ((argument
                             (%ia.0)
                             (ty ((abytes 1)) ((tunsigned 1))))
                           (argument (%ib.3) (ty ((abytes 1)) ((tunsigned 1))))
-                          (argument (%ix.1) (ty ((afield)) ((tfield (field-native))))))
+                          (argument
+                            (%ix.1)
+                            (ty ((afield)) ((tfield (field-native))))))
              (ty ((abytes 10) (abytes 10))
                  ((tunsigned 1208925819614629174706175)
                    (tunsigned 1208925819614629174706175)))
@@ -48526,7 +48554,7 @@ groups than for single tests.
           (= 1 %t1.6 (== %q.5 0))
           (= 1 %t2.7 (select %ia.0 %t1.6 1))
           (assert %t2.7 "field value is too large to fit in 10 bytes")
-          (= 1 %t.13 (downcast-unsigned #t #f 0 %q.5))
+          (= 1 %t.13 (cast-from-field #t 0 (field-native) %q.5))
           (= 1 %tmp.14 (select %ia.0 %t.2 0))
           (= 1 () (public-ledger %B1.10 (0) write %tmp.14))
           (= 1 %t2.8 (select %ib.3 %t1.6 1))
@@ -48560,11 +48588,14 @@ groups than for single tests.
            (%B2.8
              (1)
              (__compact_Cell
-               (ty ((abytes 10)) ((tunsigned 1208925819614629174706175)))))))
+               (ty ((abytes 10))
+                   ((tunsigned 1208925819614629174706175)))))))
         (circuit %foo.9 ((argument
                            (%ib.0)
                            (ty ((abytes 1)) ((tunsigned 1))))
-                         (argument (%ix.1) (ty ((afield)) ((tfield (field-native))))))
+                         (argument
+                           (%ix.1)
+                           (ty ((afield)) ((tfield (field-native))))))
              (ty ((abytes 10) (abytes 10))
                  ((tunsigned 1208925819614629174706175)
                    (tunsigned 1208925819614629174706175)))
@@ -48572,7 +48603,7 @@ groups than for single tests.
           (= 1 %t1.4 (== %q.3 0))
           (= 1 %t2.5 (select %ib.0 %t1.4 1))
           (assert %t2.5 "field value is too large to fit in 10 bytes")
-          (= 1 %t.10 (downcast-unsigned #t #f 0 %q.3))
+          (= 1 %t.10 (cast-from-field #t 0 (field-native) %q.3))
           (= 1 %tmp.11 (select %ib.0 %t.2 0))
           (= 1 () (public-ledger %B1.7 (0) write %tmp.11))
           (= 1 () (public-ledger %B2.8 (1) write %tmp.11))
@@ -49315,34 +49346,35 @@ groups than for single tests.
         "    { \"op\": \"copy\", \"var\": 5 },"
         "    { \"op\": \"ec_mul\", \"a_x\": 0, \"a_y\": 1, \"scalar\": 6 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"ec_mul_generator\", \"scalar\": 9 },"
-        "    { \"op\": \"ec_add\", \"a_x\": 7, \"a_y\": 8, \"b_x\": 10, \"b_y\": 11 },"
+        "    { \"op\": \"copy\", \"var\": 9 },"
+        "    { \"op\": \"ec_mul_generator\", \"scalar\": 10 },"
+        "    { \"op\": \"ec_add\", \"a_x\": 7, \"a_y\": 8, \"b_x\": 11, \"b_y\": 12 },"
         "    { \"op\": \"load_imm\", \"imm\": \"32\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
         "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"60\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
         "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"guard\": null },"
         "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
         "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"hash_to_curve\", \"inputs\": [17, 18] },"
-        "    { \"op\": \"ec_add\", \"a_x\": 12, \"a_y\": 13, \"b_x\": 21, \"b_y\": 22 },"
+        "    { \"op\": \"hash_to_curve\", \"inputs\": [18, 19] },"
+        "    { \"op\": \"ec_add\", \"a_x\": 13, \"a_y\": 14, \"b_x\": 22, \"b_y\": 23 },"
         "    { \"op\": \"hash_to_curve\", \"inputs\": [] },"
-        "    { \"op\": \"ec_add\", \"a_x\": 23, \"a_y\": 24, \"b_x\": 25, \"b_y\": 26 },"
-        "    { \"op\": \"output\", \"var\": 27 },"
-        "    { \"op\": \"output\", \"var\": 28 }"
+        "    { \"op\": \"ec_add\", \"a_x\": 24, \"a_y\": 25, \"b_x\": 26, \"b_y\": 27 },"
+        "    { \"op\": \"output\", \"var\": 28 },"
+        "    { \"op\": \"output\", \"var\": 29 }"
         "  ]"
         "}"))
     )
@@ -53399,7 +53431,7 @@ groups than for single tests.
         "    { \"op\": \"less_than\", \"a\": 9, \"b\": 10, \"bits\": 11 },"
         "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 11, \"b\": 2 },"
         "    { \"op\": \"assert\", \"cond\": 12 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 8, \"b\": 4 },"
+        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 9, \"b\": 4 },"
         "    { \"op\": \"output\", \"var\": 13 }"
         "  ]"
         "}"))
@@ -53447,7 +53479,7 @@ groups than for single tests.
         "    { \"op\": \"less_than\", \"a\": 9, \"b\": 7, \"bits\": 11 },"
         "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 10, \"b\": 2 },"
         "    { \"op\": \"assert\", \"cond\": 11 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 8, \"b\": 4 },"
+        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 9, \"b\": 4 },"
         "    { \"op\": \"output\", \"var\": 12 }"
         "  ]"
         "}"))
@@ -54433,10 +54465,11 @@ groups than for single tests.
         "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
         "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"ec_mul\", \"a_x\": 0, \"a_y\": 1, \"scalar\": 7 },"
-        "    { \"op\": \"ec_add\", \"a_x\": 0, \"a_y\": 1, \"b_x\": 8, \"b_y\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 },"
-        "    { \"op\": \"output\", \"var\": 11 }"
+        "    { \"op\": \"copy\", \"var\": 7 },"
+        "    { \"op\": \"ec_mul\", \"a_x\": 0, \"a_y\": 1, \"scalar\": 8 },"
+        "    { \"op\": \"ec_add\", \"a_x\": 0, \"a_y\": 1, \"b_x\": 9, \"b_y\": 10 },"
+        "    { \"op\": \"output\", \"var\": 11 },"
+        "    { \"op\": \"output\", \"var\": 12 }"
         "  ]"
         "}"))
     )
@@ -60329,8 +60362,8 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 16 },"
         "    { \"op\": \"copy\", \"output\": \"%t.1\", \"val\": \"%x.0\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 16 },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
@@ -60380,15 +60413,17 @@ groups than for single tests.
         "    { \"op\": \"transient_hash\", \"output\": \"%t.6\", \"inputs\": [\"%t.2\", \"%t.4\"] },"
         "    { \"op\": \"decode\", \"type\": \"Scalar<Jubjub>\", \"output\": \"%t.7\", \"inputs\": [\"%t.6\"] },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.8\", \"a\": \"%p1.0\", \"scalar\": \"%t.7\" },"
-        "    { \"op\": \"ec_mul_generator\", \"output\": \"%t.9\", \"scalar\": \"0x11\" },"
-        "    { \"op\": \"add\", \"output\": \"%t.10\", \"a\": \"%t.8\", \"b\": \"%t.9\" },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%t.10\", \"%t.11\"] },"
-        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.12\", \"inputs\": [\"%t.10\", \"%t.11\"] },"
-        "    { \"op\": \"add\", \"output\": \"%t.13\", \"a\": \"%t.9\", \"b\": \"%t.12\" },"
-        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.14\", \"inputs\": [] },"
-        "    { \"op\": \"add\", \"output\": \"%t.15\", \"a\": \"%t.13\", \"b\": \"%t.14\" },"
-        "    { \"op\": \"output\", \"vals\": [\"%t.15\"] }"
+        "    { \"op\": \"decode\", \"type\": \"Scalar<Jubjub>\", \"output\": \"%t.9\", \"inputs\": [\"0x11\"] },"
+        "    { \"op\": \"ec_mul_generator\", \"output\": \"%t.10\", \"scalar\": \"%t.9\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.11\", \"a\": \"%t.8\", \"b\": \"%t.10\" },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.12\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.13\", \"guard\": null },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%t.12\", \"%t.13\"] },"
+        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.14\", \"inputs\": [\"%t.12\", \"%t.13\"] },"
+        "    { \"op\": \"add\", \"output\": \"%t.15\", \"a\": \"%t.11\", \"b\": \"%t.14\" },"
+        "    { \"op\": \"hash_to_curve\", \"output\": \"%t.16\", \"inputs\": [] },"
+        "    { \"op\": \"add\", \"output\": \"%t.17\", \"a\": \"%t.15\", \"b\": \"%t.16\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.17\"] }"
         "  ]"
         "}"))
     )
@@ -61715,8 +61750,8 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%y.1\", \"bits\": 32 },"
         "    { \"op\": \"copy\", \"output\": \"%t.2\", \"val\": \"%y.1\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.2\", \"bits\": 32 },"
         "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
         "  ]"
         "}"))
@@ -63003,7 +63038,7 @@ groups than for single tests.
         "    { \"op\": \"less_than\", \"output\": \"%t1.4\", \"a\": \"%t.3\", \"b\": \"0x0004\", \"bits\": 11 },"
         "    { \"op\": \"cond_select\", \"output\": \"%t2.5\", \"bit\": \"%b.0\", \"a\": \"%t1.4\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t2.5\" },"
-        "    { \"op\": \"copy\", \"output\": \"%t.6\", \"val\": \"%t.2\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.6\", \"val\": \"%t.3\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.7\", \"bit\": \"%b.0\", \"a\": \"%t.6\", \"b\": \"0x00\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.7\"] }"
         "  ]"
@@ -63039,7 +63074,7 @@ groups than for single tests.
         "    { \"op\": \"less_than\", \"output\": \"%t1.4\", \"a\": \"%t.3\", \"b\": \"0x0004\", \"bits\": 11 },"
         "    { \"op\": \"cond_select\", \"output\": \"%t2.5\", \"bit\": \"%b.0\", \"a\": \"%t1.4\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t2.5\" },"
-        "    { \"op\": \"copy\", \"output\": \"%t.6\", \"val\": \"%t.2\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.6\", \"val\": \"%t.3\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.7\", \"bit\": \"%b.0\", \"a\": \"%t.6\", \"b\": \"0x00\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.7\"] }"
         "  ]"
@@ -63259,9 +63294,10 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"ec_mul\", \"output\": \"%t.1\", \"a\": \"%c.0\", \"scalar\": \"0x03\" },"
-        "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"b\": \"%t.1\" },"
-        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
+        "    { \"op\": \"decode\", \"type\": \"Scalar<Jubjub>\", \"output\": \"%t.1\", \"inputs\": [\"0x03\"] },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"scalar\": \"%t.1\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%c.0\", \"b\": \"%t.2\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.3\"] }"
         "  ]"
         "}"))
     )
@@ -63290,9 +63326,10 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Point<Jubjub>\", \"output\": \"%c.0\", \"guard\": null },"
-        "    { \"op\": \"ec_mul\", \"output\": \"%t.1\", \"a\": \"%c.0\", \"scalar\": \"0x03\" },"
-        "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"b\": \"%t.1\" },"
-        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
+        "    { \"op\": \"decode\", \"type\": \"Scalar<Jubjub>\", \"output\": \"%t.1\", \"inputs\": [\"0x03\"] },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"scalar\": \"%t.1\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%c.0\", \"b\": \"%t.2\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.3\"] }"
         "  ]"
         "}"))
     )
@@ -84010,58 +84047,62 @@ groups than for single tests.
       "ledger fCell: Field;"
       "ledger jCell: JubjubScalar;"
       "ledger uCell: MaxUint;"
-      ;; "export circuit testFtoJ(f: Field): [JubjubScalar, JubjubScalar, Field] {"
-      ;; "  const j0 = f as JubjubScalar;"
-      ;; "  jCell = disclose(j0);"
-      ;; "  const j1 = jCell;"
-      ;; "  return [j0, j1, j1 as Field];"
-      ;; "}"
-      ;; "export circuit testJtoF(j: JubjubScalar): [Field, Field, JubjubScalar] {"
-      ;; "  const f0 = j as Field;"
-      ;; "  fCell = disclose(f0);"
-      ;; "  const f1 = fCell;"
-      ;; "  return [f0, f1, f1 as JubjubScalar];"
-      ;; "}"
+      "export circuit testFtoJ(f: Field): [JubjubScalar, JubjubScalar, Field] {"
+      "  const j0 = f as JubjubScalar;"
+      "  jCell = disclose(j0);"
+      "  const j1 = jCell;"
+      "  return [j0, j1, j1 as Field];"
+      "}"
+      "export circuit testJtoF(j: JubjubScalar): [Field, Field, JubjubScalar] {"
+      "  const f0 = j as Field;"
+      "  fCell = disclose(f0);"
+      "  const f1 = fCell;"
+      "  return [f0, f1, f1 as JubjubScalar];"
+      "}"
       "export circuit testUtoJ(u: MaxUint): [JubjubScalar, JubjubScalar, MaxUint] {"
       "  const j0 = u as JubjubScalar;"
       "  jCell = disclose(j0);"
       "  const j1 = jCell;"
       "  return [j0, j1, j1 as MaxUint];"
       "}"
-      "// export circuit testJtoU(j: JubjubScalar): [MaxUint, MaxUint, JubjubScalar] {"
-      "//   const u0 = j as MaxUint;"
-      "//   uCell = disclose(u0);"
-      "//   const u1 = uCell;"
-      "//   return [u0, u1, u1 as JubjubScalar];"
-      "// }"
+      "export circuit testJtoU(j: JubjubScalar): [MaxUint, MaxUint, JubjubScalar] {"
+      "  const u0 = j as MaxUint;"
+      "  uCell = disclose(u0);"
+      "  const u1 = uCell;"
+      "  return [u0, u1, u1 as JubjubScalar];"
+      "}"
       )
     (stage-javascript
       `(
         "test('JubjubScalar casts', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        ;; "  expect(C.circuits.testFtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
-        ;; "  expect(C.circuits.testFtoJ(Ctxt, 1000n).result).toEqual([1000n, 1000n, 1000n]);"
-        ;; ,(format "  const MAX_FIELD = ~dn;" (max-field))
-        ;; ,(format "  const EXPECT = ~dn;" (if (feature-zkir-v3)
-        ;;                                      (mod (max-field) (1+ (max-jubjub-scalar)))
-        ;;                                      (max-field)))
-        ;; "  expect(C.circuits.testFtoJ(Ctxt, MAX_FIELD).result).toEqual([EXPECT, EXPECT, EXPECT]);"
-        ;; ""
-        ;; "  expect(C.circuits.testJtoF(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
-        ;; "  expect(C.circuits.testJtoF(Ctxt, 1001n).result).toEqual([1001n, 1001n, 1001n]);"
-        ;; ,(format "  const MAX_JUBJUB_SCALAR = ~dn;" (max-jubjub-scalar))
-        ;; "  expect(C.circuits.testJtoF(Ctxt, MAX_JUBJUB_SCALAR).result).toEqual("
-        ;; "    [MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR]);"
-        ;; ""
+        "  expect(C.circuits.testFtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
+        "  expect(C.circuits.testFtoJ(Ctxt, 1000n).result).toEqual([1000n, 1000n, 1000n]);"
+        ,(format "  const MAX_FIELD = ~dn;" (max-field))
+        ,(format "  var EXPECT = ~dn;" (if (feature-zkir-v3)
+                                           (mod (max-field) (1+ (max-jubjub-scalar)))
+                                           (max-field)))
+        "  expect(C.circuits.testFtoJ(Ctxt, MAX_FIELD).result).toEqual([EXPECT, EXPECT, EXPECT]);"
+        ""
+        "  expect(C.circuits.testJtoF(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
+        "  expect(C.circuits.testJtoF(Ctxt, 1001n).result).toEqual([1001n, 1001n, 1001n]);"
+        ,(format "  const MAX_JUBJUB_SCALAR = ~dn;" (max-jubjub-scalar))
+        "  expect(C.circuits.testJtoF(Ctxt, MAX_JUBJUB_SCALAR).result).toEqual("
+        "    [MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR]);"
+        ""
         "  expect(C.circuits.testUtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
         "  expect(C.circuits.testUtoJ(Ctxt, 1002n).result).toEqual([1002n, 1002n, 1002n]);"
         ,(format "  const MAX_UNSIGNED = ~dn;" (max-unsigned))
         "  expect(C.circuits.testUtoJ(Ctxt, MAX_UNSIGNED).result).toEqual("
         "    [MAX_UNSIGNED, MAX_UNSIGNED, MAX_UNSIGNED]);"
+        ""
+        "  expect(C.circuits.testJtoU(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
+        "  expect(C.circuits.testJtoU(Ctxt, 1003n).result).toEqual([1003n, 1003n, 1003n]);"
+        "  expect(() => C.circuits.testJtoU(Ctxt, MAX_JUBJUB_SCALAR)).toThrow(runtime.CompactError);"
         "});"
         ))
     )
-)
+  )
 
 (run-javascript)
 )

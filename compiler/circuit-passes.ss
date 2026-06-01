@@ -55,7 +55,10 @@
       [(cast-from-bytes ,src ,type ,len ,[expr])
        (let ([expr `(bytes->field ,src ,len ,expr)])
          (nanopass-case (Lnodisclose Type) type
-           [(tunsigned ,src ,nat) `(downcast-unsigned ,src #f ,nat ,expr)]
+           [(tunsigned ,src ,nat)
+            `(cast-from-field ,src ,nat
+               ,(with-output-language (Lposttypescript Field-Type) `(field-native))
+               ,expr)]
            [else expr]))])
     (Type : Type (ir) -> Type ()
       [,tvar-name (assert cannot-happen)]
@@ -95,7 +98,10 @@
                        [(tunsigned ,src ,nat) nat]
                        [else (assert cannot-happen)])])
          (nanopass-case (Lnoenums Type) type^
-           [(tfield ,src^ ,ftype) `(downcast-unsigned ,src #f ,maxval ,expr)]
+           [(tfield ,src^ ,ftype)
+            `(cast-from-field ,src ,maxval
+               ,(with-output-language (Lnoenums Field-Type) `(field-native))
+               ,expr)]
            [(tunsigned ,src^ ,nat)
             (cond
               [(> nat maxval) `(downcast-unsigned ,src ,nat ,maxval ,expr)]
@@ -450,6 +456,16 @@
                   elt-name* type*))]
           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
            (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]))
+      (define (same-field-type? ftype1 ftype2)
+        (nanopass-case (Linlined Field-Type) ftype1
+          [(field-native)
+           (nanopass-case (Linlined Field-Type) ftype2
+             [(field-native) #t]
+             [else #f])]
+          [(field-scalar (curve-jubjub))
+           (nanopass-case (Linlined Field-Type) ftype2
+             [(field-scalar (curve-jubjub)) #t]
+             [else #f])]))
       (define (sametype? type1 type2)
         (define (same-adt-arg? adt-arg1 adt-arg2)
           (nanopass-case (Linlined Public-Ledger-ADT-Arg) adt-arg1
@@ -929,17 +945,6 @@
                            len
                            len^))])
        (with-output-language (Linlined Type) `(tvector ,src ,len (tunsigned ,src 255)))]
-      [(cast-to-field ,src ,ftype ,type ,[Care : expr -> * type^])
-       (unless (sametype? type type^)
-         (source-errorf src "expected ~a, got ~a for cast-to-field"
-           (format-type type) (format-type type^)))
-       (unless (nanopass-case (Linlined Type) type
-                 [(tfield ,src^ ,ftype^) #t]
-                 [(tunsigned ,src^ ,nat) #t]
-                 [else #f])
-         ;; This is unexpected.
-         (source-errorf src "expected a numeric type, got ~a for cast-to-field" (format-type type)))
-       (with-output-language (Linlined Type) `(tfield ,src ,ftype))]
       [(vector->bytes ,src ,len ,[Care : expr -> * type])
        (define (u8-subtype? type)
          (nanopass-case (Linlined Type) type
@@ -957,20 +962,34 @@
                         len
                         (format-type type)))
        (with-output-language (Linlined Type) `(tbytes ,src ,len))]
-      [(downcast-unsigned ,src ,nat? ,nat ,[Care : expr -> * type])
-       (when nat? (assert (< nat nat?)))
-       (if nat?
-           (unless (nanopass-case (Linlined Type) type
-                     [(tunsigned ,src ,nat) #t]
-                     [else #f])
-             (source-errorf src "expected an unsigned integer type, got ~a for downcast-unsigned"
-                            (format-type type)))
-           (unless (nanopass-case (Linlined Type) type
-                     [(tfield ,src ,ftype) #t]
-                     [else #f])
-             (source-errorf src "expected a field type, got ~a for downcast-unsigned"
-                            (format-type type))))
-       (with-output-language (Linlined Type) `(tunsigned ,src ,nat))]
+      [(cast-to-field ,src ,ftype ,type ,[Care : expr -> * type^])
+       (unless (sametype? type type^)
+         (source-errorf src "expected ~a, got ~a for cast-to-field"
+           (format-type type) (format-type type^)))
+       (unless (nanopass-case (Linlined Type) type
+                 [(tfield ,src^ ,ftype^) #t]
+                 [(tunsigned ,src^ ,nat) #t]
+                 [else #f])
+         ;; This is unexpected.
+         (source-errorf src "expected a numeric type, got ~a for cast-to-field" (format-type type)))
+       (with-output-language (Linlined Type) `(tfield ,src ,ftype))]
+      [(cast-from-field ,src ,nat ,ftype ,[Care : expr -> * type])
+       (with-output-language (Linlined Type)
+         (unless (nanopass-case (Linlined Type) type
+                   [(tfield ,src ,ftype^) (same-field-type? ftype ftype^)]
+                   [else #f])
+           (source-errorf src "expected ~a for cast-from-field call, received ~a"
+             (format-type `(tfield ,src ,ftype))
+             (format-type type)))
+         `(tunsigned ,src ,nat))]
+      [(downcast-unsigned ,src ,nat2 ,nat1 ,[Care : expr -> * type])
+       (assert (< nat1 nat2))
+       (unless (nanopass-case (Linlined Type) type
+                 [(tunsigned ,src ,nat) #t]
+                 [else #f])
+         (source-errorf src "expected an unsigned integer type, got ~a for downcast-unsigned"
+           (format-type type)))
+       (with-output-language (Linlined Type) `(tunsigned ,src ,nat1))]
       [(safe-cast ,src ,type ,type^ ,[Care : expr -> * type^^])
        (unless (sametype? type^^ type^)
          (source-errorf src "expected ~a, got ~a for upcast"
@@ -1522,10 +1541,6 @@
        (values
          `(assert ,src ,expr ,mesg)
          (CTV-tuple no-var-name '()))]
-      [(cast-to-field ,src ,[ftype] ,[type] ,[expr ctv])
-       (values
-         `(cast-to-field ,src ,ftype ,type ,expr)
-         (CTV-unknown no-var-name))]
       [(field->bytes ,src ,len ,[expr ctv])
        (assert (not (= len 0)))
        (cond
@@ -1578,15 +1593,25 @@
          [else (values
                  `(bytes->vector ,src ,len ,expr)
                  (CTV-unknown no-var-name))])]
-      [(downcast-unsigned ,src ,nat? ,nat ,[expr ctv])
+      [(cast-to-field ,src ,[ftype] ,[type] ,[expr ctv])
+       ;; TODO(kmillikin): optimize this.
+       (values
+         `(cast-to-field ,src ,ftype ,type ,expr)
+         (CTV-unknown no-var-name))]
+      [(cast-from-field ,src ,nat ,[ftype] ,[expr ctv])
+       ;; TODO(kmillikin): optimize this.
+       (values
+         `(cast-from-field ,src ,nat ,ftype ,expr)
+         (CTV-unknown no-var-name))]
+      [(downcast-unsigned ,src ,nat2 ,nat1 ,[expr ctv])
        (cond
-         [(ifconstant ctv (lambda (datum) (and (<= datum nat) datum))) =>
+         [(ifconstant ctv (lambda (datum) (and (<= datum nat1) datum))) =>
           (lambda (datum)
             (values
               `(seq ,src ,expr (quote ,src ,datum))
               ctv))]
          [else (values
-                 `(downcast-unsigned ,src ,nat? ,nat ,expr)
+                 `(downcast-unsigned ,src ,nat2 ,nat1 ,expr)
                  (CTV-unknown no-var-name))])]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,[path-elt] ...) ,src^ ,[adt-op] ,[expr* ctv*] ...)
        (values
@@ -1768,13 +1793,17 @@
        (values
          `(bytes->vector ,src ,len ,expr)
          idset)]
-      [(downcast-unsigned ,src ,nat? ,nat ,[Value : expr idset])
-       (values
-         `(downcast-unsigned ,src ,nat? ,nat ,expr)
-         idset)]
       [(cast-to-field ,src ,ftype ,type ,[Value : expr idset])
        (values
          `(cast-to-field ,src ,ftype ,type ,expr)
+         idset)]
+      [(cast-from-field ,src ,nat ,ftype ,[Value : expr idset])
+       (values
+         `(cast-from-field ,src ,nat ,ftype ,expr)
+         idset)]
+      [(downcast-unsigned ,src ,nat2 ,nat1 ,[Value : expr idset])
+       (values
+         `(downcast-unsigned ,src ,nat2 ,nat1 ,expr)
          idset)]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,[path-elt idset^*] ...) ,src^ ,adt-op ,[Value : expr* idset*] ...)
        (values
@@ -1869,11 +1898,6 @@
        (Effect expr)]
       [(bytes->vector ,src ,len ,expr)
        (Effect expr)]
-      [(downcast-unsigned ,src ,nat? ,nat ,expr)
-       (let-values ([(expr idset) (Value expr)])
-         (values
-           `(downcast-unsigned ,src ,nat? ,nat ,expr)
-           idset))]
       [else (Value ir)])
     (Tuple-Argument-Effect : Tuple-Argument (ir) -> Expression (idset)
       [(single ,src ,[Effect : expr idset]) (values expr idset)]
@@ -2159,16 +2183,21 @@
          (lambda (triv)
            (k (with-output-language (Lcircuit Rhs)
               `(vector->bytes ,len ,triv)))))]
-      [(downcast-unsigned ,src ,nat? ,nat ,expr)
-       (Triv expr test
-         (lambda (triv)
-           (k (with-output-language (Lcircuit Rhs)
-                `(downcast-unsigned ,src ,nat? ,nat ,triv)))))]
       [(cast-to-field ,src ,[ftype] ,[type] ,expr)
        (Triv expr test
          (lambda (triv)
            (k (with-output-language (Lcircuit Rhs)
                 `(cast-to-field ,src ,ftype ,type ,triv)))))]
+      [(cast-from-field ,src ,nat ,[ftype] ,expr)
+       (Triv expr test
+         (lambda (triv)
+           (k (with-output-language (Lcircuit Rhs)
+                `(cast-from-field ,src ,nat ,ftype ,triv)))))]
+      [(downcast-unsigned ,src ,nat2 ,nat1 ,expr)
+       (Triv expr test
+         (lambda (triv)
+           (k (with-output-language (Lcircuit Rhs)
+                `(downcast-unsigned ,src ,nat2 ,nat1 ,triv)))))]
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,[adt-op] ,expr* ...)
        (Path-Element* path-elt* test
          (lambda (path-elt*)
@@ -2589,10 +2618,14 @@
        (hashtable-set! var-ht var-name (Wump-single var-name))
        (with-output-language (Lflattened Statement)
          (list `(= ,test ,var-name (cast-to-field ,ftype ,primitive-type ,triv))))]
-      [(downcast-unsigned ,src ,nat? ,nat ,[Single-Triv : triv])
+      [(cast-from-field ,src ,nat ,[ftype] ,[Single-Triv : triv])
        (hashtable-set! var-ht var-name (Wump-single var-name))
        (with-output-language (Lflattened Statement)
-         (list `(= ,test ,var-name (downcast-unsigned ,src #f ,nat? ,nat ,triv))))]
+         (list `(= ,test ,var-name (cast-from-field ,src #f ,nat ,ftype ,triv))))]
+      [(downcast-unsigned ,src ,nat2 ,nat1 ,[Single-Triv : triv])
+       (hashtable-set! var-ht var-name (Wump-single var-name))
+       (with-output-language (Lflattened Statement)
+         (list `(= ,test ,var-name (downcast-unsigned ,src #f ,nat2 ,nat1 ,triv))))]
       [(elt-ref ,[* wump] ,elt-name)
        (hashtable-set! var-ht var-name
          (Wump-case wump
@@ -2707,6 +2740,32 @@
                [pat (nanopass-case (Lflattened NT) ir^ [pat^ e] [else #f])]
                ...
                [else #f])]))
+        (define (field-type-equal? ftype ftype^)
+          (nanopass-case (Lflattened Field-Type) ftype
+            [(field-native)
+             (nanopass-case (Lflattened Field-Type) ftype^
+               [(field-native) #t]
+               [else #f])]
+            [(field-scalar (curve-jubjub))
+             (nanopass-case (Lflattened Field-Type) ftype^
+               [(field-scalar (curve-jubjub)) #t]
+               [else #f])]))
+        (define (primitive-type-equal? primitive-type primitive-type^)
+          (nanopass-case (Lflattened Primitive-Type) primitive-type
+            [(tfield ,ftype)
+             (nanopass-case (Lflattened Primitive-Type) primitive-type^
+               [(tfield ,ftype^) (field-type-equal? ftype ftype^)]
+               [else #f])]
+            [(tunsigned ,nat)
+             (nanopass-case (Lflattened Primitive-Type) primitive-type^
+               [(tunsigned ,nat^) (eqv? nat nat^)]
+               [else #f])]
+            [(topaque ,opaque-type)
+             (nanopass-case (Lflattened Primitive-Type) primitive-type^
+               [(topaque ,opaque-type^) (string=? opaque-type opaque-type^)]
+               [else #f])]
+            ;; We just say that tcontract and tadt are never equal.
+            [else #f]))
         (define (triv-equal? triv triv^)
           (T Triv triv triv^
              [,var-name ,var-name^ (eq? var-name var-name^)]
@@ -2748,9 +2807,19 @@
                     [(bytes->field ,src ,len ,triv1 ,triv2) (bytes->field ,src^ ,len^ ,triv1^ ,triv2^)
                      (and (eqv? len len^)
                           (trivs-equal? triv1 triv1^ triv2 triv2^))]
-                    [(downcast-unsigned ,src ,safe ,nat? ,nat ,triv) (downcast-unsigned ,src^ ,safe^ ,nat?^ ,nat^ ,triv^)
-                     (and (eqv? nat? nat?^)
+                    [(cast-to-field ,ftype ,primitive-type ,triv) (cast-to-field ,ftype^ ,primitive-type^ ,triv^)
+                     (and (field-type-equal? ftype ftype^)
+                          (primitive-type-equal? primitive-type primitive-type^)
+                          (triv-equal? triv triv^))]
+                    [(cast-from-field ,src ,safe ,nat ,ftype ,triv) (cast-from-field ,src^ ,safe^ ,nat^ ,ftype^ ,triv^)
+                     (and (eqv? safe safe^)
                           (eqv? nat nat^)
+                          (field-type-equal? ftype ftype^)
+                          (triv-equal? triv triv^))]
+                    [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv) (downcast-unsigned ,src^ ,safe^ ,nat2^ ,nat1^ ,triv^)
+                     ;; TODO(kmillikin): we don't care if safe and safe^ agree?
+                     (and (eqv? nat2 nat2^)
+                          (eqv? nat1 nat1^)
                           (triv-equal? triv triv^))]))))
         (define (triv-vec-equal? v1 v2)
           (let ([n (vector-length v1)])
@@ -2806,10 +2875,10 @@
                  (cons triv triv*))]
               [(cast-to-field ,ftype ,primitive-type ,triv)
                (triv-hash triv 597056600)]
-              [(downcast-unsigned ,src ,safe ,nat? ,nat ,triv)
-               (triv-hash triv
-                 (let ([h (triv-hash nat 314267636)])
-                   (if nat? (triv-hash nat? h) h)))]
+              [(cast-from-field ,src ,safe ,nat ,ftype ,triv)
+               (triv-hash triv (triv-hash nat 680186174))]
+              [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv)
+               (triv-hash triv (triv-hash nat2 (triv-hash nat1 314267636)))]
               [else (internal-errorf 'nontriv-single-hash "unhandled form ~s" (cdr test.single))])))
         (define (triv-vec-hash v)
           (let ([n (vector-length v)])
@@ -3175,11 +3244,14 @@
       [(cast-to-field ,ftype ,primitive-type ,[FWD-Triv : triv])
        ;; TODO(kmillikin): Is there an opportunity to optimize here?
        `(cast-to-field ,ftype ,primitive-type ,triv)]
-      [(downcast-unsigned ,src ,safe ,nat? ,nat ,[FWD-Triv : triv])
+      [(cast-from-field ,src ,safe ,nat ,ftype ,[FWD-Triv : triv])
+       ;; TODO(kmillikin): Is there an opportunity to optimize here?
+       `(cast-from-field ,src ,safe ,nat ,ftype ,triv)]
+      [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,[FWD-Triv : triv])
        (or (ifconstant triv
              (lambda (nat^)
-               (and (<= nat^ nat) nat^)))
-           `(downcast-unsigned ,src ,safe ,nat? ,nat ,triv))]
+               (and (<= nat^ nat1) nat^)))
+           `(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv))]
       [else (internal-errorf 'FWD-Single "unexpected ir ~s" ir)])
     (FWD-Path-Element : Path-Element (ir) -> Path-Element ()
       [,path-index path-index]
@@ -3201,7 +3273,9 @@
             [(bytes-ref ,triv ,nat) #t]
             [(bytes->field ,src ,len ,triv1 ,triv2) (<= len (field-bytes))]
             [(vector->bytes ,triv ,triv* ...) #t]
-            [(downcast-unsigned ,src ,safe ,nat? ,nat ,triv) #f])))
+            [(cast-to-field ,ftype ,primitive-type ,triv) #t]
+            [(cast-from-field ,src ,safe ,nat ,ftype ,triv) #f]
+            [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv) #f])))
       [(= ,test ,var-name ,single)
        (guard
          (not (hashtable-contains? ref-ht var-name))
@@ -3265,8 +3339,10 @@
        `(vector->bytes ,triv ,triv* ...)]
       [(cast-to-field ,ftype ,primitive-type ,[BWD-Triv : triv])
        `(cast-to-field ,ftype ,primitive-type ,triv)]
-      [(downcast-unsigned ,src ,safe ,nat? ,nat ,[BWD-Triv : triv])
-       `(downcast-unsigned ,src ,safe ,nat? ,nat ,triv)]
+      [(cast-from-field ,src ,safe ,nat ,ftype ,[BWD-Triv : triv])
+       `(cast-from-field ,src ,safe ,nat ,ftype ,triv)]
+      [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,[BWD-Triv : triv])
+       `(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv)]
       [else (internal-errorf 'BWD-Single "unexpected ir ~s" ir)])
     (BWD-Path-Element : Path-Element (ir) -> Path-Element ()
       [,path-index path-index]
@@ -3339,8 +3415,10 @@
                  ; t2 = !test || q == 0
                  `(= 1 ,t2 (select ,test ,t1 1))
                  `(assert ,src ,t2 ,(format "field value is too large to fit in ~d bytes" len))
-                 ; downcast-unsigned is used here with safe = #t to make check-types/Lflattened happy
-                 `(= 1 ,var-name1 (downcast-unsigned ,src #t #f 0 ,q))))))]
+                 ; cast-from-field is used here with safe = #t to make check-types/Lflattened happy
+                 `(= 1 ,var-name1 (cast-from-field ,src #t 0
+                                    ,(with-output-language (Lflattened Field-Type) `(field-native))
+                                    ,q))))))]
       [(= ,test (,var-name* ...) ,multiple)
        (when (eqv? test 1) (for-each defined! var-name*))
        (list ir)]
@@ -3396,55 +3474,43 @@
                  (list `(= 1 ,var-name (vector->bytes ,(car triv*) ,(cdr triv*) ...))))
                (ensure-defined (id-src var-name) test (car triv*)
                  (lambda (triv) (f (cdr triv*) (cons triv rtriv*)))))))]
-      [(downcast-unsigned ,src ,safe? ,nat? ,nat ,triv)
-       (define (assert-and-cast test)
-         (with-output-language (Lflattened Statement)
-           (list
-             `(assert ,src ,test ,(format "downcast to Uint<0..~d> failed" nat))
-             ; downcast-unsigned is used here with safe = #t to make check-types/Lflattened happy
-             `(= 1 ,var-name (downcast-unsigned ,src #t ,nat? ,nat ,triv)))))
+      [(cast-from-field ,src ,safe? ,nat1 ,ftype ,triv)
        (with-output-language (Lflattened Statement)
          (if safe?
              (list `(= 1 ,var-name ,ir))
-             (if nat?
-                 (if (= nat nat?)
-                     ; it's probably always the case that nat < nat?, but handle this case anyway
-                     (list `(= 1 ,var-name ,triv))
-                     (ensure-defined (id-src var-name) test triv
-                       (lambda (triv)
-                         ; triv is known to be < nat?
-                         (with-temp-ids src (t1 t2)
-                           (cons*
-                             ; t1 = triv <= nat
-                             `(= 1 ,t1 (< ,(fxmax 1 (integer-length nat?)) ,triv ,(+ nat 1)))
-                             ; t2 = !test || triv <= nat
-                             `(= 1 ,t2 (select ,test ,t1 1))
-                             (assert-and-cast t2))))))
-                 ; triv might have any field value
-                 (let ([bits (fxmax 1 (integer-length nat))])
-                   (with-temp-ids (id-src var-name) (q r t1)
-                     (cons*
-                       `(= 1 (,q ,r) (div-mod-power-of-two ,triv ,bits))
-                       ; q represents the high bits and must be zero for the cast to succeed
-                       ; t1 = q == 0
-                       `(= 1 ,t1 (== ,q 0))
-                       ; r represents the low bits and must be <= nat for the cast to succeed
-                       (if (= nat (- (expt 2 bits) 1))
-                           ; in this case, r cannot be > nat
-                           (with-temp-ids (id-src var-name) (t2)
-                             (cons*
-                               ; t2 = !test || q == 0
-                               `(= 1 ,t2 (select ,test ,t1 1))
-                               (assert-and-cast t2)))
-                           (with-temp-ids (id-src var-name) (t2 t3 t4)
-                             (cons*
-                               ; t2 = r <= nat
-                               `(= 1 ,t2 (< ,bits ,r ,(+ nat 1)))
-                               ; t3 = q == 0 && r <= nat
-                               `(= 1 ,t3 (select ,t1 ,t2 0))
-                               ; t4 = !test || (q == 0 && r <= nat)
-                               `(= 1 ,t4 (select ,test ,t3 1))
-                               (assert-and-cast t4))))))))))]
+             (ensure-defined (id-src var-name) test triv
+               (lambda (triv)
+                 (with-temp-ids src (t1 t2)
+                   (let ([nat2 (nanopass-case (Lflattened Field-Type) ftype
+                                 [(field-native) (max-field)]
+                                 [(field-scalar (curve-jubjub)) (max-jubjub-scalar)])])
+                     (list
+                       ;; t1 = triv <= nat1
+                       `(= 1 ,t1 (< ,(fxmax 1 (integer-length nat2)) ,triv ,(+ nat1 1)))
+                       ;; t2 = !test || triv <= nat1
+                       `(= 1 ,t2 (select ,test ,t1 1))
+                       `(assert ,src ,t2 ,(format "downcast to Uint<0..~d> failed" nat1))
+                       ;; cast-from-field is used here with safe = #t to make check-types/Lflattened happy
+                       `(= 1 ,var-name (cast-from-field ,src #t ,nat1 ,ftype ,triv)))))))))]
+      [(downcast-unsigned ,src ,safe? ,nat2 ,nat1 ,triv)
+       (with-output-language (Lflattened Statement)
+         (if safe?
+             (list `(= 1 ,var-name ,ir))
+             (if (= nat1 nat2)
+                 ;; it's probably always the case that nat1 < nat2, but handle this case anyway
+                 (list `(= 1 ,var-name ,triv))
+                 (ensure-defined (id-src var-name) test triv
+                   (lambda (triv)
+                     ;; triv is known to be < nat2
+                     (with-temp-ids src (t1 t2)
+                       (list
+                         ;; t1 = triv <= nat1
+                         `(= 1 ,t1 (< ,(fxmax 1 (integer-length nat2)) ,triv ,(+ nat1 1)))
+                         ;; t2 = !test || triv <= nat1
+                         `(= 1 ,t2 (select ,test ,t1 1))
+                         `(assert ,src ,t2 ,(format "downcast to Uint<0..~d> failed" nat1))
+                         ;; downcast-unsigned is used here with safe = #t to make check-types/Lflattened happy
+                         `(= 1 ,var-name (downcast-unsigned ,src #t ,nat2 ,nat1 ,triv)))))))))]
       [else
        (with-output-language (Lflattened Statement)
          (list `(= 1 ,var-name ,ir)))]))
@@ -3831,12 +3897,16 @@
                (map format-primitive-type type*)))))
        (with-output-language (Lflattened Primitive-Type) `(tunsigned ,(- (expt 256 (fx+ (length triv*) 1)) 1)))]
       [(cast-to-field ,ftype ,primitive-type ,[* type])
-       ;; TODO(kmillikin: Type checking code needed here.)
+       ;; TODO(kmillikin): Type checking code needed here.
        (with-output-language (Lflattened Primitive-Type) `(tfield ,ftype))]
-      [(downcast-unsigned ,src ,safe ,nat? ,nat ,[* type])
-       (when nat? (assert (< nat nat?)))
-       (check-numeric (format "argument to downcast-unsigned at ~a" (format-source-object src)) type)
+      [(cast-from-field ,src ,safe ,nat ,ftype ,[* type])
+       ;; TODO(kmillikin): Type checking code needed here.
        (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat))]
+      [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,[* type])
+       (assert (< nat1 nat2))
+       ;; TODO(kmillikin): Now requred to be tunsigned.
+       (check-numeric (format "argument to downcast-unsigned at ~a" (format-source-object src)) type)
+       (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat1))]
       [else (internal-errorf 'Single "unhandled form ~s\n" ir)])
     (Path-Element : Path-Element (ir) -> Path-Element ()
       [,path-index path-index]

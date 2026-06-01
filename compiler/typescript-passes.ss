@@ -3238,6 +3238,8 @@
            (Expr expr level outer-pure?))]
       [(cast-to-field ,src ,ftype ,type ,expr)
        (assert cannot-happen)]
+      [(cast-from-field ,src ,nat ,ftype ,expr)
+       (downcast-unsigned src nat expr)]
       [(downcast-unsigned ,src ,nat? ,nat ,expr)
        (downcast-unsigned src nat expr)]
       [(safe-cast ,src ,type ,type^ ,expr)

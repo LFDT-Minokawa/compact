@@ -3091,7 +3091,7 @@
                 [(tunsigned ,src1 ,nat1)
                  (T type^
                     [(tfield ,src2 ,ftype)
-                     `(downcast-unsigned ,src #f ,nat1 ,expr)]
+                     `(cast-from-field ,src ,nat1 ,ftype ,expr)]
                     [(tunsigned ,src2 ,nat2)
                      (assert (> nat2 nat1))
                      `(downcast-unsigned ,src ,nat2 ,nat1 ,expr)]
@@ -3487,6 +3487,16 @@
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
           [else type]))
+      (define (same-field-type? ftype1 ftype2)
+        (nanopass-case (Lnodca Field-Type) ftype1
+          [(field-native)
+           (nanopass-case (Lnodca Field-Type) ftype2
+             [(field-native) #t]
+             [else #f])]
+          [(field-scalar (curve-jubjub))
+           (nanopass-case (Lnodca Field-Type) ftype2
+             [(field-scalar (curve-jubjub)) #t]
+             [else #f])]))
       (define (sametype? type1 type2)
         (define (same-adt-arg? adt-arg1 adt-arg2)
           (nanopass-case (Lnodca Public-Ledger-ADT-Arg) adt-arg1
@@ -3501,10 +3511,8 @@
         (let ([type1 (de-alias type1)] [type2 (de-alias type2)])
           (T type1
              [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-             [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
-             [(tfield ,src1 (field-scalar (curve-jubjub)))
-              (T type2
-                [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
+             [(tfield ,src1 ,ftype1)
+              (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
              [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
              [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
              [(topaque ,src1 ,opaque-type1)
@@ -4060,14 +4068,6 @@
                         (format-type type^)
                         (format-type type^^)))
        type]
-      [(cast-to-field ,src1 ,ftype1 ,type1 ,[Care : expr -> * type2])
-       (with-output-language (Lnodca Type)
-         (nanopass-case (Lnodca Type) (de-alias type2)
-           [(tfield ,src2 ,ftype2) `(tfield ,src1 ,ftype1)]
-           [(tunsigned ,src2 ,nat) `(tfield ,src1 ,ftype1)]
-           [else
-             (source-errorf src1 "expected a numeric type for cast-to-field call, received ~a"
-               (format-type type2))]))]
       [(cast-from-bytes ,src ,[type] ,len ,[Care : expr -> * type^])
        (nanopass-case (Lnodca Type) (de-alias type^)
          [(tbytes ,src ,len^)
@@ -4109,20 +4109,37 @@
                         len
                         (format-type type)))
        (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
-      [(downcast-unsigned ,src ,nat? ,nat ,[Care : expr -> * type])
-       (when nat? (assert (< nat nat?)))
-       (if nat?
-           (unless (nanopass-case (Lnodca Type) (de-alias type)
-                     [(tunsigned ,src ,nat) #t]
+      [(cast-to-field ,src1 ,ftype1 ,type1 ,[Care : expr -> * type2])
+       (let ([underlying-type (de-alias type2)])
+         (unless (sametype? type1 underlying-type)
+           (source-errorf src1 "expected ~a, got ~a for cast-to-field"
+             (format-type type1)
+             (format-type type2)))
+         (with-output-language (Lnodca Type)
+           (nanopass-case (Lnodca Type) underlying-type
+             [(tfield ,src2 ,ftype2) `(tfield ,src1 ,ftype1)]
+             [(tunsigned ,src2 ,nat) `(tfield ,src1 ,ftype1)]
+             [else
+               (source-errorf src1 "expected a numeric type for cast-to-field call, received ~a"
+                 (format-type type2))])))]
+      [(cast-from-field ,src ,nat ,ftype ,[Care : expr -> * type])
+       (let ([underlying-type (de-alias type)])
+         (with-output-language (Lnodca Type)
+           (unless (nanopass-case (Lnodca Type) underlying-type
+                     [(tfield ,src^ ,ftype^) (same-field-type? ftype ftype^)]
                      [else #f])
-             (source-errorf src "expected Uint, got ~a for downcast-unsigned"
-                            (format-type type)))
-           (unless (nanopass-case (Lnodca Type) (de-alias type)
-                     [(tfield ,src ,ftype) #t]
-                     [else #f])
-             (source-errorf src "expected a field type, got ~a for downcast-unsigned"
-                            (format-type type))))
-       (with-output-language (Lnodca Type) `(tunsigned ,src ,nat))]
+             (source-errorf src "expected ~a, got ~a for cast-from-field"
+               (format-type `(tfield ,src ,ftype))
+               (format-type type)))
+           `(tunsigned ,src ,nat)))]
+      [(downcast-unsigned ,src ,nat2 ,nat1 ,[Care : expr -> * type])
+       (assert (< nat1 nat2))
+       (unless (nanopass-case (Lnodca Type) (de-alias type)
+                 [(tunsigned ,src ,nat) #t]
+                 [else #f])
+         (source-errorf src "expected Uint, got ~a for downcast-unsigned"
+           (format-type type)))
+       (with-output-language (Lnodca Type) `(tunsigned ,src ,nat1))]
       [(safe-cast ,src ,type ,type^ ,[Care : expr -> * type^^])
        (unless (sametype? type^^ type^)
          (source-errorf src "expected ~a, got ~a for upcast"
@@ -5549,12 +5566,13 @@
 
       [(cast-from-enum ,src ,type ,type^ ,[* abs]) abs]
       [(cast-to-enum ,src ,type ,type^ ,[* abs]) abs]
-      [(cast-to-field ,src ,ftype ,type ,[* abs]) abs]
       [(cast-from-bytes ,src ,type ,len ,[* abs]) abs]
       [(field->bytes ,src ,len ,[* abs]) abs]
       [(bytes->vector ,src ,len ,[* abs]) (Abs-single (Abs-atomic (abs->witnesses abs)))]
       [(vector->bytes ,src ,len ,[* abs]) (Abs-atomic (abs->witnesses abs))]
-      [(downcast-unsigned ,src ,nat? ,nat ,[* abs]) abs]
+      [(cast-to-field ,src ,ftype ,type ,[* abs]) abs]
+      [(cast-from-field ,src ,nat ,ftype ,[* abs]) abs]
+      [(downcast-unsigned ,src ,nat2 ,nat1 ,[* abs]) abs]
       [(safe-cast ,src ,type ,type^ ,[* abs]) abs]
 
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[* abs*] ...)
