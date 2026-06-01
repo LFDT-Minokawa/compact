@@ -12,8 +12,7 @@
 //   - ciphertexts: Opaque<"Uint8Array">   (seeds as cell of Vec<u8>::new())
 
 use compact_contract_zerocash::{
-    coin_info, commitment, zk_public_key, zk_secret_key, Contract, Ledger, MerkleTreePath,
-    Witnesses,
+    coin_info, commitment, zk_public_key, zk_secret_key, Contract, Ledger, Witnesses,
 };
 use compact_runtime::*;
 use midnight_serialize::tagged_serialize;
@@ -56,8 +55,8 @@ impl Witnesses<()> for ZerocashWitnesses {
         &self,
         _ctx: &WitnessContext<Ledger<'a>, ()>,
         _cm: commitment,
-    ) -> ((), MerkleTreePath) {
-        ((), MerkleTreePath::default())
+    ) -> ((), compact_runtime::MerklePath<commitment>) {
+        ((), compact_runtime::default_merkle_path::<commitment>())
     }
     fn context_new_coin_info<'a>(
         &self,

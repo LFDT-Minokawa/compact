@@ -127,88 +127,6 @@ impl From<LeafPreimage> for compact_runtime::Value {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct MerkleTreePath {
-    pub leaf: commitment,
-    pub path: [MerkleTreePathEntry; 32],
-}
-impl Aligned for MerkleTreePath {
-    fn alignment() -> Alignment {
-        Alignment::concat([&<commitment as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment()])
-    }
-}
-impl FieldRepr for MerkleTreePath {
-    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {
-        self.leaf.field_repr(writer);
-        for _e in self.path.iter() { _e.field_repr(writer); }
-    }
-    fn field_size(&self) -> usize {
-        self.leaf.field_size() + self.path.iter().map(|e| e.field_size()).sum::<usize>()
-    }
-}
-impl FromFieldRepr for MerkleTreePath {
-    const FIELD_SIZE: usize = <commitment as FromFieldRepr>::FIELD_SIZE + <MerkleTreePathEntry as FromFieldRepr>::FIELD_SIZE * 32;
-    fn from_field_repr(r: &[Fr]) -> Option<Self> {
-        if r.len() < Self::FIELD_SIZE { return None; }
-        let mut _offset = 0usize;
-        let leaf = <commitment as FromFieldRepr>::from_field_repr(&r[_offset.._offset + <commitment as FromFieldRepr>::FIELD_SIZE])?;
-        _offset += <commitment as FromFieldRepr>::FIELD_SIZE;
-        let path = compact_runtime::array_from_field_repr::<MerkleTreePathEntry, 32>(&r[_offset.._offset + <MerkleTreePathEntry as FromFieldRepr>::FIELD_SIZE * 32], <MerkleTreePathEntry as FromFieldRepr>::FIELD_SIZE)?;
-        _offset += <MerkleTreePathEntry as FromFieldRepr>::FIELD_SIZE * 32;
-        let _ = _offset;
-        Some(MerkleTreePath { leaf, path })
-    }
-}
-impl From<MerkleTreePath> for compact_runtime::Value {
-    fn from(s: MerkleTreePath) -> compact_runtime::Value {
-        let mut _v: Vec<compact_runtime::Value> = Vec::new();
-        _v.push(compact_runtime::Value::from(s.leaf));
-        for _e in s.path.iter() { _v.push(compact_runtime::Value::from(_e.clone())); }
-        compact_runtime::Value::concat(_v.iter())
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct MerkleTreePathEntry {
-    pub sibling: MerkleTreeDigest,
-    pub goes_left: bool,
-}
-impl Aligned for MerkleTreePathEntry {
-    fn alignment() -> Alignment {
-        Alignment::concat([&<MerkleTreeDigest as Aligned>::alignment(), &<bool as Aligned>::alignment()])
-    }
-}
-impl FieldRepr for MerkleTreePathEntry {
-    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {
-        self.sibling.field_repr(writer);
-        self.goes_left.field_repr(writer);
-    }
-    fn field_size(&self) -> usize {
-        self.sibling.field_size() + self.goes_left.field_size()
-    }
-}
-impl FromFieldRepr for MerkleTreePathEntry {
-    const FIELD_SIZE: usize = <MerkleTreeDigest as FromFieldRepr>::FIELD_SIZE + <bool as FromFieldRepr>::FIELD_SIZE;
-    fn from_field_repr(r: &[Fr]) -> Option<Self> {
-        if r.len() < Self::FIELD_SIZE { return None; }
-        let mut _offset = 0usize;
-        let sibling = <MerkleTreeDigest as FromFieldRepr>::from_field_repr(&r[_offset.._offset + <MerkleTreeDigest as FromFieldRepr>::FIELD_SIZE])?;
-        _offset += <MerkleTreeDigest as FromFieldRepr>::FIELD_SIZE;
-        let goes_left = <bool as FromFieldRepr>::from_field_repr(&r[_offset.._offset + <bool as FromFieldRepr>::FIELD_SIZE])?;
-        _offset += <bool as FromFieldRepr>::FIELD_SIZE;
-        let _ = _offset;
-        Some(MerkleTreePathEntry { sibling, goes_left })
-    }
-}
-impl From<MerkleTreePathEntry> for compact_runtime::Value {
-    fn from(s: MerkleTreePathEntry) -> compact_runtime::Value {
-        let mut _v: Vec<compact_runtime::Value> = Vec::new();
-        _v.push(compact_runtime::Value::from(s.sibling));
-        _v.push(compact_runtime::Value::from(s.goes_left));
-        compact_runtime::Value::concat(_v.iter())
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct public_key {
     pub zk: zk_public_key,
     pub encryption: Vec<u8>,
@@ -470,7 +388,7 @@ pub trait Witnesses<PS> {
     fn private_remove_coin<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>, coin: coin_info) -> (PS, ());
     fn private_zk_public_key<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>) -> (PS, zk_public_key);
     fn private_add_coin<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>, coin: coin_info) -> (PS, ());
-    fn context_path_of<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>, cm: commitment) -> (PS, MerkleTreePath);
+    fn context_path_of<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>, cm: commitment) -> (PS, compact_runtime::MerklePath<commitment>);
     fn context_new_coin_info<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>) -> (PS, coin_info);
     fn context_encrypt<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>, pk: Vec<u8>, coin: coin_info) -> (PS, Vec<u8>);
 }

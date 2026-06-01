@@ -159,8 +159,10 @@
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
            ;; L1: Maybe<T> resolves to the canonical struct exposed by
            ;; compact-runtime. We locate the `value` field's type and
-           ;; emit Maybe<<that-type>>. Other named structs lower to their
-           ;; bare name; their definitions are emitted by emit-type-decls
+           ;; emit Maybe<<that-type>>. Similarly MerkleTreePath<#n, T> /
+           ;; MerkleTreePathEntry lower to compact_runtime::MerklePath<T> /
+           ;; MerklePathEntry. Other named structs lower to their bare
+           ;; name; their definitions are emitted by emit-type-decls
            ;; (H5 / future tasks).
            (cond
              [(eq? struct-name 'Maybe)
@@ -169,6 +171,15 @@
                   [(null? names) "Maybe</* L1: no value field */>"]
                   [(eq? (car names) 'value) (format "Maybe<~a>" (type-rust (car types)))]
                   [else (loop (cdr names) (cdr types))]))]
+             [(eq? struct-name 'MerkleTreePath)
+              (let loop ([names elt-name*] [types type*])
+                (cond
+                  [(null? names) "compact_runtime::MerklePath</* no leaf field */>"]
+                  [(eq? (car names) 'leaf)
+                   (format "compact_runtime::MerklePath<~a>" (type-rust (car types)))]
+                  [else (loop (cdr names) (cdr types))]))]
+             [(eq? struct-name 'MerkleTreePathEntry)
+              "compact_runtime::MerklePathEntry"]
              [else (symbol->string struct-name)])]
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
            ;; Enum references in type position emit the bare name. The
@@ -713,6 +724,16 @@
                        ;; L1: Maybe<T> is provided by compact-runtime as a
                        ;; canonical generic struct — skip per-contract
                        ;; redefinition.
+                       (void)]
+                      [(eq? struct-name 'MerkleTreePath)
+                       ;; MerkleTreePath<#n, T> lowers to upstream
+                       ;; compact_runtime::MerklePath<T> — skip per-contract
+                       ;; emission.
+                       (void)]
+                      [(eq? struct-name 'MerkleTreePathEntry)
+                       ;; MerkleTreePathEntry lowers to upstream
+                       ;; compact_runtime::MerklePathEntry — skip per-contract
+                       ;; emission.
                        (void)]
                       [(not (null? tvar-name*))
                        ;; H5: generic structs not yet handled. Emit a TODO so

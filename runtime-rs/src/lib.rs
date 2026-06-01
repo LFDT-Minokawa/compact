@@ -115,9 +115,9 @@ pub use version::COMPACT_RUNTIME_VERSION;
 pub mod std_lib;
 pub use std_lib::{
     array_from_field_repr, bytes_from_field_repr, bytes_field_size, construct_jubjub_point,
-    degrade_to_transient, disclose, ec_add, ec_mul, ec_mul_generator, jubjub_point_x,
-    jubjub_point_y, merkle_tree_path_root, merkle_tree_path_root_no_leaf_hash, none, pad, some,
-    upgrade_from_transient, vec_u8_from_field_repr, Bytes, Maybe,
+    default_merkle_path, degrade_to_transient, disclose, ec_add, ec_mul, ec_mul_generator,
+    jubjub_point_x, jubjub_point_y, merkle_tree_path_root, merkle_tree_path_root_no_leaf_hash,
+    none, pad, some, upgrade_from_transient, vec_u8_from_field_repr, Bytes, Maybe,
 };
 
 pub mod builders;

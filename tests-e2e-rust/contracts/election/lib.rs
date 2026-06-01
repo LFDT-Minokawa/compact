@@ -118,88 +118,6 @@ impl From<LeafPreimage> for compact_runtime::Value {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct MerkleTreePath {
-    pub leaf: [u8; 32],
-    pub path: [MerkleTreePathEntry; 10],
-}
-impl Aligned for MerkleTreePath {
-    fn alignment() -> Alignment {
-        Alignment::concat([&<[u8; 32] as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment(), &<MerkleTreePathEntry as Aligned>::alignment()])
-    }
-}
-impl FieldRepr for MerkleTreePath {
-    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {
-        self.leaf.field_repr(writer);
-        for _e in self.path.iter() { _e.field_repr(writer); }
-    }
-    fn field_size(&self) -> usize {
-        self.leaf.field_size() + self.path.iter().map(|e| e.field_size()).sum::<usize>()
-    }
-}
-impl FromFieldRepr for MerkleTreePath {
-    const FIELD_SIZE: usize = <[u8; 32] as FromFieldRepr>::FIELD_SIZE + <MerkleTreePathEntry as FromFieldRepr>::FIELD_SIZE * 10;
-    fn from_field_repr(r: &[Fr]) -> Option<Self> {
-        if r.len() < Self::FIELD_SIZE { return None; }
-        let mut _offset = 0usize;
-        let leaf = <[u8; 32] as FromFieldRepr>::from_field_repr(&r[_offset.._offset + <[u8; 32] as FromFieldRepr>::FIELD_SIZE])?;
-        _offset += <[u8; 32] as FromFieldRepr>::FIELD_SIZE;
-        let path = compact_runtime::array_from_field_repr::<MerkleTreePathEntry, 10>(&r[_offset.._offset + <MerkleTreePathEntry as FromFieldRepr>::FIELD_SIZE * 10], <MerkleTreePathEntry as FromFieldRepr>::FIELD_SIZE)?;
-        _offset += <MerkleTreePathEntry as FromFieldRepr>::FIELD_SIZE * 10;
-        let _ = _offset;
-        Some(MerkleTreePath { leaf, path })
-    }
-}
-impl From<MerkleTreePath> for compact_runtime::Value {
-    fn from(s: MerkleTreePath) -> compact_runtime::Value {
-        let mut _v: Vec<compact_runtime::Value> = Vec::new();
-        _v.push(compact_runtime::Value::from(s.leaf));
-        for _e in s.path.iter() { _v.push(compact_runtime::Value::from(_e.clone())); }
-        compact_runtime::Value::concat(_v.iter())
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct MerkleTreePathEntry {
-    pub sibling: MerkleTreeDigest,
-    pub goes_left: bool,
-}
-impl Aligned for MerkleTreePathEntry {
-    fn alignment() -> Alignment {
-        Alignment::concat([&<MerkleTreeDigest as Aligned>::alignment(), &<bool as Aligned>::alignment()])
-    }
-}
-impl FieldRepr for MerkleTreePathEntry {
-    fn field_repr<W: MemWrite<Fr>>(&self, writer: &mut W) {
-        self.sibling.field_repr(writer);
-        self.goes_left.field_repr(writer);
-    }
-    fn field_size(&self) -> usize {
-        self.sibling.field_size() + self.goes_left.field_size()
-    }
-}
-impl FromFieldRepr for MerkleTreePathEntry {
-    const FIELD_SIZE: usize = <MerkleTreeDigest as FromFieldRepr>::FIELD_SIZE + <bool as FromFieldRepr>::FIELD_SIZE;
-    fn from_field_repr(r: &[Fr]) -> Option<Self> {
-        if r.len() < Self::FIELD_SIZE { return None; }
-        let mut _offset = 0usize;
-        let sibling = <MerkleTreeDigest as FromFieldRepr>::from_field_repr(&r[_offset.._offset + <MerkleTreeDigest as FromFieldRepr>::FIELD_SIZE])?;
-        _offset += <MerkleTreeDigest as FromFieldRepr>::FIELD_SIZE;
-        let goes_left = <bool as FromFieldRepr>::from_field_repr(&r[_offset.._offset + <bool as FromFieldRepr>::FIELD_SIZE])?;
-        _offset += <bool as FromFieldRepr>::FIELD_SIZE;
-        let _ = _offset;
-        Some(MerkleTreePathEntry { sibling, goes_left })
-    }
-}
-impl From<MerkleTreePathEntry> for compact_runtime::Value {
-    fn from(s: MerkleTreePathEntry) -> compact_runtime::Value {
-        let mut _v: Vec<compact_runtime::Value> = Vec::new();
-        _v.push(compact_runtime::Value::from(s.sibling));
-        _v.push(compact_runtime::Value::from(s.goes_left));
-        compact_runtime::Value::concat(_v.iter())
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum PrivateState {
@@ -279,8 +197,8 @@ pub trait Witnesses<PS> {
     fn private_state_advance<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>) -> (PS, ());
     fn private_vote_record<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>, ballot: PermissibleVotes) -> (PS, ());
     fn private_vote<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>) -> (PS, PermissibleVotes);
-    fn context_eligible_voters_path_of<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>, pk: [u8; 32]) -> (PS, Maybe<MerkleTreePath>);
-    fn context_committed_votes_path_of<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>, cm: [u8; 32]) -> (PS, Maybe<MerkleTreePath>);
+    fn context_eligible_voters_path_of<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>, pk: [u8; 32]) -> (PS, Maybe<compact_runtime::MerklePath<[u8; 32]>>);
+    fn context_committed_votes_path_of<'a>(&self, ctx: &WitnessContext<Ledger<'a>, PS>, cm: [u8; 32]) -> (PS, Maybe<compact_runtime::MerklePath<[u8; 32]>>);
 }
 
 pub struct Contract<PS, W = NoWitnesses>

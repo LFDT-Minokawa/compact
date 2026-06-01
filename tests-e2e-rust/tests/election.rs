@@ -15,7 +15,7 @@
 //   - committed / revealed: Set<Bytes<32>>       (empty Map)
 
 use compact_contract_election::{
-    Contract, Ledger, MerkleTreePath, PermissibleVotes, PrivateState, Witnesses,
+    Contract, Ledger, PermissibleVotes, PrivateState, Witnesses,
 };
 use compact_runtime::*;
 use midnight_serialize::tagged_serialize;
@@ -63,15 +63,31 @@ impl Witnesses<()> for ElectionWitnesses {
         &self,
         _ctx: &WitnessContext<Ledger<'a>, ()>,
         _pk: [u8; 32],
-    ) -> ((), Maybe<MerkleTreePath>) {
-        ((), Maybe::<MerkleTreePath>::default())
+    ) -> ((), Maybe<compact_runtime::MerklePath<[u8; 32]>>) {
+        // Upstream MerklePath<T> doesn't impl Default, so hand-construct a
+        // placeholder via `default_merkle_path`. This witness is never invoked
+        // by initial_state(), so the value is unused — what matters is the
+        // type-correct signature.
+        (
+            (),
+            Maybe {
+                is_some: false,
+                value: compact_runtime::default_merkle_path::<[u8; 32]>(),
+            },
+        )
     }
     fn context_committed_votes_path_of<'a>(
         &self,
         _ctx: &WitnessContext<Ledger<'a>, ()>,
         _cm: [u8; 32],
-    ) -> ((), Maybe<MerkleTreePath>) {
-        ((), Maybe::<MerkleTreePath>::default())
+    ) -> ((), Maybe<compact_runtime::MerklePath<[u8; 32]>>) {
+        (
+            (),
+            Maybe {
+                is_some: false,
+                value: compact_runtime::default_merkle_path::<[u8; 32]>(),
+            },
+        )
     }
 }
 
