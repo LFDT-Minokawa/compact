@@ -128,24 +128,51 @@ impl ZerocashTsReferenceState {
     }
 }
 
-/// Fixture shape for election.compact's initial_state() byte-parity test
-/// (F2.1 of the M3.5 plan). election has an implicit constructor, so the
-/// fixture only carries the post-init snapshot.
+/// Fixture shape for election.compact's byte-parity tests (F2.1 + F2.2 of
+/// the M3.5 plan).
+///
+/// F2.1 captures only `after_init` (the implicit constructor with no body).
+/// F2.2 adds owner-driven impure circuits: `set_topic`, `advance`,
+/// `add_voter`, plus `vote$commit` and `vote$reveal`. Because
+/// election.compact lacks a source-level constructor, the implicit
+/// `initial_state` seeds `authority` to `[0u8; 32]` and every
+/// owner-driven step asserts `public_key(sk) == authority`, which the
+/// witness's fixed `sk` cannot satisfy. Each post-init step therefore
+/// records `error` rather than `state_hex`, and the Rust tests are
+/// `#[ignore]`'d with diagnostic gating.
+///
+/// Either field may be absent if the TS driver threw before producing it.
 #[derive(Deserialize, Debug)]
 pub struct ElectionTsReferenceState {
     #[serde(rename = "afterInit")]
     pub after_init: ElectionStepSnapshot,
+    #[serde(rename = "afterSetTopic", default)]
+    pub after_set_topic: Option<ElectionStepSnapshot>,
+    #[serde(rename = "afterAdvance", default)]
+    pub after_advance: Option<ElectionStepSnapshot>,
+    #[serde(rename = "afterAddVoter", default)]
+    pub after_add_voter: Option<ElectionStepSnapshot>,
+    #[serde(rename = "afterVoteCommit", default)]
+    pub after_vote_commit: Option<ElectionStepSnapshot>,
+    #[serde(rename = "afterVoteReveal", default)]
+    pub after_vote_reveal: Option<ElectionStepSnapshot>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct ElectionStepSnapshot {
-    #[serde(rename = "stateHex")]
-    pub state_hex: String,
+    #[serde(rename = "stateHex", default)]
+    pub state_hex: Option<String>,
+    #[serde(default)]
+    pub error: Option<String>,
 }
 
 impl ElectionStepSnapshot {
     pub fn state_bytes(&self) -> Vec<u8> {
-        hex::decode(&self.state_hex).expect("decode hex")
+        let hex = self
+            .state_hex
+            .as_ref()
+            .expect("snapshot has no stateHex (driver errored)");
+        hex::decode(hex).expect("decode hex")
     }
 }
 
