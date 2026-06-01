@@ -583,15 +583,15 @@ pub mod pure_circuits {
     use super::*;
 
     pub(crate) fn derive_nullifier(coin: coin_info, sk: zk_secret_key) -> nullifier {
-        unimplemented!("M3-I3: pure circuit body emission for derive_nullifier")
+        nullifier { bytes: compact_runtime::std_lib::persistent_hash_aligned(&[compact_runtime::AlignedValue::from([108u8, 97, 114, 101, 115, 58, 122, 101, 114, 111, 99, 97, 115, 104, 58, 99, 111, 109, 109, 105, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), compact_runtime::AlignedValue::from(coin.nonce.bytes), compact_runtime::AlignedValue::from(coin.opening.bytes), compact_runtime::AlignedValue::from(sk.bytes)]) }
     }
 
     pub(crate) fn derive_zk_public_key(sk: zk_secret_key) -> zk_public_key {
-        unimplemented!("M3-I3: pure circuit body emission for derive_zk_public_key")
+        zk_public_key { bytes: compact_runtime::std_lib::persistent_hash_aligned(&[compact_runtime::AlignedValue::from(sk.bytes)]) }
     }
 
     pub(crate) fn commitment_from_coin_info(coin: coin_info, pk: zk_public_key) -> commitment {
-        unimplemented!("M3-I3: pure circuit body emission for commitment_from_coin_info")
+        commitment { bytes: compact_runtime::std_lib::persistent_hash_aligned(&[compact_runtime::AlignedValue::from([108u8, 97, 114, 101, 115, 58, 122, 101, 114, 111, 99, 97, 115, 104, 58, 99, 111, 109, 109, 105, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), compact_runtime::AlignedValue::from(coin.nonce.bytes), compact_runtime::AlignedValue::from(coin.opening.bytes), compact_runtime::AlignedValue::from(pk.bytes)]) }
     }
 
 }

@@ -1067,6 +1067,15 @@
                          (if t
                              (format "::<~a>" (type-rust t))
                              ""))))]
+            [(eq? sym 'merkleTreePathRoot)
+             ;; `merkleTreePathRoot<#n, T>(path) -> MerkleTreeDigest`. Rust
+             ;; wrapper takes `MerklePath<T>` and infers T from the arg, so
+             ;; no turbofish needed.
+             "compact_runtime::std_lib::merkle_tree_path_root"]
+            [(eq? sym 'merkleTreePathRootNoLeafHash)
+             ;; `merkleTreePathRootNoLeafHash<#n>(path) -> MerkleTreeDigest`.
+             ;; Leaf is always `Bytes<32>`; wrapper has no generics.
+             "compact_runtime::std_lib::merkle_tree_path_root_no_leaf_hash"]
             [else #f])))
 
       ;; circuit-return-type: pull the declared return type out of a
