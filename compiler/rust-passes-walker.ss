@@ -1038,6 +1038,31 @@
                                           (expr-supported?
                                             e native-id-ht witness-id-ht circuit-id-ht))
                                         body-exprs))))))]
+              ;; Iter 5: terminal `(statement-expression (fold ...))`
+              ;; from a desugared `for (const _ of <static-len iterable>)
+              ;; { body }`. Same MVP constraints as Iter 4's for-range —
+              ;; body must be a single non-write public-ledger ADT
+              ;; update call with a literal-index path. The loop var is
+              ;; not substituted; bodies that reference the element
+              ;; (e.g. `mp.insert(elt)`) would surface as an unresolved
+              ;; var-ref and fail expr-supported?.
+              [(and (null? (cdr stmts))
+                    (stmt->for-iter (car stmts))) =>
+               (lambda (fi)
+                 (let* ([body-stmt (caddr fi)]
+                        [body-call (branch->single-pl-call body-stmt)])
+                   (and body-call
+                        (not (stmt->public-ledger-write body-stmt))
+                        (let ([body-path (caddr body-call)]
+                              [body-exprs (cadddr body-call)])
+                          (and (fx= (length body-path) 1)
+                               (nanopass-case (Ltypescript Path-Element) (car body-path)
+                                 [,path-index #t]
+                                 [else #f])
+                               (for-all (lambda (e)
+                                          (expr-supported?
+                                            e native-id-ht witness-id-ht circuit-id-ht))
+                                        body-exprs))))))]
               [else
                (let ([w (stmt->public-ledger-write (car stmts))])
                  (and w
@@ -1236,6 +1261,30 @@
                        [body-parts (caddr bundle)])
                    (emit-for-range-terminal
                      lo hi
+                     (car body-parts) (cadr body-parts)
+                     (caddr body-parts) (cadddr body-parts)
+                     local-binds mode witness-emitted? (reverse pre-lines)
+                     native-id-ht witness-id-ht circuit-id-ht)))]
+              ;; Iter 5: terminal `(statement-expression (fold ...))`
+              ;; from a desugared `for (const _ of <static-len iterable>)
+              ;; { body }`. Unroll `len` iterations of the body's builder
+              ;; lines into a single OpProgramVerify chain — same shape
+              ;; as Iter 4's for-range path, with `len` taken from the
+              ;; fold IR node and the loop var unsubstituted.
+              [(and (null? (cdr stmts))
+                    (null? writes)
+                    (let ([fi (stmt->for-iter (car stmts))])
+                      (and fi
+                           (let ([body-parts
+                                  (branch->single-pl-call (caddr fi))])
+                             (and body-parts
+                                  (not (stmt->public-ledger-write (caddr fi)))
+                                  (list (car fi) body-parts)))))) =>
+               (lambda (bundle)
+                 (let ([len (car bundle)]
+                       [body-parts (cadr bundle)])
+                   (emit-for-iter-terminal
+                     len
                      (car body-parts) (cadr body-parts)
                      (caddr body-parts) (cadddr body-parts)
                      local-binds mode witness-emitted? (reverse pre-lines)
@@ -1684,6 +1733,97 @@
              (and lo hi (list var-name lo hi stmt^)))]
           [else #f]))
 
+      ;; Iter 5: detect a Compact `for (const _ of <static-len iterable>)
+      ;; { body }` after frontend desugaring. The Ltypescript IR has
+      ;; already lowered the `for...of` form to a `fold`:
+      ;;   (statement-expression
+      ;;     (fold src len (circuit ((acc-var atype) (elt-var etype)) atype
+      ;;                            (seq body-stmt acc-var-ref))
+      ;;           init-expr
+      ;;           map-arg))
+      ;; with `len` known statically. We accept the shape only when the
+      ;; body's accumulator is threaded unchanged (the trailing
+      ;; statement-expression is a var-ref to `acc-var`), so the fold
+      ;; degenerates into N side-effecting body executions — the same
+      ;; semantics Iter 4's for-range covers.
+      ;;
+      ;; Returns (list len elt-var body-stmt) on match, #f otherwise.
+      ;; `elt-var` is the loop-variable name (unused in Iter 5's MVP —
+      ;; bodies referencing it bail out via fold-body->pl-call's reuse
+      ;; of branch->single-pl-call, which doesn't substitute `elt-var`).
+      (define (stmt->for-iter stmt)
+        (nanopass-case (Ltypescript Statement) stmt
+          [(statement-expression ,expr)
+           (nanopass-case (Ltypescript Expression) expr
+             [(fold ,src ,len ,fun ,expr0 ,map-arg ,map-arg* ...)
+              ;; Single map-arg only — multi-zip folds (multiple
+              ;; iterables) aren't covered by Iter 5's MVP.
+              (and (null? map-arg*)
+                   (nanopass-case (Ltypescript Function) fun
+                     [(circuit (,arg* ...) ,type ,stmt^)
+                      ;; Expect exactly two args: (acc, elt).
+                      (cond
+                        [(not (fx= (length arg*) 2)) #f]
+                        [else
+                         (let ([acc-arg (car arg*)]
+                               [elt-arg (cadr arg*)])
+                           (nanopass-case (Ltypescript Argument) acc-arg
+                             [(,var-name ,type)
+                              (let ([acc-name var-name])
+                                (nanopass-case (Ltypescript Argument) elt-arg
+                                  [(,var-name ,type)
+                                   (let ([elt-name var-name]
+                                         [stripped
+                                          (fold-body-strip-acc-return
+                                            stmt^ acc-name)])
+                                     (and stripped
+                                          (list len elt-name stripped)))]))]))])]
+                     [else #f]))]
+             [else #f])]
+          [else #f]))
+
+      ;; fold-body-strip-acc-return: given a fold body (Statement) and
+      ;; the accumulator's var-name, peel off a trailing
+      ;; `(statement-expression (var-ref acc-name))` that the desugar
+      ;; emits to thread the accumulator through unchanged. Returns the
+      ;; body Statement with that tail removed, or #f if no such tail.
+      ;; The returned Statement is what we feed to branch->single-pl-call
+      ;; to extract the side-effecting public-ledger call.
+      (define (fold-body-strip-acc-return stmt acc-name)
+        (let ([flat (stmt-flatten stmt)])
+          (cond
+            [(null? flat) #f]
+            [else
+             ;; Last element should be a statement-expression wrapping a
+             ;; var-ref to acc-name. Drop it and rebuild a seq from the
+             ;; remaining stmts.
+             (let ([rev (reverse flat)])
+               (let ([tail (car rev)]
+                     [rest (reverse (cdr rev))])
+                 (and (stmt-is-var-ref? tail acc-name)
+                      (cond
+                        [(null? rest) #f]
+                        [(null? (cdr rest)) (car rest)]
+                        [else
+                         ;; rest = (stmt0 stmt1 ... stmtN). seq's shape is
+                         ;; (seq src stmt* ... stmt) — last in tail position.
+                         (let ([rest-rev (reverse rest)])
+                           (let ([last-stmt (car rest-rev)]
+                                 [stmt* (reverse (cdr rest-rev))])
+                             (with-output-language (Ltypescript Statement)
+                               `(seq #f ,stmt* ... ,last-stmt))))]))))])))
+
+      ;; stmt-is-var-ref?: detect `(statement-expression (var-ref name))`
+      ;; matching `target-name`.
+      (define (stmt-is-var-ref? stmt target-name)
+        (nanopass-case (Ltypescript Statement) stmt
+          [(statement-expression ,expr)
+           (nanopass-case (Ltypescript Expression) expr
+             [(var-ref ,src ,var-name)
+              (eq? (id-sym var-name) (id-sym target-name))]
+             [else #f])]
+          [else #f]))
+
       ;; branch->single-pl-call: walk a single branch of an if-then-else
       ;; and extract a single `(public-ledger ...)` ADT-update call,
       ;; possibly preceded by safe-cast `const` bindings (which the
@@ -2070,6 +2210,24 @@
       ;; reference `i` (e.g. `mp.insert(i)`) currently fall back to the
       ;; emitter's unimplemented path. Returns #t on success, #f
       ;; otherwise so the caller falls back.
+      ;; emit-for-iter-terminal: Iter 5 — emit a terminal
+      ;; `(statement-expression (fold ...))` desugared from a Compact
+      ;; `for (const _ of <static-len iterable>) { body }`. Unrolls the
+      ;; body's builder lines `len` times, mirroring emit-for-range-
+      ;; terminal's emission shape. Returns #t on success, #f
+      ;; otherwise. The element variable is not substituted into the
+      ;; body — bodies that reference it would have surfaced as an
+      ;; unresolved var-ref during compute-pl-builder-lines and we'd
+      ;; return #f.
+      (define (emit-for-iter-terminal
+                len
+                src adt-op path-elt* expr* local-binds mode witness-emitted?
+                pre-lines native-id-ht witness-id-ht circuit-id-ht)
+        (emit-for-range-terminal
+          0 len
+          src adt-op path-elt* expr* local-binds mode witness-emitted?
+          pre-lines native-id-ht witness-id-ht circuit-id-ht))
+
       (define (emit-for-range-terminal
                 lo hi
                 src adt-op path-elt* expr* local-binds mode witness-emitted?

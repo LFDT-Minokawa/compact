@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Iter 5 fixture: for-iterable loop emission. The constructor seeds a
+// Counter by iterating over a literal array (constant-length iterable),
+// ignoring the loop variable in the body. The exported `ping` circuit
+// is a no-op (.increment(0)) — present only to satisfy the
+// "at least one exported circuit" invariant.
+
+import CompactStandardLibrary;
+
+export ledger c: Counter;
+
+constructor() {
+  for (const _ of [1 as Uint<64>, 2, 3, 4, 5]) {
+    c.increment(1);
+  }
+}
+
+export circuit ping(): [] {
+  c.increment(0);
+}

@@ -33,6 +33,7 @@ members = [
     "tests-e2e-rust/contracts/set-fixture",
     "tests-e2e-rust/contracts/list-fixture",
     "tests-e2e-rust/contracts/for-range-fixture",
+    "tests-e2e-rust/contracts/for-iter-fixture",
 ]
 
 [workspace.dependencies]
