@@ -28,7 +28,7 @@
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
           Lexpr unparse-Lexpr Lexpr-pretty-formats
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
-          native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
+          native-entry? make-native-entry native-entry-function native-entry-rust-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
@@ -395,7 +395,11 @@
 
   (define-record-type native-entry
     (nongenerative)
-    (fields function class disclosure* maybe-type-param*))
+    ;; `function`      — the TS-side binding string (e.g. "__compactRuntime.persistentHash").
+    ;; `rust-function` — the Rust-side binding string (e.g. "compact_runtime::persistent_hash"),
+    ;;                   or #f if not yet mapped. Used by rust-passes.ss when emitting native
+    ;;                   call sites. See M3 plan task L2.
+    (fields function rust-function class disclosure* maybe-type-param*))
 
   (define-language/pretty Lpreexpand (extends Lnoandornot)
     (terminals

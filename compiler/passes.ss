@@ -34,6 +34,7 @@
           (analysis-passes)
           (save-contract-info-passes)
           (typescript-passes)
+          (rust-passes)
           (circuit-passes)
           (zkir-passes)
           (zkir-v3-passes))
@@ -53,6 +54,8 @@
        (unless (string? output-directory-pathname) (internal-errorf 'generate-everything "invalid pathname ~s" output-directory-pathname))
        (when final-pass (unless (symbol? final-pass) (internal-errorf 'generate-everything "invalid final-pass ~s" final-pass)))
        (when test-hook (unless (procedure? test-hook) (internal-errorf 'generate-everything "invalid test-hook ~s" test-hook)))
+       (when (and (skip-ts) (not (emit-rust)))
+         (external-errorf "--skip-ts requires --rust (otherwise no contract code would be emitted)"))
        (parameterize ([source-directory (path-parent pathname)]
                       [source-file-name (path-last (path-root pathname))]
                       [target-directory output-directory-pathname]
@@ -167,12 +170,35 @@
                                 (zkir-warning-issued #t)
                                 (fprintf (console-error-port)
                                          "Warning: ZKIR not found; skipping final circuit compilation.\n"))))
-                          (with-target-ports
-                           '((contract.js . "contract/index.js")
-                             (contract.d.ts . "contract/index.d.ts")
-                             (contract.js.map . "contract/index.js.map"))
-                           (parameterize ([proof-circuit-names proof-circuit-name*])
-                             (run-passes typescript-passes analyzed-ir)))
+                          ;; Run the Lnodisclose -> Ltypescript prepare pass once;
+                          ;; share the resulting Ltypescript IR between the TS and Rust emitters.
+                          (let ([ltypescript-ir (run-passes prepare-for-typescript-passes analyzed-ir)])
+                            (unless (skip-ts)
+                              (with-target-ports
+                               '((contract.js . "contract/index.js")
+                                 (contract.d.ts . "contract/index.d.ts")
+                                 (contract.js.map . "contract/index.js.map"))
+                               (parameterize ([proof-circuit-names proof-circuit-name*])
+                                 (run-passes print-typescript-passes ltypescript-ir))))
+                            (when (emit-rust)
+                              (with-target-ports
+                                '((contract.rs . "contract/lib.rs")
+                                  (contract-cargo.toml . "contract/Cargo.toml"))
+                                (run-passes rust-passes ltypescript-ir))
+                              ;; Post-emit: pipe lib.rs through rustfmt so
+                              ;; the output is style-clean and stays clean
+                              ;; against `cargo fmt --check`. Silent no-op
+                              ;; if rustfmt isn't on PATH — production
+                              ;; toolchains include it via rustup, and
+                              ;; missing rustfmt is a soft-fail (we'd
+                              ;; rather emit unformatted code than fail
+                              ;; the build).
+                              (let ([lib-rs (format "~a/contract/lib.rs"
+                                                    output-directory-pathname)])
+                                (when (and (zero? (system "command -v rustfmt > /dev/null 2>&1"))
+                                           (file-exists? lib-rs))
+                                  (system (format "rustfmt --edition 2021 ~a > /dev/null 2>&1"
+                                                  lib-rs)))))) ; closes let, when-emit-rust
                           (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass)))]))))))))]))
 
   (define-pass extract-circuit-names : Lflattened (ir) -> * (ls)

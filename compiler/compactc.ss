@@ -79,6 +79,14 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --trace-passes causes the compiler to print tracing information that is
     generally useful only to compiler developers.
+
+  --rust causes the compiler to additionally emit a Rust crate (contract/lib.rs)
+    alongside the TypeScript output. Generated Rust depends on the `compact-runtime`
+    crate. See docs/superpowers/specs/2026-05-25-rust-codegen-design.md for details.
+
+  --skip-ts causes the compiler to skip emitting TypeScript output (contract/index.{js,d.ts,js.map}).
+    Must be combined with --rust; otherwise the compiler has no contract-code target.
+    ZKIR and proving keys are still generated unless --skip-zk is also set.
 "))
 
 (usage "<flag> ... <source-pathname> <target-directory-pathname>")
@@ -97,7 +105,9 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--compact-path) (string search-list)]
              [(--trace-search)]
              [(--trace-passes)]
-             [(--feature-zkir-v3)])
+             [(--feature-zkir-v3)]
+             [(--rust)]
+             [(--skip-ts)])
       (string source-pathname)
       (string target-directory-pathname))
      (check-pathname source-pathname)
@@ -106,6 +116,8 @@ The following flags, if present, affect the compiler's behavior as follows:
                     [skip-zk ?--skip-zk]
                     [no-communications-commitment ?--no-communications-commitment]
                     [feature-zkir-v3 ?--feature-zkir-v3]
+                    [emit-rust ?--rust]
+                    [skip-ts ?--skip-ts]
                     [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
                     [trace-search ?--trace-search])
        (when source-root (register-source-root! source-root))
@@ -116,7 +128,9 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--language-version) $ (begin (print-language-version) (exit))]
              [(--ledger-version) $ (begin (print-ledger-version ?--feature-zkir-v3) (exit))]
              [(--runtime-version) $ (begin (print-runtime-version) (exit))]
-             [(--feature-zkir-v3)])
+             [(--feature-zkir-v3)]
+             [(--rust)]
+             [(--skip-ts)])
       (string arg) ...)
      (print-usage #t)
      (exit 1)]))

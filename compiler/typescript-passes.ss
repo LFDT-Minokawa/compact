@@ -16,7 +16,9 @@
 ;;; limitations under the License.
 
 (library (typescript-passes)
-  (export typescript-passes)
+  (export typescript-passes
+          prepare-for-typescript-passes
+          print-typescript-passes)
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
@@ -3403,5 +3405,13 @@
 
   (define-passes typescript-passes
     (prepare-for-typescript          Ltypescript)
+    (print-typescript                Ltypescript))
+
+  ;; Sub-pass lists exposed for callers that need to share the
+  ;; Lnodisclose -> Ltypescript prepare step across multiple emitters
+  ;; (e.g. emit-typescript + emit-rust running over the same Ltypescript IR).
+  (define-passes prepare-for-typescript-passes
+    (prepare-for-typescript          Ltypescript))
+  (define-passes print-typescript-passes
     (print-typescript                Ltypescript))
 )

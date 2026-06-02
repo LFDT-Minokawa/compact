@@ -41,4 +41,10 @@
 
   ; feature flags
   (export-parameter feature-zkir-v3 #f)
+
+  ; Rust emit (M2)
+  (export-parameter emit-rust #f)
+
+  ; Skip TypeScript emit (companion to --rust for Rust-only output)
+  (export-parameter skip-ts #f)
 )
