@@ -97,6 +97,38 @@
       (define current-ledger-field-types
         (make-parameter #f))
 
+      ;; current-arith-suffix: Rust unsigned-type suffix ("u8" / "u16" /
+      ;; "u32" / "u64" / "u128") that wrapping_add / wrapping_sub /
+      ;; wrapping_mul operands should carry on their integer-literal
+      ;; receivers. Set by expr-rust's downcast-unsigned clause before
+      ;; recursing into the wrapped arithmetic so Rust resolves the
+      ;; inherent method on a concrete type rather than rejecting the
+      ;; call as "ambiguous numeric type". `#f` outside arithmetic
+      ;; contexts.
+      ;;
+      ;; Iter 7 follow-up: introduced to support non-identity lambdas
+      ;; in `map()` (e.g. `(x * 2) as Uint<64>` lowering).
+      (define current-arith-suffix
+        (make-parameter #f))
+
+      ;; integer-literal-rendering?: returns #t when `s` is a string of
+      ;; one or more decimal digits (with no suffix, no operator chars,
+      ;; no parens). Used by arith-operand-rust to decide whether
+      ;; appending a `u<width>` type suffix is safe — variable refs and
+      ;; method-call expressions would be corrupted by suffix
+      ;; concatenation, but a bare literal token can carry the suffix
+      ;; directly (`1` + `u64` = `1u64`).
+      (define (integer-literal-rendering? s)
+        (and (string? s)
+             (fx> (string-length s) 0)
+             (let loop ([i 0])
+               (cond
+                 [(fx= i (string-length s)) #t]
+                 [else
+                  (let ([c (string-ref s i)])
+                    (and (char>=? c #\0) (char<=? c #\9)
+                         (loop (fx+ i 1))))]))))
+
       ;; build-ledger-field-type-ht: given the program's ledger-field*
       ;; Program-Element list, build an eqv-hashtable mapping each
       ;; binding's path-index (number) to its binding Type. Mirrors

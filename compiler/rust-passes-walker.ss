@@ -304,7 +304,17 @@
                ;; supports, so a missing suffix here surfaces as a
                ;; type-check error in the generated code rather than
                ;; silently producing wrong Rust).
-               [first-suffix (or (tunsigned-rust-suffix ret-type) "")])
+               ;;
+               ;; Iter 7 follow-up: non-identity bodies already end in a
+               ;; `... as u<width>` from the body's `downcast-unsigned`
+               ;; rendering, so they don't need (and would be broken by)
+               ;; the leading-element suffix. We detect this by
+               ;; inspecting the body shape: identity bodies get the
+               ;; suffix; bodies with arithmetic / downcast typing
+               ;; suppress it.
+               [first-suffix (if (lambda-body-identity? body param-name)
+                                 (or (tunsigned-rust-suffix ret-type) "")
+                                 "")])
           (cond
             [(or (not literals) (not param-name) (not body))
              (rust-feature-error src 'map-mvp-shape
@@ -358,14 +368,23 @@
       (define (tunsigned-rust-suffix type)
         (nanopass-case (Ltypescript Type) type
           [(tunsigned ,src ,nat)
-           (cond
-             [(= nat 255) "u8"]
-             [(= nat 65535) "u16"]
-             [(= nat 4294967295) "u32"]
-             [(= nat 18446744073709551615) "u64"]
-             [(= nat 340282366920938463463374607431768211455) "u128"]
-             [else #f])]
+           (tunsigned-rust-suffix-for-bound nat)]
           [(talias ,src ,nominal? ,type-name ,type) (tunsigned-rust-suffix type)]
+          [else #f]))
+
+      ;; tunsigned-rust-suffix-for-bound: given a raw unsigned upper bound
+      ;; (e.g. 18446744073709551615 = u64::MAX), return the matching Rust
+      ;; integer suffix string ("u8" / "u16" / "u32" / "u64" / "u128").
+      ;; Returns #f for any width outside the standard ladder — Iter 7
+      ;; follow-up's `downcast-unsigned` clause uses this to translate the
+      ;; downcast's target nat into the corresponding `as uN` cast.
+      (define (tunsigned-rust-suffix-for-bound nat)
+        (cond
+          [(= nat 255) "u8"]
+          [(= nat 65535) "u16"]
+          [(= nat 4294967295) "u32"]
+          [(= nat 18446744073709551615) "u64"]
+          [(= nat 340282366920938463463374607431768211455) "u128"]
           [else #f]))
 
       ;; arg-rust-clone-if-var: render a call argument expression and
@@ -674,18 +693,59 @@
              (and (null? map-arg*)
                   (map-expr-mvp-supported? src fun map-arg
                                            native-id-ht witness-id-ht circuit-id-ht))]
+            [(+ ,src ,mbits ,expr1 ,expr2)
+             ;; Iter 7 follow-up: unsigned addition in expression position
+             ;; (e.g. inside a map() lambda body). We render via Rust's
+             ;; wrapping_add — the Compact typer wraps non-trivial
+             ;; arithmetic in a downcast-unsigned which checks the upper
+             ;; bound, so wrapping semantics match the bounded-Uint
+             ;; contract. Only the non-modular shape (`mbits=#f`) is
+             ;; supported here — Field arithmetic (with mbits) is
+             ;; deferred.
+             (and (not mbits)
+                  (expr-supported? expr1 native-id-ht
+                                   witness-id-ht circuit-id-ht)
+                  (expr-supported? expr2 native-id-ht
+                                   witness-id-ht circuit-id-ht))]
+            [(- ,src ,mbits ,expr1 ,expr2)
+             ;; Iter 7 follow-up: unsigned subtraction. See the `+` clause
+             ;; above for the wrapping-vs-checked rationale.
+             (and (not mbits)
+                  (expr-supported? expr1 native-id-ht
+                                   witness-id-ht circuit-id-ht)
+                  (expr-supported? expr2 native-id-ht
+                                   witness-id-ht circuit-id-ht))]
+            [(* ,src ,mbits ,expr1 ,expr2)
+             ;; Iter 7 follow-up: unsigned multiplication.
+             (and (not mbits)
+                  (expr-supported? expr1 native-id-ht
+                                   witness-id-ht circuit-id-ht)
+                  (expr-supported? expr2 native-id-ht
+                                   witness-id-ht circuit-id-ht))]
+            [(downcast-unsigned ,src ,nat? ,nat ,expr)
+             ;; Iter 7 follow-up: the typer inserts `downcast-unsigned`
+             ;; around arithmetic results whose declared output type is
+             ;; narrower than the natural product/sum width (e.g.
+             ;; `(x * 2) as Uint<64>`). The downcast's target width
+             ;; (`nat`, an unsigned upper bound) drives the Rust `as uN`
+             ;; suffix in expr-rust. Only widths on the standard
+             ;; 8/16/32/64/128 ladder are supported; other widths fall
+             ;; through to #f.
+             (and (tunsigned-rust-suffix-for-bound nat)
+                  (expr-supported? expr native-id-ht
+                                   witness-id-ht circuit-id-ht))]
             [else #f])))
 
-      ;; map-expr-mvp-supported?: Iter 7 narrow-shape predicate for a
-      ;; `(map ,src ,len ,fun ,map-arg)` expression. Accepts only the
+      ;; map-expr-mvp-supported?: narrow-shape predicate for a
+      ;; `(map ,src ,len ,fun ,map-arg)` expression. Accepts the
       ;; literal-iterable MVP: `fun` is a bare-lambda over a single
       ;; param, iterable peels to a static `(tuple ...)` /
       ;; `(vector ...)` literal whose elements survive
-      ;; `tuple-arg->literal`, and the lambda body is a `(var-ref
-      ;; param)` (identity). Non-identity bodies (e.g. `x * 2`) require
-      ;; additional emission infrastructure for `(* ...)`,
-      ;; `downcast-unsigned`, etc.; we defer those to a follow-up
-      ;; iteration.
+      ;; `tuple-arg->literal`, and the lambda body is renderable by
+      ;; expr-rust under per-iteration substitution. Iter 7 shipped the
+      ;; identity-body case; the follow-up adds arithmetic + downcast
+      ;; bodies (`(x * 2) as Uint<64>` and friends) via
+      ;; lambda-body-supported?.
       ;;
       ;; Returns #t on a supported shape, #f otherwise. The caller
       ;; (expr-supported?) is the gate; ctor-expr-rust's matching
@@ -700,7 +760,10 @@
                iter-expr
                (let ([literals (iterable-expr->literals iter-expr)])
                  (and literals
-                      (lambda-body-identity? body param-name))))))
+                      (lambda-body-supported? body param-name
+                                              native-id-ht
+                                              witness-id-ht
+                                              circuit-id-ht))))))
 
       ;; lambda-param-name: from a Function IR node of shape
       ;; `(circuit src ((var-name type)) ret-type expr)` (single-param
@@ -740,13 +803,52 @@
 
       ;; lambda-body-identity?: returns #t when the lambda body is a
       ;; `(var-ref ,param-name)` (possibly with safe-cast wrappers).
-      ;; Iter 7 ships only the identity-lambda case; arithmetic /
-      ;; downcast bodies are deferred.
+      ;; Retained for callers that specifically want to detect the
+      ;; identity shape; the broader map-MVP gate uses
+      ;; lambda-body-supported? below.
       (define (lambda-body-identity? body param-name)
         (let ([e (expr-strip-cast body)])
           (nanopass-case (Ltypescript Expression) e
             [(var-ref ,src ,var-name)
              (eq? (id-sym var-name) (id-sym param-name))]
+            [else #f])))
+
+      ;; lambda-body-supported?: returns #t when the lambda body is
+      ;; renderable by expr-rust after substituting `param-name` with an
+      ;; element literal. Walks past safe-cast / downcast-unsigned /
+      ;; arithmetic to validate the inner shapes — for the substitution
+      ;; to be sound we need every recursive position to be either
+      ;; expr-supported? in its own right (e.g. an integer literal,
+      ;; a struct field access on a closed-over var) or a var-ref to
+      ;; `param-name` itself. Recursion bottoms out at var-ref:
+      ;; the parameter reference is the only var-ref we accept here
+      ;; (the lambda's surface syntax doesn't capture other locals at
+      ;; the IR layer we operate on for map(), so any other var-ref
+      ;; would be a closure variable we don't yet substitute).
+      (define (lambda-body-supported? body param-name
+                                       native-id-ht witness-id-ht circuit-id-ht)
+        (let walk ([e (expr-strip-cast body)])
+          (nanopass-case (Ltypescript Expression) e
+            [(var-ref ,src ,var-name)
+             (eq? (id-sym var-name) (id-sym param-name))]
+            [(quote ,src ,datum)
+             (or (and (integer? datum) (exact? datum))
+                 (boolean? datum))]
+            [(+ ,src ,mbits ,expr1 ,expr2)
+             (and (not mbits)
+                  (walk (expr-strip-cast expr1))
+                  (walk (expr-strip-cast expr2)))]
+            [(- ,src ,mbits ,expr1 ,expr2)
+             (and (not mbits)
+                  (walk (expr-strip-cast expr1))
+                  (walk (expr-strip-cast expr2)))]
+            [(* ,src ,mbits ,expr1 ,expr2)
+             (and (not mbits)
+                  (walk (expr-strip-cast expr1))
+                  (walk (expr-strip-cast expr2)))]
+            [(downcast-unsigned ,src ,nat? ,nat ,expr)
+             (and (tunsigned-rust-suffix-for-bound nat)
+                  (walk (expr-strip-cast expr)))]
             [else #f])))
 
       ;; default-supported?: returns #t when default-value-rust would
@@ -2104,6 +2206,28 @@
            (let ([sub (expr-subst-var-ref expr target-name replacement)])
              (with-output-language (Ltypescript Expression)
                `(safe-cast ,src ,type ,type^ ,sub)))]
+          [(+ ,src ,mbits ,expr1 ,expr2)
+           ;; Iter 7 follow-up: substitute through arithmetic so non-identity
+           ;; lambda bodies like `(x + 1) as Uint<N>` survive the
+           ;; render-map-mvp per-element specialisation.
+           (let ([sub1 (expr-subst-var-ref expr1 target-name replacement)]
+                 [sub2 (expr-subst-var-ref expr2 target-name replacement)])
+             (with-output-language (Ltypescript Expression)
+               `(+ ,src ,mbits ,sub1 ,sub2)))]
+          [(- ,src ,mbits ,expr1 ,expr2)
+           (let ([sub1 (expr-subst-var-ref expr1 target-name replacement)]
+                 [sub2 (expr-subst-var-ref expr2 target-name replacement)])
+             (with-output-language (Ltypescript Expression)
+               `(- ,src ,mbits ,sub1 ,sub2)))]
+          [(* ,src ,mbits ,expr1 ,expr2)
+           (let ([sub1 (expr-subst-var-ref expr1 target-name replacement)]
+                 [sub2 (expr-subst-var-ref expr2 target-name replacement)])
+             (with-output-language (Ltypescript Expression)
+               `(* ,src ,mbits ,sub1 ,sub2)))]
+          [(downcast-unsigned ,src ,nat? ,nat ,expr)
+           (let ([sub (expr-subst-var-ref expr target-name replacement)])
+             (with-output-language (Ltypescript Expression)
+               `(downcast-unsigned ,src ,nat? ,nat ,sub)))]
           [else e]))
 
       ;; fold-body-strip-acc-return: given a fold body (Statement) and

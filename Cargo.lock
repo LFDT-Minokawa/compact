@@ -782,6 +782,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "compact-contract-map-lambda-fixture"
+version = "0.1.0"
+dependencies = [
+ "compact-runtime",
+]
+
+[[package]]
+name = "compact-contract-module-fixture"
+version = "0.1.0"
+dependencies = [
+ "compact-runtime",
+]
+
+[[package]]
 name = "compact-contract-pure-circuit-fixture"
 version = "0.1.0"
 dependencies = [
@@ -4697,6 +4711,8 @@ dependencies = [
  "compact-contract-list-fixture",
  "compact-contract-map-fixture",
  "compact-contract-map-fn-fixture",
+ "compact-contract-map-lambda-fixture",
+ "compact-contract-module-fixture",
  "compact-contract-pure-circuit-fixture",
  "compact-contract-sealed-ledger-fixture",
  "compact-contract-set-fixture",

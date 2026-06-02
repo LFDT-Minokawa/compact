@@ -1088,6 +1088,25 @@
                 [else (join (cdr xs) (string-append acc (car xs) ", "))]))
             "]")))
 
+      ;; arith-operand-rust: render an arithmetic operand and, when
+      ;; `current-arith-suffix` is set and the rendered output is a
+      ;; bare integer literal, append the suffix so Rust resolves the
+      ;; surrounding wrapping_* inherent method against a concrete
+      ;; integer type. Non-literal operands (var-refs, method calls,
+      ;; nested arithmetic with their own suffix) are returned unmodified
+      ;; — they already carry typing information through the enclosing
+      ;; `as u<width>` cast emitted by the downcast-unsigned clause.
+      ;;
+      ;; Iter 7 follow-up: introduced to support non-identity lambdas
+      ;; in `map()` (`x * 2 as Uint<64>` and friends).
+      (define (arith-operand-rust expr native-id-ht)
+        (let ([rendered (expr-rust expr native-id-ht)]
+              [s (current-arith-suffix)])
+          (cond
+            [(and s (integer-literal-rendering? rendered))
+             (string-append rendered s)]
+            [else rendered])))
+
       ;; expr-rust: emit a Rust expression string for an Ltypescript
       ;; Expression. I3b/1 covers the variants needed by tiny.compact's
       ;; public_key body — bytevector literal, var-ref, tuple (array
@@ -1191,6 +1210,57 @@
               (rust-feature-error src 'enum-ref-non-tenum
                 "enum-ref ~a on non-tenum type"
                 elt-name)])]
+          [(+ ,src ,mbits ,expr1 ,expr2)
+           ;; Iter 7 follow-up: unsigned addition. Renders via Rust's
+           ;; `wrapping_add` so the bounded-Uint contract holds even if
+           ;; the operation would overflow at the inferred Rust width —
+           ;; Compact's typer requires an explicit `downcast-unsigned`
+           ;; or wider target type around any expression that could
+           ;; produce a value outside the source-side type's range, so
+           ;; the wrap matches the post-downcast semantics.
+           (format "(~a).wrapping_add(~a)"
+                   (arith-operand-rust expr1 native-id-ht)
+                   (arith-operand-rust expr2 native-id-ht))]
+          [(- ,src ,mbits ,expr1 ,expr2)
+           ;; Iter 7 follow-up: unsigned subtraction. See `+` clause.
+           (format "(~a).wrapping_sub(~a)"
+                   (arith-operand-rust expr1 native-id-ht)
+                   (arith-operand-rust expr2 native-id-ht))]
+          [(* ,src ,mbits ,expr1 ,expr2)
+           ;; Iter 7 follow-up: unsigned multiplication. See `+` clause.
+           (format "(~a).wrapping_mul(~a)"
+                   (arith-operand-rust expr1 native-id-ht)
+                   (arith-operand-rust expr2 native-id-ht))]
+          [(downcast-unsigned ,src ,nat? ,nat ,expr)
+           ;; Iter 7 follow-up: cast the inner expression to the Rust
+           ;; unsigned type whose upper bound is `nat`. The downcast
+           ;; appears around arithmetic whose declared output type is
+           ;; narrower than its operands' inferred type (Compact's typer
+           ;; inserts it for `(x * 2) as Uint<64>` and similar). The
+           ;; expr-supported? gate already rejected non-ladder widths.
+           ;;
+           ;; The target width is also pushed down via `current-arith-suffix`
+           ;; so nested arithmetic operands can apply a type suffix to
+           ;; integer literals — Rust's `wrapping_mul` etc. are inherent
+           ;; methods on `uN`, so the receiver must be a concrete `uN`
+           ;; type (an unsuffixed `1.wrapping_mul(2)` would be rejected
+           ;; with "can't call method on ambiguous numeric type").
+           (let ([w (cond
+                      [(= nat 255) "u8"]
+                      [(= nat 65535) "u16"]
+                      [(= nat 4294967295) "u32"]
+                      [(= nat 18446744073709551615) "u64"]
+                      [(= nat 340282366920938463463374607431768211455) "u128"]
+                      [else #f])])
+             (cond
+               [(not w)
+                (rust-feature-error src 'downcast-unsigned-width
+                  "downcast-unsigned: unsupported target width ~s" nat)]
+               [else
+                (format "(~a) as ~a"
+                        (parameterize ([current-arith-suffix w])
+                          (expr-rust expr native-id-ht))
+                        w)]))]
           [(new ,src ,type ,expr* ...)
            ;; F2.2: struct-literal in pure-expression context (e.g. nested
            ;; inside a quote/tuple consumer). Renders each field via the

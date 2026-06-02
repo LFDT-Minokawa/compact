@@ -55,6 +55,7 @@ compact-contract-for-range-fixture = { path = "contracts/for-range-fixture" }
 compact-contract-for-iter-fixture = { path = "contracts/for-iter-fixture" }
 compact-contract-fold-fixture = { path = "contracts/fold-fixture" }
 compact-contract-map-fn-fixture = { path = "contracts/map-fn-fixture" }
+compact-contract-map-lambda-fixture = { path = "contracts/map-lambda-fixture" }
 compact-contract-module-fixture = { path = "contracts/module-fixture" }
 compact-contract-bounded-uint-fixture = { path = "contracts/bounded-uint-fixture" }
 compact-contract-sealed-ledger-fixture = { path = "contracts/sealed-ledger-fixture" }
