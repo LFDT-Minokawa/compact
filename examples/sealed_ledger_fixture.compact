@@ -10,21 +10,25 @@
 // field; the frontend enforces the no-write rule via type checking.
 //
 // This fixture exercises:
-//   - a sealed ledger field of `Boolean` (initialized: set in constructor),
+//   - a sealed ledger field of `Field` (admin: initialized to a literal
+//     value in the constructor — the natural use case for an immutable
+//     contract-owner address),
 //   - a regular ledger field of `Boolean` (flag, writable by ping()),
 // to lock in byte-parity for sealed declarations.
 //
-// Boolean was chosen (over Field/Uint) because the constructor RHS
-// path renders cleanly for bool literals: `let tmp = true;` is the
-// expected Rust shape, and `new_cell(tmp)` accepts `bool` directly.
+// The Field-typed sealed field doubles as a regression test for Prod-9:
+// integer literals at a Field-typed RHS must be wrapped in `Fr::from(N)`
+// at the Rust emitter so the downstream ledger-write builder's
+// `Into<AlignedValue>` bound is satisfied. Before that fix, the
+// `admin = 42` line emitted `let tmp = 42;` (i32) and failed to compile.
 
 import CompactStandardLibrary;
 
-export sealed ledger initialized: Boolean;
+export sealed ledger admin: Field;
 export ledger flag: Boolean;
 
 constructor() {
-  initialized = true;
+  admin = 42;
 }
 
 export circuit ping(): [] {

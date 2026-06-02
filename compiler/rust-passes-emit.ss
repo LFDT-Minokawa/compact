@@ -355,6 +355,51 @@
              [(,var-name ,type) (cons var-name expr)])]
           [else #f]))
 
+      ;; const-binding-decl-type: like const-binding, but returns the
+      ;; binder's declared Type (or #f if `stmt` isn't a const-binding).
+      ;; Used by Prod-9 to detect Field-typed integer literals at RHS
+      ;; (e.g. `const tmp_0: Field = 42n;`) so the emitter can wrap them
+      ;; in `Fr::from(<n>u64)` instead of leaving a bare i32 literal that
+      ;; later fails the `Into<AlignedValue>` bound at the ledger-write
+      ;; builder call site.
+      (define (const-binding-decl-type stmt)
+        (nanopass-case (Ltypescript Statement) stmt
+          [(const ,src ,local ,expr)
+           (nanopass-case (Ltypescript Argument) local
+             [(,var-name ,type) type])]
+          [else #f]))
+
+      ;; literal-int-expr?: returns the integer datum when `expr` strips
+      ;; (through safe-cast layers) down to a `(quote ... <int>)` literal,
+      ;; or #f otherwise.
+      (define (literal-int-expr? expr)
+        (let ([e (expr-strip-cast expr)])
+          (nanopass-case (Ltypescript Expression) e
+            [(quote ,src ,datum)
+             (and (integer? datum) (exact? datum) datum)]
+            [else #f])))
+
+      ;; type-is-tfield?: is `type` a (tfield ...)? Peels nominal/transparent
+      ;; talias layers so `type Foo = Field;` also matches.
+      (define (type-is-tfield? type)
+        (and type
+             (nanopass-case (Ltypescript Type) type
+               [(tfield ,src) #t]
+               [(talias ,src ,nominal? ,type-name ,type^)
+                (type-is-tfield? type^)]
+               [else #f])))
+
+      ;; coerce-literal-rhs-rendered: Prod-9 — Field-typed integer literals
+      ;; need to be wrapped in `Fr::from(<n>u64)` so the ledger-write
+      ;; builder's `Into<AlignedValue>` bound is satisfied. When `decl-type`
+      ;; is `tfield` and `rhs` strips down to a bare integer literal,
+      ;; returns the wrapped form; otherwise returns `#f` so the caller
+      ;; falls back to its existing rendering.
+      (define (coerce-literal-rhs-rendered decl-type rhs)
+        (and (type-is-tfield? decl-type)
+             (let ([n (literal-int-expr? rhs)])
+               (and n (format "Fr::from(~au64)" n)))))
+
       ;; const-decl-only?: detect a `(const ,src (,local* ...))` Statement —
       ;; the "forward declaration" form produced by typescript-passes when a
       ;; `let* ([%tmp ...])` is lifted out of an expression context. These

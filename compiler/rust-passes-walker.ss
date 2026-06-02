@@ -1477,9 +1477,22 @@
                      [else
                       ;; Unknown rhs shape — try a generic ctor-expr-rust
                       ;; render and emit a plain `let`.
-                      (let ([rendered
-                             (ctor-expr-rust rhs local-binds
-                                             native-id-ht witness-id-ht circuit-id-ht)])
+                      ;;
+                      ;; Prod-9: when the binding's declared type is `Field`
+                      ;; (`tfield`) AND the RHS strips down to a bare integer
+                      ;; literal, wrap as `Fr::from(<n>u64)` so downstream
+                      ;; ledger-write builders (which demand `Into<AlignedValue>`)
+                      ;; see the correct `Fr` type rather than an i32. Without
+                      ;; this, contracts like
+                      ;;     ledger v: Field;
+                      ;;     constructor() { v = 42; }
+                      ;; emit `let tmp = 42;` and fail to compile.
+                      (let* ([decl-type (const-binding-decl-type (car stmts))]
+                             [coerced (coerce-literal-rhs-rendered decl-type rhs)]
+                             [rendered
+                              (or coerced
+                                  (ctor-expr-rust rhs local-binds
+                                                  native-id-ht witness-id-ht circuit-id-ht))])
                         (loop (cdr stmts)
                               (cons (cons var-name rust-name) local-binds)
                               witness-emitted?

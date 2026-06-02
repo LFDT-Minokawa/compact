@@ -42,12 +42,13 @@ where
         &self,
         ctx: ConstructorContext<PS>,
     ) -> Result<ConstructorResult<PS>, CompactError> {
-        let sv = new_array(vec![new_cell(false), new_cell(false)]);
+        let sv = new_array(vec![new_cell(Fr::default()), new_cell(false)]);
         let state = ChargedState::new(sv);
         let qctx = QueryContext::new(state, ContractAddress::default());
+        let tmp = Fr::from(42u64);
         let ops = OpProgramVerify::<DefaultDB>::new()
             .push(false, new_cell(0u8))
-            .push(true, new_cell(true))
+            .push(true, new_cell(tmp.clone()))
             .ins(false, 1)
             .build();
 
@@ -94,7 +95,7 @@ pub fn ledger<D: DB>(state: &ChargedState<D>) -> Ledger<'_, D> {
 }
 
 impl<'a, D: DB> Ledger<'a, D> {
-    pub fn initialized(&self) -> Result<bool, CompactError> {
+    pub fn admin(&self) -> Result<Fr, CompactError> {
         let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
         let ops = OpProgramGather::<D>::new()
             .dup(0)
@@ -111,7 +112,7 @@ impl<'a, D: DB> Ledger<'a, D> {
                 ))
             }
         };
-        compact_runtime::std_lib::decode_bool(av)
+        compact_runtime::std_lib::decode_fr(av)
     }
     pub fn flag(&self) -> Result<bool, CompactError> {
         let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
