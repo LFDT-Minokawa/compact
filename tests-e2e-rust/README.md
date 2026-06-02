@@ -202,6 +202,29 @@ after every Scheme edit** — it catches the failure mode where the
 codegen produces broken Scheme that the build hides because the test
 suite drives the *committed* `lib.rs`, not freshly-regenerated output.
 
+## Generics coverage
+
+Compact monomorphises generics in the frontend pass `expand-modules-and-types`
+(at [`compiler/analysis-passes.ss:43`](../compiler/analysis-passes.ss),
+`Lpreexpand → Lexpanded`). Generic parameter references are substituted
+with their concrete type / size arguments before the IR reaches the
+Rust codegen, so the emitter sees only monomorphic circuits and
+types — circuit definitions in `Ltypescript` do not carry a
+`(tvar-name* ...)` formal-parameter list. As a consequence:
+
+- **Generic types in declarations** — `Map<K,V>`, `Vector<N,T>`,
+  `Bytes<L>`, `Uint<N>`, `Maybe<T>`, `Set<T>`, `List<T>`,
+  `MerkleTreePath<n,T>` — are exercised across nearly every fixture.
+- **Generic stdlib circuit invocations** — `merkleTreePathRoot<32, commitment>`
+  and `merkleTreePathRoot<10, Bytes<32>>` are exercised by the
+  `zerocash` and `election` multi-step byte-parity tests.
+- **User-defined generic circuits called from a circuit body** are
+  blocked by the unrelated user-circuit-call-in-body limitation (the
+  same gap that blocks non-generic user circuit calls in bodies —
+  tracked under the `fold` / `map` / lambda-as-expression iteration
+  in the parity gap report). Generics themselves are not the
+  bottleneck.
+
 ## When a test fails
 
 | Symptom | Likely cause | Fix |

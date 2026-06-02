@@ -11,7 +11,7 @@ Our Rust codegen covers the structural backbone of Compact: scalars, ADTs as led
 What's NOT covered is roughly orthogonal:
 1. **Higher-order control flow** — `fold` / `map` / lambda-as-expression / `for`-range / `for`-iterable loops
 2. **Module system** — `module M { ... }` / `import M` / prefix renaming / nested modules
-3. **Generic circuits** — `circuit f<#N>()` / `<#S, #E>` multi-param
+3. ~~**Generic circuits**~~ — already covered (Iter 11: `expand-modules-and-types` monomorphises pre-Rust-IR; zerocash + election exercise `merkleTreePathRoot<N, T>` callsites in their multi-step byte-parity suites). Remaining sub-gap: user-defined non-stdlib generic circuits called in body position are blocked by the **non-generic-specific** user-circuit-call-in-body limitation (same gap blocks non-generic user circuit calls — tracked under Iter 6/7).
 4. **`List<T>` ADT** — the only core ADT we haven't fixtured
 5. **`Uint<L..U>`** bounded ranges
 
@@ -41,7 +41,7 @@ Effort estimates and priority below.
 | User type | enum (return/compare/`default<E>`) | 29 | ✅ | — |
 | User type | type alias (transparent/nominal/chained) | 13 | ✅ direct; chained alias untested | Low |
 | Circuit | export circuit / impure / pure modifier | 446 / many / 4 | ✅ basic; `pure circuit` modifier not explicitly fixtured | Low |
-| Circuit | **generic circuit** `circuit f<#N>()` | 2+ | ❌ | **High** |
+| Circuit | generic circuit `circuit f<#N>()` | 2+ | ✅ Iter 11 — `expand-modules-and-types` monomorphises pre-Rust-IR; generic stdlib calls (`merkleTreePathRoot<N,T>`) exercised by zerocash + election multi-step tests | — |
 | Circuit | constructor with args / implicit | 20 | ✅ | — |
 | Witness | various args/returns | 17 | ✅ | — |
 | Witness | module-local witness | 1 | ❌ | Low |
@@ -88,8 +88,8 @@ Effort estimates and priority below.
 
 ### Gap 5 — Generic circuits + bounded uints [HIGH, Medium-Large effort]
 - `circuit f<#N>(): ...` (test1020), `foo1<#S, #E>()` (test1021).
-- Investigate whether `monomorphise` runs before Rust IR (likely yes — verify).
-- `Uint<L..U>` (13 tests) — likely lowers to underlying Uint width.
+- ~~Investigate whether `monomorphise` runs before Rust IR (likely yes — verify).~~ **Resolved (Iter 11)**: the `expand-modules-and-types` pass at `analysis-passes.ss:43` (`Lpreexpand → Lexpanded`) substitutes generic parameter references with the concrete type/size arguments. By the time the IR reaches `Ltypes` (and thus `Ltypescript` / Rust codegen), every callsite is fully monomorphised; circuit definitions no longer carry `(tvar-name* ...)` formal-parameter lists. Generic stdlib circuit invocations (`merkleTreePathRoot<32, commitment>`, `merkleTreePathRoot<10, Bytes<32>>`) are exercised by the existing zerocash + election multi-step byte-parity tests. Generic types in ledger declarations (`Map<K,V>`, `Vector<N,T>`, `Bytes<L>`, `Uint<N>`, `Maybe<T>`, `Set<T>`, `MerkleTreePath<n,T>`, `List<T>`) are exercised across the fixture suite. No dedicated fixture added — the existing coverage already validates the path, and a stripped-down generic user circuit cannot be authored without also unlocking the unrelated user-circuit-call-in-body shape (Iter 6/7 territory).
+- `Uint<L..U>` (13 tests) — **closed by Iter 8**: bounded ranges lower to the smallest fixed-width Uint in the frontend (`tunsigned src lo hi → tunsigned src hi`) before the IR reaches rust-passes; emitter shares the fixed-width path. Covered by `bounded_uint_fixture.compact` + byte-parity test.
 
 ## Honourable mentions (lower priority but real)
 
@@ -113,7 +113,7 @@ Effort estimates and priority below.
 | 8 | Uint<L..U> bounded ranges | Small | 13 |
 | 9 | Pure circuit modifier + sealed ledger | Small | 7 |
 | 10 | Modules (basic flat `import M`) | Large | ~30 |
-| 11 | Generic circuits (verify monomorphise + fixture) | Medium | 2-5 |
+| 11 | Generic circuits — verify monomorphise runs pre-Rust-IR | Closed (no work needed) | 2-5 already covered |
 | 12 | Mop-up: nested Maps, HMT.insertIndexDefault, hashToCurve byte-parity | Medium | ~5 |
 
 Done sequentially this is ~10 iterations of meaningful work, ~3-5 days at the dispatch rate we've been running.
