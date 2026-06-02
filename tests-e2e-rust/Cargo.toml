@@ -60,3 +60,5 @@ compact-contract-module-fixture = { path = "contracts/module-fixture" }
 compact-contract-bounded-uint-fixture = { path = "contracts/bounded-uint-fixture" }
 compact-contract-sealed-ledger-fixture = { path = "contracts/sealed-ledger-fixture" }
 compact-contract-pure-circuit-fixture = { path = "contracts/pure-circuit-fixture" }
+compact-contract-nested-map-fixture = { path = "contracts/nested-map-fixture" }
+compact-contract-hash-to-curve-fixture = { path = "contracts/hash-to-curve-fixture" }

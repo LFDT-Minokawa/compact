@@ -754,6 +754,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "compact-contract-hash-to-curve-fixture"
+version = "0.1.0"
+dependencies = [
+ "compact-runtime",
+]
+
+[[package]]
 name = "compact-contract-if-stmt-fixture"
 version = "0.1.0"
 dependencies = [
@@ -790,6 +797,13 @@ dependencies = [
 
 [[package]]
 name = "compact-contract-module-fixture"
+version = "0.1.0"
+dependencies = [
+ "compact-runtime",
+]
+
+[[package]]
+name = "compact-contract-nested-map-fixture"
 version = "0.1.0"
 dependencies = [
  "compact-runtime",
@@ -4707,12 +4721,14 @@ dependencies = [
  "compact-contract-fold-fixture",
  "compact-contract-for-iter-fixture",
  "compact-contract-for-range-fixture",
+ "compact-contract-hash-to-curve-fixture",
  "compact-contract-if-stmt-fixture",
  "compact-contract-list-fixture",
  "compact-contract-map-fixture",
  "compact-contract-map-fn-fixture",
  "compact-contract-map-lambda-fixture",
  "compact-contract-module-fixture",
+ "compact-contract-nested-map-fixture",
  "compact-contract-pure-circuit-fixture",
  "compact-contract-sealed-ledger-fixture",
  "compact-contract-set-fixture",

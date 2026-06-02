@@ -178,7 +178,23 @@ pub use midnight_transient_crypto::merkle_tree::MerkleTree;
 
 // Hashes (re-exported as bare names — usability over fully-qualified paths).
 pub use midnight_base_crypto::hash::{persistent_commit, persistent_hash};
-pub use midnight_transient_crypto::hash::{hash_to_curve, transient_commit, transient_hash};
+pub use midnight_transient_crypto::hash::{transient_commit, transient_hash};
+
+/// Compact's `hashToCurve<A>(value: A): JubjubPoint` — by-value wrapper
+/// around upstream `midnight_transient_crypto::hash::hash_to_curve`,
+/// which takes its argument by reference (`&T`). The codegen emits
+/// `hash_to_curve(arg)` (by value) from the `(rust …)` annotation in
+/// `compiler/midnight-natives.ss`, so this wrapper bridges the calling
+/// convention without forcing the emitter to thread `&` through every
+/// native callsite.
+///
+/// `Sized` is required because we accept by value; for `?Sized`
+/// arguments (rare in generated code), users can call
+/// `midnight_transient_crypto::hash::hash_to_curve(&value)` directly.
+#[inline]
+pub fn hash_to_curve<T: midnight_transient_crypto::repr::FieldRepr>(value: T) -> JubjubPoint {
+    midnight_transient_crypto::hash::hash_to_curve(&value)
+}
 
 // Zswap local state.
 pub use midnight_zswap::local::State as ZswapLocalState;

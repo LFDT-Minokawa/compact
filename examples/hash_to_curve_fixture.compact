@@ -1,0 +1,41 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Prod-18 follow-up: hashToCurve byte-parity fixture.
+//
+// Compact's `hashToCurve<A>(value: A): JubjubPoint` produces a Jubjub
+// curve point from a hashed input. The byte-parity test exercises:
+//   - the codegen routing through `compact_runtime::hash_to_curve` (the
+//     by-value wrapper added in this iteration),
+//   - upstream `midnight_transient_crypto::hash::hash_to_curve(&value)`,
+//   - the resulting `JubjubPoint`'s X / Y coordinates encoded into a
+//     `Vector<2, Field>` ledger field whose serialised bytes can be
+//     compared against the TS path.
+
+import CompactStandardLibrary;
+
+export ledger flag: Boolean;
+export ledger pt: Vector<2, Field>;
+
+constructor() {
+  pt = [
+    jubjubPointX(hashToCurve<Field>(1 as Field)),
+    jubjubPointY(hashToCurve<Field>(1 as Field))
+  ];
+}
+
+export circuit ping(): [] {
+  flag.write(true);
+}
