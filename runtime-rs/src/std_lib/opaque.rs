@@ -10,7 +10,7 @@
 // these impls, so we carry them on this newtype instead.
 
 use super::field_repr::{bytes_field_size, vec_u8_from_field_repr};
-use crate::{Aligned, Alignment, FieldRepr, FromFieldRepr, Fr, MemWrite, Value};
+use crate::{Aligned, Alignment, FieldRepr, Fr, FromFieldRepr, MemWrite, Value};
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct OpaqueString(pub String);

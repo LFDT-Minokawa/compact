@@ -79,6 +79,13 @@ fn if_stmt_fixture_classify_body_compiles() {
     // as expected. This invokes the pure circuit directly; it does not
     // touch the byte-parity machinery.
     use compact_contract_if_stmt_fixture::pure_circuits::classify;
-    assert_eq!(classify(true), false);
-    assert_eq!(classify(false), true);
+    // assert_eq!(_, true/false) is the literal `is X equal to true/false?`
+    // here, deliberately mirroring the Compact `classify` circuit's
+    // boolean negation contract; `assert!` / `assert!(!_)` would lose
+    // the symmetry. Suppress clippy's nudge to switch.
+    #[allow(clippy::bool_assert_comparison)]
+    {
+        assert_eq!(classify(true), false);
+        assert_eq!(classify(false), true);
+    }
 }

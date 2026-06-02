@@ -9,7 +9,8 @@ use compact_runtime::*;
 #[test]
 fn prelude_resolves_all_required_symbols() {
     // Encoding / alignment
-    let _: fn() -> Alignment = || Alignment::singleton(base_crypto::fab::AlignmentAtom::Bytes { length: 0 });
+    let _: fn() -> Alignment =
+        || Alignment::singleton(base_crypto::fab::AlignmentAtom::Bytes { length: 0 });
     let _: fn(u64) -> AlignedValue = AlignedValue::from;
     let _ = std::any::type_name::<Value>();
 

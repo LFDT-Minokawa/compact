@@ -28,10 +28,7 @@ impl Parse for WitnessesArgs {
         let _comma: Token![,] = input.parse()?;
         let ps_ident: Ident = input.parse()?;
         if ps_ident != "PS" {
-            return Err(syn::Error::new(
-                ps_ident.span(),
-                "expected `PS = <type>`",
-            ));
+            return Err(syn::Error::new(ps_ident.span(), "expected `PS = <type>`"));
         }
         let _eq: Token![=] = input.parse()?;
         let ps_type: Type = input.parse()?;
@@ -71,7 +68,7 @@ pub fn witnesses(attr: TokenStream, item: TokenStream) -> TokenStream {
                 .collect();
             let inputs = &sig.inputs;
             let output = match &sig.output {
-                ReturnType::Default => quote! { },
+                ReturnType::Default => quote! {},
                 ReturnType::Type(_, ty) => quote! { -> #ty },
             };
             forwards.push(quote! {

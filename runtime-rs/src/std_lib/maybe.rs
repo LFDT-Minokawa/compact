@@ -11,7 +11,7 @@
 // `none()` helpers below construct values in the same shape Compact's
 // circuits do.
 
-use crate::{Aligned, Alignment, FieldRepr, FromFieldRepr, Fr, MemWrite, Value};
+use crate::{Aligned, Alignment, FieldRepr, Fr, FromFieldRepr, MemWrite, Value};
 
 /// `Copy` is implemented when `T: Copy` so the struct composes cheaply
 /// with primitive payloads (e.g. `Maybe<Field>`, `Maybe<u64>`).
@@ -85,7 +85,10 @@ impl<T: Into<Value>> From<Maybe<T>> for Value {
 /// `some<T>(value: T): Maybe<T>` circuit from `standard-library.compact`.
 #[inline]
 pub fn some<T>(v: T) -> Maybe<T> {
-    Maybe { is_some: true, value: v }
+    Maybe {
+        is_some: true,
+        value: v,
+    }
 }
 
 /// Construct a `Maybe<T>` in the "none" state. The caller supplies a
@@ -94,7 +97,10 @@ pub fn some<T>(v: T) -> Maybe<T> {
 /// mirror via `T::default()` at the call site.
 #[inline]
 pub fn none<T: Default>() -> Maybe<T> {
-    Maybe { is_some: false, value: T::default() }
+    Maybe {
+        is_some: false,
+        value: T::default(),
+    }
 }
 
 #[cfg(test)]
@@ -117,7 +123,10 @@ mod tests {
     #[test]
     fn maybe_some_some_roundtrip() {
         // Sanity check: field_size of `Maybe<u8>` is 1 (is_some) + 1 (u8) = 2.
-        let m: Maybe<u8> = Maybe { is_some: true, value: 42 };
+        let m: Maybe<u8> = Maybe {
+            is_some: true,
+            value: 42,
+        };
         assert_eq!(m.field_size(), 1 + 42_u8.field_size());
         // FIELD_SIZE associated const matches.
         assert_eq!(

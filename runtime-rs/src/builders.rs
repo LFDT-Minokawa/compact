@@ -10,7 +10,7 @@
 
 use crate::{
     AlignedValue, Alignment, AlignmentAtom, Array, ChargedState, ContractState, CostModel,
-    QueryResults, ResultMode, StateValue, Value, ValueAtom, INITIAL_COST_MODEL, DB,
+    QueryResults, ResultMode, StateValue, Value, ValueAtom, DB, INITIAL_COST_MODEL,
 };
 use midnight_onchain_state::state::{
     ContractMaintenanceAuthority, ContractOperation, EntryPointBuf,
@@ -75,9 +75,7 @@ where
 /// Builds a `StateValue::Array(...)` from a vector of nested `StateValue`s.
 /// Mirrors the TypeScript `StateValue.newArray().arrayPush(...)` chain.
 pub fn new_array<D: DB>(items: Vec<StateValue<D>>) -> StateValue<D> {
-    let arr = items
-        .into_iter()
-        .fold(Array::new(), |acc, s| acc.push(s));
+    let arr = items.into_iter().fold(Array::new(), |acc, s| acc.push(s));
     StateValue::Array(arr)
 }
 
@@ -130,11 +128,7 @@ pub fn new_map<D: DB>() -> StateValue<D> {
 ///                                         (state-value 'null)
 ///                                         (state-value 'cell (align 0 8))))) ...)
 pub fn new_list<D: DB>() -> StateValue<D> {
-    new_array(vec![
-        StateValue::Null,
-        StateValue::Null,
-        new_cell(0u64),
-    ])
+    new_array(vec![StateValue::Null, StateValue::Null, new_cell(0u64)])
 }
 
 /// Builds an empty `StateValue::Array([BoundedMerkleTree(blank), Cell(0u64)])`
@@ -144,10 +138,7 @@ pub fn new_list<D: DB>() -> StateValue<D> {
 ///                                       (state-value 'cell (align 0 8)))))
 pub fn new_merkle_tree<D: DB>(height: u8) -> StateValue<D> {
     let mt: MerkleTree<(), D> = MerkleTree::blank(height);
-    new_array(vec![
-        StateValue::BoundedMerkleTree(mt),
-        new_cell(0u64),
-    ])
+    new_array(vec![StateValue::BoundedMerkleTree(mt), new_cell(0u64)])
 }
 
 /// Builds the initial `StateValue` for the Compact `HistoricMerkleTree<h, T>`

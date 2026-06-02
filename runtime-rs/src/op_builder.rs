@@ -13,7 +13,9 @@
 // Build with `.build()` to obtain a `Vec<Op<M, D>>` ready to pass to
 // `query_for_verify` / `query_for_read`.
 
-use crate::{AlignedValue, Array, DefaultDB, Key, Op, ResultModeGather, ResultModeVerify, StateValue, DB};
+use crate::{
+    AlignedValue, Array, DefaultDB, Key, Op, ResultModeGather, ResultModeVerify, StateValue, DB,
+};
 
 /// Builder for `Vec<Op<ResultModeVerify, D>>` — used by mutating circuits.
 pub struct OpProgramVerify<D: DB = DefaultDB> {

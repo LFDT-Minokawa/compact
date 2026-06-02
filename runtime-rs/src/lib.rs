@@ -7,12 +7,12 @@
 // Re-export the foundational crates so generated code can write
 // `base_crypto::*` etc. when needed for less-common types.
 pub use midnight_base_crypto as base_crypto;
-pub use midnight_transient_crypto as transient_crypto;
+pub use midnight_coin_structure as coin_structure;
+pub use midnight_onchain_runtime as onchain_runtime;
 pub use midnight_onchain_state as onchain_state;
 pub use midnight_onchain_vm as onchain_vm;
-pub use midnight_onchain_runtime as onchain_runtime;
-pub use midnight_coin_structure as coin_structure;
 pub use midnight_storage as storage;
+pub use midnight_transient_crypto as transient_crypto;
 pub use midnight_zswap as zswap;
 
 pub use compact_runtime_macros::witnesses;
@@ -22,16 +22,18 @@ pub use compact_runtime_macros::witnesses;
 // ---------------------------------------------------------------------------
 
 // Encoding / alignment / value bus.
-pub use midnight_base_crypto::fab::{Aligned, AlignedValue, Alignment, AlignmentAtom, Value, ValueAtom};
+pub use midnight_base_crypto::fab::{
+    Aligned, AlignedValue, Alignment, AlignmentAtom, Value, ValueAtom,
+};
 
 // Field arithmetic + proof-system primitives.
-pub use midnight_transient_crypto::curve::{EmbeddedGroupAffine as JubjubPoint, Fr};
 pub use midnight_base_crypto::repr::{BinaryHashRepr, MemWrite};
-pub use midnight_transient_crypto::repr::{FieldRepr, FromFieldRepr};
-pub use midnight_transient_crypto::merkle_tree::{
-    MerklePath, MerklePathEntry, MerkleTreeDigest, leaf_hash,
-};
+pub use midnight_transient_crypto::curve::{EmbeddedGroupAffine as JubjubPoint, Fr};
 pub use midnight_transient_crypto::fab::ValueReprAlignedValue;
+pub use midnight_transient_crypto::merkle_tree::{
+    leaf_hash, MerklePath, MerklePathEntry, MerkleTreeDigest,
+};
+pub use midnight_transient_crypto::repr::{FieldRepr, FromFieldRepr};
 
 // Cost / gas.
 pub use midnight_base_crypto::cost_model::RunningCost;
@@ -114,7 +116,7 @@ pub use version::COMPACT_RUNTIME_VERSION;
 
 pub mod std_lib;
 pub use std_lib::{
-    array_from_field_repr, bytes_from_field_repr, bytes_field_size, construct_jubjub_point,
+    array_from_field_repr, bytes_field_size, bytes_from_field_repr, construct_jubjub_point,
     default_merkle_path, degrade_to_transient, disclose, ec_add, ec_mul, ec_mul_generator,
     jubjub_point_x, jubjub_point_y, merkle_tree_path_root, merkle_tree_path_root_no_leaf_hash,
     none, pad, some, upgrade_from_transient, vec_u8_from_field_repr, Bytes, Maybe,
@@ -124,8 +126,7 @@ pub mod builders;
 pub use builders::{
     aligned_bytes, empty_charged_state, entry_point, initial_cost_model, new_array, new_cell,
     new_cell_array, new_cell_bounded_uint, new_contract_state, new_empty_array,
-    new_historic_merkle_tree, new_list, new_map, new_merkle_tree,
-    query_result_state,
+    new_historic_merkle_tree, new_list, new_map, new_merkle_tree, query_result_state,
 };
 
 pub mod query;

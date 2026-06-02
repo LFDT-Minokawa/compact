@@ -8,9 +8,9 @@
 // as `JubjubPoint`) plus `Mul<Fr>` / `+` operator impls; the Compact
 // natives spell them as bare functions, hence the wrappers.
 
-use crate::{Fr, JubjubPoint};
 use crate::base_crypto::hash::HashOutput;
 use crate::transient_crypto::hash as transient_hash_mod;
+use crate::{Fr, JubjubPoint};
 
 /// `jubjubPointX(p)` — affine X coordinate, or zero if `p` is
 /// identity. The Compact native returns `Field`, treating identity as

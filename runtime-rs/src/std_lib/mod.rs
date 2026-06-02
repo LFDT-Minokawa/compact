@@ -26,8 +26,8 @@ pub use field_repr::{
     array_from_field_repr, bytes_field_size, bytes_from_field_repr, vec_u8_from_field_repr,
 };
 pub use jubjub::{
-    construct_jubjub_point, degrade_to_transient, ec_add, ec_mul, ec_mul_generator,
-    jubjub_point_x, jubjub_point_y, upgrade_from_transient,
+    construct_jubjub_point, degrade_to_transient, ec_add, ec_mul, ec_mul_generator, jubjub_point_x,
+    jubjub_point_y, upgrade_from_transient,
 };
 pub use maybe::{none, some, Maybe};
 pub use merkle_path::{

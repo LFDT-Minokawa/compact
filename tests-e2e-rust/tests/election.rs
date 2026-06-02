@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
+
+// `passing a unit value to a function` fires throughout these tests
+// because some fixtures have `PS = ()` (no private state), so the
+// CircuitContext::new(state, ()) call deliberately threads a unit.
+// The lint can't see that and the alternative (a phantom newtype) would
+// be more confusing than the suppression.
+#![allow(clippy::unit_arg)]
 //
 // election.compact byte-parity tests (F2.1 + F2.2 of the M3.5 plan).
 //
@@ -25,9 +32,7 @@
 //   - committed_votes / eligible_voters: MerkleTree<10, Bytes<32>>
 //   - committed / revealed: Set<Bytes<32>>       (empty Map)
 
-use compact_contract_election::{
-    Contract, Ledger, PermissibleVotes, PrivateState, Witnesses,
-};
+use compact_contract_election::{Contract, Ledger, PermissibleVotes, PrivateState, Witnesses};
 use compact_runtime::*;
 use midnight_serialize::tagged_serialize;
 use midnight_storage::storage::HashMap;
@@ -44,10 +49,8 @@ const FIXED_SK: [u8; 32] = [7u8; 32];
 /// into the `authority` ledger field so the owner-driven asserts
 /// `public_key(sk) == authority.read()` are satisfied.
 const AUTHORITY: [u8; 32] = [
-    0x33, 0xef, 0xf3, 0xd5, 0x7e, 0x66, 0xfd, 0x14,
-    0x2b, 0xb4, 0x08, 0xe4, 0x89, 0x44, 0xa4, 0xd6,
-    0xb8, 0xf2, 0xdb, 0xf5, 0xc1, 0x80, 0x96, 0xf8,
-    0x27, 0xb0, 0x28, 0x3d, 0xbf, 0x91, 0x11, 0xc8,
+    0x33, 0xef, 0xf3, 0xd5, 0x7e, 0x66, 0xfd, 0x14, 0x2b, 0xb4, 0x08, 0xe4, 0x89, 0x44, 0xa4, 0xd6,
+    0xb8, 0xf2, 0xdb, 0xf5, 0xc1, 0x80, 0x96, 0xf8, 0x27, 0xb0, 0x28, 0x3d, 0xbf, 0x91, 0x11, 0xc8,
 ];
 
 /// `vote$commit` derives `pk = public_key(FIXED_SK)`, which equals
@@ -83,23 +86,14 @@ fn reset_election_thread_local() {
 struct ElectionWitnesses;
 
 impl Witnesses<()> for ElectionWitnesses {
-    fn private_secret_key<'a>(
-        &self,
-        _ctx: &WitnessContext<Ledger<'a>, ()>,
-    ) -> ((), [u8; 32]) {
+    fn private_secret_key<'a>(&self, _ctx: &WitnessContext<Ledger<'a>, ()>) -> ((), [u8; 32]) {
         ((), FIXED_SK)
     }
-    fn private_state<'a>(
-        &self,
-        _ctx: &WitnessContext<Ledger<'a>, ()>,
-    ) -> ((), PrivateState) {
+    fn private_state<'a>(&self, _ctx: &WitnessContext<Ledger<'a>, ()>) -> ((), PrivateState) {
         let s = PRIVATE_STATE_FSM.with(|c| *c.borrow());
         ((), s)
     }
-    fn private_state_advance<'a>(
-        &self,
-        _ctx: &WitnessContext<Ledger<'a>, ()>,
-    ) -> ((), ()) {
+    fn private_state_advance<'a>(&self, _ctx: &WitnessContext<Ledger<'a>, ()>) -> ((), ()) {
         // initial → committed → revealed (saturating). Mirrors the
         // capture-election.mjs `bumpPrivateState` toggle.
         PRIVATE_STATE_FSM.with(|c| {
@@ -119,10 +113,7 @@ impl Witnesses<()> for ElectionWitnesses {
     ) -> ((), ()) {
         ((), ())
     }
-    fn private_vote<'a>(
-        &self,
-        _ctx: &WitnessContext<Ledger<'a>, ()>,
-    ) -> ((), PermissibleVotes) {
+    fn private_vote<'a>(&self, _ctx: &WitnessContext<Ledger<'a>, ()>) -> ((), PermissibleVotes) {
         ((), PermissibleVotes::yes)
     }
     fn context_eligible_voters_path_of<'a>(
@@ -253,7 +244,10 @@ fn assert_step_bytes_eq(
 /// Require the named step's snapshot to carry a captured `stateHex`. If
 /// the TS driver instead recorded an `error`, panic with the message so
 /// the test diagnostic is meaningful.
-fn require_state_hex<'a>(label: &str, snap: Option<&'a ElectionStepSnapshot>) -> &'a ElectionStepSnapshot {
+fn require_state_hex<'a>(
+    label: &str,
+    snap: Option<&'a ElectionStepSnapshot>,
+) -> &'a ElectionStepSnapshot {
     let snap = snap.unwrap_or_else(|| panic!("TS fixture missing {label} snapshot"));
     if snap.state_hex.is_none() {
         panic!(
@@ -303,7 +297,10 @@ fn election_init_then_set_topic_byte_parity() {
         .expect("initial_state");
     let circ_ctx = CircuitContext::new(init.current_contract_state, init.current_private_state);
     let out = contract
-        .set_topic(circ_ctx, compact_runtime::std_lib::OpaqueString::from("hello"))
+        .set_topic(
+            circ_ctx,
+            compact_runtime::std_lib::OpaqueString::from("hello"),
+        )
         .expect("set_topic");
     let envelope = make_envelope(out.context.current_query_context.state.clone());
     assert_step_bytes_eq("set_topic", &envelope, after);
@@ -322,7 +319,10 @@ fn election_init_then_advance_byte_parity() {
         .expect("initial_state");
     let circ_ctx = CircuitContext::new(init.current_contract_state, init.current_private_state);
     let after_set_topic = contract
-        .set_topic(circ_ctx, compact_runtime::std_lib::OpaqueString::from("hello"))
+        .set_topic(
+            circ_ctx,
+            compact_runtime::std_lib::OpaqueString::from("hello"),
+        )
         .expect("set_topic");
     let out = contract.advance(after_set_topic.context).expect("advance");
     let envelope = make_envelope(out.context.current_query_context.state.clone());
@@ -369,9 +369,7 @@ fn election_vote_commit_byte_parity() {
     let after_add_voter = contract
         .add_voter(after_set_topic.context, VOTER_PK)
         .expect("add_voter");
-    let after_advance = contract
-        .advance(after_add_voter.context)
-        .expect("advance");
+    let after_advance = contract.advance(after_add_voter.context).expect("advance");
     // Stash the captured eligibleness path; the witness clones it
     // out for this single vote$commit invocation. Cleared afterwards.
     ELIGIBLE_PATH.with(|c| *c.borrow_mut() = Some(vote_path.clone()));
@@ -412,9 +410,7 @@ fn election_vote_reveal_byte_parity() {
     let after_add_voter = contract
         .add_voter(after_set_topic.context, VOTER_PK)
         .expect("add_voter");
-    let after_advance = contract
-        .advance(after_add_voter.context)
-        .expect("advance");
+    let after_advance = contract.advance(after_add_voter.context).expect("advance");
     ELIGIBLE_PATH.with(|c| *c.borrow_mut() = Some(eligible_path.clone()));
     let after_vote_commit = contract
         .vote_commit(after_advance.context, PermissibleVotes::yes)
@@ -451,8 +447,8 @@ fn authority_matches_pure_circuit_derivation() {
     // "lares:election:pk:" (18 bytes) padded with NUL to 32 bytes —
     // the exact domain separator used by election's pure_circuits::public_key.
     const DOMAIN_SEP: [u8; 32] = [
-        108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58,
-        112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        108u8, 97, 114, 101, 115, 58, 101, 108, 101, 99, 116, 105, 111, 110, 58, 112, 107, 58, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ];
     let derived = compact_runtime::std_lib::persistent_hash_aligned(&[
         AlignedValue::from(DOMAIN_SEP),

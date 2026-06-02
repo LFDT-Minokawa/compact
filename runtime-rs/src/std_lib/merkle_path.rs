@@ -58,8 +58,7 @@ pub fn merkle_tree_path_root_no_leaf_hash(
 /// path. Upstream `MerklePath` does not impl `Default`, so codegen /
 /// hand-written witnesses route default construction through this
 /// helper.
-pub fn default_merkle_path<T: Default>(
-) -> midnight_transient_crypto::merkle_tree::MerklePath<T> {
+pub fn default_merkle_path<T: Default>() -> midnight_transient_crypto::merkle_tree::MerklePath<T> {
     midnight_transient_crypto::merkle_tree::MerklePath {
         leaf: T::default(),
         path: Vec::new(),

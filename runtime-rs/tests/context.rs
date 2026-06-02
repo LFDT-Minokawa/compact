@@ -39,7 +39,10 @@ fn constructor_context_can_be_constructed() {
 
 #[test]
 fn circuit_results_can_be_constructed() {
-    let qctx = QueryContext::new(ChargedState::new(StateValue::Null), ContractAddress::default());
+    let qctx = QueryContext::new(
+        ChargedState::new(StateValue::Null),
+        ContractAddress::default(),
+    );
     let ctx: CircuitContext<()> = CircuitContext {
         current_private_state: (),
         current_query_context: qctx,

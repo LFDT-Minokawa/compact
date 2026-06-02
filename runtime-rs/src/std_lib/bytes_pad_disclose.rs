@@ -114,7 +114,7 @@ mod tests {
         // is the smallest case where R3's fix is observable.
         let f = Fr::from(123456789u64);
         let av: AlignedValue = f.into();
-        let new_path = persistent_hash_aligned(&[av.clone()]);
+        let new_path = persistent_hash_aligned(std::slice::from_ref(&av));
         // sanity: length is 32 bytes (sha256 output).
         assert_eq!(new_path.len(), 32);
         // independent observation: hashing the same Fr twice is stable.

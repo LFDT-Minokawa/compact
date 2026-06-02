@@ -13,7 +13,7 @@
 // `Ledger::field()` accessors.
 
 use crate::{
-    aligned_bytes, AlignedValue, CompactError, ContractState, FromFieldRepr, Fr, StateValue, DB,
+    aligned_bytes, AlignedValue, CompactError, ContractState, Fr, FromFieldRepr, StateValue, DB,
 };
 
 /// Compact's `Counter` ledger ADT. Represented at runtime as
@@ -173,9 +173,7 @@ pub fn decode_via_field_repr<T: FromFieldRepr>(av: &AlignedValue) -> Result<T, C
         frs.push(fr);
     }
     T::from_field_repr(&frs).ok_or_else(|| {
-        CompactError::AssertionFailed(
-            "decode_via_field_repr: from_field_repr returned None".into(),
-        )
+        CompactError::AssertionFailed("decode_via_field_repr: from_field_repr returned None".into())
     })
 }
 
@@ -189,9 +187,8 @@ pub fn decode_via_field_repr<T: FromFieldRepr>(av: &AlignedValue) -> Result<T, C
 /// tests and on-chain submission.
 pub fn serialize_contract_state<D: DB>(state: &ContractState<D>) -> Result<Vec<u8>, CompactError> {
     let mut buf = Vec::new();
-    midnight_serialize::tagged_serialize(state, &mut buf).map_err(|e| {
-        CompactError::AssertionFailed(format!("serialize_contract_state: {e}"))
-    })?;
+    midnight_serialize::tagged_serialize(state, &mut buf)
+        .map_err(|e| CompactError::AssertionFailed(format!("serialize_contract_state: {e}")))?;
     Ok(buf)
 }
 

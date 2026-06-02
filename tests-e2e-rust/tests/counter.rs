@@ -16,7 +16,9 @@
 
 use compact_runtime::std_lib::Counter;
 use compact_runtime::*;
-use midnight_onchain_state::state::{ContractMaintenanceAuthority, ContractOperation, EntryPointBuf};
+use midnight_onchain_state::state::{
+    ContractMaintenanceAuthority, ContractOperation, EntryPointBuf,
+};
 use midnight_serialize::tagged_serialize;
 use midnight_storage::storage::HashMap;
 use tests_e2e_rust::TsReferenceState;
@@ -39,14 +41,9 @@ fn counter_init_plus_increment_byte_parity() {
             path: Array::from(vec![Key::Value(AlignedValue::from(0u8))]),
         },
         Op::Addi { immediate: 1 },
-        Op::Ins {
-            cached: true,
-            n: 1,
-        },
+        Op::Ins { cached: true, n: 1 },
     ];
-    let results = qctx
-        .query(&ops, None, &INITIAL_COST_MODEL)
-        .expect("query");
+    let results = qctx.query(&ops, None, &INITIAL_COST_MODEL).expect("query");
     let post_state = results.context.state; // ChargedState<DefaultDB>
     let post_state_value = post_state.get_ref().clone();
 
@@ -70,7 +67,10 @@ fn counter_init_plus_increment_byte_parity() {
     tagged_serialize(&contract_state, &mut buf).expect("tagged_serialize");
 
     // Step 4: load TS reference + compare.
-    let fixture_path = concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/counter-ts-state.json");
+    let fixture_path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/fixtures/counter-ts-state.json"
+    );
     let ts_ref = TsReferenceState::load(fixture_path);
     let ts_bytes = ts_ref.state_bytes();
     assert_eq!(

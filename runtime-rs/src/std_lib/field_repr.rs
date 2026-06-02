@@ -13,7 +13,7 @@
 // orphan rules; the per-field deserialiser doesn't need to go through
 // `<T as FromFieldRepr>` for problematic T.
 
-use crate::{FromFieldRepr, Fr};
+use crate::{Fr, FromFieldRepr};
 
 /// FIELD_SIZE for a `[u8; N]` field-repr — 31-byte chunks plus a stray
 /// Fr for the remainder, matching `bytes_from_field_repr`'s packing.

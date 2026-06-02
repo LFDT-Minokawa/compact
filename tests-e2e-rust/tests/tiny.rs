@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
+
+// `passing a unit value to a function` fires throughout these tests
+// because some fixtures have `PS = ()` (no private state), so the
+// CircuitContext::new(state, ()) call deliberately threads a unit.
+// The lint can't see that and the alternative (a phantom newtype) would
+// be more confusing than the suppression.
+#![allow(clippy::unit_arg)]
 //
 // tiny.compact multi-step byte-parity tests (M2 + M2.1 of the M3 plan).
 //
@@ -50,10 +57,11 @@ fn ctor_ctx() -> ConstructorContext<()> {
 }
 
 /// Build a ContractState envelope around a freshly mutated
-/// ChargedState, matching what tiny.compact's TS path produces: data
-/// + the canonical (get, set, clear) operations + default
-/// maintenance authority + empty balance. tagged_serialize then
-/// produces a byte-identical encoding to the TS .serialize().
+/// ChargedState, matching what tiny.compact's TS path produces:
+/// data plus the canonical `(get, set, clear)` operations plus the
+/// default maintenance authority plus an empty balance.
+/// `tagged_serialize` then produces a byte-identical encoding to the
+/// TS `.serialize()`.
 fn make_envelope(
     data: ChargedState<midnight_storage::DefaultDB>,
 ) -> ContractState<midnight_storage::DefaultDB> {
@@ -61,7 +69,10 @@ fn make_envelope(
         HashMap::new();
     operations = operations.insert(EntryPointBuf(b"get".to_vec()), ContractOperation::new(None));
     operations = operations.insert(EntryPointBuf(b"set".to_vec()), ContractOperation::new(None));
-    operations = operations.insert(EntryPointBuf(b"clear".to_vec()), ContractOperation::new(None));
+    operations = operations.insert(
+        EntryPointBuf(b"clear".to_vec()),
+        ContractOperation::new(None),
+    );
     ContractState {
         data,
         operations,

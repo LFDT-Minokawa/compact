@@ -27,15 +27,10 @@ fn increment_counter_end_to_end() {
             path: Array::from(vec![Key::Value(AlignedValue::from(0u8))]),
         },
         Op::Addi { immediate: 1 },
-        Op::Ins {
-            cached: true,
-            n: 1,
-        },
+        Op::Ins { cached: true, n: 1 },
     ];
 
-    let results = qctx
-        .query(&ops, None, &INITIAL_COST_MODEL)
-        .expect("query");
+    let results = qctx.query(&ops, None, &INITIAL_COST_MODEL).expect("query");
 
     // Decode the counter at path [0] from the resulting state.
     let new_state = results.context.state.get_ref();

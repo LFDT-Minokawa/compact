@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
+
+// `passing a unit value to a function` fires throughout these tests
+// because some fixtures have `PS = ()` (no private state), so the
+// CircuitContext::new(state, ()) call deliberately threads a unit.
+// The lint can't see that and the alternative (a phantom newtype) would
+// be more confusing than the suppression.
+#![allow(clippy::unit_arg)]
 //
 // zerocash.compact byte-parity tests (F1.1 + F1.2 of the M3.5 plan).
 //
@@ -13,8 +20,8 @@
 //   - ciphertexts: Opaque<"Uint8Array">   (seeds as cell of Vec<u8>::new())
 
 use compact_contract_zerocash::{
-    coin_info, commitment, zk_public_key, zk_secret_key, Contract, Ledger, Nonce, Witnesses,
-    opening,
+    coin_info, commitment, opening, zk_public_key, zk_secret_key, Contract, Ledger, Nonce,
+    Witnesses,
 };
 use compact_runtime::*;
 use midnight_serialize::tagged_serialize;
@@ -33,10 +40,8 @@ const FIXED_SK: [u8; 32] = [1u8; 32];
 // hardcode this — kept here as bytes rather than recomputing to avoid
 // pulling in the field/hash plumbing at test time.
 const FIXED_PK: [u8; 32] = [
-    0x72, 0xcd, 0x6e, 0x84, 0x22, 0xc4, 0x07, 0xfb,
-    0x6d, 0x09, 0x86, 0x90, 0xf1, 0x13, 0x0b, 0x7d,
-    0xed, 0x7e, 0xc2, 0xf7, 0xf5, 0xe1, 0xd3, 0x0b,
-    0xd9, 0xd5, 0x21, 0xf0, 0x15, 0x36, 0x37, 0x93,
+    0x72, 0xcd, 0x6e, 0x84, 0x22, 0xc4, 0x07, 0xfb, 0x6d, 0x09, 0x86, 0x90, 0xf1, 0x13, 0x0b, 0x7d,
+    0xed, 0x7e, 0xc2, 0xf7, 0xf5, 0xe1, 0xd3, 0x0b, 0xd9, 0xd5, 0x21, 0xf0, 0x15, 0x36, 0x37, 0x93,
 ];
 const FIXED_NONCE: [u8; 32] = [3u8; 32];
 const FIXED_OPENING: [u8; 32] = [4u8; 32];
@@ -52,7 +57,9 @@ thread_local! {
 fn fixed_coin_info() -> coin_info {
     coin_info {
         nonce: Nonce { bytes: FIXED_NONCE },
-        opening: opening { bytes: FIXED_OPENING },
+        opening: opening {
+            bytes: FIXED_OPENING,
+        },
     }
 }
 
@@ -104,7 +111,9 @@ impl Witnesses<()> for ZerocashWitnesses {
             Some(p) => (
                 (),
                 compact_runtime::MerklePath {
-                    leaf: commitment { bytes: p.leaf_bytes() },
+                    leaf: commitment {
+                        bytes: p.leaf_bytes(),
+                    },
                     path: p.into_entries(),
                 },
             ),
@@ -114,10 +123,7 @@ impl Witnesses<()> for ZerocashWitnesses {
             }
         }
     }
-    fn context_new_coin_info<'a>(
-        &self,
-        _ctx: &WitnessContext<Ledger<'a>, ()>,
-    ) -> ((), coin_info) {
+    fn context_new_coin_info<'a>(&self, _ctx: &WitnessContext<Ledger<'a>, ()>) -> ((), coin_info) {
         ((), fixed_coin_info())
     }
     fn context_encrypt<'a>(
@@ -290,9 +296,8 @@ fn zerocash_init_mint_spend_byte_parity() {
 /// with a clear "constant drift" error message.
 #[test]
 fn fixed_pk_matches_pure_circuit_derivation() {
-    let derived = compact_runtime::std_lib::persistent_hash_aligned(&[
-        AlignedValue::from(FIXED_SK),
-    ]);
+    let derived =
+        compact_runtime::std_lib::persistent_hash_aligned(&[AlignedValue::from(FIXED_SK)]);
     assert_eq!(
         derived,
         FIXED_PK,

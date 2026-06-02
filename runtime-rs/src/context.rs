@@ -6,7 +6,7 @@
 
 use crate::{
     ChargedState, ContractAddress, CostModel, DefaultDB, QueryContext, RunningCost,
-    ZswapLocalState, INITIAL_COST_MODEL, DB,
+    ZswapLocalState, DB, INITIAL_COST_MODEL,
 };
 
 /// Context passed into each impure / provable circuit invocation.

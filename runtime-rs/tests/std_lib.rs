@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use compact_runtime::*;
 use compact_runtime::std_lib::Counter;
+use compact_runtime::*;
 
 #[test]
 fn counter_decode_reads_u64_from_state_value() {

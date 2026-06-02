@@ -19,12 +19,10 @@ mod zerocash;
 // Flat re-exports keep the public API stable: existing tests written
 // against `tests_e2e_rust::FooTsReferenceState` keep compiling.
 pub use common::{
-    CapturedMerklePath, CapturedMerklePathEntry, SmallFixtureStepSnapshot,
-    SmallFixtureTsReference, TsReferenceState,
+    CapturedMerklePath, CapturedMerklePathEntry, SmallFixtureStepSnapshot, SmallFixtureTsReference,
+    TsReferenceState,
 };
 pub use election::{ElectionStepSnapshot, ElectionTsReferenceState};
 pub use map_fixture::{MapFixtureStepSnapshot, MapFixtureTsReferenceState};
-pub use tiny::{
-    TinyGetResult, TinyLedgerSnapshot, TinyStepSnapshot, TinyTsReferenceState,
-};
+pub use tiny::{TinyGetResult, TinyLedgerSnapshot, TinyStepSnapshot, TinyTsReferenceState};
 pub use zerocash::{ZerocashStepSnapshot, ZerocashTsReferenceState};

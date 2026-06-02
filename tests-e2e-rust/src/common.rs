@@ -105,9 +105,7 @@ impl CapturedMerklePath {
     /// Decode the path entries into upstream `MerklePathEntry` form.
     /// Each `siblingHex` is big-endian 32 bytes; `Fr::from_le_bytes`
     /// expects little-endian, so we reverse before passing.
-    pub fn into_entries(
-        &self,
-    ) -> Vec<midnight_transient_crypto::merkle_tree::MerklePathEntry> {
+    pub fn into_entries(&self) -> Vec<midnight_transient_crypto::merkle_tree::MerklePathEntry> {
         use midnight_transient_crypto::curve::Fr;
         use midnight_transient_crypto::merkle_tree::{MerklePathEntry, MerkleTreeDigest};
         self.path
@@ -116,8 +114,7 @@ impl CapturedMerklePath {
                 let mut be = hex::decode(&e.sibling_hex).expect("decode sibling hex");
                 // big-endian -> little-endian
                 be.reverse();
-                let fr =
-                    Fr::from_le_bytes(&be).expect("sibling field bytes are not a valid Fr");
+                let fr = Fr::from_le_bytes(&be).expect("sibling field bytes are not a valid Fr");
                 MerklePathEntry {
                     sibling: MerkleTreeDigest(fr),
                     goes_left: e.goes_left,
