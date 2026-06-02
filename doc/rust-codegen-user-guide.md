@@ -256,7 +256,7 @@ you'd get from upstream `compactc`.
 | Feature | `--rust` | Notes |
 |---|---|---|
 | Top-level `witness f(…): T;` | Supported | Generates one trait method per declaration. |
-| Module-local `witness` | Not yet | |
+| Module-local `witness` | Supported | Inlined into the importing scope by `expand-modules-and-types` (analysis-passes.ss:43) — emitted as a top-level trait method. |
 
 ### Control flow
 
@@ -274,12 +274,14 @@ you'd get from upstream `compactc`.
 
 ### Modules
 
+The Compact frontend pass `expand-modules-and-types` (at [`compiler/analysis-passes.ss:43`](../compiler/analysis-passes.ss), `Lpreexpand → Lexpanded`) inlines a module's exported declarations into the importing program's namespace **before** the IR reaches the Rust codegen. The `Lexpanded` language definition ([`compiler/langs.ss:529-535`](../compiler/langs.ss)) strips the `(module ...)` and `(import ...)` nonterminals entirely, so the Rust emitter never sees a module boundary — fields, circuits, and witnesses declared inside `module M { ... }` are emitted as flat top-level declarations at the same slot indices and method positions as if they had been declared at the program root. Mirrors how `expand-modules-and-types` also monomorphises generics pre-codegen (see [Iter 11](../tests-e2e-rust/README.md#generics-coverage)).
+
 | Feature | `--rust` | Notes |
 |---|---|---|
-| `module M { … }` / `import M` | Not yet | |
-| `import M prefix P_` | Not yet | |
-| Nested modules | Not yet | |
-| `export { … }` block | Supported (partial) | Standalone `export` blocks at the top level work; `export` inside a module does not. |
+| `module M { … }` / `import M` | Supported | Inlined pre-Rust-IR. Re-export via `export { … }` brings the module's symbols into the contract's public surface. Covered by [`module_fixture.compact`](../examples/module_fixture.compact) + byte-parity test. |
+| `import M prefix P_` | Supported | Same desugaring path — the prefix is applied during inlining; the codegen sees the prefixed names as flat top-level declarations. No dedicated fixture (the codegen path is identical to the flat-import case). |
+| Nested modules | Supported | Recursively inlined by the same pass. No dedicated fixture (the codegen path is identical). |
+| `export { … }` block | Supported | Standalone `export` blocks at the top level and inside modules both work — they're processed by the same frontend pass that resolves module exports. |
 
 ### Natives
 

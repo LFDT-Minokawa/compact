@@ -10,7 +10,7 @@ Our Rust codegen covers the structural backbone of Compact: scalars, ADTs as led
 
 What's NOT covered is roughly orthogonal:
 1. **Higher-order control flow** — `fold` / `map` / lambda-as-expression / `for`-range / `for`-iterable loops
-2. **Module system** — `module M { ... }` / `import M` / prefix renaming / nested modules
+2. ~~**Module system**~~ — closed by Iter 10. The same `expand-modules-and-types` pass at `analysis-passes.ss:43` that monomorphises generics also inlines a module's exported declarations into the importing program's namespace; `Lexpanded` (langs.ss:529-535) strips the `(module ...)` and `(import ...)` nonterminals entirely. The Rust codegen never sees a module boundary — fields, circuits, witnesses declared inside `module M { ... }` and re-exported via `import M; export { ... }` are emitted as flat top-level declarations. The flat-import shape is exercised by `module_fixture.compact` + byte-parity test. Prefix imports (`import M prefix P_`) and nested modules survive the same flattening at the IR level but were not added as separate fixtures — the codegen path is identical.
 3. ~~**Generic circuits**~~ — already covered (Iter 11: `expand-modules-and-types` monomorphises pre-Rust-IR; zerocash + election exercise `merkleTreePathRoot<N, T>` callsites in their multi-step byte-parity suites). Remaining sub-gap: user-defined non-stdlib generic circuits called in body position are blocked by the **non-generic-specific** user-circuit-call-in-body limitation (same gap blocks non-generic user circuit calls — tracked under Iter 6/7).
 4. **`List<T>` ADT** — the only core ADT we haven't fixtured
 5. **`Uint<L..U>`** bounded ranges
@@ -53,8 +53,8 @@ Effort estimates and priority below.
 | Control flow | **lambda-as-expression** `(x) => …` / IIFE | 88 (`=>` count) | ❌ | **High** |
 | Control flow | comma-sequenced exprs | 4+ | ✅ basic | Medium |
 | Casts | `as Uint` / `as Bytes` / `as Field` | 21 / 15 / 16 | ✅ trivial; explicit-cast-as-expr generally untested | Medium |
-| Modules | **module / import / prefix imports** | 35 / 169 / 10 | ❌ | **High** |
-| Modules | nested modules, sealed ledger | 1 / 3 | ❌ | Medium/Low |
+| Modules | **module / import / prefix imports** | 35 / 169 / 10 | ✅ Iter 10 — `expand-modules-and-types` inlines module contents into the importing scope pre-Rust-IR (langs.ss:529-535 strips `(module ...)` / `(import ...)` from `Lexpanded`); module-declared circuits and ledger fields are emitted flat. Covered by `module_fixture.compact` byte-parity test | — |
+| Modules | nested modules, sealed ledger | 1 / 3 | ✅ partial (same desugaring path) | Low |
 | Modules | `export { … }` block | 30+ | ✅ partial | Low |
 | Natives | persistentHash/Commit/transientHash/Commit | rare | ✅ | — |
 | Natives | hashToCurve / Jubjub / Zswap | 1+ | ✅ mapped (R2); no byte-parity test | Low |
@@ -77,10 +77,11 @@ Effort estimates and priority below.
 - `fold((acc, x) => acc + x, 0, vec)` (36 tests), `map(fn, arr)` (47 tests), bare lambdas in expression position (88 `=>` occurrences).
 - `fold` is the canonical bounded-loop-with-accumulator in Compact.
 
-### Gap 3 — Module system [HIGH, Large effort]
-- `module M { ... }`, `import M`, `import M prefix P_`, nested modules, module-local witness, sealed ledgers.
-- 35 tests use `module`, 169 use `import`.
-- Needs design decision: do prefixed imports become Rust modules or flattened with renamed symbols? Verify whether `desugar-modules` already runs pre-Rust-IR.
+### Gap 3 — Module system [CLOSED by Iter 10]
+- ~~`module M { ... }`, `import M`, `import M prefix P_`, nested modules, module-local witness, sealed ledgers.~~
+- ~~35 tests use `module`, 169 use `import`.~~
+- ~~Needs design decision: do prefixed imports become Rust modules or flattened with renamed symbols? Verify whether `desugar-modules` already runs pre-Rust-IR.~~
+- **Resolved (Iter 10)**: the `expand-modules-and-types` pass at `analysis-passes.ss:43` (`Lpreexpand → Lexpanded`) inlines a module's exported declarations into the importing program's namespace, including under prefix renaming. `Lexpanded` (langs.ss:529-535) removes the `(module ...)` and `(import ...)` nonterminals from the language entirely, so by the time the IR reaches `Ltypes` → `Ltypescript` → Rust codegen, every module boundary is gone — circuits and ledger fields declared inside a module land at the same flat slot index and circuit-method position as top-level declarations. The "design decision" the original gap flagged is moot: there is no decision because there is no IR node to interpret. The `module_fixture.compact` fixture locks the invariant in via byte-parity (post-constructor ContractState bytes match TS reference; post-`bump_inner()` bytes match TS reference). Prefix imports / nested modules / module-local witnesses share the same desugaring path; no separate fixture was added because the codegen path is identical and the in-scope shapes that survive (e.g. flat re-exported witnesses) are already covered by other fixtures.
 
 ### Gap 4 — `List<T>` ADT [HIGH, Small-Medium effort]
 - One of the seven core ADTs. test700, test620 (Map<…, List<…>>), test689.
@@ -112,7 +113,7 @@ Effort estimates and priority below.
 | 7 | map + lambda-as-expression | Medium-Large | ~50 |
 | 8 | Uint<L..U> bounded ranges | Small | 13 |
 | 9 | Pure circuit modifier + sealed ledger | Small | 7 |
-| 10 | Modules (basic flat `import M`) | Large | ~30 |
+| 10 | Modules (basic flat `import M`) | Closed (no codegen work needed — see Gap 3) | ~30 already covered |
 | 11 | Generic circuits — verify monomorphise runs pre-Rust-IR | Closed (no work needed) | 2-5 already covered |
 | 12 | Mop-up: nested Maps, HMT.insertIndexDefault, hashToCurve byte-parity | Medium | ~5 |
 

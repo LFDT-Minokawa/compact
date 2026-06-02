@@ -202,6 +202,36 @@ after every Scheme edit** — it catches the failure mode where the
 codegen produces broken Scheme that the build hides because the test
 suite drives the *committed* `lib.rs`, not freshly-regenerated output.
 
+## Modules coverage
+
+Compact inlines a module's exported declarations into the importing
+program's namespace in the same frontend pass that monomorphises
+generics — `expand-modules-and-types`
+(at [`compiler/analysis-passes.ss:43`](../compiler/analysis-passes.ss),
+`Lpreexpand → Lexpanded`). The `Lexpanded` language definition
+([`compiler/langs.ss:529-535`](../compiler/langs.ss)) strips the
+`(module ...)`, `(import ...)`, and `(Import-Name ...)` nonterminals
+entirely, so by the time the IR reaches the Rust codegen there is no
+module construct left to handle. Module-declared circuits, ledger
+fields, and witnesses are emitted as flat top-level declarations at
+the same slot indices and method positions as if they had been
+declared at the program root.
+
+- **Flat `module M { … } import M; export { … }`** — covered by
+  `module_fixture.compact`: a `Counter` ledger field and `bump_inner()`
+  circuit declared inside `module M`, then re-exported. The
+  byte-parity test asserts that the post-`initial_state()` and
+  post-`bump_inner()` ContractState bytes match the TS reference,
+  proving the flat layout.
+- **`import M prefix P_`** — survives the same inlining; the prefix
+  is applied during desugaring and the codegen sees the prefixed
+  names as flat declarations. No dedicated fixture (the codegen path
+  is identical to the flat-import case).
+- **Nested modules** — recursively inlined by the same pass. No
+  dedicated fixture (identical codegen path).
+- **Module-local `witness`** — inlined as a top-level witness
+  declaration; trait-method emission is unchanged.
+
 ## Generics coverage
 
 Compact monomorphises generics in the frontend pass `expand-modules-and-types`

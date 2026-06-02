@@ -1,0 +1,59 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//
+// Iter 10: module / import fixture.
+//
+// Compact's frontend pass `expand-modules-and-types` (at
+// compiler/analysis-passes.ss:43) inlines a module's exported
+// declarations into the importing program's namespace **before** the
+// IR reaches Ltypescript. By the time the Rust codegen runs, every
+// `module ... { ... }` and `import M;` form has been desugared away:
+// the `Lexpanded` language definition (compiler/langs.ss:529-535)
+// removes the `(module ...)` and `(import ...)` nonterminals entirely.
+//
+// As a consequence the Rust emitter never sees a module boundary —
+// the ledger field declared inside `module M { ... }` ends up at the
+// same flat slot index as a top-level field, and the circuit exported
+// from inside the module is emitted as a flat method on `Contract`.
+// Mirrors the equivalent finding for generics (Iter 11), where the
+// `expand-modules-and-types` pass also monomorphises type parameters
+// before codegen.
+//
+// This fixture locks the invariant in via byte-parity: it declares a
+// `Counter` field and a `bump_inner` circuit inside `module M`, plus a
+// top-level `Boolean` field, then re-exports the module's symbols.
+// Byte-parity against the TS reference confirms that the flat layout
+// the Rust emitter produces matches the TS-side `initialState()` and
+// `bump_inner()` output exactly.
+
+import CompactStandardLibrary;
+
+module M {
+  export ledger inner_count: Counter;
+
+  export circuit bump_inner(): [] {
+    inner_count.increment(1);
+  }
+}
+import M;
+
+export ledger outer_flag: Boolean;
+
+constructor() {
+  outer_flag = true;
+}
+
+export { inner_count, bump_inner }
