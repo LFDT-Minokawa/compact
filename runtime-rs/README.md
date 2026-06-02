@@ -1,9 +1,17 @@
 # `compact-runtime`
 
+[![CI](https://github.com/LFDT-Minokawa/compact/actions/workflows/rust-runtime-test.yml/badge.svg?branch=codegen-rust)](https://github.com/LFDT-Minokawa/compact/actions/workflows/rust-runtime-test.yml)
+[![docs.rs](https://img.shields.io/docsrs/compact-runtime)](https://docs.rs/compact-runtime)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
+
 Native Rust runtime for contracts emitted by `compactc --rust`. This
 crate is the Rust counterpart to the TypeScript package
 `@midnight-ntwrk/compact-runtime`. **Generated contract code depends on
 it; users typically do not consume it directly.**
+
+For an end-to-end walkthrough (compile a `.compact` source, wire the
+generated crate, implement `Witnesses<PS>`, drive circuits), read the
+[user guide](../doc/rust-codegen-user-guide.md).
 
 ## What this crate provides
 
