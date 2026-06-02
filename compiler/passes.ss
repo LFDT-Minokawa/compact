@@ -184,7 +184,21 @@
                               (with-target-ports
                                 '((contract.rs . "contract/lib.rs")
                                   (contract-cargo.toml . "contract/Cargo.toml"))
-                                (run-passes rust-passes ltypescript-ir))))
+                                (run-passes rust-passes ltypescript-ir))
+                              ;; Post-emit: pipe lib.rs through rustfmt so
+                              ;; the output is style-clean and stays clean
+                              ;; against `cargo fmt --check`. Silent no-op
+                              ;; if rustfmt isn't on PATH — production
+                              ;; toolchains include it via rustup, and
+                              ;; missing rustfmt is a soft-fail (we'd
+                              ;; rather emit unformatted code than fail
+                              ;; the build).
+                              (let ([lib-rs (format "~a/contract/lib.rs"
+                                                    output-directory-pathname)])
+                                (when (and (zero? (system "command -v rustfmt > /dev/null 2>&1"))
+                                           (file-exists? lib-rs))
+                                  (system (format "rustfmt --edition 2021 ~a > /dev/null 2>&1"
+                                                  lib-rs)))))) ; closes let, when-emit-rust
                           (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass)))]))))))))]))
 
   (define-pass extract-circuit-names : Lflattened (ir) -> * (ls)
