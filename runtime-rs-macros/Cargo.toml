@@ -14,12 +14,21 @@
 # limitations under the License.
 
 [package]
-name        = "compact-runtime-macros"
-version     = "0.16.100"
-edition     = "2021"
-license     = "Apache-2.0"
-description = "Procedural macros for compact-runtime — emits Witnesses<PS> trait impls."
-repository  = "https://github.com/LFDT-Minokawa/compact"
+name          = "compact-runtime-macros"
+version       = "0.16.100"
+edition       = "2021"
+license       = "Apache-2.0"
+description   = "Procedural macros for compact-runtime — emits Witnesses<PS> trait impls."
+repository    = "https://github.com/LFDT-Minokawa/compact"
+homepage      = "https://github.com/LFDT-Minokawa/compact"
+documentation = "https://docs.rs/compact-runtime-macros"
+readme        = "README.md"
+keywords      = ["compact", "midnight", "macro", "proc-macro", "witnesses"]
+categories    = ["development-tools::procedural-macro-helpers", "cryptography::cryptocurrencies"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
 name = "compact_runtime_macros"

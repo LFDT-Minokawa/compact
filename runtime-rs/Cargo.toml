@@ -44,4 +44,9 @@ midnight-coin-structure   = { workspace = true }
 midnight-zswap            = { workspace = true }
 midnight-serialize        = { workspace = true }
 midnight-storage          = { workspace = true }
-compact-runtime-macros    = { path = "../runtime-rs-macros" }
+# `version = "=0.16.100"` is required for `cargo publish` to accept this
+# manifest — crates.io rejects path-only dependencies. The `=` pin keeps
+# the two crates lock-stepped: bumping `compact-runtime` to 0.16.101 must
+# also bump `compact-runtime-macros` to 0.16.101. See
+# docs/superpowers/notes/2026-06-02-crates-io-publication-plan.md.
+compact-runtime-macros    = { path = "../runtime-rs-macros", version = "=0.16.100" }
