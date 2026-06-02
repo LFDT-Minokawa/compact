@@ -1598,11 +1598,21 @@
        (values
          `(cast-to-field ,src ,ftype ,type ,expr)
          (CTV-unknown no-var-name))]
-      [(cast-from-field ,src ,nat ,[ftype] ,[expr ctv])
-       ;; TODO(kmillikin): optimize this.
-       (values
-         `(cast-from-field ,src ,nat ,ftype ,expr)
-         (CTV-unknown no-var-name))]
+      [(cast-from-field ,src ,nat (field-native) ,[expr ctv])
+       (CTV-case ctv
+         [(CTV-const datum)
+          (values `(seq ,src ,expr (quote ,src ,datum))
+            ctv)]
+         [else (values `(cast-from-field ,src ,nat (field-native) ,expr)
+                 (CTV-unknown no-var-name))])]
+      [(cast-from-field ,src ,nat (field-scalar (curve-jubjub)) ,[expr ctv])
+       (cond
+         [(ifconstant ctv (lambda (datum) (and (<= datum (max-jubjub-scalar)) datum))) =>
+          (lambda (datum)
+            (values `(seq ,src ,expr (quote ,src ,datum))
+              ctv))]
+         [else (values `(cast-from-field ,src ,nat (field-scalar (curve-jubjub)) ,expr)
+                 (CTV-unknown no-var-name))])]
       [(downcast-unsigned ,src ,nat2 ,nat1 ,[expr ctv])
        (cond
          [(ifconstant ctv (lambda (datum) (and (<= datum nat1) datum))) =>

@@ -45847,11 +45847,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               52435875175126190479447740508185965837690552500527637822603658699938581184512))
-          (%t4.3))))
+          (52435875175126190479447740508185965837690552500527637822603658699938581184512))))
     )
 
   (test
@@ -45877,11 +45873,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               52435875175126190479447740508185965837690552500527637822603658699938581184512))
-          (%t4.3))))
+          (52435875175126190479447740508185965837690552500527637822603658699938581184512))))
     )
 
   (test
@@ -45907,11 +45899,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               52435875175126190479447740508185965837690552500527637822603658699938581184512))
-          (%t4.3))))
+          (52435875175126190479447740508185965837690552500527637822603658699938581184512))))
     )
 
   (test
@@ -45954,11 +45942,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               52435875175126190479447740508185965837690552500527637822603658699938581184512))
-          (%t4.3))))
+          (52435875175126190479447740508185965837690552500527637822603658699938581184512))))
     )
 
   (test
@@ -45984,11 +45968,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               452312848583266388373324160190187140051835877600158453279131187530910662656))
-          (%t4.3))))
+          (452312848583266388373324160190187140051835877600158453279131187530910662656))))
     )
 
   (test
@@ -46014,11 +45994,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               452312848583266388373324160190187140051835877600158453279131187530910662656))
-          (%t4.3))))
+          (452312848583266388373324160190187140051835877600158453279131187530910662656))))
     )
 
   (test
@@ -46044,11 +46020,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               452312848583266388373324160190187140051835877600158453279131187530910662656))
-          (%t4.3))))
+          (452312848583266388373324160190187140051835877600158453279131187530910662656))))
     )
 
   (test
@@ -46075,11 +46047,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               452312848583266388373324160190187140051835877600158453279131187530910662656))
-          (%t4.3))))
+          (452312848583266388373324160190187140051835877600158453279131187530910662656))))
     )
 
   (test
@@ -46105,11 +46073,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               452312848583266388373324160190187140051835877600158453279131187530910662655))
-          (%t4.3))))
+          (452312848583266388373324160190187140051835877600158453279131187530910662655))))
     )
 
   (test
@@ -46135,11 +46099,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               452312848583266388373324160190187140051835877600158453279131187530910662655))
-          (%t4.3))))
+          (452312848583266388373324160190187140051835877600158453279131187530910662655))))
     )
 
   (test
@@ -46166,11 +46126,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               452312848583266388373324160190187140051835877600158453279131187530910662655))
-          (%t4.3))))
+          (452312848583266388373324160190187140051835877600158453279131187530910662655))))
     )
 
   (test
@@ -46229,11 +46185,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456788
-               (field-native)
-               52435875175126190479447740508185965837690552500527637822603658699938581184511))
-          (%t4.3))))
+          (52435875175126190479447740508185965837690552500527637822603658699938581184511))))
     )
 
   (test
@@ -46259,11 +46211,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456788
-               (field-native)
-               123456789123456789))
-          (%t4.3))))
+          (123456789123456789))))
     )
 
   (test
@@ -46289,11 +46237,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t4.3
-             (cast-from-field #f 123456789123456789
-               (field-native)
-               123456789123456789))
-          (%t4.3))))
+          (123456789123456789))))
     )
 
   (test
