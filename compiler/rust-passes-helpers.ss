@@ -1,6 +1,28 @@
       (define (out s)
         (display-string s (get-target-port 'contract.rs)))
 
+      ;; rust-feature-error: raises a compactc error tagged with the
+      ;; `--rust:` prefix when the codegen hits an unsupported Compact
+      ;; construct. Use this in place of emitting `unimplemented!()`
+      ;; Rust into the output — contracts that would otherwise compile
+      ;; but panic at runtime now fail at compile time with a clear
+      ;; message.
+      ;;
+      ;; Prefer this over external-errorf when you have a source object
+      ;; (most IR nodes carry `,src`); falls back to external-errorf
+      ;; when src is #f.
+      ;;
+      ;; The `tag` argument is a short stable identifier (e.g.
+      ;; 'struct-literal-mismatch, 'enum-ref-non-tenum, 'witness-inline)
+      ;; — useful for users grepping the codegen to see what they hit
+      ;; and for future cross-references in docs.
+      (define (rust-feature-error src tag msg . args)
+        (let ([prefixed (format "compactc --rust: unsupported Compact construct (~a): ~a"
+                                tag (apply format msg args))])
+          (if src
+              (source-errorf src "~a" prefixed)
+              (external-errorf "~a" prefixed))))
+
       ;; current-qctx-ref: Rust expression string referring to the
       ;; QueryContext that ledger-read sub-expressions should read from.
       ;; In circuit bodies this is `&ctx.current_query_context`; in the
