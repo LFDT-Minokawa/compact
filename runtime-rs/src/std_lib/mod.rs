@@ -33,7 +33,8 @@ mod opaque;
 
 pub use adts::{
     decode_bool, decode_bytes, decode_fr, decode_u128, decode_u16, decode_u32, decode_u64,
-    decode_u8, decode_vector_fr, decode_via_field_repr, serialize_contract_state, Counter,
+    decode_u8, decode_vector_fr, decode_vector_u64, decode_via_field_repr,
+    serialize_contract_state, Counter,
 };
 pub use bytes_pad_disclose::{disclose, pad, persistent_hash_aligned, Bytes};
 pub use field_repr::{

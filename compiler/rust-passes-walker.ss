@@ -256,9 +256,117 @@
              (render-struct-literal
                src type expr* local-binds
                native-id-ht witness-id-ht circuit-id-ht)]
+            [(map ,src ,len ,fun ,map-arg ,map-arg* ...)
+             ;; Iter 7: `map(fn, iterable)` over a static-length literal
+             ;; iterable. expr-supported? has already validated the
+             ;; shape (single map-arg, bare-lambda over a single param,
+             ;; iterable peels to a static tuple/vector literal, body
+             ;; is identity). We render by per-element substitution:
+             ;; for each literal in the iterable, substitute the param
+             ;; with the literal in the body and render via expr-rust.
+             ;; The result is a Rust array literal `[<v0>, <v1>, ...]`
+             ;; with type `[T; N]`, which `new_cell_array` consumes
+             ;; (the constructor-body walker routes Vector<N,T> writes
+             ;; through `new_cell_array` via `current-ledger-field-types`).
+             (render-map-mvp src fun map-arg native-id-ht)]
             [else
              ;; quote/tuple/etc. fall through to the existing expr-rust.
              (expr-rust e native-id-ht)])))
+
+      ;; render-map-mvp: render a `(map src len fun map-arg)` IR node
+      ;; as a Rust array literal `[v0, v1, ..., vN-1]`. Assumes
+      ;; `map-expr-mvp-supported?` accepted the shape — i.e. fun is a
+      ;; single-param bare lambda whose body is identity (a var-ref
+      ;; to the param after expr-strip-cast), and map-arg's expr peels
+      ;; to a static-tuple/vector literal whose elements are
+      ;; integer-literal Expressions (per iterable-expr->literals).
+      ;;
+      ;; For identity-body, each iteration's rendered value is just
+      ;; expr-rust on the i-th literal (so the resulting array is
+      ;; the iterable's bare elements). Non-identity bodies are
+      ;; rejected by map-expr-mvp-supported?; future iterations can
+      ;; extend this helper to substitute the param into a richer
+      ;; body via expr-subst-var-ref + expr-rust.
+      (define (render-map-mvp src fun map-arg native-id-ht)
+        (let* ([iter-expr (map-arg->expr map-arg)]
+               [literals (iterable-expr->literals iter-expr)]
+               [param-name (lambda-param-name fun)]
+               [body (lambda-body-expr fun)]
+               [ret-type (lambda-return-type fun)]
+               ;; Type suffix for the leading literal so Rust can infer
+               ;; the array's element type without an explicit `[T; N]`
+               ;; ascription. Identity lambdas with a tunsigned return
+               ;; type get `u<width>` (u8/u16/u32/u64/u128); other
+               ;; element types fall back to no suffix (Rust will
+               ;; default integer literals to i32 — that's OK for
+               ;; `[i32; N]` consumers but `new_cell_array` only impls
+               ;; `Into<AlignedValue>` for the specific widths upstream
+               ;; supports, so a missing suffix here surfaces as a
+               ;; type-check error in the generated code rather than
+               ;; silently producing wrong Rust).
+               [first-suffix (or (tunsigned-rust-suffix ret-type) "")])
+          (cond
+            [(or (not literals) (not param-name) (not body))
+             (rust-feature-error src 'map-mvp-shape
+               "map: shape changed between expr-supported? and ctor-expr-rust")]
+            [else
+             ;; Per-iteration: substitute param-name with the i-th
+             ;; literal in the body (works trivially for the identity
+             ;; body — the substituted Expression is just the literal
+             ;; itself, possibly under safe-cast layers). Render via
+             ;; expr-rust which handles `(quote ,src ,int)` shape. The
+             ;; FIRST element gets the `u<width>` suffix so Rust infers
+             ;; the array's element type; subsequent elements stay
+             ;; bare (Rust infers them from the array's element type).
+             (let ([rendered
+                    (map (lambda (lit)
+                           (let ([substituted
+                                  (expr-subst-var-ref body param-name lit)])
+                             (expr-rust substituted native-id-ht)))
+                         literals)])
+               (string-append
+                 "["
+                 (let join ([xs rendered] [first? #t] [acc ""])
+                   (cond
+                     [(null? xs) acc]
+                     [else
+                      (let ([part (if first?
+                                      (string-append (car xs) first-suffix)
+                                      (car xs))])
+                        (cond
+                          [(null? (cdr xs)) (string-append acc part)]
+                          [else (join (cdr xs) #f
+                                      (string-append acc part ", "))]))]))
+                 "]"))])))
+
+      ;; lambda-return-type: from a Function IR node, return the
+      ;; declared return Type. Returns #f when the shape isn't a
+      ;; `(circuit src args type stmt)`.
+      (define (lambda-return-type fun)
+        (nanopass-case (Ltypescript Function) fun
+          [(circuit ,src (,arg* ...) ,type ,stmt) type]
+          [else #f]))
+
+      ;; tunsigned-rust-suffix: for a `(tunsigned ,nat)` Type, return
+      ;; the matching Rust integer suffix string ("u8" / "u16" / ...
+      ;; "u128"). Returns #f for any other type or for tunsigned widths
+      ;; outside the 8/16/32/64/128 ladder (Uint<L..U> bounded ranges
+      ;; need their own width handling — Iter 8's bounded-uint fixture
+      ;; uses `new_cell_bounded_uint`, not `new_cell_array`, so we
+      ;; don't intercept here). Mirrors decoder-for-type's tunsigned
+      ;; ladder for consistency.
+      (define (tunsigned-rust-suffix type)
+        (nanopass-case (Ltypescript Type) type
+          [(tunsigned ,src ,nat)
+           (cond
+             [(= nat 255) "u8"]
+             [(= nat 65535) "u16"]
+             [(= nat 4294967295) "u32"]
+             [(= nat 18446744073709551615) "u64"]
+             [(= nat 340282366920938463463374607431768211455) "u128"]
+             [else #f])]
+          [(talias ,src ,nominal? ,type-name ,type) (tunsigned-rust-suffix type)]
+          [else #f]))
 
       ;; arg-rust-clone-if-var: render a call argument expression and
       ;; suffix `.clone()` if the rendered form is a bare var-ref. Used
@@ -552,6 +660,93 @@
                                (expr-supported? e native-id-ht
                                                 witness-id-ht circuit-id-ht))
                              expr*)))]
+            [(map ,src ,len ,fun ,map-arg ,map-arg* ...)
+             ;; Iter 7: `map(fn, iterable)` over a static-length literal
+             ;; iterable. Single map-arg only (no zip-map); fun must be a
+             ;; bare-lambda `(circuit (arg) ret-type body)` whose body is
+             ;; an expr-supported? Expression after substituting the
+             ;; element parameter with the i-th literal. The iterable
+             ;; (map-arg's expr) must be a `(tuple ...)` or `(vector ...)`
+             ;; literal whose elements are themselves expr-supported?
+             ;; (the body substitution preserves each element verbatim,
+             ;; so per-iteration we get an expression of the same shape
+             ;; we just validated).
+             (and (null? map-arg*)
+                  (map-expr-mvp-supported? src fun map-arg
+                                           native-id-ht witness-id-ht circuit-id-ht))]
+            [else #f])))
+
+      ;; map-expr-mvp-supported?: Iter 7 narrow-shape predicate for a
+      ;; `(map ,src ,len ,fun ,map-arg)` expression. Accepts only the
+      ;; literal-iterable MVP: `fun` is a bare-lambda over a single
+      ;; param, iterable peels to a static `(tuple ...)` /
+      ;; `(vector ...)` literal whose elements survive
+      ;; `tuple-arg->literal`, and the lambda body is a `(var-ref
+      ;; param)` (identity). Non-identity bodies (e.g. `x * 2`) require
+      ;; additional emission infrastructure for `(* ...)`,
+      ;; `downcast-unsigned`, etc.; we defer those to a follow-up
+      ;; iteration.
+      ;;
+      ;; Returns #t on a supported shape, #f otherwise. The caller
+      ;; (expr-supported?) is the gate; ctor-expr-rust's matching
+      ;; map-clause assumes the same shape and renders accordingly.
+      (define (map-expr-mvp-supported? src fun map-arg
+                                       native-id-ht witness-id-ht circuit-id-ht)
+        (let ([param-name (lambda-param-name fun)]
+              [body (lambda-body-expr fun)]
+              [iter-expr (map-arg->expr map-arg)])
+          (and param-name
+               body
+               iter-expr
+               (let ([literals (iterable-expr->literals iter-expr)])
+                 (and literals
+                      (lambda-body-identity? body param-name))))))
+
+      ;; lambda-param-name: from a Function IR node of shape
+      ;; `(circuit src ((var-name type)) ret-type expr)` (single-param
+      ;; bare lambda), return the `var-name`. Returns #f for any other
+      ;; shape (fref / multi-param / zero-param).
+      (define (lambda-param-name fun)
+        (nanopass-case (Ltypescript Function) fun
+          [(circuit ,src (,arg* ...) ,type ,stmt)
+           (and (fx= (length arg*) 1)
+                (nanopass-case (Ltypescript Argument) (car arg*)
+                  [(,var-name ,type) var-name]))]
+          [else #f]))
+
+      ;; lambda-body-expr: from a Function IR node, return the body
+      ;; Expression iff the shape is `(circuit src (arg*) ret-type
+      ;; expr)`. The map IR's fun slot is always an Expression-valued
+      ;; lambda at Ltypescript (per langs.ss line 866 — Ltypescript's
+      ;; Function uses the `stmt` slot but with a (statement-expression
+      ;; expr) wrapper). Returns the underlying Expression after
+      ;; peeling statement-expression wrappers, or #f if the shape
+      ;; isn't recognisable.
+      ;;
+      ;; Note: at the Ltypescript layer, lambdas inside `map`/`fold`
+      ;; that arrived from the frontend's pre-statement IR carry their
+      ;; body as an Expression directly (see the trace from compactc
+      ;; with --trace-passes: the map's fun is `(circuit ((%x ...))
+      ;; ret-type %x)` where `%x` is a raw Expression, not a
+      ;; Statement). Be defensive: if it's a Statement-shaped lambda,
+      ;; peel `statement-expression` once.
+      (define (lambda-body-expr fun)
+        (nanopass-case (Ltypescript Function) fun
+          [(circuit ,src (,arg* ...) ,type ,stmt)
+           (nanopass-case (Ltypescript Statement) stmt
+             [(statement-expression ,expr) expr]
+             [else #f])]
+          [else #f]))
+
+      ;; lambda-body-identity?: returns #t when the lambda body is a
+      ;; `(var-ref ,param-name)` (possibly with safe-cast wrappers).
+      ;; Iter 7 ships only the identity-lambda case; arithmetic /
+      ;; downcast bodies are deferred.
+      (define (lambda-body-identity? body param-name)
+        (let ([e (expr-strip-cast body)])
+          (nanopass-case (Ltypescript Expression) e
+            [(var-ref ,src ,var-name)
+             (eq? (id-sym var-name) (id-sym param-name))]
             [else #f])))
 
       ;; default-supported?: returns #t when default-value-rust would
@@ -2110,7 +2305,28 @@
             (let* ([idx (car w)]
                    [val-expr (cdr w)]
                    [rust-val (arg-rust-clone-if-var val-expr local-binds
-                                                    native-id-ht witness-id-ht circuit-id-ht)])
+                                                    native-id-ht witness-id-ht circuit-id-ht)]
+                   ;; Iter 7: Vector<N,T> ledger fields require
+                   ;; `new_cell_array([T; N])` since `[T; N]: Into<AlignedValue>`
+                   ;; isn't impl'd upstream (orphan rules). Look up the
+                   ;; destination field's binding-type via the path-idx
+                   ;; → Type map populated by `emit-initial-state`; if the
+                   ;; field's read-op type is a tvector, switch the value
+                   ;; builder from `new_cell` to `new_cell_array`.
+                   ;; current-ledger-field-types defaults to #f (e.g. when
+                   ;; this code runs in a circuit-body that hasn't been
+                   ;; seeded yet — circuit bodies don't currently write
+                   ;; Vector fields, but if they do, the fallback to
+                   ;; `new_cell` matches the pre-Iter 7 shape).
+                   [dest-type
+                    (let ([ht (current-ledger-field-types)])
+                      (and ht (hashtable-ref ht idx #f)))]
+                   [dest-read-type
+                    (and dest-type
+                         (guard (c [#t #f]) (tadt-read-op-type dest-type)))]
+                   [use-cell-array?
+                    (and dest-read-type (type-is-tvector? dest-read-type))]
+                   [cell-builder (if use-cell-array? "new_cell_array" "new_cell")])
               ;; Cell.write vm-code for a single-element path is exactly:
               ;;   push false (state-value 'cell (align idx 1))
               ;;   push true  (state-value 'cell <value>)
@@ -2118,7 +2334,7 @@
               ;; (The leading idx and trailing ins are suppressed when the
               ;; path before the last element is empty, which it is here.)
               (out (format "            .push(false, new_cell(~au8))\n" idx))
-              (out (format "            .push(true, new_cell(~a))\n" rust-val))
+              (out (format "            .push(true, ~a(~a))\n" cell-builder rust-val))
               (out "            .ins(false, 1)\n")))
           writes)
         (out "            .build();\n")

@@ -84,6 +84,37 @@
       (define current-formal-arg-types
         (make-parameter #f))
 
+      ;; current-ledger-field-types: eqv-hashtable mapping a ledger
+      ;; field's path-index (a non-negative integer) → its declared
+      ;; binding Type (the tadt wrapper, e.g.
+      ;; `(tadt Cell ([0 (tvector 3 (tunsigned ...))]) ...)`). Initialised
+      ;; by `emit-initial-state` before walking the constructor body so
+      ;; `emit-body-writes` can choose `new_cell_array(...)` vs
+      ;; `new_cell(...)` based on the destination field's tvector-ness
+      ;; (Iter 7). Defaults to #f when not parameterized — callers fall
+      ;; back to the plain `new_cell(...)` shape, matching pre-Iter 7
+      ;; behaviour.
+      (define current-ledger-field-types
+        (make-parameter #f))
+
+      ;; build-ledger-field-type-ht: given the program's ledger-field*
+      ;; Program-Element list, build an eqv-hashtable mapping each
+      ;; binding's path-index (number) to its binding Type. Mirrors
+      ;; `pl-array->public-bindings` + `binding-path-indices` /
+      ;; `binding-type`, but those live in rust-passes-emit.ss; this
+      ;; helper sits next to its parameter so the include order doesn't
+      ;; matter.
+      (define (build-ledger-field-type-ht public-bindings)
+        (let ([ht (make-eqv-hashtable)])
+          (for-each
+            (lambda (pb)
+              (nanopass-case (Ltypescript Public-Ledger-Binding) pb
+                [(,src ,ledger-field-name (,path-index* ...) ,type)
+                 (when (and (pair? path-index*) (number? (car path-index*)))
+                   (hashtable-set! ht (car path-index*) type))]))
+            public-bindings)
+          ht))
+
       ;; build-formal-arg-type-ht: build an eq-hashtable seeded with a
       ;; circuit's (Argument*) list, mapping id-sym → Type. Always returns
       ;; a fresh table (even when arg* is empty) so the body walker has a

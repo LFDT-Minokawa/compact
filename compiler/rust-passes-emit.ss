@@ -45,65 +45,67 @@
         ;; J2 (constructor body emission) then overrides these defaults
         ;; with whatever the source constructor assigns.
         (out "        let sv = new_array(vec![\n")
-        (let ([all-bindings
-               (apply append
-                 (map (lambda (lf)
-                        (nanopass-case (Ltypescript Program-Element) lf
-                          [(public-ledger-declaration ,pl-array ,lconstructor)
-                           (pl-array->public-bindings pl-array)]
-                          [else '()]))
-                      ledger-field*))])
-          (for-each
-            (lambda (pb)
-              (let ([t (binding-type pb)])
-                (cond
-                  ;; ADT-aware seeding (R1 / K1.1). The Compact ADTs
-                  ;; whose initial-value isn't a plain Cell — Map, Set,
-                  ;; MerkleTree, HistoricMerkleTree — have dedicated
-                  ;; builders in compact-runtime that produce the exact
-                  ;; StateValue shape declared in midnight-ledger.ss.
-                  [(tadt-name=? t 'Set)
-                   (out "            new_map(),\n")]
-                  [(tadt-name=? t 'Map)
-                   (out "            new_map(),\n")]
-                  [(tadt-name=? t 'List)
-                   (out "            new_list(),\n")]
-                  [(tadt-name=? t 'MerkleTree)
-                   (out (format "            new_merkle_tree(~a),\n"
-                                (tadt-merkle-height t)))]
-                  [(tadt-name=? t 'HistoricMerkleTree)
-                   (out (format "            new_historic_merkle_tree(~a),\n"
-                                (tadt-merkle-height t)))]
-                  ;; Cell / Counter / anything else with a read op:
-                  ;; keep the K1 path — emit new_cell(<default>).
-                  ;; Special case: tvector defaults to [T; N] which doesn't
-                  ;; impl Into<AlignedValue> upstream — route through
-                  ;; new_cell_array which concatenates per-element AVs.
-                  ;; Special case: tunsigned with a byte-length that doesn't
-                  ;; match the Rust integer width's byte count (e.g.
-                  ;; `Uint<0..70000>` is u32 in Rust but uses 3 bytes on
-                  ;; state) — route through `new_cell_bounded_uint(0u128, N)`
-                  ;; so the on-state `AlignmentAtom::Bytes` width matches TS.
-                  [else
-                   (let ([read-type (tadt-read-op-type t)])
-                     (cond
-                       [(type-is-tvector? read-type)
-                        (out (format "            new_cell_array(~a),\n"
-                                     (default-value-rust read-type)))]
-                       [(tunsigned-bounded? read-type)
-                        (out (format "            new_cell_bounded_uint(0u128, ~a),\n"
-                                     (tunsigned-byte-length read-type)))]
-                       [else
-                        (out (format "            new_cell(~a),\n"
-                                     (default-value-rust read-type)))]))])))
-            all-bindings))
-        (out "        ]);\n")
-        (out "        let state = ChargedState::new(sv);\n")
-        (out "        let qctx = QueryContext::new(state, ContractAddress::default());\n")
-        ;; J2: emit the constructor body if we have one and its shape
-        ;; matches. Fall back to the K1-only return otherwise (counter has
-        ;; no constructor body, so it lands here naturally).
-        (let* ([stmt (and (pair? ledger-field*)
+        (let* ([all-bindings
+                (apply append
+                  (map (lambda (lf)
+                         (nanopass-case (Ltypescript Program-Element) lf
+                           [(public-ledger-declaration ,pl-array ,lconstructor)
+                            (pl-array->public-bindings pl-array)]
+                           [else '()]))
+                       ledger-field*))]
+               [_
+                (begin
+                  (for-each
+                    (lambda (pb)
+                      (let ([t (binding-type pb)])
+                        (cond
+                          ;; ADT-aware seeding (R1 / K1.1). The Compact ADTs
+                          ;; whose initial-value isn't a plain Cell — Map, Set,
+                          ;; MerkleTree, HistoricMerkleTree — have dedicated
+                          ;; builders in compact-runtime that produce the exact
+                          ;; StateValue shape declared in midnight-ledger.ss.
+                          [(tadt-name=? t 'Set)
+                           (out "            new_map(),\n")]
+                          [(tadt-name=? t 'Map)
+                           (out "            new_map(),\n")]
+                          [(tadt-name=? t 'List)
+                           (out "            new_list(),\n")]
+                          [(tadt-name=? t 'MerkleTree)
+                           (out (format "            new_merkle_tree(~a),\n"
+                                        (tadt-merkle-height t)))]
+                          [(tadt-name=? t 'HistoricMerkleTree)
+                           (out (format "            new_historic_merkle_tree(~a),\n"
+                                        (tadt-merkle-height t)))]
+                          ;; Cell / Counter / anything else with a read op:
+                          ;; keep the K1 path — emit new_cell(<default>).
+                          ;; Special case: tvector defaults to [T; N] which doesn't
+                          ;; impl Into<AlignedValue> upstream — route through
+                          ;; new_cell_array which concatenates per-element AVs.
+                          ;; Special case: tunsigned with a byte-length that doesn't
+                          ;; match the Rust integer width's byte count (e.g.
+                          ;; `Uint<0..70000>` is u32 in Rust but uses 3 bytes on
+                          ;; state) — route through `new_cell_bounded_uint(0u128, N)`
+                          ;; so the on-state `AlignmentAtom::Bytes` width matches TS.
+                          [else
+                           (let ([read-type (tadt-read-op-type t)])
+                             (cond
+                               [(type-is-tvector? read-type)
+                                (out (format "            new_cell_array(~a),\n"
+                                             (default-value-rust read-type)))]
+                               [(tunsigned-bounded? read-type)
+                                (out (format "            new_cell_bounded_uint(0u128, ~a),\n"
+                                             (tunsigned-byte-length read-type)))]
+                               [else
+                                (out (format "            new_cell(~a),\n"
+                                             (default-value-rust read-type)))]))])))
+                    all-bindings)
+                  (out "        ]);\n")
+                  (out "        let state = ChargedState::new(sv);\n")
+                  (out "        let qctx = QueryContext::new(state, ContractAddress::default());\n"))]
+               ;; J2: emit the constructor body if we have one and its shape
+               ;; matches. Fall back to the K1-only return otherwise (counter has
+               ;; no constructor body, so it lands here naturally).
+               [stmt (and (pair? ledger-field*)
                           (ldecl-constructor-stmt (car ledger-field*)))]
                [native-id-ht (build-native-id-ht all-pelt*)]
                [witness-id-ht (build-witness-id-ht all-pelt*)]
@@ -117,6 +119,11 @@
                      ;; The body walker mutates the same hashtable as it
                      ;; classifies const-bindings, so witness/pure-circuit
                      ;; results get their declared types recorded too.
+                     ;;
+                     ;; Iter 7: current-ledger-field-types is seeded by
+                     ;; print-rust at the pass top (so impure circuits
+                     ;; that write Vector<N,T> fields also see the map),
+                     ;; not here.
                      (parameterize
                        ([current-formal-arg-types
                           (build-formal-arg-type-ht ctor-arg*)])
@@ -1092,6 +1099,16 @@
       ;; back to its native-entry (and thus its Rust binding name).
       (define (expr-rust expr native-id-ht)
         (nanopass-case (Ltypescript Expression) expr
+          [(safe-cast ,src ,type ,type^ ,expr^)
+           ;; Iter 7: peel safe-cast layers transparently. The IR uses
+           ;; safe-cast to widen literals (e.g. `1: Uint<1>` → `Uint<64>`)
+           ;; inside tuple/vector arguments and map iterables. For our
+           ;; rendering purposes the cast is value-preserving — the
+           ;; underlying integer literal carries the right Rust integer
+           ;; type once we ascribe it at the surrounding context (or
+           ;; rely on Rust's inference from the array element type).
+           ;; Mirrors `expr-strip-cast` but for the rendering path.
+           (expr-rust expr^ native-id-ht)]
           [(quote ,src ,datum)
            (cond
              [(bytevector? datum) (bytevector->rust-array-literal datum)]
@@ -1752,12 +1769,21 @@
            (format "compact_runtime::std_lib::decode_bytes::<~a>" len)]
           [(tvector ,src ,len ,type)
            ;; Vector<N, T>: dispatch on element type. For Vector<N, Field>
-           ;; we have a dedicated decoder. Other element types (Bytes<M>,
-           ;; user structs, nested vectors) need their own helpers — leave
-           ;; them flagged so the gap is visible.
+           ;; and Vector<N, Uint<64>> we have dedicated decoders. Other
+           ;; element types (Bytes<M>, user structs, nested vectors) need
+           ;; their own helpers — leave them flagged so the gap is visible.
            (nanopass-case (Ltypescript Type) type
              [(tfield ,src)
               (format "compact_runtime::std_lib::decode_vector_fr::<~a>" len)]
+             [(tunsigned ,src ,nat)
+              ;; Iter 7: Uint<64> element → decode_vector_u64<N>. Wider
+              ;; widths (u128) and narrower (u8/u16/u32) would each need
+              ;; their own per-element decoder; ship only the common case.
+              (cond
+                [(and (> nat 4294967295)
+                      (<= nat 18446744073709551615))
+                 (format "compact_runtime::std_lib::decode_vector_u64::<~a>" len)]
+                [else #f])]
              [else #f])]
           [(talias ,src ,nominal? ,type-name ,type) (decoder-for-type type)]
           [else #f]))

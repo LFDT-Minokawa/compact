@@ -63,32 +63,46 @@
          (emit-type-decls (append all-tdefns extra-tdefns)))
        (emit-witnesses (program-witnesses pelt*))
        (emit-contract-struct)
-       (emit-initial-state (program-ledger-fields pelt*)
-                           (program-constructor-args pelt*)
-                           pelt*)
-       ;; Walk circuit declarations and split on purity. Impure circuits
-       ;; become methods on the open Contract impl block; pure circuits are
-       ;; collected for the pure_circuits module below.
-       (let* ([circuit* (program-circuits pelt*)]
-              [pure-circuit*
-               (let loop ([c* circuit*] [acc '()])
-                 (cond
-                   [(null? c*) (reverse acc)]
-                   [(id-pure? (circuit-function-name (car c*)))
-                    (loop (cdr c*) (cons (car c*) acc))]
-                   [else (loop (cdr c*) acc)]))]
-              [native-id-ht (build-native-id-ht pelt*)]
-              [witness-id-ht (build-witness-id-ht pelt*)]
-              [circuit-id-ht (build-circuit-id-ht pelt*)])
-         (for-each
-           (lambda (c)
-             (when (and (not (id-pure? (circuit-function-name c)))
-                        (id-exported? (circuit-function-name c)))
-               (emit-impure-circuit c native-id-ht witness-id-ht circuit-id-ht)))
-           circuit*)
-         (close-contract-struct)
-         (emit-ledger-view (program-ledger-fields pelt*))
-         (emit-pure-circuits pure-circuit* native-id-ht))
+       ;; Iter 7: seed current-ledger-field-types from the program's
+       ;; ledger fields once at the pass top so the constructor body and
+       ;; every impure circuit body see the same path-idx → binding-type
+       ;; map. emit-body-writes consults this to choose `new_cell_array`
+       ;; vs `new_cell` for Vector<N,T> destinations.
+       (parameterize ([current-ledger-field-types
+                        (build-ledger-field-type-ht
+                          (apply append
+                            (map (lambda (lf)
+                                   (nanopass-case (Ltypescript Program-Element) lf
+                                     [(public-ledger-declaration ,pl-array ,lconstructor)
+                                      (pl-array->public-bindings pl-array)]
+                                     [else '()]))
+                                 (program-ledger-fields pelt*))))])
+         (emit-initial-state (program-ledger-fields pelt*)
+                             (program-constructor-args pelt*)
+                             pelt*)
+         ;; Walk circuit declarations and split on purity. Impure circuits
+         ;; become methods on the open Contract impl block; pure circuits are
+         ;; collected for the pure_circuits module below.
+         (let* ([circuit* (program-circuits pelt*)]
+                [pure-circuit*
+                 (let loop ([c* circuit*] [acc '()])
+                   (cond
+                     [(null? c*) (reverse acc)]
+                     [(id-pure? (circuit-function-name (car c*)))
+                      (loop (cdr c*) (cons (car c*) acc))]
+                     [else (loop (cdr c*) acc)]))]
+                [native-id-ht (build-native-id-ht pelt*)]
+                [witness-id-ht (build-witness-id-ht pelt*)]
+                [circuit-id-ht (build-circuit-id-ht pelt*)])
+           (for-each
+             (lambda (c)
+               (when (and (not (id-pure? (circuit-function-name c)))
+                          (id-exported? (circuit-function-name c)))
+                 (emit-impure-circuit c native-id-ht witness-id-ht circuit-id-ht)))
+             circuit*)
+           (close-contract-struct)
+           (emit-ledger-view (program-ledger-fields pelt*))
+           (emit-pure-circuits pure-circuit* native-id-ht)))
        (emit-cargo-toml)
        ir]))
 

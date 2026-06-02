@@ -35,6 +35,7 @@ members = [
     "tests-e2e-rust/contracts/for-range-fixture",
     "tests-e2e-rust/contracts/for-iter-fixture",
     "tests-e2e-rust/contracts/fold-fixture",
+    "tests-e2e-rust/contracts/map-fn-fixture",
     "tests-e2e-rust/contracts/bounded-uint-fixture",
     "tests-e2e-rust/contracts/sealed-ledger-fixture",
 ]

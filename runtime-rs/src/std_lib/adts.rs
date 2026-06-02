@@ -131,6 +131,39 @@ pub fn decode_vector_fr<const N: usize>(av: &AlignedValue) -> Result<[Fr; N], Co
     Ok(out)
 }
 
+/// Decode an `AlignedValue` known to be a `Vector<N, Uint<64>>` — i.e.
+/// N consecutive u64 atoms in the value. Each atom occupies 0..=8 bytes
+/// (trailing zero bytes are stripped by upstream `normalize`); we
+/// zero-pad each per-element slice and read as little-endian u64.
+/// Returns `Err(AssertionFailed)` if the value has fewer than N atoms
+/// or any individual atom carries more than 8 bytes.
+///
+/// Mirrors `decode_vector_fr` for the integer case — Iter 7 adds this
+/// so `Vector<N, Uint<64>>` ledger views can decode the gathered
+/// AlignedValue produced by a `new_cell_array` write.
+pub fn decode_vector_u64<const N: usize>(av: &AlignedValue) -> Result<[u64; N], CompactError> {
+    if av.value.0.len() < N {
+        return Err(CompactError::AssertionFailed(format!(
+            "decode_vector_u64: expected at least {N} atoms, got {}",
+            av.value.0.len()
+        )));
+    }
+    let mut out = [0u64; N];
+    for (i, atom) in av.value.0.iter().take(N).enumerate() {
+        let bytes = atom.0.as_slice();
+        if bytes.len() > 8 {
+            return Err(CompactError::AssertionFailed(format!(
+                "decode_vector_u64[{i}]: expected at most 8 bytes, got {}",
+                bytes.len()
+            )));
+        }
+        let mut buf = [0u8; 8];
+        buf[..bytes.len()].copy_from_slice(bytes);
+        out[i] = u64::from_le_bytes(buf);
+    }
+    Ok(out)
+}
+
 /// Decode an `AlignedValue` known to be a fixed-width byte array
 /// `Bytes<N>`.
 ///
