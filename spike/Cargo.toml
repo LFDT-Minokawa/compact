@@ -1,0 +1,36 @@
+# This file is part of Compact.
+# Copyright (C) 2026 Midnight Foundation
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  	http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[workspace]
+resolver = "2"
+members = ["runtime-rs", "counter-contract"]
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+
+# Pin Midnight crates to the same ledger-8.0.2 line used by the TS runtime path
+# (see flake.nix `inputs.zkir.url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2"`).
+# Versions are the latest published on crates.io within that line.
+[workspace.dependencies]
+midnight-base-crypto      = "1"
+midnight-transient-crypto = "2"
+midnight-serialize        = "1"
+midnight-storage          = "2"
+midnight-coin-structure   = "2"
+midnight-onchain-state    = "3"
+midnight-onchain-vm       = "3"
+midnight-onchain-runtime  = "3"
+midnight-zswap            = "8"
