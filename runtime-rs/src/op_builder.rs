@@ -23,6 +23,7 @@ pub struct OpProgramVerify<D: DB = DefaultDB> {
 }
 
 impl<D: DB> OpProgramVerify<D> {
+    /// Start an empty `OpProgramVerify` builder.
     pub fn new() -> Self {
         Self { ops: Vec::new() }
     }
@@ -42,11 +43,16 @@ impl<D: DB> OpProgramVerify<D> {
         self.idx(false, push_path, vec![Key::Value(AlignedValue::from(idx))])
     }
 
+    /// `addi` — add the immediate value to the top of the stack.
     pub fn addi(mut self, immediate: u32) -> Self {
         self.ops.push(Op::Addi { immediate });
         self
     }
 
+    /// `ins` — pop the top `n` stack values and insert them into the
+    /// container at depth `n` (a Map / Set / Array / MerkleTree write).
+    /// `cached` controls whether the write should be marked cached for
+    /// witness-side reads.
     pub fn ins(mut self, cached: bool, n: u8) -> Self {
         self.ops.push(Op::Ins { cached, n });
         self
@@ -81,6 +87,8 @@ impl<D: DB> OpProgramVerify<D> {
         self
     }
 
+    /// Consume the builder and return the assembled op vector ready to
+    /// pass to [`crate::query_for_verify`].
     pub fn build(self) -> Vec<Op<ResultModeVerify, D>> {
         self.ops
     }
@@ -98,15 +106,18 @@ pub struct OpProgramGather<D: DB = DefaultDB> {
 }
 
 impl<D: DB> OpProgramGather<D> {
+    /// Start an empty `OpProgramGather` builder.
     pub fn new() -> Self {
         Self { ops: Vec::new() }
     }
 
+    /// `dup` — duplicate the value at depth `n` (0 = top of stack).
     pub fn dup(mut self, n: u8) -> Self {
         self.ops.push(Op::Dup { n });
         self
     }
 
+    /// Generic `idx` with an explicit path.
     pub fn idx(mut self, cached: bool, push_path: bool, path: Vec<Key>) -> Self {
         self.ops.push(Op::Idx {
             cached,
@@ -116,6 +127,7 @@ impl<D: DB> OpProgramGather<D> {
         self
     }
 
+    /// Common case: single-element path indexing into an Array by u8 index.
     pub fn idx_at_index(self, idx: u8, push_path: bool) -> Self {
         self.idx(false, push_path, vec![Key::Value(AlignedValue::from(idx))])
     }
@@ -158,6 +170,8 @@ impl<D: DB> OpProgramGather<D> {
         self
     }
 
+    /// Consume the builder and return the assembled op vector ready to
+    /// pass to [`crate::query_for_read`].
     pub fn build(self) -> Vec<Op<ResultModeGather, D>> {
         self.ops
     }

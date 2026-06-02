@@ -7,9 +7,17 @@
 use crate::{TranscriptRejected, DB};
 use std::fmt;
 
+/// Unified error type returned from every generated circuit and
+/// constructor. Wraps both Compact-level assertion failures (from
+/// `assert(cond, "msg")` in source) and VM-level transcript rejections
+/// (gas exhaustion, type mismatches, invalid path keys, …).
 #[derive(Debug)]
 pub enum CompactError {
+    /// A Compact `assert(cond, "msg")` evaluated to false. The string
+    /// carries the user-supplied message.
     AssertionFailed(String),
+    /// The VM rejected the assembled op program. Carries a debug-format
+    /// rendering of the upstream `TranscriptRejected<D>`.
     TranscriptRejected(String),
 }
 

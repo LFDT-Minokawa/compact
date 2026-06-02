@@ -12,6 +12,10 @@
 use super::field_repr::{bytes_field_size, vec_u8_from_field_repr};
 use crate::{Aligned, Alignment, FieldRepr, Fr, FromFieldRepr, MemWrite, Value};
 
+/// Newtype around `String` carrying the [`Aligned`], [`FieldRepr`],
+/// [`FromFieldRepr`] and `From<_> for Value` impls that the codegen
+/// requires. Wrap any user-defined `String` field in this type before
+/// passing it through generated contract code.
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct OpaqueString(pub String);
 
