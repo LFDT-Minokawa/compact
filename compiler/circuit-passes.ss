@@ -3474,24 +3474,41 @@
                  (list `(= 1 ,var-name (vector->bytes ,(car triv*) ,(cdr triv*) ...))))
                (ensure-defined (id-src var-name) test (car triv*)
                  (lambda (triv) (f (cdr triv*) (cons triv rtriv*)))))))]
-      [(cast-from-field ,src ,safe? ,nat1 ,ftype ,triv)
+      [(cast-from-field ,src ,safe? ,nat ,ftype ,triv)
        (with-output-language (Lflattened Statement)
          (if safe?
              (list `(= 1 ,var-name ,ir))
-             (ensure-defined (id-src var-name) test triv
-               (lambda (triv)
-                 (with-temp-ids src (t1 t2)
-                   (let ([nat2 (nanopass-case (Lflattened Field-Type) ftype
-                                 [(field-native) (max-field)]
-                                 [(field-scalar (curve-jubjub)) (max-jubjub-scalar)])])
+             (let ([bits (fxmax 1 (integer-length nat))])
+               ;; triv might have any field value
+               (let ([bits (fxmax 1 (integer-length nat))])
+                 (with-temp-ids (id-src var-name) (q r t1)
+                   (define (assert-and-cast test)
                      (list
-                       ;; t1 = triv <= nat1
-                       `(= 1 ,t1 (< ,(fxmax 1 (integer-length nat2)) ,triv ,(+ nat1 1)))
-                       ;; t2 = !test || triv <= nat1
-                       `(= 1 ,t2 (select ,test ,t1 1))
-                       `(assert ,src ,t2 ,(format "downcast to Uint<0..~d> failed" nat1))
-                       ;; cast-from-field is used here with safe = #t to make check-types/Lflattened happy
-                       `(= 1 ,var-name (cast-from-field ,src #t ,nat1 ,ftype ,triv)))))))))]
+                       `(assert ,src ,test ,(format "cast to Uint<0..~d> failed" nat))
+                       ;; downcast-unsigned is used here with safe = #t to make check-types/Lflattened happy
+                       `(= 1 ,var-name (downcast-unsigned ,src #t ,(expt 2 bits) ,nat ,r))))
+                   (cons*
+                     `(= 1 (,q ,r) (div-mod-power-of-two ,triv ,bits))
+                     ;; q represents the high bits and must be zero for the cast to succeed
+                     ;; t1 = q == 0
+                     `(= 1 ,t1 (== ,q 0))
+                     ;; r represents the low bits and must be <= nat for the cast to succeed
+                     (if (= nat (- (expt 2 bits) 1))
+                         ;; in this case, r cannot be > nat
+                         (with-temp-ids (id-src var-name) (t2)
+                           (cons
+                             ;; t2 = !test || q == 0
+                             `(= 1 ,t2 (select ,test ,t1 1))
+                             (assert-and-cast t2)))
+                         (with-temp-ids (id-src var-name) (t2 t3 t4)
+                           (cons*
+                             ;; t2 = r <= nat
+                             `(= 1 ,t2 (< ,bits ,r ,(+ nat 1)))
+                             ;; t3 = q == 0 && r <= nat
+                             `(= 1 ,t3 (select ,t1 ,t2 0))
+                             ;; t4 = !test || (q == 0 && r <= nat)
+                             `(= 1 ,t4 (select ,test ,t3 1))
+                             (assert-and-cast t4))))))))))]
       [(downcast-unsigned ,src ,safe? ,nat2 ,nat1 ,triv)
        (with-output-language (Lflattened Statement)
          (if safe?

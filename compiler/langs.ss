@@ -69,7 +69,7 @@
   (define (bits? x)
     (and (integer? x)
          (exact? x)
-         (<= 1 x (unsigned-bits))))
+         (<= 1 x (integer-length (max-field)))))
 
   (define (maybe-bits? x)
     (or (not x)
