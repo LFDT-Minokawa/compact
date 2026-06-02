@@ -1,0 +1,13 @@
+[package]
+name = "compact-contract-sealed-ledger-fixture"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Generated Rust crate for examples/sealed_ledger_fixture.compact, used by tests-e2e-rust byte-parity tests."
+
+[lib]
+name = "compact_contract_sealed_ledger_fixture"
+path = "lib.rs"
+
+[dependencies]
+compact-runtime = { path = "../../../runtime-rs" }

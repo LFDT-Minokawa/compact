@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Prod-5a: sealed ledger fixture.
+//
+// Compact's `sealed ledger NAME: T;` declares a ledger field that is
+// writable from the constructor (or `pure` setup circuits) but NOT
+// writable from non-pure circuits — sealed fields are effectively
+// "compile-time write-protected" after init. At the StateValue /
+// AlignedValue level they serialize identically to a regular ledger
+// field; the frontend enforces the no-write rule via type checking.
+//
+// This fixture exercises:
+//   - a sealed ledger field of `Boolean` (initialized: set in constructor),
+//   - a regular ledger field of `Boolean` (flag, writable by ping()),
+// to lock in byte-parity for sealed declarations.
+//
+// Boolean was chosen (over Field/Uint) because the constructor RHS
+// path renders cleanly for bool literals: `let tmp = true;` is the
+// expected Rust shape, and `new_cell(tmp)` accepts `bool` directly.
+
+import CompactStandardLibrary;
+
+export sealed ledger initialized: Boolean;
+export ledger flag: Boolean;
+
+constructor() {
+  initialized = true;
+}
+
+export circuit ping(): [] {
+  flag.write(true);
+}
