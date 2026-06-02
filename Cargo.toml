@@ -38,6 +38,7 @@ members = [
     "tests-e2e-rust/contracts/map-fn-fixture",
     "tests-e2e-rust/contracts/bounded-uint-fixture",
     "tests-e2e-rust/contracts/sealed-ledger-fixture",
+    "tests-e2e-rust/contracts/pure-circuit-fixture",
 ]
 
 [workspace.dependencies]
