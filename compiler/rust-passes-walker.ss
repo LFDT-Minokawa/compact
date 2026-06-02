@@ -239,7 +239,7 @@
              ;; tstructs render as their bare name (H5-H7 emit them as
              ;; concrete Rust structs in the contract module).
              (render-struct-literal
-               type expr* local-binds
+               src type expr* local-binds
                native-id-ht witness-id-ht circuit-id-ht)]
             [else
              ;; quote/tuple/etc. fall through to the existing expr-rust.
@@ -368,7 +368,9 @@
                                     (current-witness-call-binds))
                 => (lambda (rust-name) rust-name)]
                [else
-                "/* TODO M3-J2: witness inline */ unimplemented!()"])]
+                (rust-feature-error src 'witness-inline
+                  "witness call ~a appears as a sub-expression; only top-level binding shape is supported"
+                  (id-sym function-name))])]
             [stdlib
              ;; I3b/4: stdlib circuits (`some`, `none`) live in
              ;; compact_runtime::std_lib. Render with the runtime path.

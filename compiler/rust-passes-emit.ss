@@ -160,16 +160,19 @@
       ;; Field initialiser exprs are rendered through ctor-expr-rust so
       ;; var-refs resolve against the current local-binds and nested
       ;; ledger reads / calls / etc. lower correctly.
-      (define (render-struct-literal type expr* local-binds
+      (define (render-struct-literal src type expr* local-binds
                                      native-id-ht witness-id-ht circuit-id-ht)
         (let* ([st (struct-of-type type)]
                [struct-name (and st (car st))]
                [elt-name* (and st (cadr st))])
           (cond
             [(not st)
-             "/* TODO M3-F2.2: struct-literal of non-tstruct type */ unimplemented!()"]
+             (rust-feature-error src 'struct-literal-non-tstruct
+               "struct-literal of non-tstruct type")]
             [(not (fx= (length expr*) (length elt-name*)))
-             "/* TODO M3-F2.2: struct-literal field-count mismatch */ unimplemented!()"]
+             (rust-feature-error src 'struct-literal-field-count-mismatch
+               "struct-literal field-count mismatch for ~a (expected ~a, got ~a)"
+               struct-name (length elt-name*) (length expr*))]
             [else
              (let* ([rust-struct-name (symbol->string struct-name)]
                     [field-strs
@@ -869,14 +872,18 @@
              (out "        })\n")
              #t])))
 
-      ;; rendered-has-todo?: returns #t if the rendered Rust string contains
-      ;; a TODO marker (`/* TODO`) or an `unimplemented!(` call. Used by
-      ;; emit-if-expression-body to bail out (fall back to the method-level
-      ;; `unimplemented!()`) if any sub-render produced an incomplete result.
+      ;; rendered-has-todo?: returns #t if the rendered Rust string
+      ;; contains a TODO marker (`/* TODO`). Used by body emitters to
+      ;; bail out (fall through to the method-level rust-feature-error)
+      ;; when a sub-render produced a partially-supported placeholder
+      ;; like `/* TODO ... */ true` (still valid Rust, but not
+      ;; production-ready). Sub-renders that hit truly-unsupported
+      ;; paths now raise via rust-feature-error rather than emit an
+      ;; `unimplemented!()` string, so the predicate only needs to
+      ;; scan for the `/* TODO` form.
       (define (rendered-has-todo? s)
-        (or (and (string? s)
-                 (or (substring? s "/* TODO")
-                     (substring? s "unimplemented!(")))))
+        (and (string? s)
+             (substring? s "/* TODO")))
 
       ;; substring?: simple substring search. Returns #t if `needle` appears
       ;; anywhere in `haystack`.
@@ -982,8 +989,9 @@
                                 (emit-streaming-body
                                   stmt native-id-ht witness-id-ht circuit-id-ht)))))])
              (unless emitted?
-               (out (format "        unimplemented!(\"M3-I3: circuit body emission for ~a\")\n"
-                            (id-sym function-name)))))
+               (rust-feature-error src 'circuit-body-emission
+                 "no walker shape matched circuit body for ~a"
+                 (id-sym function-name))))
            (out "    }\n\n"))]))
 
       ;; bytevector->rust-array-literal: render a Scheme bytevector as a Rust
@@ -1029,7 +1037,8 @@
              [(bytevector? datum) (bytevector->rust-array-literal datum)]
              [(boolean? datum) (if datum "true" "false")]
              [(and (integer? datum) (exact? datum)) (format "~a" datum)]
-             [else (format "/* TODO M3-I3b: quote variant */ unimplemented!()")])]
+             [else (rust-feature-error src 'quote-variant
+                     "unsupported quote datum: ~s" datum)])]
           [(var-ref ,src ,var-name)
            (symbol->string (camel->snake (id-sym var-name)))]
           [(tuple ,src ,tuple-arg* ...)
@@ -1102,7 +1111,9 @@
                       (symbol->string enum-name)
                       (rust-variant-name elt-name))]
              [else
-              (format "/* TODO M3-E6: enum-ref of non-tenum type */ unimplemented!()")])]
+              (rust-feature-error src 'enum-ref-non-tenum
+                "enum-ref ~a on non-tenum type"
+                elt-name)])]
           [(new ,src ,type ,expr* ...)
            ;; F2.2: struct-literal in pure-expression context (e.g. nested
            ;; inside a quote/tuple consumer). Renders each field via the
@@ -1114,7 +1125,11 @@
              (cond
                [(or (not st)
                     (not (fx= (length expr*) (length elt-name*))))
-                "/* TODO M3-F2.2: struct-literal mismatch */ unimplemented!()"]
+                (rust-feature-error src 'struct-literal-mismatch
+                  "struct-literal mismatch (st=~s, expected=~a, got=~a)"
+                  (and st (car st))
+                  (and st (length elt-name*))
+                  (length expr*))]
                [else
                 (let* ([field-strs
                         (map (lambda (name e)
@@ -1133,7 +1148,8 @@
                                     (string-append acc (car xs) ", "))]))
                     " }"))]))]
           [else
-           (format "/* TODO M3-I3b: unhandled Expression variant */ unimplemented!()")]))
+           (rust-feature-error #f 'expr-variant
+             "unhandled Expression variant in expr-rust")]))
 
       ;; emit-ledger-read-expr: render a `(public-ledger ... read)` IR
       ;; node as a Rust block expression that runs a gather query and
@@ -1208,7 +1224,9 @@
             [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
              (cond
                [(not (eq? op-class 'read))
-                "/* TODO M3-I3b: non-read public-ledger in expr */ unimplemented!()"]
+                (rust-feature-error #f 'ledger-op-non-read
+                  "non-read public-ledger op in expression position (op-class=~a)"
+                  op-class)]
                [else
                 (let* ([path-idx*
                         (map (lambda (pe)
@@ -1219,9 +1237,11 @@
                        [decoder (decoder-for-type type)])
                   (cond
                     [(memv #f path-idx*)
-                     "/* TODO M3-I3b: ledger read with non-index path */ unimplemented!()"]
+                     (rust-feature-error #f 'ledger-read-non-index-path
+                       "ledger read with non-index path element")]
                     [(not decoder)
-                     "/* TODO M3-I3b: ledger read decoder */ unimplemented!()"]
+                     (rust-feature-error #f 'ledger-read-decoder-missing
+                       "no decoder available for ledger read type")]
                     [(not (null? expr*))
                      ;; F1.2/2: ADT read-with-arg path. Run the adt-op's
                      ;; vm-code through expand-vm-code with the concrete
@@ -1233,7 +1253,8 @@
                      (or
                        (emit-ledger-read-expr-with-args
                          path-elt* adt-op expr* native-ht decoder)
-                       "/* TODO M3-F1.2/2: ADT read-with-arg lowering */ unimplemented!()")]
+                       (rust-feature-error #f 'adt-read-with-arg-lowering
+                         "ADT read-with-arg lowering failed for ledger op"))]
                     [else
                      (let ([idx-lines
                             (let join ([xs path-idx*] [acc ""])
@@ -1328,7 +1349,8 @@
         (nanopass-case (Ltypescript Tuple-Argument) ta
           [(single ,src ,expr) (expr-rust expr native-id-ht)]
           [(spread ,src ,nat ,expr)
-           (format "/* TODO M3-I3b: tuple spread */ unimplemented!()")]))
+           (rust-feature-error src 'tuple-spread
+             "tuple spread (`...expr`) not supported")]))
 
       ;; call-rust: emit a Rust call expression for `(call src function-name
       ;; expr* ...)`. Resolves the function-name id to a native binding via
@@ -1415,7 +1437,9 @@
                                       (string-append acc (car xs) ", "))]))
                       "])")))]
                [else
-                "/* TODO M3-I3b: persistentHash arity */ unimplemented!()"])]
+                (rust-feature-error src 'persistent-hash-arity
+                  "persistentHash arity ~a not yet supported (expected 1)"
+                  (length expr*))])]
             [ne
              ;; A native with a 1:1 binding. Emit `<rust-name>(<arg>, ...)`.
              (let ([rust-name (native-call-site-rust ne)]
@@ -1431,11 +1455,11 @@
                      [else (join (cdr xs) (string-append acc (car xs) ", "))]))
                  ")"))]
             [else
-             ;; A user-defined circuit call. We don't yet resolve these to
-             ;; their Rust paths — leave a TODO so the next wedge can pick
-             ;; it up.
-             (format "/* TODO M3-I3b: call to ~a (non-native) */ unimplemented!()"
-                     (id-sym function-name))])))
+             ;; A user-defined circuit call. We don't yet resolve these
+             ;; to their Rust paths in this pure-expression path.
+             (rust-feature-error src 'non-native-call
+               "call to non-native circuit ~a not supported in this position"
+               (id-sym function-name))])))
 
       ;; stmt-pure-body-rust: try to render the body of a pure circuit as a
       ;; single Rust expression (no trailing semicolon — used in tail
@@ -1517,8 +1541,9 @@
                (cond
                  [body (out (format "        ~a\n" body))]
                  [else
-                  (out (format "        unimplemented!(\"M3-I3: pure circuit body emission for ~a\")\n"
-                               (id-sym function-name)))])))
+                  (rust-feature-error src 'pure-circuit-body-emission
+                    "no walker shape matched pure circuit body for ~a"
+                    (id-sym function-name))])))
            (out "    }\n\n")]))
 
       ;; pl-array->public-bindings: flatten a `public-ledger-array` IR node

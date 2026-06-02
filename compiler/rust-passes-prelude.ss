@@ -141,9 +141,9 @@
 
       (define (native-call-site-rust ne)
         (or (native-entry-rust-function ne)
-            (format "/* TODO M3-L2: no Rust binding for ~a */ ~a"
-                    (native-entry-function ne)
-                    "unimplemented!()")))
+            (rust-feature-error #f 'native-binding-missing
+              "no Rust binding for native function ~a"
+              (native-entry-function ne))))
 
       ;; lfield?: returns #t if a Program-Element is a Ledger-Declaration
       ;; (i.e. a `public-ledger-declaration` form). In Ltypescript the
