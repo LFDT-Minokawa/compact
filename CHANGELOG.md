@@ -5,9 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.31.108, language 0.23.105, runtime 0.16.103]
+
+### Added
+
+- The language now has `log(x)` expression where `x` has to be an expression
+  of event type.  Constructors cannot `log` an event.  Pure circuits cannot
+  `log` an event.
+- An event type is just a struct type, but there are a pre-defined
+  set of events.  This set is defined in `midnight-events.ss` as a DSL and
+  the DSL itself is defined in `events.ss`.  Events are inserted into Compact's
+  standard library during `expand-modules-and-types`.  TODO: what does the user see of these and where
+- The onchain-runtime require the argument passed to `log` to be serialized.
+  Compact's standard library provides a generic `serialize<T,n>` and
+  `deserialize<T,n>`.  These are defined in `midnight-inlines.ss` and
+  the macro expansion is defined in `inlines.ss` and they are inserted during
+  `expand-modules-and-types`.  So the end user cannot see their definition,
+  but they can see their type signature in Compact's standard library. 
+
+### Changed
+
+- The TypeScript wrapper for each impure exported circuit now exposes an
+  `events` field on the wrapped return value, and a corresponding `events`
+  field on `CircuitContext`.  Both refer to the same array; events emitted
+  by `log` expressions during the circuit's execution are appended in order
+  of evaluation.  Pure circuits' wrapped return values are unaffected.
+- Updates the compact-runtime: adds the required `events` field
+  to `CircuitContext` and `CircuitResults`.  This is a **breaking** change
+  for TypeScript code that constructs these types by hand; code that uses
+  the runtime's `createCircuitContext` helper is unaffected.
+
 ## [Toolchain 0.31.107, language 0.23.104, runtime 0.16.102]
 
 ### Changed
+
 - Pulls in ledger-9.0.1.0-alpha.1 and bumps compact-runtime to 0.16.102.
   Note for pulling in alpha versions of the ledger:
   in `runtime/package.json` remove the onchain-runtime dependency and update the

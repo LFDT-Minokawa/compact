@@ -304,12 +304,6 @@
           (for-each register-descriptor! type*)
           (maybe-register-descriptor! type)
           `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)])]
-      ;; [(log ,src ,event-version ,event-tag ,type ,len ,[Expr : expr -> * expr] ,vm-code)
-      ;;  (let ([bytes-type (with-output-language (Ltypescript Type)
-      ;;                      `(tbytes ,src ,len))])
-      ;;    ;; (register-descriptor! bytes-type)
-      ;;    ;; (maybe-register-descriptor! type)  ; struct type too, in case anything else needs it
-      ;;    `(log ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code))]
       [(return ,src ,expr) (Expr expr)])
     (Path-Element : Path-Element (ir) -> Path-Element ()
       [,path-index path-index]

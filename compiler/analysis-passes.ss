@@ -2210,13 +2210,16 @@
             [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...)
              (unless (hashtable-ref (event-ht) struct-name #f)
                (source-errorf src "~a is not a declared event type" struct-name))
-             (let ([size (serialized-size-of src type)])
-               (when (> size max-log-size)
+             (let ([structural-size (serialized-size-of src type)]
+                   [declared-size   (event-size-of struct-name)])
+               (when (not (= structural-size declared-size))
+                 (internal-errorf 'validate-event-type!
+                   "event ~a declared canonical size ~d but structural layout yields ~d"
+                   struct-name declared-size structural-size))
+               (when (> structural-size max-log-size)
                  (source-errorf src "serialized event ~a has size ~d bytes, exceeding the maximum log payload size of ~d bytes (MAX_LOG_SIZE)"
-                                struct-name
-                                size
-                                max-log-size))
-               (values struct-name size))]
+                                struct-name structural-size max-log-size))
+               (values struct-name structural-size))]
             [else
              (source-errorf src "expected event struct type, received ~a"
                             (format-type type))]))
@@ -3164,9 +3167,9 @@
                   (let-values ([(struct-name canonical-size) (validate-event-type! src (car declared-type*))])
                     (let ([user-size (extract-bytes-size return-type)])
                       (unless (= user-size canonical-size)
-                        (source-errorf src "serialize<~a, ~a>: declared size ~a does not match canonical serialized size ~a for ~a"
-                                       (format-type (car declared-type*))
+                        (source-errorf src "declared size ~a in serialize<~a, ~a> does not match canonical serialized size ~a for ~a"
                                        user-size
+                                       (format-type (car declared-type*))
                                        user-size
                                        canonical-size
                                        struct-name))
@@ -3180,9 +3183,9 @@
                   (let-values ([(struct-name canonical-size) (validate-event-type! src return-type)])
                     (let ([user-size (extract-bytes-size (car declared-type*))])
                       (unless (= user-size canonical-size)
-                        (source-errorf src "deserialize<~a, ~a>: declared size ~a does not match canonical serialized size ~a for ~a"
-                                       (format-type return-type)
+                        (source-errorf src "declared size ~a in deserialize<~a, ~a> does not match canonical serialized size ~a for ~a"
                                        user-size
+                                       (format-type return-type)
                                        user-size
                                        canonical-size
                                        struct-name))
@@ -3195,72 +3198,6 @@
                   (values
                     `(call ,src ,fun-out ,(map (maybe-safecast src) declared-type* actual-type* expr*) ...)
                     return-type)])))))]
-      #;[(call ,src
-             (fref ,src^ ,symbolic-function-name ((,function-name** ...) ...)
-                   (,generic-value* ...)
-                   ((,src* ,generic-kind** ...) ...))
-             ,[Care : expr expr-type])
-       (memq symbolic-function-name '(serialize deserialize))
-       (let ()
-         (unless (= (length generic-value*) 2)
-           (source-errorf src "~a expects two generic arguments (type and size), received ~a"
-                          symbolic-function-name
-                          (length generic-value*)))
-         ; generic args: first is T, second is n.
-         (let-values ([(target-type user-size)
-                       (let ([gv0 (car generic-value*)] [gv1 (cadr generic-value*)])
-                         (values
-                           (nanopass-case (Lexpanded Generic-Value) gv0
-                             [,nat (source-errorf src "first generic argument of ~a must be a type, got size ~a"
-                                                  symbolic-function-name
-                                                  nat)]
-                             [,type (Type type)])
-                           (nanopass-case (Lexpanded Generic-Value) gv1
-                             [,nat nat]
-                             [,type (source-errorf src "second generic argument of ~a must be a size, got a type"
-                                                   symbolic-function-name)])))])
-           (let-values ([(struct-name canonical-size) (validate-event-type! src target-type)])
-             ; ensure the user-supplied size matches the canonical size.
-             (unless (= user-size canonical-size)
-               (source-errorf src "~a<~a, ~a>: declared size ~a does not match canonical serialized size ~a for type ~a"
-                              symbolic-function-name
-                              (format-type target-type)
-                              user-size
-                              user-size
-                              canonical-size
-                              struct-name))
-             ; type-check the argument against what serialize/deserialize expects.
-             (case symbolic-function-name
-               [(serialize)
-                (unless (sametype? expr-type target-type)
-                  (source-errorf src "argument to serialize<~a, ~a> has type ~a, expected ~a"
-                                 (format-type target-type)
-                                 user-size
-                                 (format-type expr-type)
-                                 (format-type target-type)))
-                ; emit the inlined serialize expression.
-                (values (build-serialize src target-type expr)
-                        (with-output-language (Ltypes Type) `(tbytes ,src ,canonical-size)))]
-               [(deserialize)
-                ; argument must be Bytes<canonical-size>
-                (let ([expected-bytes-type
-                       (with-output-language (Ltypes Type) `(tbytes ,src ,canonical-size))])
-                  (unless (sametype? expr-type expected-bytes-type)
-                    (source-errorf src "argument to deserialize<~a, ~a> has type ~a, expected ~a"
-                                   (format-type target-type)
-                                   user-size
-                                   (format-type expr-type)
-                                   (format-type expected-bytes-type)))
-                  ; emit the inlined deserialize expression.
-                  (values (build-deserialize src target-type expr)
-                          target-type))]))))]
-      #;[(call ,src ,fun ,expr* ...)
-       (let-values ([(expr* actual-type*) (maplr2 Care expr*)])
-         (do-call src #f fun actual-type*
-           (lambda (declared-type* return-type fun)
-             (values
-               `(call ,src ,fun ,(map (maybe-safecast src) declared-type* actual-type* expr*) ...)
-               return-type))))]
       [(new ,src ,[type] ,new-field* ...)
        (nanopass-case (Ltypes Type) (de-alias type #t)
          [(tstruct ,src1 ,struct-name (,elt-name* ,type*) ...)
@@ -6168,11 +6105,7 @@
 
   (define-pass lower-log : Lnodisclose (ir) -> Lloweredlog ()
     (definitions
-      ;; Source syntax for log's vm-code template. The free identifiers
-      ;; `version`, `tag`, `payload` are resolved by the backend's arg-alist
-      ;; when it runs expand-vm-code on (vm-code-code vm-code).
-      ;;   - `version` and `tag` bind to numeric literals (event-version, event-tag)
-      ;;   - `payload` binds to a vmref over the emitted expr^
+      ; generates the vm-code instruction for `log`.
       (define log-vm-code-source
         #'((push [storage #f]
                  [value (state-value 'array

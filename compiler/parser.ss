@@ -798,10 +798,6 @@
          (let-values ([(expr* sep*) (split-sep expr-sep*)])
            (with-output-language (Lparser Expression)
              `(elt-call ,src ,e ,dot ,id ,lparen (,expr* ...) (,sep* ...) ,rparen))))]
-      ["event log" :: src (KEYWORD log) #\( expr9 #\) =>
-       (lambda (src kwd lparen e rparen)
-         (with-output-language (Lparser Expression)
-           `(log ,src ,kwd ,lparen ,e ,rparen)))]
       [#f :: expr9 => values])
     (Expression9 (expr9)
       [term-call :: src fun #\( (SEP* expr #\, #t) #\) =>
@@ -842,6 +838,10 @@
        (lambda (src kwd lparen e comma str rparen)
          (with-output-language (Lparser Expression)
            `(assert ,src ,kwd ,lparen ,e ,comma ,str ,rparen)))]
+      [term-log :: src (KEYWORD log) #\( expr #\) =>
+       (lambda (src kwd lparen e rparen)
+         (with-output-language (Lparser Expression)
+           `(log ,src ,kwd ,lparen ,e ,rparen)))]
       [term-disclose :: src (KEYWORD disclose) #\( expr #\) =>
        (lambda (src kwd lparen expr rparen)
          (with-output-language (Lparser Expression)

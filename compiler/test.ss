@@ -26379,7 +26379,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "serialize<~a, ~a>: declared size ~a does not match canonical serialized size ~a for ~a" ("struct ShieldedSpend<nullifier: Bytes<32>>" 99 99 32 ShieldedSpend)))
+      irritants: '("testfile.compact line 3 char 10" "declared size ~a in serialize<~a, ~a> does not match canonical serialized size ~a for ~a" (99 "struct ShieldedSpend<nullifier: Bytes<32>>" 99 32 ShieldedSpend)))
     )
 
   ;; size mismatch on deserialize: canonical size of ShieldedSpend is 32
@@ -26392,7 +26392,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "deserialize<~a, ~a>: declared size ~a does not match canonical serialized size ~a for ~a" ("struct ShieldedSpend<nullifier: Bytes<32>>" 99 99 32 ShieldedSpend)))
+      irritants: '("testfile.compact line 3 char 10" "declared size ~a in deserialize<~a, ~a> does not match canonical serialized size ~a for ~a" (99 "struct ShieldedSpend<nullifier: Bytes<32>>" 99 32 ShieldedSpend)))
     )
 
   (test

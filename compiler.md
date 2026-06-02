@@ -242,6 +242,11 @@ field references and enum element references share a common syntax (the `field-r
 syntax), Lexpanded represents enum element references using a separate `enum-ref`
 syntax.
 
+### Lserialized 
+
+The Lserialized language inserts a marker for serializing the argument to 
+`log` at a later time.
+
 ### Ltypes
 
 The Ltypes language is the first one in which all programs must be well-typed.
@@ -362,6 +367,15 @@ In the Lwithpaths language, path indices are propagated to the `public-ledger`
 expressions that perform ledger operations.
 Instead of the original chain of ADT operations, each public-ledger form holds
 a series of path indices and a single (final) ADT operation.
+
+### Lnodisclose
+
+In the Lnodisclose language, the `disclose` expression is dropped.
+
+### Lloweredlog
+
+In the Lloweredlog language, the `log` form exposes the version and tag
+of the event to be logged. It also exposes the vm code instruction for `log`.
 
 ### Ltypescript
 
@@ -1238,8 +1252,12 @@ accessed in:
   the witness from `C`, `B`, and `A`. These witnesses are used in the generated
   TypeScript code.
 
+### inject-serialize (Lexpanded -> Lserialized)
 
-### infer-types (Lexpanded -> Ltypes)
+Duplicates the argument of `log` and adds a `serialized-payload` marker to
+one of them to serialize it in `infer-types` pass.
+
+### infer-types (Lserialized -> Ltypes)
 
 This pass infers the types of all expressions within the body of a
 circuit definition from the types of the input parameters, the types
@@ -1472,6 +1490,11 @@ This pass also applies various restrictions regarding external contracts:
 * contract types may not appear in witness return type,
 * and `default` is not defined for contract types at the moment but it will be defined later.
 
+This pass also serializes the payload of a `log` expression and if a 
+`deserialzie` circuit is defined in source code, it inserts the body 
+for the instantiated `deserialize`. (De)serialization only works on
+event types.
+
 ### remove-tundeclared (Ltypes -> Lnotundeclared)
 
 This pass drops the `tundeclared` types from `Ltypes`.
@@ -1547,6 +1570,11 @@ circuit or any circuit that is reachable from an exported circuit. We
 presently assume that no witnesses or external circuits can modify any
 sealed fields.
 
+### reject-constructor-log (Lnodca -> Lnodca)
+
+This pass raises an exception if the constructor tries to log an event,
+either directly or indirectly.
+
 ### reject-constructor-cc-calls (Lnodca -> Lnodca)
 
 This pass raises an exception if the constructor tries to make a contract call, either
@@ -1560,7 +1588,8 @@ ability, that the circuit does not touch public state, does not call
 any impure circuits, and does not call any witnesses. Otherwise,
 it considers a circuit to be impure. Once it verifies that a circuit
 is impure it checks if the circuit has been declared pure. If so,
-it throws an error.
+it throws an error. Note that logging an event requires reading the public
+state and thus it causes a circuit to be impure.
 
 It considers a circuit that is not declared pure and is being called
 by another pure circuit pure. However, it considers circuits that are
@@ -1611,7 +1640,15 @@ processed.
 In most cases, termination will be quick; it would take some careful crafting
 to get the analysis to iterate many times over the same circuit.
 
-### save-contract-info (Lwithpaths -> Lwithpaths)
+### remove-disclose (Lwithpaths -> Lnodisclose)
+
+This pass drops `disclose`.
+
+### lower-log (Lnodisclose -> Lloweredlog)
+
+This pass generates the vm-code instructions for logging an event.
+
+### save-contract-info (Lloweredlog -> Lloweredlog)
 
 This pass generates a `contract-info.json` for the contract `C` being compiled
 by Compactc. For contract `C`, this file contains the following in this order:
@@ -1627,11 +1664,7 @@ by Compactc. For contract `C`, this file contains the following in this order:
   full layout is required to navigate the on-chain state tree.
 
 
-### exported-impure-circuit-names (Lwithpaths -> *)
-
-This pass generates a list of the exported impure circuit names of the program.
-
-### prepare-for-typescript (Lwithpaths -> Ltypescript)
+### prepare-for-typescript (Lloweredlog -> Ltypescript)
 
 This pass converts the input program into one that is more directly
 amenable to typescript generation.
@@ -1730,7 +1763,7 @@ Structure types, enum types, and type aliases created by declarations
 exported from the top level of a contract are replaced by the corrsponding
 struct, enum, or type name in the generated type-definition file.
 
-### drop-ledger-runtime (Lnodisclose -> Lposttypescript)
+### drop-ledger-runtime (Lloweredlog -> Lposttypescript)
 
 This pass is a simple one that discards things that are no longer needed after
 we have emitted JavaScript code.  It discards (1) type definitions, (2) the
@@ -2242,6 +2275,10 @@ Similarly, when a `let*`-bound variable `var` is not in the `idsets` of the
 right-hand sides of subsequent `let*` bindings or the `let*` body, the binding
 is dropped.
 The input `effect?` flag is used when building `seq` expressions to avoid polluting idsets.
+
+### prune-unnecessary-circuits (Lnovectorref -> Lnovectorref)
+
+TODO
 
 ### reduce-to-circuit (Lnovectorref -> Lcircuit)
 

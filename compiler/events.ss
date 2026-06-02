@@ -16,7 +16,7 @@
 ;;; limitations under the License.
 
 (library (events)
-  (export event-declarations event-tag-of event-version max-log-size)
+  (export event-declarations event-tag-of event-size-of event-version max-log-size)
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
@@ -32,15 +32,23 @@
   ; Maximum serialized event size in bytes. Must match MAX_LOG_SIZE in
   ; midnight-ledger's onchain-vm/src/ops.rs:
   ;     pub const MAX_LOG_SIZE: u64 = 1 << 19;
-  (define max-log-size (expt 2 19))   ; 512 KiB = 524288 bytes
+  (define-syntax max-log-size
+    (identifier-syntax (expt 2 19)))   ; 512 KiB = 524288 bytes
 
   ; maps event-name symbol -> tag integer.
   ; populated by event-declarations in midnight-events.ss.
   ; readable through event-tag-of.
   (define event-tag-table (make-eq-hashtable))
 
+  ; maps event-name symbol -> declared canonical serialized size (bytes).
+  ; populated alongside event-tag-table. readable through event-size-of.
+  (define event-size-table (make-eq-hashtable))
+
   (define (event-tag-of name)
     (hashtable-ref event-tag-table name #f))
+
+  (define (event-size-of name)
+    (hashtable-ref event-size-table name #f))
 
   (define (event-declarations)
     (define edecl* '())
@@ -60,7 +68,7 @@
 
     (define-syntax declare-event-type
       (lambda (q)
-        (define (f name tag argument-name* argument-type*)
+        (define (f name tag size argument-name* argument-type*)
           (define (convert-event-type type)
             (define (convert-event-targ targ)
               #`(targ-type ,event-src #,(convert-event-type targ)))
@@ -79,6 +87,7 @@
           #`(begin
               (check-tag-unique! '#,name #,tag)
               (hashtable-set! event-tag-table '#,name #,tag)
+              (hashtable-set! event-size-table '#,name #,size)
               (set! edecl*
                 (cons
                   (with-output-language (Lpreexpand Structure-Definition)
@@ -86,7 +95,7 @@
                         #,@(map convert-event-argument argument-name* argument-type*)))
                   edecl*))))
         (syntax-case q ()
-          [(_ name tag one-liner ([argument-name argument-type hinting ...] ...))
+          [(_ name tag size one-liner ([argument-name argument-type hinting ...] ...))
            (begin
              (unless (identifier? #'name)
                (syntax-error #'name "event name must be an identifier"))
@@ -94,12 +103,18 @@
                (unless (and (integer? t) (exact? t) (<= 0 t 255))
                  (syntax-error #'tag
                    "event tag must be an exact integer in [0, 255]")))
-             (f #'name #'tag #'(argument-name ...) #'(argument-type ...)))])))
+             (let ([s (syntax->datum #'size)])
+               (unless (and (integer? s) (exact? s) (<= 0 s max-log-size))
+                 (syntax-error #'size
+                   (format "event size must be an exact non-negative integer not exceeding max-log-size (~a)"
+                           max-log-size))))
+             (f #'name #'tag #'size #'(argument-name ...) #'(argument-type ...)))])))
 
     ; Reset on every call. event-declarations is itself memoized at the
     ; do-import call site, but if a future change un-memoizes it we don't
     ; want stale or doubled entries.
     (hashtable-clear! event-tag-table)
+    (hashtable-clear! event-size-table)
     (include "midnight-events.ss")
     (reverse edecl*))
 
