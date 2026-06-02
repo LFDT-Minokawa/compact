@@ -1,0 +1,164 @@
+name: Rust runtime + e2e tests
+
+# CI for the `compactc --rust` Rust side: `compact-runtime` (the runtime
+# crate generated contract code depends on) and `tests-e2e-rust` (the
+# cross-language byte-parity test crate). The compiler's own Scheme
+# tests live in build-compiler.yml.
+#
+# Two jobs:
+#  - pre-check: fmt + clippy on the whole workspace (fast, ~3 min).
+#  - test:      cargo test -p compact-runtime -p tests-e2e-rust on Linux + macOS.
+#
+# The `codegen_regression` integration test in tests-e2e-rust requires a
+# built compactc; it auto-skips with a warning when ./result/bin/compactc
+# is absent, so this workflow runs it but does not gate on it. A future
+# job can pair it with `nix build` from build-compiler.yml to assert
+# byte-identical regeneration of the committed contracts/*/lib.rs.
+
+on:
+  pull_request:
+    paths:
+      - "runtime-rs/**"
+      - "runtime-rs-macros/**"
+      - "tests-e2e-rust/**"
+      - "compiler/rust-passes*.ss"
+      - "compiler/rust-passes/**"
+      - "examples/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/rust-runtime-test.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "runtime-rs/**"
+      - "runtime-rs-macros/**"
+      - "tests-e2e-rust/**"
+      - "compiler/rust-passes*.ss"
+      - "compiler/rust-passes/**"
+      - "examples/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/rust-runtime-test.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  RUST_BACKTRACE: short
+  RUSTUP_MAX_RETRIES: 10
+
+jobs:
+  # Fast pre-checks that can fail early — no Nix, no compactc.
+  pre-check:
+    name: Format + Clippy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable (branch)
+
+      - name: Install Rust components
+        run: rustup component add rustfmt clippy
+
+      - name: Cache Cargo registry and git trees
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # The workspace includes both tools/compact (covered by
+      # compact-test.yml) and our new crates. `cargo fmt --all` formats
+      # every member; if one is dirty the gate fails.
+      - name: Check formatting (compact-runtime + tests-e2e-rust)
+        run: |
+          cargo fmt -p compact-runtime --check
+          cargo fmt -p compact-runtime-macros --check
+          cargo fmt -p tests-e2e-rust --check
+
+      # Clippy with -D warnings turns lints into errors. We scope it to
+      # our crates explicitly so changes to tools/compact don't
+      # accidentally start gating on this workflow.
+      - name: Run Clippy on compact-runtime
+        run: cargo clippy -p compact-runtime --all-targets --all-features -- -D warnings
+
+      - name: Run Clippy on compact-runtime-macros
+        run: cargo clippy -p compact-runtime-macros --all-targets --all-features -- -D warnings
+
+      - name: Run Clippy on tests-e2e-rust
+        run: cargo clippy -p tests-e2e-rust --all-targets --all-features -- -D warnings
+
+  # Test matrix — runs the byte-parity suite on Linux and macOS to catch
+  # platform-dependent encoding bugs.
+  test:
+    name: Test ${{ matrix.os }}
+    needs: pre-check
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable (branch)
+
+      - name: Cache Cargo registry and git trees
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache target directory
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: target
+          key: ${{ runner.os }}-target-rust-runtime-${{ hashFiles('Cargo.lock', 'runtime-rs/**', 'runtime-rs-macros/**', 'tests-e2e-rust/**') }}
+          restore-keys: |
+            ${{ runner.os }}-target-rust-runtime-
+
+      - name: Build compact-runtime
+        run: cargo build -p compact-runtime --locked
+
+      - name: Build tests-e2e-rust (incl. fixture crates)
+        run: cargo build -p tests-e2e-rust --tests --locked
+
+      - name: Unit tests — compact-runtime
+        run: cargo test -p compact-runtime --locked
+
+      - name: Integration tests — tests-e2e-rust
+        # The codegen_regression test auto-skips when ./result/bin/compactc
+        # is absent (its `Skip` branch logs a warning but returns Ok).
+        # It exercises the byte-identical regen guard when compactc IS
+        # available — leave it in the run so it's a no-op on the bare
+        # Ubuntu/macOS runners and an active gate locally / when we wire
+        # in a compactc-build job.
+        run: cargo test -p tests-e2e-rust --locked
