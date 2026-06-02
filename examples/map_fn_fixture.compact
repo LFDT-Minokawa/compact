@@ -1,0 +1,49 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//
+// Iter 7 fixture: map() + lambda-as-expression (literal-vec MVP). The
+// constructor seeds a fixed-length Vector ledger field by mapping a
+// bare identity lambda `(x) => x` over a literal vector `[1, 2, 3]`.
+// The exported `ping` circuit is a no-op — present only to satisfy
+// the "at least one exported circuit" invariant.
+//
+// After init, c == [1, 2, 3].
+//
+// Why identity? Compact's type narrowing inserts `downcast-unsigned`
+// and `safe-cast` wrappers around any non-trivial lambda body (e.g.
+// `x * 2 as Uint<64>` lowers to a chain that needs `(* mbits ...)`,
+// `(safe-cast ...)`, and `(downcast-unsigned ...)` in the Rust
+// walker). Iter 7 ships the smallest map that exercises the
+// `(map fun map-arg)` IR + per-element substitution + Vector<N,T>
+// ledger write (new_cell_array); follow-up iterations can layer
+// arithmetic onto the lambda body.
+
+import CompactStandardLibrary;
+
+export ledger c: Vector<3, Uint<64>>;
+
+constructor() {
+  c = map((x: Uint<64>): Uint<64> => x, [1 as Uint<64>, 2, 3]);
+}
+
+export circuit ping(): [] {
+  // Force the circuit to be classified impure (side-effect on the
+  // ledger field) so it lands on the Contract impl block instead of
+  // pure_circuits. The constructor body is the actual focus of this
+  // fixture — Iter 7's `map(...)` lowering — so ping is intentionally
+  // a no-op write that matches the same Vector-Cell shape.
+  c = map((x: Uint<64>): Uint<64> => x, [0 as Uint<64>, 0, 0]);
+}

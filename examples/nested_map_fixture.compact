@@ -1,0 +1,37 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//
+// Nested Map<K, Map<K2, V>> fixture for Prod-18 (parity-gap-report
+// honourable mention). Mirrors upstream test1010.
+//
+// Shape: a single ledger field of type Map<Field, Map<Field, Uint<64>>>
+// — i.e. a per-org user-balance directory. No constructor body: the
+// implicit initial value is an empty outer Map. This is sufficient to
+// validate that nested Map<K, Map<K2, V>> serializes to the same
+// initial-state bytes as the TS reference; the chained lookup() form
+// is deferred to a follow-up iteration if needed.
+//
+// The exported `ping` circuit is a trivial no-op so the contract has
+// at least one entry point.
+
+import CompactStandardLibrary;
+
+export ledger flag: Boolean;
+export ledger users_by_org: Map<Field, Map<Field, Uint<64>>>;
+
+export circuit ping(): [] {
+  flag.write(true);
+}

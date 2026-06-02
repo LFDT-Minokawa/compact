@@ -1,0 +1,82 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//
+// Prod-5a: sealed ledger fixture.
+//
+// Compact's `sealed ledger NAME: T;` declares a ledger field that is
+// writable from the constructor (or `pure` setup circuits) but NOT
+// writable from non-pure circuits — sealed fields are effectively
+// "compile-time write-protected" after init. At the StateValue /
+// AlignedValue level they serialize identically to a regular ledger
+// field; the frontend enforces the no-write rule via type checking.
+//
+// This fixture exercises:
+//   - a sealed ledger field of `Field` (admin: initialized to a literal
+//     value in the constructor — the natural use case for an immutable
+//     contract-owner address),
+//   - a sealed ledger field of `Bytes<32>` (contract_id: initialized
+//     from `pad(32, "lares:sealed:demo")` in the constructor —
+//     exercises Prod-15's Bytes<L>-from-pad byte-parity confirmation),
+//   - a sealed ledger field of `Uint<64>` (created_at: initialized to
+//     a literal in the constructor — exercises Prod-13's tunsigned
+//     literal coercion alongside Prod-9's tfield branch),
+//   - a regular ledger field of `Boolean` (flag, writable by ping()),
+// to lock in byte-parity for sealed declarations.
+//
+// The Field-typed sealed field doubles as a regression test for Prod-9:
+// integer literals at a Field-typed RHS must be wrapped in `Fr::from(N)`
+// at the Rust emitter so the downstream ledger-write builder's
+// `Into<AlignedValue>` bound is satisfied. Before that fix, the
+// `admin = 42` line emitted `let tmp = 42;` (i32) and failed to compile.
+//
+// The Uint<64>-typed sealed field locks in Prod-13: a literal RHS at
+// `Uint<N>` type must be emitted with the matching `u<N>` suffix so the
+// builder's `Into<AlignedValue>` bound matches the field's primitive
+// (`let tmp = 100u64;` rather than `let tmp = 100;`).
+//
+// The Bytes<32>-typed sealed field locks in Prod-15: a prior diagnostic
+// had hypothesised an on-wire encoding divergence between Rust and TS
+// for `pad(L, "...")` (Compress atom vs fixed-width bytes). In fact the
+// per-cell encoding is byte-identical — both sides serialise a fixed-
+// width `AlignmentAtom::Bytes { length: L }` atom whose payload is the
+// UTF-8 string bytes followed by zero-padding. The apparent size
+// discrepancy in the earlier report came from unrelated container-level
+// structure (operations map / pure-circuit emission), not from the
+// Bytes<L> cell itself. This fixture pins that result.
+//
+// Three writes in one constructor body also exercise Prod-14: the
+// frontend lowers each `ledger = expr` into a fresh `const tmp = …;
+// ledger = tmp;` pair. Before Prod-14, the emitter generated multiple
+// `let tmp = ...` lines that shadowed each other, so every cell read
+// the value of the last binding. With Prod-14, the second/third
+// bindings rename to `tmp_0`, `tmp_1`, …, preserving each write.
+
+import CompactStandardLibrary;
+
+export sealed ledger admin: Field;
+export sealed ledger contract_id: Bytes<32>;
+export sealed ledger created_at: Uint<64>;
+export ledger flag: Boolean;
+
+constructor() {
+  admin = 42;
+  contract_id = pad(32, "lares:sealed:demo");
+  created_at = 12345;
+}
+
+export circuit ping(): [] {
+  flag.write(true);
+}

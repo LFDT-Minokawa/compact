@@ -31,6 +31,10 @@ ledger eligible_voters: MerkleTree<10, Bytes<32>>;
 ledger committed: Set<Bytes<32>>;
 ledger revealed: Set<Bytes<32>>;
 
+constructor(authority_init: Bytes<32>) {
+  authority = disclose(authority_init);
+}
+
 witness private$secret_key(): Bytes<32>;
 witness private$state(): PrivateState;
 witness private$state$advance(): [];

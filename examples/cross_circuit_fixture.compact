@@ -1,0 +1,34 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//
+// M3.5 E5 fixture: exercises the body walker's `impure-exported` call
+// classification — a bare statement-position call from one exported
+// impure circuit to another exported impure circuit. The byte-parity
+// test only checks initial_state(); the `reset_and_set` body invoking
+// `reset()` is emitted (and compiled) but not invoked here.
+
+import CompactStandardLibrary;
+
+export ledger n: Uint<64>;
+
+export circuit reset(): [] {
+  n.write(default<Uint<64>>);
+}
+
+export circuit reset_and_set(v: Uint<64>): [] {
+  reset();
+  n.write(disclose(v));
+}
