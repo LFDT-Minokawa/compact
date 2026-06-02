@@ -24,9 +24,14 @@
 // regular ledger field; the frontend enforces the no-write rule.
 //
 // This test locks in two invariants:
-//   1. The constructor writes the sealed `admin = 42` field and the
-//      resulting ContractState bytes match the TS reference.
-//   2. A non-sealed `flag` field declared alongside the sealed field
+//   1. The constructor writes the sealed fields (Field admin = 42,
+//      Bytes<32> contract_id = pad(32, "lares:sealed:demo"),
+//      Uint<64> created_at = 12345) and the resulting ContractState
+//      bytes match the TS reference. The Bytes<32> case is the Prod-15
+//      regression — a prior diagnostic had claimed an on-wire
+//      Bytes<L>-from-pad encoding divergence; byte-parity here pins
+//      the disposition that the encoding actually matches.
+//   2. A non-sealed `flag` field declared alongside the sealed fields
 //      is still writable end-to-end via the `ping` circuit.
 //
 // Two byte-parity steps mirrored against

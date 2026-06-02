@@ -1649,7 +1649,14 @@
                (lambda (b)
                  (let* ([var-name (car b)]
                         [rhs (cdr b)]
-                        [rust-name (symbol->string (camel->snake (id-sym var-name)))]
+                        ;; Prod-14: uniquify against prior bindings in this
+                        ;; body so multi-assignment constructors (each
+                        ;; lowered to a fresh `const tmp = ...`) don't
+                        ;; shadow earlier `let tmp = …`.
+                        [rust-name
+                         (uniquify-rust-name
+                           (symbol->string (camel->snake (id-sym var-name)))
+                           local-binds)]
                         [classified
                          (classify-const-rhs rhs witness-id-ht circuit-id-ht)])
                    ;; M3.5: record the var's declared type so later `==`

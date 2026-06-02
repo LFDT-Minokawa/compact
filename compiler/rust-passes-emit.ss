@@ -411,16 +411,65 @@
                 (type-is-tfield? type^)]
                [else #f])))
 
-      ;; coerce-literal-rhs-rendered: Prod-9 — Field-typed integer literals
-      ;; need to be wrapped in `Fr::from(<n>u64)` so the ledger-write
-      ;; builder's `Into<AlignedValue>` bound is satisfied. When `decl-type`
-      ;; is `tfield` and `rhs` strips down to a bare integer literal,
-      ;; returns the wrapped form; otherwise returns `#f` so the caller
-      ;; falls back to its existing rendering.
+      ;; type-peel-tunsigned: if `type` is a (tunsigned src nat) (possibly
+      ;; through a talias chain), return the `nat` upper bound; otherwise #f.
+      ;; Companion to `type-is-tfield?` for Prod-13's Uint<N> literal path.
+      (define (type-peel-tunsigned type)
+        (and type
+             (nanopass-case (Ltypescript Type) type
+               [(tunsigned ,src ,nat) nat]
+               [(talias ,src ,nominal? ,type-name ,type^)
+                (type-peel-tunsigned type^)]
+               [else #f])))
+
+      ;; uniquify-rust-name: Prod-14 — Compact's frontend lowering produces
+      ;; per-statement `const tmp = ...; <ledger> = tmp;` shapes, so a
+      ;; constructor body like
+      ;;     admin = 42;
+      ;;     count = 7;
+      ;; lowers into TWO const-bindings both named `tmp`. Each binding maps
+      ;; to a distinct id (and `local-binds` keys are eq-compared), but the
+      ;; emitted Rust shares the same `let tmp = ...` string and shadows.
+      ;; By the time the OpProgram builder consumes each `new_cell(<rust-name>.
+      ;; clone())`, only the LAST `let tmp = …` is in scope, so every cell
+      ;; reads the wrong value.
+      ;;
+      ;; Suffix the proposed name with `_N` until it doesn't collide with
+      ;; any prior `local-binds` entry's rust-name. First occurrence keeps
+      ;; the unsuffixed form to preserve existing snapshots (most fixtures
+      ;; have at most one literal-RHS slot per body).
+      (define (uniquify-rust-name proposed local-binds)
+        (let ([taken (map cdr local-binds)])
+          (cond
+            [(not (member proposed taken)) proposed]
+            [else
+             (let loop ([n 0])
+               (let ([candidate (format "~a_~a" proposed n)])
+                 (cond
+                   [(member candidate taken) (loop (fx+ n 1))]
+                   [else candidate])))])))
+
+      ;; coerce-literal-rhs-rendered: Prod-9/Prod-13 — typed integer literals
+      ;; need to be rendered with the correct Rust type so the ledger-write
+      ;; builder's `Into<AlignedValue>` bound is satisfied.
+      ;;   - `tfield`: wrap as `Fr::from(<n>u64)`.
+      ;;   - `tunsigned`: append the width suffix (`<n>u8` .. `<n>u128`) so
+      ;;     the literal types as the same Rust primitive the ledger field
+      ;;     uses. Without this, `ledger v: Uint<64>; v = 42;` lowered into
+      ;;     `let tmp = 42; new_cell(tmp.clone())` — the bare i32 fails the
+      ;;     `Into<AlignedValue>` bound (Prod-13).
+      ;; All other RHS shapes return #f so the caller falls back to its
+      ;; existing rendering.
       (define (coerce-literal-rhs-rendered decl-type rhs)
-        (and (type-is-tfield? decl-type)
+        (cond
+          [(type-is-tfield? decl-type)
+           (let ([n (literal-int-expr? rhs)])
+             (and n (format "Fr::from(~au64)" n)))]
+          [(type-peel-tunsigned decl-type) =>
+           (lambda (nat)
              (let ([n (literal-int-expr? rhs)])
-               (and n (format "Fr::from(~au64)" n)))))
+               (and n (format "~a~a" n (uint-rust-width nat)))))]
+          [else #f]))
 
       ;; const-decl-only?: detect a `(const ,src (,local* ...))` Statement —
       ;; the "forward declaration" form produced by typescript-passes when a

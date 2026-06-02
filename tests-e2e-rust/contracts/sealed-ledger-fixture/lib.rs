@@ -56,13 +56,31 @@ where
         &self,
         ctx: ConstructorContext<PS>,
     ) -> Result<ConstructorResult<PS>, CompactError> {
-        let sv = new_array(vec![new_cell(Fr::default()), new_cell(false)]);
+        let sv = new_array(vec![
+            new_cell(Fr::default()),
+            new_cell([0u8; 32]),
+            new_cell(0u64),
+            new_cell(false),
+        ]);
         let state = ChargedState::new(sv);
         let qctx = QueryContext::new(state, ContractAddress::default());
         let tmp = Fr::from(42u64);
+        let tmp_0 = 12345u64;
         let ops = OpProgramVerify::<DefaultDB>::new()
             .push(false, new_cell(0u8))
             .push(true, new_cell(tmp.clone()))
+            .ins(false, 1)
+            .push(false, new_cell(1u8))
+            .push(
+                true,
+                new_cell([
+                    108u8, 97, 114, 101, 115, 58, 115, 101, 97, 108, 101, 100, 58, 100, 101, 109,
+                    111, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                ]),
+            )
+            .ins(false, 1)
+            .push(false, new_cell(2u8))
+            .push(true, new_cell(tmp_0.clone()))
             .ins(false, 1)
             .build();
 
@@ -77,7 +95,7 @@ where
 
     pub fn ping(&self, ctx: CircuitContext<PS>) -> Result<CircuitResults<PS, ()>, CompactError> {
         let ops = OpProgramVerify::<DefaultDB>::new()
-            .push(false, new_cell(1u8))
+            .push(false, new_cell(3u8))
             .push(true, new_cell(true))
             .ins(false, 1)
             .build();
@@ -128,11 +146,49 @@ impl<'a, D: DB> Ledger<'a, D> {
         };
         compact_runtime::std_lib::decode_fr(av)
     }
-    pub fn flag(&self) -> Result<bool, CompactError> {
+    pub fn contract_id(&self) -> Result<[u8; 32], CompactError> {
         let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(1u8, false)
+            .popeq(true)
+            .build();
+        let results = query_for_read(&qctx, &ops, None, &initial_cost_model())
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+        let av = match results.events.last() {
+            Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+            _ => {
+                return Err(CompactError::AssertionFailed(
+                    "ledger: expected Read event".into(),
+                ))
+            }
+        };
+        compact_runtime::std_lib::decode_bytes::<32>(av)
+    }
+    pub fn created_at(&self) -> Result<u64, CompactError> {
+        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let ops = OpProgramGather::<D>::new()
+            .dup(0)
+            .idx_at_index(2u8, false)
+            .popeq(true)
+            .build();
+        let results = query_for_read(&qctx, &ops, None, &initial_cost_model())
+            .map_err(|e| CompactError::AssertionFailed(format!("ledger query failed: {:?}", e)))?;
+        let av = match results.events.last() {
+            Some(compact_runtime::onchain_vm::result_mode::GatherEvent::Read(av)) => av,
+            _ => {
+                return Err(CompactError::AssertionFailed(
+                    "ledger: expected Read event".into(),
+                ))
+            }
+        };
+        compact_runtime::std_lib::decode_u64(av)
+    }
+    pub fn flag(&self) -> Result<bool, CompactError> {
+        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let ops = OpProgramGather::<D>::new()
+            .dup(0)
+            .idx_at_index(3u8, false)
             .popeq(true)
             .build();
         let results = query_for_read(&qctx, &ops, None, &initial_cost_model())

@@ -17,14 +17,16 @@
 //
 // Prod-5a: capture TS reference state for sealed_ledger_fixture.compact.
 //
-// The fixture has a 1-line constructor that writes the sealed `admin`
-// field (admin = 42) and exports a single circuit `ping()` that writes
+// The fixture has a constructor that writes three sealed fields
+// (admin = 42, contract_id = pad(32, "lares:sealed:demo"),
+// created_at = 12345) and exports a single circuit `ping()` that writes
 // the regular `flag` field. We capture two stages:
 //   - afterInit: ContractState after initialState() — proves the
-//     sealed-field initializer reaches the same StateValue layout as
-//     a regular ledger field.
+//     sealed-field initializers reach the same StateValue layout as
+//     regular ledger fields, including the Bytes<L>-from-pad case
+//     (Prod-15).
 //   - afterPing: ContractState after ping() — proves a non-sealed
-//     field next to a sealed one is still writable end-to-end.
+//     field next to sealed ones is still writable end-to-end.
 //
 // Usage:
 //   compactc --skip-zk examples/sealed_ledger_fixture.compact \
