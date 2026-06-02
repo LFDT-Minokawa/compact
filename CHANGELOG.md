@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.31.104, language 0.23.103, runtime 0.16.100]
+
+### Added
+
+- Adds `--rust` to `compactc`: lowers a `.compact` contract to a native
+  Rust crate (`contract/lib.rs`) that depends on the new `compact-runtime`
+  crate. The Rust crate exposes `Contract::new(...)`, `initial_state(...)`,
+  each impure circuit as a method on the contract, and a `Ledger<'a, D>`
+  view for reading on-chain state — parallel to the TypeScript backend's
+  surface, with byte-identical `ContractState.serialize()` output.
+  - **Runtime crate** (`runtime-rs/`): curated prelude over the Midnight
+    Rust crates (`midnight-base-crypto`, `midnight-transient-crypto`,
+    `midnight-storage`, `midnight-onchain-state` / `-vm` / `-runtime`,
+    `midnight-coin-structure`, `midnight-zswap`); facade aggregates
+    (`ConstructorContext`, `CircuitContext`, `ConstructorResult`,
+    `CircuitResults`, `WitnessContext`, `CompactError`); Compact stdlib
+    helpers (`Counter`, `Maybe<T>`, `OpaqueString`, `pad`, `disclose`,
+    `persistent_hash_aligned`, Jubjub/EC native shims, Merkle path
+    helpers); `OpProgramVerify` / `OpProgramGather` builders.
+  - **Codegen coverage**: scalars, ADTs as ledger fields
+    (`Counter`/`Cell`/`Map`/`Set`/`MerkleTree`/`HistoricMerkleTree`/`List`),
+    user structs and enums, transparent + nominal type aliases, witnesses,
+    native hashes, `if`-statement bodies, ADT method calls (`insert` /
+    `lookup` / `member` / `checkRoot`), cross-circuit calls, `for`-range
+    and `for`-iterable loops with compile-time unrolling, basic `fold`
+    with loop-var substitution, bounded `Uint<L..U>`, sealed ledger fields.
+  - **Compile-time safety**: unsupported Compact constructs now produce a
+    `compactc --rust: unsupported Compact construct (...)` error at
+    codegen time rather than emitting `unimplemented!()` Rust that
+    compiles but panics at runtime.
+  - **Test coverage**: 32 cross-language byte-parity tests under
+    `tests-e2e-rust/`, plus a codegen-regression guard asserting all
+    committed `lib.rs` files regenerate byte-identical via
+    `compactc --rust`.
+  - **Docs**: an end-user guide at `doc/rust-codegen-user-guide.md`,
+    contributor READMEs under `compiler/README-rust-passes.md`,
+    `runtime-rs/README.md`, and `tests-e2e-rust/README.md`, plus a
+    parity gap report under
+    `docs/superpowers/research/2026-06-02-upstream-parity-gap-report.md`.
+
 ## [Toolchain 0.31.103, language 0.23.103, runtime 0.16.100]
 
 ### Added
