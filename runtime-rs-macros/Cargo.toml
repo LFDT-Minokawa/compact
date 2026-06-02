@@ -1,0 +1,44 @@
+# This file is part of Compact.
+# Copyright (C) 2026 Midnight Foundation
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  	http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[package]
+name          = "compact-runtime-macros"
+version       = "0.16.100"
+edition       = "2021"
+license       = "Apache-2.0"
+description   = "Procedural macros for compact-runtime — emits Witnesses<PS> trait impls."
+repository    = "https://github.com/LFDT-Minokawa/compact"
+homepage      = "https://github.com/LFDT-Minokawa/compact"
+documentation = "https://docs.rs/compact-runtime-macros"
+readme        = "README.md"
+keywords      = ["compact", "midnight", "macro", "proc-macro", "witnesses"]
+categories    = ["development-tools::procedural-macro-helpers", "cryptography::cryptocurrencies"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lib]
+name = "compact_runtime_macros"
+path = "src/lib.rs"
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+quote       = "1"
+syn         = { version = "2", features = ["full"] }
+
+[dev-dependencies]
+compact-runtime = { path = "../runtime-rs" }

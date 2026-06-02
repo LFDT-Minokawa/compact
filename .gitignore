@@ -44,3 +44,5 @@ dist
 
 # failed fuzzer tests
 tests-e2e/failed-contracts/
+
+tests-e2e-rust/target/

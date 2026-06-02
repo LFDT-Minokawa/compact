@@ -15,7 +15,47 @@
 
 [workspace]
 resolver = "3"
-members = ["tools/*"]
+members = [
+    "tools/*",
+    "runtime-rs",
+    "runtime-rs-macros",
+    "tests-e2e-rust",
+    "tests-e2e-rust/contracts/tiny",
+    "tests-e2e-rust/contracts/zerocash",
+    "tests-e2e-rust/contracts/election",
+    "tests-e2e-rust/contracts/map-fixture",
+    "tests-e2e-rust/contracts/uints-fixture",
+    "tests-e2e-rust/contracts/vector-fixture",
+    "tests-e2e-rust/contracts/aliases-fixture",
+    "tests-e2e-rust/contracts/witnesses-fixture",
+    "tests-e2e-rust/contracts/if-stmt-fixture",
+    "tests-e2e-rust/contracts/cross-circuit-fixture",
+    "tests-e2e-rust/contracts/set-fixture",
+    "tests-e2e-rust/contracts/list-fixture",
+    "tests-e2e-rust/contracts/for-range-fixture",
+    "tests-e2e-rust/contracts/for-iter-fixture",
+    "tests-e2e-rust/contracts/fold-fixture",
+    "tests-e2e-rust/contracts/map-fn-fixture",
+    "tests-e2e-rust/contracts/map-lambda-fixture",
+    "tests-e2e-rust/contracts/module-fixture",
+    "tests-e2e-rust/contracts/bounded-uint-fixture",
+    "tests-e2e-rust/contracts/sealed-ledger-fixture",
+    "tests-e2e-rust/contracts/pure-circuit-fixture",
+    "tests-e2e-rust/contracts/nested-map-fixture",
+    "tests-e2e-rust/contracts/hash-to-curve-fixture",
+]
+
+[workspace.dependencies]
+# Pinned to the same midnight-ledger line the TS runtime uses (ledger-8.0.2 per flake.nix).
+midnight-base-crypto      = "1"
+midnight-transient-crypto = "2"
+midnight-serialize        = "1"
+midnight-storage          = "2"
+midnight-coin-structure   = "2"
+midnight-onchain-state    = "3"
+midnight-onchain-vm       = "3"
+midnight-onchain-runtime  = "3"
+midnight-zswap            = "8"
 
 [workspace.package]
 version = "0.5.1"
