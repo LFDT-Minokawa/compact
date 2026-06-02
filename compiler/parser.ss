@@ -92,6 +92,7 @@
      if
      include
      ledger
+     log
      map
      new
      of
@@ -136,7 +137,6 @@
      instanceof
      interface
      let
-     log
      null
      package
      private
@@ -838,6 +838,10 @@
        (lambda (src kwd lparen e comma str rparen)
          (with-output-language (Lparser Expression)
            `(assert ,src ,kwd ,lparen ,e ,comma ,str ,rparen)))]
+      [term-log :: src (KEYWORD log) #\( expr #\) =>
+       (lambda (src kwd lparen e rparen)
+         (with-output-language (Lparser Expression)
+           `(log ,src ,kwd ,lparen ,e ,rparen)))]
       [term-disclose :: src (KEYWORD disclose) #\( expr #\) =>
        (lambda (src kwd lparen expr rparen)
          (with-output-language (Lparser Expression)

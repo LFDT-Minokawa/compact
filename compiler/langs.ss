@@ -32,13 +32,15 @@
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
+          Lserialized unparse-Lserialized Lserialized-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
           Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats
-          Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats Lnodisclose-Export-Type-Definition?
+          Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats
+          Lloweredlog unparse-Lloweredlog Lloweredlog-pretty-formats Lloweredlog-Export-Type-Definition?
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
@@ -232,6 +234,7 @@
       (if src expr0 expr1 expr2)                          => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name)                         => (elt-ref expr elt-name)
       (elt-call src expr elt-name expr* ...)              => (elt-call expr elt-name expr* ...)
+      (log src expr)                                      => (log expr)
       (= src expr1 expr2)                                 => (= expr1 expr2)
       (+= src expr1 expr2)                                => (+= expr1 3 expr2)
       (-= src expr1 expr2)                                => (-= expr1 3 expr2)
@@ -611,6 +614,14 @@
       (- (targ-size src nat)
          (targ-type src type))))
 
+  (define-language/pretty Lserialized (extends Lexpanded)
+    (Expression (expr index)
+      (- (log src expr))
+      (+ (serialized-payload src expr) => (serialized-payload expr)
+         ; expr^ calls serialize on expr
+         ; expr needs to be kept until track-witness-data
+         (log src expr expr^) => (log expr expr^))))
+
   (define-language/pretty Ltypes (entry Program)
     (terminals
       (field (nat kindex))
@@ -675,6 +686,9 @@
       (default src type)                      => (default type)
       (if src expr0 expr1 expr2)              => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name nat)         => (elt-ref expr elt-name nat)
+      ; type is needed for type-checking of later passes
+      ; expr is the deserialized form and expr^ is the serialized form
+      (log src type expr len expr^)           => (log expr expr^)
       (enum-ref src type elt-name)            => (enum-ref type elt-name)
       ; for tuple, the elements can have different, even unrelated types
       (tuple src tuple-arg* ...)              => (tuple tuple-arg* ...)
@@ -696,13 +710,13 @@
       (+ src mbits expr1 expr2)               => (+ mbits expr1 expr2)
       (- src mbits expr1 expr2)               => (- mbits expr1 expr2)
       (* src mbits expr1 expr2)               => (* mbits expr1 expr2)
-      (< src bits expr1 expr2)               => (< expr1 expr2)
-      (<= src bits expr1 expr2)              => (<= expr1 3 expr2)
-      (> src bits expr1 expr2)               => (> expr1 expr2)
-      (>= src bits expr1 expr2)              => (>= expr1 3 expr2)
+      (< src bits expr1 expr2)                => (< expr1 expr2)
+      (<= src bits expr1 expr2)               => (<= expr1 3 expr2)
+      (> src bits expr1 expr2)                => (> expr1 expr2)
+      (>= src bits expr1 expr2)               => (>= expr1 3 expr2)
       (== src type expr1 expr2)               => (== expr1 3 expr2)
       (!= src type expr1 expr2)               => (!= expr1 3 expr2)
-      (map src len fun map-arg map-arg* ...) =>
+      (map src len fun map-arg map-arg* ...)  =>
         (map #f fun #f map-arg #f map-arg* ...)
       (fold src len fun (expr0 type0) map-arg map-arg* ...) =>
         (fold #f fun #f expr0 #f map-arg #f map-arg* ...)
@@ -839,7 +853,17 @@
     (Expression (expr index)
       (- (disclose src expr))))
 
-  (define-language/pretty Ltypescript (extends Lnodisclose)
+  (define-language/pretty Lloweredlog (extends Lnodisclose)
+    (terminals
+      (- (field (nat kindex)))
+      (+ (field (nat kindex event-version event-tag))))
+    (Expression (expr index)
+      (- (log src type expr len expr^))
+      ; expr is the serialized format of an expr of type struct
+      (+ (log src event-version event-tag type len expr vm-code) =>
+           (log event-version event-tag type len expr))))
+
+  (define-language/pretty Ltypescript (extends Lloweredlog)
     (terminals
       (- (id (name var-name function-name ledger-field-name)))
       (+ (id (name var-name function-name ledger-field-name descriptor-id))
@@ -875,7 +899,7 @@
          (const src (local* ...))                => (const (local* 0 ...))
          (statement-expression expr)             => expr)))
 
-  (define-language/pretty Lposttypescript (extends Lnodisclose)
+  (define-language/pretty Lposttypescript (extends Lloweredlog)
     (terminals
       (- (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
       (+ (symbol (export-name contract-name struct-name enum-name elt-name ledger-op ledger-op-class adt-name adt-formal)))

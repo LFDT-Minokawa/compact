@@ -20,18 +20,19 @@
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
+          (events)
           (config-params)
           (nanopass)
           (langs)
           (pass-helpers))
 
-  (define-pass drop-ledger-runtime : Lnodisclose (ir) -> Lposttypescript ()
+  (define-pass drop-ledger-runtime : Lloweredlog (ir) -> Lposttypescript ()
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        `(program ,src ((,export-name* ,name*) ...)
           ,(fold-right
              (lambda (pelt pelt*)
-               (if (Lnodisclose-Export-Type-Definition? pelt)
+               (if (Lloweredlog-Export-Type-Definition? pelt)
                    pelt*
                    (cons (Program-Element pelt) pelt*)))
              '()
@@ -53,7 +54,7 @@
       [(!= ,src ,[type] ,[expr1] ,[expr2]) (do-not src `(== ,src ,type ,expr1 ,expr2))]
       [(cast-from-bytes ,src ,type ,len ,[expr])
        (let ([expr `(bytes->field ,src ,len ,expr)])
-         (nanopass-case (Lnodisclose Type) type
+         (nanopass-case (Lloweredlog Type) type
            [(tunsigned ,src ,nat) `(downcast-unsigned ,src #f ,nat ,expr)]
            [else expr]))])
     (Type : Type (ir) -> Type ()
@@ -526,21 +527,34 @@
                  (type-error src what
                    (with-output-language (Linlined Type) `(tfield ,src))
                    type))))]))
-       (define (arithmetic-binop src op mbits expr1 expr2)
-         (let* ([type1 (Care expr1)] [type2 (Care expr2)])
-           (or (T type1
-                  [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
-                  [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])])
-               (source-errorf src "incompatible combination of types ~a and ~a for ~s"
-                              (format-type type1)
-                              (format-type type2)
-                              op))
-           (unless (eqv? (T type1 [(tunsigned ,src ,nat) (fxmax 1 (integer-length nat))]) mbits)
-             (source-errorf src "mismatched mbits ~s and type ~a for ~s"
-                            mbits
-                            (format-type type1)
-                            op))
-           type1))
+      (define (arithmetic-binop src op mbits expr1 expr2)
+        (let* ([type1 (Care expr1)] [type2 (Care expr2)])
+          (or (T type1
+                 [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
+                 [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])])
+              (source-errorf src "incompatible combination of types ~a and ~a for ~s"
+                             (format-type type1)
+                             (format-type type2)
+                             op))
+          (unless (eqv? (T type1 [(tunsigned ,src ,nat) (fxmax 1 (integer-length nat))]) mbits)
+            (source-errorf src "mismatched mbits ~s and type ~a for ~s"
+                           mbits
+                           (format-type type1)
+                           op))
+          type1))
+      (define event-ht
+        (let ([cached #f])
+          (lambda ()
+            (or cached
+                (let ([ht (make-hashtable symbol-hash eq?)])
+                  (for-each
+                    (lambda (sd)
+                      (nanopass-case (Lpreexpand Structure-Definition) sd
+                        [(struct ,src ,exported? ,name (,type-param* ...) ,arg* ...)
+                         (hashtable-set! ht name #t)]))
+                    (event-declarations))
+                  (set! cached ht)
+                  cached)))))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -646,6 +660,12 @@
                     (loop (cdr elt-name*) (cdr type*)))))]
          [else (source-errorf src "expected structure type, received ~a"
                               (format-type type))])]
+      [(log ,src ,event-version ,event-tag ,type ,len ,[Care : expr -> * type^] ,vm-code)
+       ; TODO add more check for event version and tag
+       (nanopass-case (Linlined Type) type^
+         [(tbytes ,src^ ,len)
+          (with-output-language (Linlined Type) `(ttuple ,src))]
+         [else (source-errorf src "expected Bytes type, received ~a" (format-type type))])]
       [(tuple-ref ,src ,[Care : expr -> * expr-type] ,kindex)
        (define (bounds-check len)
          (unless (< kindex len)
@@ -1437,6 +1457,10 @@
            [else (assert cannot-happen)]))]
       [(elt-ref ,src ,[expr ctv] ,elt-name)
        (handle-elt-ref src expr ctv elt-name)]
+      [(log ,src ,event-version ,event-tag ,[type] ,len ,[expr ctv] ,vm-code)
+       (values
+         `(log ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
+         (CTV-unknown no-var-name))]
       [(+ ,src ,mbits ,expr1 ,expr2)
        (define (add x y)
          (let ([a (+ x y)])
@@ -1695,6 +1719,10 @@
       [(elt-ref ,src ,[Value : expr idset] ,elt-name)
        (values
          `(elt-ref ,src ,expr ,elt-name)
+         idset)]
+      [(log ,src ,event-version ,event-tag ,type ,len ,[Value : expr idset] ,vm-code)
+       (values
+         `(log ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
          idset)]
       [(+ ,src ,mbits ,[Value : expr1 idset1] ,[Value : expr2 idset2])
        (values
@@ -3806,7 +3834,7 @@
     (flatten-datatypes               Lflattened)
     (optimize-circuit                Lflattened)
     (missing-guard-workarounds       Lflattened)
-    ; rereun optimize-circuit to optimize code added by missing-guard-workarounds
+    ; rerun optimize-circuit to optimize code added by missing-guard-workarounds
     (optimize-circuit2               Lflattened))
 
   (define-checker check-types/Linlined Linlined)

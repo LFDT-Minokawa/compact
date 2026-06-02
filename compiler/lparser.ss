@@ -213,6 +213,7 @@
       (if src expr0 hook expr1 colon expr2) => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr dot elt-name) => (elt-ref expr elt-name)
       (elt-call src expr dot elt-name lparen (expr* ...) (comma* ...) rparen) => (elt-call expr elt-name expr* ...)
+      (log src kwd lparen expr rparen) => (log expr)
       (= src expr1 op expr2) => (= expr1 expr2)
       (+= src expr1 op expr2) => (+= expr1 3 expr2)
       (-= src expr1 op expr2) => (-= expr1 3 expr2)

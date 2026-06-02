@@ -96,6 +96,7 @@ groups than for single tests.
         (passes)
         (sourcemaps)
         (config-params)
+        (events)
         (utils)
         (json)
         (runtime-version)
@@ -1552,8 +1553,9 @@ groups than for single tests.
             (const ([x (tundeclared) (call foo #t 17)]))
             (const ([y (tundeclared) (if a (if b 3 2) (if b 1 0))]))
             (const ([w (tboolean) (if a #t #f)]))
-            (const ([v (tundeclared)
-              (if a #f (fold foo #t (tuple-ref (tuple (tuple)) 0)))]))
+            (const ([v
+                     (tundeclared)
+                     (if a #f (fold foo #t (tuple-ref (tuple (tuple)) 0)))]))
             (if a
                 (if b
                     (assert a "a should be true")
@@ -1603,7 +1605,9 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           x6
           (type-ref HistoricMerkleTree 10 (tfield)))
-        (public-ledger-declaration #f #f x7 (type-ref ShieldedCoinInfo))
+        (public-ledger-declaration #f #f
+          x7
+          (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
@@ -1648,7 +1652,10 @@ groups than for single tests.
           (block
             (return
               (or (or (or (or (< x 100) (<= x 10)) (> x 40)) (>= x 45))
-                  (!= x 10)))))))
+                  (!= x 10)))))
+        (circuit #f #f log_sth () ()
+             (ttuple)
+          (block (log (new (type-ref ShieldedSpend) authority))))))
     )
 
   (test ; just see if it succeeds
@@ -4818,7 +4825,10 @@ groups than for single tests.
           (block
             (return
               (or (or (or (or (< x 100) (<= x 10)) (> x 40)) (>= x 45))
-                  (!= x 10)))))))
+                  (!= x 10)))))
+        (circuit #f #f log_sth () ()
+             (ttuple)
+          (block (log (new (type-ref ShieldedSpend) authority))))))
     )
 
   (test ; just see if it parses
@@ -7512,7 +7522,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"log\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"log\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
     )
 
   (test
@@ -9150,7 +9160,9 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           x6
           (type-ref HistoricMerkleTree 10 (tfield)))
-        (public-ledger-declaration #f #f x7 (type-ref ShieldedCoinInfo))
+        (public-ledger-declaration #f #f
+          x7
+          (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
@@ -9179,7 +9191,8 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
-        (constructor ([state (tfield)])
+        (constructor
+          ((state (tfield)))
           (block () (for i 3 3 (+ state 1))))
         (circuit #f #f foosbar () ()
              (ttuple)
@@ -9195,7 +9208,10 @@ groups than for single tests.
           (block ()
             (return
               (or (or (or (or (< x 100) (<= x 10)) (> x 40)) (>= x 45))
-                  (!= x 10)))))))
+                  (!= x 10)))))
+        (circuit #f #f log_sth () ()
+             (ttuple)
+          (block () (log (new (type-ref ShieldedSpend) authority))))))
     )
 
   (test ; just see if it succeeds
@@ -9715,7 +9731,9 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           x6
           (type-ref HistoricMerkleTree 10 (tfield)))
-        (public-ledger-declaration #f #f x7 (type-ref ShieldedCoinInfo))
+        (public-ledger-declaration #f #f
+          x7
+          (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
@@ -9756,7 +9774,12 @@ groups than for single tests.
         (circuit #f #f check_rel_ops () ([x (tunsigned 16)])
              (tboolean)
           (or (or (or (or (< x 100) (<= x 10)) (> x 40)) (>= x 45))
-              (!= x 10)))))
+              (!= x 10)))
+        (circuit #f #f log_sth () ()
+             (ttuple)
+          (seq
+            (log (new (type-ref ShieldedSpend) authority))
+            (tuple)))))
     )
 
   (test ; just see if it succeeds
@@ -9974,7 +9997,9 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           x6
           (type-ref HistoricMerkleTree 10 (tfield)))
-        (public-ledger-declaration #f #f x7 (type-ref ShieldedCoinInfo))
+        (public-ledger-declaration #f #f
+          x7
+          (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x10
           (type-ref MerkleTreeDigest))
@@ -10018,7 +10043,12 @@ groups than for single tests.
                   #t
                   (>= x 45))
               #t
-              (!= x 10)))))
+              (!= x 10)))
+        (circuit #f #f log_sth () ()
+             (ttuple)
+          (seq
+            (log (new (type-ref ShieldedSpend) authority))
+            (tuple)))))
     )
 
   (test ; just see if it succeeds
@@ -14625,6 +14655,333 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 3" "the difference ~d between end and start bounds exceeds the maximum vector size ~d" (16777217 16777216)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  const x = ShieldedSpend {pad(32, 'a')};"
+      "  log (x);"
+      "  return x;"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ()
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (let* ([[%x.2 (tundeclared)]
+                  (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                    #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                         0 0 0 0 0))])
+            (seq (log %x.2) %x.2)))))
+    )
+
+  (test
+    '(
+      "struct F { bar: Field }"
+      "export circuit foo (): [] {"
+      "  log ( F {1} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ()
+             (ttuple)
+          (seq (log (new (tstruct F (bar (tfield))) 1)) (tuple)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { ShieldedSpend }"
+      )
+    (returns
+      (program ()
+        (export-typedef ShieldedSpend ()
+          (tstruct ShieldedSpend (nullifier (tbytes 32))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { ShieldedReceive }"
+      )
+    (returns
+      (program ()
+        (export-typedef ShieldedReceive ()
+          (tstruct ShieldedReceive
+            (commitment (tbytes 32))
+            (contract_address (tstruct Maybe
+                                (is_some (tboolean))
+                                (value (tbytes 32))))
+            (ciphertext (tstruct Maybe
+                          (is_some (tboolean))
+                          (value (tbytes 512))))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { ShieldedMint }"
+      )
+    (returns
+      (program ()
+        (export-typedef ShieldedMint ()
+          (tstruct ShieldedMint
+            (commitment (tbytes 32))
+            (domain_sep (tbytes 32))
+            (amount (tstruct Maybe
+                      (is_some (tboolean))
+                      (value (tunsigned
+                               340282366920938463463374607431768211455))))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { ShieldedBurn }"
+      )
+    (returns
+      (program ()
+        (export-typedef ShieldedBurn ()
+          (tstruct ShieldedBurn
+            (nullifier (tbytes 32))
+            (amount (tstruct Maybe
+                      (is_some (tboolean))
+                      (value (tunsigned
+                               340282366920938463463374607431768211455))))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { UnshieldedSpend }"
+      )
+    (returns
+      (program ()
+        (export-typedef UnshieldedSpend ()
+          (tstruct UnshieldedSpend
+            (sender (tstruct Either
+                      (is_left (tboolean))
+                      (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                      (right (tstruct ContractAddress (bytes (tbytes 32))))))
+            (token_type (tbytes 32))
+            (amount (tunsigned
+                      340282366920938463463374607431768211455))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { UnshieldedReceive }"
+      )
+    (returns
+      (program ()
+        (export-typedef UnshieldedReceive ()
+          (tstruct UnshieldedReceive
+            (recipient (tstruct Either
+                         (is_left (tboolean))
+                         (left (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))
+                         (right (tstruct ContractAddress
+                                  (bytes (tbytes 32))))))
+            (token_type (tbytes 32))
+            (amount (tunsigned
+                      340282366920938463463374607431768211455))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { UnshieldedMint }"
+      )
+    (returns
+      (program ()
+        (export-typedef UnshieldedMint ()
+          (tstruct UnshieldedMint
+            (domain_sep (tbytes 32))
+            (token_type (tbytes 32))
+            (amount (tunsigned
+                      340282366920938463463374607431768211455))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (d: Bytes<32>, t: Bytes<32>, a: Uint<128>): UnshieldedMint {"
+      "  return log ( UnshieldedMint {d, t, a} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ([%d.2 (tbytes 32)]
+                         [%t.3 (tbytes 32)]
+                         [%a.4 (tunsigned
+                                 340282366920938463463374607431768211455)])
+             (tstruct UnshieldedMint
+               (domain_sep (tbytes 32))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (log (new (tstruct UnshieldedMint
+                      (domain_sep (tbytes 32))
+                      (token_type (tbytes 32))
+                      (amount (tunsigned
+                                340282366920938463463374607431768211455)))
+                 %d.2
+                 %t.3
+                 %a.4)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { UnshieldedBurn }"
+      )
+    (returns
+      (program ()
+        (export-typedef UnshieldedBurn ()
+          (tstruct UnshieldedBurn
+            (sender (tstruct Either
+                      (is_left (tboolean))
+                      (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                      (right (tstruct ContractAddress (bytes (tbytes 32))))))
+            (token_type (tbytes 32))
+            (amount (tunsigned
+                      340282366920938463463374607431768211455))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { Paused }"
+      )
+    (returns
+      (program ()
+        (export-typedef Paused ()
+          (tstruct Paused))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): Paused {"
+      "  return log ( Paused {} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ()
+             (tstruct Paused)
+          (log (new (tstruct Paused))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { Unpaused }"
+      )
+    (returns
+      (program ()
+        (export-typedef Unpaused ()
+          (tstruct Unpaused))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): Unpaused {"
+      "  return log ( Unpaused {} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ()
+             (tstruct Unpaused)
+          (log (new (tstruct Unpaused))))))
+    )
+
+  ;; Misc — two Bytes fields
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { Misc }"
+      )
+    (returns
+      (program ()
+        (export-typedef Misc ()
+          (tstruct Misc
+            (name (tbytes 32))
+            (payload (tbytes 256))))
+        (public-ledger-declaration %kernel.0 (Kernel))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (n: Bytes<32>, p: Bytes<256>): Misc {"
+      "  return log ( Misc {n, p} );"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ((n (tbytes 32)) (p (tbytes 256)))
+             (tstruct Misc (name (tbytes 32)) (payload (tbytes 256)))
+          (log (new (tstruct Misc (name (tbytes 32)) (payload (tbytes 256))) n p)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 32>(x);"
+      "}"
+      )
+    (returns
+      (program ((deserialize_ShieldedSpend %deserialize_ShieldedSpend.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %deserialize.2 ([%value.3 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (default (tstruct ShieldedSpend (nullifier (tbytes 32)))))
+        (circuit %deserialize_ShieldedSpend.0 ([%x.4 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (call (fref ((%deserialize.2))) %x.4))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<32> {"
+      "  return serialize<ShieldedSpend, 32>(x);"
+      "}"
+      )
+    (returns
+      (program ((serialize_ShieldedSpend %serialize_ShieldedSpend.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %serialize.2 ([%value.3 (tstruct ShieldedSpend
+                                           (nullifier (tbytes 32)))])
+             (tbytes 32)
+          (default (tbytes 32)))
+        (circuit %serialize_ShieldedSpend.0 ([%x.4 (tstruct ShieldedSpend
+                                                     (nullifier (tbytes 32)))])
+             (tbytes 32)
+          (call (fref ((%serialize.2))) %x.4))))
     )
 )
 
@@ -24911,6 +25268,1205 @@ groups than for single tests.
               %v.1)
             (tuple)))))
     )
+
+  (test
+    '(
+      "struct F { bar: Field }"
+      "export circuit foo (): F {"
+      "  return log ( F {bar: 1} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a is not a declared event type" (F)))
+    )
+
+  (test
+    '(
+      "struct F { bar: Field }"
+      "export circuit foo (): F {"
+      "  return log ( F {1} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a is not a declared event type" (F)))
+    )
+
+  (test
+    '(
+      "struct F { bar: Field }"
+      "export circuit foo (): F {"
+      "  return log ( F {baz: 1} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "value for element ~s is missing in creation syntax for ~a" (bar "struct F<bar: Field>")))
+    )
+
+  (test
+    '(
+      "struct F { bar: Field }"
+      "export circuit foo (): F {"
+      "  return log ( F {true} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Boolean" "Field" bar "struct F<bar: Field>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {nullifier: 1} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Uint<1>" "Bytes<32>" nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {1} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Uint<1>" "Bytes<32>" nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {x: pad(32, 'a')} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 16" "value for element ~s is missing in creation syntax for ~a" (nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  const x = ShieldedSpend {pad(32, 'a')};"
+      "  log (x);"
+      "  return x;"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 ()
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (let* ([[%x.2 (tstruct ShieldedSpend
+                          (nullifier (tbytes 32)))]
+                  (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                    #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                         0 0 0 0 0))])
+            (seq (log %x.2 (elt-ref %x.2 nullifier 0)) %x.2)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): ShieldedSpend {"
+      "  return log ( ShieldedSpend {pad(32, 'a')} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("[]" "struct ShieldedSpend<nullifier: Bytes<32>>" "circuit foo")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 32>(x);"
+      "}"
+      "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<32> {"
+      "  return serialize<ShieldedSpend, 32>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct ShieldedSpend
+                                           (nullifier (tbytes 32)))])
+             (tbytes 32)
+          (default (tbytes 32)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (default (tstruct ShieldedSpend (nullifier (tbytes 32)))))
+        (circuit %deserialize_ShieldedSpend.5 ([%x.6 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+            (bytes-slice %x.6 0 32)))
+        (circuit %serialize_ShieldedSpend.7 ([%x.8 (tstruct ShieldedSpend
+                                                     (nullifier (tbytes 32)))])
+             (tbytes 32)
+          (elt-ref %x.8 nullifier 0))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedReceive (x: Bytes<578>) : ShieldedReceive {"
+      "  return deserialize<ShieldedReceive, 578>(x);"
+      "}"
+      "export circuit serialize_ShieldedReceive (x: ShieldedReceive) : Bytes<578> {"
+      "  return serialize<ShieldedReceive, 578>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct ShieldedReceive
+                                           (commitment (tbytes 32))
+                                           (contract_address (tstruct Maybe
+                                                               (is_some (tboolean))
+                                                               (value (tbytes
+                                                                        32))))
+                                           (ciphertext (tstruct Maybe
+                                                         (is_some (tboolean))
+                                                         (value (tbytes
+                                                                  512)))))])
+             (tbytes 578)
+          (default (tbytes 578)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 578)])
+             (tstruct ShieldedReceive
+               (commitment (tbytes 32))
+               (contract_address (tstruct Maybe
+                                   (is_some (tboolean))
+                                   (value (tbytes 32))))
+               (ciphertext (tstruct Maybe
+                             (is_some (tboolean))
+                             (value (tbytes 512)))))
+          (default
+            (tstruct ShieldedReceive
+              (commitment (tbytes 32))
+              (contract_address (tstruct Maybe
+                                  (is_some (tboolean))
+                                  (value (tbytes 32))))
+              (ciphertext (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tbytes 512)))))))
+        (circuit %deserialize_ShieldedReceive.5 ([%x.6 (tbytes
+                                                         578)])
+             (tstruct ShieldedReceive
+               (commitment (tbytes 32))
+               (contract_address (tstruct Maybe
+                                   (is_some (tboolean))
+                                   (value (tbytes 32))))
+               (ciphertext (tstruct Maybe
+                             (is_some (tboolean))
+                             (value (tbytes 512)))))
+          (new (tstruct ShieldedReceive
+                 (commitment (tbytes 32))
+                 (contract_address (tstruct Maybe
+                                     (is_some (tboolean))
+                                     (value (tbytes 32))))
+                 (ciphertext (tstruct Maybe
+                               (is_some (tboolean))
+                               (value (tbytes 512)))))
+            (bytes-slice %x.6 0 32)
+            (new (tstruct Maybe
+                   (is_some (tboolean))
+                   (value (tbytes 32)))
+              (== (bytes-slice %x.6 32 1) #vu8(1))
+              (bytes-slice %x.6 33 32))
+            (new (tstruct Maybe
+                   (is_some (tboolean))
+                   (value (tbytes 512)))
+              (== (bytes-slice %x.6 65 1) #vu8(1))
+              (bytes-slice %x.6 66 512))))
+        (circuit %serialize_ShieldedReceive.7 ([%x.8 (tstruct ShieldedReceive
+                                                       (commitment (tbytes 32))
+                                                       (contract_address (tstruct Maybe
+                                                                           (is_some (tboolean))
+                                                                           (value (tbytes
+                                                                                    32))))
+                                                       (ciphertext (tstruct Maybe
+                                                                     (is_some (tboolean))
+                                                                     (value (tbytes
+                                                                              512)))))])
+             (tbytes 578)
+          (vector->bytes
+            578
+            (vector
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 commitment 0)))
+              (spread
+                33
+                (bytes->vector
+                  33
+                  (if (elt-ref (elt-ref %x.8 contract_address 1) is_some 0)
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref %x.8 contract_address 1)
+                                value
+                                1)))))
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            32
+                            (bytes->vector 32 (default (tbytes 32)))))))))
+              (spread
+                513
+                (bytes->vector
+                  513
+                  (if (elt-ref (elt-ref %x.8 ciphertext 2) is_some 0)
+                      (vector->bytes
+                        513
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            512
+                            (bytes->vector
+                              512
+                              (elt-ref (elt-ref %x.8 ciphertext 2) value 1)))))
+                      (vector->bytes
+                        513
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            512
+                            (bytes->vector
+                              512
+                              (default (tbytes 512))))))))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedMint (x: Bytes<81>) : ShieldedMint {"
+      "  return deserialize<ShieldedMint, 81>(x);"
+      "}"
+      "export circuit serialize_ShieldedMint (x: ShieldedMint) : Bytes<81> {"
+      "  return serialize<ShieldedMint, 81>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct ShieldedMint
+                                           (commitment (tbytes 32))
+                                           (domain_sep (tbytes 32))
+                                           (amount (tstruct Maybe
+                                                     (is_some (tboolean))
+                                                     (value (tunsigned
+                                                              340282366920938463463374607431768211455)))))])
+             (tbytes 81)
+          (default (tbytes 81)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 81)])
+             (tstruct ShieldedMint
+               (commitment (tbytes 32))
+               (domain_sep (tbytes 32))
+               (amount (tstruct Maybe
+                         (is_some (tboolean))
+                         (value (tunsigned
+                                  340282366920938463463374607431768211455)))))
+          (default
+            (tstruct ShieldedMint
+              (commitment (tbytes 32))
+              (domain_sep (tbytes 32))
+              (amount (tstruct Maybe
+                        (is_some (tboolean))
+                        (value (tunsigned
+                                 340282366920938463463374607431768211455)))))))
+        (circuit %deserialize_ShieldedMint.5 ([%x.6 (tbytes 81)])
+             (tstruct ShieldedMint
+               (commitment (tbytes 32))
+               (domain_sep (tbytes 32))
+               (amount (tstruct Maybe
+                         (is_some (tboolean))
+                         (value (tunsigned
+                                  340282366920938463463374607431768211455)))))
+          (new (tstruct ShieldedMint
+                 (commitment (tbytes 32))
+                 (domain_sep (tbytes 32))
+                 (amount (tstruct Maybe
+                           (is_some (tboolean))
+                           (value (tunsigned
+                                    340282366920938463463374607431768211455)))))
+            (bytes-slice %x.6 0 32)
+            (bytes-slice %x.6 32 32)
+            (new (tstruct Maybe
+                   (is_some (tboolean))
+                   (value (tunsigned 340282366920938463463374607431768211455)))
+              (== (bytes-slice %x.6 64 1) #vu8(1))
+              (cast-from-bytes (tunsigned
+                                 340282366920938463463374607431768211455) 16
+                (bytes-slice %x.6 65 16)))))
+        (circuit %serialize_ShieldedMint.7 ([%x.8 (tstruct ShieldedMint
+                                                    (commitment (tbytes 32))
+                                                    (domain_sep (tbytes 32))
+                                                    (amount (tstruct Maybe
+                                                              (is_some (tboolean))
+                                                              (value (tunsigned
+                                                                       340282366920938463463374607431768211455)))))])
+             (tbytes 81)
+          (vector->bytes
+            81
+            (vector
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 commitment 0)))
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 domain_sep 1)))
+              (spread
+                17
+                (bytes->vector
+                  17
+                  (if (elt-ref (elt-ref %x.8 amount 2) is_some 0)
+                      (vector->bytes
+                        17
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            16
+                            (bytes->vector
+                              16
+                              (field->bytes
+                                16
+                                (safe-cast (tfield)
+                                           (tunsigned
+                                             340282366920938463463374607431768211455)
+                                  (elt-ref
+                                    (elt-ref %x.8 amount 2)
+                                    value
+                                    1)))))))
+                      (vector->bytes
+                        17
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            16
+                            (bytes->vector 16 (default (tbytes 16))))))))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedBurn (x: Bytes<49>) : ShieldedBurn {"
+      "  return deserialize<ShieldedBurn, 49>(x);"
+      "}"
+      "export circuit serialize_ShieldedBurn (x: ShieldedBurn) : Bytes<49> {"
+      "  return serialize<ShieldedBurn, 49>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct ShieldedBurn
+                                           (nullifier (tbytes 32))
+                                           (amount (tstruct Maybe
+                                                     (is_some (tboolean))
+                                                     (value (tunsigned
+                                                              340282366920938463463374607431768211455)))))])
+             (tbytes 49)
+          (default (tbytes 49)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 49)])
+             (tstruct ShieldedBurn
+               (nullifier (tbytes 32))
+               (amount (tstruct Maybe
+                         (is_some (tboolean))
+                         (value (tunsigned
+                                  340282366920938463463374607431768211455)))))
+          (default
+            (tstruct ShieldedBurn
+              (nullifier (tbytes 32))
+              (amount (tstruct Maybe
+                        (is_some (tboolean))
+                        (value (tunsigned
+                                 340282366920938463463374607431768211455)))))))
+        (circuit %deserialize_ShieldedBurn.5 ([%x.6 (tbytes 49)])
+             (tstruct ShieldedBurn
+               (nullifier (tbytes 32))
+               (amount (tstruct Maybe
+                         (is_some (tboolean))
+                         (value (tunsigned
+                                  340282366920938463463374607431768211455)))))
+          (new (tstruct ShieldedBurn
+                 (nullifier (tbytes 32))
+                 (amount (tstruct Maybe
+                           (is_some (tboolean))
+                           (value (tunsigned
+                                    340282366920938463463374607431768211455)))))
+            (bytes-slice %x.6 0 32)
+            (new (tstruct Maybe
+                   (is_some (tboolean))
+                   (value (tunsigned 340282366920938463463374607431768211455)))
+              (== (bytes-slice %x.6 32 1) #vu8(1))
+              (cast-from-bytes (tunsigned
+                                 340282366920938463463374607431768211455) 16
+                (bytes-slice %x.6 33 16)))))
+        (circuit %serialize_ShieldedBurn.7 ([%x.8 (tstruct ShieldedBurn
+                                                    (nullifier (tbytes 32))
+                                                    (amount (tstruct Maybe
+                                                              (is_some (tboolean))
+                                                              (value (tunsigned
+                                                                       340282366920938463463374607431768211455)))))])
+             (tbytes 49)
+          (vector->bytes
+            49
+            (vector
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 nullifier 0)))
+              (spread
+                17
+                (bytes->vector
+                  17
+                  (if (elt-ref (elt-ref %x.8 amount 1) is_some 0)
+                      (vector->bytes
+                        17
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            16
+                            (bytes->vector
+                              16
+                              (field->bytes
+                                16
+                                (safe-cast (tfield)
+                                           (tunsigned
+                                             340282366920938463463374607431768211455)
+                                  (elt-ref
+                                    (elt-ref %x.8 amount 1)
+                                    value
+                                    1)))))))
+                      (vector->bytes
+                        17
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            16
+                            (bytes->vector 16 (default (tbytes 16))))))))))))))
+    )
+
+  (test
+   '(
+     "import CompactStandardLibrary;"
+     "export circuit deserialize_UnshieldedSpend (x: Bytes<81>) : UnshieldedSpend {"
+     "  return deserialize<UnshieldedSpend, 81>(x);"
+     "}"
+     "export circuit serialize_UnshieldedSpend (x: UnshieldedSpend) : Bytes<81> {"
+     "  return serialize<UnshieldedSpend, 81>(x);"
+     "}"
+     )
+   (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct UnshieldedSpend
+                                           (sender (tstruct Either
+                                                     (is_left (tboolean))
+                                                     (left (tstruct ZswapCoinPublicKey
+                                                             (bytes (tbytes
+                                                                      32))))
+                                                     (right (tstruct ContractAddress
+                                                              (bytes (tbytes
+                                                                       32))))))
+                                           (token_type (tbytes 32))
+                                           (amount (tunsigned
+                                                     340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (default (tbytes 81)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 81)])
+             (tstruct UnshieldedSpend
+               (sender (tstruct Either
+                         (is_left (tboolean))
+                         (left (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))
+                         (right (tstruct ContractAddress
+                                  (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (default
+            (tstruct UnshieldedSpend
+              (sender (tstruct Either
+                        (is_left (tboolean))
+                        (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                        (right (tstruct ContractAddress (bytes (tbytes 32))))))
+              (token_type (tbytes 32))
+              (amount (tunsigned
+                        340282366920938463463374607431768211455)))))
+        (circuit %deserialize_UnshieldedSpend.5 ([%x.6 (tbytes 81)])
+             (tstruct UnshieldedSpend
+               (sender (tstruct Either
+                         (is_left (tboolean))
+                         (left (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))
+                         (right (tstruct ContractAddress
+                                  (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (new (tstruct UnshieldedSpend
+                 (sender (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ZswapCoinPublicKey
+                                   (bytes (tbytes 32))))
+                           (right (tstruct ContractAddress
+                                    (bytes (tbytes 32))))))
+                 (token_type (tbytes 32))
+                 (amount (tunsigned
+                           340282366920938463463374607431768211455)))
+            (if (== (bytes-slice %x.6 0 1) #vu8(0))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #t
+                  (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))
+                  (default (tstruct ContractAddress (bytes (tbytes 32)))))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #f
+                  (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                  (new (tstruct ContractAddress (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))))
+            (bytes-slice %x.6 33 32)
+            (cast-from-bytes (tunsigned
+                               340282366920938463463374607431768211455) 16
+              (bytes-slice %x.6 65 16))))
+        (circuit %serialize_UnshieldedSpend.7 ([%x.8 (tstruct UnshieldedSpend
+                                                       (sender (tstruct Either
+                                                                 (is_left (tboolean))
+                                                                 (left (tstruct ZswapCoinPublicKey
+                                                                         (bytes (tbytes
+                                                                                  32))))
+                                                                 (right (tstruct ContractAddress
+                                                                          (bytes (tbytes
+                                                                                   32))))))
+                                                       (token_type (tbytes 32))
+                                                       (amount (tunsigned
+                                                                 340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (vector->bytes
+            81
+            (vector
+              (spread
+                33
+                (bytes->vector
+                  33
+                  (if (elt-ref (elt-ref %x.8 sender 0) is_left 0)
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 sender 0) left 1)
+                                bytes
+                                0)))))
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 sender 0) right 2)
+                                bytes
+                                0))))))))
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 token_type 1)))
+              (spread
+                16
+                (bytes->vector
+                  16
+                  (field->bytes
+                    16
+                    (safe-cast (tfield)
+                               (tunsigned
+                                 340282366920938463463374607431768211455)
+                      (elt-ref %x.8 amount 2))))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_UnshieldedReceive (x: Bytes<81>) : UnshieldedReceive {"
+      "  return deserialize<UnshieldedReceive, 81>(x);"
+      "}"
+      "export circuit serialize_UnshieldedReceive (x: UnshieldedReceive) : Bytes<81> {"
+      "  return serialize<UnshieldedReceive, 81>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct UnshieldedReceive
+                                           (recipient (tstruct Either
+                                                        (is_left (tboolean))
+                                                        (left (tstruct ZswapCoinPublicKey
+                                                                (bytes (tbytes
+                                                                         32))))
+                                                        (right (tstruct ContractAddress
+                                                                 (bytes (tbytes
+                                                                          32))))))
+                                           (token_type (tbytes 32))
+                                           (amount (tunsigned
+                                                     340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (default (tbytes 81)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 81)])
+             (tstruct UnshieldedReceive
+               (recipient (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ZswapCoinPublicKey
+                                    (bytes (tbytes 32))))
+                            (right (tstruct ContractAddress
+                                     (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (default
+            (tstruct UnshieldedReceive
+              (recipient (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ZswapCoinPublicKey
+                                   (bytes (tbytes 32))))
+                           (right (tstruct ContractAddress
+                                    (bytes (tbytes 32))))))
+              (token_type (tbytes 32))
+              (amount (tunsigned
+                        340282366920938463463374607431768211455)))))
+        (circuit %deserialize_UnshieldedReceive.5 ([%x.6 (tbytes
+                                                           81)])
+             (tstruct UnshieldedReceive
+               (recipient (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ZswapCoinPublicKey
+                                    (bytes (tbytes 32))))
+                            (right (tstruct ContractAddress
+                                     (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (new (tstruct UnshieldedReceive
+                 (recipient (tstruct Either
+                              (is_left (tboolean))
+                              (left (tstruct ZswapCoinPublicKey
+                                      (bytes (tbytes 32))))
+                              (right (tstruct ContractAddress
+                                       (bytes (tbytes 32))))))
+                 (token_type (tbytes 32))
+                 (amount (tunsigned
+                           340282366920938463463374607431768211455)))
+            (if (== (bytes-slice %x.6 0 1) #vu8(0))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #t
+                  (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))
+                  (default (tstruct ContractAddress (bytes (tbytes 32)))))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #f
+                  (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                  (new (tstruct ContractAddress (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))))
+            (bytes-slice %x.6 33 32)
+            (cast-from-bytes (tunsigned
+                               340282366920938463463374607431768211455) 16
+              (bytes-slice %x.6 65 16))))
+        (circuit %serialize_UnshieldedReceive.7 ([%x.8 (tstruct UnshieldedReceive
+                                                         (recipient (tstruct Either
+                                                                      (is_left (tboolean))
+                                                                      (left (tstruct ZswapCoinPublicKey
+                                                                              (bytes (tbytes
+                                                                                       32))))
+                                                                      (right (tstruct ContractAddress
+                                                                               (bytes (tbytes
+                                                                                        32))))))
+                                                         (token_type (tbytes
+                                                                       32))
+                                                         (amount (tunsigned
+                                                                   340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (vector->bytes
+            81
+            (vector
+              (spread
+                33
+                (bytes->vector
+                  33
+                  (if (elt-ref (elt-ref %x.8 recipient 0) is_left 0)
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 recipient 0) left 1)
+                                bytes
+                                0)))))
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 recipient 0) right 2)
+                                bytes
+                                0))))))))
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 token_type 1)))
+              (spread
+                16
+                (bytes->vector
+                  16
+                  (field->bytes
+                    16
+                    (safe-cast (tfield)
+                               (tunsigned
+                                 340282366920938463463374607431768211455)
+                      (elt-ref %x.8 amount 2))))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_UnshieldedMint (x: Bytes<80>) : UnshieldedMint {"
+      "  return deserialize<UnshieldedMint, 80>(x);"
+      "}"
+      "export circuit serialize_UnshieldedMint (x: UnshieldedMint) : Bytes<80> {"
+      "  return serialize<UnshieldedMint, 80>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct UnshieldedMint
+                                           (domain_sep (tbytes 32))
+                                           (token_type (tbytes 32))
+                                           (amount (tunsigned
+                                                     340282366920938463463374607431768211455)))])
+             (tbytes 80)
+          (default (tbytes 80)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 80)])
+             (tstruct UnshieldedMint
+               (domain_sep (tbytes 32))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (default
+            (tstruct UnshieldedMint
+              (domain_sep (tbytes 32))
+              (token_type (tbytes 32))
+              (amount (tunsigned
+                        340282366920938463463374607431768211455)))))
+        (circuit %deserialize_UnshieldedMint.5 ([%x.6 (tbytes 80)])
+             (tstruct UnshieldedMint
+               (domain_sep (tbytes 32))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (new (tstruct UnshieldedMint
+                 (domain_sep (tbytes 32))
+                 (token_type (tbytes 32))
+                 (amount (tunsigned
+                           340282366920938463463374607431768211455)))
+            (bytes-slice %x.6 0 32)
+            (bytes-slice %x.6 32 32)
+            (cast-from-bytes (tunsigned
+                               340282366920938463463374607431768211455) 16
+              (bytes-slice %x.6 64 16))))
+        (circuit %serialize_UnshieldedMint.7 ([%x.8 (tstruct UnshieldedMint
+                                                      (domain_sep (tbytes 32))
+                                                      (token_type (tbytes 32))
+                                                      (amount (tunsigned
+                                                                340282366920938463463374607431768211455)))])
+             (tbytes 80)
+          (vector->bytes
+            80
+            (vector
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 domain_sep 0)))
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 token_type 1)))
+              (spread
+                16
+                (bytes->vector
+                  16
+                  (field->bytes
+                    16
+                    (safe-cast (tfield)
+                               (tunsigned
+                                 340282366920938463463374607431768211455)
+                      (elt-ref %x.8 amount 2))))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_UnshieldedBurn (x: Bytes<81>) : UnshieldedBurn {"
+      "  return deserialize<UnshieldedBurn, 81>(x);"
+      "}"
+      "export circuit serialize_UnshieldedBurn (x: UnshieldedBurn) : Bytes<81> {"
+      "  return serialize<UnshieldedBurn, 81>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct UnshieldedBurn
+                                           (sender (tstruct Either
+                                                     (is_left (tboolean))
+                                                     (left (tstruct ZswapCoinPublicKey
+                                                             (bytes (tbytes
+                                                                      32))))
+                                                     (right (tstruct ContractAddress
+                                                              (bytes (tbytes
+                                                                       32))))))
+                                           (token_type (tbytes 32))
+                                           (amount (tunsigned
+                                                     340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (default (tbytes 81)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 81)])
+             (tstruct UnshieldedBurn
+               (sender (tstruct Either
+                         (is_left (tboolean))
+                         (left (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))
+                         (right (tstruct ContractAddress
+                                  (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (default
+            (tstruct UnshieldedBurn
+              (sender (tstruct Either
+                        (is_left (tboolean))
+                        (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                        (right (tstruct ContractAddress (bytes (tbytes 32))))))
+              (token_type (tbytes 32))
+              (amount (tunsigned
+                        340282366920938463463374607431768211455)))))
+        (circuit %deserialize_UnshieldedBurn.5 ([%x.6 (tbytes 81)])
+             (tstruct UnshieldedBurn
+               (sender (tstruct Either
+                         (is_left (tboolean))
+                         (left (tstruct ZswapCoinPublicKey
+                                 (bytes (tbytes 32))))
+                         (right (tstruct ContractAddress
+                                  (bytes (tbytes 32))))))
+               (token_type (tbytes 32))
+               (amount (tunsigned
+                         340282366920938463463374607431768211455)))
+          (new (tstruct UnshieldedBurn
+                 (sender (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ZswapCoinPublicKey
+                                   (bytes (tbytes 32))))
+                           (right (tstruct ContractAddress
+                                    (bytes (tbytes 32))))))
+                 (token_type (tbytes 32))
+                 (amount (tunsigned
+                           340282366920938463463374607431768211455)))
+            (if (== (bytes-slice %x.6 0 1) #vu8(0))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #t
+                  (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))
+                  (default (tstruct ContractAddress (bytes (tbytes 32)))))
+                (new (tstruct Either
+                       (is_left (tboolean))
+                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                       (right (tstruct ContractAddress (bytes (tbytes 32)))))
+                  #f
+                  (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                  (new (tstruct ContractAddress (bytes (tbytes 32)))
+                    (bytes-slice %x.6 1 32))))
+            (bytes-slice %x.6 33 32)
+            (cast-from-bytes (tunsigned
+                               340282366920938463463374607431768211455) 16
+              (bytes-slice %x.6 65 16))))
+        (circuit %serialize_UnshieldedBurn.7 ([%x.8 (tstruct UnshieldedBurn
+                                                      (sender (tstruct Either
+                                                                (is_left (tboolean))
+                                                                (left (tstruct ZswapCoinPublicKey
+                                                                        (bytes (tbytes
+                                                                                 32))))
+                                                                (right (tstruct ContractAddress
+                                                                         (bytes (tbytes
+                                                                                  32))))))
+                                                      (token_type (tbytes 32))
+                                                      (amount (tunsigned
+                                                                340282366920938463463374607431768211455)))])
+             (tbytes 81)
+          (vector->bytes
+            81
+            (vector
+              (spread
+                33
+                (bytes->vector
+                  33
+                  (if (elt-ref (elt-ref %x.8 sender 0) is_left 0)
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(0)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 sender 0) left 1)
+                                bytes
+                                0)))))
+                      (vector->bytes
+                        33
+                        (vector
+                          (spread 1 (bytes->vector 1 #vu8(1)))
+                          (spread
+                            32
+                            (bytes->vector
+                              32
+                              (elt-ref
+                                (elt-ref (elt-ref %x.8 sender 0) right 2)
+                                bytes
+                                0))))))))
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 token_type 1)))
+              (spread
+                16
+                (bytes->vector
+                  16
+                  (field->bytes
+                    16
+                    (safe-cast (tfield)
+                               (tunsigned
+                                 340282366920938463463374607431768211455)
+                      (elt-ref %x.8 amount 2))))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_Paused (x: Bytes<0>) : Paused {"
+      "  return deserialize<Paused, 0>(x);"
+      "}"
+      "export circuit serialize_Paused (x: Paused) : Bytes<0> {"
+      "  return serialize<Paused, 0>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct Paused)])
+             (tbytes 0)
+          (default (tbytes 0)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 0)])
+             (tstruct Paused)
+          (default (tstruct Paused)))
+        (circuit %deserialize_Paused.5 ([%x.6 (tbytes 0)])
+             (tstruct Paused)
+          (new (tstruct Paused)))
+        (circuit %serialize_Paused.7 ([%x.8 (tstruct Paused)])
+             (tbytes 0)
+          #vu8())))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_Unpaused (x: Bytes<0>) : Unpaused {"
+      "  return deserialize<Unpaused, 0>(x);"
+      "}"
+      "export circuit serialize_Unpaused (x: Unpaused) : Bytes<0> {"
+      "  return serialize<Unpaused, 0>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct Unpaused)])
+             (tbytes 0)
+          (default (tbytes 0)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 0)])
+             (tstruct Unpaused)
+          (default (tstruct Unpaused)))
+        (circuit %deserialize_Unpaused.5 ([%x.6 (tbytes 0)])
+             (tstruct Unpaused)
+          (new (tstruct Unpaused)))
+        (circuit %serialize_Unpaused.7 ([%x.8 (tstruct Unpaused)])
+             (tbytes 0)
+          #vu8())))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_Misc (x: Bytes<288>) : Misc {"
+      "  return deserialize<Misc, 288>(x);"
+      "}"
+      "export circuit serialize_Misc (x: Misc) : Bytes<288> {"
+      "  return serialize<Misc, 288>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %serialize.1 ([%value.2 (tstruct Misc
+                                           (name (tbytes 32))
+                                           (payload (tbytes 256)))])
+             (tbytes 288)
+          (default (tbytes 288)))
+        (circuit %deserialize.3 ([%value.4 (tbytes 288)])
+             (tstruct Misc (name (tbytes 32)) (payload (tbytes 256)))
+          (default
+            (tstruct Misc (name (tbytes 32)) (payload (tbytes 256)))))
+        (circuit %deserialize_Misc.5 ([%x.6 (tbytes 288)])
+             (tstruct Misc (name (tbytes 32)) (payload (tbytes 256)))
+          (new (tstruct Misc
+                 (name (tbytes 32))
+                 (payload (tbytes 256)))
+            (bytes-slice %x.6 0 32)
+            (bytes-slice %x.6 32 256)))
+        (circuit %serialize_Misc.7 ([%x.8 (tstruct Misc
+                                            (name (tbytes 32))
+                                            (payload (tbytes 256)))])
+             (tbytes 288)
+          (vector->bytes
+            288
+            (vector
+              (spread 32 (bytes->vector 32 (elt-ref %x.8 name 0)))
+              (spread
+                256
+                (bytes->vector 256 (elt-ref %x.8 payload 1))))))))
+    )
+
+  ;; size mismatch on serialize: canonical size of ShieldedSpend is 32
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_size_serialize (s: ShieldedSpend): Bytes<99> {"
+      "  return serialize<ShieldedSpend, 99>(s);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "declared size ~a in serialize<~a, ~a> does not match canonical serialized size ~a for ~a" (99 "struct ShieldedSpend<nullifier: Bytes<32>>" 99 32 ShieldedSpend)))
+    )
+
+  ;; size mismatch on deserialize: canonical size of ShieldedSpend is 32
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_size_deserialize (x: Bytes<99>): ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 99>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "declared size ~a in deserialize<~a, ~a> does not match canonical serialized size ~a for ~a" (99 "struct ShieldedSpend<nullifier: Bytes<32>>" 99 32 ShieldedSpend)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_uint_serialize (n: Uint<128>): Bytes<16> {"
+      "  return serialize<Uint<128>, 16>(n);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "expected event struct type, received ~a" ("Uint<128>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_bytes_serialize (x: Bytes<32>): Bytes<32> {"
+      "  return serialize<Bytes<32>, 32>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "expected event struct type, received ~a" ("Bytes<32>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_uint_deserialize (x: Bytes<16>): Uint<128> {"
+      "  return deserialize<Uint<128>, 16>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "expected event struct type, received ~a" ("Uint<128>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_non_event_serialize (m: Maybe<Bytes<32>>): Bytes<33> {"
+      "  return serialize<Maybe<Bytes<32>>, 33>(m);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a is not a declared event type" (Maybe)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_non_event_deserialize (x: Bytes<33>): Maybe<Bytes<32>> {"
+      "  return deserialize<Maybe<Bytes<32>>, 33>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a is not a declared event type" (Maybe)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit bad_non_event_deserialize (x: Bytes<33>): Maybe<Bytes<32>> {"
+      "  return deserialize<Maybe<Bytes<32>>>(x);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (deserialize "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <type struct Maybe<is_some: Boolean, value: Bytes<32>>>\n      declared generics for function at <standard library>:\n        <type, size>" #f #f)))
+    )
+
 )
 
 ; tests limits for vectors, bytes, and tuples.
@@ -29907,6 +31463,57 @@ groups than for single tests.
     )
 )
 
+(run-tests reject-constructor-log
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  log (ShieldedSpend { pad(32, 'a') });"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot log an event but ~a at ~a" ("logs event ShieldedSpend" "line 3 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "  return;"
+      "}"
+      "export circuit foo (): ShieldedSpend {"
+      "  const x = ShieldedSpend {pad(32, 'a')};"
+      "  log (x);"
+      "  return x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot log an event but calls (directly or indirectly) ~a, which ~a at ~a" (foo "logs event ShieldedSpend" "line 8 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  bar ();"
+      "  return;"
+      "}"
+      "export circuit bar (): ShieldedSpend { foo (); }"
+      "circuit foo (): ShieldedSpend {"
+      "  const x = ShieldedSpend {pad(32, 'a')};"
+      "  log (x);"
+      "  return x;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "struct ShieldedSpend<nullifier: Bytes<32>>")))
+    )
+  )
+
 (run-tests identify-pure-circuits
   (test
     '(
@@ -29931,6 +31538,59 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 15 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (bar foo "accesses ledger field F" "line 6 char 12")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger bar: Bytes<32>;"
+      "export pure circuit foo (): [] {"
+      "  log ( disclose (ShieldedSpend {bar} ));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "accesses ledger field bar" "line 4 char 34")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit foo (x: Bytes<32>): [] {"
+      "  log ( disclose (ShieldedSpend {x} ));"
+      "}"
+      ); TODO fix <standard library>
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "emits a log event of type ShieldedSpend" "<standard library>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit bar (x: Bytes<32>): [] {"
+      "  foo(x);"
+      "}"
+      "export circuit foo (x: Bytes<32>): [] {"
+      "  log ( disclose (ShieldedSpend {x} ));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (bar foo "emits a log event of type ShieldedSpend" "<standard library>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export pure circuit foo (): [] {"
+      "  log ( disclose (ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "calls witness bar" "line 4 char 34")))
     )
 )
 
@@ -32307,6 +33967,384 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of s at line 6 char 9\n      the right-hand side of = at line 7 char 5"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): [] {"
+      "  return disclose (log ( ShieldedSpend {pad(32, 'a')} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ()
+             (ttuple)
+          (disclose
+            (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                        0 0 0 0 0))
+                 (elt-ref
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                     #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                          0 0 0 0 0 0))
+                   nullifier
+                   0))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): [] {"
+      "  return log ( ShieldedSpend {pad(32, 'a')} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ()
+             (ttuple)
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                      0 0 0 0 0))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                        0 0 0 0 0))
+                 nullifier
+                 0)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (): [] {"
+      "  log ( ShieldedSpend {pad(32, 'a')} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ()
+             (ttuple)
+          (seq
+            (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                        0 0 0 0 0))
+                 (elt-ref
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                     #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                          0 0 0 0 0 0))
+                   nullifier
+                   0))
+            (tuple)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): [] {"
+      "  return log ( ShieldedSpend {disclose (x)} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%x.2 (tbytes 32)])
+             (ttuple)
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 (disclose %x.2))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (disclose %x.2))
+                 nullifier
+                 0)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): [] {"
+      "  return log ( ShieldedSpend {nullifier: disclose (x)} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%x.2 (tbytes 32)])
+             (ttuple)
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 (disclose %x.2))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (disclose %x.2))
+                 nullifier
+                 0)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): [] {"
+      "  return log ( disclose (ShieldedSpend {x} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%x.2 (tbytes 32)])
+             (ttuple)
+          (log (disclose
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32))) %x.2))
+               (elt-ref
+                 (disclose
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32))) %x.2))
+                 nullifier
+                 0)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): [] {"
+      "  return disclose (log ( ShieldedSpend {x} ));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 3 char 20"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): [] {"
+      "  return log ( ShieldedSpend {x} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 3 char 10"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo (x: Bytes<32>): [] {"
+      "  return log ( ShieldedSpend {x} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 3 char 10"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (): [] {"
+      "  return log ( ShieldedSpend {disclose(bar())} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %bar.1 () (tbytes 32))
+        (circuit %foo.2 ()
+             (ttuple)
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 (disclose (call %bar.1)))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (disclose (call %bar.1)))
+                 nullifier
+                 0)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (): [] {"
+      "  return log ( disclose (ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %bar.1 () (tbytes 32))
+        (circuit %foo.2 ()
+             (ttuple)
+          (log (disclose
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (call %bar.1)))
+               (elt-ref
+                 (disclose
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                     (call %bar.1)))
+                 nullifier
+                 0)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (): [] {"
+      "  return disclose( log ( ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 4 char 20"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): [] {"
+      "  return log ( disclose(ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%b.2 (tboolean)])
+             (ttuple)
+          (log (disclose
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (if %b.2
+                       #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                            0 0 0 0 0 0 0)
+                       #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                            0 0 0 0 0 0 0))))
+               (elt-ref
+                 (disclose
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                     (if %b.2
+                         #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                              0 0 0 0 0 0 0 0)
+                         #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                              0 0 0 0 0 0 0 0))))
+                 nullifier
+                 0)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): [] {"
+      "  return log ( ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 3 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 4 char 32\n      the argument to log at line 4 char 10"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): [] {"
+      "  return log ( disclose(ShieldedSpend { b ? bar() : pad(32, 'b')} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %bar.1 () (tbytes 32))
+        (circuit %foo.2 ([%b.3 (tboolean)])
+             (ttuple)
+          (log (disclose
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (if %b.3
+                       (call %bar.1)
+                       #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                            0 0 0 0 0 0 0))))
+               (elt-ref
+                 (disclose
+                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                     (if %b.3
+                         (call %bar.1)
+                         #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                              0 0 0 0 0 0 0 0))))
+                 nullifier
+                 0)))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): [] {"
+      "  return log ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 4 char 10"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): [] {"
+      "  return log ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 4 char 10"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export circuit foo (b: Boolean): [] {"
+      "  return log ( ShieldedSpend { disclose(b) ? disclose(bar()) : pad(32, 'b')} );"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %bar.1 () (tbytes 32))
+        (circuit %foo.2 ([%b.3 (tboolean)])
+             (ttuple)
+          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                 (if (disclose %b.3)
+                     (disclose (call %bar.1))
+                     #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                          0 0 0 0 0 0)))
+               (elt-ref
+                 (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+                   (if (disclose %b.3)
+                       (disclose (call %bar.1))
+                       #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+                            0 0 0 0 0 0 0)))
+                 nullifier
+                 0)))))
     )
 )
 
@@ -37607,6 +39645,56 @@ groups than for single tests.
                 %t.5
                 %t.6))
            ())))
+     ))
+
+  ; example of how events will appear in contract-info.json
+  (test-group
+    ((create-file "testfile.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "witness bar(): Bytes<32>;"
+         "export circuit foo (): [] {"
+         "  return log ( disclose (ShieldedSpend {bar()} ));"
+         "}"
+         ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/testfile/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "    {"
+         "      \"name\": \"foo\","
+         "      \"pure\": false,"
+         "      \"proof\": false,"
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result-type\": {"
+         "        \"type-name\": \"Tuple\","
+         "        \"types\": ["
+         "        ]"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"witnesses\": ["
+         "    {"
+         "      \"name\": \"bar\","
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result type\": {"
+         "        \"type-name\": \"Bytes\","
+         "        \"length\": 32"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "  ]"
+         "}"))
      ))
 )
 
@@ -67493,17 +69581,18 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
            (%descriptor.5 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-           (%descriptor.6 (tunsigned 255)))
-         (kernel-declaration (%kernel.7 () (Kernel)))
+           (%descriptor.6 (tunsigned 255))
+           (%descriptor.7 (tunsigned 4294967295)))
+         (kernel-declaration (%kernel.8 () (Kernel)))
          (public-ledger-declaration
-           ((%calc.8
+           ((%calc.9
               (0)
               (__compact_Cell
                 (tcontract Calculator
                   (get_square #f ((tfield)) (tfield))))))
-           (constructor ([%c.9 (tcontract Calculator
-                                 (get_square #f ((tfield)) (tfield)))])
-             (seq (public-ledger %calc.8 (0) write %c.9) (tuple))))))
+           (constructor ([%c.10 (tcontract Calculator
+                                  (get_square #f ((tfield)) (tfield)))])
+             (seq (public-ledger %calc.9 (0) write %c.10) (tuple))))))
       ))
 
   (test
@@ -67519,26 +69608,28 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.45 (tfield))
-          (%descriptor.46 (tboolean))
-          (%descriptor.47 (tunsigned 255))
-          (%descriptor.48 (tunsigned 18446744073709551615))
-          (%descriptor.49
-            (tunsigned 340282366920938463463374607431768211455)))
+          (%descriptor.0 (tfield))
+          (%descriptor.1 (tboolean))
+          (%descriptor.2 (tunsigned 255))
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned 18446744073709551615))
+          (%descriptor.5 (tunsigned
+                           340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.10 ([%n.11 (tfield)])
+        (circuit %foo.6 ([%n.7 (tfield)])
              (tboolean)
           (seq
-            (const [%x.12 (tboolean)]
-              (not (== %n.11 (safe-cast (tfield) (tunsigned 1) 1))))
+            (const [%x.8 (tboolean)]
+              (not (== %n.7 (safe-cast (tfield) (tunsigned 1) 1))))
             (seq
-              (const [%x.13 (tboolean)] (not %x.12))
-              (and %x.13 (== %n.11 (safe-cast (tfield) (tunsigned 0) 0))))))
-        (circuit %bar.14 ([%n.15 (tfield)])
+              (const [%x.9 (tboolean)] (not %x.8))
+              (and %x.9 (== %n.7 (safe-cast (tfield) (tunsigned 0) 0))))))
+        (circuit %bar.10 ([%n.11 (tfield)])
              (tfield)
-          (if (call %foo.10 (+ #f %n.15 (safe-cast (tfield) (tunsigned 1) 1)))
-              (- #f %n.15 (safe-cast (tfield) (tunsigned 1) 1))
-              (+ #f %n.15 (safe-cast (tfield) (tunsigned 1) 1))))))
+          (if (call %foo.6
+                (+ #f %n.11 (safe-cast (tfield) (tunsigned 1) 1)))
+              (- #f %n.11 (safe-cast (tfield) (tunsigned 1) 1))
+              (+ #f %n.11 (safe-cast (tfield) (tunsigned 1) 1))))))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
@@ -67601,26 +69692,28 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.7 (tfield))
-          (%descriptor.8 (tboolean))
-          (%descriptor.9 (tunsigned 255))
-          (%descriptor.10 (tunsigned 18446744073709551615))
-          (%descriptor.6 (tunsigned
+          (%descriptor.0 (tfield))
+          (%descriptor.1 (tboolean))
+          (%descriptor.2 (tunsigned 255))
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned 18446744073709551615))
+          (%descriptor.5 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.11 ([%n.12 (tfield)])
+        (circuit %foo.6 ([%n.7 (tfield)])
              (tboolean)
           (seq
-            (const [%x.12 (tboolean)]
-              (!= %n.12 (safe-cast (tfield) (tunsigned 1) 1)))
+            (const [%x.8 (tboolean)]
+              (!= %n.7 (safe-cast (tfield) (tunsigned 1) 1)))
             (seq
-              (const [%x.13 (tboolean)] (not %x.12))
-              (and %x.13 (== %n.12 (safe-cast (tfield) (tunsigned 0) 0))))))
-        (circuit %bar.14 ([%n.15 (tfield)])
+              (const [%x.9 (tboolean)] (not %x.8))
+              (and %x.9 (== %n.7 (safe-cast (tfield) (tunsigned 0) 0))))))
+        (circuit %bar.10 ([%n.11 (tfield)])
              (tfield)
-          (if (call %foo.11 (+ #f %n.15 (safe-cast (tfield) (tunsigned 1) 1)))
-              (- #f %n.15 (safe-cast (tfield) (tunsigned 1) 1))
-              (+ #f %n.15 (safe-cast (tfield) (tunsigned 1) 1))))))
+          (if (call %foo.6
+                (+ #f %n.11 (safe-cast (tfield) (tunsigned 1) 1)))
+              (- #f %n.11 (safe-cast (tfield) (tunsigned 1) 1))
+              (+ #f %n.11 (safe-cast (tfield) (tunsigned 1) 1))))))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
@@ -67682,39 +69775,41 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.14 (tunsigned 64))
-          (%descriptor.15 (tboolean))
-          (%descriptor.16 (tunsigned 255))
-          (%descriptor.17 (tunsigned 18446744073709551615))
-          (%descriptor.13 (tunsigned
-                            340282366920938463463374607431768211455)))
+          (%descriptor.0 (tunsigned 64))
+          (%descriptor.1 (tboolean))
+          (%descriptor.2 (tunsigned 255))
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned 18446744073709551615))
+          (%descriptor.5 (tunsigned
+                           340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.18 ([%n.19 (tunsigned 64)])
+        (circuit %foo.6 ([%n.7 (tunsigned 64)])
              (tboolean)
           (seq
-            (const [%x.19 (tboolean)]
-              (<= %n.19 (safe-cast (tunsigned 64) (tunsigned 1) 1)))
+            (const [%x.8 (tboolean)]
+              (<= %n.7 (safe-cast (tunsigned 64) (tunsigned 1) 1)))
             (seq
-              (const [%x.20 (tboolean)] (not %x.19))
-              (and %x.20 (<= %n.19 (safe-cast (tunsigned 64) (tunsigned 0) 0))))))
-        (circuit %bar.21 ([%n.22 (tunsigned 64)])
+              (const [%x.9 (tboolean)] (not %x.8))
+              (and %x.9
+                   (<= %n.7 (safe-cast (tunsigned 64) (tunsigned 0) 0))))))
+        (circuit %bar.10 ([%n.11 (tunsigned 64)])
              (tunsigned 64)
-          (if (call %foo.18
+          (if (call %foo.6
                 (seq
                   (assert
-                    (>= %n.22 (safe-cast (tunsigned 64) (tunsigned 1) 1))
+                    (>= %n.11 (safe-cast (tunsigned 64) (tunsigned 1) 1))
                     "result of subtraction would be negative")
-                  (- 7 %n.22 (safe-cast (tunsigned 64) (tunsigned 1) 1))))
+                  (- 7 %n.11 (safe-cast (tunsigned 64) (tunsigned 1) 1))))
               (seq
                 (assert
-                  (>= %n.22 (safe-cast (tunsigned 64) (tunsigned 1) 1))
+                  (>= %n.11 (safe-cast (tunsigned 64) (tunsigned 1) 1))
                   "result of subtraction would be negative")
-                (- 7 %n.22 (safe-cast (tunsigned 64) (tunsigned 1) 1)))
+                (- 7 %n.11 (safe-cast (tunsigned 64) (tunsigned 1) 1)))
               (seq
                 (assert
-                  (>= %n.22 (safe-cast (tunsigned 64) (tunsigned 2) 2))
+                  (>= %n.11 (safe-cast (tunsigned 64) (tunsigned 2) 2))
                   "result of subtraction would be negative")
-                (- 7 %n.22 (safe-cast (tunsigned 64) (tunsigned 2) 2)))))))
+                (- 7 %n.11 (safe-cast (tunsigned 64) (tunsigned 2) 2)))))))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
@@ -67773,42 +69868,70 @@ groups than for single tests.
       "  return foo(n - 1) ? n -1 : n - 2;"
       "}"
       )
-   (pass-returns print-typescript
+    (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.14 (tunsigned 18446744073709551615))
-          (%descriptor.15 (tboolean))
-          (%descriptor.16 (tunsigned 255))
-          (%descriptor.13 (tunsigned
-                            340282366920938463463374607431768211455)))
+          (%descriptor.0 (tunsigned 18446744073709551615))
+          (%descriptor.1 (tboolean))
+          (%descriptor.2 (tunsigned 255))
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned
+                           340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.17 ([%n.17 (tunsigned 18446744073709551615)])
+        (circuit %foo.5 ([%n.6 (tunsigned 18446744073709551615)])
              (tboolean)
           (seq
-            (const [%x.18 (tboolean)]
-              (<= %n.17 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1)))
+            (const [%x.7 (tboolean)]
+              (<= %n.6
+                  (safe-cast (tunsigned 18446744073709551615)
+                             (tunsigned 1)
+                    1)))
             (seq
-              (const [%x.19 (tboolean)] (not %x.18))
-              (and %x.19
-                   (<= %n.17 (safe-cast (tunsigned 18446744073709551615) (tunsigned 0) 0))))))
-        (circuit %bar.20 ([%n.21 (tunsigned 18446744073709551615)])
+              (const [%x.8 (tboolean)] (not %x.7))
+              (and %x.8
+                   (<= %n.6
+                       (safe-cast (tunsigned 18446744073709551615)
+                                  (tunsigned 0)
+                         0))))))
+        (circuit %bar.9 ([%n.10 (tunsigned 18446744073709551615)])
              (tunsigned 18446744073709551615)
-          (if (call %foo.17
+          (if (call %foo.5
                 (seq
                   (assert
-                    (>= %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1))
+                    (>= %n.10
+                        (safe-cast (tunsigned 18446744073709551615)
+                                   (tunsigned 1)
+                          1))
                     "result of subtraction would be negative")
-                  (- 64 %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1))))
+                  (- 64
+                     %n.10
+                     (safe-cast (tunsigned 18446744073709551615)
+                                (tunsigned 1)
+                       1))))
               (seq
                 (assert
-                  (>= %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1))
+                  (>= %n.10
+                      (safe-cast (tunsigned 18446744073709551615)
+                                 (tunsigned 1)
+                        1))
                   "result of subtraction would be negative")
-                (- 64 %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 1) 1)))
+                (- 64
+                   %n.10
+                   (safe-cast (tunsigned 18446744073709551615)
+                              (tunsigned 1)
+                     1)))
               (seq
                 (assert
-                  (>= %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 2) 2))
+                  (>= %n.10
+                      (safe-cast (tunsigned 18446744073709551615)
+                                 (tunsigned 2)
+                        2))
                   "result of subtraction would be negative")
-                (- 64 %n.21 (safe-cast (tunsigned 18446744073709551615) (tunsigned 2) 2)))))))
+                (- 64
+                   %n.10
+                   (safe-cast (tunsigned 18446744073709551615)
+                              (tunsigned 2)
+                     2)))))))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
@@ -68252,25 +70375,26 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.7 (tboolean))
-          (%descriptor.8 (tfield))
-          (%descriptor.9 (tunsigned 255))
-          (%descriptor.10 (tunsigned 18446744073709551615))
-          (%descriptor.6 (tunsigned
+          (%descriptor.0 (tboolean))
+          (%descriptor.1 (tfield))
+          (%descriptor.2 (tunsigned 255))
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned 18446744073709551615))
+          (%descriptor.5 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.12 ([%b.13 (tboolean)] [%x.14 (tfield)])
+        (circuit %foo.6 ([%b.7 (tboolean)] [%x.8 (tfield)])
              (tfield)
           (seq
-            (const ([%b.2 (tfield)] [%x.6 (tboolean)]))
+            (const ([%b.9 (tfield)] [%x.10 (tboolean)]))
             (+ #f
                (safe-cast (tfield) (tunsigned 1) 1)
                (seq
-                 (= %b.2 (+ #f %x.14 (safe-cast (tfield) (tunsigned 1) 1)))
-                 (= %x.6 (not %b.13))
-                 (if %x.6
-                     (- #f %b.2 (safe-cast (tfield) (tunsigned 1) 1))
-                     (+ #f %b.2 (safe-cast (tfield) (tunsigned 1) 1)))))))))
+                 (= %b.9 (+ #f %x.8 (safe-cast (tfield) (tunsigned 1) 1)))
+                 (= %x.10 (not %b.7))
+                 (if %x.10
+                     (- #f %b.9 (safe-cast (tfield) (tunsigned 1) 1))
+                     (+ #f %b.9 (safe-cast (tfield) (tunsigned 1) 1)))))))))
     (stage-javascript
       '(
         "test('check 1', () => {"
@@ -69363,16 +71487,17 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tunsigned 255)))
-        (kernel-declaration (%kernel.8 () (Kernel)))
+          (%descriptor.7 (tunsigned 255))
+          (%descriptor.8 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.9 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.9 (0) (Counter)))
+          ((%field1.10 (0) (Counter)))
           (constructor () (tuple)))
-        (circuit %foo.10 ()
+        (circuit %foo.11 ()
              (tfield)
           (safe-cast (tfield)
                      (tunsigned 18446744073709551615)
-            (public-ledger %field1.9 (0) read)))))
+            (public-ledger %field1.10 (0) read)))))
     (stage-javascript
       `(
         "test('check 1', () => {"
@@ -69483,21 +71608,22 @@ groups than for single tests.
           (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
           (%descriptor.7 (tunsigned 65535))
-          (%descriptor.8 (tunsigned 255)))
-        (kernel-declaration (%kernel.9 () (Kernel)))
+          (%descriptor.8 (tunsigned 255))
+          (%descriptor.9 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.10 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.10 (0) (Counter)))
-          (constructor ([%state.11 (tunsigned 65535)])
+          ((%field1.11 (0) (Counter)))
+          (constructor ([%state.12 (tunsigned 65535)])
             (seq
-              (public-ledger %field1.10 (0) increment %state.11)
+              (public-ledger %field1.11 (0) increment %state.12)
               (tuple))))
-        (circuit %foo.12 ([%x.13 (tbytes 32)])
+        (circuit %foo.13 ([%x.14 (tbytes 32)])
              (tfield)
           (safe-cast (tfield)
                      (tunsigned 18446744073709551615)
             (seq
-              (public-ledger %kernel.9 () claimZswapNullifier %x.13)
-              (public-ledger %field1.10 (0) read))))))
+              (public-ledger %kernel.10 () claimZswapNullifier %x.14)
+              (public-ledger %field1.11 (0) read))))))
     (stage-javascript
       `(
         "test('check 1', () => {"
@@ -70298,6 +72424,8 @@ groups than for single tests.
         ""
         "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
         ""
+        "const _descriptor_11 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        ""
         "export class Contract {"
         "  witnesses;"
         "  constructor(...args_0) {"
@@ -70333,7 +72461,7 @@ groups than for single tests.
         "                                     'Field',"
         "                                     v_0)"
         "        }"
-        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost() };"
+        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost(), events: [] };"
         "        const partialProofData = {"
         "          input: {"
         "            value: _descriptor_0.toValue(v_0),"
@@ -70345,7 +72473,7 @@ groups than for single tests.
         "        };"
         "        const result_0 = this._set_0(context, partialProofData, v_0);"
         "        partialProofData.output = { value: [], alignment: [] };"
-        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost };"
+        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost, events: context.events };"
         "      },"
         "      get: (...args_1) => {"
         "        if (args_1.length !== 1) {"
@@ -70359,7 +72487,7 @@ groups than for single tests.
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
-        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost() };"
+        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost(), events: [] };"
         "        const partialProofData = {"
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
@@ -70368,7 +72496,7 @@ groups than for single tests.
         "        };"
         "        const result_0 = this._get_0(context, partialProofData);"
         "        partialProofData.output = { value: _descriptor_4.toValue(result_0), alignment: _descriptor_4.alignment() };"
-        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost };"
+        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost, events: context.events };"
         "      },"
         "      clear: (...args_1) => {"
         "        if (args_1.length !== 1) {"
@@ -70382,7 +72510,7 @@ groups than for single tests.
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
-        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost() };"
+        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost(), events: [] };"
         "        const partialProofData = {"
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
@@ -70391,7 +72519,7 @@ groups than for single tests.
         "        };"
         "        const result_0 = this._clear_0(context, partialProofData);"
         "        partialProofData.output = { value: [], alignment: [] };"
-        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost };"
+        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost, events: context.events };"
         "      },"
         "      public_key(context, ...args_1) {"
         "        return { result: pureCircuits.public_key(...args_1), context };"
@@ -70736,7 +72864,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -72943,15 +75071,16 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tunsigned 255)))
-        (kernel-declaration (%kernel.7 () (Kernel)))
+          (%descriptor.7 (tunsigned 255))
+          (%descriptor.8 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.9 () (Kernel)))
         (public-ledger-declaration
-          ((%fld.8 (0) (Map (tboolean) (Map (tfield) (Counter)))))
+          ((%fld.10 (0) (Map (tboolean) (Map (tfield) (Counter)))))
           (constructor () (tuple)))
-        (circuit %bogus.9 ([%v.0 (tfield)])
+        (circuit %bogus.11 ([%v.12 (tfield)])
              (ttuple)
           (seq
-            (public-ledger %fld.8 (0 ((tboolean) #t) ((tfield) %v.0)) read)
+            (public-ledger %fld.10 (0 ((tboolean) #t) ((tfield) %v.12)) read)
             (tuple)))))
     )
 
@@ -73159,9 +75288,10 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.1 (tunsigned 255))
+          (%descriptor.0 (tunsigned 255))
+          (%descriptor.1 (tunsigned 4294967295))
           (%descriptor.2 (tunsigned 18446744073709551615))
-          (%descriptor.0 (tunsigned
+          (%descriptor.3 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))))
     )
@@ -74239,23 +76369,28 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.10 (tfield))
-          (%descriptor.11 (tunsigned 255))
-          (%descriptor.12 (tunsigned 18446744073709551615))
-          (%descriptor.9 (tunsigned
+          (%descriptor.0 (tfield))
+          (%descriptor.1 (tunsigned 255))
+          (%descriptor.2 (tunsigned 4294967295))
+          (%descriptor.3 (tunsigned 18446744073709551615))
+          (%descriptor.4 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.13 ([%x.14 (tfield)])
+        (circuit %bar.5 ([%x.6 (tfield)])
              (tfield)
           (seq
-            (assert (!= %x.14 (safe-cast (tfield) (tunsigned 2) 2)) "oops")
-            %x.14))
-        (circuit %foo.14 ([%x.15 (tfield)])
+            (assert
+              (!= %x.6 (safe-cast (tfield) (tunsigned 2) 2))
+              "oops")
+            %x.6))
+        (circuit %foo.7 ([%x.8 (tfield)])
              (tfield)
           (seq
-            (call %bar.13 %x.15)
-            (call %bar.13 (- #f %x.15 (safe-cast (tfield) (tunsigned 1) 1)))
-            (call %bar.13 (- #f %x.15 (safe-cast (tfield) (tunsigned 2) 2)))))))
+            (call %bar.5 %x.8)
+            (call %bar.5
+              (- #f %x.8 (safe-cast (tfield) (tunsigned 1) 1)))
+            (call %bar.5
+              (- #f %x.8 (safe-cast (tfield) (tunsigned 2) 2)))))))
     (stage-javascript
       `(
         "test('check 1', () => {"
@@ -74284,10 +76419,11 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.2 (tfield))
-          (%descriptor.3 (tunsigned 255))
-          (%descriptor.4 (tunsigned 18446744073709551615))
-          (%descriptor.1 (tunsigned
+          (%descriptor.0 (tfield))
+          (%descriptor.1 (tunsigned 255))
+          (%descriptor.2 (tunsigned 4294967295))
+          (%descriptor.3 (tunsigned 18446744073709551615))
+          (%descriptor.4 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %bar.5 ([%x.6 (tfield)]) (tfield) %x.6)
@@ -74295,8 +76431,10 @@ groups than for single tests.
              (tfield)
           (seq
             (call %bar.5 %x.8)
-            (call %bar.5 (- #f %x.8 (safe-cast (tfield) (tunsigned 1) 1)))
-            (call %bar.5 (- #f %x.8 (safe-cast (tfield) (tunsigned 2) 2)))))))
+            (call %bar.5
+              (- #f %x.8 (safe-cast (tfield) (tunsigned 1) 1)))
+            (call %bar.5
+              (- #f %x.8 (safe-cast (tfield) (tunsigned 2) 2)))))))
     (stage-javascript
       `(
         "test('check 1', () => {"
@@ -74321,10 +76459,11 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.2 (tfield))
-          (%descriptor.3 (tunsigned 255))
-          (%descriptor.4 (tunsigned 18446744073709551615))
-          (%descriptor.1 (tunsigned
+          (%descriptor.0 (tfield))
+          (%descriptor.1 (tunsigned 255))
+          (%descriptor.2 (tunsigned 4294967295))
+          (%descriptor.3 (tunsigned 18446744073709551615))
+          (%descriptor.4 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %bar.5 ([%x.6 (tfield)]) (tfield) %x.6)
@@ -74333,8 +76472,10 @@ groups than for single tests.
           (seq
             (seq
               (call %bar.5 %x.8)
-              (call %bar.5 (- #f %x.8 (safe-cast (tfield) (tunsigned 1) 1)))
-              (call %bar.5 (- #f %x.8 (safe-cast (tfield) (tunsigned 2) 2))))
+              (call %bar.5
+                (- #f %x.8 (safe-cast (tfield) (tunsigned 1) 1)))
+              (call %bar.5
+                (- #f %x.8 (safe-cast (tfield) (tunsigned 2) 2))))
             (tuple)))))
     (stage-javascript
       '(
@@ -74432,22 +76573,25 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.7 (tfield))
-          (%descriptor.8 (tvector 2 (tfield)))
-          (%descriptor.9 (tunsigned 255))
-          (%descriptor.10 (tunsigned 18446744073709551615))
-          (%descriptor.6 (tunsigned
+          (%descriptor.0 (tfield))
+          (%descriptor.1 (tvector 2 (tfield)))
+          (%descriptor.2 (tunsigned 255))
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned 18446744073709551615))
+          (%descriptor.5 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.11 ([%v.12 (tvector 2 (tfield))])
+        (circuit %foo.6 ([%v.7 (tvector 2 (tfield))])
              (tvector 2 (tfield))
           (map
-            (circuit ([%x.13 (tfield)])
+            (circuit ([%x.8 (tfield)])
                  (tfield)
               (seq
-                (assert (!= %x.13 (safe-cast (tfield) (tunsigned 2) 2)) "oops")
-                %x.13))
-            %v.12))))
+                (assert
+                  (!= %x.8 (safe-cast (tfield) (tunsigned 2) 2))
+                  "oops")
+                %x.8))
+            %v.7))))
     (stage-javascript
       '(
         "test('check 1', () => {"
@@ -74473,28 +76617,33 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.18 (tfield))
-          (%descriptor.19 (tvector 2 (tfield)))
-          (%descriptor.20 (tunsigned 255))
-          (%descriptor.21 (tunsigned 18446744073709551615))
-          (%descriptor.22 (tunsigned
-                            340282366920938463463374607431768211455)))
+          (%descriptor.0 (tfield))
+          (%descriptor.1 (tvector 2 (tfield)))
+          (%descriptor.2 (tunsigned 255))
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned 18446744073709551615))
+          (%descriptor.5 (tunsigned
+                           340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.22 ([%x.23 (tfield)])
+        (circuit %bar.6 ([%x.7 (tfield)])
              (tfield)
           (seq
-            (assert (!= %x.23 (safe-cast (tfield) (tunsigned 2) 2)) "oops")
-            %x.23))
-        (circuit %foo.24 ([%v.25 (tvector 2 (tfield))])
+            (assert
+              (!= %x.7 (safe-cast (tfield) (tunsigned 2) 2))
+              "oops")
+            %x.7))
+        (circuit %foo.8 ([%v.9 (tvector 2 (tfield))])
              (tvector 2 (tfield))
           (map
-            (circuit ([%x.26 (tfield)])
+            (circuit ([%x.10 (tfield)])
                  (tfield)
               (seq
-                (call %bar.22 %x.26)
-                (call %bar.22 (- #f %x.26 (safe-cast (tfield) (tunsigned 1) 1)))
-                (call %bar.22 (- #f %x.26 (safe-cast (tfield) (tunsigned 2) 2)))))
-            %v.25))))
+                (call %bar.6 %x.10)
+                (call %bar.6
+                  (- #f %x.10 (safe-cast (tfield) (tunsigned 1) 1)))
+                (call %bar.6
+                  (- #f %x.10 (safe-cast (tfield) (tunsigned 2) 2)))))
+            %v.9))))
     (stage-javascript
       `(
         "test('check 1', () => {"
@@ -75356,38 +77505,39 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.3 (tboolean))
-          (%descriptor.4 (tfield))
-          (%descriptor.5 (tstruct S (a (tfield)) (b (tboolean))))
-          (%descriptor.6 (tunsigned 18446744073709551615))
-          (%descriptor.7 (tbytes 32))
-          (%descriptor.8 (tstruct Either
+          (%descriptor.0 (tboolean))
+          (%descriptor.1 (tfield))
+          (%descriptor.2 (tstruct S (a (tfield)) (b (tboolean))))
+          (%descriptor.3 (tunsigned 18446744073709551615))
+          (%descriptor.4 (tbytes 32))
+          (%descriptor.5 (tstruct Either
                            (is_left (tboolean))
                            (left (tbytes 32))
                            (right (tbytes 32))))
-          (%descriptor.9 (tunsigned
+          (%descriptor.6 (tunsigned
                            340282366920938463463374607431768211455))
-          (%descriptor.10 (tstruct ContractAddress
-                            (bytes (tbytes 32))))
-          (%descriptor.11 (tunsigned 255)))
-        (kernel-declaration (%kernel.12 () (Kernel)))
+          (%descriptor.7 (tstruct ContractAddress
+                           (bytes (tbytes 32))))
+          (%descriptor.8 (tunsigned 255))
+          (%descriptor.9 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.10 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.13 ([%x.14 (tboolean)] [%y.15 (tfield)])
+        (circuit %bar.11 ([%x.12 (tboolean)] [%y.13 (tfield)])
              (tstruct S (a (tfield)) (b (tboolean)))
-          (new (tstruct S (a (tfield)) (b (tboolean))) %y.15 %x.14))
-        (circuit %foo.16 ([%x.17 (tboolean)] [%y.18 (tfield)])
+          (new (tstruct S (a (tfield)) (b (tboolean))) %y.13 %x.12))
+        (circuit %foo.14 ([%x.15 (tboolean)] [%y.16 (tfield)])
              (tfield)
           (seq
-            (const [%__compact_pattern_tmp1.19 (tstruct S
+            (const [%__compact_pattern_tmp1.17 (tstruct S
                                                  (a (tfield))
                                                  (b (tboolean)))]
-              (call %bar.13 %x.17 %y.18))
+              (call %bar.11 %x.15 %y.16))
             (seq
-              (const [%b.19 (tboolean)]
-                (elt-ref %__compact_pattern_tmp1.19 b 1))
-              (if %b.19
-                  %y.18
-                  (* #f (safe-cast (tfield) (tunsigned 2) 2) %y.18)))))))
+              (const [%b.18 (tboolean)]
+                (elt-ref %__compact_pattern_tmp1.17 b 1))
+              (if %b.18
+                  %y.16
+                  (* #f (safe-cast (tfield) (tunsigned 2) 2) %y.16)))))))
     )
 
   (test
@@ -77463,36 +79613,35 @@ groups than for single tests.
       )
     (pass-returns print-typescript
       (program
-        (type-descriptors (%descriptor.108 (tbytes 32))
-          (%descriptor.109 (tunsigned 255))
-          (%descriptor.110 (tvector 62 (tunsigned 255)))
-          (%descriptor.111 (tunsigned 18446744073709551615))
-          (%descriptor.112 (tboolean))
-          (%descriptor.113
-            (tstruct
-              Either
-              (is_left (tboolean))
-              (left (tbytes 32))
-              (right (tbytes 32))))
-          (%descriptor.114
-            (tunsigned 340282366920938463463374607431768211455))
-          (%descriptor.115
-            (tstruct ContractAddress (bytes (tbytes 32)))))
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (type-descriptors
+          (%descriptor.32 (tbytes 32))
+          (%descriptor.33 (tunsigned 255))
+          (%descriptor.34 (tvector 62 (tunsigned 255)))
+          (%descriptor.35 (tunsigned 18446744073709551615))
+          (%descriptor.36 (tboolean))
+          (%descriptor.37 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tbytes 32))
+                            (right (tbytes 32))))
+          (%descriptor.38 (tunsigned
+                            340282366920938463463374607431768211455))
+          (%descriptor.39 (tstruct ContractAddress
+                            (bytes (tbytes 32))))
+          (%descriptor.40 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.41 () (Kernel)))
         (public-ledger-declaration
-          ((%F.2 (0) (__compact_Cell (tbytes 32))))
+          ((%F.42 (0) (__compact_Cell (tbytes 32))))
           (constructor () (tuple)))
-        (circuit
-          %foo.0
-          ((%v.3 (tvector 62 (tunsigned 255))))
-          (tbytes 32)
-          (seq (seq (const
-                      (%tmp.4 (tbytes 32))
-                      (vector->bytes
-                        32
-                        (vector (spread 32 (tuple-slice %v.3 7 32)))))
-                    (public-ledger %F.2 (0) write %tmp.4))
-               (public-ledger %F.2 (0) read)))))
+        (circuit %foo.43 ([%v.44 (tvector 62 (tunsigned 255))])
+             (tbytes 32)
+          (seq
+            (seq
+              (const [%tmp.45 (tbytes 32)]
+                (vector->bytes
+                  32
+                  (vector (spread 32 (tuple-slice %v.44 7 32)))))
+              (public-ledger %F.42 (0) write %tmp.45))
+            (public-ledger %F.42 (0) read)))))
     (stage-javascript
       `(
         "test('check 1', () => {"
@@ -77723,43 +79872,42 @@ groups than for single tests.
       )
     (pass-returns print-typescript
       (program
-        (type-descriptors (%descriptor.1086 (tbytes 70))
-          (%descriptor.1087 (tunsigned 63))
-          (%descriptor.1088 (tvector 1000 (tunsigned 63)))
-          (%descriptor.1089 (tunsigned 18446744073709551615))
-          (%descriptor.1090 (tboolean)) (%descriptor.1091 (tbytes 32))
-          (%descriptor.1092
-            (tstruct
-              Either
-              (is_left (tboolean))
-              (left (tbytes 32))
-              (right (tbytes 32))))
-          (%descriptor.1093
-            (tunsigned 340282366920938463463374607431768211455))
-          (%descriptor.1094
-            (tstruct ContractAddress (bytes (tbytes 32))))
-          (%descriptor.1095 (tunsigned 255)))
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (type-descriptors
+          (%descriptor.70 (tbytes 70))
+          (%descriptor.71 (tunsigned 63))
+          (%descriptor.72 (tvector 1000 (tunsigned 63)))
+          (%descriptor.73 (tunsigned 18446744073709551615))
+          (%descriptor.74 (tboolean))
+          (%descriptor.75 (tbytes 32))
+          (%descriptor.76 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tbytes 32))
+                            (right (tbytes 32))))
+          (%descriptor.77 (tunsigned
+                            340282366920938463463374607431768211455))
+          (%descriptor.78 (tstruct ContractAddress
+                            (bytes (tbytes 32))))
+          (%descriptor.79 (tunsigned 255))
+          (%descriptor.80 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.81 () (Kernel)))
         (public-ledger-declaration
-          ((%F.2 (0) (__compact_Cell (tbytes 70))))
+          ((%F.82 (0) (__compact_Cell (tbytes 70))))
           (constructor () (tuple)))
-        (circuit
-          %foo.0
-          ((%v.3 (tvector 1000 (tunsigned 63))))
-          (tbytes 70)
-          (seq (seq (const
-                      (%tmp.4 (tbytes 70))
-                      (vector->bytes
-                        70
-                        (vector
-                          (spread
-                            70
-                            (safe-cast
-                              (tvector 70 (tunsigned 255))
-                              (tvector 70 (tunsigned 63))
-                              (tuple-slice %v.3 0 70))))))
-                    (public-ledger %F.2 (0) write %tmp.4))
-               (public-ledger %F.2 (0) read)))))
+        (circuit %foo.83 ([%v.84 (tvector 1000 (tunsigned 63))])
+             (tbytes 70)
+          (seq
+            (seq
+              (const [%tmp.85 (tbytes 70)]
+                (vector->bytes
+                  70
+                  (vector
+                    (spread
+                      70
+                      (safe-cast (tvector 70 (tunsigned 255))
+                                 (tvector 70 (tunsigned 63))
+                        (tuple-slice %v.84 0 70))))))
+              (public-ledger %F.82 (0) write %tmp.85))
+            (public-ledger %F.82 (0) read)))))
     (stage-javascript
       '(
         "test('check 1', () => {"
@@ -80139,50 +82287,47 @@ groups than for single tests.
      ; FIXME replace with stage-javascript checks for CC print-TS pass implementation
      (pass-returns print-typescript
        (program
-         (type-descriptors (%descriptor.5 (tunsigned 18446744073709551615))
-           (%descriptor.6 (tboolean)) (%descriptor.7 (tbytes 32))
-           (%descriptor.8
-             (tstruct
-               Either
-               (is_left (tboolean))
-               (left (tbytes 32))
-               (right (tbytes 32))))
-           (%descriptor.9
-             (tunsigned 340282366920938463463374607431768211455))
-           (%descriptor.10
-             (tstruct ContractAddress (bytes (tbytes 32))))
-           (%descriptor.11 (tunsigned 255)))
-         (kernel-declaration (%kernel.0 () (Kernel)))
+         (type-descriptors
+           (%descriptor.0 (tunsigned 18446744073709551615))
+           (%descriptor.1 (tboolean))
+           (%descriptor.2 (tbytes 32))
+           (%descriptor.3 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tbytes 32))
+                            (right (tbytes 32))))
+           (%descriptor.4 (tunsigned
+                            340282366920938463463374607431768211455))
+           (%descriptor.5 (tstruct ContractAddress
+                            (bytes (tbytes 32))))
+           (%descriptor.6 (tunsigned 255))
+           (%descriptor.7 (tunsigned 4294967295)))
+         (kernel-declaration (%kernel.8 () (Kernel)))
          (public-ledger-declaration
-           ((%F.1
+           ((%F.9
               (0)
               (__compact_Cell
-                (tcontract
-                  C
+                (tcontract C
                   (foo #f ((tfield)) (tfield))
                   (bar #f () (ttuple)))))
-             (%F.2
-               (1)
-               (__compact_Cell
-                 (tcontract C (foo #f ((tfield)) (tfield))))))
-           (constructor
-             ((%c1.3
-                (tcontract
-                  C
-                  (foo #f ((tfield)) (tfield))
-                  (bar #f () (ttuple)))))
-             (seq (public-ledger %F.1 (0) write %c1.3)
-                  (seq (const
-                         (%tmp.4 (tcontract C (foo #f ((tfield)) (tfield))))
-                         (safe-cast
-                           (tcontract C (foo #f ((tfield)) (tfield)))
-                           (tcontract
-                             C
-                             (foo #f ((tfield)) (tfield))
-                             (bar #f () (ttuple)))
-                           %c1.3))
-                       (public-ledger %F.2 (1) write %tmp.4))
-                  (tuple))))))))
+            (%F.10
+              (1)
+              (__compact_Cell
+                (tcontract C (foo #f ((tfield)) (tfield))))))
+           (constructor ([%c1.11 (tcontract C
+                                   (foo #f ((tfield)) (tfield))
+                                   (bar #f () (ttuple)))])
+             (seq
+               (public-ledger %F.9 (0) write %c1.11)
+               (seq
+                 (const [%tmp.12 (tcontract C (foo #f ((tfield)) (tfield)))]
+                   (safe-cast (tcontract C (foo #f ((tfield)) (tfield)))
+                              (tcontract C
+                                (foo #f ((tfield)) (tfield))
+                                (bar #f () (ttuple)))
+                     %c1.11))
+                 (public-ledger %F.10 (1) write %tmp.12))
+               (tuple))))))
+     ))
 
   ; downcast failure for Contract types
   (test-group
@@ -83361,7 +85506,1377 @@ groups than for single tests.
         "  });"
         ))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export struct S { F: Field };"
+      "export circuit foo (): [] {"
+      "  return log ( disclose (ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration ())
+        (witness %bar.1 ()
+             (ty ((abytes 32))
+                 ((tfield 255)
+                   (tfield
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))))
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type S = { F: bigint };"
+        ""
+        "export type Witnesses<PS> = {"
+        "  bar(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
+        "}"
+        ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): __compactRuntime.ConstructorResult<PS>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"))
+    ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+    ; lines to avoid hard-coding a specific runtime version string into the test
+    (output-file "compiler/testdir/contract/index.js"
+      `(
+        "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ,(format "__compactRuntime.checkRuntimeVersion('~a');" runtime-version-string)
+        ""
+        "const _descriptor_0 = new __compactRuntime.CompactTypeBytes(32);"
+        ""
+        "const _descriptor_1 = new __compactRuntime.CompactTypeUnsignedInteger(18446744073709551615n, 8);"
+        ""
+        "const _descriptor_2 = __compactRuntime.CompactTypeBoolean;"
+        ""
+        "class _Either_0 {"
+        "  alignment() {"
+        "    return _descriptor_2.alignment().concat(_descriptor_0.alignment().concat(_descriptor_0.alignment()));"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_left: _descriptor_2.fromValue(value_0),"
+        "      left: _descriptor_0.fromValue(value_0),"
+        "      right: _descriptor_0.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_2.toValue(value_0.is_left).concat(_descriptor_0.toValue(value_0.left).concat(_descriptor_0.toValue(value_0.right)));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_3 = new _Either_0();"
+        ""
+        "const _descriptor_4 = new __compactRuntime.CompactTypeUnsignedInteger(340282366920938463463374607431768211455n, 16);"
+        ""
+        "class _ContractAddress_0 {"
+        "  alignment() {"
+        "    return _descriptor_0.alignment();"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      bytes: _descriptor_0.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_0.toValue(value_0.bytes);"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_5 = new _ContractAddress_0();"
+        ""
+        "const _descriptor_6 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        ""
+        "const _descriptor_7 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        ""
+        "export class Contract {"
+        "  witnesses;"
+        "  constructor(...args_0) {"
+        "    if (args_0.length !== 1) {"
+        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 1 argument, received ${args_0.length}`);"
+        "    }"
+        "    const witnesses_0 = args_0[0];"
+        "    if (typeof(witnesses_0) !== 'object') {"
+        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor is not an object');"
+        "    }"
+        "    if (typeof(witnesses_0.bar) !== 'function') {"
+        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor does not contain a function-valued field named bar');"
+        "    }"
+        "    this.witnesses = witnesses_0;"
+        "    this.circuits = {"
+        "      foo: (...args_1) => {"
+        "        if (args_1.length !== 1) {"
+        "          throw new __compactRuntime.CompactError(`foo: expected 1 argument (as invoked from Typescript), received ${args_1.length}`);"
+        "        }"
+        "        const contextOrig_0 = args_1[0];"
+        "        if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {"
+        "          __compactRuntime.typeError('foo',"
+        "                                     'argument 1 (as invoked from Typescript)',"
+        "                                     'testfile.compact line 4 char 1',"
+        "                                     'CircuitContext',"
+        "                                     contextOrig_0)"
+        "        }"
+        "        const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost(), events: [] };"
+        "        const partialProofData = {"
+        "          input: { value: [], alignment: [] },"
+        "          output: undefined,"
+        "          publicTranscript: [],"
+        "          privateTranscriptOutputs: []"
+        "        };"
+        "        const result_0 = this._foo_0(context, partialProofData);"
+        "        partialProofData.output = { value: [], alignment: [] };"
+        "        return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost, events: context.events };"
+        "      }"
+        "    };"
+        "    this.impureCircuits = { foo: this.circuits.foo };"
+        "    this.provableCircuits = {};"
+        "  }"
+        "  initialState(...args_0) {"
+        "    if (args_0.length !== 1) {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 1 argument (as invoked from Typescript), received ${args_0.length}`);"
+        "    }"
+        "    const constructorContext_0 = args_0[0];"
+        "    if (typeof(constructorContext_0) !== 'object') {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'constructorContext' in argument 1 (as invoked from Typescript) to be an object`);"
+        "    }"
+        "    if (!('initialPrivateState' in constructorContext_0)) {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialPrivateState' in argument 1 (as invoked from Typescript)`);"
+        "    }"
+        "    if (!('initialZswapLocalState' in constructorContext_0)) {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript)`);"
+        "    }"
+        "    if (typeof(constructorContext_0.initialZswapLocalState) !== 'object') {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript) to be an object`);"
+        "    }"
+        "    const state_0 = new __compactRuntime.ContractState();"
+        "    let stateValue_0 = __compactRuntime.StateValue.newArray();"
+        "    state_0.data = new __compactRuntime.ChargedState(stateValue_0);"
+        "    const context = __compactRuntime.createCircuitContext(__compactRuntime.dummyContractAddress(), constructorContext_0.initialZswapLocalState.coinPublicKey, state_0.data, constructorContext_0.initialPrivateState);"
+        "    const partialProofData = {"
+        "      input: { value: [], alignment: [] },"
+        "      output: undefined,"
+        "      publicTranscript: [],"
+        "      privateTranscriptOutputs: []"
+        "    };"
+        "    state_0.data = new __compactRuntime.ChargedState(context.currentQueryContext.state.state);"
+        "    return {"
+        "      currentContractState: state_0,"
+        "      currentPrivateState: context.currentPrivateState,"
+        "      currentZswapLocalState: context.currentZswapLocalState"
+        "    }"
+        "  }"
+        "  _bar_0(context, partialProofData) {"
+        "    const witnessContext_0 = __compactRuntime.createWitnessContext(ledger(context.currentQueryContext.state), context.currentPrivateState, context.currentQueryContext.address);"
+        "    const [nextPrivateState_0, result_0] = this.witnesses.bar(witnessContext_0);"
+        "    context.currentPrivateState = nextPrivateState_0;"
+        "    if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {"
+        "      __compactRuntime.typeError('bar',"
+        "                                 'return value',"
+        "                                 'testfile.compact line 2 char 1',"
+        "                                 'Bytes<32>',"
+        "                                 result_0)"
+        "    }"
+        "    partialProofData.privateTranscriptOutputs.push({"
+        "      value: _descriptor_0.toValue(result_0),"
+        "      alignment: _descriptor_0.alignment()"
+        "    });"
+        "    return result_0;"
+        "  }"
+        "  _foo_0(context, partialProofData) {"
+        "    return __compactRuntime.queryLedgerState(context,"
+        "                                             partialProofData,"
+        "                                             ["
+        "                                              { push: { storage: false,"
+        "                                                        value: __compactRuntime.StateValue.newArray()"
+        "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_7.toValue(1n),"
+        "                                                                                                                  alignment: _descriptor_7.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_6.toValue(0n),"
+        "                                                                                                                                                                                                           alignment: _descriptor_6.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
+        "                                                                                                                                                                                                                                                                                                                                     this._bar_0(context,"
+        "                                                                                                                                                                                                                                                                                                                                                 partialProofData) }.nullifier),"
+        "                                                                                                                                                                                                                                                                                                    alignment: _descriptor_0.alignment() }))"
+        "                                                                 .encode() } },"
+        "                                              'log']);"
+        "  }"
+        "}"
+        "export function ledger(stateOrChargedState) {"
+        "  const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
+        "  const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
+        "  const context = {"
+        "    currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()),"
+        "    costModel: __compactRuntime.CostModel.initialCostModel()"
+        "  };"
+        "  const partialProofData = {"
+        "    input: { value: [], alignment: [] },"
+        "    output: undefined,"
+        "    publicTranscript: [],"
+        "    privateTranscriptOutputs: []"
+        "  };"
+        "  return {"
+        "  };"
+        "}"
+        "const _emptyContext = {"
+        "  currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress())"
+        "};"
+        "const _dummyContract = new Contract({ bar: (...args) => undefined });"
+        "export const pureCircuits = {};"
+        "export const contractReferenceLocations ="
+        "  { tag: 'publicLedgerArray', indices: { } };"
+        "//# sourceMappingURL=index.js.map"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
+      "  log(ShieldedSpend { nullifier: disclose(n) });"
+      "  return n;"
+      "}"
+      "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
+      "  log(ShieldedSpend { nullifier: disclose(n) });"
+      "  log(ShieldedSpend { nullifier: disclose(n) });"
+      "  return n;"
+      "}"
+      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) {"
+      "    log(ShieldedSpend { nullifier: disclose(n) });"
+      "  }"
+      "  return n;"
+      "}"
+      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "  return n;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('single log produces exactly one event tagged log', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const n = new Uint8Array(32).fill(0x42);"
+        "  const r = C.circuits.emit_one(Ctxt, n);"
+        "  expect(r.events).toBeDefined();"
+        "  expect(Array.isArray(r.events)).toBe(true);"
+        "  expect(r.events.length).toBe(1);"
+        "  expect(r.events[0].tag).toBe('log');"
+        "});"
+        ""
+        "test('log event has decoded VersionedLogItem fields (version, eventType, data)', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, new Uint8Array(32));"
+        "  const content = r.events[0].content;"
+        "  expect(content.version).toBeDefined();"
+        "  expect(content.eventType).toBeDefined();"
+        "  expect(content.data).toBeDefined();"
+        "  expect(content.version).toBe(1);"
+        "  expect(typeof content.version).toBe('number');"
+        "  expect(content.data).toBeDefined();"
+        "});"
+        ""
+        "test('two log statements produce two events', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_two(Ctxt, new Uint8Array(32));"
+        "  expect(r.events.length).toBe(2);"
+        "  expect(r.events.every((e) => e.tag === 'log')).toBe(true);"
+        "});"
+        ""
+        "test('conditional log emits when condition is true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, true, new Uint8Array(32));"
+        "  expect(r.events.length).toBe(1);"
+        "});"
+        ""
+        "test('conditional log emits nothing when condition is false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, false, new Uint8Array(32));"
+        "  expect(r.events.length).toBe(0);"
+        "});"
+        ""
+        "test('pure circuit (no log, no ledger access) has no events field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.no_log(Ctxt, new Uint8Array(32));"
+        "  // Pure circuits use the abbreviated wrapper that omits events"
+        "  expect(r.events).toBeUndefined();"
+        "});"
+        ""
+        "test('CircuitResults.events shares reference with context.events', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, new Uint8Array(32));"
+        "  expect(r.events).toBe(r.context.events);"
+        "});"
+        ""
+        "test('events reset between circuit invocations on the same context', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r1 = C.circuits.emit_one(Ctxt, new Uint8Array(32));"
+        "  expect(r1.events.length).toBe(1);"
+        "  const r2 = C.circuits.emit_one(r1.context, new Uint8Array(32));"
+        "  expect(r2.events.length).toBe(1);"
+        "  expect(r2.events).not.toBe(r1.events);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit log_in_loop(n: Bytes<32>): Bytes<32> {"
+      "  for (const i of 0..3) {"
+      "    log(ShieldedSpend { nullifier: disclose(n) });"
+      "  }"
+      "  return n;"
+      "}"
+      "export circuit log_then_return(n: Bytes<32>): Bytes<32> {"
+      "  log(ShieldedSpend { nullifier: disclose(n) });"
+      "  return n;"
+      "}"
+      "export circuit return_then_no_log(n: Bytes<32>): Bytes<32> {"
+      "  const x = n;"
+      "  return x;"
+      "}"
+      "export circuit no_log_if_false(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) {"
+      "    log(ShieldedSpend { nullifier: disclose(n) });"
+      "  }"
+      "  return n;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('log inside for emits one event per iteration', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.log_in_loop(Ctxt, new Uint8Array(32));"
+        "  expect(r.events.length).toBe(3);"
+        "  expect(r.events.every((e) => e.tag === 'log')).toBe(true);"
+        "});"
+        ""
+        "test('log statement does not affect the circuits return value', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const n = new Uint8Array(32).fill(0x99);"
+        "  const r = C.circuits.log_then_return(Ctxt, n);"
+        "  expect(r.result).toEqual(n);"
+        "  expect(r.events.length).toBe(1);"
+        "});"
+        ""
+        "test('no log in body leaves r.result unmodified', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const n = new Uint8Array(32).fill(0x77);"
+        "  const r = C.circuits.return_then_no_log(Ctxt, n);"
+        "  expect(r.result).toEqual(n);"
+        "  // return_then_no_log is pure (no log, no ledger): no events field"
+        "  expect(r.events).toBeUndefined();"
+        "});"
+        ""
+        "test('impure circuit with conditional log emits zero events when condition is false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const n = new Uint8Array(32).fill(0x77);"
+        "  const r = C.circuits.no_log_if_false(Ctxt, false, n);"
+        "  expect(r.result).toEqual(n);"
+        "  expect(r.events).toEqual([]);"
+        "});"
+        ))
+    )
+
+  ; TODO
+  ; practical misc
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 32>(x);"
+      "}"
+      "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<32> {"
+      "  return serialize<ShieldedSpend, 32>(x);"
+      "}"
+      "export circuit roundtrip_ShieldedSpend(orig: ShieldedSpend): Boolean {"
+      "  const bytes = serialize<ShieldedSpend, 32>(orig);"
+      "  const restored = deserialize<ShieldedSpend, 32>(bytes);"
+      "  return orig.nullifier == restored.nullifier;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('serialize_ShieldedSpend returns the nullifier bytes verbatim', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const nullifier = new Uint8Array(32).fill(0x42);"
+        "  const r = C.circuits.serialize_ShieldedSpend(Ctxt, { nullifier });"
+        "  expect(r.result).toEqual(nullifier);"
+        "});"
+        ""
+        "test('deserialize_ShieldedSpend reconstructs the struct from bytes', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const bytes = new Uint8Array(32).fill(0x55);"
+        "  const r = C.circuits.deserialize_ShieldedSpend(Ctxt, bytes);"
+        "  expect(r.result.nullifier).toEqual(bytes);"
+        "});"
+        ""
+        "test('round-trip returns true for uniform-byte nullifier', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const nullifier = new Uint8Array(32).fill(0xAB);"
+        "  const r = C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
+        "  expect(r.result).toBe(true);"
+        "});"
+        ""
+        "test('round-trip returns true for all-zero nullifier', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const nullifier = new Uint8Array(32);"
+        "  const r = C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
+        "  expect(r.result).toBe(true);"
+        "});"
+        ""
+        "test('round-trip returns true for all-0xFF nullifier', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const nullifier = new Uint8Array(32).fill(0xFF);"
+        "  const r = C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
+        "  expect(r.result).toBe(true);"
+        "});"
+        ""
+        "test('round-trip returns true for non-uniform nullifier', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const nullifier = new Uint8Array(32);"
+        "  for (let i = 0; i < 32; i++) nullifier[i] = (i * 7 + 13) & 0xFF;"
+        "  const r = C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
+        "  expect(r.result).toBe(true);"
+        "});"
+        ""
+        "test('separate serialize then deserialize yields original struct', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { nullifier: new Uint8Array(32).fill(0x7E) };"
+        "  const ser = C.circuits.serialize_ShieldedSpend(Ctxt, orig);"
+        "  expect(ser.result).toBeInstanceOf(Uint8Array);"
+        "  expect(ser.result.length).toBe(32);"
+        "  const deser = C.circuits.deserialize_ShieldedSpend(Ctxt, ser.result);"
+        "  expect(deser.result.nullifier).toEqual(orig.nullifier);"
+        "});"
+        ""
+        "test('deserialize then serialize recovers the original bytes', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const bytes = new Uint8Array(32);"
+        "  for (let i = 0; i < 32; i++) bytes[i] = i * 8;"
+        "  const deser = C.circuits.deserialize_ShieldedSpend(Ctxt, bytes);"
+        "  const ser = C.circuits.serialize_ShieldedSpend(Ctxt, deser.result);"
+        "  expect(ser.result).toEqual(bytes);"
+        "});"
+        ""
+        "test('different nullifiers serialize to different bytes', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const a = { nullifier: new Uint8Array(32).fill(0x01) };"
+        "  const b = { nullifier: new Uint8Array(32).fill(0x02) };"
+        "  const ra = C.circuits.serialize_ShieldedSpend(Ctxt, a);"
+        "  const rb = C.circuits.serialize_ShieldedSpend(Ctxt, b);"
+        "  expect(ra.result).not.toEqual(rb.result);"
+        "});"
+    )))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit emit_one(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
+      "  log(ShieldedReceive {"
+      "    commitment: disclose(n),"
+      "    contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
+      "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit emit_two(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
+      "  log(ShieldedReceive {"
+      "    commitment: disclose(n),"
+      "    contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
+      "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
+      "  });"
+      "  log(ShieldedReceive {"
+      "    commitment: disclose(n),"
+      "    contract_address: Maybe<Bytes<32>> { is_some: false, value: disclose(n) },"
+      "    ciphertext: Maybe<Bytes<512>> { is_some: false, value: disclose(c) }"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit cond_log(b: Boolean, n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
+      "  if (disclose(b)) {"
+      "    log(ShieldedReceive {"
+      "      commitment: disclose(n),"
+      "      contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
+      "      ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
+      "    });"
+      "  }"
+      "  return n;"
+      "}"
+      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "  return n;"
+      "}"
+      "export circuit serialize_ShieldedReceive(x: ShieldedReceive): Bytes<578> {"
+      "  return serialize<ShieldedReceive, 578>(x);"
+      "}"
+      "export circuit deserialize_ShieldedReceive(x: Bytes<578>): ShieldedReceive {"
+      "  return deserialize<ShieldedReceive, 578>(x);"
+      "}"
+      "export circuit roundtrip_ShieldedReceive(orig: ShieldedReceive): ShieldedReceive {"
+      "  const bytes = serialize<ShieldedReceive, 578>(orig);"
+      "  return deserialize<ShieldedReceive, 578>(bytes);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const N32 = () => new Uint8Array(32).fill(0x42);"
+        "const N512 = () => new Uint8Array(512).fill(0x33);"
+        ""
+        "test('single log produces exactly one event tagged log', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32(), N512());"
+        "  expect(r.events.length).toBe(1);"
+        "  expect(r.events[0].tag).toBe('log');"
+        "});"
+        ""
+        "test('log event has decoded VersionedLogItem fields', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32(), N512());"
+        "  const content = r.events[0].content;"
+        "  expect(content.version).toBe(1);"
+        "  expect(content.eventType).toBeDefined();"
+        "  expect(content.data).toBeDefined();"
+        "});"
+        ""
+        "test('two log statements produce two events', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_two(Ctxt, N32(), N512());"
+        "  expect(r.events.length).toBe(2);"
+        "  expect(r.events.every((e) => e.tag === 'log')).toBe(true);"
+        "});"
+        ""
+        "test('conditional log emits when condition is true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, true, N32(), N512());"
+        "  expect(r.events.length).toBe(1);"
+        "});"
+        ""
+        "test('conditional log emits nothing when condition is false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, false, N32(), N512());"
+        "  expect(r.events.length).toBe(0);"
+        "});"
+        ""
+        "test('pure circuit (no log) has no events field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  expect(r.events).toBeUndefined();"
+        "});"
+        ""
+        "test('serialize_ShieldedReceive returns 578-byte payload', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = {"
+        "    commitment: N32(),"
+        "    contract_address: { is_some: true, value: N32() },"
+        "    ciphertext: { is_some: true, value: N512() }"
+        "  };"
+        "  const r = C.circuits.serialize_ShieldedReceive(Ctxt, orig);"
+        "  expect(r.result).toBeInstanceOf(Uint8Array);"
+        "  expect(r.result.length).toBe(578);"
+        "});"
+        ""
+        "test('roundtrip preserves ShieldedReceive struct', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = {"
+        "    commitment: N32(),"
+        "    contract_address: { is_some: true, value: N32() },"
+        "    ciphertext: { is_some: false, value: N512() }"
+        "  };"
+        "  const r = C.circuits.roundtrip_ShieldedReceive(Ctxt, orig);"
+        "  // Maybe with is_some=false zeros the value bytes in the wire format;"
+        "  // the deserializer reconstructs them as zero. Other fields roundtrip exactly."
+        "  expect(r.result).toEqual({"
+        "    commitment: N32(),"
+        "    contract_address: { is_some: true, value: N32() },"
+        "    ciphertext: { is_some: false, value: new Uint8Array(512) }"
+        "  });"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
+      "  log(ShieldedMint {"
+      "    commitment: disclose(n),"
+      "    domain_sep: disclose(n),"
+      "    amount: Maybe<Uint<128>> { is_some: true, value: 1000 as Uint<128> }"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
+      "  log(ShieldedMint {"
+      "    commitment: disclose(n),"
+      "    domain_sep: disclose(n),"
+      "    amount: Maybe<Uint<128>> { is_some: true, value: 100 as Uint<128> }"
+      "  });"
+      "  log(ShieldedMint {"
+      "    commitment: disclose(n),"
+      "    domain_sep: disclose(n),"
+      "    amount: Maybe<Uint<128>> { is_some: false, value: 0 as Uint<128> }"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) {"
+      "    log(ShieldedMint {"
+      "      commitment: disclose(n),"
+      "      domain_sep: disclose(n),"
+      "      amount: Maybe<Uint<128>> { is_some: true, value: 42 as Uint<128> }"
+      "    });"
+      "  }"
+      "  return n;"
+      "}"
+      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "  return n;"
+      "}"
+      "export circuit serialize_ShieldedMint(x: ShieldedMint): Bytes<81> {"
+      "  return serialize<ShieldedMint, 81>(x);"
+      "}"
+      "export circuit deserialize_ShieldedMint(x: Bytes<81>): ShieldedMint {"
+      "  return deserialize<ShieldedMint, 81>(x);"
+      "}"
+      "export circuit roundtrip_ShieldedMint(orig: ShieldedMint): ShieldedMint {"
+      "  const bytes = serialize<ShieldedMint, 81>(orig);"
+      "  return deserialize<ShieldedMint, 81>(bytes);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const N32 = () => new Uint8Array(32).fill(0x42);"
+        ""
+        "test('single log produces exactly one event tagged log', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "  expect(r.events[0].tag).toBe('log');"
+        "});"
+        ""
+        "test('log event has decoded VersionedLogItem fields', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events[0].content.version).toBe(1);"
+        "});"
+        ""
+        "test('two log statements produce two events', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_two(Ctxt, N32());"
+        "  expect(r.events.length).toBe(2);"
+        "});"
+        ""
+        "test('conditional log emits when condition is true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "});"
+        ""
+        "test('conditional log emits nothing when condition is false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  expect(r.events.length).toBe(0);"
+        "});"
+        ""
+        "test('pure circuit (no log) has no events field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  expect(r.events).toBeUndefined();"
+        "});"
+        ""
+        "test('serialize_ShieldedMint returns 81-byte payload', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = {"
+        "    commitment: N32(),"
+        "    domain_sep: N32(),"
+        "    amount: { is_some: true, value: 999n }"
+        "  };"
+        "  const r = C.circuits.serialize_ShieldedMint(Ctxt, orig);"
+        "  expect(r.result.length).toBe(81);"
+        "});"
+        ""
+        "test('roundtrip preserves ShieldedMint struct', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = {"
+        "    commitment: N32(),"
+        "    domain_sep: N32(),"
+        "    amount: { is_some: true, value: 12345n }"
+        "  };"
+        "  const r = C.circuits.roundtrip_ShieldedMint(Ctxt, orig);"
+        "  expect(r.result).toEqual(orig);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
+      "  log(ShieldedBurn {"
+      "    nullifier: disclose(n),"
+      "    amount: Maybe<Uint<128>> { is_some: true, value: 500 as Uint<128> }"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
+      "  log(ShieldedBurn {"
+      "    nullifier: disclose(n),"
+      "    amount: Maybe<Uint<128>> { is_some: true, value: 1 as Uint<128> }"
+      "  });"
+      "  log(ShieldedBurn {"
+      "    nullifier: disclose(n),"
+      "    amount: Maybe<Uint<128>> { is_some: false, value: 0 as Uint<128> }"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) {"
+      "    log(ShieldedBurn {"
+      "      nullifier: disclose(n),"
+      "      amount: Maybe<Uint<128>> { is_some: true, value: 7 as Uint<128> }"
+      "    });"
+      "  }"
+      "  return n;"
+      "}"
+      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "  return n;"
+      "}"
+      "export circuit serialize_ShieldedBurn(x: ShieldedBurn): Bytes<49> {"
+      "  return serialize<ShieldedBurn, 49>(x);"
+      "}"
+      "export circuit deserialize_ShieldedBurn(x: Bytes<49>): ShieldedBurn {"
+      "  return deserialize<ShieldedBurn, 49>(x);"
+      "}"
+      "export circuit roundtrip_ShieldedBurn(orig: ShieldedBurn): ShieldedBurn {"
+      "  const bytes = serialize<ShieldedBurn, 49>(orig);"
+      "  return deserialize<ShieldedBurn, 49>(bytes);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const N32 = () => new Uint8Array(32).fill(0x42);"
+        ""
+        "test('single log produces exactly one event tagged log', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "  expect(r.events[0].tag).toBe('log');"
+        "});"
+        ""
+        "test('log event has decoded VersionedLogItem fields', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events[0].content.version).toBe(1);"
+        "});"
+        ""
+        "test('two log statements produce two events', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_two(Ctxt, N32());"
+        "  expect(r.events.length).toBe(2);"
+        "});"
+        ""
+        "test('conditional log emits when condition is true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "});"
+        ""
+        "test('conditional log emits nothing when condition is false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  expect(r.events.length).toBe(0);"
+        "});"
+        ""
+        "test('pure circuit (no log) has no events field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  expect(r.events).toBeUndefined();"
+        "});"
+        ""
+        "test('serialize_ShieldedBurn returns 49-byte payload', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { nullifier: N32(), amount: { is_some: true, value: 100n } };"
+        "  const r = C.circuits.serialize_ShieldedBurn(Ctxt, orig);"
+        "  expect(r.result.length).toBe(49);"
+        "});"
+        ""
+        "test('roundtrip preserves ShieldedBurn struct', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { nullifier: N32(), amount: { is_some: false, value: 0n } };"
+        "  const r = C.circuits.roundtrip_ShieldedBurn(Ctxt, orig);"
+        "  expect(r.result).toEqual(orig);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
+      "  log(UnshieldedSpend {"
+      "    sender: Either<ZswapCoinPublicKey, ContractAddress> {"
+      "      is_left: true,"
+      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
+      "      right: ContractAddress { bytes: disclose(n) }"
+      "    },"
+      "    token_type: disclose(n),"
+      "    amount: 500 as Uint<128>"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
+      "  log(UnshieldedSpend {"
+      "    sender: Either<ZswapCoinPublicKey, ContractAddress> {"
+      "      is_left: true,"
+      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
+      "      right: ContractAddress { bytes: disclose(n) }"
+      "    },"
+      "    token_type: disclose(n),"
+      "    amount: 1 as Uint<128>"
+      "  });"
+      "  log(UnshieldedSpend {"
+      "    sender: Either<ZswapCoinPublicKey, ContractAddress> {"
+      "      is_left: false,"
+      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
+      "      right: ContractAddress { bytes: disclose(n) }"
+      "    },"
+      "    token_type: disclose(n),"
+      "    amount: 2 as Uint<128>"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) {"
+      "    log(UnshieldedSpend {"
+      "      sender: Either<ZswapCoinPublicKey, ContractAddress> {"
+      "        is_left: true,"
+      "        left: ZswapCoinPublicKey { bytes: disclose(n) },"
+      "        right: ContractAddress { bytes: disclose(n) }"
+      "      },"
+      "      token_type: disclose(n),"
+      "      amount: 1 as Uint<128>"
+      "    });"
+      "  }"
+      "  return n;"
+      "}"
+      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "  return n;"
+      "}"
+      "export circuit serialize_UnshieldedSpend(x: UnshieldedSpend): Bytes<81> {"
+      "  return serialize<UnshieldedSpend, 81>(x);"
+      "}"
+      "export circuit deserialize_UnshieldedSpend(x: Bytes<81>): UnshieldedSpend {"
+      "  return deserialize<UnshieldedSpend, 81>(x);"
+      "}"
+      "export circuit roundtrip_UnshieldedSpend(orig: UnshieldedSpend): UnshieldedSpend {"
+      "  const bytes = serialize<UnshieldedSpend, 81>(orig);"
+      "  return deserialize<UnshieldedSpend, 81>(bytes);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const N32 = () => new Uint8Array(32).fill(0x42);"
+        "const senderL = () => ({"
+        "  is_left: true,"
+        "  left: { bytes: N32() },"
+        "  right: { bytes: N32() }"
+        "});"
+        ""
+        "test('single log produces exactly one event tagged log', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "  expect(r.events[0].tag).toBe('log');"
+        "});"
+        ""
+        "test('log event has decoded VersionedLogItem fields', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events[0].content.version).toBe(1);"
+        "});"
+        ""
+        "test('two log statements produce two events', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_two(Ctxt, N32());"
+        "  expect(r.events.length).toBe(2);"
+        "});"
+        ""
+        "test('conditional log emits when condition is true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "});"
+        ""
+        "test('conditional log emits nothing when condition is false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  expect(r.events.length).toBe(0);"
+        "});"
+        ""
+        "test('pure circuit (no log) has no events field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  expect(r.events).toBeUndefined();"
+        "});"
+        ""
+        "test('serialize_UnshieldedSpend returns 81-byte payload', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { sender: senderL(), token_type: N32(), amount: 777n };"
+        "  const r = C.circuits.serialize_UnshieldedSpend(Ctxt, orig);"
+        "  expect(r.result.length).toBe(81);"
+        "});"
+        ""
+        "test('roundtrip preserves UnshieldedSpend struct', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { sender: senderL(), token_type: N32(), amount: 555n };"
+        "  const r = C.circuits.roundtrip_UnshieldedSpend(Ctxt, orig);"
+        "  // Either's inactive variant (right when is_left=true) is reconstructed"
+        "  // as default on deserialize; only the active variant roundtrips."
+        "  expect(r.result).toEqual({"
+        "    sender: { is_left: true, left: { bytes: N32() }, right: { bytes: new Uint8Array(32) } },"
+        "    token_type: N32(),"
+        "    amount: 555n"
+        "  });"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
+      "  log(UnshieldedReceive {"
+      "    recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
+      "      is_left: true,"
+      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
+      "      right: ContractAddress { bytes: disclose(n) }"
+      "    },"
+      "    token_type: disclose(n),"
+      "    amount: 500 as Uint<128>"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
+      "  log(UnshieldedReceive {"
+      "    recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
+      "      is_left: true,"
+      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
+      "      right: ContractAddress { bytes: disclose(n) }"
+      "    },"
+      "    token_type: disclose(n),"
+      "    amount: 1 as Uint<128>"
+      "  });"
+      "  log(UnshieldedReceive {"
+      "    recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
+      "      is_left: false,"
+      "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
+      "      right: ContractAddress { bytes: disclose(n) }"
+      "    },"
+      "    token_type: disclose(n),"
+      "    amount: 2 as Uint<128>"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) {"
+      "    log(UnshieldedReceive {"
+      "      recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
+      "        is_left: true,"
+      "        left: ZswapCoinPublicKey { bytes: disclose(n) },"
+      "        right: ContractAddress { bytes: disclose(n) }"
+      "      },"
+      "      token_type: disclose(n),"
+      "      amount: 1 as Uint<128>"
+      "    });"
+      "  }"
+      "  return n;"
+      "}"
+      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "  return n;"
+      "}"
+      "export circuit serialize_UnshieldedReceive(x: UnshieldedReceive): Bytes<81> {"
+      "  return serialize<UnshieldedReceive, 81>(x);"
+      "}"
+      "export circuit deserialize_UnshieldedReceive(x: Bytes<81>): UnshieldedReceive {"
+      "  return deserialize<UnshieldedReceive, 81>(x);"
+      "}"
+      "export circuit roundtrip_UnshieldedReceive(orig: UnshieldedReceive): UnshieldedReceive {"
+      "  const bytes = serialize<UnshieldedReceive, 81>(orig);"
+      "  return deserialize<UnshieldedReceive, 81>(bytes);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const N32 = () => new Uint8Array(32).fill(0x42);"
+        "const recipL = () => ({"
+        "  is_left: true,"
+        "  left: { bytes: N32() },"
+        "  right: { bytes: N32() }"
+        "});"
+        ""
+        "test('single log produces exactly one event tagged log', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "  expect(r.events[0].tag).toBe('log');"
+        "});"
+        ""
+        "test('log event has decoded VersionedLogItem fields', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events[0].content.version).toBe(1);"
+        "});"
+        ""
+        "test('two log statements produce two events', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_two(Ctxt, N32());"
+        "  expect(r.events.length).toBe(2);"
+        "});"
+        ""
+        "test('conditional log emits when condition is true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "});"
+        ""
+        "test('conditional log emits nothing when condition is false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  expect(r.events.length).toBe(0);"
+        "});"
+        ""
+        "test('pure circuit (no log) has no events field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  expect(r.events).toBeUndefined();"
+        "});"
+        ""
+        "test('serialize_UnshieldedReceive returns 81-byte payload', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { recipient: recipL(), token_type: N32(), amount: 777n };"
+        "  const r = C.circuits.serialize_UnshieldedReceive(Ctxt, orig);"
+        "  expect(r.result.length).toBe(81);"
+        "});"
+        ""
+        "test('roundtrip preserves UnshieldedReceive struct', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { recipient: recipL(), token_type: N32(), amount: 555n };"
+        "  const r = C.circuits.roundtrip_UnshieldedReceive(Ctxt, orig);"
+        "  // Either's inactive variant (right when is_left=true) is reconstructed"
+        "  // as default on deserialize; only the active variant roundtrips."
+        "  expect(r.result).toEqual({"
+        "    recipient: { is_left: true, left: { bytes: N32() }, right: { bytes: new Uint8Array(32) } },"
+        "    token_type: N32(),"
+        "    amount: 555n"
+        "  });"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
+      "  log(UnshieldedMint {"
+      "    domain_sep: disclose(n),"
+      "    token_type: disclose(n),"
+      "    amount: 1000 as Uint<128>"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
+      "  log(UnshieldedMint {"
+      "    domain_sep: disclose(n),"
+      "    token_type: disclose(n),"
+      "    amount: 1 as Uint<128>"
+      "  });"
+      "  log(UnshieldedMint {"
+      "    domain_sep: disclose(n),"
+      "    token_type: disclose(n),"
+      "    amount: 2 as Uint<128>"
+      "  });"
+      "  return n;"
+      "}"
+      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) {"
+      "    log(UnshieldedMint {"
+      "      domain_sep: disclose(n),"
+      "      token_type: disclose(n),"
+      "      amount: 5 as Uint<128>"
+      "    });"
+      "  }"
+      "  return n;"
+      "}"
+      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "  return n;"
+      "}"
+      "export circuit serialize_UnshieldedMint(x: UnshieldedMint): Bytes<80> {"
+      "  return serialize<UnshieldedMint, 80>(x);"
+      "}"
+      "export circuit deserialize_UnshieldedMint(x: Bytes<80>): UnshieldedMint {"
+      "  return deserialize<UnshieldedMint, 80>(x);"
+      "}"
+      "export circuit roundtrip_UnshieldedMint(orig: UnshieldedMint): UnshieldedMint {"
+      "  const bytes = serialize<UnshieldedMint, 80>(orig);"
+      "  return deserialize<UnshieldedMint, 80>(bytes);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const N32 = () => new Uint8Array(32).fill(0x42);"
+        ""
+        "test('single log produces exactly one event tagged log', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "  expect(r.events[0].tag).toBe('log');"
+        "});"
+        ""
+        "test('log event has decoded VersionedLogItem fields', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events[0].content.version).toBe(1);"
+        "});"
+        ""
+        "test('two log statements produce two events', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_two(Ctxt, N32());"
+        "  expect(r.events.length).toBe(2);"
+        "});"
+        ""
+        "test('conditional log emits when condition is true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "});"
+        ""
+        "test('conditional log emits nothing when condition is false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  expect(r.events.length).toBe(0);"
+        "});"
+        ""
+        "test('pure circuit (no log) has no events field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  expect(r.events).toBeUndefined();"
+        "});"
+        ""
+        "test('serialize_UnshieldedMint returns 80-byte payload', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { domain_sep: N32(), token_type: N32(), amount: 999n };"
+        "  const r = C.circuits.serialize_UnshieldedMint(Ctxt, orig);"
+        "  expect(r.result.length).toBe(80);"
+        "});"
+        ""
+        "test('roundtrip preserves UnshieldedMint struct', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { domain_sep: N32(), token_type: N32(), amount: 12345n };"
+        "  const r = C.circuits.roundtrip_UnshieldedMint(Ctxt, orig);"
+        "  expect(r.result).toEqual(orig);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
+      "  log(Paused {});"
+      "  return n;"
+      "}"
+      "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
+      "  log(Paused {});"
+      "  log(Paused {});"
+      "  return n;"
+      "}"
+      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) { log(Paused {}); }"
+      "  return n;"
+      "}"
+      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "  return n;"
+      "}"
+      "export circuit serialize_Paused(x: Paused): Bytes<0> {"
+      "  return serialize<Paused, 0>(x);"
+      "}"
+      "export circuit deserialize_Paused(x: Bytes<0>): Paused {"
+      "  return deserialize<Paused, 0>(x);"
+      "}"
+      "export circuit roundtrip_Paused(orig: Paused): Paused {"
+      "  const bytes = serialize<Paused, 0>(orig);"
+      "  return deserialize<Paused, 0>(bytes);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const N32 = () => new Uint8Array(32).fill(0x42);"
+        ""
+        "test('single log produces exactly one event tagged log', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "  expect(r.events[0].tag).toBe('log');"
+        "});"
+        ""
+        "test('log event has decoded VersionedLogItem fields', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32());"
+        "  expect(r.events[0].content.version).toBe(1);"
+        "});"
+        ""
+        "test('two log statements produce two events', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_two(Ctxt, N32());"
+        "  expect(r.events.length).toBe(2);"
+        "});"
+        ""
+        "test('conditional log emits when condition is true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  expect(r.events.length).toBe(1);"
+        "});"
+        ""
+        "test('conditional log emits nothing when condition is false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  expect(r.events.length).toBe(0);"
+        "});"
+        ""
+        "test('pure circuit (no log) has no events field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  expect(r.events).toBeUndefined();"
+        "});"
+        ""
+        "test('serialize_Paused returns 0-byte payload', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.serialize_Paused(Ctxt, {});"
+        "  expect(r.result.length).toBe(0);"
+        "});"
+        ""
+        "test('roundtrip preserves empty Paused struct', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.roundtrip_Paused(Ctxt, {});"
+        "  expect(r.result).toEqual({});"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit emit_one(n: Bytes<32>, p: Bytes<256>): Bytes<32> {"
+      "  log(Misc { name: disclose(n), payload: disclose(p) });"
+      "  return n;"
+      "}"
+      "export circuit emit_two(n: Bytes<32>, p: Bytes<256>): Bytes<32> {"
+      "  log(Misc { name: disclose(n), payload: disclose(p) });"
+      "  log(Misc { name: disclose(n), payload: disclose(p) });"
+      "  return n;"
+      "}"
+      "export circuit cond_log(b: Boolean, n: Bytes<32>, p: Bytes<256>): Bytes<32> {"
+      "  if (disclose(b)) { log(Misc { name: disclose(n), payload: disclose(p) }); }"
+      "  return n;"
+      "}"
+      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "  return n;"
+      "}"
+      "export circuit serialize_Misc(x: Misc): Bytes<288> {"
+      "  return serialize<Misc, 288>(x);"
+      "}"
+      "export circuit deserialize_Misc(x: Bytes<288>): Misc {"
+      "  return deserialize<Misc, 288>(x);"
+      "}"
+      "export circuit roundtrip_Misc(orig: Misc): Misc {"
+      "  const bytes = serialize<Misc, 288>(orig);"
+      "  return deserialize<Misc, 288>(bytes);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const N32  = () => new Uint8Array(32).fill(0x42);"
+        "const N256 = () => new Uint8Array(256).fill(0x77);"
+        ""
+        "test('single log produces exactly one event tagged log', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32(), N256());"
+        "  expect(r.events.length).toBe(1);"
+        "  expect(r.events[0].tag).toBe('log');"
+        "});"
+        ""
+        "test('log event has decoded VersionedLogItem fields', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_one(Ctxt, N32(), N256());"
+        "  expect(r.events[0].content.version).toBe(1);"
+        "});"
+        ""
+        "test('two log statements produce two events', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.emit_two(Ctxt, N32(), N256());"
+        "  expect(r.events.length).toBe(2);"
+        "});"
+        ""
+        "test('conditional log emits when condition is true', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, true, N32(), N256());"
+        "  expect(r.events.length).toBe(1);"
+        "});"
+        ""
+        "test('conditional log emits nothing when condition is false', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.cond_log(Ctxt, false, N32(), N256());"
+        "  expect(r.events.length).toBe(0);"
+        "});"
+        ""
+        "test('pure circuit (no log) has no events field', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  expect(r.events).toBeUndefined();"
+        "});"
+        ""
+        "test('serialize_Misc returns 288-byte payload', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { name: N32(), payload: N256() };"
+        "  const r = C.circuits.serialize_Misc(Ctxt, orig);"
+        "  expect(r.result.length).toBe(288);"
+        "});"
+        ""
+        "test('roundtrip preserves Misc struct', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const orig = { name: N32(), payload: N256() };"
+        "  const r = C.circuits.roundtrip_Misc(Ctxt, orig);"
+        "  expect(r.result).toEqual(orig);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
 )
+

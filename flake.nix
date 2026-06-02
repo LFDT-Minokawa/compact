@@ -31,18 +31,21 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
-    onchain-runtime-v3 = {
+    onchain-runtime-v4 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8";
+      # this has to take the ledger tag and not the onchain-runtime tag since
+      # since the onchain-runtime tag disables some of the dependencies that
+      # are required for compact's flake atm.
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1";
       inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
@@ -70,7 +73,7 @@
   outputs = {
     self,
     zkir,
-    onchain-runtime-v3,
+    onchain-runtime-v4,
     zkir-wasm,
     zkir-v3,
     zkir-v3-wasm,
@@ -176,11 +179,11 @@
             };
 
             nixDependenciesMap = {
-              "@midnight-ntwrk/onchain-runtime-v3" = let
-                pkg = onchain-runtime-v3.packages.${system}.onchain-runtime-wasm;
+              "@midnight-ntwrk/onchain-runtime-v4" = let
+                pkg = onchain-runtime-v4.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v3-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v3";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v4-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v4";
               };
             };
           };
@@ -220,7 +223,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.31.106"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.31.108"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples

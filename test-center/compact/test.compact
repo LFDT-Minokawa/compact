@@ -126,3 +126,7 @@ circuit ballot_repr(): Bytes<32> {
 circuit check_rel_ops(x: Uint<16>) : Boolean {
   return x < 100 || x <=10 || x > 40 || x >= 45 || x != 10;
 }
+
+circuit log_sth() : [] {
+  log ( ShieldedSpend {authority} );
+}

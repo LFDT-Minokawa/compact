@@ -1710,8 +1710,8 @@ The body is evaluated each time the circuit is called.
 A Compact circuit is considered *pure* if it computes its outputs from its
 inputs without reference to or modification of public state (via the ledger) or
 private state (via witnesses). In practice, the compiler considers a circuit to
-be impure if the body of the circuit contains a ledger operation, a call to any
-impure circuit, or a call to a witness.
+be impure if the body of the circuit contains a ledger operation, a log operation,
+a call to any impure circuit, or a call to a witness.
 
 Some external circuits defined in `CompactStandardLibrary` are witnesses; calls
 to these make the caller impure. The remainder are considered pure, so calls to
@@ -2072,6 +2072,7 @@ of expression.
 |                    | \|      | `Bytes` `[` [*bytes-arg*](#syntax-of-expressions) `,` ⋯ `,` [*bytes-arg*](#syntax-of-expressions) `,`<sup>opt</sup> `]`                                                                    |
 |                    | \|      | [*tref*](#primitive-types) `{` [*struct-arg*](#syntax-of-expressions) `,` ⋯ `,` [*struct-arg*](#syntax-of-expressions) `,`<sup>opt</sup> `}`                                               |
 |                    | \|      | `assert` `(` [*expr*](#syntax-of-expressions) `,` [*str*](#terminal-names) `)`                                                                                                             |
+|                    | \|      | `log` `(` [*expr*](#syntax-of-expressions) `)`                                                                                                                                             |
 |                    | \|      | `disclose` `(` [*expr*](#syntax-of-expressions) `)`                                                                                                                                        |
 |                    | \|      | [*term*](#syntax-of-expressions)                                                                                                                                                           |
 | *term*             | &xrarr; | [*id*](#terminal-names)                                                                                                                                                                    |
@@ -3161,6 +3162,50 @@ error, i.e., the `assert` form halts computation of the enclosing top-level
 circuit or constructor with the message *msg*.
 
 Each assertion is checked at run time and constrained in-circuit.
+
+### Logs
+
+A log has the form `log(`*e*`)` where *eE is an expression.
+*e* must have an event type. Event types are a pre-defined set of struct types.
+[Compact standard library](compact-standard-library) provides detailed descriptions of supported events.
+
+The type of evey `log` form is `[]`.
+
+An attempt to `log` a non-event expression is a static error.
+An attempt to `log` an event in the construction is a static error.
+
+Evaluation of `log(`*e*`)` proceeds by evaluating *e*, computing its canonical
+byte encoding, and emitting a structured `VersionedLogItem` with three fields:
+- `version`, the event format version (presently `1`),
+- `eventType`, identifying the declared event type by its tag, and
+- `data`, containing the byte encoding.
+
+The byte encoding is done by instantiating the `serialize<`*T*, *#n*`>` for
+the event to be logged. The generic serialize and deserialize circuits are
+defined in Compact standard library. The compact compiler serializes the argument to
+`log` by default, however, it does not provide the deserialize circuit by default.
+Thus, if a consumer requires the deserialize they must define an instance of it in
+their Compact program.
+
+For example, the following circuit emits a `ShieldedSpend` event each time
+it is invoked and if the consumer wants to decode the logged `nullifier`
+they most include `deserializeShieldedSpend`:
+
+```compact
+import CompactStandardLibrary;
+export circuit spend(n: Bytes<32>): [] {
+  log(ShieldedSpend { nullifier: disclose(n) });
+}
+
+export circuit deserializeShieldedSpend(x: Bytes<32>) : ShieldedSpend {
+  return deserialize<ShieldedSpend, 32>(x);
+}
+```
+
+The emitted item is appended, in order of evaluation, to the events list of
+the enclosing exported circuit's return value, where it can be read
+from TypeScript via the `events` field of `CircuitResults` (see
+[Interacting with Compact from TypeScript](#interacting-with-compact-from-typescript)).
 
 ### Explicit disclosure
 
