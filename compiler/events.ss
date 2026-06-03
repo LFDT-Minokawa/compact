@@ -16,7 +16,7 @@
 ;;; limitations under the License.
 
 (library (events)
-  (export event-declarations event-tag-of event-size-of event-version max-log-size)
+  (export event-declarations event-tag-of event-size-of event-version max-emit-size)
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
@@ -32,7 +32,7 @@
   ; Maximum serialized event size in bytes. Must match MAX_LOG_SIZE in
   ; midnight-ledger's onchain-vm/src/ops.rs:
   ;     pub const MAX_LOG_SIZE: u64 = 1 << 19;
-  (define-syntax max-log-size
+  (define-syntax max-emit-size
     (identifier-syntax (expt 2 19)))   ; 512 KiB = 524288 bytes
 
   ; maps event-name symbol -> tag integer.
@@ -104,10 +104,10 @@
                  (syntax-error #'tag
                    "event tag must be an exact integer in [0, 255]")))
              (let ([s (syntax->datum #'size)])
-               (unless (and (integer? s) (exact? s) (<= 0 s max-log-size))
+               (unless (and (integer? s) (exact? s) (<= 0 s max-emit-size))
                  (syntax-error #'size
-                   (format "event size must be an exact non-negative integer not exceeding max-log-size (~a)"
-                           max-log-size))))
+                   (format "event size must be an exact non-negative integer not exceeding max-emit-size (~a)"
+                           max-emit-size))))
              (f #'name #'tag #'size #'(argument-name ...) #'(argument-type ...)))])))
 
     ; Reset on every call. event-declarations is itself memoized at the

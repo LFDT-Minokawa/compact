@@ -26,13 +26,13 @@
           (langs)
           (pass-helpers))
 
-  (define-pass drop-ledger-runtime : Lloweredlog (ir) -> Lposttypescript ()
+  (define-pass drop-ledger-runtime : Lloweredemit (ir) -> Lposttypescript ()
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        `(program ,src ((,export-name* ,name*) ...)
           ,(fold-right
              (lambda (pelt pelt*)
-               (if (Lloweredlog-Export-Type-Definition? pelt)
+               (if (Lloweredemit-Export-Type-Definition? pelt)
                    pelt*
                    (cons (Program-Element pelt) pelt*)))
              '()
@@ -54,7 +54,7 @@
       [(!= ,src ,[type] ,[expr1] ,[expr2]) (do-not src `(== ,src ,type ,expr1 ,expr2))]
       [(cast-from-bytes ,src ,type ,len ,[expr])
        (let ([expr `(bytes->field ,src ,len ,expr)])
-         (nanopass-case (Lloweredlog Type) type
+         (nanopass-case (Lloweredemit Type) type
            [(tunsigned ,src ,nat) `(downcast-unsigned ,src #f ,nat ,expr)]
            [else expr]))])
     (Type : Type (ir) -> Type ()
@@ -660,8 +660,7 @@
                     (loop (cdr elt-name*) (cdr type*)))))]
          [else (source-errorf src "expected structure type, received ~a"
                               (format-type type))])]
-      [(log ,src ,event-version ,event-tag ,type ,len ,[Care : expr -> * type^] ,vm-code)
-       ; TODO add more check for event version and tag
+      [(emit ,src ,event-version ,event-tag ,type ,len ,[Care : expr -> * type^] ,vm-code)
        (nanopass-case (Linlined Type) type^
          [(tbytes ,src^ ,len)
           (with-output-language (Linlined Type) `(ttuple ,src))]
@@ -1457,9 +1456,9 @@
            [else (assert cannot-happen)]))]
       [(elt-ref ,src ,[expr ctv] ,elt-name)
        (handle-elt-ref src expr ctv elt-name)]
-      [(log ,src ,event-version ,event-tag ,[type] ,len ,[expr ctv] ,vm-code)
+      [(emit ,src ,event-version ,event-tag ,[type] ,len ,[expr ctv] ,vm-code)
        (values
-         `(log ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
+         `(emit ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
          (CTV-unknown no-var-name))]
       [(+ ,src ,mbits ,expr1 ,expr2)
        (define (add x y)
@@ -1720,9 +1719,9 @@
        (values
          `(elt-ref ,src ,expr ,elt-name)
          idset)]
-      [(log ,src ,event-version ,event-tag ,type ,len ,[Value : expr idset] ,vm-code)
+      [(emit ,src ,event-version ,event-tag ,type ,len ,[Value : expr idset] ,vm-code)
        (values
-         `(log ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
+         `(emit ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
          idset)]
       [(+ ,src ,mbits ,[Value : expr1 idset1] ,[Value : expr2 idset2])
        (values

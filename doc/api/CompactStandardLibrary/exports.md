@@ -173,7 +173,7 @@ struct UserAddress { bytes: Bytes<32>; }
 
 ## Events
 
-Events are struct types that can be logged using a `log` operation.
+Events are struct types that can be emitted using an `emit` operation.
 
 ### `ShieldedSpend`
 

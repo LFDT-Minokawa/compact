@@ -1305,8 +1305,8 @@
 
   (define-pass inject-serialize : Lexpanded (ir) -> Lserialized ()
     (Expression : Expression (ir) -> Expression ()
-      [(log ,src ,[expr])
-       `(log ,src ,expr (serialized-payload ,src ,expr))]))
+      [(emit ,src ,[expr])
+       `(emit ,src ,expr (serialized-payload ,src ,expr))]))
 
   (define-pass infer-types : Lserialized (ir) -> Ltypes ()
     (definitions
@@ -2216,9 +2216,9 @@
                  (internal-errorf 'validate-event-type!
                    "event ~a declared canonical size ~d but structural layout yields ~d"
                    struct-name declared-size structural-size))
-               (when (> structural-size max-log-size)
-                 (source-errorf src "serialized event ~a has size ~d bytes, exceeding the maximum log payload size of ~d bytes (MAX_LOG_SIZE)"
-                                struct-name structural-size max-log-size))
+               (when (> structural-size max-emit-size)
+                 (source-errorf src "serialized event ~a has size ~d bytes, exceeding the maximum emit payload size of ~d bytes"
+                                struct-name structural-size max-emit-size))
                (values struct-name structural-size))]
             [else
              (source-errorf src "expected event struct type, received ~a"
@@ -2827,14 +2827,14 @@
        (let-values ([(struct-name size) (validate-event-type! src type)])
          (values (build-serialize src type expr)
                  (with-output-language (Ltypes Type) `(tbytes ,src ,size))))]
-      [(log ,src ,[Care : expr type] ,[Care : expr^ type^])
+      [(emit ,src ,[Care : expr type] ,[Care : expr^ type^])
        (nanopass-case (Ltypes Type) (de-alias type #t)
          [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
           (unless (hashtable-ref (event-ht) struct-name #f)
             (source-errorf src "~a is not a declared event type" struct-name))
           (nanopass-case (Ltypes Type) (de-alias type^ #t)
             [(tbytes ,src^ ,len)
-             (values `(log ,src ,type ,expr ,len ,expr^)
+             (values `(emit ,src ,type ,expr ,len ,expr^)
                      (with-output-language (Ltypes Type) `(ttuple ,src)))]
             [else (assert cannot-happen)])]
          ; can't presently happen it is checked in serialized-payload
@@ -4163,7 +4163,7 @@
                     (loop (cdr elt-name*) (cdr type*) (fx+ i 1)))))]
          [else (source-errorf src "expected structure type, received ~a"
                               (format-type type))])]
-      [(log ,src ,type ,[Care : expr -> * type^] ,len ,[Care : expr^ -> * type^^])
+      [(emit ,src ,type ,[Care : expr -> * type^] ,len ,[Care : expr^ -> * type^^])
        (nanopass-case (Lnodca Type) (de-alias type^)
          [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
           (unless (hashtable-ref (event-ht) struct-name #f)
@@ -4703,24 +4703,24 @@
        (process-function-name! function-name)
        ir]))
 
-  (define-pass reject-constructor-log : Lnodca (ir) -> Lnodca ()
-    ; this pass raises an exception if the constructor attempts a log
+  (define-pass reject-constructor-emit : Lnodca (ir) -> Lnodca ()
+    ; this pass raises an exception if the constructor attempts an emit
     (definitions
-      (define-condition-type &log-condition &condition
-        make-log-condition log-condition?
-        (function-name log-condition-function-name)
-        (src log-condition-src)
-        (reason log-condition-reason))
+      (define-condition-type &emit-condition &condition
+        make-emit-condition emit-condition?
+        (function-name emit-condition-function-name)
+        (src emit-condition-src)
+        (reason emit-condition-reason))
       ; function-ht maps ids (circuit names) to one of:
       ;   an Lnodca Expression:  a circuit that has yet to be processed
       ;   inprocess-circuit:     a circuit that is being processed; used to detect cycles
-      ;   #f:                    a processed circuit, determined not to log
-      ;   a sealed condition:    a processed circuit, determined to at least log once
+      ;   #f:                    a processed circuit, determined not to emit
+      ;   a sealed condition:    a processed circuit, determined to at least emit once
       (define function-ht (make-eq-hashtable))
       (define (process-circuit! a)
         (let ([function-name (car a)] [maybe-expr (cdr a)])
           (when (Lnodca-Expression? maybe-expr)
-            (guard (c [(log-condition? c) (set-cdr! a c)]
+            (guard (c [(emit-condition? c) (set-cdr! a c)]
                       [else (raise-continuable c)])
               (set-cdr! a 'inprocess-circuit)
               (Expression maybe-expr function-name)
@@ -4730,7 +4730,7 @@
           (process-circuit! a)
           (let ([result (cdr a)])
             (assert (not (eq? result 'inprocess-circuit)))
-            (when (log-condition? result)
+            (when (emit-condition? result)
               (raise-continuable result)))))
       (define (de-alias type)
         (nanopass-case (Lnodca Type) type
@@ -4756,27 +4756,27 @@
        (let ([a (cons #f expr)])
          (process-circuit! a)
          (let ([result (cdr a)])
-           (when (log-condition? result)
-             (let ([offending-function-name (log-condition-function-name result)])
+           (when (emit-condition? result)
+             (let ([offending-function-name (emit-condition-function-name result)])
                (if (eq? offending-function-name #f)
-                   (source-errorf src "constructor cannot log an event but ~a at ~a"
-                                  (log-condition-reason result)
-                                  (format-source-object (log-condition-src result)))
-                   (source-errorf src "constructor cannot log an event but calls (directly or indirectly) ~a, which ~a at ~a"
+                   (source-errorf src "constructor cannot emit an event but ~a at ~a"
+                                  (emit-condition-reason result)
+                                  (format-source-object (emit-condition-src result)))
+                   (source-errorf src "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a"
                                   (id-sym offending-function-name)
                                   ;; offending-function-name
-                                  (log-condition-reason result)
-                                  (format-source-object (log-condition-src result))))))))
+                                  (emit-condition-reason result)
+                                  (format-source-object (emit-condition-src result))))))))
        ir])
     (Expression : Expression (ir function-name) -> Expression ()
       [(call ,src ,function-name^ ,[expr*] ...)
        (process-function-name! function-name^)
        ir]
-      [(log ,src ,type ,expr ,len ,expr^)
+      [(emit ,src ,type ,expr ,len ,expr^)
        (nanopass-case (Lnodca Type) (de-alias type)
          [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
-          (raise (make-log-condition function-name src
-                   (format "logs event ~a" struct-name)))]
+          (raise (make-emit-condition function-name src
+                   (format "emits event ~a" struct-name)))]
          [else (assert cannot-happen)])])
     (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
     (Function : Function (ir function-name) -> Function ()
@@ -4870,7 +4870,7 @@
        ir]))
 
   (define-pass identify-pure-circuits : Lnodca (ir) -> Lnodca ()
-    ; impure circuits are those that might touch public state (including logging),
+    ; impure circuits are those that might touch public state, emit an event,
     ; call any witnesses, or
     ; call any other impure circuits.  pure circuits are those that are not impure.
     ; we presently assume that all native circuits are pure.
@@ -4966,11 +4966,11 @@
       [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...)
        (raise (make-impure-condition function-name src
                 (format "accesses ledger field ~s" (id-sym ledger-field-name))))]
-      [(log ,src ,type ,[expr] ,len ,[expr^])
+      [(emit ,src ,type ,[expr] ,len ,[expr^])
        (nanopass-case (Lnodca Type) (de-alias type)
          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
           (raise (make-impure-condition function-name src
-                   (format "emits a log event of type ~s" struct-name)))]
+                   (format "emits an event of type ~s" struct-name)))]
          [else (assert cannot-happen)])]
       [(call ,src ,function-name^ ,[expr*] ...)
        (process-function-name! function-name src function-name^)
@@ -5826,16 +5826,16 @@
          [(Abs-multiple abs*) (list-ref abs* nat)]
          [else (assert cannot-happen)])]
 
-      [(log ,src ,type ,[* abs] ,len ,expr)
+      [(emit ,src ,type ,[* abs] ,len ,expr)
        (unless (null? control-witness*)
-         (record-leak! src "performing this log operation" control-witness*))
+         (record-leak! src "performing this emit operation" control-witness*))
        (let ([witness* (abs->witnesses
                          (add-path-point src
-                           "the argument to log"
+                           "the argument to emit"
                            ""
                            abs))])
          (unless (null? witness*)
-           (record-leak! src "log operation" witness*)))
+           (record-leak! src "emit operation" witness*)))
        abs]
 
       [(tuple-ref ,src ,[* abs] ,kindex)
@@ -6103,24 +6103,25 @@
     (Expression : Expression (ir) -> Expression ()
       [(disclose ,src ,[expr]) expr]))
 
-  (define-pass lower-log : Lnodisclose (ir) -> Lloweredlog ()
+  (define-pass lower-emit : Lnodisclose (ir) -> Lloweredemit ()
     (definitions
-      ; generates the vm-code instruction for `log`.
-      (define log-vm-code-source
+      ; generates the vm-code instruction for `emit` which is `log' in vm.
+      (define emit-vm-code-source
         #'((push [storage #f]
                  [value (state-value 'array
-                          ((state-value 'cell (align log-version 4))
-                           (state-value 'cell (align log-tag 1))
-                           (state-value 'cell log-payload)))])
+                          ((state-value 'cell (align emit-version 4))
+                           (state-value 'cell (align emit-tag 1))
+                           (state-value 'cell emit-payload)))])
+           ; this is the op code frmo the vm and has to stay log
            (log))))
     (Expression : Expression (ir) -> Expression ()
-      [(log ,src ,[type] ,[expr] ,len ,[expr^])
-       (nanopass-case (Lloweredlog Type) type
+      [(emit ,src ,[type] ,[expr] ,len ,[expr^])
+       (nanopass-case (Lloweredemit Type) type
          [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
           (let ([event-tag (or (event-tag-of struct-name)
                                (source-errorf src "~a is not a declared event type" struct-name))])
-            `(log ,src ,event-version ,event-tag ,type ,len ,expr^
-                  ,(make-vm-code log-vm-code-source)))]
+            `(emit ,src ,event-version ,event-tag ,type ,len ,expr^
+                  ,(make-vm-code emit-vm-code-source)))]
          [else (assert cannot-happen)])]))
 
   (define-passes analysis-passes
@@ -6134,14 +6135,14 @@
     (reject-recursive-circuits       Loneledger)
     (recognize-let                   Lnodca)
     (check-sealed-fields             Lnodca)
-    (reject-constructor-log          Lnodca)
+    (reject-constructor-emit         Lnodca)
     (reject-constructor-cc-calls     Lnodca)
     (identify-pure-circuits          Lnodca)
     (determine-ledger-paths          Lwithpaths0)
     (propagate-ledger-paths          Lwithpaths)
     (track-witness-data              Lwithpaths)
     (remove-disclose                 Lnodisclose)
-    (lower-log                       Lloweredlog))
+    (lower-emit                      Lloweredemit))
 
   (define-passes fixup-analysis-passes
     (expand-modules-and-types        Lexpanded)

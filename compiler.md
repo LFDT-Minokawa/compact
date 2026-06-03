@@ -245,7 +245,7 @@ syntax.
 ### Lserialized 
 
 The Lserialized language inserts a marker for serializing the argument to 
-`log` at a later time.
+`emit` at a later time.
 
 ### Ltypes
 
@@ -372,10 +372,10 @@ a series of path indices and a single (final) ADT operation.
 
 In the Lnodisclose language, the `disclose` expression is dropped.
 
-### Lloweredlog
+### Lloweredemit
 
-In the Lloweredlog language, the `log` form exposes the version and tag
-of the event to be logged. It also exposes the vm code instruction for `log`.
+In the Lloweredemit language, the `emit` form exposes the version and tag
+of the event to be emitted. It also exposes the vm code instruction for `emit`.
 
 ### Ltypescript
 
@@ -1254,7 +1254,7 @@ accessed in:
 
 ### inject-serialize (Lexpanded -> Lserialized)
 
-Duplicates the argument of `log` and adds a `serialized-payload` marker to
+Duplicates the argument of `emit` and adds a `serialized-payload` marker to
 one of them to serialize it in `infer-types` pass.
 
 ### infer-types (Lserialized -> Ltypes)
@@ -1490,7 +1490,7 @@ This pass also applies various restrictions regarding external contracts:
 * contract types may not appear in witness return type,
 * and `default` is not defined for contract types at the moment but it will be defined later.
 
-This pass also serializes the payload of a `log` expression and if a 
+This pass also serializes the payload of a `emit` expression and if a 
 `deserialzie` circuit is defined in source code, it inserts the body 
 for the instantiated `deserialize`. (De)serialization only works on
 event types.
@@ -1570,9 +1570,9 @@ circuit or any circuit that is reachable from an exported circuit. We
 presently assume that no witnesses or external circuits can modify any
 sealed fields.
 
-### reject-constructor-log (Lnodca -> Lnodca)
+### reject-constructor-emit (Lnodca -> Lnodca)
 
-This pass raises an exception if the constructor tries to log an event,
+This pass raises an exception if the constructor tries to emit an event,
 either directly or indirectly.
 
 ### reject-constructor-cc-calls (Lnodca -> Lnodca)
@@ -1588,7 +1588,7 @@ ability, that the circuit does not touch public state, does not call
 any impure circuits, and does not call any witnesses. Otherwise,
 it considers a circuit to be impure. Once it verifies that a circuit
 is impure it checks if the circuit has been declared pure. If so,
-it throws an error. Note that logging an event requires reading the public
+it throws an error. Note that emitting an event requires reading the public
 state and thus it causes a circuit to be impure.
 
 It considers a circuit that is not declared pure and is being called
@@ -1644,11 +1644,11 @@ to get the analysis to iterate many times over the same circuit.
 
 This pass drops `disclose`.
 
-### lower-log (Lnodisclose -> Lloweredlog)
+### lower-emit (Lnodisclose -> Lloweredemit)
 
-This pass generates the vm-code instructions for logging an event.
+This pass generates the vm-code instructions for emitting an event.
 
-### save-contract-info (Lloweredlog -> Lloweredlog)
+### save-contract-info (Lloweredemit -> Lloweredemit)
 
 This pass generates a `contract-info.json` for the contract `C` being compiled
 by Compactc. For contract `C`, this file contains the following in this order:
@@ -1664,7 +1664,7 @@ by Compactc. For contract `C`, this file contains the following in this order:
   full layout is required to navigate the on-chain state tree.
 
 
-### prepare-for-typescript (Lloweredlog -> Ltypescript)
+### prepare-for-typescript (Lloweredemit -> Ltypescript)
 
 This pass converts the input program into one that is more directly
 amenable to typescript generation.
@@ -1763,7 +1763,7 @@ Structure types, enum types, and type aliases created by declarations
 exported from the top level of a contract are replaced by the corrsponding
 struct, enum, or type name in the generated type-definition file.
 
-### drop-ledger-runtime (Lloweredlog -> Lposttypescript)
+### drop-ledger-runtime (Lloweredemit -> Lposttypescript)
 
 This pass is a simple one that discards things that are no longer needed after
 we have emitted JavaScript code.  It discards (1) type definitions, (2) the

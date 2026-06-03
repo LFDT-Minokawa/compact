@@ -40,7 +40,7 @@
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
           Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats
           Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats
-          Lloweredlog unparse-Lloweredlog Lloweredlog-pretty-formats Lloweredlog-Export-Type-Definition?
+          Lloweredemit unparse-Lloweredemit Lloweredemit-pretty-formats Lloweredemit-Export-Type-Definition?
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
@@ -234,7 +234,7 @@
       (if src expr0 expr1 expr2)                          => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name)                         => (elt-ref expr elt-name)
       (elt-call src expr elt-name expr* ...)              => (elt-call expr elt-name expr* ...)
-      (log src expr)                                      => (log expr)
+      (emit src expr)                                     => (emit expr)
       (= src expr1 expr2)                                 => (= expr1 expr2)
       (+= src expr1 expr2)                                => (+= expr1 3 expr2)
       (-= src expr1 expr2)                                => (-= expr1 3 expr2)
@@ -616,11 +616,11 @@
 
   (define-language/pretty Lserialized (extends Lexpanded)
     (Expression (expr index)
-      (- (log src expr))
+      (- (emit src expr))
       (+ (serialized-payload src expr) => (serialized-payload expr)
          ; expr^ calls serialize on expr
          ; expr needs to be kept until track-witness-data
-         (log src expr expr^) => (log expr expr^))))
+         (emit src expr expr^) => (emit expr expr^))))
 
   (define-language/pretty Ltypes (entry Program)
     (terminals
@@ -688,7 +688,7 @@
       (elt-ref src expr elt-name nat)         => (elt-ref expr elt-name nat)
       ; type is needed for type-checking of later passes
       ; expr is the deserialized form and expr^ is the serialized form
-      (log src type expr len expr^)           => (log expr expr^)
+      (emit src type expr len expr^)          => (emit expr expr^)
       (enum-ref src type elt-name)            => (enum-ref type elt-name)
       ; for tuple, the elements can have different, even unrelated types
       (tuple src tuple-arg* ...)              => (tuple tuple-arg* ...)
@@ -853,17 +853,17 @@
     (Expression (expr index)
       (- (disclose src expr))))
 
-  (define-language/pretty Lloweredlog (extends Lnodisclose)
+  (define-language/pretty Lloweredemit (extends Lnodisclose)
     (terminals
       (- (field (nat kindex)))
       (+ (field (nat kindex event-version event-tag))))
     (Expression (expr index)
-      (- (log src type expr len expr^))
+      (- (emit src type expr len expr^))
       ; expr is the serialized format of an expr of type struct
-      (+ (log src event-version event-tag type len expr vm-code) =>
-           (log event-version event-tag type len expr))))
+      (+ (emit src event-version event-tag type len expr vm-code) =>
+           (emit event-version event-tag type len expr))))
 
-  (define-language/pretty Ltypescript (extends Lloweredlog)
+  (define-language/pretty Ltypescript (extends Lloweredemit)
     (terminals
       (- (id (name var-name function-name ledger-field-name)))
       (+ (id (name var-name function-name ledger-field-name descriptor-id))
@@ -899,7 +899,7 @@
          (const src (local* ...))                => (const (local* 0 ...))
          (statement-expression expr)             => expr)))
 
-  (define-language/pretty Lposttypescript (extends Lloweredlog)
+  (define-language/pretty Lposttypescript (extends Lloweredemit)
     (terminals
       (- (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
       (+ (symbol (export-name contract-name struct-name enum-name elt-name ledger-op ledger-op-class adt-name adt-formal)))

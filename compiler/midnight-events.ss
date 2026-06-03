@@ -70,4 +70,3 @@
   "Miscellaneous event type."
   ([name (Bytes 32)]
    [payload (Bytes 256)]))
-

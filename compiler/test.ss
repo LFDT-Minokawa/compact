@@ -1653,9 +1653,9 @@ groups than for single tests.
             (return
               (or (or (or (or (< x 100) (<= x 10)) (> x 40)) (>= x 45))
                   (!= x 10)))))
-        (circuit #f #f log_sth () ()
+        (circuit #f #f emit_sth () ()
              (ttuple)
-          (block (log (new (type-ref ShieldedSpend) authority))))))
+          (block (emit (new (type-ref ShieldedSpend) authority))))))
     )
 
   (test ; just see if it succeeds
@@ -4826,9 +4826,9 @@ groups than for single tests.
             (return
               (or (or (or (or (< x 100) (<= x 10)) (> x 40)) (>= x 45))
                   (!= x 10)))))
-        (circuit #f #f log_sth () ()
+        (circuit #f #f emit_sth () ()
              (ttuple)
-          (block (log (new (type-ref ShieldedSpend) authority))))))
+          (block (emit (new (type-ref ShieldedSpend) authority))))))
     )
 
   (test ; just see if it parses
@@ -7518,11 +7518,11 @@ groups than for single tests.
 
   (test
     '(
-      "circuit log():[] {}"
+      "circuit emit():[] {}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"log\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"emit\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
     )
 
   (test
@@ -9209,9 +9209,9 @@ groups than for single tests.
             (return
               (or (or (or (or (< x 100) (<= x 10)) (> x 40)) (>= x 45))
                   (!= x 10)))))
-        (circuit #f #f log_sth () ()
+        (circuit #f #f emit_sth () ()
              (ttuple)
-          (block () (log (new (type-ref ShieldedSpend) authority))))))
+          (block () (emit (new (type-ref ShieldedSpend) authority))))))
     )
 
   (test ; just see if it succeeds
@@ -9775,10 +9775,10 @@ groups than for single tests.
              (tboolean)
           (or (or (or (or (< x 100) (<= x 10)) (> x 40)) (>= x 45))
               (!= x 10)))
-        (circuit #f #f log_sth () ()
+        (circuit #f #f emit_sth () ()
              (ttuple)
           (seq
-            (log (new (type-ref ShieldedSpend) authority))
+            (emit (new (type-ref ShieldedSpend) authority))
             (tuple)))))
     )
 
@@ -10044,10 +10044,10 @@ groups than for single tests.
                   (>= x 45))
               #t
               (!= x 10)))
-        (circuit #f #f log_sth () ()
+        (circuit #f #f emit_sth () ()
              (ttuple)
           (seq
-            (log (new (type-ref ShieldedSpend) authority))
+            (emit (new (type-ref ShieldedSpend) authority))
             (tuple)))))
     )
 
@@ -14662,7 +14662,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export circuit foo (): ShieldedSpend {"
       "  const x = ShieldedSpend {pad(32, 'a')};"
-      "  log (x);"
+      "  emit (x);"
       "  return x;"
       "}"
       )
@@ -14675,21 +14675,21 @@ groups than for single tests.
                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                     #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
                          0 0 0 0 0))])
-            (seq (log %x.2) %x.2)))))
+            (seq (emit %x.2) %x.2)))))
     )
 
   (test
     '(
       "struct F { bar: Field }"
       "export circuit foo (): [] {"
-      "  log ( F {1} );"
+      "  emit ( F {1} );"
       "}"
       )
     (returns
       (program ((foo %foo.0))
         (circuit %foo.0 ()
              (ttuple)
-          (seq (log (new (tstruct F (bar (tfield))) 1)) (tuple)))))
+          (seq (emit (new (tstruct F (bar (tfield))) 1)) (tuple)))))
     )
 
   (test
@@ -14818,7 +14818,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (d: Bytes<32>, t: Bytes<32>, a: Uint<128>): UnshieldedMint {"
-      "  return log ( UnshieldedMint {d, t, a} );"
+      "  return emit ( UnshieldedMint {d, t, a} );"
       "}"
       )
     (returns
@@ -14833,7 +14833,7 @@ groups than for single tests.
                (token_type (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
-          (log (new (tstruct UnshieldedMint
+          (emit (new (tstruct UnshieldedMint
                       (domain_sep (tbytes 32))
                       (token_type (tbytes 32))
                       (amount (tunsigned
@@ -14878,7 +14878,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (): Paused {"
-      "  return log ( Paused {} );"
+      "  return emit ( Paused {} );"
       "}"
       )
     (returns
@@ -14886,7 +14886,7 @@ groups than for single tests.
         (public-ledger-declaration %kernel.1 (Kernel))
         (circuit %foo.0 ()
              (tstruct Paused)
-          (log (new (tstruct Paused))))))
+          (emit (new (tstruct Paused))))))
     )
 
   (test
@@ -14905,7 +14905,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (): Unpaused {"
-      "  return log ( Unpaused {} );"
+      "  return emit ( Unpaused {} );"
       "}"
       )
     (returns
@@ -14913,7 +14913,7 @@ groups than for single tests.
         (public-ledger-declaration %kernel.1 (Kernel))
         (circuit %foo.0 ()
              (tstruct Unpaused)
-          (log (new (tstruct Unpaused))))))
+          (emit (new (tstruct Unpaused))))))
     )
 
   ;; Misc — two Bytes fields
@@ -14935,7 +14935,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (n: Bytes<32>, p: Bytes<256>): Misc {"
-      "  return log ( Misc {n, p} );"
+      "  return emit ( Misc {n, p} );"
       "}"
       )
     (returns
@@ -14943,7 +14943,7 @@ groups than for single tests.
         (public-ledger-declaration %kernel.1 (Kernel))
         (circuit %foo.0 ((n (tbytes 32)) (p (tbytes 256)))
              (tstruct Misc (name (tbytes 32)) (payload (tbytes 256)))
-          (log (new (tstruct Misc (name (tbytes 32)) (payload (tbytes 256))) n p)))))
+          (emit (new (tstruct Misc (name (tbytes 32)) (payload (tbytes 256))) n p)))))
     )
 
   (test
@@ -25273,7 +25273,7 @@ groups than for single tests.
     '(
       "struct F { bar: Field }"
       "export circuit foo (): F {"
-      "  return log ( F {bar: 1} );"
+      "  return emit ( F {bar: 1} );"
       "}"
       )
     (oops
@@ -25285,7 +25285,7 @@ groups than for single tests.
     '(
       "struct F { bar: Field }"
       "export circuit foo (): F {"
-      "  return log ( F {1} );"
+      "  return emit ( F {1} );"
       "}"
       )
     (oops
@@ -25297,60 +25297,60 @@ groups than for single tests.
     '(
       "struct F { bar: Field }"
       "export circuit foo (): F {"
-      "  return log ( F {baz: 1} );"
+      "  return emit ( F {baz: 1} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 16" "value for element ~s is missing in creation syntax for ~a" (bar "struct F<bar: Field>")))
+      irritants: '("testfile.compact line 3 char 17" "value for element ~s is missing in creation syntax for ~a" (bar "struct F<bar: Field>")))
     )
 
   (test
     '(
       "struct F { bar: Field }"
       "export circuit foo (): F {"
-      "  return log ( F {true} );"
+      "  return emit ( F {true} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 16" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Boolean" "Field" bar "struct F<bar: Field>")))
+      irritants: '("testfile.compact line 3 char 17" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Boolean" "Field" bar "struct F<bar: Field>")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (): ShieldedSpend {"
-      "  return log ( ShieldedSpend {nullifier: 1} );"
+      "  return emit ( ShieldedSpend {nullifier: 1} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 16" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Uint<1>" "Bytes<32>" nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
+      irritants: '("testfile.compact line 3 char 17" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Uint<1>" "Bytes<32>" nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (): ShieldedSpend {"
-      "  return log ( ShieldedSpend {1} );"
+      "  return emit ( ShieldedSpend {1} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 16" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Uint<1>" "Bytes<32>" nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
+      irritants: '("testfile.compact line 3 char 17" "mismatch between actual type ~a and declared type ~a for field ~s of ~a" ("Uint<1>" "Bytes<32>" nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (): ShieldedSpend {"
-      "  return log ( ShieldedSpend {x: pad(32, 'a')} );"
+      "  return emit ( ShieldedSpend {x: pad(32, 'a')} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 16" "value for element ~s is missing in creation syntax for ~a" (nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
+      irritants: '("testfile.compact line 3 char 17" "value for element ~s is missing in creation syntax for ~a" (nullifier "struct ShieldedSpend<nullifier: Bytes<32>>")))
     )
 
   (test
@@ -25358,7 +25358,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export circuit foo (): ShieldedSpend {"
       "  const x = ShieldedSpend {pad(32, 'a')};"
-      "  log (x);"
+      "  emit (x);"
       "  return x;"
       "}"
       )
@@ -25372,14 +25372,14 @@ groups than for single tests.
                   (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                     #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
                          0 0 0 0 0))])
-            (seq (log %x.2 (elt-ref %x.2 nullifier 0)) %x.2)))))
+            (seq (emit %x.2 (elt-ref %x.2 nullifier 0)) %x.2)))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (): ShieldedSpend {"
-      "  return log ( ShieldedSpend {pad(32, 'a')} );"
+      "  return emit ( ShieldedSpend {pad(32, 'a')} );"
       "}"
       )
     (oops
@@ -31463,17 +31463,17 @@ groups than for single tests.
     )
 )
 
-(run-tests reject-constructor-log
+(run-tests reject-constructor-emit
   (test
     '(
       "import CompactStandardLibrary;"
       "constructor() {"
-      "  log (ShieldedSpend { pad(32, 'a') });"
+      "  emit (ShieldedSpend { pad(32, 'a') });"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "constructor cannot log an event but ~a at ~a" ("logs event ShieldedSpend" "line 3 char 3")))
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot emit an event but ~a at ~a" ("emits event ShieldedSpend" "line 3 char 3")))
     )
 
   (test
@@ -31485,13 +31485,13 @@ groups than for single tests.
       "}"
       "export circuit foo (): ShieldedSpend {"
       "  const x = ShieldedSpend {pad(32, 'a')};"
-      "  log (x);"
+      "  emit (x);"
       "  return x;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "constructor cannot log an event but calls (directly or indirectly) ~a, which ~a at ~a" (foo "logs event ShieldedSpend" "line 8 char 3")))
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (foo "emits event ShieldedSpend" "line 8 char 3")))
     )
 
   (test
@@ -31504,7 +31504,7 @@ groups than for single tests.
       "export circuit bar (): ShieldedSpend { foo (); }"
       "circuit foo (): ShieldedSpend {"
       "  const x = ShieldedSpend {pad(32, 'a')};"
-      "  log (x);"
+      "  emit (x);"
       "  return x;"
       "}"
       )
@@ -31545,24 +31545,24 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export ledger bar: Bytes<32>;"
       "export pure circuit foo (): [] {"
-      "  log ( disclose (ShieldedSpend {bar} ));"
+      "  emit ( disclose (ShieldedSpend {bar} ));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "accesses ledger field bar" "line 4 char 34")))
+      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "accesses ledger field bar" "line 4 char 35")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export pure circuit foo (x: Bytes<32>): [] {"
-      "  log ( disclose (ShieldedSpend {x} ));"
+      "  emit ( disclose (ShieldedSpend {x} ));"
       "}"
-      ); TODO fix <standard library>
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "emits a log event of type ShieldedSpend" "<standard library>")))
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "emits an event of type ShieldedSpend" "<standard library>")))
     )
 
   (test
@@ -31572,12 +31572,12 @@ groups than for single tests.
       "  foo(x);"
       "}"
       "export circuit foo (x: Bytes<32>): [] {"
-      "  log ( disclose (ShieldedSpend {x} ));"
+      "  emit ( disclose (ShieldedSpend {x} ));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (bar foo "emits a log event of type ShieldedSpend" "<standard library>")))
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (bar foo "emits an event of type ShieldedSpend" "<standard library>")))
     )
 
   (test
@@ -31585,12 +31585,12 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness bar(): Bytes<32>;"
       "export pure circuit foo (): [] {"
-      "  log ( disclose (ShieldedSpend {bar()} ));"
+      "  emit ( disclose (ShieldedSpend {bar()} ));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "calls witness bar" "line 4 char 34")))
+      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "calls witness bar" "line 4 char 35")))
     )
 )
 
@@ -33973,7 +33973,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (): [] {"
-      "  return disclose (log ( ShieldedSpend {pad(32, 'a')} ));"
+      "  return disclose (emit ( ShieldedSpend {pad(32, 'a')} ));"
       "}"
       )
     (returns
@@ -33983,7 +33983,7 @@ groups than for single tests.
         (circuit %foo.1 ()
              (ttuple)
           (disclose
-            (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+            (emit (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                    #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
                         0 0 0 0 0))
                  (elt-ref
@@ -33998,7 +33998,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (): [] {"
-      "  return log ( ShieldedSpend {pad(32, 'a')} );"
+      "  return emit ( ShieldedSpend {pad(32, 'a')} );"
       "}"
       )
     (returns
@@ -34007,7 +34007,7 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.1 ()
              (ttuple)
-          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (emit (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                  #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
                       0 0 0 0 0))
                (elt-ref
@@ -34022,7 +34022,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (): [] {"
-      "  log ( ShieldedSpend {pad(32, 'a')} );"
+      "  emit ( ShieldedSpend {pad(32, 'a')} );"
       "}"
       )
     (returns
@@ -34032,7 +34032,7 @@ groups than for single tests.
         (circuit %foo.1 ()
              (ttuple)
           (seq
-            (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+            (emit (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                    #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
                         0 0 0 0 0))
                  (elt-ref
@@ -34048,7 +34048,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (x: Bytes<32>): [] {"
-      "  return log ( ShieldedSpend {disclose (x)} );"
+      "  return emit ( ShieldedSpend {disclose (x)} );"
       "}"
       )
     (returns
@@ -34057,7 +34057,7 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.1 ([%x.2 (tbytes 32)])
              (ttuple)
-          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (emit (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                  (disclose %x.2))
                (elt-ref
                  (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
@@ -34070,7 +34070,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (x: Bytes<32>): [] {"
-      "  return log ( ShieldedSpend {nullifier: disclose (x)} );"
+      "  return emit ( ShieldedSpend {nullifier: disclose (x)} );"
       "}"
       )
     (returns
@@ -34079,7 +34079,7 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.1 ([%x.2 (tbytes 32)])
              (ttuple)
-          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (emit (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                  (disclose %x.2))
                (elt-ref
                  (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
@@ -34092,7 +34092,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (x: Bytes<32>): [] {"
-      "  return log ( disclose (ShieldedSpend {x} ));"
+      "  return emit ( disclose (ShieldedSpend {x} ));"
       "}"
       )
     (returns
@@ -34101,7 +34101,7 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.1 ([%x.2 (tbytes 32)])
              (ttuple)
-          (log (disclose
+          (emit (disclose
                  (new (tstruct ShieldedSpend (nullifier (tbytes 32))) %x.2))
                (elt-ref
                  (disclose
@@ -34114,36 +34114,36 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (x: Bytes<32>): [] {"
-      "  return disclose (log ( ShieldedSpend {x} ));"
+      "  return disclose (emit ( ShieldedSpend {x} ));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 3 char 20"))))
+      irritants: '("testfile.compact line 3 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 3 char 20"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (x: Bytes<32>): [] {"
-      "  return log ( ShieldedSpend {x} );"
+      "  return emit ( ShieldedSpend {x} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 3 char 10"))))
+      irritants: '("testfile.compact line 3 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 3 char 10"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit foo (x: Bytes<32>): [] {"
-      "  return log ( ShieldedSpend {x} );"
+      "  return emit ( ShieldedSpend {x} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 3 char 10"))))
+      irritants: '("testfile.compact line 3 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 21" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 3 char 10"))))
     )
 
   (test
@@ -34151,7 +34151,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness bar(): Bytes<32>;"
       "export circuit foo (): [] {"
-      "  return log ( ShieldedSpend {disclose(bar())} );"
+      "  return emit ( ShieldedSpend {disclose(bar())} );"
       "}"
       )
     (returns
@@ -34161,7 +34161,7 @@ groups than for single tests.
         (witness %bar.1 () (tbytes 32))
         (circuit %foo.2 ()
              (ttuple)
-          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (emit (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                  (disclose (call %bar.1)))
                (elt-ref
                  (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
@@ -34175,7 +34175,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness bar(): Bytes<32>;"
       "export circuit foo (): [] {"
-      "  return log ( disclose (ShieldedSpend {bar()} ));"
+      "  return emit ( disclose (ShieldedSpend {bar()} ));"
       "}"
       )
     (returns
@@ -34185,7 +34185,7 @@ groups than for single tests.
         (witness %bar.1 () (tbytes 32))
         (circuit %foo.2 ()
              (ttuple)
-          (log (disclose
+          (emit (disclose
                  (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                    (call %bar.1)))
                (elt-ref
@@ -34201,12 +34201,12 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness bar(): Bytes<32>;"
       "export circuit foo (): [] {"
-      "  return disclose( log ( ShieldedSpend {bar()} ));"
+      "  return disclose( emit ( ShieldedSpend {bar()} ));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 4 char 20"))))
+      irritants: '("testfile.compact line 4 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 20"))))
     )
 
   (test
@@ -34214,7 +34214,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness bar(): Bytes<32>;"
       "export circuit foo (b: Boolean): [] {"
-      "  return log ( disclose(ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} ));"
+      "  return emit ( disclose(ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} ));"
       "}"
       )
     (returns
@@ -34223,7 +34223,7 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.1 ([%b.2 (tboolean)])
              (ttuple)
-          (log (disclose
+          (emit (disclose
                  (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                    (if %b.2
                        #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -34247,12 +34247,12 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness bar(): Bytes<32>;"
       "export circuit foo (b: Boolean): [] {"
-      "  return log ( ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} );"
+      "  return emit ( ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 3 char 21" ("\n    nature of the disclosure:\n      log operation might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 4 char 32\n      the argument to log at line 4 char 10"))))
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 3 char 21" ("\n    nature of the disclosure:\n      emit operation might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 4 char 33\n      the argument to emit at line 4 char 10"))))
     )
 
   (test
@@ -34260,7 +34260,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness bar(): Bytes<32>;"
       "export circuit foo (b: Boolean): [] {"
-      "  return log ( disclose(ShieldedSpend { b ? bar() : pad(32, 'b')} ));"
+      "  return emit ( disclose(ShieldedSpend { b ? bar() : pad(32, 'b')} ));"
       "}"
       )
     (returns
@@ -34270,7 +34270,7 @@ groups than for single tests.
         (witness %bar.1 () (tbytes 32))
         (circuit %foo.2 ([%b.3 (tboolean)])
              (ttuple)
-          (log (disclose
+          (emit (disclose
                  (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                    (if %b.3
                        (call %bar.1)
@@ -34292,14 +34292,14 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness bar(): Bytes<32>;"
       "export circuit foo (b: Boolean): [] {"
-      "  return log ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
+      "  return emit ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 4 char 10"))))
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 10"))))
     )
 
   (test
@@ -34307,14 +34307,14 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness bar(): Bytes<32>;"
       "export circuit foo (b: Boolean): [] {"
-      "  return log ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
+      "  return emit ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      log operation might disclose the witness value\n    via this path through the program:\n      the argument to log at line 4 char 10"))))
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 10"))))
     )
 
   (test
@@ -34322,7 +34322,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "witness bar(): Bytes<32>;"
       "export circuit foo (b: Boolean): [] {"
-      "  return log ( ShieldedSpend { disclose(b) ? disclose(bar()) : pad(32, 'b')} );"
+      "  return emit ( ShieldedSpend { disclose(b) ? disclose(bar()) : pad(32, 'b')} );"
       "}"
       )
     (returns
@@ -34332,7 +34332,7 @@ groups than for single tests.
         (witness %bar.1 () (tbytes 32))
         (circuit %foo.2 ([%b.3 (tboolean)])
              (ttuple)
-          (log (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (emit (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
                  (if (disclose %b.3)
                      (disclose (call %bar.1))
                      #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -39654,7 +39654,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "witness bar(): Bytes<32>;"
          "export circuit foo (): [] {"
-         "  return log ( disclose (ShieldedSpend {bar()} ));"
+         "  return emit ( disclose (ShieldedSpend {bar()} ));"
          "}"
          ))
      ; WARNING: Do not replace this wholesale...maintain the structure of the first several
@@ -85513,7 +85513,7 @@ groups than for single tests.
       "witness bar(): Bytes<32>;"
       "export struct S { F: Field };"
       "export circuit foo (): [] {"
-      "  return log ( disclose (ShieldedSpend {bar()} ));"
+      "  return emit ( disclose (ShieldedSpend {bar()} ));"
       "}"
       )
     (returns
@@ -85759,27 +85759,27 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
-      "  log(ShieldedSpend { nullifier: disclose(n) });"
+      "  emit(ShieldedSpend { nullifier: disclose(n) });"
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
-      "  log(ShieldedSpend { nullifier: disclose(n) });"
-      "  log(ShieldedSpend { nullifier: disclose(n) });"
+      "  emit(ShieldedSpend { nullifier: disclose(n) });"
+      "  emit(ShieldedSpend { nullifier: disclose(n) });"
       "  return n;"
       "}"
-      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
-      "    log(ShieldedSpend { nullifier: disclose(n) });"
+      "    emit(ShieldedSpend { nullifier: disclose(n) });"
       "  }"
       "  return n;"
       "}"
-      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
       )
     (stage-javascript
       '(
-        "test('single log produces exactly one event tagged log', () => {"
+        "test('single emit produces exactly one event tagged emit', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const n = new Uint8Array(32).fill(0x42);"
         "  const r = C.circuits.emit_one(Ctxt, n);"
@@ -85789,7 +85789,7 @@ groups than for single tests.
         "  expect(r.events[0].tag).toBe('log');"
         "});"
         ""
-        "test('log event has decoded VersionedLogItem fields (version, eventType, data)', () => {"
+        "test('emit event has decoded VersionedEmitItem fields (version, eventType, data)', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, new Uint8Array(32));"
         "  const content = r.events[0].content;"
@@ -85801,28 +85801,28 @@ groups than for single tests.
         "  expect(content.data).toBeDefined();"
         "});"
         ""
-        "test('two log statements produce two events', () => {"
+        "test('two emit statements produce two events', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_two(Ctxt, new Uint8Array(32));"
         "  expect(r.events.length).toBe(2);"
         "  expect(r.events.every((e) => e.tag === 'log')).toBe(true);"
         "});"
         ""
-        "test('conditional log emits when condition is true', () => {"
+        "test('conditional emit emits when condition is true', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, true, new Uint8Array(32));"
+        "  const r = C.circuits.cond_emit(Ctxt, true, new Uint8Array(32));"
         "  expect(r.events.length).toBe(1);"
         "});"
         ""
-        "test('conditional log emits nothing when condition is false', () => {"
+        "test('conditional emit emits nothing when condition is false', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, false, new Uint8Array(32));"
+        "  const r = C.circuits.cond_emit(Ctxt, false, new Uint8Array(32));"
         "  expect(r.events.length).toBe(0);"
         "});"
         ""
-        "test('pure circuit (no log, no ledger access) has no events field', () => {"
+        "test('pure circuit (no emit, no ledger access) has no events field', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.no_log(Ctxt, new Uint8Array(32));"
+        "  const r = C.circuits.no_emit(Ctxt, new Uint8Array(32));"
         "  // Pure circuits use the abbreviated wrapper that omits events"
         "  expect(r.events).toBeUndefined();"
         "});"
@@ -85847,57 +85847,57 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit log_in_loop(n: Bytes<32>): Bytes<32> {"
+      "export circuit emit_in_loop(n: Bytes<32>): Bytes<32> {"
       "  for (const i of 0..3) {"
-      "    log(ShieldedSpend { nullifier: disclose(n) });"
+      "    emit(ShieldedSpend { nullifier: disclose(n) });"
       "  }"
       "  return n;"
       "}"
-      "export circuit log_then_return(n: Bytes<32>): Bytes<32> {"
-      "  log(ShieldedSpend { nullifier: disclose(n) });"
+      "export circuit emit_then_return(n: Bytes<32>): Bytes<32> {"
+      "  emit(ShieldedSpend { nullifier: disclose(n) });"
       "  return n;"
       "}"
-      "export circuit return_then_no_log(n: Bytes<32>): Bytes<32> {"
+      "export circuit return_then_no_emit(n: Bytes<32>): Bytes<32> {"
       "  const x = n;"
       "  return x;"
       "}"
-      "export circuit no_log_if_false(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "export circuit no_emit_if_false(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
-      "    log(ShieldedSpend { nullifier: disclose(n) });"
+      "    emit(ShieldedSpend { nullifier: disclose(n) });"
       "  }"
       "  return n;"
       "}"
       )
     (stage-javascript
       '(
-        "test('log inside for emits one event per iteration', () => {"
+        "test('emit inside for emits one event per iteration', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.log_in_loop(Ctxt, new Uint8Array(32));"
+        "  const r = C.circuits.emit_in_loop(Ctxt, new Uint8Array(32));"
         "  expect(r.events.length).toBe(3);"
         "  expect(r.events.every((e) => e.tag === 'log')).toBe(true);"
         "});"
         ""
-        "test('log statement does not affect the circuits return value', () => {"
+        "test('emit statement does not affect the circuits return value', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const n = new Uint8Array(32).fill(0x99);"
-        "  const r = C.circuits.log_then_return(Ctxt, n);"
+        "  const r = C.circuits.emit_then_return(Ctxt, n);"
         "  expect(r.result).toEqual(n);"
         "  expect(r.events.length).toBe(1);"
         "});"
         ""
-        "test('no log in body leaves r.result unmodified', () => {"
+        "test('no emit in body leaves r.result unmodified', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const n = new Uint8Array(32).fill(0x77);"
-        "  const r = C.circuits.return_then_no_log(Ctxt, n);"
+        "  const r = C.circuits.return_then_no_emit(Ctxt, n);"
         "  expect(r.result).toEqual(n);"
-        "  // return_then_no_log is pure (no log, no ledger): no events field"
+        "  // return_then_no_emit is pure (no emit, no ledger): no events field"
         "  expect(r.events).toBeUndefined();"
         "});"
         ""
-        "test('impure circuit with conditional log emits zero events when condition is false', () => {"
+        "test('impure circuit with conditional emit emits zero events when condition is false', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const n = new Uint8Array(32).fill(0x77);"
-        "  const r = C.circuits.no_log_if_false(Ctxt, false, n);"
+        "  const r = C.circuits.no_emit_if_false(Ctxt, false, n);"
         "  expect(r.result).toEqual(n);"
         "  expect(r.events).toEqual([]);"
         "});"
@@ -85999,7 +85999,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
-      "  log(ShieldedReceive {"
+      "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
       "    contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
       "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
@@ -86007,21 +86007,21 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
-      "  log(ShieldedReceive {"
+      "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
       "    contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
       "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
       "  });"
-      "  log(ShieldedReceive {"
+      "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
       "    contract_address: Maybe<Bytes<32>> { is_some: false, value: disclose(n) },"
       "    ciphertext: Maybe<Bytes<512>> { is_some: false, value: disclose(c) }"
       "  });"
       "  return n;"
       "}"
-      "export circuit cond_log(b: Boolean, n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
+      "export circuit cond_emit(b: Boolean, n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
       "  if (disclose(b)) {"
-      "    log(ShieldedReceive {"
+      "    emit(ShieldedReceive {"
       "      commitment: disclose(n),"
       "      contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
       "      ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
@@ -86029,7 +86029,7 @@ groups than for single tests.
       "  }"
       "  return n;"
       "}"
-      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
       "export circuit serialize_ShieldedReceive(x: ShieldedReceive): Bytes<578> {"
@@ -86048,14 +86048,14 @@ groups than for single tests.
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         "const N512 = () => new Uint8Array(512).fill(0x33);"
         ""
-        "test('single log produces exactly one event tagged log', () => {"
+        "test('single emit produces exactly one event tagged emit', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32(), N512());"
         "  expect(r.events.length).toBe(1);"
         "  expect(r.events[0].tag).toBe('log');"
         "});"
         ""
-        "test('log event has decoded VersionedLogItem fields', () => {"
+        "test('emit event has decoded VersionedEmitItem fields', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32(), N512());"
         "  const content = r.events[0].content;"
@@ -86064,28 +86064,28 @@ groups than for single tests.
         "  expect(content.data).toBeDefined();"
         "});"
         ""
-        "test('two log statements produce two events', () => {"
+        "test('two emit statements produce two events', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_two(Ctxt, N32(), N512());"
         "  expect(r.events.length).toBe(2);"
         "  expect(r.events.every((e) => e.tag === 'log')).toBe(true);"
         "});"
         ""
-        "test('conditional log emits when condition is true', () => {"
+        "test('conditional emit emits when condition is true', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, true, N32(), N512());"
+        "  const r = C.circuits.cond_emit(Ctxt, true, N32(), N512());"
         "  expect(r.events.length).toBe(1);"
         "});"
         ""
-        "test('conditional log emits nothing when condition is false', () => {"
+        "test('conditional emit emits nothing when condition is false', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, false, N32(), N512());"
+        "  const r = C.circuits.cond_emit(Ctxt, false, N32(), N512());"
         "  expect(r.events.length).toBe(0);"
         "});"
         ""
-        "test('pure circuit (no log) has no events field', () => {"
+        "test('pure circuit (no emit) has no events field', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  const r = C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.events).toBeUndefined();"
         "});"
         ""
@@ -86124,7 +86124,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
-      "  log(ShieldedMint {"
+      "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
       "    domain_sep: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: true, value: 1000 as Uint<128> }"
@@ -86132,21 +86132,21 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
-      "  log(ShieldedMint {"
+      "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
       "    domain_sep: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: true, value: 100 as Uint<128> }"
       "  });"
-      "  log(ShieldedMint {"
+      "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
       "    domain_sep: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: false, value: 0 as Uint<128> }"
       "  });"
       "  return n;"
       "}"
-      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
-      "    log(ShieldedMint {"
+      "    emit(ShieldedMint {"
       "      commitment: disclose(n),"
       "      domain_sep: disclose(n),"
       "      amount: Maybe<Uint<128>> { is_some: true, value: 42 as Uint<128> }"
@@ -86154,7 +86154,7 @@ groups than for single tests.
       "  }"
       "  return n;"
       "}"
-      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
       "export circuit serialize_ShieldedMint(x: ShieldedMint): Bytes<81> {"
@@ -86172,40 +86172,40 @@ groups than for single tests.
       '(
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
-        "test('single log produces exactly one event tagged log', () => {"
+        "test('single emit produces exactly one event tagged emit', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events.length).toBe(1);"
         "  expect(r.events[0].tag).toBe('log');"
         "});"
         ""
-        "test('log event has decoded VersionedLogItem fields', () => {"
+        "test('emit event has decoded VersionedEmitItem fields', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events[0].content.version).toBe(1);"
         "});"
         ""
-        "test('two log statements produce two events', () => {"
+        "test('two emit statements produce two events', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.events.length).toBe(2);"
         "});"
         ""
-        "test('conditional log emits when condition is true', () => {"
+        "test('conditional emit emits when condition is true', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.events.length).toBe(1);"
         "});"
         ""
-        "test('conditional log emits nothing when condition is false', () => {"
+        "test('conditional emit emits nothing when condition is false', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.events.length).toBe(0);"
         "});"
         ""
-        "test('pure circuit (no log) has no events field', () => {"
+        "test('pure circuit (no emit) has no events field', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  const r = C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.events).toBeUndefined();"
         "});"
         ""
@@ -86237,33 +86237,33 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
-      "  log(ShieldedBurn {"
+      "  emit(ShieldedBurn {"
       "    nullifier: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: true, value: 500 as Uint<128> }"
       "  });"
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
-      "  log(ShieldedBurn {"
+      "  emit(ShieldedBurn {"
       "    nullifier: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: true, value: 1 as Uint<128> }"
       "  });"
-      "  log(ShieldedBurn {"
+      "  emit(ShieldedBurn {"
       "    nullifier: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: false, value: 0 as Uint<128> }"
       "  });"
       "  return n;"
       "}"
-      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
-      "    log(ShieldedBurn {"
+      "    emit(ShieldedBurn {"
       "      nullifier: disclose(n),"
       "      amount: Maybe<Uint<128>> { is_some: true, value: 7 as Uint<128> }"
       "    });"
       "  }"
       "  return n;"
       "}"
-      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
       "export circuit serialize_ShieldedBurn(x: ShieldedBurn): Bytes<49> {"
@@ -86281,40 +86281,40 @@ groups than for single tests.
       '(
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
-        "test('single log produces exactly one event tagged log', () => {"
+        "test('single emit produces exactly one event tagged emit', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events.length).toBe(1);"
         "  expect(r.events[0].tag).toBe('log');"
         "});"
         ""
-        "test('log event has decoded VersionedLogItem fields', () => {"
+        "test('emit event has decoded VersionedEmitItem fields', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events[0].content.version).toBe(1);"
         "});"
         ""
-        "test('two log statements produce two events', () => {"
+        "test('two emit statements produce two events', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.events.length).toBe(2);"
         "});"
         ""
-        "test('conditional log emits when condition is true', () => {"
+        "test('conditional emit emits when condition is true', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.events.length).toBe(1);"
         "});"
         ""
-        "test('conditional log emits nothing when condition is false', () => {"
+        "test('conditional emit emits nothing when condition is false', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.events.length).toBe(0);"
         "});"
         ""
-        "test('pure circuit (no log) has no events field', () => {"
+        "test('pure circuit (no emit) has no events field', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  const r = C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.events).toBeUndefined();"
         "});"
         ""
@@ -86338,7 +86338,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
-      "  log(UnshieldedSpend {"
+      "  emit(UnshieldedSpend {"
       "    sender: Either<ZswapCoinPublicKey, ContractAddress> {"
       "      is_left: true,"
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
@@ -86350,7 +86350,7 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
-      "  log(UnshieldedSpend {"
+      "  emit(UnshieldedSpend {"
       "    sender: Either<ZswapCoinPublicKey, ContractAddress> {"
       "      is_left: true,"
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
@@ -86359,7 +86359,7 @@ groups than for single tests.
       "    token_type: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
-      "  log(UnshieldedSpend {"
+      "  emit(UnshieldedSpend {"
       "    sender: Either<ZswapCoinPublicKey, ContractAddress> {"
       "      is_left: false,"
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
@@ -86370,9 +86370,9 @@ groups than for single tests.
       "  });"
       "  return n;"
       "}"
-      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
-      "    log(UnshieldedSpend {"
+      "    emit(UnshieldedSpend {"
       "      sender: Either<ZswapCoinPublicKey, ContractAddress> {"
       "        is_left: true,"
       "        left: ZswapCoinPublicKey { bytes: disclose(n) },"
@@ -86384,7 +86384,7 @@ groups than for single tests.
       "  }"
       "  return n;"
       "}"
-      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
       "export circuit serialize_UnshieldedSpend(x: UnshieldedSpend): Bytes<81> {"
@@ -86407,40 +86407,40 @@ groups than for single tests.
         "  right: { bytes: N32() }"
         "});"
         ""
-        "test('single log produces exactly one event tagged log', () => {"
+        "test('single emit produces exactly one event tagged emit', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events.length).toBe(1);"
         "  expect(r.events[0].tag).toBe('log');"
         "});"
         ""
-        "test('log event has decoded VersionedLogItem fields', () => {"
+        "test('emit event has decoded VersionedEmitItem fields', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events[0].content.version).toBe(1);"
         "});"
         ""
-        "test('two log statements produce two events', () => {"
+        "test('two emit statements produce two events', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.events.length).toBe(2);"
         "});"
         ""
-        "test('conditional log emits when condition is true', () => {"
+        "test('conditional emit emits when condition is true', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.events.length).toBe(1);"
         "});"
         ""
-        "test('conditional log emits nothing when condition is false', () => {"
+        "test('conditional emit emits nothing when condition is false', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.events.length).toBe(0);"
         "});"
         ""
-        "test('pure circuit (no log) has no events field', () => {"
+        "test('pure circuit (no emit) has no events field', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  const r = C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.events).toBeUndefined();"
         "});"
         ""
@@ -86470,7 +86470,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
-      "  log(UnshieldedReceive {"
+      "  emit(UnshieldedReceive {"
       "    recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
       "      is_left: true,"
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
@@ -86482,7 +86482,7 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
-      "  log(UnshieldedReceive {"
+      "  emit(UnshieldedReceive {"
       "    recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
       "      is_left: true,"
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
@@ -86491,7 +86491,7 @@ groups than for single tests.
       "    token_type: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
-      "  log(UnshieldedReceive {"
+      "  emit(UnshieldedReceive {"
       "    recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
       "      is_left: false,"
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
@@ -86502,9 +86502,9 @@ groups than for single tests.
       "  });"
       "  return n;"
       "}"
-      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
-      "    log(UnshieldedReceive {"
+      "    emit(UnshieldedReceive {"
       "      recipient: Either<ZswapCoinPublicKey, ContractAddress> {"
       "        is_left: true,"
       "        left: ZswapCoinPublicKey { bytes: disclose(n) },"
@@ -86516,7 +86516,7 @@ groups than for single tests.
       "  }"
       "  return n;"
       "}"
-      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
       "export circuit serialize_UnshieldedReceive(x: UnshieldedReceive): Bytes<81> {"
@@ -86539,40 +86539,40 @@ groups than for single tests.
         "  right: { bytes: N32() }"
         "});"
         ""
-        "test('single log produces exactly one event tagged log', () => {"
+        "test('single emit produces exactly one event tagged emit', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events.length).toBe(1);"
         "  expect(r.events[0].tag).toBe('log');"
         "});"
         ""
-        "test('log event has decoded VersionedLogItem fields', () => {"
+        "test('emit event has decoded VersionedEmitItem fields', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events[0].content.version).toBe(1);"
         "});"
         ""
-        "test('two log statements produce two events', () => {"
+        "test('two emit statements produce two events', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.events.length).toBe(2);"
         "});"
         ""
-        "test('conditional log emits when condition is true', () => {"
+        "test('conditional emit emits when condition is true', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.events.length).toBe(1);"
         "});"
         ""
-        "test('conditional log emits nothing when condition is false', () => {"
+        "test('conditional emit emits nothing when condition is false', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.events.length).toBe(0);"
         "});"
         ""
-        "test('pure circuit (no log) has no events field', () => {"
+        "test('pure circuit (no emit) has no events field', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  const r = C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.events).toBeUndefined();"
         "});"
         ""
@@ -86602,7 +86602,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
-      "  log(UnshieldedMint {"
+      "  emit(UnshieldedMint {"
       "    domain_sep: disclose(n),"
       "    token_type: disclose(n),"
       "    amount: 1000 as Uint<128>"
@@ -86610,21 +86610,21 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
-      "  log(UnshieldedMint {"
+      "  emit(UnshieldedMint {"
       "    domain_sep: disclose(n),"
       "    token_type: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
-      "  log(UnshieldedMint {"
+      "  emit(UnshieldedMint {"
       "    domain_sep: disclose(n),"
       "    token_type: disclose(n),"
       "    amount: 2 as Uint<128>"
       "  });"
       "  return n;"
       "}"
-      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
-      "    log(UnshieldedMint {"
+      "    emit(UnshieldedMint {"
       "      domain_sep: disclose(n),"
       "      token_type: disclose(n),"
       "      amount: 5 as Uint<128>"
@@ -86632,7 +86632,7 @@ groups than for single tests.
       "  }"
       "  return n;"
       "}"
-      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
       "export circuit serialize_UnshieldedMint(x: UnshieldedMint): Bytes<80> {"
@@ -86650,40 +86650,40 @@ groups than for single tests.
       '(
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
-        "test('single log produces exactly one event tagged log', () => {"
+        "test('single emit produces exactly one event tagged emit', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events.length).toBe(1);"
         "  expect(r.events[0].tag).toBe('log');"
         "});"
         ""
-        "test('log event has decoded VersionedLogItem fields', () => {"
+        "test('emit event has decoded VersionedEmitItem fields', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events[0].content.version).toBe(1);"
         "});"
         ""
-        "test('two log statements produce two events', () => {"
+        "test('two emit statements produce two events', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.events.length).toBe(2);"
         "});"
         ""
-        "test('conditional log emits when condition is true', () => {"
+        "test('conditional emit emits when condition is true', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.events.length).toBe(1);"
         "});"
         ""
-        "test('conditional log emits nothing when condition is false', () => {"
+        "test('conditional emit emits nothing when condition is false', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.events.length).toBe(0);"
         "});"
         ""
-        "test('pure circuit (no log) has no events field', () => {"
+        "test('pure circuit (no emit) has no events field', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  const r = C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.events).toBeUndefined();"
         "});"
         ""
@@ -86707,19 +86707,19 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
-      "  log(Paused {});"
+      "  emit(Paused {});"
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
-      "  log(Paused {});"
-      "  log(Paused {});"
+      "  emit(Paused {});"
+      "  emit(Paused {});"
       "  return n;"
       "}"
-      "export circuit cond_log(b: Boolean, n: Bytes<32>): Bytes<32> {"
-      "  if (disclose(b)) { log(Paused {}); }"
+      "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
+      "  if (disclose(b)) { emit(Paused {}); }"
       "  return n;"
       "}"
-      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
       "export circuit serialize_Paused(x: Paused): Bytes<0> {"
@@ -86737,40 +86737,40 @@ groups than for single tests.
       '(
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
-        "test('single log produces exactly one event tagged log', () => {"
+        "test('single emit produces exactly one event tagged emit', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events.length).toBe(1);"
         "  expect(r.events[0].tag).toBe('log');"
         "});"
         ""
-        "test('log event has decoded VersionedLogItem fields', () => {"
+        "test('emit event has decoded VersionedEmitItem fields', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.events[0].content.version).toBe(1);"
         "});"
         ""
-        "test('two log statements produce two events', () => {"
+        "test('two emit statements produce two events', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.events.length).toBe(2);"
         "});"
         ""
-        "test('conditional log emits when condition is true', () => {"
+        "test('conditional emit emits when condition is true', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, true, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.events.length).toBe(1);"
         "});"
         ""
-        "test('conditional log emits nothing when condition is false', () => {"
+        "test('conditional emit emits nothing when condition is false', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, false, N32());"
+        "  const r = C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.events.length).toBe(0);"
         "});"
         ""
-        "test('pure circuit (no log) has no events field', () => {"
+        "test('pure circuit (no emit) has no events field', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  const r = C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.events).toBeUndefined();"
         "});"
         ""
@@ -86792,19 +86792,19 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>, p: Bytes<256>): Bytes<32> {"
-      "  log(Misc { name: disclose(n), payload: disclose(p) });"
+      "  emit(Misc { name: disclose(n), payload: disclose(p) });"
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>, p: Bytes<256>): Bytes<32> {"
-      "  log(Misc { name: disclose(n), payload: disclose(p) });"
-      "  log(Misc { name: disclose(n), payload: disclose(p) });"
+      "  emit(Misc { name: disclose(n), payload: disclose(p) });"
+      "  emit(Misc { name: disclose(n), payload: disclose(p) });"
       "  return n;"
       "}"
-      "export circuit cond_log(b: Boolean, n: Bytes<32>, p: Bytes<256>): Bytes<32> {"
-      "  if (disclose(b)) { log(Misc { name: disclose(n), payload: disclose(p) }); }"
+      "export circuit cond_emit(b: Boolean, n: Bytes<32>, p: Bytes<256>): Bytes<32> {"
+      "  if (disclose(b)) { emit(Misc { name: disclose(n), payload: disclose(p) }); }"
       "  return n;"
       "}"
-      "export circuit no_log(n: Bytes<32>): Bytes<32> {"
+      "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
       "export circuit serialize_Misc(x: Misc): Bytes<288> {"
@@ -86823,40 +86823,40 @@ groups than for single tests.
         "const N32  = () => new Uint8Array(32).fill(0x42);"
         "const N256 = () => new Uint8Array(256).fill(0x77);"
         ""
-        "test('single log produces exactly one event tagged log', () => {"
+        "test('single emit produces exactly one event tagged emit', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32(), N256());"
         "  expect(r.events.length).toBe(1);"
         "  expect(r.events[0].tag).toBe('log');"
         "});"
         ""
-        "test('log event has decoded VersionedLogItem fields', () => {"
+        "test('emit event has decoded VersionedEmitItem fields', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_one(Ctxt, N32(), N256());"
         "  expect(r.events[0].content.version).toBe(1);"
         "});"
         ""
-        "test('two log statements produce two events', () => {"
+        "test('two emit statements produce two events', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const r = C.circuits.emit_two(Ctxt, N32(), N256());"
         "  expect(r.events.length).toBe(2);"
         "});"
         ""
-        "test('conditional log emits when condition is true', () => {"
+        "test('conditional emit emits when condition is true', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, true, N32(), N256());"
+        "  const r = C.circuits.cond_emit(Ctxt, true, N32(), N256());"
         "  expect(r.events.length).toBe(1);"
         "});"
         ""
-        "test('conditional log emits nothing when condition is false', () => {"
+        "test('conditional emit emits nothing when condition is false', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.cond_log(Ctxt, false, N32(), N256());"
+        "  const r = C.circuits.cond_emit(Ctxt, false, N32(), N256());"
         "  expect(r.events.length).toBe(0);"
         "});"
         ""
-        "test('pure circuit (no log) has no events field', () => {"
+        "test('pure circuit (no emit) has no events field', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  const r = C.circuits.no_log(Ctxt, N32());"
+        "  const r = C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.events).toBeUndefined();"
         "});"
         ""

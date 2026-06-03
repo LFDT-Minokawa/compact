@@ -1156,7 +1156,7 @@
                          (make-Qtoken dot)
                          (make-Qtoken elt-name))])
              (make-Qcall qfun lparen (map Expression expr*) comma* rparen)))]
-      [(log ,src ,kwd ,lparen ,expr ,rparen)
+      [(emit ,src ,kwd ,lparen ,expr ,rparen)
        (// src
            (make-Qconcat #f
              (make-Qtoken kwd)

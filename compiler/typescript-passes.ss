@@ -29,7 +29,7 @@
           (vm)
           (sourcemaps))
 
-  (define-pass prepare-for-typescript : Lloweredlog (ir) -> Ltypescript ()
+  (define-pass prepare-for-typescript : Lloweredemit (ir) -> Ltypescript ()
     (definitions
       (define program-src)
       (define local-local*)
@@ -588,7 +588,7 @@
                   4 ".value"
                   0 "))")]
                [(VMalign value bytes)
-                ; log-version uses u32 in ocrt ==> (= bytes 4)
+                ; emit-version uses u32 in ocrt ==> (= bytes 4)
                 (assert (or (= bytes 1) (= bytes 4) (= bytes 8) (= bytes 16)))
                 (construct-typed-value
                   (type->descriptor-name (with-output-language (Ltypescript Type) `(tunsigned ,src ,(- (expt 2 (* bytes 8)) 1))))
@@ -2864,12 +2864,12 @@
            expr
            "."
            (format "~s" elt-name)))]
-      [(log ,src ,event-version ,event-tag ,type ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,vm-code)
+      [(emit ,src ,event-version ,event-tag ,type ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,vm-code)
        (let* ([bytes-type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))]
               [vminstr*   (expand-vm-code src #f #f
-                            `((log-version . ,event-version)
-                              (log-tag     . ,event-tag)
-                              (log-payload . ,(make-vmref bytes-type expr)))
+                            `((emit-version . ,event-version)
+                              (emit-tag     . ,event-tag)
+                              (emit-payload . ,(make-vmref bytes-type expr)))
                             (vm-code-code vm-code))])
          (make-Qconcat
            "__compactRuntime.queryLedgerState("

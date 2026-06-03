@@ -86,13 +86,13 @@
      default
      disclose
      else
+     emit
      enum
      fold
      for
      if
      include
      ledger
-     log
      map
      new
      of
@@ -838,10 +838,10 @@
        (lambda (src kwd lparen e comma str rparen)
          (with-output-language (Lparser Expression)
            `(assert ,src ,kwd ,lparen ,e ,comma ,str ,rparen)))]
-      [term-log :: src (KEYWORD log) #\( expr #\) =>
+      [term-emit :: src (KEYWORD emit) #\( expr #\) =>
        (lambda (src kwd lparen e rparen)
          (with-output-language (Lparser Expression)
-           `(log ,src ,kwd ,lparen ,e ,rparen)))]
+           `(emit ,src ,kwd ,lparen ,e ,rparen)))]
       [term-disclose :: src (KEYWORD disclose) #\( expr #\) =>
        (lambda (src kwd lparen expr rparen)
          (with-output-language (Lparser Expression)
