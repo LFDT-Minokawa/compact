@@ -24,7 +24,7 @@
 // these impls, so we carry them on this newtype instead.
 
 use super::field_repr::{bytes_field_size, vec_u8_from_field_repr};
-use crate::{Aligned, Alignment, FieldRepr, Fr, FromFieldRepr, MemWrite, Value};
+use crate::{Aligned, Alignment, BinaryHashRepr, FieldRepr, Fr, FromFieldRepr, MemWrite, Value};
 
 /// Newtype around `String` carrying the [`Aligned`], [`FieldRepr`],
 /// [`FromFieldRepr`] and `From<_> for Value` impls that the codegen
@@ -71,6 +71,17 @@ impl FromFieldRepr for OpaqueString {
         // replacement characters. For strict round-tripping users should
         // hold OpaqueString::from_lossless when we add it.
         Some(OpaqueString(String::from_utf8_lossy(&bytes).into_owned()))
+    }
+}
+
+impl BinaryHashRepr for OpaqueString {
+    fn binary_repr<W: MemWrite<u8>>(&self, writer: &mut W) {
+        // Raw UTF-8 bytes — same shape upstream `BinaryHashRepr for [u8]`
+        // uses, which `Vec<u8>::binary_repr` invokes through `Deref`.
+        self.0.as_bytes().binary_repr(writer);
+    }
+    fn binary_len(&self) -> usize {
+        self.0.as_bytes().len()
     }
 }
 
