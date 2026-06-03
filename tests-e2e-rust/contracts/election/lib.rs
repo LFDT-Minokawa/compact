@@ -79,9 +79,10 @@ impl compact_runtime::BinaryHashRepr for MerkleTreeDigest {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(u8)]
 pub enum PermissibleVotes {
+    #[default]
     yes = 0,
     no = 1,
 }
@@ -182,9 +183,10 @@ impl compact_runtime::BinaryHashRepr for LeafPreimage {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(u8)]
 pub enum PrivateState {
+    #[default]
     initial = 0,
     committed = 1,
     revealed = 2,
@@ -227,9 +229,10 @@ impl compact_runtime::BinaryHashRepr for PrivateState {
         1
     }
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(u8)]
 pub enum PublicState {
+    #[default]
     setup = 0,
     commit = 1,
     reveal = 2,
@@ -332,7 +335,7 @@ where
             new_map(),
         ]);
         let state = ChargedState::new(sv);
-        let qctx = QueryContext::new(state, ContractAddress::default());
+        let qctx = QueryContext::new(state, compact_runtime::ContractAddress::default());
         let ops = OpProgramVerify::<DefaultDB>::new()
             .push(false, new_cell(0u8))
             .push(true, new_cell(authority_init))

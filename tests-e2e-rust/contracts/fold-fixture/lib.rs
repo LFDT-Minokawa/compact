@@ -58,7 +58,7 @@ where
     ) -> Result<ConstructorResult<PS>, CompactError> {
         let sv = new_array(vec![new_cell(0u64)]);
         let state = ChargedState::new(sv);
-        let qctx = QueryContext::new(state, ContractAddress::default());
+        let qctx = QueryContext::new(state, compact_runtime::ContractAddress::default());
         let ops = OpProgramVerify::<DefaultDB>::new()
             .idx_at_index(0u8, true)
             .addi(1)
@@ -115,7 +115,10 @@ pub fn ledger<D: DB>(state: &ChargedState<D>) -> Ledger<'_, D> {
 
 impl<'a, D: DB> Ledger<'a, D> {
     pub fn c(&self) -> Result<u64, CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(0u8, false)

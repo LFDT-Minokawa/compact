@@ -58,7 +58,7 @@ where
     ) -> Result<ConstructorResult<PS>, CompactError> {
         let sv = new_array(vec![new_cell_array([0u64; 3])]);
         let state = ChargedState::new(sv);
-        let qctx = QueryContext::new(state, ContractAddress::default());
+        let qctx = QueryContext::new(state, compact_runtime::ContractAddress::default());
         let tmp = [
             ((1u64).wrapping_mul(2u64)) as u64,
             ((2u64).wrapping_mul(2u64)) as u64,
@@ -115,7 +115,10 @@ pub fn ledger<D: DB>(state: &ChargedState<D>) -> Ledger<'_, D> {
 
 impl<'a, D: DB> Ledger<'a, D> {
     pub fn doubled(&self) -> Result<[u64; 3], CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(0u8, false)

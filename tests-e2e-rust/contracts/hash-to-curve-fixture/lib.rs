@@ -58,7 +58,7 @@ where
     ) -> Result<ConstructorResult<PS>, CompactError> {
         let sv = new_array(vec![new_cell(false), new_cell_array([Fr::default(); 2])]);
         let state = ChargedState::new(sv);
-        let qctx = QueryContext::new(state, ContractAddress::default());
+        let qctx = QueryContext::new(state, compact_runtime::ContractAddress::default());
         let tmp = [
             compact_runtime::jubjub_point_x(compact_runtime::hash_to_curve(1)),
             compact_runtime::jubjub_point_y(compact_runtime::hash_to_curve(1)),
@@ -113,7 +113,10 @@ pub fn ledger<D: DB>(state: &ChargedState<D>) -> Ledger<'_, D> {
 
 impl<'a, D: DB> Ledger<'a, D> {
     pub fn flag(&self) -> Result<bool, CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(0u8, false)
@@ -132,7 +135,10 @@ impl<'a, D: DB> Ledger<'a, D> {
         compact_runtime::std_lib::decode_bool(av)
     }
     pub fn pt(&self) -> Result<[Fr; 2], CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(1u8, false)

@@ -58,7 +58,7 @@ where
     ) -> Result<ConstructorResult<PS>, CompactError> {
         let sv = new_array(vec![new_cell(0u8), new_cell(0u32), new_cell(0u128)]);
         let state = ChargedState::new(sv);
-        let qctx = QueryContext::new(state, ContractAddress::default());
+        let qctx = QueryContext::new(state, compact_runtime::ContractAddress::default());
         Ok(ConstructorResult {
             current_contract_state: qctx.state,
             current_private_state: ctx.initial_private_state,
@@ -105,7 +105,10 @@ pub fn ledger<D: DB>(state: &ChargedState<D>) -> Ledger<'_, D> {
 
 impl<'a, D: DB> Ledger<'a, D> {
     pub fn byte_field(&self) -> Result<u8, CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(0u8, false)
@@ -124,7 +127,10 @@ impl<'a, D: DB> Ledger<'a, D> {
         compact_runtime::std_lib::decode_u8(av)
     }
     pub fn word_field(&self) -> Result<u32, CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(1u8, false)
@@ -143,7 +149,10 @@ impl<'a, D: DB> Ledger<'a, D> {
         compact_runtime::std_lib::decode_u32(av)
     }
     pub fn huge_field(&self) -> Result<u128, CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(2u8, false)

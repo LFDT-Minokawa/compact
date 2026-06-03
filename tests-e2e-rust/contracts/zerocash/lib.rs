@@ -604,7 +604,7 @@ where
             new_cell(Vec::<u8>::new()),
         ]);
         let state = ChargedState::new(sv);
-        let qctx = QueryContext::new(state, ContractAddress::default());
+        let qctx = QueryContext::new(state, compact_runtime::ContractAddress::default());
         Ok(ConstructorResult {
             current_contract_state: qctx.state,
             current_private_state: ctx.initial_private_state,

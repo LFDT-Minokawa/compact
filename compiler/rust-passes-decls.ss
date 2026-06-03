@@ -102,11 +102,16 @@
                 [(export-typedef ,src ,type-name (,tvar-name* ...) ,type)
                  (nanopass-case (Ltypescript Type) type
                    [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-                    (out "#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n")
+                    ;; H1/Bucket-4: derive Default so user enums work as
+                    ;; defaultable fields of generated structs (which derive
+                    ;; Default themselves). The first variant is the default.
+                    (out "#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]\n")
                     (out "#[repr(u8)]\n")
                     (out (format "pub enum ~a {\n" enum-name))
                     (let loop ([variants (cons elt-name elt-name*)] [i 0])
                       (unless (null? variants)
+                        (when (= i 0)
+                          (out "    #[default]\n"))
                         (out (format "    ~a = ~a,\n"
                                      (rust-variant-name (car variants))
                                      i))

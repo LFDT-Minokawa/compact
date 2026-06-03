@@ -101,7 +101,11 @@
                     all-bindings)
                   (out "        ]);\n")
                   (out "        let state = ChargedState::new(sv);\n")
-                  (out "        let qctx = QueryContext::new(state, ContractAddress::default());\n"))]
+                  ;; Bucket-1: fully-qualify ContractAddress so a user struct
+                  ;; named `ContractAddress` (e.g. midnight-did) does not
+                  ;; shadow the upstream coin-structure type required by
+                  ;; QueryContext::new.
+                  (out "        let qctx = QueryContext::new(state, compact_runtime::ContractAddress::default());\n"))]
                ;; J2: emit the constructor body if we have one and its shape
                ;; matches. Fall back to the K1-only return otherwise (counter has
                ;; no constructor body, so it lands here naturally).
@@ -2011,7 +2015,10 @@
                                   (format "/* TODO M3-R4: decoder for ~a */ compact_runtime::std_lib::decode_u64"
                                           rust-ret))])
                 (out (format "    pub fn ~a(&self) -> Result<~a, CompactError> {\n" name rust-ret))
-                (out "        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());\n")
+                ;; Bucket-1: see note in J2 emitter — fully-qualify the
+                ;; upstream ContractAddress so user-defined shadow types
+                ;; don't break QueryContext::new.
+                (out "        let qctx = QueryContext::new(self.state.clone(), compact_runtime::ContractAddress::default());\n")
                 (out "        let ops = OpProgramGather::<D>::new()\n")
                 (out "            .dup(0)\n")
                 (for-each

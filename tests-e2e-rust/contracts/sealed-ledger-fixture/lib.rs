@@ -63,7 +63,7 @@ where
             new_cell(false),
         ]);
         let state = ChargedState::new(sv);
-        let qctx = QueryContext::new(state, ContractAddress::default());
+        let qctx = QueryContext::new(state, compact_runtime::ContractAddress::default());
         let tmp = Fr::from(42u64);
         let tmp_0 = 12345u64;
         let ops = OpProgramVerify::<DefaultDB>::new()
@@ -128,7 +128,10 @@ pub fn ledger<D: DB>(state: &ChargedState<D>) -> Ledger<'_, D> {
 
 impl<'a, D: DB> Ledger<'a, D> {
     pub fn admin(&self) -> Result<Fr, CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(0u8, false)
@@ -147,7 +150,10 @@ impl<'a, D: DB> Ledger<'a, D> {
         compact_runtime::std_lib::decode_fr(av)
     }
     pub fn contract_id(&self) -> Result<[u8; 32], CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(1u8, false)
@@ -166,7 +172,10 @@ impl<'a, D: DB> Ledger<'a, D> {
         compact_runtime::std_lib::decode_bytes::<32>(av)
     }
     pub fn created_at(&self) -> Result<u64, CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(2u8, false)
@@ -185,7 +194,10 @@ impl<'a, D: DB> Ledger<'a, D> {
         compact_runtime::std_lib::decode_u64(av)
     }
     pub fn flag(&self) -> Result<bool, CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(3u8, false)

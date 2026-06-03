@@ -64,7 +64,7 @@ where
             new_cell(0u8),
         ]);
         let state = ChargedState::new(sv);
-        let qctx = QueryContext::new(state, ContractAddress::default());
+        let qctx = QueryContext::new(state, compact_runtime::ContractAddress::default());
         let _witness_ctx_0 =
             WitnessContext::new(ledger(&qctx.state), ctx.initial_private_state, &qctx);
         let (current_private_state, sk) = self.witnesses.private_secret_key(&_witness_ctx_0);
@@ -329,7 +329,10 @@ pub fn ledger<D: DB>(state: &ChargedState<D>) -> Ledger<'_, D> {
 
 impl<'a, D: DB> Ledger<'a, D> {
     pub fn value(&self) -> Result<Fr, CompactError> {
-        let qctx = QueryContext::new(self.state.clone(), ContractAddress::default());
+        let qctx = QueryContext::new(
+            self.state.clone(),
+            compact_runtime::ContractAddress::default(),
+        );
         let ops = OpProgramGather::<D>::new()
             .dup(0)
             .idx_at_index(1u8, false)
