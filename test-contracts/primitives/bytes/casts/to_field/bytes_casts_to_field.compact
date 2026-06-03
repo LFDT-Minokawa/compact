@@ -1,0 +1,29 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// A Bytes value casts to a Field, including a single byte taken from a slice.
+export circuit bytes_casts_to_field(): Field {
+    const single = [42] as Bytes<1>;
+    const value = single as Field;
+    assert(value == 42, "Single byte should convert to Field 42");
+
+    const source: Vector<1, Uint<8>> = [7];
+    const fromSlice = slice<1>(source, 0) as Bytes<1> as Field;
+    assert(fromSlice == 7, "Sliced single byte should convert to Field 7");
+
+    return value;
+}
