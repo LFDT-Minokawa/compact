@@ -13,8 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// test1: non-constant index for tuple of multiple types
-export circuit test6(vector: [Boolean, Boolean, Field]): [Field] {
+import CompactStandardLibrary;
+
+export circuit vector_slice_tuple_incompatible_elements(vector: [Boolean, Boolean, Field]): [Field] {
   const a = 2;
+
   return slice<1>(vector, a);
 }

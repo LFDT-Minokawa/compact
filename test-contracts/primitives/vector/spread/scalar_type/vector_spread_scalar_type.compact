@@ -13,11 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
-
-// test1: non-negative index
-export ledger var1: Map<Field, Field>;
-
-export circuit test1(vector: Vector<4, Field>): [] {
-  const d = slice<2>(vector, var1.size());
+export circuit vector_spread_scalar_type(): [] {
+  const a = [...true];
 }

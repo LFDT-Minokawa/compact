@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// test1: invalid index length (out-of-bounds)
-export circuit test1(vector: Vector<8, Field>): Vector<2, Field> {
+import { defineCompileTest } from '@test/compact-test';
 
-  const a = slice<2>(slice<4>(slice<4>(vector, 100), 0b0), 0x00000000000000000000000000000000002);
-  return [a[0x0] * a[0x1], a[0x1] * a[0x0]];
-}
+export default defineCompileTest(import.meta.url, {
+    expectedError: /tuple slice with a non-constant index should be a vector but has a tuple type \[Boolean, Boolean,\s+Field\] that cannot be converted to a vector because its element types are unrelated/,
+});
