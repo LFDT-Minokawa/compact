@@ -67721,10 +67721,15 @@ groups than for single tests.
         "  });"
         "test('keccak256 of an Opaque string matches known digests', () => {"
         "  const fromHex = (h: string) => Uint8Array.from(h.match(/../g)!.map((b: string) => parseInt(b, 16)));"
+        "  const zeros = (n: number) => String.fromCharCode(0).repeat(n); // n UTF-8 zero bytes"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  expect(C.circuits.doKeccak256(Ctxt, '').result).toEqual(fromHex('c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'));"
-        "  expect(C.circuits.doKeccak256(Ctxt, 'abc').result).toEqual(fromHex('4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45'));"
-        "  expect(C.circuits.doKeccak256(Ctxt, 'hello-world').result).toEqual(fromHex('d41bad2284cfa351467b5db9418bbe3a5c02162c02ee585f07e5553d823ebad9'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, zeros(1)).result).toEqual(fromHex('bc36789e7a1e281436464229828f817d6612f7b477d66591ff96a9e064bcc98a'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, zeros(2)).result).toEqual(fromHex('54a8c0ab653c15bfb48b47fd011ba2b9617af01cb45cab344acd57c924d56798'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, zeros(5)).result).toEqual(fromHex('c41589e7559804ea4a2080dad19d876a024ccb05117835447d72ce08c1d020ec'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, zeros(10)).result).toEqual(fromHex('6bd2dd6bd408cbee33429358bf24fdc64612fbf8b1b4db604518f40ffd34b607'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, 'test').result).toEqual(fromHex('9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, 'longer test string').result).toEqual(fromHex('47bed17bfbbc08d6b5a0f603eff1b3e932c37c10b865847a7bc73d55b260f32a'));"
         "  });"
         ))
     )
