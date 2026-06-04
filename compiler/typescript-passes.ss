@@ -65,8 +65,12 @@
             (if (fixnum? nat) nat (modulo nat (most-positive-fixnum))))
           (nanopass-case (Ltypescript Type) (de-alias type)
             [(tboolean ,src) 523634023]
-            [(tfield ,src (field-native)) 22268065]
-            [(tfield ,src (field-scalar (curve-jubjub))) 474914719]
+            [(tfield ,src ,ftype)
+             (nanopass-case (Ltypescript Field-Type) ftype
+               [(field-native) 22268065]
+               [(field-scalar (curve-jubjub)) 474914719]
+               [(field-base (curve-secp256k1)) 952780025]
+               [(field-scalar (curve-secp256k1)) 817054627])]
             [(tunsigned ,src ,nat) (update 149561537 (nat-hash nat))]
             [(tbytes ,src ,len) (update 38297147 (nat-hash len))]
             [(topaque ,src ,opaque-type) (update 145867104 (string-hash opaque-type))]
@@ -97,14 +101,37 @@
                (cons elt-name elt-name*))]
             [(tunknown) 241715055]
             [else (assert cannot-happen)]))
+        (define (curve-type=? ctype1 ctype2)
+          (nanopass-case (Ltypescript Curve-Type) ctype1
+            [(curve-jubjub)
+             (nanopass-case (Ltypescript Curve-Type) ctype2
+               [(curve-jubjub) #t]
+               [else #f])]
+            [(curve-secp256k1)
+             (nanopass-case (Ltypescript Curve-Type) ctype2
+               [(curve-secp256k1) #t]
+               [else #f])]))
+        (define (field-type=? ftype1 ftype2)
+          (nanopass-case (Ltypescript Field-Type) ftype1
+            [(field-native)
+             (nanopass-case (Ltypescript Field-Type) ftype2
+               [(field-native) #t]
+               [else #f])]
+            [(field-base ,ctype1)
+             (nanopass-case (Ltypescript Field-Type) ftype2
+               [(field-base ,ctype2) (curve-type=? ctype1 ctype2)]
+               [else #f])]
+            [(field-scalar ,ctype1)
+             (nanopass-case (Ltypescript Field-Type) ftype2
+               [(field-scalar ,ctype2) (curve-type=? ctype1 ctype2)]
+               [else #f])]))
         (define (type=? type1 type2)
           (let ([type1 (de-alias type1)] [type2 (de-alias type2)])
             (let ([type1 (subst-tcontract type1)] [type2 (subst-tcontract type2)])
               (T type1
                  [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-                 [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
-                 [(tfield ,src1 (field-scalar (curve-jubjub)))
-                  (T type2 [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
+                 [(tfield ,src1 ,ftype1)
+                  (T type2 [(tfield ,src2 ,ftype2) (field-type=? ftype1 ftype2)])]
                  [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
                  [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                  [(topaque ,src1 ,opaque-type1)
@@ -1278,7 +1305,6 @@
                      [("string") (format "__compactRuntime.CompactTypeOpaqueString")]
                      [("Uint8Array") (format "__compactRuntime.CompactTypeOpaqueUint8Array")]
                      [("JubjubPoint") (format "__compactRuntime.CompactTypeJubjubPoint")]
-                     [("JubjubScalar") (format "__compactRuntime.CompactTypeField")]
                      ; FIXME: what should happen with other opaque types?
                      [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                   [(tvector ,src ,len ,type)
@@ -1387,8 +1413,12 @@
             (define (format-type type)
               (nanopass-case (Ltypescript Type) (de-alias type)
                 [(tboolean ,src) "Boolean"]
-                [(tfield ,src (field-native)) "Field"]
-                [(tfield ,src (field-scalar (curve-jubjub))) "JubjubScalar"]
+                [(tfield ,src ,ftype)
+                 (nanopass-case (Ltypescript Field-Type) ftype
+                   [(field-native) "Field"]
+                   [(field-scalar (curve-jubjub)) "JubjubScalar"]
+                   [(field-base (curve-secp256k1)) "Secp256k1Base"]
+                   [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
                 [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
                 [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
                 [(tunknown) "Unknown"]
@@ -2826,7 +2856,6 @@
                   [("string") "''"]
                   [("Uint8Array") "new Uint8Array(0)"]
                   [("JubjubPoint") "({x: 0n, y: 1n})"]
-                  [("JubjubScalar") "0n"]
                   ; FIXME: what should happen with other opaque types?
                   [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                [(tvector ,src ,len ,type)
@@ -3370,7 +3399,6 @@
        (case opaque-type
          [("string" "Uint8Array") opaque-type]
          [("JubjubPoint") "__compactRuntime.JubjubPoint"]
-         [("JubjubScalar") "bigint"]
          ;; FIXME: what should happen with other opaque types?
          [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
       [(tvector ,src ,len ,[Type : type -> * type])

@@ -1347,8 +1347,12 @@
       (define (format-type type)
         (nanopass-case (Ltypes Type) type
           [(tboolean ,src) "Boolean"]
-          [(tfield ,src (field-native)) "Field"]
-          [(tfield ,src (field-scalar (curve-jubjub))) "JubjubScalar"]
+          [(tfield ,src ,ftype)
+           (nanopass-case (Ltypes Field-Type) ftype
+             [(field-native) "Field"]
+             [(field-scalar (curve-jubjub)) "JubjubScalar"]
+             [(field-base (curve-secp256k1)) "Secp256k1Base"]
+             [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
           [(tunsigned ,src ,nat)
            (or (and (> nat 0)
                     (let ([bits (integer-length nat)])
@@ -1414,14 +1418,37 @@
                                   (sametype? type1 type2)))
                            elt-name1* pure-dcl1* type1** type1*))
                   elt-name2* pure-dcl2* type2** type2*))
+        (define (same-curve-type? ctype1 ctype2)
+          (nanopass-case (Ltypes Curve-Type) ctype1
+            [(curve-jubjub)
+             (nanopass-case (Ltypes Curve-Type) ctype2
+               [(curve-jubjub) #t]
+               [else #f])]
+            [(curve-secp256k1)
+             (nanopass-case (Ltypes Curve-Type) ctype2
+               [(curve-secp256k1) #t]
+               [else #f])]))
+        (define (same-field-type? ftype1 ftype2)
+          (nanopass-case (Ltypes Field-Type) ftype1
+            [(field-native)
+             (nanopass-case (Ltypes Field-Type) ftype2
+               [(field-native) #t]
+               [else #f])]
+            [(field-base ,ctype1)
+             (nanopass-case (Ltypes Field-Type) ftype2
+               [(field-base ,ctype2) (same-curve-type? ctype1 ctype2)]
+               [else #f])]
+            [(field-scalar ,ctype1)
+             (nanopass-case (Ltypes Field-Type) ftype2
+               [(field-scalar ,ctype2) (same-curve-type? ctype1 ctype2)]
+               [else #f])]))
         (define (sametype? type1 type2)
           (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
             (or (eq? type1 type2)
                 (T type1
                    [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-                   [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
-                   [(tfield ,src1 (field-scalar (curve-jubjub)))
-                    (T type2 [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
+                   [(tfield ,src1 ,ftype1)
+                    (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
                    [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
                    [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                    [(topaque ,src1 ,opaque-type1)
@@ -1486,9 +1513,8 @@
             (or (eq? type1 type2)
                 (T type1
                    [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-                   [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
-                   [(tfield ,src1 (field-scalar (curve-jubjub)))
-                    (T type2 [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
+                   [(tfield ,src1 ,ftype1)
+                    (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
                    [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (<= nat1 nat2)])]
                    [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                    [(topaque ,src1 ,opaque-type1)
@@ -3449,8 +3475,12 @@
             [,type (format-type type)]))
         (nanopass-case (Lnodca Type) type
           [(tboolean ,src) "Boolean"]
-          [(tfield ,src (field-native)) "Field"]
-          [(tfield ,src (field-scalar (curve-jubjub))) "JubjubScalar"]
+          [(tfield ,src ,ftype)
+           (nanopass-case (Lnodca Field-Type) ftype
+             [(field-native) "Field"]
+             [(field-scalar (curve-jubjub)) "JubjubScalar"]
+             [(field-base (curve-secp256k1)) "Secp256k1Base"]
+             [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
           [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
           [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tunknown) "Unknown"]
@@ -3487,15 +3517,29 @@
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
           [else type]))
+        (define (same-curve-type? ctype1 ctype2)
+          (nanopass-case (Lnodca Curve-Type) ctype1
+            [(curve-jubjub)
+             (nanopass-case (Lnodca Curve-Type) ctype2
+               [(curve-jubjub) #t]
+               [else #f])]
+            [(curve-secp256k1)
+             (nanopass-case (Lnodca Curve-Type) ctype2
+               [(curve-secp256k1) #t]
+               [else #f])]))
       (define (same-field-type? ftype1 ftype2)
         (nanopass-case (Lnodca Field-Type) ftype1
           [(field-native)
            (nanopass-case (Lnodca Field-Type) ftype2
              [(field-native) #t]
              [else #f])]
-          [(field-scalar (curve-jubjub))
+          [(field-base ,ctype1)
            (nanopass-case (Lnodca Field-Type) ftype2
-             [(field-scalar (curve-jubjub)) #t]
+             [(field-base ,ctype2) (same-curve-type? ctype1 ctype2)]
+             [else #f])]
+          [(field-scalar ,ctype1)
+           (nanopass-case (Lnodca Field-Type) ftype2
+             [(field-scalar ,ctype2) (same-curve-type? ctype1 ctype2)]
              [else #f])]))
       (define (sametype? type1 type2)
         (define (same-adt-arg? adt-arg1 adt-arg2)

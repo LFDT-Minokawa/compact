@@ -644,8 +644,12 @@
 
       (define (type->string primitive-type)
         (nanopass-case (Lflattened Primitive-Type) primitive-type
-          [(tfield (field-native)) "Scalar<BLS12-381>"]
-          [(tfield (field-scalar (curve-jubjub))) "Scalar<Jubjub>"]
+          [(tfield ,ftype)
+           (nanopass-case (Lflattened Field-Type) ftype
+             [(field-native) "Scalar<BLS12-381>"]
+             [(field-scalar (curve-jubjub)) "Scalar<Jubjub>"]
+             [(field-base (curve-secp256k1)) "Base<Secp256k1>"]
+             [(field-scalar (curve-secp256k1)) "Scalar<Secp256k1>"])]
           [(tunsigned ,nat) "Scalar<BLS12-381>"]
           [(topaque ,opaque-type)
            (case opaque-type
