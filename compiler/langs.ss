@@ -33,7 +33,7 @@
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
-          Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
+          Lposttypes unparse-Lposttypes Lposttypes-pretty-formats Lposttypes-Ledger-Declaration? Lposttypes-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
@@ -620,6 +620,7 @@
 
   (define-language/pretty Ltypes (entry Program)
     (terminals
+      (box (type-box))
       (field (nat kindex))
       (len (len))
       (bits (bits))
@@ -676,7 +677,7 @@
     (Argument (arg local)
       (var-name type) => (bracket var-name type))
     (Expression (expr index)
-      (quote src datum)                       => datum
+      (quote src datum type)                  => datum
       (var-ref src var-name)                  => var-name
       (ledger-ref src ledger-field-name)      => ledger-field-name
       (default src type)                      => (default type)
@@ -762,6 +763,7 @@
       (tboolean src)                         => (tboolean)
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
+      (tliteral src nat type-box)            => (tliteral nat type-box)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
@@ -787,11 +789,14 @@
       (curve-secp256k1))
     )
 
-  (define-language/pretty Lnotundeclared (extends Ltypes)
+  (define-language/pretty Lposttypes (extends Ltypes)
+    (terminals
+      (- (box (type-box))))
     (Type (type)
-      (- (tundeclared))))
+      (- (tundeclared)
+         (tliteral src nat type-box))))
 
-  (define-language/pretty Loneledger (extends Lnotundeclared)
+  (define-language/pretty Loneledger (extends Lposttypes)
     (Program-Element (pelt)
       (- lconstructor)
       (+ kdecl))

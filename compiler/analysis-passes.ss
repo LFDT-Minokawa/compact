@@ -1364,6 +1364,11 @@
                       (and (= (expt 2 bits) (+ nat 1))
                            (format "Uint<~d>" bits))))
                (format "Uint<0..~d>" (+ nat 1)))]
+          [(tliteral ,src ,nat ,type-box)
+           (let ([x (unbox type-box)])
+             (if x
+                 (format-type x)
+                 (format "Literal<~d>" nat)))]
           [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tunknown) "Unknown"]
           [(tundeclared) "Undeclared"]
@@ -1514,13 +1519,27 @@
                              (fx= (length adt-arg1*) (length adt-arg2*))
                              (andmap same-adt-arg? adt-arg1* adt-arg2*))])]))))
         (define (subtype? type1 type2)
-          (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
+          (define (de-literal type)
+            (nanopass-case (Ltypes Type) type
+              [(tliteral ,src ,nat ,type-box)
+               (or (unbox type-box) type)]
+              [else type]))
+          (let ([type1 (de-literal (de-alias type1 #f))] [type2 (de-literal (de-alias type2 #f))])
             (or (eq? type1 type2)
                 (T type1
                    [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
                    [(tfield ,src1 ,ftype1)
                     (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
                    [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (<= nat1 nat2)])]
+                   [(tliteral ,src1 ,nat1 ,type-box1)
+                    (T type2
+                       [(tliteral ,src2 ,nat2 ,type-box2) (<= nat1 nat2)]
+                       [(tunsigned ,src2 ,nat2) (<= nat1 nat2)]
+                       [(tfield ,src2 ,ftype2)
+                        (<= nat1
+                            (nanopass-case (Ltypes Field-Type) ftype2
+                              [(field-native) (max-field)]
+                              [(field-scalar (curve-jubjub)) (max-jubjub-scalar)]))])]
                    [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                    [(topaque ,src1 ,opaque-type1)
                     (T type2
@@ -1753,10 +1772,18 @@
           [(src) (lambda (declared-type actual-type expr)
                    (maybe-safecast src declared-type actual-type expr))]
           [(src declared-type actual-type expr)
-           (if (sametype? declared-type actual-type)
-               expr
+           (let again ([actual-type actual-type])
+             (if (nanopass-case (Ltypes Type) actual-type
+                   [(tliteral ,src ,nat ,type-box)
+                    (cond
+                      [(unbox type-box) => again]
+                      [else
+                       (set-box! type-box declared-type)
+                       #t])]
+                   [else (sametype? declared-type actual-type)])
+                 expr
                (with-output-language (Ltypes Expression)
-                 `(safe-cast ,src ,declared-type ,actual-type ,expr)))]))
+                 `(safe-cast ,src ,declared-type ,actual-type ,expr))))]))
       (define (contains-js-opaque? type)
         (type-contains? type
           (lambda (type)
@@ -2018,7 +2045,7 @@
                     (loop type* nat (fx+ argno 1) rtype*)))))))
       (define (maybe-bind src result-type expr k)
         (nanopass-case (Ltypes Expression) expr
-          [(quote ,src ,datum) (k expr)]
+          [(quote ,src ,datum ,type) (k expr)]
           [(var-ref ,src ,var-name) (k expr)]
           [else (let ([t (make-temp-id src 't)])
                   (with-output-language (Ltypes Expression)
@@ -2029,18 +2056,24 @@
           (define (condense type l/r)
             (nanopass-case (Ltypes Type) type
               [(talias ,src ,nominal? ,type-name ,type)
-               (let-values ([(type-name* nat) (condense type l/r)])
+               (let-values ([(type-name* nat type-box?) (condense type l/r)])
                  (values
+                   src
                    (if nominal? (cons type-name type-name*) type-name*)
-                   nat))]
-              [(tfield ,src1 (field-native)) (values '() #f)]
-              [(tunsigned ,src ,nat) (values '() nat)]
+                   nat
+                   type-box?))]
+              [(tfield ,src (field-native)) (values src '() #f #f)]
+              [(tunsigned ,src ,nat) (values src '() nat #f)]
+              [(tliteral ,src ,nat ,type-box)
+               (cond
+                 [(unbox type-box) => (lambda (type) (condense type l/r))]
+                 [else (values src '() nat type-box)])]
               [else (source-errorf src "~a requires its ~a operand to be a Field or Uint; the actual type is ~a"
                                    op
                                    l/r
                                    (format-type type))]))
-          (let-values ([(type-name1* nat1) (condense type1 "left")]
-                       [(type-name2* nat2) (condense type2 "right")])
+          (let-values ([(type-name1* src1 nat1 type-box1) (condense type1 "left")]
+                       [(type-name2* src2 nat2 type-box2) (condense type2 "right")])
             (let-values ([(result-expr result-type)
                           (if (and nat1 nat2)
                               (let ([result-nat (case op
@@ -2087,7 +2120,10 @@
                                      (maybe-safecast src result-type type2 expr2))
                                   result-type)))])
               (if (and (null? type-name1*) (null? type-name2*))
-                  (values result-expr result-type)
+                  (begin
+                    (when type-box1 (set-box! type-box1 result-type))
+                    (when type-box2 (set-box! type-box2 result-type))
+                    (values result-expr result-type))
                   (begin
                     ; this is, in effect, (sametype? type1 type2)
                     (unless (and (equal? type-name1* type-name2*) (eqv? nat1 nat2))
@@ -2096,6 +2132,8 @@
                                      (format-type type2)
                                      op))
                     ; from here, type1 = type2, nat1 = nat2
+                    (when type-box1 (set-box! type-box1 type1))
+                    (when type-box2 (set-box! type-box2 type2))
                     (values
                       (with-output-language (Ltypes Expression)
                         (if nat1
@@ -2110,10 +2148,18 @@
       (define (relational-operator src expr1 expr2 k)
         (values
           (let*-values ([(expr1 type1) (Care expr1)] [(expr2 type2) (Care expr2)])
+            (define (de-literal type)
+              (nanopass-case (Ltypes Type) type
+                [(tliteral ,src ,nat ,type-box)
+                 (or (unbox type-box)
+                     (let ([type (with-output-language (Ltypes Type)
+                                   `(tunsigned ,src ,nat))])
+                       (set-box! type-box type)
+                       type))]))
             (or (let f ([type1 type1] [type2 type2])
-                  (T (de-alias type1 #f)
+                  (T (de-literal (de-alias type1 #f))
                      [(tunsigned ,src1 ,nat1)
-                      (T (de-alias type2 #f)
+                      (T (de-literal (de-alias type2 #f))
                          [(tunsigned ,src2 ,nat2)
                           (let-values ([(type nat) (if (< nat1 nat2) (values type2 nat2) (values type1 nat1))])
                             (let ([bits (fxmax 1 (integer-length nat))])
@@ -2477,23 +2523,15 @@
             [else (values expr type)]))
         )
       [(quote ,src ,datum)
-       (values
-         `(quote ,src ,datum)
-         (with-output-language (Ltypes Type)
-           (cond
-             [(boolean? datum) `(tboolean ,src)]
-             [(field? datum)
-              (if (<= datum (max-unsigned))
-                  `(tunsigned ,src ,datum)
-                  (source-errorf src "constant ~d is larger than the largest representable Uint; use\
-                                 \n    ~:*~d as Field\
-                                 \n  to treat as a value of type Field"
-                                 datum))]
-             [(bytevector? datum)
-              ; no need to check len? for the generated tbytes.  this is already caught in
-              ; the parser
-              `(tbytes ,src ,(bytevector-length datum))]
-             [else (assert cannot-happen)])))]
+       (let ([type (with-output-language (Ltypes Type)
+                     (cond
+                       [(boolean? datum) `(tboolean ,src)]
+                       [(field? datum) `(tliteral ,src ,datum ,(box #f))]
+                       [(bytevector? datum) `(tbytes ,src ,(bytevector-length datum))]
+                       [else (assert cannot-happen)]))])
+         (values
+           `(quote ,src ,datum ,type)
+           type))]
       [(var-ref ,src ,var-name)
        (values
          `(var-ref ,src ,var-name)
@@ -2665,44 +2703,50 @@
            (with-output-language (Ltypes Type)
              `(tbytes ,src ,len-total))))]
       [(tuple-ref ,src ,[Care : expr expr-type] ,[Care : index index-type])
-       (nanopass-case (Ltypes Type) (de-alias index-type #t)
-         [(tunsigned ,src^ ,nat) nat]
-         [else (source-errorf src "expected index to have an unsigned type, received ~a"
-                              (format-type index-type))])
+       (let check-index ([index-type index-type])
+         (nanopass-case (Ltypes Type) (de-alias index-type #t)
+           [(tunsigned ,src ,nat) (void)]
+           [(tliteral ,src ,nat ,type-box)
+            (cond
+              [(unbox type-box) => check-index]
+              [else (set-box! type-box (with-output-language (Ltypes Type) `(tunsigned ,src ,nat)))])]
+           [else (source-errorf src "expected index to have an unsigned type, received ~a"
+                                (format-type index-type))]))
        (cond
          [(let f ([index index])
             (nanopass-case (Ltypes Expression) index
-              [(quote ,src ,datum)
+              [(quote ,src ,datum ,type)
                (unless (kindex? datum)
                  (source-errorf src "index ~d exceeds maximum allowed index ~d for a tuple or vector reference"
                                 datum
                                 (- (max-bytes/vector-length) 1)))
-               datum]
+               (cons index datum)]
               [(safe-cast ,src ,type ,type^ ,index) (f index)]
               [else #f])) =>
-          (lambda (kindex)
-            (define (bounds-check what len)
-              (unless (< kindex len)
-                (source-errorf src "index ~d is out-of-bounds for a ~a of length ~d"
-                               kindex what len)))
-            (nanopass-case (Ltypes Type) (de-alias expr-type #t)
-              [(tbytes ,src ,len)
-               (bounds-check "Bytes value" len)
-               (values
-                 `(bytes-ref ,src ,expr-type ,expr (quote ,src ,kindex))
-                 (with-output-language (Ltypes Type) `(tunsigned ,src 255)))]
-              [(ttuple ,src^ ,type* ...)
-               (bounds-check "tuple" (length type*))
-               (values
-                 `(tuple-ref ,src ,expr ,kindex)
-                 (list-ref type* kindex))]
-              [(tvector ,src^ ,len^ ,type^)
-               (bounds-check "vector" len^)
-               (values
-                 `(tuple-ref ,src ,expr ,kindex)
-                 type^)]
-              [else (source-errorf src "expected a tuple, Vector, or Bytes type, received ~a"
-                                   (format-type expr-type))]))]
+          (lambda (index.kindex)
+            (let ([index (car index.kindex)] [kindex (cdr index.kindex)])
+              (define (bounds-check what len)
+                (unless (< kindex len)
+                  (source-errorf src "index ~d is out-of-bounds for a ~a of length ~d"
+                                 kindex what len)))
+              (nanopass-case (Ltypes Type) (de-alias expr-type #t)
+                [(tbytes ,src ,len)
+                 (bounds-check "Bytes value" len)
+                 (values
+                   `(bytes-ref ,src ,expr-type ,expr ,index)
+                   (with-output-language (Ltypes Type) `(tunsigned ,src 255)))]
+                [(ttuple ,src^ ,type* ...)
+                 (bounds-check "tuple" (length type*))
+                 (values
+                   `(tuple-ref ,src ,expr ,kindex)
+                   (list-ref type* kindex))]
+                [(tvector ,src^ ,len^ ,type^)
+                 (bounds-check "vector" len^)
+                 (values
+                   `(tuple-ref ,src ,expr ,kindex)
+                   type^)]
+                [else (source-errorf src "expected a tuple, Vector, or Bytes type, received ~a"
+                                     (format-type expr-type))])))]
          [else
           (let ()
             (define (zero-check len)
@@ -2724,47 +2768,53 @@
                      `(vector-ref ,src ,vector-type ,expr ,index)
                      elt-type)))]))])]
       [(tuple-slice ,src ,[Care : expr expr-type] ,[Care : index index-type] ,len)
-       (nanopass-case (Ltypes Type) (de-alias index-type #t)
-         [(tunsigned ,src^ ,nat) nat]
-         [else (source-errorf src "expected index to have an unsigned type, received ~a"
-                              (format-type index-type))])
+       (let check-index ([index-type index-type])
+         (nanopass-case (Ltypes Type) (de-alias index-type #t)
+           [(tunsigned ,src ,nat) (void)]
+           [(tliteral ,src ,nat ,type-box)
+            (cond
+              [(unbox type-box) => check-index]
+              [else (set-box! type-box (with-output-language (Ltypes Type) `(tunsigned ,src ,nat)))])]
+           [else (source-errorf src "expected index to have an unsigned type, received ~a"
+                                (format-type index-type))]))
        (cond
          [(let f ([index index])
             (nanopass-case (Ltypes Expression) index
-              [(quote ,src ,datum)
+              [(quote ,src ,datum ,type)
                (unless (kindex? datum)
                  (source-errorf src "index ~d exceeds maximum index allowed ~d for a slice"
                                 datum
                                 (- (max-bytes/vector-length) 1)))
-               datum]
+               (cons index datum)]
               [(safe-cast ,src ,type ,type^ ,index) (f index)]
               [else #f])) =>
-          (lambda (kindex)
-            (define (bounds-check what input-len)
-              (unless (<= (+ kindex len) input-len)
-                (source-errorf src "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d"
-                               kindex len what input-len)))
-            (nanopass-case (Ltypes Type) (de-alias expr-type #t)
-              [(tbytes ,src ,len^)
-               (bounds-check "Bytes value" len^)
-               (values
-                 `(bytes-slice ,src ,expr-type ,expr (quote ,src ,kindex) ,len)
-                 (with-output-language (Ltypes Type)
-                   `(tbytes ,src ,len)))]
-              [(ttuple ,src^ ,type* ...)
-               (bounds-check "tuple" (length type*))
-               (values
-                 `(tuple-slice ,src ,expr-type ,expr ,kindex ,len)
-                 (with-output-language (Ltypes Type)
-                   `(ttuple ,src ,(list-head (list-tail type* kindex) len) ...)))]
-              [(tvector ,src^ ,len^ ,type^)
-               (bounds-check "vector" len^)
-               (values
-                 `(tuple-slice ,src ,expr-type ,expr ,kindex ,len)
-                 (with-output-language (Ltypes Type)
-                   `(tvector ,src ,len ,type^)))]
-              [else (source-errorf src "expected first slice argument to be a tuple, Vector, or Bytes type, received ~a"
-                                   (format-type expr-type))]))]
+          (lambda (index.kindex)
+            (let ([index (car index.kindex)] [kindex (cdr index.kindex)])
+              (define (bounds-check what input-len)
+                (unless (<= (+ kindex len) input-len)
+                  (source-errorf src "slice index ~d plus length ~d is out-of-bounds for a ~a of length ~d"
+                                 kindex len what input-len)))
+              (nanopass-case (Ltypes Type) (de-alias expr-type #t)
+                [(tbytes ,src ,len^)
+                 (bounds-check "Bytes value" len^)
+                 (values
+                   `(bytes-slice ,src ,expr-type ,expr ,index ,len)
+                   (with-output-language (Ltypes Type)
+                     `(tbytes ,src ,len)))]
+                [(ttuple ,src^ ,type* ...)
+                 (bounds-check "tuple" (length type*))
+                 (values
+                   `(tuple-slice ,src ,expr-type ,expr ,kindex ,len)
+                   (with-output-language (Ltypes Type)
+                     `(ttuple ,src ,(list-head (list-tail type* kindex) len) ...)))]
+                [(tvector ,src^ ,len^ ,type^)
+                 (bounds-check "vector" len^)
+                 (values
+                   `(tuple-slice ,src ,expr-type ,expr ,kindex ,len)
+                   (with-output-language (Ltypes Type)
+                     `(tvector ,src ,len ,type^)))]
+                [else (source-errorf src "expected first slice argument to be a tuple, Vector, or Bytes type, received ~a"
+                                     (format-type expr-type))])))]
          [else
           (let ()
             (define (bounds-check input-len)
@@ -3059,74 +3109,90 @@
        (values
          `(assert ,src ,expr ,mesg)
          (with-output-language (Ltypes Type) `(ttuple ,src)))]
-      ;; TODO(kmillikin): make sure this case is covered by tests and works for JubjubScalar.
-      [(cast ,src ,type (quote ,src^ ,datum))
-       (guard
-         ; NB: guards are run before automatic recursion, so type is an Lexpanded Type, not an Ltypes Type
-         (let f ([type type])
-           (nanopass-case (Lexpanded Type) type
-             [(tfield ,src (field-native)) #t]
-             [(talias ,src ,nominal? ,type-name ,type) (f type)]
-             [else #f]))
-         (field? datum)
-         (> datum (max-unsigned)))
-       (values
-         `(quote ,src^ ,datum)
-         (Type type))]
       [(cast ,src ,[type] ,[Care : expr type^])
        (define (handle-unaliased type type^ expr)
          (define (u8-subtype? type)
            (nanopass-case (Ltypes Type) (de-alias type #t)
              [(tunsigned ,src ,nat) (<= nat 255)]
+             [(tliteral ,src ,nat ,type-box)
+              (cond
+                [(unbox type-box) => u8-subtype?]
+                [else (and
+                        (<= nat 255)
+                        (begin
+                          (set-box! type-box (with-output-language (Ltypes Type) `(tunsigned ,src ,nat)))
+                          #t))])]
              [else #f]))
          (define (u8-supertype? type)
            (nanopass-case (Ltypes Type) (de-alias type #t)
              [(tunsigned ,src ,nat) (>= nat 255)]
+             [(tliteral ,src ,nat ,type-box)
+              (cond
+                [(unbox type-box) => u8-supertype?]
+                [else (and
+                        (>= nat 255)
+                        (begin
+                          (set-box! type-box (with-output-language (Ltypes Type) `(tunsigned ,src ,nat)))
+                          #t))])]
              [(tfield ,src ,ftype) #t]
              [else #f]))
          (or (and (subtype? type^ type)
                   (maybe-safecast src type type^ expr))
              (T type
                 [(tfield ,src1 ,ftype1)
-                 (T type^
-                    [(tfield ,src2 ,ftype2)
-                     ;; We know that the field types are distinct because of `subtype?` above.
-                     (nanopass-case (Ltypes Field-Type) ftype1
-                       [(field-native) ; JubujubScalar as Field.
-                        `(cast-to-field ,src ,ftype1 ,type^ ,expr)]
-                       [(field-scalar (curve-jubjub)) ; Field as JubjubScalar.
-                        `(cast-to-field ,src ,ftype1 ,type^ ,expr)])]
-                    [(tunsigned ,src2 ,nat)
-                     (nanopass-case (Ltypes Field-Type) ftype1
-                       [(field-native)
-                        `(safe-cast ,src ,type ,type^ ,expr)]
-                       [(field-scalar (curve-jubjub))
-                        `(cast-to-field ,src ,ftype1 ,type^ ,expr)])]
-                    [(tbytes ,src2 ,len2)
-                     (guard (not (= len2 0)))
-                     `(cast-from-bytes ,src ,type ,len2 ,expr)]
-                    [(tenum ,src2 ,enum-name ,elt-name ,elt-name* ...)
-                     `(cast-from-enum ,src ,type ,type^ ,expr)]
-                    [(tboolean ,src2)
-                     `(if ,src ,expr
-                          (safe-cast ,src ,type (tunsigned ,src 1) (quote ,src 1))
-                          (safe-cast ,src ,type (tunsigned ,src 0) (quote ,src 0)))])]
+                 (let again^ ([type^ type^])
+                   (T type^
+                      [(tfield ,src2 ,ftype2)
+                       ;; We know that the field types are distinct because of `subtype?` above.
+                       (nanopass-case (Ltypes Field-Type) ftype1
+                         [(field-native) ; JubujubScalar as Field.
+                          `(cast-to-field ,src ,ftype1 ,type^ ,expr)]
+                         [(field-scalar (curve-jubjub)) ; Field as JubjubScalar.
+                          `(cast-to-field ,src ,ftype1 ,type^ ,expr)])]
+                      [(tunsigned ,src2 ,nat)
+                       (nanopass-case (Ltypes Field-Type) ftype1
+                         [(field-native)
+                          `(safe-cast ,src ,type ,type^ ,expr)]
+                         [(field-scalar (curve-jubjub))
+                          `(cast-to-field ,src ,ftype1 ,type^ ,expr)])]
+                      [(tliteral ,src2 ,nat2 ,type-box2)
+                       (cond
+                         [(unbox type-box2) => again^]
+                         [else
+                          (set-box! type-box2 type)
+                          expr])]
+                      [(tbytes ,src2 ,len2)
+                       (guard (not (= len2 0)))
+                       `(cast-from-bytes ,src ,type ,len2 ,expr)]
+                      [(tenum ,src2 ,enum-name ,elt-name ,elt-name* ...)
+                       `(cast-from-enum ,src ,type ,type^ ,expr)]
+                      [(tboolean ,src2)
+                       `(if ,src ,expr
+                            (quote ,src 1 (tunsigned ,src 1))
+                            (quote ,src 0 (tunsigned ,src 0)))]))]
                 [(tbytes ,src1 ,len1)
-                 (T type^
-                    [(tfield ,src2 ,ftype)
-                     (guard (not (= len1 0)))
-                     `(field->bytes ,src ,len1 ,expr)]
-                    [(tunsigned ,src2 ,nat2)
-                     (guard (not (= len1 0)))
-                     `(field->bytes ,src ,len1 (safe-cast ,src (tfield ,src2 (field-native)) ,type^ ,expr))]
-                    [(ttuple ,src2 ,type2* ...)
-                     (guard
-                       (= (length type2*) len1)
-                       (andmap u8-subtype? type2*))
-                     `(vector->bytes ,src ,len1 ,expr)]
-                    [(tvector ,src2 ,len2 ,type2)
-                     (guard (= len2 len1) (u8-subtype? type2))
-                     `(vector->bytes ,src ,len1 ,expr)])]
+                 (let again^ ([type^ type^])
+                   (T type^
+                      [(tfield ,src2 ,ftype)
+                       (guard (not (= len1 0)))
+                       `(field->bytes ,src ,len1 ,expr)]
+                      [(tunsigned ,src2 ,nat2)
+                       (guard (not (= len1 0)))
+                       `(field->bytes ,src ,len1 (safe-cast ,src (tfield ,src2 (field-native)) ,type^ ,expr))]
+                      [(tliteral ,src2 ,nat2 ,type-box2)
+                       (guard (not (= len1 0)))
+                       (again^ (or (unbox type-box2)
+                                   (let ([type^ (with-output-language (Ltypes Type) `(tfield ,src (field-native)))])
+                                     (set-box! type-box2 type^)
+                                     type^)))]
+                      [(ttuple ,src2 ,type2* ...)
+                       (guard
+                         (= (length type2*) len1)
+                         (andmap u8-subtype? type2*))
+                       `(vector->bytes ,src ,len1 ,expr)]
+                      [(tvector ,src2 ,len2 ,type2)
+                       (guard (= len2 len1) (u8-subtype? type2))
+                       `(vector->bytes ,src ,len1 ,expr)]))]
                 [(ttuple ,src1 ,type^* ...)
                  (T type^
                     [(tbytes ,src2 ,len2)
@@ -3144,41 +3210,55 @@
                          `(tvector ,src ,len2 (tunsigned ,src 255)))
                        `(bytes->vector ,src ,len1 ,expr))])]
                 [(tunsigned ,src1 ,nat1)
-                 (T type^
-                    [(tfield ,src2 ,ftype)
-                     `(cast-from-field ,src ,nat1 ,ftype ,expr)]
-                    [(tunsigned ,src2 ,nat2)
-                     (assert (> nat2 nat1))
-                     `(downcast-unsigned ,src ,nat2 ,nat1 ,expr)]
-                    [(tbytes ,src2 ,len2)
-                     (guard (not (= len2 0)))
-                     `(cast-from-bytes ,src ,type ,len2 ,expr)]
-                    [(tenum ,src2 ,enum-name ,elt-name ,elt-name* ...)
-                     `(cast-from-enum ,src ,type ,type^ ,expr)]
-                    [(tboolean ,src2)
-                     (if (= nat1 0)
-                         `(if ,src ,expr
-                              (downcast-unsigned ,src 1 ,nat1 (quote ,src 1))
-                              (quote ,src 0))
-                         `(if ,src ,expr
-                              ,(if (eqv? nat1 1)
-                                   `(quote ,src 1)
-                                   `(safe-cast ,src ,type (tunsigned ,src 1) (quote ,src 1)))
-                              (safe-cast ,src ,type (tunsigned ,src 0) (quote ,src 0))))])]
+                 (let again^ ([type^ type^])
+                   (T type^
+                      [(tfield ,src2 ,ftype)
+                       `(cast-from-field ,src ,nat1 ,ftype ,expr)]
+                      [(tunsigned ,src2 ,nat2)
+                       (assert (> nat2 nat1))
+                       `(downcast-unsigned ,src ,nat2 ,nat1 ,expr)]
+                      [(tliteral ,src2 ,nat2 ,type-box2)
+                       (cond
+                         [(unbox type-box2) => again^]
+                         [else
+                          (assert (> nat2 nat1))
+                          (set-box! type-box2 type)
+                          expr])]
+                      [(tbytes ,src2 ,len2)
+                       (guard (not (= len2 0)))
+                       `(cast-from-bytes ,src ,type ,len2 ,expr)]
+                      [(tenum ,src2 ,enum-name ,elt-name ,elt-name* ...)
+                       `(cast-from-enum ,src ,type ,type^ ,expr)]
+                      [(tboolean ,src2)
+                       (if (= nat1 0)
+                           `(if ,src ,expr
+                                (downcast-unsigned ,src 1 ,nat1 (quote ,src 1 (tunsigned ,src ,nat1)))
+                                (quote ,src 0 (tunsigned ,src 0)))
+                           `(if ,src ,expr
+                                ,(if (eqv? nat1 1)
+                                     `(quote ,src 1 (tunsigned ,src 1))
+                                     `(quote ,src 1 (tunsigned ,src 1)))
+                                (quote ,src 0 (tunsigned ,src 0))))]))]
                 [(tboolean ,src1)
-                 (T type^
-                    [(tfield ,src2 ,ftype)
-                     `(if ,src
-                          (== ,src ,type^ ,expr (safe-cast ,src ,type^ (tunsigned ,src 0) (quote ,src 0)))
-                          (quote ,src #f)
-                          (quote ,src #t))]
-                    [(tunsigned ,src2 ,nat2)
-                     (if (eqv? nat2 0)
-                         `(quote ,src #f)
-                         `(if ,src
-                              (== ,src ,type^ ,expr (safe-cast ,src ,type^ (tunsigned ,src 0) (quote ,src 0)))
-                              (quote ,src #f)
-                              (quote ,src #t)))])]
+                 (let again^ ([type^ type^])
+                   (T type^
+                      [(tfield ,src2 ,ftype)
+                       `(if ,src
+                            (== ,src ,type^ ,expr (quote ,src 0 ,type^))
+                            (quote ,src #f (tboolean ,src))
+                            (quote ,src #t (tboolean ,src)))]
+                      [(tunsigned ,src2 ,nat2)
+                       (if (eqv? nat2 0)
+                           `(quote ,src #f (tboolean ,src))
+                           `(if ,src
+                                (== ,src ,type^ ,expr (quote ,src 0 ,type^))
+                                (quote ,src #f (tboolean ,src))
+                                (quote ,src #t (tboolean ,src))))]
+                      [(tliteral ,src2 ,nat2 ,type-box2)
+                       (again^ (or (unbox type-box2)
+                                   (let ([type^ (with-output-language (Ltypes Type) `(tfield ,src (field-native)))])
+                                     (set-box! type-box2 type^)
+                                     type^)))]))]
                 [(tenum ,src1 ,enum-name ,elt-name ,elt-name* ...)
                  (guard (T type^ [(tfield ,src ,ftype) #t] [(tunsigned ,src ,nat) #t]))
                  `(cast-to-enum ,src ,type ,type^ ,expr)])
@@ -3235,6 +3315,14 @@
         (define (u8-subtype? type)
           (nanopass-case (Ltypes Type) (de-alias type #t)
             [(tunsigned ,src ,nat) (<= nat 255)]
+            [(tliteral ,src ,nat ,type-box)
+             (cond
+               [(unbox type-box) => u8-subtype?]
+               [else (and
+                       (<= nat 255)
+                       (begin
+                         (set-box! type-box (with-output-language (Ltypes Type) `(tunsigned ,src ,nat)))
+                         #t))])]
             [(tunknown) #t]
             [else #f])))
       [(single ,src ,[Care : expr type])
@@ -3275,30 +3363,38 @@
                               (format-type type))])])
     )
 
-  (define-pass remove-tundeclared : Ltypes (ir) -> Lnotundeclared ())
+  (define-pass post-infer : Ltypes (ir) -> Lposttypes ()
+    (Type : Type (ir) -> Type ()
+      [(tundeclared) (assert cannot-happen)]
+      [(tliteral ,src ,nat ,type-box)
+       (cond
+         [(unbox type-box) => Type]
+         [else (if (<= nat (max-unsigned))
+                   `(tunsigned ,src ,nat)
+                   `(tfield ,src (field-native)))])]))
 
-  (define-pass combine-ledger-declarations : Lnotundeclared (ir) -> Loneledger ()
+  (define-pass combine-ledger-declarations : Lposttypes (ir) -> Loneledger ()
     (definitions
       (define kernel-id*)
       (define (de-alias type)
-        (nanopass-case (Lnotundeclared Type) type
+        (nanopass-case (Lposttypes Type) type
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
           [else type]))
       (define (kernel? ldecl)
-        (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
+        (nanopass-case (Lposttypes Ledger-Declaration) ldecl
           [(public-ledger-declaration ,src ,ledger-field-name ,type)
-           (nanopass-case (Lnotundeclared Type) (de-alias type)
+           (nanopass-case (Lposttypes Type) (de-alias type)
              [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
               (eq? adt-name 'Kernel)]
              [else (assert cannot-happen)])])))
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
-       (let*-values ([(ldecl* pelt*) (partition Lnotundeclared-Ledger-Declaration? pelt*)]
-                     [(lconstructor* pelt*) (partition Lnotundeclared-Ledger-Constructor? pelt*)]
+       (let*-values ([(ldecl* pelt*) (partition Lposttypes-Ledger-Declaration? pelt*)]
+                     [(lconstructor* pelt*) (partition Lposttypes-Ledger-Constructor? pelt*)]
                      [(kernel-ldecl* ldecl*) (partition kernel? ldecl*)])
          (fluid-let ([kernel-id* (map (lambda (kernel-ldecl)
-                                        (nanopass-case (Lnotundeclared Ledger-Declaration) kernel-ldecl
+                                        (nanopass-case (Lposttypes Ledger-Declaration) kernel-ldecl
                                           [(public-ledger-declaration ,src ,ledger-field-name ,type)
                                            ledger-field-name]))
                                       kernel-ldecl*)])
@@ -3306,13 +3402,13 @@
               ,(if (null? kernel-ldecl*)
                    '()
                    (list
-                     (nanopass-case (Lnotundeclared Ledger-Declaration) (car kernel-ldecl*)
+                     (nanopass-case (Lposttypes Ledger-Declaration) (car kernel-ldecl*)
                        [(public-ledger-declaration ,src ,ledger-field-name ,type)
                         `(kernel-declaration (,src ,ledger-field-name ,(Type type)))])))
               ...
               (public-ledger-declaration
                 ,(map (lambda (ldecl)
-                        (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
+                        (nanopass-case (Lposttypes Ledger-Declaration) ldecl
                           [(public-ledger-declaration ,src ,ledger-field-name ,type)
                            `(,src ,ledger-field-name ,(Type type))]))
                       ldecl*)
@@ -3320,12 +3416,12 @@
                 ,(cond
                   [(null? lconstructor*) `(constructor ,src () (tuple ,src))]
                   [(null? (cdr lconstructor*))
-                   (nanopass-case (Lnotundeclared Ledger-Constructor) (car lconstructor*)
+                   (nanopass-case (Lposttypes Ledger-Constructor) (car lconstructor*)
                      [(constructor ,src (,arg* ...) ,expr)
                       `(constructor ,src (,(map Argument arg*) ...) ,(Expression expr))])]
                   [else
                    (let ([src* (map (lambda (lconstructor)
-                                      (nanopass-case (Lnotundeclared Ledger-Constructor) lconstructor
+                                      (nanopass-case (Lposttypes Ledger-Constructor) lconstructor
                                         [(constructor ,src (,arg* ...) ,expr) src]))
                                     lconstructor*)])
                      (source-errorf (car src*)
@@ -3346,7 +3442,7 @@
          (let ([accessor* (cons (with-output-language (Loneledger Ledger-Accessor)
                                   `(,src ,ledger-op ,(map Expression expr*) ...))
                                 accessor*)])
-           (nanopass-case (Lnotundeclared Expression) expr
+           (nanopass-case (Lposttypes Expression) expr
              [(ledger-call ,src ,ledger-op ,sugar^? ,expr ,expr* ...)
               (assert (not sugar^?))
               (loop src ledger-op expr expr* accessor*)]
@@ -3467,13 +3563,6 @@
         (syntax-rules ()
           [(T ty clause ...)
            (nanopass-case (Lnodca Type) ty clause ... [else #f])]))
-      (define (datum-type src x)
-        (with-output-language (Lnodca Type)
-          (cond
-            [(boolean? x) `(tboolean ,src)]
-            [(field? x) (if (<= x (max-unsigned)) `(tunsigned ,src ,x) `(tfield ,src (field-native)))]
-            [(bytevector? x) `(tbytes ,src ,(bytevector-length x))]
-            [else (internal-errorf 'datum-type "unexpected datum ~s" x)])))
       (define-datatype Idtype
         ; ordinary expression types
         (Idtype-Base type)
@@ -3837,8 +3926,7 @@
        (Care ir)
        (void)])
     (Care : Expression (ir) -> * (type)
-      [(quote ,src ,datum)
-       (datum-type src datum)]
+      [(quote ,src ,datum ,[type]) type]
       [(var-ref ,src ,var-name)
        (Idtype-case (get-idtype src var-name)
          [(Idtype-Base type) type]
@@ -4751,7 +4839,7 @@
         (define (bind-if-complex src expr* type* k)
           (define (complex? expr)
             (nanopass-case (Lwithpaths Expression) expr
-              [(quote ,src ,datum) #f]
+              [(quote ,src ,datum ,type) #f]
               [(var-ref ,src ,var-name) #f]
               [(enum-ref ,src ,type ,elt-name^) #f]
               [(default ,src ,type)
@@ -5433,7 +5521,7 @@
             "the result of a comparison involving"
             (Abs-atomic (merge-witnesses (abs->witnesses abs1) (abs->witnesses abs2)))))
         )
-      [(quote ,src ,datum)
+      [(quote ,src ,datum ,type)
        (case datum
          [(#t) (Abs-boolean #t '())]
          [(#f) (Abs-boolean #f '())]
@@ -5730,7 +5818,7 @@
     (expand-modules-and-types        Lexpanded)
     (generate-contract-ht            Lexpanded)
     (infer-types                     Ltypes)
-    (remove-tundeclared              Lnotundeclared)
+    (post-infer                      Lposttypes)
     (combine-ledger-declarations     Loneledger)
     (discard-unused-functions        Loneledger)
     (reject-recursive-circuits       Loneledger)
