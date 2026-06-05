@@ -33029,6 +33029,32 @@ groups than for single tests.
     )
 
   (test-group
+    ((create-file "C1.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export pure circuit barr(): Bytes<32> { return pad(32, ''); }"
+         ))
+     (succeeds))
+    ((create-file "C2.compact"
+       '(
+         "contract C1 {"
+         "  circuit foo(x: Bytes<32>): [];"
+         "  pure circuit barr(): Bytes<32>;"
+         "}"
+         "export circuit foo(c: C1): Vector<1, C1> { return [c]; }"
+         ))
+     (succeeds))
+    )
+
+  (test-group
+    ((create-file "C.compact"
+       '(
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         ))
+     (succeeds))
+    )
+
+  (test-group
     ((create-file "C.compact"
        '(
          "export circuit foo(x: Bytes<32>): [] { return; }"
