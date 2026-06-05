@@ -1898,7 +1898,7 @@
     (Program-Element : Program-Element (ir pelt*) -> * (pelt*)
       [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
        (if (and (id-exported? function-name)
-                (guard (c [(eq? c 'ledger) #t])
+                (guard (c [(or (eq? c 'ledger) (eq? c 'emit)) #t])
                   (Expression expr)
                   #f))
            (begin
@@ -1908,7 +1908,9 @@
       [else (cons ir pelt*)])
     (Expression : Expression (ir) -> Expression ()
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[expr*] ...)
-       (raise 'ledger)]))
+       (raise 'ledger)]
+      [(emit ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
+       (raise 'emit)]))
 
   (define-pass reduce-to-circuit : Lnovectorref (ir) -> Lcircuit ()
     (definitions
@@ -2169,6 +2171,11 @@
              (lambda (triv*)
                (k (with-output-language (Lcircuit Rhs)
                     `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,triv* ...)))))))]
+      [(emit ,src ,event-version ,event-tag ,[type] ,len ,expr ,vm-code)
+       (Triv expr test
+         (lambda (triv)
+           (k (with-output-language (Lcircuit Rhs)
+                `(emit ,src ,event-version ,event-tag ,type ,len ,triv ,vm-code)))))]
       [(contract-call ,src ,elt-name (,expr ,[type]) ,expr* ...)
        (Triv expr test
          (lambda (triv)
@@ -2609,6 +2616,13 @@
              (list `(= ,test
                        (,var-name* ...)
                        (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op^ ,triv* ...))))))]
+      [(emit ,src ,event-version ,event-tag ,[type] ,len ,[* wump] ,vm-code)
+       (hashtable-set! var-ht var-name (Wump-vector '()))
+       (let ([triv* (wump->elts wump)])
+         (with-output-language (Lflattened Statement)
+           (list `(= ,test
+                     ()
+                     (emit ,src ,event-version ,event-tag ,type ,len ,triv* ... ,vm-code)))))]
       ; NB: the uses of Single-Triv and Single-Type will probably have to change with the
       ; replacement of abstract contract values with contract addresses, since a contract address
       ; might not fit into one field
@@ -2912,6 +2926,9 @@
       [(call ,src ,function-name ,[FWD-Triv : triv*] ...)
        (with-output-language (Lflattened Statement)
          (cons `(= ,test (,var-name* ...) (call ,src ,function-name ,triv* ...)) rstmt*))]
+      [(emit ,src ,event-version ,event-tag ,type ,len ,[FWD-Triv : triv*] ... ,vm-code)
+       (with-output-language (Lflattened Statement)
+         (cons `(= ,test (,var-name* ...) (emit ,src ,event-version ,event-tag ,type ,len ,triv* ... ,vm-code)) rstmt*))]
       [(contract-call ,src ,elt-name (,[FWD-Triv : triv] ,primitive-type) ,[FWD-Triv : triv*] ...)
        (with-output-language (Lflattened Statement)
          (cons `(= ,test (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...)) rstmt*))]
@@ -3196,6 +3213,8 @@
        (cons `(= ,test ,var-name ,single) stmt*)]
       [(= ,[BWD-Triv : test] (,var-name* ...) (call ,src ,function-name ,[BWD-Triv : triv*] ...))
        (cons `(= ,test (,var-name* ...) (call ,src ,function-name ,triv* ...)) stmt*)]
+      [(= ,[BWD-Triv : test] (,var-name* ...) (emit ,src ,event-version ,event-tag ,type ,len ,[BWD-Triv : triv*] ... ,vm-code))
+       (cons `(= ,test (,var-name* ...) (emit ,src ,event-version ,event-tag ,type ,len ,triv* ... ,vm-code)) stmt*)]
       [(= ,[BWD-Triv : test] (,var-name* ...) (contract-call ,src ,elt-name (,[BWD-Triv : triv] ,primitive-type) ,[BWD-Triv : triv*] ...))
        (cons `(= ,test (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...)) stmt*)]
       [(= ,test (,var-name* ...) (default ,opaque-type))
@@ -3732,6 +3751,8 @@
                 (set-idtype! var-name (Idtype-Base type)))
               var-name*
               type*))])]
+      [(= ,test (,var-name* ...) (emit ,src ,event-version ,event-tag ,type ,len ,triv* ... ,vm-code))
+       (verify-test src test)] ; TODO @claude do i need to do anything else
       [(assert ,src ,test ,mesg)
        (verify-test src test)]
       [else (internal-errorf 'Statement "unhandled form ~s" ir)])

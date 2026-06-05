@@ -440,6 +440,9 @@
             ;; neg --> 0x08
             [("neg") (list #x08)]
 
+            ;; log/emit --> 0x09
+            [("log") (list #x09)]
+
             ;; root --> 0x0a
             [("root") (list #x0a)]
 
@@ -678,6 +681,14 @@
        (let ([code-generator (hashtable-ref callable-ht function-name #f)])
          (assert code-generator)
          (code-generator var-name* src test triv* instr*))]
+      [(= ,test () (emit ,src ,event-version ,event-tag ,type ,len ,triv* ... ,vm-code))
+       (let* ([payload-alignment*
+                (with-output-language (Lflattened Alignment)
+                  (list `(abytes ,len)))]
+              [env (list (cons 'emit-version event-version)
+                         (cons 'emit-tag     event-tag)
+                         (cons 'emit-payload (make-zkir-val payload-alignment* triv*)))])
+         (assemble test '() '() src '() env vm-code instr*))]
       [(= ,test (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...))
        (source-errorf src "cross-contract calls are not yet supported")]
       [(= ,test (,var-name) (default ,opaque-type))

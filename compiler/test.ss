@@ -39669,7 +39669,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"foo\","
          "      \"pure\": false,"
-         "      \"proof\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -68238,6 +68238,34 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export struct S { F: Field };"
+      "export circuit foo (): [] {"
+      "  return emit ( disclose (ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/foo.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.0\", \"bits\": 8 },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 248 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x33\", \"0x01\", \"0x01\", \"0x04\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"0x20\", \"%t.0\", \"%t.1\", \"0x09\"] }"
+        "  ]"
+        "}"))
+    )
 )
 )
 
@@ -85507,6 +85535,13 @@ groups than for single tests.
         ))
     )
 
+  )
+
+(run-javascript)
+)
+
+(with-parameter-values ([feature-zkir-v3 #t])
+(run-tests save-manifest
   (test
     '(
       "import CompactStandardLibrary;"
@@ -85524,7 +85559,18 @@ groups than for single tests.
              (ty ((abytes 32))
                  ((tfield 255)
                    (tfield
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))))
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (circuit %foo.2 ()
+             (ty () ())
+          (= 1 (%t.3 %t.4) (call %bar.1))
+          (= 1 ()
+             (emit 1 0
+               (ty ((abytes 32))
+                   ((tfield 255)
+                     (tfield
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)))
+               32 %t.3 %t.4))
+          ())))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
@@ -85540,6 +85586,7 @@ groups than for single tests.
         "}"
         ""
         "export type ProvableCircuits<PS> = {"
+        "  foo(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;"
         "}"
         ""
         "export type PureCircuits = {"
@@ -85660,7 +85707,7 @@ groups than for single tests.
         "      }"
         "    };"
         "    this.impureCircuits = { foo: this.circuits.foo };"
-        "    this.provableCircuits = {};"
+        "    this.provableCircuits = { foo: this.circuits.foo };"
         "  }"
         "  initialState(...args_0) {"
         "    if (args_0.length !== 1) {"
@@ -85682,6 +85729,7 @@ groups than for single tests.
         "    const state_0 = new __compactRuntime.ContractState();"
         "    let stateValue_0 = __compactRuntime.StateValue.newArray();"
         "    state_0.data = new __compactRuntime.ChargedState(stateValue_0);"
+        "    state_0.setOperation('foo', new __compactRuntime.ContractOperation());"
         "    const context = __compactRuntime.createCircuitContext(__compactRuntime.dummyContractAddress(), constructorContext_0.initialZswapLocalState.coinPublicKey, state_0.data, constructorContext_0.initialPrivateState);"
         "    const partialProofData = {"
         "      input: { value: [], alignment: [] },"
@@ -86875,8 +86923,7 @@ groups than for single tests.
         "});"
         ))
     )
-)
+  )
 
 (run-javascript)
 )
-

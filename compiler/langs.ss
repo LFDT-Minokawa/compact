@@ -981,7 +981,7 @@
 
   (define-language/pretty Lcircuit (entry Program)
     (terminals
-      (field (nat))
+      (field (nat event-version event-tag))
       (len (len))
       (kindex (kindex))
       (bits (bits))
@@ -1052,6 +1052,8 @@
       (call src function-name triv* ...)     => (call function-name #f triv* ...)
       (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
         (public-ledger ledger-field-name (path-elt* ...) adt-op #f triv* ...)
+      (emit src event-version event-tag type len triv vm-code) =>
+        (emit event-version event-tag type len triv)
       (contract-call src elt-name (triv type) triv* ...) =>
         (contract-call elt-name 4 (triv 0 type) #f triv* ...)
       (field->bytes src len triv)            => (field->bytes len triv)
@@ -1136,6 +1138,7 @@
          (bytes->vector len triv)
          (call src function-name triv* ...)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...)
+         (emit src event-version event-tag type len triv vm-code)
          (contract-call src elt-name (triv type) triv* ...)
          (field->bytes src len triv)
          (bytes->field src len triv)
@@ -1161,6 +1164,8 @@
          (div-mod-power-of-two triv bits)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
            (public-ledger ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
+         (emit src event-version event-tag type len triv* ... vm-code) =>
+           (emit event-version event-tag type len triv* ...)
          (contract-call src elt-name (triv primitive-type) triv* ...) =>
            (contract-call elt-name 4 (triv primitive-type) #f triv* ...)))
     (Triv (triv test)

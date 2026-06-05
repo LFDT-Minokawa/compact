@@ -386,6 +386,8 @@
                   (assert (hashtable-ref returntype-ht function-name #f))
                   var-name*)]
                [else (assert cannot-happen)]))]
+          [(= ,test (,var-name* ...) (emit ,src ,event-version ,event-tag ,type ,len ,[* triv*] ... ,vm-code))
+           (source-errorf src "emit operation is implemented in zkir-v3 only. use --feature-zkir-v3 flag to compile your contract.")]
           [(= ,[* test] (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...))
            (source-errorf src "cross-contract calls are not yet supported")]
           [(= ,[* test] (,var-name1 ,var-name2) (default ,opaque-type))
