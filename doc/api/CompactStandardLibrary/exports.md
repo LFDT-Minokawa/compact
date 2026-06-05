@@ -185,16 +185,6 @@ struct ShieldedSpend {
 }
 ```
 
-### `ShieldedSpend`
-
-Shielded coin consumed, new coin created for a user recipient.
-
-```compact
-struct ShieldedSpend {
-  nullifier: Bytes<32> // indexed
-}
-```
-
 ### `ShieldedReceive`
 
 A contract accepts an incoming shielded coin.
