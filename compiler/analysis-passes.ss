@@ -1364,6 +1364,7 @@
                       (and (= (expt 2 bits) (+ nat 1))
                            (format "Uint<~d>" bits))))
                (format "Uint<0..~d>" (+ nat 1)))]
+          [(tliteral ,src ,nat) (format "Literal<~d>" nat)]
           [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tunknown) "Unknown"]
           [(tundeclared) "Undeclared"]
@@ -1455,6 +1456,7 @@
                    [(tfield ,src1 ,ftype1)
                     (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
                    [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
+                   [(tliteral ,src1 ,nat1) (T type2 [(tliteral ,src2 ,nat2) (= nat1 nat2)])]
                    [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                    [(topaque ,src1 ,opaque-type1)
                     (T type2
@@ -1521,6 +1523,15 @@
                    [(tfield ,src1 ,ftype1)
                     (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
                    [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (<= nat1 nat2)])]
+                   [(tliteral ,src1 ,nat1)
+                    (T type2
+                       [(tfield ,src2 ,ftype2)
+                        (<= nat1
+                            (nanopass-case (Ltypes Field-Type) ftype2
+                               [(field-native) (max-field)]
+                               [(field-scalar (curve-jubjub)) (max-jubjub-scalar)]))]
+                       [(tunsigned ,src2 ,nat2) (<= nat1 nat2)]
+                       [(tliteral ,src2 ,nat2) (<= nat1 nat2)])]
                    [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                    [(topaque ,src1 ,opaque-type1)
                     (T type2
@@ -2029,18 +2040,20 @@
           (define (condense type l/r)
             (nanopass-case (Ltypes Type) type
               [(talias ,src ,nominal? ,type-name ,type)
-               (let-values ([(type-name* nat) (condense type l/r)])
+               (let-values ([(type-name* nat lit?) (condense type l/r)])
                  (values
                    (if nominal? (cons type-name type-name*) type-name*)
-                   nat))]
-              [(tfield ,src1 (field-native)) (values '() #f)]
-              [(tunsigned ,src ,nat) (values '() nat)]
+                   nat
+                   lit?))]
+              [(tfield ,src1 (field-native)) (values '() #f #f)]
+              [(tunsigned ,src ,nat) (values '() nat #f)]
+              [(tliteral ,src ,nat) (values '() nat #t)]
               [else (source-errorf src "~a requires its ~a operand to be a Field or Uint; the actual type is ~a"
                                    op
                                    l/r
                                    (format-type type))]))
-          (let-values ([(type-name1* nat1) (condense type1 "left")]
-                       [(type-name2* nat2) (condense type2 "right")])
+          (let-values ([(type-name1* nat1 lit1?) (condense type1 "left")]
+                       [(type-name2* nat2 lit2?) (condense type2 "right")])
             (let-values ([(result-expr result-type)
                           (if (and nat1 nat2)
                               (let ([result-nat (case op
@@ -2080,6 +2093,7 @@
                                                (maybe-cast nat2 type2 expr2))))
                                       result-type))))
                               ;; TODO(kmillikin): Do we want to continue with this?  What about JubjubScalar?
+                              ;; TODO(dyb): We should continue at least when (or lit1? lit2?)
                               (let ([result-type (with-output-language (Ltypes Type) `(tfield ,src (field-native)))])
                                 (values
                                   (k #f
@@ -2108,12 +2122,18 @@
                             `(safe-cast ,src ,type1 ,result-type ,result-expr)))
                       type1)))))))
       (define (relational-operator src expr1 expr2 k)
+        (define (de-literal type)
+          (nanopass-case (Ltypes Type) type
+            [(tliteral ,src ,nat)
+             (with-output-language (Ltypes Type)
+               `(tunsigned ,src ,nat))]
+            [else type]))
         (values
           (let*-values ([(expr1 type1) (Care expr1)] [(expr2 type2) (Care expr2)])
             (or (let f ([type1 type1] [type2 type2])
-                  (T (de-alias type1 #f)
+                  (T (de-literal (de-alias type1 #f))
                      [(tunsigned ,src1 ,nat1)
-                      (T (de-alias type2 #f)
+                      (T (de-literal (de-alias type2 #f))
                          [(tunsigned ,src2 ,nat2)
                           (let-values ([(type nat) (if (< nat1 nat2) (values type2 nat2) (values type1 nat1))])
                             (let ([bits (fxmax 1 (integer-length nat))])
@@ -2482,28 +2502,28 @@
          (with-output-language (Ltypes Type)
            (cond
              [(boolean? datum) `(tboolean ,src)]
-             [(field? datum)
-              (if (<= datum (max-unsigned))
-                  `(tunsigned ,src ,datum)
-                  (source-errorf src "constant ~d is larger than the largest representable Uint; use\
-                                 \n    ~:*~d as Field\
-                                 \n  to treat as a value of type Field"
-                                 datum))]
+             [(field? datum) `(tliteral ,src ,datum)]
              [(bytevector? datum)
               ; no need to check len? for the generated tbytes.  this is already caught in
               ; the parser
               `(tbytes ,src ,(bytevector-length datum))]
              [else (assert cannot-happen)])))]
       [(var-ref ,src ,var-name)
-       (values
-         `(var-ref ,src ,var-name)
-         (Idtype-case (get-idtype src var-name)
-           [(Idtype-Base type) type]
-           [(Idtype-Function kind is-native arg-name* arg-type* return-type)
-            ; can't happen if expand-modules-and-types is doing its job
-            (source-errorf src "invalid context for reference to ~s name ~s"
-                           kind
-                           (id-sym var-name))]))]
+       (Idtype-case (get-idtype src var-name)
+         [(Idtype-Base type)
+          (values
+            (nanopass-case (Ltypes Type) type
+              ; propagate numeric constants so that a variable bound to a numeric
+              ; value can be given different representations when used as values of
+              ; different types
+              [(tliteral ,src ,nat) `(quote ,src ,nat)]
+              [else `(var-ref ,src ,var-name)])
+            type)]
+         [(Idtype-Function kind is-native arg-name* arg-type* return-type)
+          ; can't happen if expand-modules-and-types is doing its job
+          (source-errorf src "invalid context for reference to ~s name ~s"
+                         kind
+                         (id-sym var-name))])]
       [(ledger-ref ,src ,ledger-field-name)
        (desugar-ledger-read src
          `(ledger-ref ,src ,ledger-field-name)
@@ -2666,6 +2686,7 @@
              `(tbytes ,src ,len-total))))]
       [(tuple-ref ,src ,[Care : expr expr-type] ,[Care : index index-type])
        (nanopass-case (Ltypes Type) (de-alias index-type #t)
+         [(tliteral ,src^ ,nat) nat]
          [(tunsigned ,src^ ,nat) nat]
          [else (source-errorf src "expected index to have an unsigned type, received ~a"
                               (format-type index-type))])
@@ -2726,6 +2747,7 @@
       [(tuple-slice ,src ,[Care : expr expr-type] ,[Care : index index-type] ,len)
        (nanopass-case (Ltypes Type) (de-alias index-type #t)
          [(tunsigned ,src^ ,nat) nat]
+         [(tliteral ,src^ ,nat) nat]
          [else (source-errorf src "expected index to have an unsigned type, received ~a"
                               (format-type index-type))])
        (cond
@@ -3059,20 +3081,6 @@
        (values
          `(assert ,src ,expr ,mesg)
          (with-output-language (Ltypes Type) `(ttuple ,src)))]
-      ;; TODO(kmillikin): make sure this case is covered by tests and works for JubjubScalar.
-      [(cast ,src ,type (quote ,src^ ,datum))
-       (guard
-         ; NB: guards are run before automatic recursion, so type is an Lexpanded Type, not an Ltypes Type
-         (let f ([type type])
-           (nanopass-case (Lexpanded Type) type
-             [(tfield ,src (field-native)) #t]
-             [(talias ,src ,nominal? ,type-name ,type) (f type)]
-             [else #f]))
-         (field? datum)
-         (> datum (max-unsigned)))
-       (values
-         `(quote ,src^ ,datum)
-         (Type type))]
       [(cast ,src ,[type] ,[Care : expr type^])
        (define (handle-unaliased type type^ expr)
          (define (u8-subtype? type)
@@ -3235,6 +3243,7 @@
         (define (u8-subtype? type)
           (nanopass-case (Ltypes Type) (de-alias type #t)
             [(tunsigned ,src ,nat) (<= nat 255)]
+            [(tliteral ,src ,nat) (<= nat 255)]
             [(tunknown) #t]
             [else #f])))
       [(single ,src ,[Care : expr type])

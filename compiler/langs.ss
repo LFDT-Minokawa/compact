@@ -759,6 +759,8 @@
       (circuit src (arg* ...) type expr)     => (circuit (arg* 0 ...) 4 type #f expr))
     (Type (type)
       tvar-name
+      ; FIXME: tunsigned => tliteral
+      (tliteral src nat)                     => (tunsigned nat)
       (tboolean src)                         => (tboolean)
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
