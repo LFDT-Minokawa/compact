@@ -282,13 +282,13 @@
                     `(seq ,src
                        (const ,src (,local-local* ...))
                        ,expr)))))))
-      [(if ,src ,expr0 (quote ,src1 ,datum1) (quote ,src2 ,datum2))
+      [(if ,src ,expr0 (quote ,src1 ,datum1 ,type1) (quote ,src2 ,datum2 ,type2))
        (guard (eq? datum1 #f) (eq? datum2 #t))
        (handle-expr ir statement-expression)]
-      [(if ,src ,expr0 ,expr1 (quote ,src2 ,datum2))
+      [(if ,src ,expr0 ,expr1 (quote ,src2 ,datum2 ,type2))
        (guard (eq? datum2 #f))
        (handle-expr ir statement-expression)]
-      [(if ,src ,expr0 (quote ,src1 ,datum1) ,expr2)
+      [(if ,src ,expr0 (quote ,src1 ,datum1 ,type1) ,expr2)
        (guard (eq? datum1 #t))
        (handle-expr ir statement-expression)]
       [(if ,src ,expr0 ,[stmt1] (tuple ,src^))
@@ -309,13 +309,13 @@
       [(return ,src ,expr) (Stmt expr src)]
       [else (handle-expr ir statement-expression)])
     (Expr : Expression (ir) -> Expression ()
-      [(if ,src ,[expr0] (quote ,src1 ,datum1) (quote ,src2 ,datum2))
+      [(if ,src ,[expr0] (quote ,src1 ,datum1 ,type1) (quote ,src2 ,datum2 ,type2))
        (guard (eq? datum1 #f) (eq? datum2 #t))
        `(not ,src ,expr0)]
-      [(if ,src ,[expr0] ,[expr1] (quote ,src2 ,datum2))
+      [(if ,src ,[expr0] ,[expr1] (quote ,src2 ,datum2 ,type2))
        (guard (eq? datum2 #f))
        `(and ,src ,expr0 ,expr1)]
-      [(if ,src ,[expr0] (quote ,src1 ,datum1) ,[expr2])
+      [(if ,src ,[expr0] (quote ,src1 ,datum1 ,type1) ,[expr2])
        (guard (eq? datum1 #t))
        `(or ,src ,expr0 ,expr2)]
       [(let* ,src ([,[local*] ,[expr*]] ...) ,[expr])
@@ -2827,7 +2827,7 @@
                   (build-equal-body type))
                 helper*))))
         )
-      [(quote ,src ,datum)
+      [(quote ,src ,datum ,type)
        (cond
          [(field? datum) (format "~dn" datum)]
          [(boolean? datum) (if datum "true" "false")]
