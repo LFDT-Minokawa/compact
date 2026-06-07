@@ -44,7 +44,7 @@
       (definitions
         (define (do-not src expr)
           (with-output-language (Lposttypescript Expression)
-            `(if ,src ,expr (quote ,src #f) (quote ,src #t))))
+            `(if ,src ,expr (quote ,src #f (tboolean ,src)) (quote ,src #t (tboolean ,src)))))
         )
       [(elt-ref ,src ,[expr] ,elt-name ,nat) `(elt-ref ,src ,expr ,elt-name)]
       [(return ,src ,[expr]) expr]
@@ -75,8 +75,8 @@
             (let loop ([elt-name elt-name] [elt-name* elt-name*] [i 0])
               (if (eq? elt-name elt-name^)
                   (if (= i maxval)
-                      `(quote ,src ,i)
-                      `(safe-cast ,src (tunsigned ,src ,maxval) (tunsigned ,src ,i) (quote ,src ,i)))
+                      `(quote ,src ,i (tunsigned ,src ,i))
+                      `(safe-cast ,src (tunsigned ,src ,maxval) (tunsigned ,src ,i) (quote ,src ,i (tunsigned ,src ,i))))
                   (begin
                     (assert (not (null? elt-name*)))
                     (loop (car elt-name*) (cdr elt-name*) (fx+ i 1))))))]
@@ -265,7 +265,7 @@
                 (with-output-language (Lunrolled Type)
                   `(tunsigned ,src 255))
                 (with-output-language (Lunrolled Expression)
-                  `(bytes-ref ,src ,type (var-ref ,src ,t) (quote ,src ,i)))))]
+                  `(bytes-ref ,src ,type (var-ref ,src ,t) (quote ,src ,i (tunsigned ,src ,i))))))]
            [(tvector ,src ,len ,type)
             (lambda (t i)
               (maybe-upcast src type^ type
@@ -646,8 +646,7 @@
        (Care ir)
        (void)])
     (Care : Expression (ir) -> * (type)
-      [(quote ,src ,datum)
-       (datum-type src datum)]
+      [(quote ,src ,datum ,type) type]
       [(var-ref ,src ,var-name)
        (Idtype-case (get-idtype src var-name)
          [(Idtype-Base type) type]
@@ -1089,7 +1088,7 @@
         (define (get-binding var-name) (eq-hashtable-ref var-ht var-name #f))
         )
       (define-datatype (CTV var-name)
-        (CTV-const datum)
+        (CTV-const datum type)
         (CTV-tuple ctv*)
         (CTV-struct elt-name* ctv*)
         (CTV-unknown)
@@ -1106,7 +1105,7 @@
           (if (has-binding? (CTV-var-name expr-ctv))
               expr-ctv
               (CTV-case expr-ctv
-                [(CTV-const datum) (CTV-const var-name datum)]
+                [(CTV-const datum type) (CTV-const var-name datum type)]
                 [(CTV-tuple ctv*) (CTV-tuple var-name ctv*)]
                 [(CTV-struct elt-name* ctv*) (CTV-struct var-name elt-name* ctv*)]
                 [(CTV-unknown) (CTV-unknown var-name)])))
@@ -1126,7 +1125,7 @@
                (k var-name))))
       (define (ifconstant ctv k)
         (CTV-case ctv
-          [(CTV-const datum) (k datum)]
+          [(CTV-const datum type) (k datum type)]
           [else #f]))
       (define (iszero? x) (eqv? x 0)) ; like zero? but more efficient for exact values
       (define (isone? x) (eqv? x 1))
@@ -1193,12 +1192,12 @@
       (define (handle-bytes-ref src expr ctv kindex)
         (with-output-language (Lnovectorref Expression)
           (CTV-case ctv
-            [(CTV-const datum)
+            [(CTV-const datum type)
              (assert (and (bytevector? datum) (< kindex (bytevector-length datum))))
              (let* ([b (bytevector-u8-ref datum kindex)]
                     [ctv (CTV-const no-var-name b)])
                (values
-                 `(quote ,src ,b)
+                 `(quote ,src ,b (tunsigned ,src 255))
                  ctv))]
             [else (values
                     `(bytes-ref ,src ,expr ,kindex)
