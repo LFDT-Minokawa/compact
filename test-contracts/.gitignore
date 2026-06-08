@@ -1,0 +1,11 @@
+.build/
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+**/.build/
+.compact-test-build/
+**/.compact-test-build/
+node_modules/

@@ -1,0 +1,24 @@
+{
+    "name": "compact-test-contracts",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "format": "prettier --write \"**/*.{ts,mjs,json,md}\"",
+        "format:check": "prettier --check \"**/*.{ts,mjs,json,md}\"",
+        "lint": "node ./compact-test-runner.mjs --prepare-artifacts && tsc --noEmit -p tsconfig.json",
+        "typecheck": "yarn lint",
+        "test": "node ./compact-test-runner.mjs"
+    },
+    "license": "Apache-2.0",
+    "dependencies": {
+        "@midnight-ntwrk/compact-runtime": "link:../runtime"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.0",
+        "prettier": "^3.8.2",
+        "typescript": "^6.0.3",
+        "vitest": "^4.1.8"
+    },
+    "packageManager": "yarn@4.16.0+sha512.5374c94eb4ef6aa8188fb112f20c1aa6569f248d676c5e576e1fd2a1a4d8d87a96df65d9dfe1c2a0252cbe38bda46cf18d955005b81b43cc7607a5c9d56fd2b6"
+}
