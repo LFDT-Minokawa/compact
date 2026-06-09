@@ -58,9 +58,9 @@ export default class CompactTestFixtureReporter extends DefaultReporter {
         super.onTestModuleEnd(testModule);
     }
 
-    onTestRunEnd() {
+    onTestRunEnd(testModules, unhandledErrors, reason) {
         this.logSlowCompileSummary();
-        super.onTestRunEnd();
+        super.onTestRunEnd(testModules, unhandledErrors, reason);
     }
 
     logFixtureCase(testCase, fixtureCase) {

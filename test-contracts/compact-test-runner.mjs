@@ -420,8 +420,8 @@ async function requireLocalCompactBinary() {
     if (compilerPath === null) {
         fail(
             `Compact compiler not available: no executable \`${requested}\` on PATH.\n` +
-            '  The compiler comes from the Nix compiler shell. Run ./test-contracts/test.sh,\n' +
-            '  or enter the shell first with `nix develop .#compiler`.',
+            '  The compiler comes from the Nix test-contracts shell. Run ./test-contracts/test.sh,\n' +
+            '  or enter the shell first with `nix develop .#test-contracts`.',
         );
     }
 
@@ -432,7 +432,7 @@ async function requireLocalCompactBinary() {
             `Refusing to use the Compact compiler at:\n    ${compilerPath}\n` +
             `  Tests must use the Nix-built compiler under ${nixStorePrefix}, not a globally\n` +
             '  installed toolchain. Run ./test-contracts/test.sh, or enter\n' +
-            '  `nix develop .#compiler` so `compactc` resolves into the Nix store.',
+            '  `nix develop .#test-contracts` so `compactc` resolves into the Nix store.',
         );
     }
 
@@ -440,7 +440,9 @@ async function requireLocalCompactBinary() {
 }
 
 /**
- * Ensures Yarn linked `@midnight-ntwrk/compact-runtime` to this checkout.
+ * Ensures `@midnight-ntwrk/compact-runtime` is linked to a locally built
+ * runtime: either the Nix package substituted from the cache (used by test.sh
+ * and CI) or the working-tree build at ../runtime (local development).
  */
 async function requireLocalRuntimeBuild() {
     const localRuntimeDir = path.join(path.dirname(testRoot), 'runtime');
@@ -458,20 +460,26 @@ async function requireLocalRuntimeBuild() {
     } catch {
         fail(
             'Compact runtime not linked: node_modules/@midnight-ntwrk/compact-runtime is\n' +
-            '  absent. Run `yarn install` to create the `link:../runtime` symlink, then build\n' +
-            '  the runtime (`npm run build` in ../runtime). yarn install only links it; it does\n' +
-            '  not build it. ./test-contracts/test.sh does both.',
+            '  absent. ./test-contracts/test.sh links the runtime the Nix shell pulled from\n' +
+            '  the cache. To run by hand, point `.compact-runtime` at a runtime build\n' +
+            '  (the Nix store package via $COMPACT_RUNTIME_PKG, or ../runtime) and run\n' +
+            '  `yarn install`.',
         );
     }
 
-    const expectedDir = await fs.realpath(localRuntimeDir).catch(() => localRuntimeDir);
+    const nixStorePrefix = `${path.sep}nix${path.sep}store${path.sep}`;
+    const localRuntimeReal = await fs.realpath(localRuntimeDir).catch(() => localRuntimeDir);
+    const isNixRuntime = resolvedDir.startsWith(nixStorePrefix);
+    const isLocalRuntime = resolvedDir === localRuntimeReal;
 
-    if (resolvedDir !== expectedDir) {
+    if (!isNixRuntime && !isLocalRuntime) {
         fail(
-            'Compact runtime is not this checkout\'s build: it resolves to\n' +
+            'Compact runtime is not a locally built runtime: it resolves to\n' +
             `    ${resolvedDir}\n` +
-            `  but tests must use the local runtime at\n    ${localRuntimeDir}\n` +
-            '  Ensure the dependency is `link:../runtime`, then reinstall with `yarn install`.',
+            '  but tests must use either the Nix-built package under\n' +
+            `    ${nixStorePrefix}\n` +
+            `  (substituted from the cache) or the working-tree runtime at\n    ${localRuntimeDir}\n` +
+            '  Point `.compact-runtime` at one of those and reinstall with `yarn install`.',
         );
     }
 
@@ -495,8 +503,8 @@ async function requireLocalRuntimeBuild() {
     } catch {
         fail(
             `Compact runtime not built: expected ${path.relative(testRoot, mainPath)}.\n` +
-            '  Build the runtime before running tests. ./test-contracts/test.sh builds it,\n' +
-            '  or run `npm run build` in ../runtime.',
+            '  The Nix runtime package ships prebuilt; ./test-contracts/test.sh links it.\n' +
+            '  When using ../runtime instead, build it first with `npm run build` there.',
         );
     }
 }

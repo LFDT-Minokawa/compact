@@ -45,6 +45,3 @@ jobs:
       - name: Build and test
         run: |
           nix develop --command bash -c "cd ./runtime ; npm run build ; npm run test"
-
-      - name: Test contracts
-        run: ./test-contracts/test.sh

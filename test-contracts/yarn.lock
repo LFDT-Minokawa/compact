@@ -49,9 +49,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@midnight-ntwrk/compact-runtime@link:../runtime::locator=compact-test-contracts%40workspace%3A.":
+"@midnight-ntwrk/compact-runtime@link:./.compact-runtime::locator=compact-test-contracts%40workspace%3A.":
   version: 0.0.0-use.local
-  resolution: "@midnight-ntwrk/compact-runtime@link:../runtime::locator=compact-test-contracts%40workspace%3A."
+  resolution: "@midnight-ntwrk/compact-runtime@link:./.compact-runtime::locator=compact-test-contracts%40workspace%3A."
   languageName: node
   linkType: soft
 
@@ -353,7 +353,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "compact-test-contracts@workspace:."
   dependencies:
-    "@midnight-ntwrk/compact-runtime": "link:../runtime"
+    "@midnight-ntwrk/compact-runtime": "link:./.compact-runtime"
     "@types/node": "npm:^25.5.0"
     prettier: "npm:^3.8.2"
     typescript: "npm:^6.0.3"

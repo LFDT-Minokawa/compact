@@ -121,16 +121,20 @@ fixture or test-file path filters. Selecting a runtime test also selects its
 compile prerequisite, so a runtime-only filtered run still compiles the fixture
 inside Vitest before importing the generated contract value.
 
-The package links `@midnight-ntwrk/compact-runtime` to `../runtime`, so the
-runtime must be built locally before fixtures run. The easiest local command
-from the repository root is:
+The package links `@midnight-ntwrk/compact-runtime` through the
+`.compact-runtime` symlink, which points at a locally built runtime — the
+prebuilt Nix package substituted from the cache (CI) or the working-tree build
+at `../runtime` (local development). The easiest command from the repository
+root is:
 
 ```sh
 ./test-contracts/test.sh
 ```
 
-That wrapper builds `runtime`, installs this package with Corepack/Yarn, and
-runs the fixtures with the Nix-built `compactc` compiler. Compile hang
+That wrapper links the runtime the `.#test-contracts` Nix shell pulled from the
+cache (`$COMPACT_RUNTIME_PKG`, falling back to `../runtime`), installs this
+package with Corepack/Yarn, and runs the fixtures with the Nix-built `compactc`
+compiler. Compile hang
 protection is owned by Vitest and CI through `testTimeout` in
 `vitest.config.ts`. `yarn lint` prepares generated imports with `--skip-zk`;
 `yarn test` uses full compiler runs so compile tests still cover proving-key

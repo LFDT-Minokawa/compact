@@ -12,7 +12,7 @@
     },
     "license": "Apache-2.0",
     "dependencies": {
-        "@midnight-ntwrk/compact-runtime": "link:../runtime"
+        "@midnight-ntwrk/compact-runtime": "link:./.compact-runtime"
     },
     "devDependencies": {
         "@types/node": "^25.5.0",

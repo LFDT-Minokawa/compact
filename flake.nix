@@ -571,6 +571,19 @@
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
           };
+          devShells.test-contracts = pkgs.mkShell {
+            inputsFrom = with packages; [compactc];
+            packages = [
+              packages.compactc
+              packages.runtime.package
+              pkgs.yarn
+              zkir.packages.${system}.zkir
+              packages.zkir-v3-bin
+            ];
+
+            COMPACT_RUNTIME_PKG = "${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+          };
 
           devShells.runtime = packages.runtime.mkShell {
             packages = [

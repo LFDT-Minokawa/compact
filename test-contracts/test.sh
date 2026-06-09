@@ -19,16 +19,10 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-# Build the runtime in the default dev shell (provides Chez Scheme).
-nix develop --no-warn-dirty --command bash -c \
-  'rm -rf runtime/node_modules/@midnight-ntwrk && cd runtime && npm run build'
-
-# Install deps and run fixtures in the compiler shell. We invoke yarn through
-# corepack (bundled with the shell's node) so it resolves to the Yarn 4 version
-# pinned in this package's packageManager field, rather than the classic yarn 1
-# also on PATH there.
-nix develop --no-warn-dirty .#compiler --command bash -c '
+nix develop --no-warn-dirty .#test-contracts --command bash -c '
+  set -euo pipefail
   cd test-contracts
+  ln -sfn "${COMPACT_RUNTIME_PKG:-../runtime}" .compact-runtime
   export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
   corepack yarn install --immutable
   COMPACT_BINARY=compactc corepack yarn lint

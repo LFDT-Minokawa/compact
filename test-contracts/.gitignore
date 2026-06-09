@@ -9,3 +9,4 @@
 .compact-test-build/
 **/.compact-test-build/
 node_modules/
+.compact-runtime
