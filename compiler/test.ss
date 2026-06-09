@@ -15373,7 +15373,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 44" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (* "right" "Boolean")))
+      irritants: '("testfile.compact line 1 char 44" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("Boolean" "right" *)))
     )
 
   (test
@@ -15382,7 +15382,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (- "left" "Bytes<20>")))
+      irritants: '("testfile.compact line 1 char 61" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("Bytes<20>" "left" -)))
     )
 
   (test
@@ -24514,7 +24514,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~s" ("T" "Uint<32>" +)))
+      irritants: '("testfile.compact line 3 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~a" ("T" "Uint<32>" +)))
     )
 
   (test
@@ -24553,7 +24553,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~s" ("T1" "T2" *)))
+      irritants: '("testfile.compact line 4 char 10" "incompatible combination of types ~a and ~a for binary arithmetic operator ~a" ("T1" "T2" *)))
     )
 
   (test
@@ -29675,7 +29675,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 43" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "left" "Unknown")))
+      irritants: '("testfile.compact line 3 char 43" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("Unknown" "left" +)))
     )
 
   (test
@@ -32273,7 +32273,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 16" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "Unknown")))
+      irritants: '("testfile.compact line 7 char 16" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("Unknown" "right" +)))
     )
 
   ; pm-17201
@@ -67376,6 +67376,64 @@ groups than for single tests.
       "export circuit test(): [] { foo<Secp256k1Base>(default<Secp256k1Base>); }"
       )
     (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Secp256k1Scalar): [Secp256k1Scalar, Secp256k1Scalar] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256k1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Secp256k1>\","
+        "    \"Scalar<Secp256k1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "ledger wantProof: Boolean;"
+      "export circuit test(s0: Secp256k1Scalar, s1: Secp256k1Scalar): Secp256k1Scalar {"
+      "  wantProof = true;"
+      "  return s0 * s1;"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s0.0\", \"type\": \"Scalar<Secp256k1>\" },"
+        "    { \"name\": \"%s1.1\", \"type\": \"Scalar<Secp256k1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Secp256k1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"mul\", \"output\": \"%t.2\", \"a\": \"%s0.0\", \"b\": \"%s1.1\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
 )
 )
 
@@ -84708,31 +84766,31 @@ groups than for single tests.
     '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "left" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 61" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
     )
   (test
     '("export circuit test(x: JubjubScalar, y: Field): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 54" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "left" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 54" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
     )
   (test
     '("export circuit test(x: JubjubScalar, y: Uint<64>): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "left" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
     )
   (test
     '("export circuit test(x: Field, y: JubjubScalar): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 54" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 54" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
     '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
 
   (test
@@ -84794,37 +84852,37 @@ groups than for single tests.
     '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
     '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
     '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
     '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
     '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
     '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a requires its ~a operand to be a Field or Uint; the actual type is ~a" (+ "right" "JubjubScalar")))
+      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   )
 

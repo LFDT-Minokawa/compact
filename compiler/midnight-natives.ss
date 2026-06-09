@@ -25,7 +25,7 @@
    [rand Field (discloses nothing)])
   Field)
 
-;; ==== Persistent (SHA-256) hashing
+;; ==== Hashing
 (declare-native-entry circuit persistentHash [A]
   "__compactRuntime.persistentHash"
   ([value A (discloses "a hash of")])
@@ -47,13 +47,23 @@
   ([x Field (discloses "a converted form of")])
   (Bytes 32))
 
-;; ==== Other hashing circuits
 (declare-native-entry circuit keccak256 [A]
   "__compactRuntime.keccak256"
   ([value A (discloses "a hash of")])
   (Bytes 32))
 
-;; ====
+;; ==== Fields
+(declare-native-entry circuit neg
+  "__compactRuntime.secp256k1ScalarNeg"
+  ([s Secp256k1Scalar (discloses "the negation of")])
+  Secp256k1Scalar)
+
+(declare-native-entry circuit inv
+  "__compactRuntime.secp256k1ScalarInv"
+  ([s Secp256k1Scalar (discloses "the inverse of")])
+  Secp256k1Scalar)
+
+;; ==== Curves
 (declare-native-entry circuit jubjubPointX
   "__compactRuntime.jubjubPointX"
   ([np (TypeRef JubjubPoint) (discloses "the X coordinate of")])

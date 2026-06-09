@@ -110,6 +110,9 @@
               [(hashToCurve)
                (assert (= (length var-name*) 1))
                (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
+              [(inv)
+               (assert (= (length var-name*) 1))
+               (cons `(inv ,(car var-name*) ,(car triv*)) instr*)]
               [(jubjubPointX)
                (assert (= (length var-name*) 1))
                (cons `(encode (,(car var-name*) ,(make-temp-id src 'ingore)) ,(car triv*)) instr*)]
@@ -122,6 +125,9 @@
                  (cons `(keccak256 ,(car var-name*) ,(cadr var-name*)
                           (,alignment* ...) ,triv* ...)
                    instr*))]
+              [(neg)
+               (assert (= (length var-name*) 1))
+               (cons `(neg ,(car var-name*) ,(car triv*)) instr*)]
               [(persistentCommit)
                (assert (= (length var-name*) 2))
                ;; The two source arguments are swapped for the persistent_hash gate.  We assume
@@ -990,6 +996,10 @@
        `((op . "encode") (outputs . ,(list->vector outp*)) (input . ,inp))]
       [(hash_to_curve ,[* outp] ,[* inp*] ...)
        `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
+      [(impact ,[* inp] ,[* inp*] ...)
+       `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
+      [(inv ,[* outp] ,[* inp])
+       `((op . "inv") (output . ,outp) (a . ,inp))]
       [(keccak256 ,outp0 ,outp1 (,alignment* ...) ,[* inp*] ...)
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
          `((op . "keccak256") (outputs . ,(vector outp0 outp1))
@@ -1017,8 +1027,6 @@
        `((op . "public_input") (type . ,zkir-type) (output . ,outp) (guard . ,(void)))]
       [(public_input ,zkir-type ,[* outp] ,[* inp])
        `((op . "public_input") (type . ,zkir-type) (output . ,outp) (guard . ,inp))]
-      [(impact ,[* inp] ,[* inp*] ...)
-       `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
       [(reconstitute_field ,[* outp] ,[* inp0] ,[* inp1] ,imm)
        `((op . "reconstitute_field") (output . ,outp) (divisor . ,inp0) (modulus . ,inp1)
          (bits . ,imm))]

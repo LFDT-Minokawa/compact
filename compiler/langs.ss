@@ -1244,6 +1244,7 @@
       (encode (outp* ...) inp)
       (hash_to_curve outp inp* ...)
       (impact inp inp* ...)
+      (inv outp inp)
       (keccak256 outp0 outp1 (alignment* ...) inp* ...)
       (less_than outp inp0 inp1 imm)
       (mul outp inp0 inp1)
