@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Test: casting between Uint range and type
-constructor() {
-  const a: Uint<13> = 12 as Uint<0..13>;
-  const b: Uint<0..13> = 12 as Uint<13>;
-}
+import { defineCompileTest } from '@test/compact-test';
+
+export default defineCompileTest(import.meta.url);

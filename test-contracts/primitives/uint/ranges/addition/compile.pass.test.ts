@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
- // Test: range upper bound must be at least 1
- constructor() {
-   const a: Uint<0..0> = 1;
- }
+import { defineCompileTest } from '@test/compact-test';
+
+export default defineCompileTest(import.meta.url);

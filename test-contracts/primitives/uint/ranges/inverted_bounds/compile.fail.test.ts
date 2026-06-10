@@ -13,7 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
- // Test: range lower bound must start at 0
- constructor() {
-   const a: Uint<7..231> = 233;
- }
+import { defineCompileTest } from '@test/compact-test';
+
+export default defineCompileTest(import.meta.url, {
+    expectedError: /end bound 1 is less than start bound 7/,
+});

@@ -13,7 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
- // Test: lower bound cant be bigger than upper bound
- constructor() {
-    for(const i of 7..1) { }
- }
+import CompactStandardLibrary;
+
+export circuit uint_ranges_zero_upper_bound(): [] {
+  const a: Uint<0..0> = 1;
+}
