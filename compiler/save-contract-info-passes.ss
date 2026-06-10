@@ -83,10 +83,24 @@
         (nanopass-case (Lnodisclose Type) type
           [(talias ,src ,nominal? ,type-name ,type)
            (unwrap-to-adt type)]
-          [else type])))
-
+          [else type]))
+      (define (tcontract-tail contract-name elt-name* pure-dcl* type** type*)
+        (list
+          (cons "name" (symbol->string contract-name))
+          (cons
+            "circuits"
+            (list->vector
+              (map (lambda (elt-name pure-dcl type* type)
+                     (list
+                       (cons "name" (symbol->string elt-name))
+                       (cons "pure" pure-dcl)
+                       (cons
+                         "argument-types"
+                         (list->vector (map Type type*)))
+                       (cons "result-type" (Type type))))
+                   elt-name* pure-dcl* type** type*))))))
     (Program : Program (ir) -> Program ()
-      [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
+      [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (let ([op (get-target-port 'contract-info.json)])
          (print-json op
            (list
@@ -112,7 +126,12 @@
                (list->vector (fold-right Witness '() pelt*)))
              (cons
                "contracts"
-               (list->vector (map symbol->string contract-name*)))
+               (list->vector
+                 (map (lambda (ct)
+                        (nanopass-case (Lnodisclose Contract-Type) ct
+                          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                           (tcontract-tail contract-name elt-name* pure-dcl* type** type*)]))
+                      contract-type*)))
              (cons
                "ledger"
                (list->vector (fold-right LedgerField '() pelt*))))))
@@ -224,21 +243,9 @@
          (cons "length" len)
          (cons "type" (Type type)))]
       [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-       (list
+       (cons
          (cons "type-name" "Contract")
-         (cons "name" (symbol->string contract-name))
-         (cons
-           "circuits"
-           (list->vector
-             (map (lambda (elt-name pure-dcl type* type)
-                    (list
-                      (cons "name" (symbol->string elt-name))
-                      (cons "pure" pure-dcl)
-                      (cons
-                        "argument-types"
-                        (list->vector (map Type type*)))
-                      (cons "result-type" (Type type))))
-                  elt-name* pure-dcl* type** type*))))]
+         (tcontract-tail contract-name elt-name* pure-dcl* type** type*))]
       [(ttuple ,src ,type* ...)
        (list
          (cons "type-name" "Tuple")

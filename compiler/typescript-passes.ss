@@ -173,7 +173,7 @@
           (let ([ldescriptor* (reverse rdescriptor*)])
             (values (map car ldescriptor*) (map cdr ldescriptor*))))))
     (Program : Program (ir) -> Program ()
-      [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
+      [(program ,src (,[contract-type*] ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (fluid-let ([program-src src])
          (let ([pelt* (map Program-Element pelt*)])
            ; FIXME: assuming we get only (align <value> 1) or (align <value> 8).
@@ -191,7 +191,7 @@
              (with-output-language (Ltypescript Type)
                `(tunsigned ,src ,(- (expt 2 128) 1))))
            (let-values ([(descriptor-id* type*) (get-descriptors)])
-             `(program ,src (,contract-name* ...) ((,export-name* ,name*) ...)
+             `(program ,src (,contract-type* ...) ((,export-name* ,name*) ...)
                 (type-descriptors ,descriptor-table (,descriptor-id* ,type*) ...)
                 ,pelt* ...))))])
     (Program-Element : Program-Element (ir) -> Program-Element ()
@@ -1171,14 +1171,17 @@
               ))))
 
       (module (print-contract.js)
-        (define (print-contract-header contract-dependency*)
+        (define (print-contract-header contract-type*)
           (display-string "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';\n")
           (for-each
-            (lambda (contract-name)
-              (printf "import * as ~a from '~a';\n"
-                      (contract-import-binding contract-name)
-                      (contract-import-path contract-name)))
-            contract-dependency*)
+            (lambda (contract-type)
+              (let ([contract-name (nanopass-case (Ltypescript Contract-Type) contract-type
+                                     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                                      contract-name])])
+                (printf "import * as ~a from '~a';\n"
+                  (contract-import-binding contract-name)
+                  (contract-import-path contract-name))))
+            contract-type*)
           (printf "__compactRuntime.checkRuntimeVersion('~a');\n" runtime-version-string)
           (display-string "\n"))
 
@@ -2358,10 +2361,10 @@
         (define (print-contract-footer)
           (display-string "//# sourceMappingURL=index.js.map\n"))
 
-        (define (print-contract.js src contract-name* descriptor-id* type* xpelt* uname*)
+        (define (print-contract.js src contract-type* descriptor-id* type* xpelt* uname*)
           (parameterize ([current-output-port (get-target-port 'contract.js)])
             (fluid-let ([sourcemap-tracker (make-sourcemap-tracker)])
-              (print-contract-header contract-name*)
+              (print-contract-header contract-type*)
               (print-exported-types xpelt*)
               (print-contract-descriptors src descriptor-id* type*)
               (print-contract-class src xpelt* uname*)
@@ -2574,12 +2577,12 @@
           [else #f]))
       )
     (Program : Program (ir) -> Program ()
-      [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
+      [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
        (let* ([xpelt* (maplr (lambda (x) (Program-Element x (map cons export-name* name*))) pelt*)]
               [uname* (maplr xpelt->uname xpelt*)])
          (print-contract.d.ts src xpelt* uname*)
          (fluid-let ([descriptor-table descriptor-table^])
-           (print-contract.js src contract-name* descriptor-id* type* xpelt* uname*)))
+           (print-contract.js src contract-type* descriptor-id* type* xpelt* uname*)))
        ir])
     (Program-Element : Program-Element (ir export-alist) -> * (xpelt)
       (definitions
