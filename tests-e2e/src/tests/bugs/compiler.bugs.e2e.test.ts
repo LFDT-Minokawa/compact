@@ -71,15 +71,6 @@ describe('[Bugs] Compiler', () => {
             },
         },
         {
-            testcase: '[PM-15733] should compile and not throw internal error on broken contract - field arithmetic semantics',
-            file: 'pm-15733.compact',
-            output: {
-                stderr: /Exception: (?<file>.+) line (?<line>\d+) char (?<char>\d+): 102211695604070082112571065507755096754575920209623522239390234855480569854275933742834077002685857629445612735086326265689167708028928 is out of Field range/,
-                stdout: compilerDefaultOutput(),
-                exitCode: ExitCodes.Failure,
-            },
-        },
-        {
             testcase: '[PM-15826] should compile and not throw internal error on broken contract - Field range',
             file: 'pm-15826.compact',
             output: {

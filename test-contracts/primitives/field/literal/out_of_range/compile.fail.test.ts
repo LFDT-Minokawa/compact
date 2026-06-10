@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// 	http://www.apache.org/licenses/LICENSE-2.0
+//  	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,14 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-circuit testAdd(x: Field, y: Field): Field {
-  return x + y;
-}
+import { defineCompileTest } from '@test/compact-test';
 
-witness forceImpure(): [];
-
-export circuit test(): Field {
-  forceImpure();
-  const MAX_FIELD: Field = 102211695604070082112571065507755096754575920209623522239390234855480569854275933742834077002685857629445612735086326265689167708028928 as Field;
-  return testAdd(MAX_FIELD, MAX_FIELD);
-}
+export default defineCompileTest(import.meta.url, {
+    expectedError: /is out of Field range/,
+});
