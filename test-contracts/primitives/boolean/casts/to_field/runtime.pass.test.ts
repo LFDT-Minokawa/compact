@@ -13,13 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
-}
+import { expect } from 'vitest';
+
+// @ts-ignore - generated at test time
+import { Contract } from './.build/contract/index.js';
+import {
+    createTestContract,
+    defineRuntimeTest,
+} from '@test/compact-test';
+
+export default defineRuntimeTest(import.meta.url, () => {
+    const { contract, ctx } = createTestContract(Contract);
+    const result = contract.circuits.boolean_casts_to_field(ctx).result;
+
+    expect(result).toBe(1n);
+});

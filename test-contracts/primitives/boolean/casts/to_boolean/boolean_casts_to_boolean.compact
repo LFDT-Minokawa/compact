@@ -13,13 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// A Boolean value casts to Boolean: the cast is a no-op that preserves literal
+// values, comparison results, and values returned from a circuit call.
+export circuit boolean_casts_to_boolean(): Boolean {
+    const t = true as Boolean;
+    const f = false as Boolean;
+    assert(t, "true should cast to true");
+    assert(!f, "false should cast to false");
+
+    const from_expr = (1 as Uint<8> > 0 as Uint<8>) as Boolean;
+    assert(from_expr, "comparison result should cast correctly");
+
+    return t;
 }

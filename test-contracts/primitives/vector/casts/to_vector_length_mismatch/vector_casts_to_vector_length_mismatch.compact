@@ -13,13 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// A cast cannot change the element count: a six-element tuple does not fit a
+// Vector of length four.
+export circuit vector_casts_to_vector_length_mismatch(): Vector<4, Boolean> {
+    return [true, false, true, false, true, false] as Vector<4, Boolean>;
 }

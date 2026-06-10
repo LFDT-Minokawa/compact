@@ -13,13 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export ledger param1: Bytes<5>;
-export ledger param2: Vector<5, Uint<8>>;
+import { defineCompileTest } from '@test/compact-test';
 
-export circuit test1(): Vector<5, Uint<8>> {
-  return param1 as Vector<5, Uint<8>>;
-}
-
-export circuit test2(): Bytes<5> {
-  return param2 as Bytes<5>;
-}
+export default defineCompileTest(import.meta.url);

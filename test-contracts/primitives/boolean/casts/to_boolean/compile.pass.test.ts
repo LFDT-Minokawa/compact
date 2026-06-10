@@ -13,6 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export circuit test1(): [] {
-   const cast = [true, false, true, false, true, false] as Vector<4, Boolean>;
-}
+import { defineCompileTest } from '@test/compact-test';
+
+export default defineCompileTest(import.meta.url);

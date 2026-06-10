@@ -13,13 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
-}
+import { defineCompileTest } from '@test/compact-test';
+
+export default defineCompileTest(import.meta.url, {
+    expectedError: /cannot cast from type Vector<4, Uint<16>> to type Bytes<4>/,
+});

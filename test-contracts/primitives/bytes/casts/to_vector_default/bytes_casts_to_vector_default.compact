@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// Casting a default-initialized Bytes to a Vector yields an all-zero vector.
+export circuit bytes_casts_to_vector_default(): Vector<4, Uint<8>> {
+    const zeros = default<Bytes<4>> as Vector<4, Uint<8>>;
+    assert(zeros[0] == 0, "Default Bytes should cast to a zero vector");
+    assert(zeros[3] == 0, "Default Bytes should cast to a zero vector");
+
+    return zeros;
 }

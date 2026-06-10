@@ -13,13 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// A Bytes value reinterprets as a Uint using little-endian byte order: the
+// first byte is the least significant.
+export circuit bytes_casts_to_uint(): Uint<32> {
+    const source = [1, 2, 3, 4] as Bytes<4>;
+
+    const value = source as Uint<32>;
+    assert(value == 67305985, "Little-endian Bytes<4> [1,2,3,4] should be 0x04030201");
+
+    const single = [42] as Bytes<1> as Uint<8>;
+    assert(single == 42, "Single byte should convert to 42");
+
+    return value;
 }

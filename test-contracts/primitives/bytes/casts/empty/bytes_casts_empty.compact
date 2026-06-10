@@ -13,13 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// A zero-length Bytes reinterprets as a zero-length Vector, yielding an empty
+// vector.
+export circuit bytes_casts_empty(): Vector<0, Uint<8>> {
+    const empty = default<Bytes<0>> as Vector<0, Uint<8>>;
+
+    return empty;
 }

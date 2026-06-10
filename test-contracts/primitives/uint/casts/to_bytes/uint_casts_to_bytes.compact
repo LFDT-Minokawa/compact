@@ -13,13 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// A Uint value reinterprets as Bytes using little-endian order: the least
+// significant byte comes first, and high bytes are zero-padded.
+export circuit uint_casts_to_bytes(): Bytes<4> {
+    const value: Uint<16> = 258;          // 0x0102
+
+    const bytes = value as Bytes<4>;
+    assert(bytes[0] == 2, "Least significant byte should come first");
+    assert(bytes[1] == 1, "Next byte should be 1");
+    assert(bytes[2] == 0, "High bytes should be zero-padded");
+    assert(bytes[3] == 0, "High bytes should be zero-padded");
+
+    return bytes;
 }

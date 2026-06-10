@@ -13,13 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// Bytes are 8-bit; reinterpreting them as a Vector whose Uint<7> element is
+// narrower than a byte underflows the target element and is rejected.
+export circuit bytes_casts_to_vector_underflow(): Vector<4, Uint<7>> {
+    const source = default<Bytes<4>>;
+    return source as Vector<4, Uint<7>>;
 }

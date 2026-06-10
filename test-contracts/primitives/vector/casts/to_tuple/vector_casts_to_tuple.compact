@@ -13,6 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export circuit test(param1: Vector<1024, Uint<16>>): Bytes<1024> {
-  return param1 as Bytes<1024>;
+import CompactStandardLibrary;
+
+// A Uint vector reinterprets as a tuple of the same length, widening each
+// element type.
+export circuit vector_casts_to_tuple(): [Uint<64>, Uint<64>] {
+    const source = [100, 200] as Vector<2, Uint<32>>;
+
+    const tuple = source as [Uint<64>, Uint<64>];
+    assert(tuple[0] == 100, "First element should be 100");
+    assert(tuple[1] == 200, "Second element should be 200");
+
+    return tuple;
 }

@@ -13,13 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// A Uint vector reinterprets as a same-length vector of a wider Uint element
+// type; each value is preserved.
+export circuit vector_casts_to_vector(): Vector<4, Uint<16>> {
+    const source = [1, 2, 3, 4] as Vector<4, Uint<8>>;
+
+    const widened = source as Vector<4, Uint<16>>;
+    assert(widened[0] == 1, "First element should be preserved");
+    assert(widened[3] == 4, "Last element should be preserved");
+
+    return widened;
 }

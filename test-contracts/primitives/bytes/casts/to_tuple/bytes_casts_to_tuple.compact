@@ -13,13 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// A Bytes value reinterprets as a tuple of Fields, one element per byte, in
+// order (byte i becomes element i).
+export circuit bytes_casts_to_tuple(): [Field, Field, Field, Field] {
+    const source = [10, 20, 30, 40] as Bytes<4>;
+
+    const tuple = source as [Field, Field, Field, Field];
+    assert(tuple[0] == 10, "First element should be 10");
+    assert(tuple[3] == 40, "Last element should be 40");
+
+    return tuple;
 }

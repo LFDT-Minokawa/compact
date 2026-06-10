@@ -13,6 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export circuit test(param1: Bytes<1024>): Vector<1024, Uint<7>> {
-  return param1 as Vector<1024, Uint<7>>;
+import CompactStandardLibrary;
+
+// A Vector whose element Uint width is narrower than 8 bits still reinterprets
+// as Bytes, since each element fits within a single byte.
+export circuit vector_casts_to_bytes_narrow_element(): Bytes<4> {
+    const source = [1, 2, 3, 127] as Vector<4, Uint<7>>;
+
+    const bytes = source as Bytes<4>;
+    assert(bytes[0] == 1, "First byte should be 1");
+    assert(bytes[3] == 127, "Last byte should be 127");
+
+    return bytes;
 }

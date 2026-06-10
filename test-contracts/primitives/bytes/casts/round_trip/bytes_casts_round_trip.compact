@@ -13,13 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// Casts chain in a single expression: a Bytes round-trips through Vector and
+// back to Vector, preserving every byte.
+export circuit bytes_casts_round_trip(): Vector<4, Uint<8>> {
+    const source = [5, 6, 7, 8] as Bytes<4>;
+
+    const round = source as Vector<4, Uint<8>> as Bytes<4> as Vector<4, Uint<8>>;
+    assert(round[0] == 5, "First element should survive the round-trip");
+    assert(round[3] == 8, "Last element should survive the round-trip");
+
+    return round;
 }

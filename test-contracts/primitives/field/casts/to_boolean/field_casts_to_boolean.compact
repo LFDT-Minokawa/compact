@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// A Field value casts to Boolean: zero becomes false and non-zero becomes true.
+export circuit field_casts_to_boolean(): Boolean {
+    const zero: Field = 0;
+    const one: Field = 1;
+    assert(!(zero as Boolean), "Field 0 should cast to false");
+    assert(one as Boolean, "Field 1 should cast to true");
+    return one as Boolean;
 }

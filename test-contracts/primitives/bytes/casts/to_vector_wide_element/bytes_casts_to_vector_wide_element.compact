@@ -13,13 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// A Bytes value can reinterpret as a Vector whose element Uint width exceeds 8
+// bits; each byte zero-extends into the wider element.
+export circuit bytes_casts_to_vector_wide_element(): Vector<4, Uint<16>> {
+    const source = [1, 2, 3, 255] as Bytes<4>;
+
+    const wide = source as Vector<4, Uint<16>>;
+    assert(wide[0] == 1, "First widened element should be 1");
+    assert(wide[3] == 255, "Last widened element should be 255");
+
+    const wider = source as Vector<4, Uint<32>>;
+    assert(wider[3] == 255, "Element should be preserved at Uint<32>");
+
+    return wide;
 }

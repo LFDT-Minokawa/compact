@@ -13,13 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-declare module '@midnight-ntwrk/compact-runtime' {
-    export interface WitnessContext<L = any, PS = any> {
-        readonly ledger: L;
-        readonly privateState: PS;
-        readonly contractAddress: any;
-    }
-    export function createCircuitContext(...args: unknown[]): any;
-    export function createConstructorContext(...args: unknown[]): any;
-    export function dummyContractAddress(): any;
+import CompactStandardLibrary;
+
+// A Vector whose element is a Field (not a Uint that fits in a byte) cannot
+// reinterpret as Bytes.
+export circuit vector_casts_to_bytes_field_element(): Bytes<1> {
+    const v: Vector<1, Field> = [1];
+    return v as Bytes<1>;
 }
