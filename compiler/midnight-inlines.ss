@@ -15,8 +15,10 @@
 
 (declare-inline-entry serialize [T (nat n)]
   ([value T])
-  (Bytes n))
+  (Bytes n)
+  (serialize src n T value))
 
 (declare-inline-entry deserialize [T (nat n)]
   ([value (Bytes n)])
-  T)
+  T
+  (deserialize src n T value))

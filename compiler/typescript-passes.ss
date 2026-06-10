@@ -173,7 +173,7 @@
           (let ([ldescriptor* (reverse rdescriptor*)])
             (values (map car ldescriptor*) (map cdr ldescriptor*))))))
     (Program : Program (ir) -> Program ()
-      [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
+      [(program ,src (,contract-name* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (fluid-let ([program-src src])
          (let ([pelt* (map Program-Element pelt*)])
            ; FIXME: assuming we get only (align <value> 1) or (align <value> 8).

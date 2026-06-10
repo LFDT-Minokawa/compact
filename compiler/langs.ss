@@ -32,7 +32,6 @@
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
-          Lserialized unparse-Lserialized Lserialized-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats
@@ -40,6 +39,7 @@
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
           Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats
           Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats
+          Lnoserialize unparse-Lnoserialize Lnoserialize-pretty-formats
           Lloweredemit unparse-Lloweredemit Lloweredemit-pretty-formats Lloweredemit-Export-Type-Definition?
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
@@ -436,6 +436,9 @@
     (Fixup-Alias-Definition (fixup-alias-defn)
       ; (fixup-alias alias-name actual-name)
       (+ (fixup-alias function-name^ function-name)))
+    (Expression (expr index)
+      (+ (serialize src tsize type expr)      => (serialize tsize type expr)
+         (deserialize src tsize type expr)    => (deserialize tsize type expr)))
     )
 
   (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
@@ -491,7 +494,7 @@
          (string (mesg opaque-type file discloses))))
     (Program (p)
       (- (program src pelt* ...))
-      (+ (program src ((export-name* name*) ...) (unused-pelt* ...) (ecdecl* ...) pelt* ...)
+      (+ (program src ((export-name* name*) ...) ((struct-name* type*) ...) (unused-pelt* ...) (ecdecl* ...) pelt* ...)
            => (program ((export-name* name*) 0 ...) #f pelt* ...)))
     (Program-Element (pelt unused-pelt)
       (- mdefn
@@ -571,11 +574,15 @@
       (- (block src (var-name* ...) expr)
          (new src tref new-field* ...)
          (tuple-slice src expr index tsize)
-         (for src var-name tsize0 tsize1 expr2))
+         (for src var-name tsize0 tsize1 expr2)
+         (serialize src tsize type expr)
+         (deserialize src tsize type expr))
       (+ (ledger-ref src ledger-field-name) => ledger-field-name
          (new src type new-field* ...)      => (new type #f new-field* ...)
          (enum-ref src type elt-name)       => (enum-ref type elt-name)
-         (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)))
+         (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)
+         (serialize src len type expr)      => (serialize len type expr)
+         (deserialize src len type expr)    => (deserialize len type expr)))
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
@@ -614,14 +621,6 @@
       (- (targ-size src nat)
          (targ-type src type))))
 
-  (define-language/pretty Lserialized (extends Lexpanded)
-    (Expression (expr index)
-      (- (emit src expr))
-      (+ (serialized-payload src expr) => (serialized-payload expr)
-         ; expr^ calls serialize on expr
-         ; expr needs to be kept until track-witness-data
-         (emit src expr expr^) => (emit expr expr^))))
-
   (define-language/pretty Ltypes (entry Program)
     (terminals
       (field (nat kindex))
@@ -640,7 +639,7 @@
       (native-entry (native-entry))
       )
     (Program (p)
-      (program src (contract-name* ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
+      (program src (contract-name* ...) ((struct-name* type*) ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
     (Program-Element (pelt)
       cdefn
       ndecl
@@ -687,8 +686,10 @@
       (if src expr0 expr1 expr2)              => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name nat)         => (elt-ref expr elt-name nat)
       ; type is needed for type-checking of later passes
-      ; expr is the deserialized form and expr^ is the serialized form
-      (emit src type expr len expr^)          => (emit expr expr^)
+      ; TODO drop len here and add it back later or just add the tbytes len the latest you can
+      (emit src type expr)                    => (emit expr)
+      (serialize src len type expr)           => (serialize len type expr)
+      (deserialize src len type expr)         => (deserialize len type expr)
       (enum-ref src type elt-name)            => (enum-ref type elt-name)
       ; for tuple, the elements can have different, even unrelated types
       (tuple src tuple-arg* ...)              => (tuple tuple-arg* ...)
@@ -853,13 +854,20 @@
     (Expression (expr index)
       (- (disclose src expr))))
 
-  (define-language/pretty Lloweredemit (extends Lnodisclose)
+  (define-language/pretty Lnoserialize (extends Lnodisclose)
+    (Expression (expr index)
+      (- (serialize src len type expr)
+         (deserialize src len type expr)
+         (emit src type expr))
+      ; expr here is serialized
+      (+ (emit src type len expr) => (emit type len expr))))
+
+  (define-language/pretty Lloweredemit (extends Lnoserialize)
     (terminals
       (- (field (nat kindex)))
       (+ (field (nat kindex event-version event-tag))))
     (Expression (expr index)
-      (- (emit src type expr len expr^))
-      ; expr is the serialized format of an expr of type struct
+      (- (emit src type len expr))
       (+ (emit src event-version event-tag type len expr vm-code) =>
            (emit event-version event-tag type len expr))))
 
@@ -869,7 +877,7 @@
       (+ (id (name var-name function-name ledger-field-name descriptor-id))
          (hashtable (descriptor-table))))
     (Program (p)
-      (- (program src (contract-name* ...) ((export-name* name*) ...) pelt* ...))
+      (- (program src (contract-name* ...) ((struct-name* type*) ...) ((export-name* name*) ...) pelt* ...))
       (+ (program src ((export-name* name*) ...) tdescs pelt* ...) => (program #f tdescs #f pelt* ...)))
     (Type-Descriptors (tdescs)
       (+ (type-descriptors descriptor-table (descriptor-id* type*) ...) =>
@@ -907,7 +915,7 @@
       (+ (boolean (pure-dcl)))
       (- (procedure (result-type runtime-code))))
     (Program (p)
-      (- (program src (contract-name* ...) ((export-name* name*) ...) pelt* ...))
+      (- (program src (contract-name* ...) ((struct-name* type*) ...) ((export-name* name*) ...) pelt* ...))
       (+ (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...)))
     (Program-Element (pelt)
       (- export-tdefn))
