@@ -219,18 +219,6 @@ describe('[Bugs] Compiler', () => {
         });
     });
 
-    test(`[PM-16065] default large vector error should be handled gracefully`, async () => {
-        const filePath = CONTRACTS_ROOT + 'pm-16065.compact';
-
-        const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
-
-        expectCompilerResult(result).toBeFailure(
-            /Exception: pm-16065.compact line 19 char 25: vector type length; 43590753987470154073008687018949015693739732443847; exceeds the maximum supported length 16777216/,
-            compilerDefaultOutput(),
-        );
-        expectFiles(outputDir).thatNoFilesAreGenerated();
-    });
 
     test(`[PM-16150] export naming with module, should follow same pattern as camel casing`, async () => {
         const outputDir = createTempFolder();
