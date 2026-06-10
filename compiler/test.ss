@@ -3612,6 +3612,20 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 13" "unexpected ~a" ("character '＿'")))
     )
+
+  ; issue 201
+  (test
+    '(
+      "contract C { };"
+      "contract implements C;"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "contract C { };"
+        ""
+        "contract implements C;"
+        ))
+    )
 )
 
 (parameterize ([format-line-length 40])
@@ -7468,7 +7482,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"implements\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"implements\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
     )
 
   (test
@@ -24912,6 +24926,220 @@ groups than for single tests.
               %v.1)
             (tuple)))))
     )
+
+  ; issue 201
+  (test
+    '(
+      "contract C { };"
+      "contract implements C;"
+      )
+    (returns (program))
+    )
+
+  (test
+    '(
+      "contract C { circuit foo(): []; };"
+      "contract implements C;"
+      "export circuit foo(): [] { return; }"
+      )
+    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    )
+
+  (test
+    '(
+      "contract C { pure circuit foo(): []; };"
+      "contract implements C;"
+      "export circuit foo(): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it is not declared pure" (foo)))
+    )
+
+  (test
+    '(
+      "contract C { };"
+      "contract implements C;"
+      "export circuit foo(): [] { return; }"
+      )
+    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    )
+
+  (test
+    '(
+      "contract C { circuit foo(): []; };"
+      "contract implements C;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract does not export a circuit named ~s" (foo)))
+    )
+
+  (test
+    '(
+      "contract C { circuit foo(): []; };"
+      "contract implements C;"
+      "module M {"
+      "  export circuit foo(): [] { return; }"
+      "}"
+      "import M;"
+      "export { foo };"
+      )
+    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    )
+
+  (test
+    '(
+      "contract C { circuit foo(): []; };"
+      "contract implements C;"
+      "module M {"
+      "  export circuit foo(): [] { return; }"
+      "}"
+      "import M prefix M;"
+      "export { Mfoo };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract does not export a circuit named ~s" (foo)))
+    )
+
+  (test
+    '(
+      "contract C { circuit Mfoo(): []; };"
+      "contract implements C;"
+      "module M {"
+      "  export circuit foo(): [] { return; }"
+      "}"
+      "import M prefix M;"
+      "import M prefix MM;"
+      "export { Mfoo, MMfoo };"
+      )
+    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    )
+
+  (test
+    '(
+      "contract C {"
+      "  circuit Mfoo(): [];"
+      "  circuit MMfoo(): [];"
+      "}"
+      "contract implements C;"
+      "module M {"
+      "  export circuit foo(): [] { return; }"
+      "}"
+      "import M prefix M;"
+      "import M prefix MM;"
+      "export { Mfoo, MMfoo };"
+      )
+    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    )
+
+  (test
+    '(
+      "contract C {"
+      "  circuit Mfoo(): [];"
+      "  circuit MMfoo(): Boolean;"
+      "}"
+      "contract implements C;"
+      "module M {"
+      "  export circuit foo(): [] { return; }"
+      "}"
+      "import M prefix M;"
+      "import M prefix MM;"
+      "export { Mfoo, MMfoo };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  its return type is ~a rather than ~a" (MMfoo "[]" "Boolean")))
+    )
+
+  (test
+    '(
+      "contract C { circuit foo(): []; };"
+      "contract implements C;"
+      "export circuit foo(x: Uint<8>): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it takes ~d arguments rather than ~d" (foo 1 0)))
+    )
+
+  (test
+    '(
+      "contract C { circuit foo(x: Uint<8>): []; };"
+      "contract implements C;"
+      "export circuit foo(x: Boolean): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  the type of its ~:r argument is ~a rather than ~a" (foo 1 "Boolean" "Uint<8>")))
+    )
+
+  (test
+    '(
+      "contract C { circuit foo(x: Uint<8>, y: Uint<16>): []; };"
+      "contract implements C;"
+      "export circuit foo(x: Uint<8>, y: Uint<8>): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  the type of its ~:r argument is ~a rather than ~a" (foo 2 "Uint<8>" "Uint<16>")))
+    )
+
+  (test
+    '(
+      "contract C { circuit foo(x: Uint<8>, y: Uint<16>): []; };"
+      "contract implements C;"
+      "export circuit foo(x: Uint<8>, y: Uint<32>): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  the type of its ~:r argument is ~a rather than ~a" (foo 2 "Uint<32>" "Uint<16>")))
+    )
+
+  (test
+    '(
+      "contract C { circuit foo(x: Uint<8>, y: Uint<16>): []; };"
+      "contract implements C;"
+      "export circuit foo(x: Uint<16>, y: Uint<32>): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  the type of its ~:r argument is ~a rather than ~a" (foo 1 "Uint<16>" "Uint<8>")))
+    )
+
+  (test
+    '(
+      "contract C { circuit foo(x: Uint<8>): Uint<16>; };"
+      "contract implements C;"
+      "export circuit foo(x: Uint<8>): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  its return type is ~a rather than ~a" (foo "[]" "Uint<16>")))
+    )
+
+  (test-group
+    ((create-file "C1interface.compact"
+       '(
+         "module C1interface {"
+         "  import CompactStandardLibrary;"
+         "  export contract C1 {"
+         "    circuit foo(x: Bytes<32>): [];"
+         "    pure circuit barr(): Bytes<32>;"
+         "  }"
+         "}"
+         )))
+    ((create-file "C1.compact"
+       '(
+         "import {C1} from C1interface;"
+         "contract implements C1;"
+         "export circuit foo(x: Bytes<32>): [] { return; }"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("C1interface.compact line 3 char 3" "contract implements failure:\n  this contract does not export a circuit named ~s" (barr)))
+    ))
 )
 
 ; tests limits for vectors, bytes, and tuples.
@@ -66652,8 +66880,9 @@ groups than for single tests.
     ((create-file "C1.compact"
        '(
          "import {C1} from C1interface;"
-         ; "contract implements C1;"
+         "contract implements C1;"
          "export circuit foo(x: Bytes<32>): [] { return; }"
+         "export pure circuit barr(): Bytes<32> { return default<Bytes<32>>; }"
          ))
      ; WARNING: Do not replace this wholesale...maintain the structure of the first several
      ; lines to avoid hard-coding specific version strings into the test
@@ -66681,6 +66910,17 @@ groups than for single tests.
          "        \"type-name\": \"Tuple\","
          "        \"types\": ["
          "        ]"
+         "      }"
+         "    },"
+         "    {"
+         "      \"name\": \"barr\","
+         "      \"pure\": true,"
+         "      \"proof\": false,"
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result-type\": {"
+         "        \"type-name\": \"Bytes\","
+         "        \"length\": 32"
          "      }"
          "    }"
          "  ],"

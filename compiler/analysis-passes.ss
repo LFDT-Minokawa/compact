@@ -185,6 +185,7 @@
       (define all-info-funs '())
       (define all-Info-modules '())
       (define ecdecl* '())
+      (define cidecl* '())
       (define-record-type (env add-rib env?)
         (nongenerative)
         (fields rib p)
@@ -832,7 +833,10 @@
                        (env-insert! p src function-name^ info)
                        (loop pelt* seqno*
                              (cons (make-exportit src function-name^ info) export*)
-                             unresolved-export*))]))))))
+                             unresolved-export*))]
+                    [(contract-implements ,src ,type)
+                     (set! cidecl* (cons (cons pelt p) cidecl*))
+                     (loop pelt* seqno* export* unresolved-export*)]))))))
       (define (process-frob frob)
         (Program-Element (frob-pelt frob) (frob-p frob) (frob-id frob)))
       (define (type-param->tvar-name type-param)
@@ -1057,12 +1061,14 @@
                (map cdr all-info-funs))
              (let ([unreachable* (process-frob-worklist '())]
                    [ecdecl* (map (lambda (ecdecl) (External-Contract-Declaration (car ecdecl) (cdr ecdecl))) ecdecl*)]
+                   [cidecl* (map (lambda (cidecl) (Contract-Implements-Declaration (car cidecl) (cdr cidecl))) cidecl*)]
                    [exported-other* (sort (lambda (x y) (string<? (symbol->string (car x)) (symbol->string (car y))))
                                           exported-other*)])
                `(program ,src
                   ((,(map car exported-other*) ,(map cdr exported-other*)) ...)
                   (,unreachable* ...)
                   (,ecdecl* ...)
+                  (,cidecl* ...)
                   ,(reverse exported-type*) ...
                   ,reachable* ...)))))])
     (Program-Element : Program-Element (ir p id) -> Program-Element ()
@@ -1105,6 +1111,9 @@
     (External-Contract-Circuit : External-Contract-Circuit (ir p) -> External-Contract-Circuit ()
       [(,src ,pure-dcl ,function-name (,[arg*] ...) ,[type])
        `(,src ,pure-dcl ,function-name (,arg* ...) ,type)])
+    (Contract-Implements-Declaration : Contract-Implements-Declaration (ir p) -> Contract-Implements-Declaration ()
+      [(contract-implements ,src ,[type])
+       `(contract-implements ,src ,type)])
     (ADT-Op-Class : ADT-Op-Class (ir) -> ADT-Op-Class ())
     (Argument : Argument (ir p) -> Argument ()
       [(,src ,var-name ,[type]) `(,(make-source-id src var-name) ,type)])
@@ -2004,12 +2013,66 @@
                         `(contract-call ,src ,elt-name (,expr ,actual-type) ,expr* ...)))
                     (car return-type*)))
                 (loop (cdr elt-name*) (cdr declared-type**) (cdr return-type*))))))
-      (define (get-contract-name ecdecl)
-        (nanopass-case (Lexpanded External-Contract-Declaration) ecdecl
-          [(external-contract ,src ,contract-name ,ecdecl-circuit* ...)
-           contract-name])))
+      (define (contract-implements! pelt* export-name* name*)
+        (let ([export-name->name (make-hashtable symbol-hash eq?)]
+              [name->type.type* (make-eq-hashtable)])
+          (for-each
+            (lambda (export-name name)
+              (hashtable-set! export-name->name export-name name))
+            export-name* name*)
+          (for-each
+            (lambda (pelt)
+              (nanopass-case (Ltypes Program-Element) pelt
+                [(circuit ,src ,function-name ((,var-name* ,type*) ...) ,type ,expr)
+                 (guard (id-exported? function-name))
+                 (hashtable-set! name->type.type* function-name (cons type type*))]
+                [else (void)]))
+            pelt*)
+          (lambda (cidecl)
+            (nanopass-case (Lexpanded Contract-Implements-Declaration) cidecl
+              [(contract-implements ,src ,[Type : type])
+               (nanopass-case (Ltypes Type) type
+                 [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl?* (,type** ...) ,type*) ...)
+                  (for-each
+                    (lambda (elt-name pure-dcl? type* type)
+                      (let* ([name (hashtable-ref export-name->name elt-name #f)]
+                             [type.type* (or (and name (hashtable-ref name->type.type* name #f))
+                                             (source-errorf src "contract implements failure:\n  this contract does not export a circuit named ~s" elt-name))])
+                        (when pure-dcl?
+                          (unless (id-pure? name)
+                            (source-errorf src "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it is not declared pure" elt-name)))
+                        (let ([type^ (car type.type*)] [type^* (cdr type.type*)])
+                          (let ([n (length type*)] [n^ (length type^*)])
+                            (unless (= n^ n)
+                              (source-errorf src "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it takes ~d arguments rather than ~d"
+                                             elt-name
+                                             n^
+                                             n)))
+                          (for-each
+                            (lambda (type type^ i)
+                              (unless (sametype? type^ type)
+                                (source-errorf src "contract implements failure:\n  this contract exports a circuit named ~s, but\n  the type of its ~:r argument is ~a rather than ~a"
+                                               elt-name
+                                               (fx+ i 1)
+                                               (format-type type^)
+                                               (format-type type))))
+                            type*
+                            type^*
+                            (enumerate type*))
+                          (unless (sametype? type^ type)
+                            (source-errorf src "contract implements failure:\n  this contract exports a circuit named ~s, but\n  its return type is ~a rather than ~a"
+                                           elt-name
+                                           (format-type type^)
+                                           (format-type type))))))
+                    elt-name*
+                    pure-dcl?*
+                    type**
+                    type*)]
+                 [else (source-errorf src "non-contract type ~a in contract implements form"
+                                      (format-type type))])]))))
+      )
     (Program : Program (ir) -> Program ()
-      [(program ,src ((,export-name* ,name*) ...) (,unused-pelt* ...) (,ecdecl* ...) ,pelt* ...)
+      [(program ,src ((,export-name* ,name*) ...) (,unused-pelt* ...) (,ecdecl* ...) (,cidecl* ...) ,pelt* ...)
        (define (contract-name ct)
          (nanopass-case (Ltypes Contract-Type) ct
            [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
@@ -2032,6 +2095,7 @@
                        (symbol->string (contract-name ct1))
                        (symbol->string (contract-name ct2))))
                    (vector->list (hashtable-keys contract-type-ht)))])
+           (for-each (contract-implements! pelt* export-name* name*) cidecl*)
            `(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) ,pelt* ...)))])
     (Set-Program-Element-Type! : Program-Element (ir) -> * (void)
       (definitions

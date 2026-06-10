@@ -136,6 +136,7 @@
       cdefn
       wdecl
       ecdecl
+      cidecl
       structdef
       enumdef
       tdefn)
@@ -184,6 +185,9 @@
     (External-Contract-Circuit (ecdecl-circuit)
       (src pure-dcl function-name (arg* ...) type) =>
         (pure-dcl function-name (arg* 0 ...) 4 type)
+      )
+    (Contract-Implements-Declaration (cidecl)
+      (contract-implements src type) => (contract-implements type)
       )
     (Structure-Definition (structdef)
       (struct src exported? struct-name (type-param* ...) arg* ...) =>
@@ -488,13 +492,14 @@
          (string (mesg opaque-type file discloses))))
     (Program (p)
       (- (program src pelt* ...))
-      (+ (program src ((export-name* name*) ...) (unused-pelt* ...) (ecdecl* ...) pelt* ...)
+      (+ (program src ((export-name* name*) ...) (unused-pelt* ...) (ecdecl* ...) (cidecl* ...) pelt* ...)
            => (program ((export-name* name*) 0 ...) #f pelt* ...)))
     (Program-Element (pelt unused-pelt)
       (- mdefn
          idecl
          xdecl
          ecdecl
+         cidecl
          structdef
          enumdef
          tdefn
