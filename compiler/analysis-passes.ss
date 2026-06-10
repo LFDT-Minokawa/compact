@@ -2229,7 +2229,7 @@
          (for-each (lambda (n t) (hashtable-set! ht n t)) struct-name* type*)
          (fluid-let ([standard-event-ht ht])
            (maplr Program-Element unused-pelt*)
-           `(program ,src (,contract-name* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,(maplr Program-Element pelt*) ...)))])
+             `(program ,src (,contract-name* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,(maplr Program-Element pelt*) ...)))])
     (Set-Program-Element-Type! : Program-Element (ir) -> * (void)
       (definitions
         (define (build-function kind is-native name arg* type)
@@ -2549,9 +2549,18 @@
        (values `(emit ,src ,type ,expr)
                (with-output-language (Ltypes Type) `(ttuple ,src)))]
       [(serialize ,src ,len ,[type] ,[Care : expr type^])
-       ; TODO reject unserializable types here
-       (values `(serialize ,src ,len ,type ,expr)
-               (with-output-language (Ltypes Type) `(tbytes ,src ,len)))]
+       ; TODO add test for this
+       (define (unserializable)
+         (source-errorf src "~a is not a serializable type" (format-type type^)))
+       (nanopass-case (Ltypes Type) (de-alias type^ #t)
+         [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+          (unserializable)]
+         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          (unserializable)]
+         [(topaque ,src^ ,opaque-type)
+          (unserializable)]
+         [else (values `(serialize ,src ,len ,type ,expr)
+               (with-output-language (Ltypes Type) `(tbytes ,src ,len)))])]
       [(deserialize ,src ,len ,[type] ,[Care : expr type^])
        (nanopass-case (Ltypes Type) (de-alias type^ #t)
          [(tbytes ,src^ ,len)
@@ -3452,6 +3461,7 @@
 
   (define-pass check-types/Lnodca : Lnodca (ir) -> Lnodca ()
     (definitions
+      (define standard-event-ht)
       (define-syntax T
         (syntax-rules ()
           [(T ty clause ...)
@@ -3726,29 +3736,29 @@
             [else (void)]))
         (define (lookup-adt-ops ledger-field-name)
           (assert (hashtable-ref ledger-ht ledger-field-name #f))))
-      (define event-ht
-        (let ([cached #f])
-          (lambda ()
-            (or cached
-                (let ([ht (make-hashtable symbol-hash eq?)])
-                  (for-each
-                    (lambda (sd)
-                      (nanopass-case (Lpreexpand Structure-Definition) sd
-                        [(struct ,src ,exported? ,name (,type-param* ...) ,arg* ...)
-                         (hashtable-set! ht name #t)]))
-                    (event-declarations))
-                  (set! cached ht)
-                  cached)))))
+      (define (validate-event-type! src type)
+        (let ([type (de-alias type)])
+          (nanopass-case (Lnodca Type) type
+            [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+             (let ([declared (hashtable-ref standard-event-ht struct-name #f)])
+               (unless (and declared (sametype? type declared))
+                 (source-errorf src "~a is not a declared event type" (format-type type))))]
+            [else
+             (source-errorf src "expected structure type (representation of an event), received ~a"
+                            (format-type type))])))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src (,contract-name* ...) ((,struct-name* ,[type*]) ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (for-each record-adt-ops! pelt*)
-       (guard (c [else (internal-errorf 'check-types/Lnodca
-                                        "downstream type-check failure:\n~a"
-                                        (with-output-to-string (lambda () (display-condition c))))])
-         (for-each Set-Program-Element-Type! pelt*)
-         (for-each Program-Element pelt*)
-         ir)])
+       (let ([ht (make-hashtable symbol-hash eq?)])
+         (for-each (lambda (n t) (hashtable-set! ht n t)) struct-name* type*)
+         (fluid-let ([standard-event-ht ht])
+           (guard (c [else (internal-errorf 'check-types/Lnodca
+                                            "downstream type-check failure:\n~a"
+                                            (with-output-to-string (lambda () (display-condition c))))])
+             (for-each Set-Program-Element-Type! pelt*)
+             (for-each Program-Element pelt*)
+             ir)))])
     (Set-Program-Element-Type! : Program-Element (ir) -> * (void)
       (definitions
         (define (build-function kind name arg* type)
@@ -3849,21 +3859,24 @@
          [else (source-errorf src "expected structure type, received ~a"
                               (format-type type))])]
       [(emit ,src ,type ,[Care : expr -> * type^])
-       (nanopass-case (Lnodca Type) (de-alias type^)
-         [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
-          (with-output-language (Lnodca Type) `(ttuple ,src))
-          ; TODO fix me
-          #;(unless (hashtable-ref (event-ht) struct-name #f)
-            (source-errorf src "~a is not a declared event type" struct-name))
-          ]
-         ; can't presently happen it is checked in serialized-payload
-         [else (source-errorf src "expected structure type (representation of an event), received ~a"
-                              (format-type type^))])]
-      ; TODO checks for serialize and deserialize
+       (validate-event-type! src type)
+       (with-output-language (Lnodca Type) `(ttuple ,src))]
       [(serialize ,src ,len ,type ,[Care : expr -> type^])
-       (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
+       (define (unserializable)
+         (source-errorf src "~a is not a serializable type" (format-type type^)))
+       (nanopass-case (Lnodca Type) (de-alias type^)
+         [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+          (unserializable)]
+         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          (unserializable)]
+         [(topaque ,src^ ,opaque-type)
+          (unserializable)]
+         [else (with-output-language (Lnodca Type) `(tbytes ,src ,len))])]
       [(deserialize ,src ,len ,type ,[Care : expr -> type^])
-       (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
+       (nanopass-case (Lnodca Type) (de-alias type^)
+         [(tbytes ,src^ ,len) type]
+         [else (source-errorf src "expected bytes, received ~a"
+                              (format-type type^))])]
       [(enum-ref ,src ,type ,elt-name^)
        (nanopass-case (Lnodca Type) (de-alias type)
          [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
@@ -5527,11 +5540,22 @@
            (record-leak! src "emit operation" witness*)))
        abs]
 
-      ; TODO dummy output fix me.
       [(serialize ,src ,len ,type ,[* abs])
+       (unless (null? control-witness*)
+         (record-leak! src "performing this serialize operation" control-witness*))
+       (let ([witness* (abs->witnesses
+                         (add-path-point src "the argument to serialize" "" abs))])
+         (unless (null? witness*)
+           (record-leak! src "serialize operation" witness*)))
        abs]
 
       [(deserialize ,src ,len ,type ,[* abs])
+       (unless (null? control-witness*)
+         (record-leak! src "performing this deserialize operation" control-witness*))
+       (let ([witness* (abs->witnesses
+                         (add-path-point src "the argument to deserialize" "" abs))])
+         (unless (null? witness*)
+           (record-leak! src "deserialize operation" witness*)))
        abs]
 
       [(tuple-ref ,src ,[* abs] ,kindex)
@@ -5839,16 +5863,10 @@
              (if nominal?
                  (format "~a" type-name)
                  (format-type type))]
-            [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-             ; TODO fix me
-             ("adt")]
             [else (internal-errorf 'format-type "unrecognized type ~a" type)]))
 
         ;;; ----- size computation -------------------------------------------
-        ;; serialized-size-of computes the canonical byte size structurally,
-        ;; with no special-casing of any standard-library struct (Maybe,
-        ;; Either, ContractAddress, …). The struct rule is the sum of its
-        ;; fields' sizes — same rule any other struct gets.
+        ;; serialized-size-of computes the canonical byte size structurally.
         (define (serialized-size-of src type)
           (nanopass-case (Lnoserialize Type) type
             [(tboolean ,src^) 1]
@@ -5873,21 +5891,12 @@
              (source-errorf src "type ~a is not supported in serialization"
                             (format-type type))]))
 
-        ;; check-size! validates the declared `len` slot on a serialize or
-        ;; deserialize form against the structural size. Mismatches abort
-        ;; with a source error.
         (define (check-size! src len type)
           (let ([structural (serialized-size-of src type)])
             (unless (= len structural)
               (source-errorf src
                 "declared serialized length ~a does not match the structural layout of ~a (~a bytes)"
                 len (format-type type) structural))))
-
-        ;;; ----- low-level constructors --------------------------------------
-        ;; All output is now Lnoserialize. Forms below (quote, bytes-slice,
-        ;; vector->bytes, field->bytes, safe-cast, cast-from-enum, etc.) are
-        ;; carried unchanged through Lnoserialize and only get lowered by
-        ;; later passes.
 
         (define (make-byte-literal src n)
           (with-output-language (Lnoserialize Expression)
@@ -5914,7 +5923,6 @@
           (with-output-language (Lnoserialize Expression)
             `(new ,src ,struct-type ,field-expr* ...)))
         (define (make-tuple-new src tuple-type field-expr*)
-          ;; tuples are constructed with the `tuple` form (Tuple-Argument list).
           (let ([targ* (map (lambda (e)
                               (with-output-language (Lnoserialize Tuple-Argument)
                                 `(single ,src ,e)))

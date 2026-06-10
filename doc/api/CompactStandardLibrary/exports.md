@@ -179,6 +179,8 @@ Events are struct types that can be emitted using an `emit` operation.
 
 Shielded coin consumed, new coin created for a user recipient.
 
+Serialized size is 32.
+
 ```compact
 struct ShieldedSpend {
   nullifier: Bytes<32> // indexed
@@ -190,6 +192,8 @@ struct ShieldedSpend {
 A contract accepts an incoming shielded coin.
 
 `contract_address` set when received by a contract, absent for user recipients.
+
+ Serialized size is 578.
 
 ```compact
 struct ShieldedReceive {
@@ -205,6 +209,8 @@ New shielded tokens created.
 
 `token_type` derived by the consumer from `domain_sep` + `ContractLog.address`.
 
+ Serialized size is 81.
+ 
 ```compact
 struct ShieldedMint {
   commitment: Bytes<32>, // indexed
@@ -219,6 +225,8 @@ Shielded coin sent to the burn address.
 
 Supply tracking — tokens permanently removed from circulation.
 
+Serialized size is 49.
+ 
 ```compact
 struct ShieldedBurn {
   nullifier: Bytes<32>, // indexed
@@ -229,6 +237,8 @@ struct ShieldedBurn {
 ### `UnshieldedSpend`
 
 Public token sent from a sender.
+
+Serialized size is 113.
 
 ```compact
 struct UnshieldedSpend {
@@ -242,6 +252,8 @@ struct UnshieldedSpend {
 
 Public token sent to a recipient.
 
+Serialized size is 113.
+
 ```compact
 struct UnshieldedReceive {
   recipient: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
@@ -253,6 +265,8 @@ struct UnshieldedReceive {
 ### `UnshieldedMint`
 
 New unshielded tokens created.
+
+Serialized size is 80.
 
 ```compact
 struct UnshieldedMint {
@@ -266,6 +280,8 @@ struct UnshieldedMint {
 
 Unshielded coin sent to the burn address.
 
+Serialized size is 113.
+
 ```compact
 struct UnshieldedBurn {
   sender: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
@@ -278,6 +294,8 @@ struct UnshieldedBurn {
 
 Contract operations suspended.
 
+Serialized size is 0.
+
 ```compact
 struct Paused {}
 ```
@@ -286,6 +304,8 @@ struct Paused {}
 
 Contract operations resumed.
 
+Serialized size is 0.
+
 ```compact
 struct Unpaused {}
 ```
@@ -293,6 +313,8 @@ struct Unpaused {}
 ### `Misc`
 
 Miscellaneous event type.
+
+Serialized size is 288.
 
 ```compact
 struct Misc {

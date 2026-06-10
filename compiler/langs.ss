@@ -686,7 +686,6 @@
       (if src expr0 expr1 expr2)              => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name nat)         => (elt-ref expr elt-name nat)
       ; type is needed for type-checking of later passes
-      ; TODO drop len here and add it back later or just add the tbytes len the latest you can
       (emit src type expr)                    => (emit expr)
       (serialize src len type expr)           => (serialize len type expr)
       (deserialize src len type expr)         => (deserialize len type expr)
@@ -860,7 +859,7 @@
          (deserialize src len type expr)
          (emit src type expr))
       ; expr here is serialized
-      (+ (emit src type len expr) => (emit type len expr))))
+      (+ (emit src type len expr) => (emit expr))))
 
   (define-language/pretty Lloweredemit (extends Lnoserialize)
     (terminals
@@ -869,7 +868,7 @@
     (Expression (expr index)
       (- (emit src type len expr))
       (+ (emit src event-version event-tag type len expr vm-code) =>
-           (emit event-version event-tag type len expr))))
+           (emit event-version event-tag expr))))
 
   (define-language/pretty Ltypescript (extends Lloweredemit)
     (terminals

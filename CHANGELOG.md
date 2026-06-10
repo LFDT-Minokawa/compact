@@ -9,14 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- The language now has `log(x)` expression where `x` has to be an expression
-  of event type.  Constructors cannot `log` an event.  Pure circuits cannot
-  `log` an event.
+- The language now has `emit(x)` expression where `x` has to be an expression
+  of event type.  Constructors cannot `emit` an event.  Pure circuits cannot
+  `emit` an event.
 - An event type is just a struct type, but there are a pre-defined
   set of events.  This set is defined in `midnight-events.ss` as a DSL and
   the DSL itself is defined in `events.ss`.  Events are inserted into Compact's
-  standard library during `expand-modules-and-types`.  TODO: what does the user see of these and where
-- The onchain-runtime require the argument passed to `log` to be serialized.
+  standard library during `expand-modules-and-types`.  
+- The onchain-runtime require the argument passed to `emit` to be serialized.
   Compact's standard library provides a generic `serialize<T,n>` and
   `deserialize<T,n>`.  These are defined in `midnight-inlines.ss` and
   the macro expansion is defined in `inlines.ss` and they are inserted during
@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The TypeScript wrapper for each impure exported circuit now exposes an
   `events` field on the wrapped return value, and a corresponding `events`
   field on `CircuitContext`.  Both refer to the same array; events emitted
-  by `log` expressions during the circuit's execution are appended in order
+  by `emit` expressions during the circuit's execution are appended in order
   of evaluation.  Pure circuits' wrapped return values are unaffected.
 - Updates the compact-runtime: adds the required `events` field
   to `CircuitContext` and `CircuitResults`.  This is a **breaking** change
