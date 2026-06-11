@@ -31,28 +31,28 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/94391bc7625a41b26ba78b3e8be349559fe822b1"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
-    onchain-runtime-v3 = {
+    onchain-runtime-v4 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/94391bc7625a41b26ba78b3e8be349559fe822b1";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/94391bc7625a41b26ba78b3e8be349559fe822b1";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1";
       inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/94391bc7625a41b26ba78b3e8be349559fe822b1"; # zkir-v3
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/94391bc7625a41b26ba78b3e8be349559fe822b1";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -70,7 +70,7 @@
   outputs = {
     self,
     zkir,
-    onchain-runtime-v3,
+    onchain-runtime-v4,
     zkir-wasm,
     zkir-v3,
     zkir-v3-wasm,
@@ -176,11 +176,11 @@
             };
 
             nixDependenciesMap = {
-              "@midnight-ntwrk/onchain-runtime-v3" = let
-                pkg = onchain-runtime-v3.packages.${system}.onchain-runtime-wasm;
+              "@midnight-ntwrk/onchain-runtime-v4" = let
+                pkg = onchain-runtime-v4.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v3-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v3";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v4-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v4";
               };
             };
           };

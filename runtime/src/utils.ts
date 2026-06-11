@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ContractAddress } from '@midnight-ntwrk/onchain-runtime-v3';
+import { ContractAddress } from '@midnight-ntwrk/onchain-runtime-v4';
 import { EncodedContractAddress } from './zswap.js';
 import { CompactError } from './error.js';
 

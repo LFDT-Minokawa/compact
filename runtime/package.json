@@ -30,10 +30,10 @@
   "author": "IOG",
   "license": "Apache-2.0",
   "nixDependencies": [
-    "@midnight-ntwrk/onchain-runtime-v3"
+    "@midnight-ntwrk/onchain-runtime-v4"
   ],
   "dependencies": {
-    "@midnight-ntwrk/onchain-runtime-v3": "^3.0.0",
+    "@midnight-ntwrk/onchain-runtime-v4": "^3.0.0",
     "@noble/hashes": "^2.0.1",
     "@types/object-inspect": "^1.8.1",
     "object-inspect": "^1.12.3"
