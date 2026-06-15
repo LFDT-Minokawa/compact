@@ -242,11 +242,6 @@ field references and enum element references share a common syntax (the `field-r
 syntax), Lexpanded represents enum element references using a separate `enum-ref`
 syntax.
 
-### Lserialized 
-
-The Lserialized language inserts a marker for serializing the argument to 
-`emit` at a later time.
-
 ### Ltypes
 
 The Ltypes language is the first one in which all programs must be well-typed.
@@ -1252,12 +1247,7 @@ accessed in:
   the witness from `C`, `B`, and `A`. These witnesses are used in the generated
   TypeScript code.
 
-### inject-serialize (Lexpanded -> Lserialized)
-
-Duplicates the argument of `emit` and adds a `serialized-payload` marker to
-one of them to serialize it in `infer-types` pass.
-
-### infer-types (Lserialized -> Ltypes)
+### infer-types (Lexpanded -> Ltypes)
 
 This pass infers the types of all expressions within the body of a
 circuit definition from the types of the input parameters, the types
@@ -1490,11 +1480,6 @@ This pass also applies various restrictions regarding external contracts:
 * contract types may not appear in witness return type,
 * and `default` is not defined for contract types at the moment but it will be defined later.
 
-This pass also serializes the payload of a `emit` expression and if a 
-`deserialzie` circuit is defined in source code, it inserts the body 
-for the instantiated `deserialize`. (De)serialization only works on
-event types.
-
 ### remove-tundeclared (Ltypes -> Lnotundeclared)
 
 This pass drops the `tundeclared` types from `Ltypes`.
@@ -1644,7 +1629,14 @@ to get the analysis to iterate many times over the same circuit.
 
 This pass drops `disclose`.
 
-### lower-emit (Lnodisclose -> Lloweredemit)
+### expand-serialize (Lnodisclose -> Lnoserialize)
+
+This pass serializes the payload of a `emit` expression and
+drops the `serialize` and `deserialize` forms and inlines the
+body of instantiated circuits for `serialize` and `deserialize`.
+
+
+### lower-emit (Lnoserialize -> Lloweredemit)
 
 This pass generates the vm-code instructions for emitting an event.
 
