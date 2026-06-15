@@ -2317,6 +2317,9 @@
                     (if (feature-zkir-v3)
                         (cons `(anative ,opaque-type) a*)
                         (cons* `(afield) `(afield) a*))]
+                   [("Secp256k1Point")
+                    (assert (feature-zkir-v3))
+                    (cons `(anative ,opaque-type) a*)]
                    [else (cons `(acompress) a*)])]
                 [(tvector ,src ,len ,type)
                  (let ([a^* (f type '())])
@@ -2456,18 +2459,25 @@
                                   (make-list
                                     (quotient (+ len (- (field-bytes) 1)) (field-bytes))
                                     0)))]
-                      [(topaque ,src ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
+                      [(topaque ,src ,opaque-type)
                        (with-output-language (Lflattened Statement)
-                         (let ([t1 (make-new-id var-name)])
-                           (if (feature-zkir-v3)
-                               (values
-                                 (Wump-single t1)
-                                 (list `(= ,test (,t1) (default ,opaque-type))))
-                               (let ([t2 (make-new-id var-name)])
-                                 (values
-                                   (Wump-vector (list (Wump-single t1) (Wump-single t2)))
-                                   (list `(= ,test (,t1 ,t2) (default ,opaque-type))))))))]
-                      [(topaque ,src ,opaque-type) (trivial (Wump-single 0))]
+                         (case opaque-type
+                           [("JubjubPoint")
+                            (let ([t1 (make-new-id var-name)])
+                              (if (feature-zkir-v3)
+                                  (values
+                                    (Wump-single t1)
+                                    (list `(= ,test (,t1) (default ,opaque-type))))
+                                  (let ([t2 (make-new-id var-name)])
+                                    (values
+                                      (Wump-vector (list (Wump-single t1) (Wump-single t2)))
+                                      (list `(= ,test (,t1 ,t2) (default ,opaque-type)))))))]
+                           [("Secp256k1Point")
+                            (let ([t1 (make-new-id var-name)])
+                              (values
+                                (Wump-single t1)
+                                (list `(= ,test (,t1) (default ,opaque-type)))))]
+                           [else (trivial (Wump-single 0))]))]
                       [(tvector ,src ,len ,type)
                        (let-values ([(wump stmt*) (do-type type)])
                          (values (Wump-vector (make-list len wump)) stmt*))]
@@ -3814,17 +3824,23 @@
            [else (source-errorf src "expected primitive type tcontract for contract call, received ~a"
                                 (format-primitive-type primitive-type))]))]
       [(= ,test (,var-name* ...) (default ,opaque-type))
-       (guard (string=? opaque-type "JubjubPoint"))
        (verify-test program-src test)
        (with-output-language (Lflattened Primitive-Type)
-         (if (feature-zkir-v3)
-             (begin
-               (assert (= (length var-name*) 1))
-               (set-idtype! (car var-name*) (Idtype-Base `(topaque "JubjubPoint"))))
-             (begin
-               (assert (= (length var-name*) 2))
-               (set-idtype! (car var-name*) (Idtype-Base `(tfield (field-native))))
-               (set-idtype! (cadr var-name*) (Idtype-Base `(tfield (field-native)))))))]
+         (case opaque-type
+           [("JubjubPoint")
+            (if (feature-zkir-v3)
+                (begin
+                  (assert (= (length var-name*) 1))
+                  (set-idtype! (car var-name*) (Idtype-Base `(topaque "JubjubPoint"))))
+                (begin
+                  (assert (= (length var-name*) 2))
+                  (set-idtype! (car var-name*) (Idtype-Base `(tfield (field-native))))
+                  (set-idtype! (cadr var-name*) (Idtype-Base `(tfield (field-native))))))]
+           [("Secp256k1Point")
+            (assert (feature-zkir-v3))
+            (assert (= (length var-name*) 1))
+            (set-idtype! (car var-name*) (Idtype-Base `(topaque "Secp256k1Point")))]
+           [else (assert cannot-happen)]))]
       [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,[* primitive-type]))
        (verify-test src test)
        (unless (T primitive-type

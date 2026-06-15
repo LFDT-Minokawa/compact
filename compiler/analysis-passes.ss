@@ -1767,7 +1767,8 @@
           (lambda (type)
             (T type
               [(tfield ,src (field-base (curve-secp256k1))) #t]
-              [(tfield ,src (field-scalar (curve-secp256k1))) #t]))))
+              [(tfield ,src (field-scalar (curve-secp256k1))) #t]
+              [(topaque ,src ,opaque-type) (string=? opaque-type "Secp256k1Point")]))))
       (define (do-call src fold? fun actual-type* build-call)
         (define compatible-args?
           (let ([nactual (length actual-type*)])

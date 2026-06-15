@@ -45,6 +45,7 @@ export circuit right<A, B>(value: B): Either<A, B> {
 
 // Elliptic Curves
 export new type JubjubPoint = Opaque<'JubjubPoint'>;
+export new type Secp256k1Point = Opaque<'Secp256k1Point'>;
 
 // Merkle trees
 export struct MerkleTreeDigest { field: Field; }

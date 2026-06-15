@@ -18221,7 +18221,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (Secp256k1Point, Secp256k1Point)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
 
   (test
@@ -18237,7 +18237,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonJubjubPoint<x: Field, y: Field>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonJubjubPoint<x: Field, y: Field>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (Secp256k1Point, Secp256k1Point)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
 
   (test
@@ -18255,17 +18255,26 @@ groups than for single tests.
                           [%b.3 (talias #t JubjubPoint
                                   (topaque "JubjubPoint"))])
              (talias #t JubjubPoint (topaque "JubjubPoint")))
-        (native %ecMul.4 ([%a.5 (talias #t JubjubPoint
+        (native %ecAdd.4 ([%a.5 (talias #t Secp256k1Point
+                                  (topaque "Secp256k1Point"))]
+                          [%b.6 (talias #t Secp256k1Point
+                                  (topaque "Secp256k1Point"))])
+             (talias #t Secp256k1Point (topaque "Secp256k1Point")))
+        (native %ecMul.7 ([%a.8 (talias #t JubjubPoint
                                   (topaque "JubjubPoint"))]
-                          [%b.6 (tfield (field-scalar (curve-jubjub)))])
+                          [%b.9 (tfield (field-scalar (curve-jubjub)))])
              (talias #t JubjubPoint (topaque "JubjubPoint")))
-        (circuit %foo.7 ([%c.8 (talias #t JubjubPoint
-                                 (topaque "JubjubPoint"))])
+        (native %ecMul.10 ([%a.11 (talias #t Secp256k1Point
+                                    (topaque "Secp256k1Point"))]
+                           [%b.12 (tfield (field-scalar (curve-secp256k1)))])
+             (talias #t Secp256k1Point (topaque "Secp256k1Point")))
+        (circuit %foo.13 ([%c.14 (talias #t JubjubPoint
+                                   (topaque "JubjubPoint"))])
              (talias #t JubjubPoint (topaque "JubjubPoint"))
           (call %ecAdd.1
-            %c.8
-            (call %ecMul.4
-              %c.8
+            %c.14
+            (call %ecMul.7
+              %c.14
               (cast-to-field (field-scalar (curve-jubjub)) (tunsigned 3)
                 3))))))
     )
@@ -67434,6 +67443,47 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(r: Secp256k1Scalar, s: Secp256k1Scalar,"
+      "                    z: Secp256k1Scalar,"
+      "                    pk: Secp256k1Point)"
+      "    : Secp256k1Point {"
+      "  wantProof = true;"
+      "  const w = inv(s);"
+      "  const u1 = z * w;"
+      "  const u2 = r * w;"
+      "  return ecAdd(ecMulGenerator(u1), ecMul(pk, u2));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%r.0\", \"type\": \"Scalar<Secp256k1>\" },"
+        "    { \"name\": \"%s.1\", \"type\": \"Scalar<Secp256k1>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<Secp256k1>\" },"
+        "    { \"name\": \"%pk.3\", \"type\": \"Point<Secp256k1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Secp256k1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"inv\", \"output\": \"%w.4\", \"a\": \"%s.1\" },"
+        "    { \"op\": \"mul\", \"output\": \"%u1.5\", \"a\": \"%z.2\", \"b\": \"%w.4\" },"
+        "    { \"op\": \"mul\", \"output\": \"%u2.6\", \"a\": \"%r.0\", \"b\": \"%w.4\" },"
+        "    { \"op\": \"ec_mul_generator\", \"output\": \"%t.7\", \"scalar\": \"%u1.5\" },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.8\", \"a\": \"%pk.3\", \"scalar\": \"%u2.6\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.7\", \"b\": \"%t.8\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.9\"] }"
+        "  ]"
+        "}")))
 )
 )
 

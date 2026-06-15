@@ -66,13 +66,23 @@
 ;; ==== Curves
 (declare-native-entry circuit jubjubPointX
   "__compactRuntime.jubjubPointX"
-  ([np (TypeRef JubjubPoint) (discloses "the X coordinate of")])
+  ([pt (TypeRef JubjubPoint) (discloses "the X coordinate of")])
   Field)
 
 (declare-native-entry circuit jubjubPointY
   "__compactRuntime.jubjubPointY"
-  ([np (TypeRef JubjubPoint) (discloses "the Y coordinate of")])
+  ([pt (TypeRef JubjubPoint) (discloses "the Y coordinate of")])
   Field)
+
+(declare-native-entry circuit secp256k1PointX
+  "__compactRuntime.secp256k1PointX"
+  ([pt (TypeRef Secp256k1Point) (discloses "the X coordinate of")])
+  Secp256k1Base)
+
+(declare-native-entry circuit secp256k1PointY
+  "__compactRuntime.secp256k1PointY"
+  ([pt (TypeRef Secp256k1Point) (discloses "the Y coordinate of")])
+  Secp256k1Base)
 
 (declare-native-entry circuit ecAdd
   "__compactRuntime.ecAdd"
@@ -80,16 +90,33 @@
    [b (TypeRef JubjubPoint) (discloses "an elliptic curve sum including")])
   (TypeRef JubjubPoint))
 
+(declare-native-entry circuit ecAdd
+  "__compactRuntime.ecAdd"
+  ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")]
+   [b (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")])
+  (TypeRef Secp256k1Point))
+
 (declare-native-entry circuit ecMul
   "__compactRuntime.ecMul"
   ([a (TypeRef JubjubPoint) (discloses "an elliptic curve product including")]
    [b JubjubScalar (discloses "an elliptic curve product including")])
   (TypeRef JubjubPoint))
 
+(declare-native-entry circuit ecMul
+  "__compactRuntime.ecMul"
+  ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve product including")]
+   [b Secp256k1Scalar (discloses "an elliptic curve product including")])
+  (TypeRef Secp256k1Point))
+
 (declare-native-entry circuit ecMulGenerator
   "__compactRuntime.ecMulGenerator"
   ([b JubjubScalar (discloses "the product of the embedded group generator with")])
   (TypeRef JubjubPoint))
+
+(declare-native-entry circuit ecMulGenerator
+  "__compactRuntime.ecMulGenerator"
+  ([b Secp256k1Scalar (discloses "the product of the embedded group generator with")])
+  (TypeRef Secp256k1Point))
 
 (declare-native-entry circuit hashToCurve [A]
   "__compactRuntime.hashToCurve"
@@ -98,8 +125,8 @@
 
 (declare-native-entry circuit constructJubjubPoint
   "__compactRuntime.constructJubjubPoint"
-  ([x Field (discloses "a JubjubPoint containing x coordinate")]
-   [y Field (discloses "a JubjubPoint containing y coordinate")])
+  ([x Field (discloses "a JubjubPoint containing X coordinate")]
+   [y Field (discloses "a JubjubPoint containing Y coordinate")])
   (TypeRef JubjubPoint))
 
 (declare-native-entry witness ownPublicKey

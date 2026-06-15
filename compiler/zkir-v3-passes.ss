@@ -660,6 +660,7 @@
           [(topaque ,opaque-type)
            (case opaque-type
              [("JubjubPoint") "Point<Jubjub>"]
+             [("Secp256k1Point") "Point<Secp256k1>"]
              [else "Scalar<BLS12-381>"])]
           [else (assert cannot-happen)])))
 
