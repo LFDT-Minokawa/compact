@@ -1,5 +1,3 @@
-#!chezscheme
-
 ;;; This file is part of Compact.
 ;;; Copyright (C) 2025 Midnight Foundation
 ;;; SPDX-License-Identifier: Apache-2.0
@@ -15,10 +13,13 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
+#!chezscheme
+
 (library (analysis-passes)
   (export analysis-passes fixup-analysis-passes)
   (import (except (chezscheme) errorf)
           (utils)
+          (config-params)
           (field)
           (datatype)
           (nanopass)
@@ -84,33 +85,37 @@
           (define max-tuple-elts-to-hash 10)
           (nanopass-case (Lexpanded Type) type
             [(tboolean ,src) 1]
-            [(tfield ,src (field-native)) 2]
-            [(tfield ,src (field-scalar (curve-jubjub))) 3]
-            [(tunsigned ,src ,nat) (+ 3 nat)]
-            [(tbytes ,src ,len) (+ 4 len)]
-            [(topaque ,src ,opaque-type) 5]
-            ; arrange for equivalent vectors and tuples to hash to same value with same elements,
-            ; limiting the cost in the case of large vectors
+            [(tfield ,src ,ftype)
+             (nanopass-case (Lexpanded Field-Type) ftype
+               [(field-native) 2]
+               [(field-scalar (curve-jubjub)) 3]
+               [(field-base (curve-secp256k1)) 4]
+               [(field-scalar (curve-secp256k1)) 5])]
+            [(tunsigned ,src ,nat) (+ 6 nat)]
+            [(tbytes ,src ,len) (+ 7 len)]
+            [(topaque ,src ,opaque-type) (+ 8 (string-hash opaque-type))]
+            ;; arrange for equivalent vectors and tuples to hash to same value with same elements,
+            ;; limiting the cost in the case of large vectors
             [(tvector ,src ,len ,type)
-             (+ 6 (combine (make-list (min len max-tuple-elts-to-hash) (type-hash type))))]
+             (+ 9 (combine (make-list (min len max-tuple-elts-to-hash) (type-hash type))))]
             [(ttuple ,src ,type* ...)
-             (+ 6 (combine (map type-hash
+             (+ 9 (combine (map type-hash
                                 (if (fx<= (length type*) max-tuple-elts-to-hash)
                                     type*
                                     (list-head type* max-tuple-elts-to-hash)))))]
             [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-             (+ 8 (combine (list (symbol-hash contract-name)
-                                 ; contract elts are unordered, so just add their hashes
-                                 (apply + (map symbol-hash elt-name*)))))]
+             (+ 11 (combine (list (symbol-hash contract-name)
+                              ;; contract elts are unordered, so just add their hashes
+                              (apply + (map symbol-hash elt-name*)))))]
             [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-             (+ 9 (combine (map symbol-hash (cons struct-name elt-name*))))]
+             (+ 12 (combine (map symbol-hash (cons struct-name elt-name*))))]
             [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-             (+ 10 (combine (map symbol-hash (cons* enum-name elt-name elt-name*))))]
+             (+ 13 (combine (map symbol-hash (cons* enum-name elt-name elt-name*))))]
             [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-             (+ 11 (combine (cons (symbol-hash adt-name) (map gv-hash generic-value*))))]
+             (+ 14 (combine (cons (symbol-hash adt-name) (map gv-hash generic-value*))))]
             [(talias ,src ,nominal? ,type-name ,type)
              (if nominal?
-                 (+ 12 (combine (list (symbol-hash type-name) (type-hash type))))
+                 (+ 15 (combine (list (symbol-hash type-name) (type-hash type))))
                  (type-hash type))]
             [else (internal-errorf 'type-hash "unrecognized type ~s" type)]))
         (define (targ-info-hash info*)
@@ -1347,8 +1352,12 @@
       (define (format-type type)
         (nanopass-case (Ltypes Type) type
           [(tboolean ,src) "Boolean"]
-          [(tfield ,src (field-native)) "Field"]
-          [(tfield ,src (field-scalar (curve-jubjub))) "JubjubScalar"]
+          [(tfield ,src ,ftype)
+           (nanopass-case (Ltypes Field-Type) ftype
+             [(field-native) "Field"]
+             [(field-scalar (curve-jubjub)) "JubjubScalar"]
+             [(field-base (curve-secp256k1)) "Secp256k1Base"]
+             [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
           [(tunsigned ,src ,nat)
            (or (and (> nat 0)
                     (let ([bits (integer-length nat)])
@@ -1414,14 +1423,37 @@
                                   (sametype? type1 type2)))
                            elt-name1* pure-dcl1* type1** type1*))
                   elt-name2* pure-dcl2* type2** type2*))
+        (define (same-curve-type? ctype1 ctype2)
+          (nanopass-case (Ltypes Curve-Type) ctype1
+            [(curve-jubjub)
+             (nanopass-case (Ltypes Curve-Type) ctype2
+               [(curve-jubjub) #t]
+               [else #f])]
+            [(curve-secp256k1)
+             (nanopass-case (Ltypes Curve-Type) ctype2
+               [(curve-secp256k1) #t]
+               [else #f])]))
+        (define (same-field-type? ftype1 ftype2)
+          (nanopass-case (Ltypes Field-Type) ftype1
+            [(field-native)
+             (nanopass-case (Ltypes Field-Type) ftype2
+               [(field-native) #t]
+               [else #f])]
+            [(field-base ,ctype1)
+             (nanopass-case (Ltypes Field-Type) ftype2
+               [(field-base ,ctype2) (same-curve-type? ctype1 ctype2)]
+               [else #f])]
+            [(field-scalar ,ctype1)
+             (nanopass-case (Ltypes Field-Type) ftype2
+               [(field-scalar ,ctype2) (same-curve-type? ctype1 ctype2)]
+               [else #f])]))
         (define (sametype? type1 type2)
           (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
             (or (eq? type1 type2)
                 (T type1
                    [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-                   [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
-                   [(tfield ,src1 (field-scalar (curve-jubjub)))
-                    (T type2 [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
+                   [(tfield ,src1 ,ftype1)
+                    (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
                    [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
                    [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                    [(topaque ,src1 ,opaque-type1)
@@ -1486,9 +1518,8 @@
             (or (eq? type1 type2)
                 (T type1
                    [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-                   [(tfield ,src1 (field-native)) (T type2 [(tfield ,src2 (field-native)) #t])]
-                   [(tfield ,src1 (field-scalar (curve-jubjub)))
-                    (T type2 [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
+                   [(tfield ,src1 ,ftype1)
+                    (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
                    [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (<= nat1 nat2)])]
                    [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                    [(topaque ,src1 ,opaque-type1)
@@ -1566,12 +1597,25 @@
            (let ([type (Type ?type)])
              (verify-non-adt-type! ?src type ?fmt ?arg ...)
              type)]))
+      (define (type-contains? type base-predicate)
+        (let recur ([type type])
+          (nanopass-case (Ltypes Type) type
+            [(tvector ,src ,len ,type) (recur type)]
+            [(ttuple ,src ,type* ...) (ormap recur type*)]
+            [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) (ormap recur type*)]
+            [(talias ,src ,nominal ,type-name ,type) (recur type)]
+            [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+             (ormap (lambda (adt-arg)
+                      (nanopass-case (Ltypes Public-Ledger-ADT-Arg) adt-arg
+                        [,nat #f]
+                        [,type (recur type)]))
+               adt-arg*)]
+            [else (base-predicate type)])))
       (define (contains-contract? type)
-        (T (de-alias type #t)
-           [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... ) #t]
-           [(ttuple ,src ,type* ...) (ormap contains-contract? type*)]
-           [(tvector ,src ,len ,type) (contains-contract? type)]
-           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) (ormap contains-contract? type*)]))
+        (type-contains? type
+          (lambda (type)
+            (T type
+              [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... ) #t]))))
       (define check-contract
         (lambda (src contract-name)
           (let ([info (hashtable-cell (contract-ht) contract-name #f)])
@@ -1714,13 +1758,16 @@
                (with-output-language (Ltypes Expression)
                  `(safe-cast ,src ,declared-type ,actual-type ,expr)))]))
       (define (contains-js-opaque? type)
-        (nanopass-case (Ltypes Type) type
-          [(topaque ,src ,opaque-type) (or (string=? opaque-type "string") (string=? opaque-type "Uint8Array"))]
-          [(tvector ,src ,len ,type) (contains-js-opaque? type)]
-          [(ttuple ,src ,type* ...) (ormap contains-js-opaque? type*)]
-          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...) (ormap contains-js-opaque? type*)]
-          [(talias ,src ,nominal? ,type-name ,type) (contains-js-opaque? type)]
-          [else #f]))
+        (type-contains? type
+          (lambda (type)
+            (T type
+              [(topaque ,src ,opaque-type) (or (string=? opaque-type "string") (string=? opaque-type "Uint8Array"))]))))
+      (define (contains-secp256k1? type)
+        (type-contains? type
+          (lambda (type)
+            (T type
+              [(tfield ,src (field-base (curve-secp256k1))) #t]
+              [(tfield ,src (field-scalar (curve-secp256k1))) #t]))))
       (define (do-call src fold? fun actual-type* build-call)
         (define compatible-args?
           (let ([nactual (length actual-type*)])
@@ -1982,83 +2029,106 @@
           (define (condense type l/r)
             (nanopass-case (Ltypes Type) type
               [(talias ,src ,nominal? ,type-name ,type)
-               (let-values ([(type-name* nat) (condense type l/r)])
+               (let-values ([(type-name* unaliased-type) (condense type l/r)])
                  (values
                    (if nominal? (cons type-name type-name*) type-name*)
-                   nat))]
-              [(tfield ,src1 (field-native)) (values '() #f)]
-              [(tunsigned ,src ,nat) (values '() nat)]
-              [else (source-errorf src "~a requires its ~a operand to be a Field or Uint; the actual type is ~a"
-                                   op
-                                   l/r
-                                   (format-type type))]))
-          (let-values ([(type-name1* nat1) (condense type1 "left")]
-                       [(type-name2* nat2) (condense type2 "right")])
-            (let-values ([(result-expr result-type)
-                          (if (and nat1 nat2)
-                              (let ([result-nat (case op
-                                                  [+ (+ nat1 nat2)]
-                                                  [* (* nat1 nat2)]
-                                                  [- nat1]
-                                                  [else (assert cannot-happen)])])
-                                (unless (<= result-nat (max-unsigned))
-                                  (source-errorf src "resulting value might exceed largest representable Uint value (for Field semantics, cast either operand to Field)"))
-                                (let ([mbits (max 1 (integer-length result-nat))])
-                                  (assert (<= mbits (unsigned-bits)))
-                                  (let ([result-type (with-output-language (Ltypes Type) `(tunsigned ,src ,result-nat))])
-                                    (define (maybe-cast nat^ type^ expr)
-                                      (if (= nat^ result-nat)
-                                          expr
-                                          (with-output-language (Ltypes Expression)
-                                            `(safe-cast ,src ,result-type ,type^ ,expr))))
-                                    (values
-                                      (with-output-language (Ltypes Expression)
-                                        (if (eq? op '-)
-                                            (maybe-bind src type1 expr1
-                                              (lambda (expr1)
-                                                (maybe-bind src type2 expr2
-                                                  (lambda (expr2)
-                                                    `(seq ,src
-                                                       (assert ,src
-                                                               ,(let-values ([(type nat) (if (< nat1 nat2) (values type2 nat2) (values type1 nat1))])
-                                                                  (let ([mbits (fxmax 1 (integer-length nat))])
-                                                                    (with-output-language (Ltypes Expression)
-                                                                      `(>= ,src ,mbits ,(maybe-safecast src type type1 expr1) ,(maybe-safecast src type type2 expr2)))))
-                                                               "result of subtraction would be negative")
-                                                       ,(k mbits
-                                                           (maybe-cast nat1 type1 expr1)
-                                                           (maybe-cast nat2 type2 expr2)))))))
-                                            (k mbits
-                                               (maybe-cast nat1 type1 expr1)
-                                               (maybe-cast nat2 type2 expr2))))
-                                      result-type))))
-                              ;; TODO(kmillikin): Do we want to continue with this?  What about JubjubScalar?
-                              (let ([result-type (with-output-language (Ltypes Type) `(tfield ,src (field-native)))])
-                                (values
-                                  (k #f
-                                     (maybe-safecast src result-type type1 expr1)
-                                     (maybe-safecast src result-type type2 expr2))
-                                  result-type)))])
+                   unaliased-type))]
+              [(tfield ,src (field-native)) (values '() type)]
+              [(tfield ,src (field-scalar (curve-secp256k1))) (values '() type)]
+              [(tunsigned ,src ,nat) (values '() type)]
+              [else (source-errorf src "~a is an invalid ~a operand type for binary arithmetic operator ~a"
+                      (format-type type) l/r op)]))
+          (define (make-native-field-op)
+            (let ([result-type (with-output-language (Ltypes Type) `(tfield ,src (field-native)))])
+              (values
+                (k #f
+                  (maybe-safecast src result-type type1 expr1)
+                  (maybe-safecast src result-type type2 expr2))
+                result-type)))
+          (define (invalid-combination)
+            (source-errorf src "incompatible combination of types ~a and ~a for binary arithmetic operator ~a"
+              (format-type type1)
+              (format-type type2)
+              op))
+          (let-values ([(type-name1* unaliased-type1) (condense type1 "left")]
+                       [(type-name2* unaliased-type2) (condense type2 "right")])
+            (let-values
+                ([(result-expr result-type)
+                  (nanopass-case (Ltypes Type) unaliased-type1
+                    [(tfield ,src1 (field-native))
+                     (nanopass-case (Ltypes Type) unaliased-type2
+                       [(tfield ,src2 (field-native))
+                        (make-native-field-op)]
+                       [(tunsigned ,src2 ,nat)
+                        (make-native-field-op)]
+                       [else (invalid-combination)])]
+                    [(tfield ,src1 (field-scalar (curve-secp256k1)))
+                     (guard (eq? op '*))
+                     (nanopass-case (Ltypes Type) unaliased-type2
+                       [(tfield ,src2 (field-scalar (curve-secp256k1)))
+                        (values (k #f expr1 expr2) unaliased-type1)]
+                       [else (invalid-combination)])]
+                    [(tunsigned ,src1 ,nat1)
+                     (nanopass-case (Ltypes Type) unaliased-type2
+                       [(tfield ,src2 (field-native))
+                        (make-native-field-op)]
+                       [(tunsigned ,src2 ,nat2)
+                        (let ([result-nat (case op
+                                            [+ (+ nat1 nat2)]
+                                            [* (* nat1 nat2)]
+                                            [- nat1]
+                                            [else (assert cannot-happen)])])
+                          (unless (<= result-nat (max-unsigned))
+                            (source-errorf src "resulting value might exceed largest representable Uint value (for Field semantics, cast either operand to Field)"))
+                          (let ([mbits (max 1 (integer-length result-nat))])
+                            (assert (<= mbits (unsigned-bits)))
+                            (let ([result-type (with-output-language (Ltypes Type) `(tunsigned ,src ,result-nat))])
+                              (define (maybe-cast nat^ type^ expr)
+                                (if (= nat^ result-nat)
+                                    expr
+                                    (with-output-language (Ltypes Expression)
+                                      `(safe-cast ,src ,result-type ,type^ ,expr))))
+                              (values
+                                (with-output-language (Ltypes Expression)
+                                  (if (eq? op '-)
+                                      (maybe-bind src type1 expr1
+                                        (lambda (expr1)
+                                          (maybe-bind src type2 expr2
+                                            (lambda (expr2)
+                                              `(seq ,src
+                                                 (assert ,src
+                                                   ,(let-values ([(type nat) (if (< nat1 nat2) (values type2 nat2) (values type1 nat1))])
+                                                      (let ([mbits (fxmax 1 (integer-length nat))])
+                                                        (with-output-language (Ltypes Expression)
+                                                          `(>= ,src ,mbits ,(maybe-safecast src type type1 expr1) ,(maybe-safecast src type type2 expr2)))))
+                                                   "result of subtraction would be negative")
+                                                 ,(k mbits
+                                                    (maybe-cast nat1 type1 expr1)
+                                                    (maybe-cast nat2 type2 expr2)))))))
+                                      (k mbits
+                                        (maybe-cast nat1 type1 expr1)
+                                        (maybe-cast nat2 type2 expr2))))
+                                result-type))))]
+                       [else (invalid-combination)])]
+                    [else (invalid-combination)])])
               (if (and (null? type-name1*) (null? type-name2*))
                   (values result-expr result-type)
                   (begin
                     ; this is, in effect, (sametype? type1 type2)
-                    (unless (and (equal? type-name1* type-name2*) (eqv? nat1 nat2))
-                      (source-errorf src "incompatible combination of types ~a and ~a for binary arithmetic operator ~s"
-                                     (format-type type1)
-                                     (format-type type2)
-                                     op))
-                    ; from here, type1 = type2, nat1 = nat2
+                    (unless (and (equal? type-name1* type-name2*)
+                                 (sametype? unaliased-type1 unaliased-type2))
+                      (invalid-combination))
                     (values
                       (with-output-language (Ltypes Expression)
-                        (if nat1
-                            (if (eq? op '-)
-                                result-expr
-                                (let ([result-nat (nanopass-case (Ltypes Type) result-type
-                                                    [(tunsigned ,src ,nat) nat]
-                                                    [else (assert cannot-happen)])])
-                                  `(downcast-unsigned ,src ,result-nat ,nat1 ,result-expr)))
-                            `(safe-cast ,src ,type1 ,result-type ,result-expr)))
+                        (nanopass-case (Ltypes Type) unaliased-type1
+                          [(tunsigned ,src1 ,nat1)
+                           (if (eq? op '-)
+                               result-expr
+                               (let ([result-nat (nanopass-case (Ltypes Type) result-type
+                                                   [(tunsigned ,src ,nat) nat]
+                                                   [else (assert cannot-happen)])])
+                                 `(downcast-unsigned ,src ,result-nat ,nat1 ,result-expr)))]
+                          [else `(safe-cast ,src ,type1 ,result-type ,result-expr)]))
                       type1)))))))
       (define (relational-operator src expr1 expr2 k)
         (values
@@ -2213,11 +2283,15 @@
          (source-errorf src "invalid type ~a for witness ~a return value:\n  witness return values cannot include contract values"
                         (format-type type)
                         (id-sym function-name)))
+       (when (and (not (feature-zkir-v3)) (contains-secp256k1? type))
+         (source-errorf src "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`"))
        (build-function 'witness #f function-name arg* type)]
       [(public-ledger-declaration ,src ,ledger-field-name ,[type])
        (unless (public-adt? type)
          (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
                             (format-type type)))
+       (when (and (not (feature-zkir-v3)) (contains-secp256k1? type))
+         (source-errorf src "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`"))
        (set-idtype! ledger-field-name (Idtype-Base type))]
       [else (void)])
     (External-Contract-Declaration! : External-Contract-Declaration (ir) -> * (void)
@@ -2252,6 +2326,10 @@
                               (fx1+ argno))))
            (map arg->type arg*)
            (enumerate arg*)))
+       (when (and (not (feature-zkir-v3))
+                  (or (contains-secp256k1? type)
+                      (ormap (lambda (arg) (contains-secp256k1? (arg->type arg))) arg*)))
+         (source-errorf src "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`"))
        (let-values ([(expr return-type) (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)])
          `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
     (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
@@ -3449,8 +3527,12 @@
             [,type (format-type type)]))
         (nanopass-case (Lnodca Type) type
           [(tboolean ,src) "Boolean"]
-          [(tfield ,src (field-native)) "Field"]
-          [(tfield ,src (field-scalar (curve-jubjub))) "JubjubScalar"]
+          [(tfield ,src ,ftype)
+           (nanopass-case (Lnodca Field-Type) ftype
+             [(field-native) "Field"]
+             [(field-scalar (curve-jubjub)) "JubjubScalar"]
+             [(field-base (curve-secp256k1)) "Secp256k1Base"]
+             [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
           [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
           [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tunknown) "Unknown"]
@@ -3487,15 +3569,29 @@
           [(talias ,src ,nominal? ,type-name ,type)
            (de-alias type)]
           [else type]))
+        (define (same-curve-type? ctype1 ctype2)
+          (nanopass-case (Lnodca Curve-Type) ctype1
+            [(curve-jubjub)
+             (nanopass-case (Lnodca Curve-Type) ctype2
+               [(curve-jubjub) #t]
+               [else #f])]
+            [(curve-secp256k1)
+             (nanopass-case (Lnodca Curve-Type) ctype2
+               [(curve-secp256k1) #t]
+               [else #f])]))
       (define (same-field-type? ftype1 ftype2)
         (nanopass-case (Lnodca Field-Type) ftype1
           [(field-native)
            (nanopass-case (Lnodca Field-Type) ftype2
              [(field-native) #t]
              [else #f])]
-          [(field-scalar (curve-jubjub))
+          [(field-base ,ctype1)
            (nanopass-case (Lnodca Field-Type) ftype2
-             [(field-scalar (curve-jubjub)) #t]
+             [(field-base ,ctype2) (same-curve-type? ctype1 ctype2)]
+             [else #f])]
+          [(field-scalar ,ctype1)
+           (nanopass-case (Lnodca Field-Type) ftype2
+             [(field-scalar ,ctype2) (same-curve-type? ctype1 ctype2)]
              [else #f])]))
       (define (sametype? type1 type2)
         (define (same-adt-arg? adt-arg1 adt-arg2)
@@ -3631,21 +3727,19 @@
        (define (arithmetic-binop src op mbits expr1 expr2)
          (let ([type1 (Care expr1)] [type2 (Care expr2)])
            (let ([unaliased-type1 (de-alias type1)] [unaliased-type2 (de-alias type2)])
-             (or (T unaliased-type1
-                    [(tfield ,src1 (field-native)) (T unaliased-type2 [(tfield ,src2 (field-native)) #t])]
-                    [(tfield ,src1 (field-scalar (curve-jubjub)))
-                     (T unaliased-type2
-                       [(tfield ,src2 (field-scalar (curve-jubjub))) #t])]
-                    [(tunsigned ,src1 ,nat1) (T unaliased-type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])])
-                 (source-errorf src "incompatible combination of types ~a and ~a for ~s"
-                                (format-type type1)
-                                (format-type type2)
-                                op))
+             (unless (T unaliased-type1
+                       [(tfield ,src1 (field-native))
+                        (T unaliased-type2 [(tfield ,src2 (field-native)) #t])]
+                       [(tfield ,src1 (field-scalar (curve-secp256k1)))
+                        (guard (string=? op "*"))
+                        (T unaliased-type2 [(tfield ,src2 (field-scalar (curve-secp256k1))) #t])]
+                       [(tunsigned ,src1 ,nat1)
+                        (T unaliased-type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])])
+               (source-errorf src "incompatible combination of types ~a and ~a for ~s"
+                 (format-type type1) (format-type type2) op))
              (unless (eqv? (T unaliased-type1 [(tunsigned ,src ,nat) (fxmax 1 (integer-length nat))]) mbits)
                (source-errorf src "mismatched mbits ~s and type ~a for ~s"
-                              mbits
-                              (format-type type1)
-                              op)))
+                 mbits (format-type type1) op)))
            type1))
        (define (relational-operator src bits expr1 expr2)
          (let ([type1 (Care expr1)] [type2 (Care expr2)])
@@ -4110,22 +4204,22 @@
                         (format-type type)))
        (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
       [(cast-to-field ,src1 ,ftype1 ,type1 ,[Care : expr -> * type2])
-       (let ([underlying-type (de-alias type2)])
-         (unless (sametype? type1 underlying-type)
+       (let ([unaliased-type (de-alias type2)])
+         (unless (sametype? type1 unaliased-type)
            (source-errorf src1 "expected ~a, got ~a for cast-to-field"
              (format-type type1)
              (format-type type2)))
          (with-output-language (Lnodca Type)
-           (nanopass-case (Lnodca Type) underlying-type
+           (nanopass-case (Lnodca Type) unaliased-type
              [(tfield ,src2 ,ftype2) `(tfield ,src1 ,ftype1)]
              [(tunsigned ,src2 ,nat) `(tfield ,src1 ,ftype1)]
              [else
                (source-errorf src1 "expected a numeric type for cast-to-field call, received ~a"
                  (format-type type2))])))]
       [(cast-from-field ,src ,nat ,ftype ,[Care : expr -> * type])
-       (let ([underlying-type (de-alias type)])
+       (let ([unaliased-type (de-alias type)])
          (with-output-language (Lnodca Type)
-           (unless (nanopass-case (Lnodca Type) underlying-type
+           (unless (nanopass-case (Lnodca Type) unaliased-type
                      [(tfield ,src^ ,ftype^) (same-field-type? ftype ftype^)]
                      [else #f])
              (source-errorf src "expected ~a, got ~a for cast-from-field"
