@@ -16,7 +16,7 @@
 ;;; limitations under the License.
 
 (library (events)
-  (export event-declarations event-tag-of event-size-of event-version max-emit-size)
+  (export event-declarations event-tag-of event-version max-emit-size)
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
@@ -38,17 +38,10 @@
   ; maps event-name symbol -> tag integer.
   ; populated by event-declarations in midnight-events.ss.
   ; readable through event-tag-of.
-  (define event-tag-table (make-eq-hashtable))
-
-  ; maps event-name symbol -> declared canonical serialized size (bytes).
-  ; populated alongside event-tag-table. readable through event-size-of.
-  (define event-size-table (make-eq-hashtable))
+  (define event-tag-table)
 
   (define (event-tag-of name)
     (hashtable-ref event-tag-table name #f))
-
-  (define (event-size-of name)
-    (hashtable-ref event-size-table name #f))
 
   (define (event-declarations)
     (define edecl* '())
@@ -79,15 +72,9 @@
               [other (syntax-error #'other "unrecognized event type")]))
           (define (convert-event-argument name type)
             #`(,event-src #,name #,(convert-event-type type)))
-          #;(define (parse-hint hinting)
-            (syntax-case hinting (hint indexed)
-              [(hint nothing) #f]
-              [(hint what) (string? (datum what)) #f]
-              [other (syntax-error #'other "invalid indexing hint syntax")]))
           #`(begin
               (check-tag-unique! '#,name #,tag)
               (hashtable-set! event-tag-table '#,name #,tag)
-              (hashtable-set! event-size-table '#,name #,size)
               (set! edecl*
                 (cons
                   (with-output-language (Lpreexpand Structure-Definition)
@@ -110,11 +97,7 @@
                            max-emit-size))))
              (f #'name #'tag #'size #'(argument-name ...) #'(argument-type ...)))])))
 
-    ; Reset on every call. event-declarations is itself memoized at the
-    ; do-import call site, but if a future change un-memoizes it we don't
-    ; want stale or doubled entries.
-    (hashtable-clear! event-tag-table)
-    (hashtable-clear! event-size-table)
+    (set! event-tag-table (make-eq-hashtable))
     (include "midnight-events.ss")
     (reverse edecl*))
 

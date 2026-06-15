@@ -1553,9 +1553,8 @@ groups than for single tests.
             (const ([x (tundeclared) (call foo #t 17)]))
             (const ([y (tundeclared) (if a (if b 3 2) (if b 1 0))]))
             (const ([w (tboolean) (if a #t #f)]))
-            (const ([v
-                     (tundeclared)
-                     (if a #f (fold foo #t (tuple-ref (tuple (tuple)) 0)))]))
+            (const ([v (tundeclared)
+              (if a #f (fold foo #t (tuple-ref (tuple (tuple)) 0)))]))
             (if a
                 (if b
                     (assert a "a should be true")
@@ -33205,16 +33204,28 @@ groups than for single tests.
       "  return serialize<ShieldedSpend, 32>(x);"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit serialize_ShieldedSpend at line 2 char 41" ("\n    nature of the disclosure:\n      the call to standard-library circuit serialize might disclose the witness value\n    via this path through the program:\n      the argument to serialize at line 3 char 10"))))
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %serialize.1 ([%value.2 (tstruct ShieldedSpend
+                                           (nullifier (tbytes 32)))])
+             (tbytes 32)
+          (serialize
+            32
+            (tstruct ShieldedSpend (nullifier (tbytes 32)))
+            %value.2))
+        (circuit %serialize_ShieldedSpend.3 ([%x.4 (tstruct ShieldedSpend
+                                                     (nullifier (tbytes 32)))])
+             (tbytes 32)
+          (call %serialize.1 %x.4))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<32> {"
-      "  return serialize<ShieldedSpend, 32>(disclose(x));"
+      "  return serialize<ShieldedSpend, 32>(x);"
       "}"
       )
     (returns
@@ -33231,7 +33242,7 @@ groups than for single tests.
         (circuit %serialize_ShieldedSpend.3 ([%x.4 (tstruct ShieldedSpend
                                                      (nullifier (tbytes 32)))])
              (tbytes 32)
-          (call %serialize.1 (disclose %x.4)))))
+          (call %serialize.1 %x.4))))
     )
 
   (test
@@ -33239,18 +33250,6 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
       "  return deserialize<ShieldedSpend, 32>(x);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit deserialize_ShieldedSpend at line 2 char 43" ("\n    nature of the disclosure:\n      the call to standard-library circuit deserialize might disclose the witness value\n    via this path through the program:\n      the argument to deserialize at line 3 char 10"))))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
-      "  return deserialize<ShieldedSpend, 32>(disclose(x));"
       "}"
       )
     (returns
@@ -33265,7 +33264,29 @@ groups than for single tests.
             %value.2))
         (circuit %deserialize_ShieldedSpend.3 ([%x.4 (tbytes 32)])
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
-          (call %deserialize.1 (disclose %x.4)))))
+          (call %deserialize.1 %x.4))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 32>(x);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %deserialize.1 ([%value.2 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (deserialize
+            32
+            (tstruct ShieldedSpend (nullifier (tbytes 32)))
+            %value.2))
+        (circuit %deserialize_ShieldedSpend.3 ([%x.4 (tbytes 32)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (call %deserialize.1 %x.4))))
     )
 )
 
@@ -33861,7 +33882,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit serialize_opaque (x: Opaque<'string'>) : Bytes<32> {"
-      "  return serialize<Opaque<'string'>, 32>(disclose(x));"
+      "  return serialize<Opaque<'string'>, 32>(x);"
       "}"
       )
     (oops
@@ -33873,79 +33894,34 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_opaque (x: Bytes<32>) : Opaque<'string'> {"
-      "  return deserialize<Opaque<'string'>, 32>(disclose(x));"
+      "  return deserialize<Opaque<'string'>, 32>(x);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "type ~a (opaque) is not serializable" ("Opaque<\"string\">")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit serialize_boolean (x: Boolean) : Bytes<1> {"
-      "  return serialize<Boolean, 1>(disclose(x));"
-      "}"
-      "export circuit serialize_field (x: Field) : Bytes<31> {"
-      "  return serialize<Field, 31>(disclose(x));"
-      "}"
-      "export circuit serialize_uint8 (x: Uint<8>) : Bytes<1> {"
-      "  return serialize<Uint<8>, 1>(disclose(x));"
-      "}"
-      "export circuit serialize_uint64 (x: Uint<64>) : Bytes<8> {"
-      "  return serialize<Uint<64>, 8>(disclose(x));"
-      "}"
-      "export circuit serialize_uint128 (x: Uint<128>) : Bytes<16> {"
-      "  return serialize<Uint<128>, 16>(disclose(x));"
-      "}"
-      "export circuit serialize_bytes (x: Bytes<10>) : Bytes<10> {"
-      "  return serialize<Bytes<10>, 10>(disclose(x));"
-      "}"
-      "export circuit serialize_tuple (x: Bytes<32>) : [Boolean, Field] {"
-      "  return deserialize<[Boolean, Field], 32>(disclose(x));"
-      "}"
-      "export circuit serialize_uints (x: [Uint<8>, Uint<16>, Uint<32>]) : Bytes<7> {"
-      "  return serialize<[Uint<8>, Uint<16>, Uint<32>], 7>(disclose(x));"
-      "}"
-      "export circuit serialize_vector (x: Vector<4, Uint<8>>) : Bytes<4> {"
-      "  return serialize<Vector<4, Uint<8>>, 4>(disclose(x));"
-      "}"
-      "struct Pair { a: Boolean, b: Uint<8> }"
-      "export circuit serialize_struct (p: Pair) : Bytes<2> {"
-      "  return serialize<Pair, 2>(disclose(p));"
-      "}"
-      "enum Color { RED, GREEN, BLUE }"
-      "export circuit serialize_enum (c: Color) : Bytes<1> {"
-      "  return serialize<Color, 1>(disclose(c));"
-      "}"
-      "export circuit serialize_nested (x: Vector<2, [Boolean, Uint<8>]>) : Bytes<4> {"
-      "  return serialize<Vector<2, [Boolean, Uint<8>]>, 4>(disclose(x));"
-      "}"
-      )
-    (succeeds)
+      irritants: '("<standard library>" "~a is not a serializable type" ("Opaque<\"string\">")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_ShieldedSpend (x: Bytes<30>) : ShieldedSpend {"
-      "  return deserialize<ShieldedSpend, 30>(disclose(x));"
+      "  return deserialize<ShieldedSpend, 30>(x);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "declared serialized length ~a does not match the structural layout of ~a (~a bytes)" (30 "struct ShieldedSpend<nullifier: Bytes<32>>" 32)))
+      irritants: '("<standard library>" "actual serialized size ~d exceeds specified length ~d for type ~a" (32 30 "struct ShieldedSpend<nullifier: Bytes<32>>")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
-      "  return deserialize<ShieldedSpend, 32>(disclose(x));"
+      "  return deserialize<ShieldedSpend, 32>(x);"
       "}"
       "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<32> {"
-      "  return serialize<ShieldedSpend, 32>(disclose(x));"
+      "  return serialize<ShieldedSpend, 32>(x);"
       "}"
       )
     (returns
@@ -33973,10 +33949,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_ShieldedReceive (x: Bytes<578>) : ShieldedReceive {"
-      "  return deserialize<ShieldedReceive, 578>(disclose(x));"
+      "  return deserialize<ShieldedReceive, 578>(x);"
       "}"
       "export circuit serialize_ShieldedReceive (x: ShieldedReceive) : Bytes<578> {"
-      "  return serialize<ShieldedReceive, 578>(disclose(x));"
+      "  return serialize<ShieldedReceive, 578>(x);"
       "}"
       )
     (returns
@@ -33994,63 +33970,27 @@ groups than for single tests.
                                                          (value (tbytes
                                                                   512)))))])
              (tbytes 578)
-          (vector->bytes
-            578
-            (vector
-              (spread
-                32
-                (bytes->vector 32 (elt-ref %value.2 commitment 0)))
-              (spread
-                33
-                (bytes->vector
-                  33
-                  (vector->bytes
-                    33
-                    (vector
-                      (spread
-                        1
-                        (bytes->vector
-                          1
-                          (if (elt-ref
-                                (elt-ref %value.2 contract_address 1)
-                                is_some
-                                0)
-                              #vu8(1)
-                              #vu8(0))))
-                      (spread
-                        32
-                        (bytes->vector
-                          32
-                          (elt-ref
-                            (elt-ref %value.2 contract_address 1)
-                            value
-                            1)))))))
-              (spread
-                513
-                (bytes->vector
-                  513
-                  (vector->bytes
-                    513
-                    (vector
-                      (spread
-                        1
-                        (bytes->vector
-                          1
-                          (if (elt-ref
-                                (elt-ref %value.2 ciphertext 2)
-                                is_some
-                                0)
-                              #vu8(1)
-                              #vu8(0))))
-                      (spread
-                        512
-                        (bytes->vector
-                          512
-                          (elt-ref
-                            (elt-ref %value.2 ciphertext 2)
-                            value
-                            1))))))))))
-        (circuit %deserialize.3 ([%value.4 (tbytes 578)])
+          (let* ([[%t.3 (tstruct Maybe
+                          (is_some (tboolean))
+                          (value (tbytes 32)))]
+                  (elt-ref %value.2 contract_address 1)]
+                 [[%t.4 (tstruct Maybe
+                          (is_some (tboolean))
+                          (value (tbytes 512)))]
+                  (elt-ref %value.2 ciphertext 2)])
+            (vector->bytes 578
+              (vector
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 commitment 0)))
+                (if (elt-ref %t.3 is_some 0)
+                    (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                    (safe-cast (tunsigned 255) (tunsigned 0) 0))
+                (spread 32 (bytes->vector 32 (elt-ref %t.3 value 1)))
+                (if (elt-ref %t.4 is_some 0)
+                    (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                    (safe-cast (tunsigned 255) (tunsigned 0) 0))
+                (spread 512 (bytes->vector 512 (elt-ref %t.4 value 1)))))))
+        (circuit %deserialize.5 ([%value.6 (tbytes 578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
                (contract_address (tstruct Maybe
@@ -34067,18 +34007,20 @@ groups than for single tests.
                  (ciphertext (tstruct Maybe
                                (is_some (tboolean))
                                (value (tbytes 512)))))
-            (bytes-slice %value.4 0 32)
+            (bytes-slice %value.6 0 32)
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tbytes 32)))
-              (== (bytes-slice %value.4 32 1) #vu8(1))
-              (bytes-slice %value.4 33 32))
+              (== (bytes-ref %value.6 32)
+                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (bytes-slice %value.6 33 32))
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tbytes 512)))
-              (== (bytes-slice %value.4 65 1) #vu8(1))
-              (bytes-slice %value.4 66 512))))
-        (circuit %deserialize_ShieldedReceive.5 ([%x.6 (tbytes
+              (== (bytes-ref %value.6 65)
+                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (bytes-slice %value.6 66 512))))
+        (circuit %deserialize_ShieldedReceive.7 ([%x.8 (tbytes
                                                          578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
@@ -34088,29 +34030,30 @@ groups than for single tests.
                (ciphertext (tstruct Maybe
                              (is_some (tboolean))
                              (value (tbytes 512)))))
-          (call %deserialize.3 %x.6))
-        (circuit %serialize_ShieldedReceive.7 ([%x.8 (tstruct ShieldedReceive
-                                                       (commitment (tbytes 32))
-                                                       (contract_address (tstruct Maybe
-                                                                           (is_some (tboolean))
-                                                                           (value (tbytes
-                                                                                    32))))
-                                                       (ciphertext (tstruct Maybe
-                                                                     (is_some (tboolean))
-                                                                     (value (tbytes
-                                                                              512)))))])
+          (call %deserialize.5 %x.8))
+        (circuit %serialize_ShieldedReceive.9 ([%x.10 (tstruct ShieldedReceive
+                                                        (commitment (tbytes
+                                                                      32))
+                                                        (contract_address (tstruct Maybe
+                                                                            (is_some (tboolean))
+                                                                            (value (tbytes
+                                                                                     32))))
+                                                        (ciphertext (tstruct Maybe
+                                                                      (is_some (tboolean))
+                                                                      (value (tbytes
+                                                                               512)))))])
              (tbytes 578)
-          (call %serialize.1 %x.8))))
+          (call %serialize.1 %x.10))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_ShieldedMint (x: Bytes<81>) : ShieldedMint {"
-      "  return deserialize<ShieldedMint, 81>(disclose(x));"
+      "  return deserialize<ShieldedMint, 81>(x);"
       "}"
       "export circuit serialize_ShieldedMint (x: ShieldedMint) : Bytes<81> {"
-      "  return serialize<ShieldedMint, 81>(disclose(x));"
+      "  return serialize<ShieldedMint, 81>(x);"
       "}"
       )
     (returns
@@ -34125,43 +34068,28 @@ groups than for single tests.
                                                      (value (tunsigned
                                                               340282366920938463463374607431768211455)))))])
              (tbytes 81)
-          (vector->bytes
-            81
-            (vector
-              (spread
-                32
-                (bytes->vector 32 (elt-ref %value.2 commitment 0)))
-              (spread
-                32
-                (bytes->vector 32 (elt-ref %value.2 domain_sep 1)))
-              (spread
-                17
-                (bytes->vector
-                  17
-                  (vector->bytes
-                    17
-                    (vector
-                      (spread
-                        1
-                        (bytes->vector
-                          1
-                          (if (elt-ref (elt-ref %value.2 amount 2) is_some 0)
-                              #vu8(1)
-                              #vu8(0))))
-                      (spread
-                        16
-                        (bytes->vector
-                          16
-                          (field->bytes
-                            16
-                            (safe-cast (tfield)
-                                       (tunsigned
-                                         340282366920938463463374607431768211455)
-                              (elt-ref
-                                (elt-ref %value.2 amount 2)
-                                value
-                                1))))))))))))
-        (circuit %deserialize.3 ([%value.4 (tbytes 81)])
+          (let* ([[%t.3 (tstruct Maybe
+                          (is_some (tboolean))
+                          (value (tunsigned
+                                   340282366920938463463374607431768211455)))]
+                  (elt-ref %value.2 amount 2)])
+            (vector->bytes 81
+              (vector
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 commitment 0)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 domain_sep 1)))
+                (if (elt-ref %t.3 is_some 0)
+                    (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                    (safe-cast (tunsigned 255) (tunsigned 0) 0))
+                (spread 16
+                  (bytes->vector 16
+                    (field->bytes 16
+                      (safe-cast (tfield)
+                                 (tunsigned
+                                   340282366920938463463374607431768211455)
+                        (elt-ref %t.3 value 1)))))))))
+        (circuit %deserialize.4 ([%value.5 (tbytes 81)])
              (tstruct ShieldedMint
                (commitment (tbytes 32))
                (domain_sep (tbytes 32))
@@ -34176,16 +34104,17 @@ groups than for single tests.
                            (is_some (tboolean))
                            (value (tunsigned
                                     340282366920938463463374607431768211455)))))
-            (bytes-slice %value.4 0 32)
-            (bytes-slice %value.4 32 32)
+            (bytes-slice %value.5 0 32)
+            (bytes-slice %value.5 32 32)
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tunsigned 340282366920938463463374607431768211455)))
-              (== (bytes-slice %value.4 64 1) #vu8(1))
+              (== (bytes-ref %value.5 64)
+                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
               (cast-from-bytes (tunsigned
                                  340282366920938463463374607431768211455) 16
-                (bytes-slice %value.4 65 16)))))
-        (circuit %deserialize_ShieldedMint.5 ([%x.6 (tbytes 81)])
+                (bytes-slice %value.5 65 16)))))
+        (circuit %deserialize_ShieldedMint.6 ([%x.7 (tbytes 81)])
              (tstruct ShieldedMint
                (commitment (tbytes 32))
                (domain_sep (tbytes 32))
@@ -34193,8 +34122,8 @@ groups than for single tests.
                          (is_some (tboolean))
                          (value (tunsigned
                                   340282366920938463463374607431768211455)))))
-          (call %deserialize.3 %x.6))
-        (circuit %serialize_ShieldedMint.7 ([%x.8 (tstruct ShieldedMint
+          (call %deserialize.4 %x.7))
+        (circuit %serialize_ShieldedMint.8 ([%x.9 (tstruct ShieldedMint
                                                     (commitment (tbytes 32))
                                                     (domain_sep (tbytes 32))
                                                     (amount (tstruct Maybe
@@ -34202,17 +34131,17 @@ groups than for single tests.
                                                               (value (tunsigned
                                                                        340282366920938463463374607431768211455)))))])
              (tbytes 81)
-          (call %serialize.1 %x.8))))
+          (call %serialize.1 %x.9))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_ShieldedBurn (x: Bytes<49>) : ShieldedBurn {"
-      "  return deserialize<ShieldedBurn, 49>(disclose(x));"
+      "  return deserialize<ShieldedBurn, 49>(x);"
       "}"
       "export circuit serialize_ShieldedBurn (x: ShieldedBurn) : Bytes<49> {"
-      "  return serialize<ShieldedBurn, 49>(disclose(x));"
+      "  return serialize<ShieldedBurn, 49>(x);"
       "}"
       )
     (returns
@@ -34226,40 +34155,26 @@ groups than for single tests.
                                                      (value (tunsigned
                                                               340282366920938463463374607431768211455)))))])
              (tbytes 49)
-          (vector->bytes
-            49
-            (vector
-              (spread
-                32
-                (bytes->vector 32 (elt-ref %value.2 nullifier 0)))
-              (spread
-                17
-                (bytes->vector
-                  17
-                  (vector->bytes
-                    17
-                    (vector
-                      (spread
-                        1
-                        (bytes->vector
-                          1
-                          (if (elt-ref (elt-ref %value.2 amount 1) is_some 0)
-                              #vu8(1)
-                              #vu8(0))))
-                      (spread
-                        16
-                        (bytes->vector
-                          16
-                          (field->bytes
-                            16
-                            (safe-cast (tfield)
-                                       (tunsigned
-                                         340282366920938463463374607431768211455)
-                              (elt-ref
-                                (elt-ref %value.2 amount 1)
-                                value
-                                1))))))))))))
-        (circuit %deserialize.3 ([%value.4 (tbytes 49)])
+          (let* ([[%t.3 (tstruct Maybe
+                          (is_some (tboolean))
+                          (value (tunsigned
+                                   340282366920938463463374607431768211455)))]
+                  (elt-ref %value.2 amount 1)])
+            (vector->bytes 49
+              (vector
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 nullifier 0)))
+                (if (elt-ref %t.3 is_some 0)
+                    (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                    (safe-cast (tunsigned 255) (tunsigned 0) 0))
+                (spread 16
+                  (bytes->vector 16
+                    (field->bytes 16
+                      (safe-cast (tfield)
+                                 (tunsigned
+                                   340282366920938463463374607431768211455)
+                        (elt-ref %t.3 value 1)))))))))
+        (circuit %deserialize.4 ([%value.5 (tbytes 49)])
              (tstruct ShieldedBurn
                (nullifier (tbytes 32))
                (amount (tstruct Maybe
@@ -34272,43 +34187,44 @@ groups than for single tests.
                            (is_some (tboolean))
                            (value (tunsigned
                                     340282366920938463463374607431768211455)))))
-            (bytes-slice %value.4 0 32)
+            (bytes-slice %value.5 0 32)
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tunsigned 340282366920938463463374607431768211455)))
-              (== (bytes-slice %value.4 32 1) #vu8(1))
+              (== (bytes-ref %value.5 32)
+                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
               (cast-from-bytes (tunsigned
                                  340282366920938463463374607431768211455) 16
-                (bytes-slice %value.4 33 16)))))
-        (circuit %deserialize_ShieldedBurn.5 ([%x.6 (tbytes 49)])
+                (bytes-slice %value.5 33 16)))))
+        (circuit %deserialize_ShieldedBurn.6 ([%x.7 (tbytes 49)])
              (tstruct ShieldedBurn
                (nullifier (tbytes 32))
                (amount (tstruct Maybe
                          (is_some (tboolean))
                          (value (tunsigned
                                   340282366920938463463374607431768211455)))))
-          (call %deserialize.3 %x.6))
-        (circuit %serialize_ShieldedBurn.7 ([%x.8 (tstruct ShieldedBurn
+          (call %deserialize.4 %x.7))
+        (circuit %serialize_ShieldedBurn.8 ([%x.9 (tstruct ShieldedBurn
                                                     (nullifier (tbytes 32))
                                                     (amount (tstruct Maybe
                                                               (is_some (tboolean))
                                                               (value (tunsigned
                                                                        340282366920938463463374607431768211455)))))])
              (tbytes 49)
-          (call %serialize.1 %x.8))))
+          (call %serialize.1 %x.9))))
     )
 
   (test
    '(
      "import CompactStandardLibrary;"
      "export circuit deserialize_UnshieldedSpend (x: Bytes<113>) : UnshieldedSpend {"
-     "  return deserialize<UnshieldedSpend, 113>(disclose(x));"
+     "  return deserialize<UnshieldedSpend, 113>(x);"
      "}"
      "export circuit serialize_UnshieldedSpend (x: UnshieldedSpend) : Bytes<113> {"
-     "  return serialize<UnshieldedSpend, 113>(disclose(x));"
+     "  return serialize<UnshieldedSpend, 113>(x);"
      "}"
      )
-   (returns
+    (returns
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
@@ -34325,53 +34241,32 @@ groups than for single tests.
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
              (tbytes 113)
-          (vector->bytes
-            113
-            (vector
-              (spread
-                65
-                (bytes->vector
-                  65
-                  (vector->bytes
-                    65
-                    (vector
-                      (spread
-                        1
-                        (bytes->vector
-                          1
-                          (if (elt-ref (elt-ref %value.2 sender 0) is_left 0)
-                              #vu8(1)
-                              #vu8(0))))
-                      (spread
-                        32
-                        (bytes->vector
-                          32
-                          (elt-ref
-                            (elt-ref (elt-ref %value.2 sender 0) left 1)
-                            bytes
-                            0)))
-                      (spread
-                        32
-                        (bytes->vector
-                          32
-                          (elt-ref
-                            (elt-ref (elt-ref %value.2 sender 0) right 2)
-                            bytes
-                            0)))))))
-              (spread
-                32
-                (bytes->vector 32 (elt-ref %value.2 token_type 1)))
-              (spread
-                16
-                (bytes->vector
-                  16
-                  (field->bytes
-                    16
-                    (safe-cast (tfield)
-                               (tunsigned
-                                 340282366920938463463374607431768211455)
-                      (elt-ref %value.2 amount 2))))))))
-        (circuit %deserialize.3 ([%value.4 (tbytes 113)])
+          (let* ([[%t.3 (tstruct Either
+                          (is_left (tboolean))
+                          (left (tstruct ZswapCoinPublicKey
+                                  (bytes (tbytes 32))))
+                          (right (tstruct ContractAddress
+                                   (bytes (tbytes 32)))))]
+                  (elt-ref %value.2 sender 0)])
+            (vector->bytes 113
+              (vector
+                (if (elt-ref %t.3 is_left 0)
+                    (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                    (safe-cast (tunsigned 255) (tunsigned 0) 0))
+                (spread 32
+                  (bytes->vector 32 (elt-ref (elt-ref %t.3 left 1) bytes 0)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                (spread 16
+                  (bytes->vector 16
+                    (field->bytes 16
+                      (safe-cast (tfield)
+                                 (tunsigned
+                                   340282366920938463463374607431768211455)
+                        (elt-ref %value.2 amount 2)))))))))
+        (circuit %deserialize.4 ([%value.5 (tbytes 113)])
              (tstruct UnshieldedSpend
                (sender (tstruct Either
                          (is_left (tboolean))
@@ -34396,16 +34291,17 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (bytes-slice %value.4 0 1) #vu8(1))
+              (== (bytes-ref %value.5 0)
+                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
-                (bytes-slice %value.4 1 32))
+                (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
-                (bytes-slice %value.4 33 32)))
-            (bytes-slice %value.4 65 32)
+                (bytes-slice %value.5 33 32)))
+            (bytes-slice %value.5 65 32)
             (cast-from-bytes (tunsigned
                                340282366920938463463374607431768211455) 16
-              (bytes-slice %value.4 97 16))))
-        (circuit %deserialize_UnshieldedSpend.5 ([%x.6 (tbytes
+              (bytes-slice %value.5 97 16))))
+        (circuit %deserialize_UnshieldedSpend.6 ([%x.7 (tbytes
                                                          113)])
              (tstruct UnshieldedSpend
                (sender (tstruct Either
@@ -34417,8 +34313,8 @@ groups than for single tests.
                (token_type (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
-          (call %deserialize.3 %x.6))
-        (circuit %serialize_UnshieldedSpend.7 ([%x.8 (tstruct UnshieldedSpend
+          (call %deserialize.4 %x.7))
+        (circuit %serialize_UnshieldedSpend.8 ([%x.9 (tstruct UnshieldedSpend
                                                        (sender (tstruct Either
                                                                  (is_left (tboolean))
                                                                  (left (tstruct ZswapCoinPublicKey
@@ -34431,17 +34327,17 @@ groups than for single tests.
                                                        (amount (tunsigned
                                                                  340282366920938463463374607431768211455)))])
              (tbytes 113)
-          (call %serialize.1 %x.8))))
+          (call %serialize.1 %x.9))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_UnshieldedReceive (x: Bytes<113>) : UnshieldedReceive {"
-      "  return deserialize<UnshieldedReceive, 113>(disclose(x));"
+      "  return deserialize<UnshieldedReceive, 113>(x);"
       "}"
       "export circuit serialize_UnshieldedReceive (x: UnshieldedReceive) : Bytes<113> {"
-      "  return serialize<UnshieldedReceive, 113>(disclose(x));"
+      "  return serialize<UnshieldedReceive, 113>(x);"
       "}"
       )
     (returns
@@ -34461,56 +34357,32 @@ groups than for single tests.
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
              (tbytes 113)
-          (vector->bytes
-            113
-            (vector
-              (spread
-                65
-                (bytes->vector
-                  65
-                  (vector->bytes
-                    65
-                    (vector
-                      (spread
-                        1
-                        (bytes->vector
-                          1
-                          (if (elt-ref
-                                (elt-ref %value.2 recipient 0)
-                                is_left
-                                0)
-                              #vu8(1)
-                              #vu8(0))))
-                      (spread
-                        32
-                        (bytes->vector
-                          32
-                          (elt-ref
-                            (elt-ref (elt-ref %value.2 recipient 0) left 1)
-                            bytes
-                            0)))
-                      (spread
-                        32
-                        (bytes->vector
-                          32
-                          (elt-ref
-                            (elt-ref (elt-ref %value.2 recipient 0) right 2)
-                            bytes
-                            0)))))))
-              (spread
-                32
-                (bytes->vector 32 (elt-ref %value.2 token_type 1)))
-              (spread
-                16
-                (bytes->vector
-                  16
-                  (field->bytes
-                    16
-                    (safe-cast (tfield)
-                               (tunsigned
-                                 340282366920938463463374607431768211455)
-                      (elt-ref %value.2 amount 2))))))))
-        (circuit %deserialize.3 ([%value.4 (tbytes 113)])
+          (let* ([[%t.3 (tstruct Either
+                          (is_left (tboolean))
+                          (left (tstruct ZswapCoinPublicKey
+                                  (bytes (tbytes 32))))
+                          (right (tstruct ContractAddress
+                                   (bytes (tbytes 32)))))]
+                  (elt-ref %value.2 recipient 0)])
+            (vector->bytes 113
+              (vector
+                (if (elt-ref %t.3 is_left 0)
+                    (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                    (safe-cast (tunsigned 255) (tunsigned 0) 0))
+                (spread 32
+                  (bytes->vector 32 (elt-ref (elt-ref %t.3 left 1) bytes 0)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                (spread 16
+                  (bytes->vector 16
+                    (field->bytes 16
+                      (safe-cast (tfield)
+                                 (tunsigned
+                                   340282366920938463463374607431768211455)
+                        (elt-ref %value.2 amount 2)))))))))
+        (circuit %deserialize.4 ([%value.5 (tbytes 113)])
              (tstruct UnshieldedReceive
                (recipient (tstruct Either
                             (is_left (tboolean))
@@ -34535,16 +34407,17 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (bytes-slice %value.4 0 1) #vu8(1))
+              (== (bytes-ref %value.5 0)
+                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
-                (bytes-slice %value.4 1 32))
+                (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
-                (bytes-slice %value.4 33 32)))
-            (bytes-slice %value.4 65 32)
+                (bytes-slice %value.5 33 32)))
+            (bytes-slice %value.5 65 32)
             (cast-from-bytes (tunsigned
                                340282366920938463463374607431768211455) 16
-              (bytes-slice %value.4 97 16))))
-        (circuit %deserialize_UnshieldedReceive.5 ([%x.6 (tbytes
+              (bytes-slice %value.5 97 16))))
+        (circuit %deserialize_UnshieldedReceive.6 ([%x.7 (tbytes
                                                            113)])
              (tstruct UnshieldedReceive
                (recipient (tstruct Either
@@ -34556,8 +34429,8 @@ groups than for single tests.
                (token_type (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
-          (call %deserialize.3 %x.6))
-        (circuit %serialize_UnshieldedReceive.7 ([%x.8 (tstruct UnshieldedReceive
+          (call %deserialize.4 %x.7))
+        (circuit %serialize_UnshieldedReceive.8 ([%x.9 (tstruct UnshieldedReceive
                                                          (recipient (tstruct Either
                                                                       (is_left (tboolean))
                                                                       (left (tstruct ZswapCoinPublicKey
@@ -34571,17 +34444,17 @@ groups than for single tests.
                                                          (amount (tunsigned
                                                                    340282366920938463463374607431768211455)))])
              (tbytes 113)
-          (call %serialize.1 %x.8))))
+          (call %serialize.1 %x.9))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_UnshieldedMint (x: Bytes<80>) : UnshieldedMint {"
-      "  return deserialize<UnshieldedMint, 80>(disclose(x));"
+      "  return deserialize<UnshieldedMint, 80>(x);"
       "}"
       "export circuit serialize_UnshieldedMint (x: UnshieldedMint) : Bytes<80> {"
-      "  return serialize<UnshieldedMint, 80>(disclose(x));"
+      "  return serialize<UnshieldedMint, 80>(x);"
       "}"
       )
     (returns
@@ -34649,10 +34522,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_UnshieldedBurn (x: Bytes<113>) : UnshieldedBurn {"
-      "  return deserialize<UnshieldedBurn, 113>(disclose(x));"
+      "  return deserialize<UnshieldedBurn, 113>(x);"
       "}"
       "export circuit serialize_UnshieldedBurn (x: UnshieldedBurn) : Bytes<113> {"
-      "  return serialize<UnshieldedBurn, 113>(disclose(x));"
+      "  return serialize<UnshieldedBurn, 113>(x);"
       "}"
       )
     (returns
@@ -34672,53 +34545,32 @@ groups than for single tests.
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
              (tbytes 113)
-          (vector->bytes
-            113
-            (vector
-              (spread
-                65
-                (bytes->vector
-                  65
-                  (vector->bytes
-                    65
-                    (vector
-                      (spread
-                        1
-                        (bytes->vector
-                          1
-                          (if (elt-ref (elt-ref %value.2 sender 0) is_left 0)
-                              #vu8(1)
-                              #vu8(0))))
-                      (spread
-                        32
-                        (bytes->vector
-                          32
-                          (elt-ref
-                            (elt-ref (elt-ref %value.2 sender 0) left 1)
-                            bytes
-                            0)))
-                      (spread
-                        32
-                        (bytes->vector
-                          32
-                          (elt-ref
-                            (elt-ref (elt-ref %value.2 sender 0) right 2)
-                            bytes
-                            0)))))))
-              (spread
-                32
-                (bytes->vector 32 (elt-ref %value.2 token_type 1)))
-              (spread
-                16
-                (bytes->vector
-                  16
-                  (field->bytes
-                    16
-                    (safe-cast (tfield)
-                               (tunsigned
-                                 340282366920938463463374607431768211455)
-                      (elt-ref %value.2 amount 2))))))))
-        (circuit %deserialize.3 ([%value.4 (tbytes 113)])
+          (let* ([[%t.3 (tstruct Either
+                          (is_left (tboolean))
+                          (left (tstruct ZswapCoinPublicKey
+                                  (bytes (tbytes 32))))
+                          (right (tstruct ContractAddress
+                                   (bytes (tbytes 32)))))]
+                  (elt-ref %value.2 sender 0)])
+            (vector->bytes 113
+              (vector
+                (if (elt-ref %t.3 is_left 0)
+                    (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                    (safe-cast (tunsigned 255) (tunsigned 0) 0))
+                (spread 32
+                  (bytes->vector 32 (elt-ref (elt-ref %t.3 left 1) bytes 0)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                (spread 16
+                  (bytes->vector 16
+                    (field->bytes 16
+                      (safe-cast (tfield)
+                                 (tunsigned
+                                   340282366920938463463374607431768211455)
+                        (elt-ref %value.2 amount 2)))))))))
+        (circuit %deserialize.4 ([%value.5 (tbytes 113)])
              (tstruct UnshieldedBurn
                (sender (tstruct Either
                          (is_left (tboolean))
@@ -34743,16 +34595,17 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (bytes-slice %value.4 0 1) #vu8(1))
+              (== (bytes-ref %value.5 0)
+                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
-                (bytes-slice %value.4 1 32))
+                (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
-                (bytes-slice %value.4 33 32)))
-            (bytes-slice %value.4 65 32)
+                (bytes-slice %value.5 33 32)))
+            (bytes-slice %value.5 65 32)
             (cast-from-bytes (tunsigned
                                340282366920938463463374607431768211455) 16
-              (bytes-slice %value.4 97 16))))
-        (circuit %deserialize_UnshieldedBurn.5 ([%x.6 (tbytes 113)])
+              (bytes-slice %value.5 97 16))))
+        (circuit %deserialize_UnshieldedBurn.6 ([%x.7 (tbytes 113)])
              (tstruct UnshieldedBurn
                (sender (tstruct Either
                          (is_left (tboolean))
@@ -34763,8 +34616,8 @@ groups than for single tests.
                (token_type (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
-          (call %deserialize.3 %x.6))
-        (circuit %serialize_UnshieldedBurn.7 ([%x.8 (tstruct UnshieldedBurn
+          (call %deserialize.4 %x.7))
+        (circuit %serialize_UnshieldedBurn.8 ([%x.9 (tstruct UnshieldedBurn
                                                       (sender (tstruct Either
                                                                 (is_left (tboolean))
                                                                 (left (tstruct ZswapCoinPublicKey
@@ -34777,17 +34630,17 @@ groups than for single tests.
                                                       (amount (tunsigned
                                                                 340282366920938463463374607431768211455)))])
              (tbytes 113)
-          (call %serialize.1 %x.8))))
+          (call %serialize.1 %x.9))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_Paused (x: Bytes<0>) : Paused {"
-      "  return deserialize<Paused, 0>(disclose(x));"
+      "  return deserialize<Paused, 0>(x);"
       "}"
       "export circuit serialize_Paused (x: Paused) : Bytes<0> {"
-      "  return serialize<Paused, 0>(disclose(x));"
+      "  return serialize<Paused, 0>(x);"
       "}"
       )
     (returns
@@ -34812,10 +34665,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_Unpaused (x: Bytes<0>) : Unpaused {"
-      "  return deserialize<Unpaused, 0>(disclose(x));"
+      "  return deserialize<Unpaused, 0>(x);"
       "}"
       "export circuit serialize_Unpaused (x: Unpaused) : Bytes<0> {"
-      "  return serialize<Unpaused, 0>(disclose(x));"
+      "  return serialize<Unpaused, 0>(x);"
       "}"
       )
     (returns
@@ -34840,10 +34693,10 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_Misc (x: Bytes<288>) : Misc {"
-      "  return deserialize<Misc, 288>(disclose(x));"
+      "  return deserialize<Misc, 288>(x);"
       "}"
       "export circuit serialize_Misc (x: Misc) : Bytes<288> {"
-      "  return serialize<Misc, 288>(disclose(x));"
+      "  return serialize<Misc, 288>(x);"
       "}"
       )
     (returns
@@ -34878,37 +34731,56 @@ groups than for single tests.
           (call %serialize.1 %x.8))))
     )
 
-  ;; size mismatch on serialize: canonical size of ShieldedSpend is 32
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit bad_size_serialize (s: ShieldedSpend): Bytes<99> {"
-      "  return serialize<ShieldedSpend, 99>(disclose(s));"
+      "export circuit oversize_serialize (s: ShieldedSpend): Bytes<40> {"
+      "  return serialize<ShieldedSpend, 40>(s);"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "declared serialized length ~a does not match the structural layout of ~a (~a bytes)" (99 "struct ShieldedSpend<nullifier: Bytes<32>>" 32)))
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %serialize.1 ([%value.2 (tstruct ShieldedSpend
+                                           (nullifier (tbytes 32)))])
+             (tbytes 40)
+          (vector->bytes 40
+            (vector
+              (spread 32
+                (bytes->vector 32 (elt-ref %value.2 nullifier 0)))
+              (spread 8 #vu8(0 0 0 0 0 0 0 0)))))
+        (circuit %oversize_serialize.3 ([%s.4 (tstruct ShieldedSpend
+                                                (nullifier (tbytes 32)))])
+             (tbytes 40)
+          (call %serialize.1 %s.4))))
     )
 
-  ;; size mismatch on deserialize: canonical size of ShieldedSpend is 32
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit bad_size_deserialize (x: Bytes<99>): ShieldedSpend {"
-      "  return deserialize<ShieldedSpend, 99>(disclose(x));"
+      "export circuit oversize_deserialize (x: Bytes<40>): ShieldedSpend {"
+      "  return deserialize<ShieldedSpend, 40>(x);"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "declared serialized length ~a does not match the structural layout of ~a (~a bytes)" (99 "struct ShieldedSpend<nullifier: Bytes<32>>" 32)))
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %deserialize.1 ([%value.2 (tbytes 40)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (new (tstruct ShieldedSpend (nullifier (tbytes 32)))
+            (bytes-slice %value.2 0 32)))
+        (circuit %oversize_deserialize.3 ([%x.4 (tbytes 40)])
+             (tstruct ShieldedSpend (nullifier (tbytes 32)))
+          (call %deserialize.1 %x.4))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       "export circuit uint_serialize (n: Uint<128>): Bytes<16> {"
-      "  return serialize<Uint<128>, 16>(disclose(n));"
+      "  return serialize<Uint<128>, 16>(n);"
       "}"
       )
     (returns
@@ -34933,7 +34805,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit bytes_serialize (x: Bytes<32>): Bytes<32> {"
-      "  return serialize<Bytes<32>, 32>(disclose(x));"
+      "  return serialize<Bytes<32>, 32>(x);"
       "}"
       )
     (returns
@@ -34952,7 +34824,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit uint_deserialize (x: Bytes<16>): Uint<128> {"
-      "  return deserialize<Uint<128>, 16>(disclose(x));"
+      "  return deserialize<Uint<128>, 16>(x);"
       "}"
       )
     (returns
@@ -34974,7 +34846,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit non_event_serialize (m: Maybe<Bytes<32>>): Bytes<33> {"
-      "  return serialize<Maybe<Bytes<32>>, 33>(disclose(m));"
+      "  return serialize<Maybe<Bytes<32>>, 33>(m);"
       "}"
       )
     (returns
@@ -34985,18 +34857,15 @@ groups than for single tests.
                                            (is_some (tboolean))
                                            (value (tbytes 32)))])
              (tbytes 33)
-          (vector->bytes
-            33
+          (vector->bytes 33
             (vector
-              (spread
-                1
-                (bytes->vector
-                  1
-                  (if (elt-ref %value.2 is_some 0) #vu8(1) #vu8(0))))
+              (if (elt-ref %value.2 is_some 0)
+                  (safe-cast (tunsigned 255) (tunsigned 1) 1)
+                  (safe-cast (tunsigned 255) (tunsigned 0) 0))
               (spread 32 (bytes->vector 32 (elt-ref %value.2 value 1))))))
         (circuit %non_event_serialize.3 ([%m.4 (tstruct Maybe
-                                                     (is_some (tboolean))
-                                                     (value (tbytes 32)))])
+                                                 (is_some (tboolean))
+                                                 (value (tbytes 32)))])
              (tbytes 33)
           (call %serialize.1 %m.4))))
     )
@@ -35005,7 +34874,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit non_event_deserialize (x: Bytes<33>): Maybe<Bytes<32>> {"
-      "  return deserialize<Maybe<Bytes<32>>, 33>(disclose(x));"
+      "  return deserialize<Maybe<Bytes<32>>, 33>(x);"
       "}"
       )
     (returns
@@ -35017,7 +34886,8 @@ groups than for single tests.
           (new (tstruct Maybe
                  (is_some (tboolean))
                  (value (tbytes 32)))
-            (== (bytes-slice %value.2 0 1) #vu8(1))
+            (== (bytes-ref %value.2 0)
+                (safe-cast (tunsigned 255) (tunsigned 1) 1))
             (bytes-slice %value.2 1 32)))
         (circuit %non_event_deserialize.3 ([%x.4 (tbytes 33)])
              (tstruct Maybe (is_some (tboolean)) (value (tbytes 32)))
@@ -85625,7 +85495,93 @@ groups than for single tests.
         ))
     )
 
-  )
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Pair { a: Boolean, b: Uint<8> }"
+      "enum Color { RED, GREEN, BLUE }"
+      "export circuit serialize_boolean(x: Boolean): Bytes<1> {"
+      "  return serialize<Boolean, 1>(x);"
+      "}"
+      "export circuit serialize_field(x: Field): Bytes<31> {"
+      "  return serialize<Field, 31>(x);"
+      "}"
+      "export circuit serialize_uint8(x: Uint<8>): Bytes<1> {"
+      "  return serialize<Uint<8>, 1>(x);"
+      "}"
+      "export circuit serialize_uint64(x: Uint<64>): Bytes<8> {"
+      "  return serialize<Uint<64>, 8>(x);"
+      "}"
+      "export circuit serialize_uint128(x: Uint<128>): Bytes<16> {"
+      "  return serialize<Uint<128>, 16>(x);"
+      "}"
+      "export circuit serialize_bytes(x: Bytes<10>): Bytes<10> {"
+      "  return serialize<Bytes<10>, 10>(x);"
+      "}"
+      "export circuit serialize_tuple(x: [Boolean, Field]): Bytes<32> {"
+      "  return serialize<[Boolean, Field], 32>(x);"
+      "}"
+      "export circuit serialize_uints(x: [Uint<8>, Uint<16>, Uint<32>]): Bytes<7> {"
+      "  return serialize<[Uint<8>, Uint<16>, Uint<32>], 7>(x);"
+      "}"
+      "export circuit serialize_vector(x: Vector<4, Uint<8>>): Bytes<4> {"
+      "  return serialize<Vector<4, Uint<8>>, 4>(x);"
+      "}"
+      "export circuit serialize_struct (p: Pair): Bytes<2> {"
+      "  return serialize<Pair, 2>(p);"
+      "}"
+      "export circuit serialize_enum (c: Color): Bytes<1> {"
+      "  return serialize<Color, 1>(c);"
+      "}"
+      "export circuit serialize_nested(x: Vector<2, [Boolean, Uint<8>]>): Bytes<4> {"
+      "  return serialize<Vector<2, [Boolean, Uint<8>]>, 4>(x);"
+      "}"
+      "export circuit deserialize_boolean(x: Bytes<1>): Boolean {"
+      "  return deserialize<Boolean, 1>(x);"
+      "}"
+      "export circuit deserialize_field(x: Bytes<31>): Field {"
+      "  return deserialize<Field, 31>(x);"
+      "}"
+      "export circuit deserialize_uint8(x: Bytes<1>): Uint<8> {"
+      "  return deserialize<Uint<8>, 1>(x);"
+      "}"
+      "export circuit deserialize_uint64(x: Bytes<8>): Uint<64> {"
+      "  return deserialize<Uint<64>, 8>(x);"
+      "}"
+      "export circuit deserialize_uint128(x: Bytes<16>): Uint<128> {"
+      "  return deserialize<Uint<128>, 16>(x);"
+      "}"
+      "export circuit deserialize_bytes(x: Bytes<10>): Bytes<10> {"
+      "  return deserialize<Bytes<10>, 10>(x);"
+      "}"
+      "export circuit deserialize_tuple(x: Bytes<32>): [Boolean, Field] {"
+      "  return deserialize<[Boolean, Field], 32>(x);"
+      "}"
+      "export circuit deserialize_uints(x: Bytes<7>): [Uint<8>, Uint<16>, Uint<32>] {"
+      "  return deserialize<[Uint<8>, Uint<16>, Uint<32>], 7>(x);"
+      "}"
+      "export circuit deserialize_vector(x: Bytes<4>): Vector<4, Uint<8>> {"
+      "  return deserialize<Vector<4, Uint<8>>, 4>(x);"
+      "}"
+      "export circuit deserialize_struct(p: Bytes<2>): Pair {"
+      "  return deserialize<Pair, 2>(p);"
+      "}"
+      "export circuit deserialize_enum(c: Bytes<1>): Color {"
+      "  return deserialize<Color, 1>(c);"
+      "}"
+      "export circuit deserialize_nested(x: Bytes<4>): Vector<2, [Boolean, Uint<8>]> {"
+      "  return deserialize<Vector<2, [Boolean, Uint<8>]>, 4>(x);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.serialize_vector(Ctxt, [0x31n, 0x43n, 0x7fn, 0xffn]).result).toEqual(new Uint8Array([0x31, 0x43, 0x7f, 0xff]));"
+        "  });"
+        ))
+    )
+)
 
 (run-javascript)
 )
@@ -85653,13 +85609,7 @@ groups than for single tests.
         (circuit %foo.2 ()
              (ty () ())
           (= 1 (%t.3 %t.4) (call %bar.1))
-          (= 1 ()
-             (emit 1 0
-               (ty ((abytes 32))
-                   ((tfield 255)
-                     (tfield
-                       452312848583266388373324160190187140051835877600158453279131187530910662655)))
-               32 %t.3 %t.4))
+          (= 1 () (emit 1 0 32 %t.3 %t.4))
           ())))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
@@ -86046,13 +85996,13 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit deserialize_ShieldedSpend (x: Bytes<32>) : ShieldedSpend {"
-      "  return deserialize<ShieldedSpend, 32>(disclose(x));"
+      "  return deserialize<ShieldedSpend, 32>(x);"
       "}"
       "export circuit serialize_ShieldedSpend (x: ShieldedSpend) : Bytes<32> {"
-      "  return serialize<ShieldedSpend, 32>(disclose(x));"
+      "  return serialize<ShieldedSpend, 32>(x);"
       "}"
       "export circuit roundtrip_ShieldedSpend(orig: ShieldedSpend): Boolean {"
-      "  const bytes = serialize<ShieldedSpend, 32>(disclose(orig));"
+      "  const bytes = serialize<ShieldedSpend, 32>(orig);"
       "  const restored = deserialize<ShieldedSpend, 32>(bytes);"
       "  return orig.nullifier == restored.nullifier;"
       "}"
@@ -86169,13 +86119,13 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit serialize_ShieldedReceive(x: ShieldedReceive): Bytes<578> {"
-      "  return serialize<ShieldedReceive, 578>(disclose(x));"
+      "  return serialize<ShieldedReceive, 578>(x);"
       "}"
       "export circuit deserialize_ShieldedReceive(x: Bytes<578>): ShieldedReceive {"
-      "  return deserialize<ShieldedReceive, 578>(disclose(x));"
+      "  return deserialize<ShieldedReceive, 578>(x);"
       "}"
       "export circuit roundtrip_ShieldedReceive(orig: ShieldedReceive): ShieldedReceive {"
-      "  const bytes = serialize<ShieldedReceive, 578>(disclose(orig));"
+      "  const bytes = serialize<ShieldedReceive, 578>(orig);"
       "  return deserialize<ShieldedReceive, 578>(bytes);"
       "}"
       )
@@ -86289,13 +86239,13 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit serialize_ShieldedMint(x: ShieldedMint): Bytes<81> {"
-      "  return serialize<ShieldedMint, 81>(disclose(x));"
+      "  return serialize<ShieldedMint, 81>(x);"
       "}"
       "export circuit deserialize_ShieldedMint(x: Bytes<81>): ShieldedMint {"
-      "  return deserialize<ShieldedMint, 81>(disclose(x));"
+      "  return deserialize<ShieldedMint, 81>(x);"
       "}"
       "export circuit roundtrip_ShieldedMint(orig: ShieldedMint): ShieldedMint {"
-      "  const bytes = serialize<ShieldedMint, 81>(disclose(orig));"
+      "  const bytes = serialize<ShieldedMint, 81>(orig);"
       "  return deserialize<ShieldedMint, 81>(bytes);"
       "}"
       )
@@ -86398,13 +86348,13 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit serialize_ShieldedBurn(x: ShieldedBurn): Bytes<49> {"
-      "  return serialize<ShieldedBurn, 49>(disclose(x));"
+      "  return serialize<ShieldedBurn, 49>(x);"
       "}"
       "export circuit deserialize_ShieldedBurn(x: Bytes<49>): ShieldedBurn {"
-      "  return deserialize<ShieldedBurn, 49>(disclose(x));"
+      "  return deserialize<ShieldedBurn, 49>(x);"
       "}"
       "export circuit roundtrip_ShieldedBurn(orig: ShieldedBurn): ShieldedBurn {"
-      "  const bytes = serialize<ShieldedBurn, 49>(disclose(orig));"
+      "  const bytes = serialize<ShieldedBurn, 49>(orig);"
       "  return deserialize<ShieldedBurn, 49>(bytes);"
       "}"
       )
@@ -86519,13 +86469,13 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit serialize_UnshieldedSpend(x: UnshieldedSpend): Bytes<113> {"
-      "  return serialize<UnshieldedSpend, 113>(disclose(x));"
+      "  return serialize<UnshieldedSpend, 113>(x);"
       "}"
       "export circuit deserialize_UnshieldedSpend(x: Bytes<113>): UnshieldedSpend {"
-      "  return deserialize<UnshieldedSpend, 113>(disclose(x));"
+      "  return deserialize<UnshieldedSpend, 113>(x);"
       "}"
       "export circuit roundtrip_UnshieldedSpend(orig: UnshieldedSpend): UnshieldedSpend {"
-      "  const bytes = serialize<UnshieldedSpend, 113>(disclose(orig));"
+      "  const bytes = serialize<UnshieldedSpend, 113>(orig);"
       "  return deserialize<UnshieldedSpend, 113>(bytes);"
       "}"
       )
@@ -86645,13 +86595,13 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit serialize_UnshieldedReceive(x: UnshieldedReceive): Bytes<113> {"
-      "  return serialize<UnshieldedReceive, 113>(disclose(x));"
+      "  return serialize<UnshieldedReceive, 113>(x);"
       "}"
       "export circuit deserialize_UnshieldedReceive(x: Bytes<113>): UnshieldedReceive {"
-      "  return deserialize<UnshieldedReceive, 113>(disclose(x));"
+      "  return deserialize<UnshieldedReceive, 113>(x);"
       "}"
       "export circuit roundtrip_UnshieldedReceive(orig: UnshieldedReceive): UnshieldedReceive {"
-      "  const bytes = serialize<UnshieldedReceive, 113>(disclose(orig));"
+      "  const bytes = serialize<UnshieldedReceive, 113>(orig);"
       "  return deserialize<UnshieldedReceive, 113>(bytes);"
       "}"
       )
@@ -86759,13 +86709,13 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit serialize_UnshieldedMint(x: UnshieldedMint): Bytes<80> {"
-      "  return serialize<UnshieldedMint, 80>(disclose(x));"
+      "  return serialize<UnshieldedMint, 80>(x);"
       "}"
       "export circuit deserialize_UnshieldedMint(x: Bytes<80>): UnshieldedMint {"
-      "  return deserialize<UnshieldedMint, 80>(disclose(x));"
+      "  return deserialize<UnshieldedMint, 80>(x);"
       "}"
       "export circuit roundtrip_UnshieldedMint(orig: UnshieldedMint): UnshieldedMint {"
-      "  const bytes = serialize<UnshieldedMint, 80>(disclose(orig));"
+      "  const bytes = serialize<UnshieldedMint, 80>(orig);"
       "  return deserialize<UnshieldedMint, 80>(bytes);"
       "}"
       )
@@ -86846,13 +86796,13 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit serialize_Paused(x: Paused): Bytes<0> {"
-      "  return serialize<Paused, 0>(disclose(x));"
+      "  return serialize<Paused, 0>(x);"
       "}"
       "export circuit deserialize_Paused(x: Bytes<0>): Paused {"
-      "  return deserialize<Paused, 0>(disclose(x));"
+      "  return deserialize<Paused, 0>(x);"
       "}"
       "export circuit roundtrip_Paused(orig: Paused): Paused {"
-      "  const bytes = serialize<Paused, 0>(disclose(orig));"
+      "  const bytes = serialize<Paused, 0>(orig);"
       "  return deserialize<Paused, 0>(bytes);"
       "}"
       )
@@ -86931,13 +86881,13 @@ groups than for single tests.
       "  return n;"
       "}"
       "export circuit serialize_Misc(x: Misc): Bytes<288> {"
-      "  return serialize<Misc, 288>(disclose(x));"
+      "  return serialize<Misc, 288>(x);"
       "}"
       "export circuit deserialize_Misc(x: Bytes<288>): Misc {"
-      "  return deserialize<Misc, 288>(disclose(x));"
+      "  return deserialize<Misc, 288>(x);"
       "}"
       "export circuit roundtrip_Misc(orig: Misc): Misc {"
-      "  const bytes = serialize<Misc, 288>(disclose(orig));"
+      "  const bytes = serialize<Misc, 288>(orig);"
       "  return deserialize<Misc, 288>(bytes);"
       "}"
       )

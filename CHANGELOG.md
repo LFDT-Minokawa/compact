@@ -9,14 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- The language now has `emit(x)` expression where `x` has to be an expression
-  of event type.  Constructors cannot `emit` an event.  Pure circuits cannot
-  `emit` an event.
-- An event type is just a struct type, but there are a pre-defined
-  set of events.  This set is defined in `midnight-events.ss` as a DSL and
-  the DSL itself is defined in `events.ss`.  Events are inserted into Compact's
-  standard library during `expand-modules-and-types`.  
-- The onchain-runtime require the argument passed to `emit` to be serialized.
+- The new language form `emit(expr)` emits a an event.  `expr` must have a
+  standard event type.  Constructors cannot emit an event, either directly
+  or indirectly via calls to circuits that use `emit`.  Calling `emit` makes
+  a circuit impure.
+- The onchain-runtime requires the argument passed to `emit` to be serialized.
   Compact's standard library provides a generic `serialize<T,n>` and
   `deserialize<T,n>`.  These are defined in `midnight-inlines.ss` and
   the macro expansion is defined in `inlines.ss` and they are inserted during
@@ -34,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to `CircuitContext` and `CircuitResults`.  This is a **breaking** change
   for TypeScript code that constructs these types by hand; code that uses
   the runtime's `createCircuitContext` helper is unaffected.
+
+### Internal notes
+
+- The standard event types are defined in `compiler/midnight-events.ss` in
+  a DSL that is defined in `compiler/events.ss`.  Events are injected into
+  CompactStandardLibrary during `expand-modules-and-types`.  
+- Some of the downstream type checkers did not handle `let*` forms with
+  multiple bindings properly but now do.  This was not previously a problem
+  because the upstream passes did not produce such `let*` forms.
 
 ## [Toolchain 0.31.107, language 0.23.104, runtime 0.16.102]
 

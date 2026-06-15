@@ -681,7 +681,7 @@
        (let ([code-generator (hashtable-ref callable-ht function-name #f)])
          (assert code-generator)
          (code-generator var-name* src test triv* instr*))]
-      [(= ,test () (emit ,src ,event-version ,event-tag ,type ,len ,triv* ... ,vm-code))
+      [(= ,test () (emit ,src ,event-version ,event-tag ,len ,triv* ... ,vm-code))
        (let* ([payload-alignment*
                 (with-output-language (Lflattened Alignment)
                   (list `(abytes ,len)))]
