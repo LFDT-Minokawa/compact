@@ -5948,7 +5948,6 @@
             [(tvector ,src^ ,len ,type^)
              (maybe-bind src (fx> len 1) rx* rt* re* type expr
                (lambda (rx* rt* re* expr)
-; TODO: call go once with n = 0, abstracting over i, then build a fold over the result
                  (let f ([len len] [i 0] [rx* rx*] [rt* rt*] [re* re*] [n n] [rta* rta*])
                    (if (fx= len 0)
                        (k rx* rt* re* n rta*)
@@ -6073,7 +6072,6 @@
                                    '()
                                    rexpr*)
                                 ...))
-  ; TODO: call go once with n = 0, abstracting over i, then build a fold over the result
                            (let-values ([(i expr) (go type^ i)])
                              (loop (fx- len 1) i (cons expr rexpr*)))))]
                     [(ttuple ,src^ ,type* ...)
