@@ -86,7 +86,7 @@
           [else type])))
 
     (Program : Program (ir) -> Program ()
-      [(program ,src (,contract-name* ...) ((,struct-name* ,[type*]) ...) ((,export-name* ,name*) ...) ,pelt* ...)
+      [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (let ([op (get-target-port 'contract-info.json)])
          (print-json op
            (list

@@ -173,7 +173,7 @@
           (let ([ldescriptor* (reverse rdescriptor*)])
             (values (map car ldescriptor*) (map cdr ldescriptor*))))))
     (Program : Program (ir) -> Program ()
-      [(program ,src (,contract-name* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...)
+      [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (fluid-let ([program-src src])
          (let ([pelt* (map Program-Element pelt*)])
            ; FIXME: assuming we get only (align <value> 1) or (align <value> 8).
@@ -2864,7 +2864,7 @@
            expr
            "."
            (format "~s" elt-name)))]
-      [(emit ,src ,event-version ,event-tag ,type ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,vm-code)
+      [(emit ,src ,event-version ,event-tag ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,vm-code)
        (let* ([bytes-type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))]
               [vminstr*   (expand-vm-code src #f #f
                             `((emit-version . ,event-version)

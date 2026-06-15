@@ -3163,16 +3163,19 @@ circuit or constructor with the message *msg*.
 
 Each assertion is checked at run time and constrained in-circuit.
 
-### Emits
+### Emitting events
 
-An emit has the form `emit(`*e*`)` where *e* is an expression.
-*e* must have an event type. Event types are a pre-defined set of struct types.
-[Compact standard library](compact-standard-library) provides detailed descriptions of supported events.
+Events are emitted via the form `emit(`*e*`)` where *e* is an expression whose
+type is a standard event type.
+[The Compact standard library](compact-standard-library) provides detailed
+descriptions of the standard event types.
 
-The type of evey `emit` form is `[]`.
+The type of every `emit` form is `[]`.
 
-An attempt to `emit` a non-event expression is a static error.
-An attempt to `emit` an event in the construction is a static error.
+An attempt to `emit` the value of an expression that does not have a standard
+event type is a static error.
+An attempt to `emit` an event, directly or indirectly, via the contract
+constructor is a static error.
 
 Evaluation of `emit(`*e*`)` proceeds by evaluating *e*, computing its canonical
 byte encoding, and emitting a structured `VersionedLogItem` with three fields:
@@ -3180,16 +3183,15 @@ byte encoding, and emitting a structured `VersionedLogItem` with three fields:
 - `eventType`, identifying the declared event type by its tag, and
 - `data`, containing the byte encoding.
 
-The byte encoding is done by instantiating the `serialize<`*T*, *#n*`>` for
-the event to be emitted. The generic serialize and deserialize circuits are
-defined in Compact standard library. The compact compiler serializes the argument to
-`emit` by default, however, it does not provide the deserialize circuit by default.
-Thus, if a consumer requires the deserialize they must define an instance of it in
-their Compact program.
+The canonical byte encoding of an event is created via the equivalent of
+`serialize<`*T*`, #`*n*`>`.
+A generic `serialize` circuit is defined in the Compact standard library
+along with a `deserialize` counterpart.
 
-For example, the following circuit emits a `ShieldedSpend` event each time
-it is invoked and if the consumer wants to decode the emitted `nullifier`
-they most include `deserializeShieldedSpend`:
+While events are serialized implictly via `emit`, they must be deserialized
+explicitly via a call to `deserialize`.
+For example, in the code below, the circuit `deserializeShieldedSpend` can be
+used to decode events emitted by `spend`.
 
 ```compact
 import CompactStandardLibrary;
@@ -3197,7 +3199,7 @@ export circuit spend(n: Bytes<32>): [] {
   emit(ShieldedSpend { nullifier: disclose(n) });
 }
 
-export circuit deserializeShieldedSpend(x: Bytes<32>) : ShieldedSpend {
+export circuit deserializeShieldedSpend(x: Bytes<32>): ShieldedSpend {
   return deserialize<ShieldedSpend, 32>(x);
 }
 ```

@@ -20,7 +20,6 @@
   (import (except (chezscheme) errorf)
           (utils)
           (datatype)
-          (events)
           (config-params)
           (nanopass)
           (langs)
@@ -28,7 +27,7 @@
 
   (define-pass drop-ledger-runtime : Lloweredemit (ir) -> Lposttypescript ()
     (Program : Program (ir) -> Program ()
-      [(program ,src (,contract-name* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...)
+      [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
        `(program ,src ((,export-name* ,name*) ...)
           ,(fold-right
              (lambda (pelt pelt*)
@@ -542,19 +541,6 @@
                            (format-type type1)
                            op))
           type1))
-      (define event-ht
-        (let ([cached #f])
-          (lambda ()
-            (or cached
-                (let ([ht (make-hashtable symbol-hash eq?)])
-                  (for-each
-                    (lambda (sd)
-                      (nanopass-case (Lpreexpand Structure-Definition) sd
-                        [(struct ,src ,exported? ,name (,type-param* ...) ,arg* ...)
-                         (hashtable-set! ht name #t)]))
-                    (event-declarations))
-                  (set! cached ht)
-                  cached)))))
       )
     (Program : Program (ir) -> Program ()
       [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -603,22 +589,22 @@
        (CareNot expr)]
       [(let* ,src ([,local* ,expr*] ...) ,expr)
        (let ([var-name* (map arg->name local*)] [declared-type* (map arg->type local*)])
-         (let ([actual-type* (maplr Care expr*)])
-           (for-each (lambda (var-name declared-type actual-type)
-                       (let ([type (nanopass-case (Linlined Type) declared-type
-                                     [(tunknown) actual-type]
-                                     [else
-                                      (unless (sametype? actual-type declared-type)
-                                        (source-errorf src "mismatch between actual type ~a and declared type ~a of ~s"
-                                                       (format-type actual-type)
-                                                       (format-type declared-type)
-                                                       var-name))
-                                      declared-type])])
-                         (set-idtype! var-name (Idtype-Base type))
-                         type))
-                     var-name*
-                     declared-type*
-                     actual-type*))
+         (for-each (lambda (var-name declared-type expr)
+                     (let* ([actual-type (Care expr)]
+                            [type (nanopass-case (Linlined Type) declared-type
+                                    [(tunknown) actual-type]
+                                    [else
+                                     (unless (sametype? actual-type declared-type)
+                                       (source-errorf src "mismatch between actual type ~a and declared type ~a of ~s"
+                                                      (format-type actual-type)
+                                                      (format-type declared-type)
+                                                      var-name))
+                                     declared-type])])
+                       (set-idtype! var-name (Idtype-Base type))
+                       type))
+                   var-name*
+                   declared-type*
+                   expr*)
          (CareNot expr)
          (for-each unset-idtype! var-name*))]
       [else
@@ -660,8 +646,8 @@
                     (loop (cdr elt-name*) (cdr type*)))))]
          [else (source-errorf src "expected structure type, received ~a"
                               (format-type type))])]
-      [(emit ,src ,event-version ,event-tag ,type ,len ,[Care : expr -> * type^] ,vm-code)
-       (nanopass-case (Linlined Type) type^
+      [(emit ,src ,event-version ,event-tag ,len ,[Care : expr -> * type] ,vm-code)
+       (nanopass-case (Linlined Type) type
          [(tbytes ,src^ ,len)
           (with-output-language (Linlined Type) `(ttuple ,src))]
          [else (source-errorf src "expected Bytes type, received ~a" (format-type type))])]
@@ -849,22 +835,22 @@
        (Care expr)]
       [(let* ,src ([,local* ,expr*] ...) ,expr)
        (let ([var-name* (map arg->name local*)] [declared-type* (map arg->type local*)])
-         (let ([actual-type* (maplr Care expr*)])
-           (for-each (lambda (var-name declared-type actual-type)
-                       (let ([type (nanopass-case (Linlined Type) declared-type
-                                     [(tunknown) actual-type]
-                                     [else
-                                      (unless (sametype? actual-type declared-type)
-                                        (source-errorf src "mismatch between actual type ~a and declared type ~a of ~s"
-                                                       (format-type actual-type)
-                                                       (format-type declared-type)
-                                                       var-name))
-                                      declared-type])])
-                         (set-idtype! var-name (Idtype-Base type))
-                         type))
-                     var-name*
-                     declared-type*
-                     actual-type*))
+         (for-each (lambda (var-name declared-type expr)
+                     (let* ([actual-type (Care expr)]
+                            [type (nanopass-case (Linlined Type) declared-type
+                                    [(tunknown) actual-type]
+                                    [else
+                                     (unless (sametype? actual-type declared-type)
+                                       (source-errorf src "mismatch between actual type ~a and declared type ~a of ~s"
+                                                      (format-type actual-type)
+                                                      (format-type declared-type)
+                                                      var-name))
+                                     declared-type])])
+                       (set-idtype! var-name (Idtype-Base type))
+                       type))
+                   var-name*
+                   declared-type*
+                   expr*)
          (let ([type (Care expr)])
            (for-each unset-idtype! var-name*)
            type))]
@@ -1111,7 +1097,7 @@
              (lambda (x . r) (if x (apply values x r) (mvor e2 e3 ...))))]))
       (define (handle-var-ref src var-name)
         (with-output-language (Lnovectorref Expression)
-          (let ([ctv (assert (get-binding var-name))])
+          (let ([ctv (assertf (get-binding var-name) "~s is not bound" var-name)])
               (mvor (ifconstant ctv
                       (lambda (datum)
                         (and
@@ -1259,14 +1245,15 @@
          `(quote ,src ,datum)
          (CTV-const no-var-name datum))]
       [(var-ref ,src ,var-name) (handle-var-ref src var-name)]
-      [(let* ,src ((,[local*] ,[expr* expr-ctv*]) ...) ,expr)
-       (let loop ([local* local*] [expr* expr*] [expr-ctv* expr-ctv*])
+      [(let* ,src ((,[local*] ,expr*) ...) ,expr)
+       (let loop ([local* local*] [expr* expr*])
          (if (null? local*)
              (Expression expr)
              (nanopass-case (Lnovectorref Argument) (car local*)
                [(,var-name ,type)
-                (handle-let src var-name type (car expr*) (car expr-ctv*)
-                  (lambda () (loop (cdr local*) (cdr expr*) (cdr expr-ctv*))))])))]
+                (let-values ([(expr expr-ctv) (Expression (car expr*))])
+                  (handle-let src var-name type expr expr-ctv
+                    (lambda () (loop (cdr local*) (cdr expr*)))))])))]
       [(default ,src ,[type])
        (define (ifdefault-value type k)
          (nanopass-case (Lnovectorref Type) type
@@ -1456,9 +1443,9 @@
            [else (assert cannot-happen)]))]
       [(elt-ref ,src ,[expr ctv] ,elt-name)
        (handle-elt-ref src expr ctv elt-name)]
-      [(emit ,src ,event-version ,event-tag ,[type] ,len ,[expr ctv] ,vm-code)
+      [(emit ,src ,event-version ,event-tag ,len ,[expr ctv] ,vm-code)
        (values
-         `(emit ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
+         `(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code)
          (CTV-unknown no-var-name))]
       [(+ ,src ,mbits ,expr1 ,expr2)
        (define (add x y)
@@ -1719,9 +1706,9 @@
        (values
          `(elt-ref ,src ,expr ,elt-name)
          idset)]
-      [(emit ,src ,event-version ,event-tag ,type ,len ,[Value : expr idset] ,vm-code)
+      [(emit ,src ,event-version ,event-tag ,len ,[Value : expr idset] ,vm-code)
        (values
-         `(emit ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
+         `(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code)
          idset)]
       [(+ ,src ,mbits ,[Value : expr1 idset1] ,[Value : expr2 idset2])
        (values
@@ -1909,7 +1896,7 @@
     (Expression : Expression (ir) -> Expression ()
       [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[expr*] ...)
        (raise 'ledger)]
-      [(emit ,src ,event-version ,event-tag ,type ,len ,expr ,vm-code)
+      [(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code)
        (raise 'emit)]))
 
   (define-pass reduce-to-circuit : Lnovectorref (ir) -> Lcircuit ()
@@ -2171,11 +2158,11 @@
              (lambda (triv*)
                (k (with-output-language (Lcircuit Rhs)
                     `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,triv* ...)))))))]
-      [(emit ,src ,event-version ,event-tag ,[type] ,len ,expr ,vm-code)
+      [(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code)
        (Triv expr test
          (lambda (triv)
            (k (with-output-language (Lcircuit Rhs)
-                `(emit ,src ,event-version ,event-tag ,type ,len ,triv ,vm-code)))))]
+                `(emit ,src ,event-version ,event-tag ,len ,triv ,vm-code)))))]
       [(contract-call ,src ,elt-name (,expr ,[type]) ,expr* ...)
        (Triv expr test
          (lambda (triv)
@@ -2616,13 +2603,13 @@
              (list `(= ,test
                        (,var-name* ...)
                        (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op^ ,triv* ...))))))]
-      [(emit ,src ,event-version ,event-tag ,[type] ,len ,[* wump] ,vm-code)
+      [(emit ,src ,event-version ,event-tag ,len ,[* wump] ,vm-code)
        (hashtable-set! var-ht var-name (Wump-vector '()))
        (let ([triv* (wump->elts wump)])
          (with-output-language (Lflattened Statement)
            (list `(= ,test
                      ()
-                     (emit ,src ,event-version ,event-tag ,type ,len ,triv* ... ,vm-code)))))]
+                     (emit ,src ,event-version ,event-tag ,len ,triv* ... ,vm-code)))))]
       ; NB: the uses of Single-Triv and Single-Type will probably have to change with the
       ; replacement of abstract contract values with contract addresses, since a contract address
       ; might not fit into one field
@@ -2926,9 +2913,9 @@
       [(call ,src ,function-name ,[FWD-Triv : triv*] ...)
        (with-output-language (Lflattened Statement)
          (cons `(= ,test (,var-name* ...) (call ,src ,function-name ,triv* ...)) rstmt*))]
-      [(emit ,src ,event-version ,event-tag ,type ,len ,[FWD-Triv : triv*] ... ,vm-code)
+      [(emit ,src ,event-version ,event-tag ,len ,[FWD-Triv : triv*] ... ,vm-code)
        (with-output-language (Lflattened Statement)
-         (cons `(= ,test (,var-name* ...) (emit ,src ,event-version ,event-tag ,type ,len ,triv* ... ,vm-code)) rstmt*))]
+         (cons `(= ,test (,var-name* ...) (emit ,src ,event-version ,event-tag ,len ,triv* ... ,vm-code)) rstmt*))]
       [(contract-call ,src ,elt-name (,[FWD-Triv : triv] ,primitive-type) ,[FWD-Triv : triv*] ...)
        (with-output-language (Lflattened Statement)
          (cons `(= ,test (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...)) rstmt*))]
@@ -3213,8 +3200,8 @@
        (cons `(= ,test ,var-name ,single) stmt*)]
       [(= ,[BWD-Triv : test] (,var-name* ...) (call ,src ,function-name ,[BWD-Triv : triv*] ...))
        (cons `(= ,test (,var-name* ...) (call ,src ,function-name ,triv* ...)) stmt*)]
-      [(= ,[BWD-Triv : test] (,var-name* ...) (emit ,src ,event-version ,event-tag ,type ,len ,[BWD-Triv : triv*] ... ,vm-code))
-       (cons `(= ,test (,var-name* ...) (emit ,src ,event-version ,event-tag ,type ,len ,triv* ... ,vm-code)) stmt*)]
+      [(= ,[BWD-Triv : test] (,var-name* ...) (emit ,src ,event-version ,event-tag ,len ,[BWD-Triv : triv*] ... ,vm-code))
+       (cons `(= ,test (,var-name* ...) (emit ,src ,event-version ,event-tag ,len ,triv* ... ,vm-code)) stmt*)]
       [(= ,[BWD-Triv : test] (,var-name* ...) (contract-call ,src ,elt-name (,[BWD-Triv : triv] ,primitive-type) ,[BWD-Triv : triv*] ...))
        (cons `(= ,test (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...)) stmt*)]
       [(= ,test (,var-name* ...) (default ,opaque-type))
@@ -3751,8 +3738,8 @@
                 (set-idtype! var-name (Idtype-Base type)))
               var-name*
               type*))])]
-      [(= ,test (,var-name* ...) (emit ,src ,event-version ,event-tag ,type ,len ,triv* ... ,vm-code))
-       (verify-test src test)] ; TODO @claude do i need to do anything else
+      [(= ,test (,var-name* ...) (emit ,src ,event-version ,event-tag ,len ,triv* ... ,vm-code))
+       (verify-test src test)]
       [(assert ,src ,test ,mesg)
        (verify-test src test)]
       [else (internal-errorf 'Statement "unhandled form ~s" ir)])
