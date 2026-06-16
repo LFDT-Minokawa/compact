@@ -36,7 +36,8 @@
           (typescript-passes)
           (circuit-passes)
           (zkir-passes)
-          (zkir-v3-passes))
+          (zkir-v3-passes)
+          (manifest-passes))
 
   (define-condition-type &pass-name &condition
     make-pass-name-condition pass-name-condition?
@@ -82,14 +83,12 @@
                    (cons x extra*)
                    passes)))
              (let ([created-dir* '()] [created-file* '()])
-               (module (create-directory with-target-ports)
+               (module (with-target-ports)
                  (define (create-hierarchy path)
                    (unless (or (equal? path "") (file-directory? path))
                      (create-hierarchy (path-parent path))
                      (guard (c [else (error-accessing-file c "creating output directory")]) (mkdir path))
                      (set! created-dir* (cons path created-dir*))))
-                 (define (create-directory path)
-                   (create-hierarchy (format "~a/~a" output-directory-pathname path)))
                  (define ($with-target-ports alist th preserve-preexisting?)
                    (define (open-target-port path)
                      (let ([path (format "~a/~a" output-directory-pathname path)])
@@ -140,9 +139,10 @@
                                [analyzed-ir (run-passes analysis-passes frontend-ir)]
                                [circuit-ir (run-passes circuit-passes analyzed-ir)]
                                [proof-circuit-name* (extract-circuit-names circuit-ir)])
-                          (rm-rf (format "~a/compiler" output-directory-pathname))
-                          (rm-rf (format "~a/zkir" output-directory-pathname))
-                          (rm-rf (format "~a/keys" output-directory-pathname))
+                          (define output-subdirectories '("compiler" "contract" "zkir" "keys"))
+                          (for-each
+                            (lambda (fn) (rm-rf (format "~a/~a" output-directory-pathname fn)))
+                            output-subdirectories)
                           (with-target-ports
                             '((contract-info.json . "compiler/contract-info.json"))
                             (run-passes save-contract-info-passes analyzed-ir proof-circuit-name*))
@@ -153,26 +153,32 @@
                           (unless (null? (pending-conditions)) (raise (make-halt-condition)))
                           (unless (skip-zk)
                             (if (zero? (system "command -v zkir > /dev/null"))
-                              ;; If we have zero circuits, the zkir directory won't exist,
-                              ;; and zkir will fail to read it. Skip in that case silently.
-                              (when (file-exists? (format "~a/zkir" output-directory-pathname))
-                                ;; TODO: Properly string escape!
-                                (let ([res (system (format "exec ~a compile-many '~a/zkir' '~a/keys'"
-                                                           (if (feature-zkir-v3) "zkir-v3" "zkir")
-                                                           output-directory-pathname
-                                                           output-directory-pathname))])
-                                  (unless (zero? res)
-                                    (external-errorf "zkir returned a non-zero exit status ~d" res))))
-                              (unless (zkir-warning-issued)
-                                (zkir-warning-issued #t)
-                                (fprintf (console-error-port)
-                                         "Warning: ZKIR not found; skipping final circuit compilation.\n"))))
+                                ;; If we have zero circuits, the zkir directory won't exist,
+                                ;; and zkir will fail to read it. Skip in that case silently.
+                                (when (file-exists? (format "~a/zkir" output-directory-pathname))
+                                  ;; TODO: Properly string escape!
+                                  (let ([res (system (format "exec ~a compile-many '~a/zkir' '~a/keys'"
+                                                       (if (feature-zkir-v3) "zkir-v3" "zkir")
+                                                       output-directory-pathname
+                                                       output-directory-pathname))])
+                                    (unless (zero? res)
+                                      (external-errorf "zkir returned a non-zero exit status ~d" res))))
+                                (unless (zkir-warning-issued)
+                                  (zkir-warning-issued #t)
+                                  (fprintf (console-error-port)
+                                    "Warning: ZKIR not found; skipping final circuit compilation.\n"))))
                           (with-target-ports
                            '((contract.js . "contract/index.js")
                              (contract.d.ts . "contract/index.d.ts")
                              (contract.js.map . "contract/index.js.map"))
                            (parameterize ([proof-circuit-names proof-circuit-name*])
                              (run-passes typescript-passes analyzed-ir)))
+                          (let ([manifest-pathname* created-file*])
+                            (with-target-ports
+                              '((contract-manifest.json . "compiler/contract-manifest.json"))
+                              (run-passes manifest-passes circuit-ir
+                                output-directory-pathname
+                                output-subdirectories)))
                           (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass)))]))))))))]))
 
   (define-pass extract-circuit-names : Lflattened (ir) -> * (ls)
