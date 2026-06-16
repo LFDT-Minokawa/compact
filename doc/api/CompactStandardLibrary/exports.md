@@ -394,6 +394,9 @@ as a vector of `N` field elements, a [`JubjubSchnorrSignature`](#jubjubschnorrsi
 and a verification key (a [`JubjubPoint`](#nativepoint) on the embedded curve).
 Returns true if the signature is valid; false if the signature does not verify.
 
+To actually enforce that a signature is valid in a Compact circuit, use an
+`assert` that the result is true.
+
 ```compact
 circuit jubjubSchnorrVerify<#N>(
           msg: Vector<N, Field>,
