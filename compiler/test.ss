@@ -18221,7 +18221,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (Secp256k1Point, Secp256k1Point)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
 
   (test
@@ -18237,7 +18237,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonJubjubPoint<x: Field, y: Field>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonJubjubPoint<x: Field, y: Field>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (Secp256k1Point, Secp256k1Point)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
 
   (test
@@ -18255,17 +18255,26 @@ groups than for single tests.
                           [%b.3 (talias #t JubjubPoint
                                   (topaque "JubjubPoint"))])
              (talias #t JubjubPoint (topaque "JubjubPoint")))
-        (native %ecMul.4 ([%a.5 (talias #t JubjubPoint
+        (native %ecAdd.4 ([%a.5 (talias #t Secp256k1Point
+                                  (topaque "Secp256k1Point"))]
+                          [%b.6 (talias #t Secp256k1Point
+                                  (topaque "Secp256k1Point"))])
+             (talias #t Secp256k1Point (topaque "Secp256k1Point")))
+        (native %ecMul.7 ([%a.8 (talias #t JubjubPoint
                                   (topaque "JubjubPoint"))]
-                          [%b.6 (tfield (field-scalar (curve-jubjub)))])
+                          [%b.9 (tfield (field-scalar (curve-jubjub)))])
              (talias #t JubjubPoint (topaque "JubjubPoint")))
-        (circuit %foo.7 ([%c.8 (talias #t JubjubPoint
-                                 (topaque "JubjubPoint"))])
+        (native %ecMul.10 ([%a.11 (talias #t Secp256k1Point
+                                    (topaque "Secp256k1Point"))]
+                           [%b.12 (tfield (field-scalar (curve-secp256k1)))])
+             (talias #t Secp256k1Point (topaque "Secp256k1Point")))
+        (circuit %foo.13 ([%c.14 (talias #t JubjubPoint
+                                   (topaque "JubjubPoint"))])
              (talias #t JubjubPoint (topaque "JubjubPoint"))
           (call %ecAdd.1
-            %c.8
-            (call %ecMul.4
-              %c.8
+            %c.14
+            (call %ecMul.7
+              %c.14
               (cast-to-field (field-scalar (curve-jubjub)) (tunsigned 3)
                 3))))))
     )
@@ -67434,6 +67443,47 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(r: Secp256k1Scalar, s: Secp256k1Scalar,"
+      "                    z: Secp256k1Scalar,"
+      "                    pk: Secp256k1Point)"
+      "    : Secp256k1Point {"
+      "  wantProof = true;"
+      "  const w = inv(s);"
+      "  const u1 = z * w;"
+      "  const u2 = r * w;"
+      "  return ecAdd(ecMulGenerator(u1), ecMul(pk, u2));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%r.0\", \"type\": \"Scalar<Secp256k1>\" },"
+        "    { \"name\": \"%s.1\", \"type\": \"Scalar<Secp256k1>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<Secp256k1>\" },"
+        "    { \"name\": \"%pk.3\", \"type\": \"Point<Secp256k1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Secp256k1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"inv\", \"output\": \"%w.4\", \"a\": \"%s.1\" },"
+        "    { \"op\": \"mul\", \"output\": \"%u1.5\", \"a\": \"%z.2\", \"b\": \"%w.4\" },"
+        "    { \"op\": \"mul\", \"output\": \"%u2.6\", \"a\": \"%r.0\", \"b\": \"%w.4\" },"
+        "    { \"op\": \"ec_mul_generator\", \"output\": \"%t.7\", \"scalar\": \"%u1.5\" },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.8\", \"a\": \"%pk.3\", \"scalar\": \"%u2.6\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.7\", \"b\": \"%t.8\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.9\"] }"
+        "  ]"
+        "}")))
 )
 )
 
@@ -84738,14 +84788,15 @@ groups than for single tests.
         "  expect(C.circuits.testFtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
         "  expect(C.circuits.testFtoJ(Ctxt, 1000n).result).toEqual([1000n, 1000n, 1000n]);"
         ,(format "  const MAX_FIELD = ~dn;" (max-field))
-        ,(format "  var EXPECT = ~dn;" (if (feature-zkir-v3)
-                                           (mod (max-field) (1+ (max-jubjub-scalar)))
-                                           (max-field)))
+        ,(format "  const EXPECT = ~dn;" (if (feature-zkir-v3)
+                                             (mod (max-field) (1+ (max-jubjub-scalar)))
+                                             (max-field)))
         "  expect(C.circuits.testFtoJ(Ctxt, MAX_FIELD).result).toEqual([EXPECT, EXPECT, EXPECT]);"
         ""
         "  expect(C.circuits.testJtoF(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
         "  expect(C.circuits.testJtoF(Ctxt, 1001n).result).toEqual([1001n, 1001n, 1001n]);"
         ,(format "  const MAX_JUBJUB_SCALAR = ~dn;" (max-jubjub-scalar))
+        "  expect(runtime.MAX_JUBJUB_SCALAR).toEqual(MAX_JUBJUB_SCALAR);"
         "  expect(C.circuits.testJtoF(Ctxt, MAX_JUBJUB_SCALAR).result).toEqual("
         "    [MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR]);"
         ""
@@ -84886,5 +84937,179 @@ groups than for single tests.
     )
   )
 
+(run-javascript)
+)
+
+;;; Tests that are only run in ZKIR-v3 mode:
+(parameterize ([feature-zkir-v3 #t])
+(run-tests save-manifest
+  (test
+    '(
+      "export ledger base: Secp256k1Base;"
+      "export circuit test(s: Secp256k1Base): Secp256k1Base {"
+      "  base = disclose(s);"
+      "  return base;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Base<Secp256k1>"))
+             ("Base<Secp256k1>")
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4) %s.0)
+          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.1 %fld.2 %fld.3
+            %fld.4 145)
+          (public_input "Base<Secp256k1>" %t.5)
+          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %t.5)
+          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.6 %fld.7 %fld.8
+            %fld.9)
+          (output %t.5))))
+    (stage-javascript
+      `("test('Secp256k1Base round tripping through the ledger', () => {"
+        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "  var r = contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(0n);"
+        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(1000n);"
+        ,(format "  const MAX_SECP256K1_BASE = ~dn;" (max-secp256k1-base))
+        "  expect(runtime.MAX_SECP256K1_BASE).toEqual(MAX_SECP256K1_BASE);"
+        "  r = contract.circuits.test(context, MAX_SECP256K1_BASE);"
+        "  expect(r.result).toEqual(MAX_SECP256K1_BASE);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base)"
+        "      .toEqual(MAX_SECP256K1_BASE);"
+        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_BASE + 1n))"
+        "      .toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger base: Secp256k1Base;"
+      "witness add1(s: Secp256k1Base): Secp256k1Base;"
+      "export circuit test(s: Secp256k1Base): Secp256k1Base {"
+      "  base = disclose(add1(s));"
+      "  return base;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Base<Secp256k1>"))
+             ("Base<Secp256k1>")
+          (private_input "Base<Secp256k1>" %tmp.1)
+          (encode (%fld.2 %fld.3 %fld.4 %fld.5) %tmp.1)
+          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.2 %fld.3 %fld.4
+            %fld.5 145)
+          (public_input "Base<Secp256k1>" %t.6)
+          (encode (%fld.7 %fld.8 %fld.9 %fld.10) %t.6)
+          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.7 %fld.8 %fld.9
+            %fld.10)
+          (output %t.6))))
+    (stage-javascript
+      `("test('Secp256k1Base passing through witnesses', () => {"
+        "  const witnesses = {"
+        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
+        "      return [wc.privateState, s + 1n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = startContract(contractCode, witnesses, 0);"
+        "  var r = contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(1n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(1n);"
+        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(1001n);"
+        ,(format "  const MAX_SECP256K1_BASE = ~dn;" (max-secp256k1-base))
+        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_BASE))"
+        "      .toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger scalar: Secp256k1Scalar;"
+      "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
+      "  scalar = disclose(s);"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Scalar<Secp256k1>"))
+             ("Scalar<Secp256k1>")
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4) %s.0)
+          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.1 %fld.2 %fld.3
+            %fld.4 145)
+          (public_input "Scalar<Secp256k1>" %t.5)
+          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %t.5)
+          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.6 %fld.7 %fld.8
+            %fld.9)
+          (output %t.5))))
+    (stage-javascript
+      `("test('Secp256k1Scalar round tripping through the ledger', () => {"
+        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "  var r = contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(0n);"
+        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1000n);"
+        ,(format "  const MAX_SECP256K1_SCALAR = ~dn;" (max-secp256k1-scalar))
+        "  expect(runtime.MAX_SECP256K1_SCALAR).toEqual(MAX_SECP256K1_SCALAR);"
+        "  r = contract.circuits.test(context, MAX_SECP256K1_SCALAR);"
+        "  expect(r.result).toEqual(MAX_SECP256K1_SCALAR);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar)"
+        "      .toEqual(MAX_SECP256K1_SCALAR);"
+        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_SCALAR + 1n))"
+        "      .toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger scalar: Secp256k1Scalar;"
+      "witness add1(s: Secp256k1Scalar): Secp256k1Scalar;"
+      "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
+      "  scalar = disclose(add1(s));"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Scalar<Secp256k1>"))
+             ("Scalar<Secp256k1>")
+          (private_input "Scalar<Secp256k1>" %tmp.1)
+          (encode (%fld.2 %fld.3 %fld.4 %fld.5) %tmp.1)
+          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.2 %fld.3 %fld.4
+            %fld.5 145)
+          (public_input "Scalar<Secp256k1>" %t.6)
+          (encode (%fld.7 %fld.8 %fld.9 %fld.10) %t.6)
+          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.7 %fld.8 %fld.9
+            %fld.10)
+          (output %t.6))))
+    (stage-javascript
+      `("test('Secp256k1Scalar passing through witnesses', () => {"
+        "  const witnesses = {"
+        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
+        "      return [wc.privateState, s + 1n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = startContract(contractCode, witnesses, 0);"
+        "  var r = contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(1n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1n);"
+        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1001n);"
+        ,(format "  const MAX_SECP256K1_SCALAR = ~dn;" (max-secp256k1-scalar))
+        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_SCALAR))"
+        "      .toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+  )
 (run-javascript)
 )

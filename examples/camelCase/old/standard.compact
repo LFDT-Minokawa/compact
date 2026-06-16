@@ -29,9 +29,9 @@ constructor() {
   const test_20 = degrade_to_transient(default<Bytes<32>>);
   const test_21 = upgrade_from_transient(1 as Field);
   const test_22 = default<JubjubPoint>;
-  const test_23 = ec_add(default<JubjubPoint>, default<JubjubPoint>);
-  const test_24 = ec_mul(default<JubjubPoint>, 5 as JubjubScalar);
-  const test_25 = ec_mul_generator(5 as JubjubScalar);
+  const test_23 = ecAdd(default<JubjubPoint>, default<JubjubPoint>);
+  const test_24 = ecMul(default<JubjubPoint>, 5 as JubjubScalar);
+  const test_25 = ecMulGenerator(5 as JubjubScalar);
   const test_26 = hash_to_curve<Field>(1 as Field);
   const test_27 = default<MerkleTreeDigest>;
   const test_28 = default<MerkleTreePathEntry>;

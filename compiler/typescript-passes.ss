@@ -1295,16 +1295,22 @@
                   [(tboolean ,src)
                    "__compactRuntime.CompactTypeBoolean"]
                   [(tfield ,src ,ftype)
-                   "__compactRuntime.CompactTypeField"]
+                   (nanopass-case (Ltypescript Field-Type) ftype
+                     [(field-native) "__compactRuntime.CompactTypeField"]
+                     [(field-scalar (curve-jubjub)) "__compactRuntime.CompactTypeField"]
+                     [(field-base (curve-secp256k1))
+                      "__compactRuntime.CompactTypeSecp256k1Base"]
+                     [(field-scalar (curve-secp256k1))
+                      "__compactRuntime.CompactTypeSecp256k1Scalar"])]
                   [(tunsigned ,src ,nat)
                    (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)" nat (byte-length nat))]
                   [(tbytes ,src ,len)
                    (format "new __compactRuntime.CompactTypeBytes(~d)" len)]
                   [(topaque ,src ,opaque-type)
                    (case opaque-type
-                     [("string") (format "__compactRuntime.CompactTypeOpaqueString")]
-                     [("Uint8Array") (format "__compactRuntime.CompactTypeOpaqueUint8Array")]
-                     [("JubjubPoint") (format "__compactRuntime.CompactTypeJubjubPoint")]
+                     [("string") "__compactRuntime.CompactTypeOpaqueString"]
+                     [("Uint8Array") "__compactRuntime.CompactTypeOpaqueUint8Array"]
+                     [("JubjubPoint") "__compactRuntime.CompactTypeJubjubPoint"]
                      ; FIXME: what should happen with other opaque types?
                      [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                   [(tvector ,src ,len ,type)
@@ -1382,10 +1388,15 @@
                 (let ([type (subst-tcontract type)])
                   (nanopass-case (Ltypescript Type) type
                     [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
-                    [(tfield ,src (field-native))
-                     (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
-                    [(tfield ,src (field-scalar (curve-jubjub)))
-                     (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_JUBJUB_SCALAR" var)]
+                    [(tfield ,src ,ftype)
+                     (let ([field-name
+                             (nanopass-case (Ltypescript Field-Type) ftype
+                               [(field-native) "FIELD"]
+                               [(field-scalar (curve-jubjub)) "JUBJUB_SCALAR"]
+                               [(field-base (curve-secp256k1)) "SECP256K1_BASE"]
+                               [(field-scalar (curve-secp256k1)) "SECP256K1_SCALAR"])])
+                       (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_~a"
+                         var field-name))]
                     [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
                     [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
                     [(topaque ,src ,opaque-type) "true"]
