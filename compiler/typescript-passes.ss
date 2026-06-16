@@ -304,7 +304,11 @@
           (for-each register-descriptor! type*)
           (maybe-register-descriptor! type)
           `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)])]
-      [(return ,src ,expr) (Expr expr)])
+      [(return ,src ,expr) (Expr expr)]
+      [(emit ,src ,event-version ,event-tag ,len ,[expr] ,vm-code)
+       (let ([type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))])
+         (register-descriptor! type)
+         `(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code))])
     (Path-Element : Path-Element (ir) -> Path-Element ()
       [,path-index path-index]
       [(,src ,[type] ,[expr])
@@ -469,7 +473,7 @@
 
         (define (type->descriptor-name type)
           (assert descriptor-table)
-          (format-id-reference (assert (hashtable-ref descriptor-table type #f)))))
+          (format-id-reference (assertf (hashtable-ref descriptor-table type #f) "unregistered type descriptor for ~s" type))))
 
       (define (pl-array->public-bindings pl-array)
         (let f ([pl-array pl-array] [pb* '()])
