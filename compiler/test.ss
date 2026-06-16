@@ -84945,12 +84945,108 @@ groups than for single tests.
 (run-tests save-manifest
   (test
     '(
+      "export ledger base: Secp256k1Base;"
+      "export circuit test(s: Secp256k1Base): Secp256k1Base {"
+      "  base = disclose(s);"
+      "  return base;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Base<Secp256k1>"))
+             ("Base<Secp256k1>")
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4) %s.0)
+          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.1 %fld.2 %fld.3
+            %fld.4 145)
+          (public_input "Base<Secp256k1>" %t.5)
+          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %t.5)
+          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.6 %fld.7 %fld.8
+            %fld.9)
+          (output %t.5))))
+    (stage-javascript
+      `("test('Secp256k1Base round tripping through the ledger', () => {"
+        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "  var r = contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(0n);"
+        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(1000n);"
+        ,(format "  const MAX_SECP256K1_BASE = ~dn;" (max-secp256k1-base))
+        "  expect(runtime.MAX_SECP256K1_BASE).toEqual(MAX_SECP256K1_BASE);"
+        "  r = contract.circuits.test(context, MAX_SECP256K1_BASE);"
+        "  expect(r.result).toEqual(MAX_SECP256K1_BASE);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base)"
+        "      .toEqual(MAX_SECP256K1_BASE);"
+        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_BASE + 1n))"
+        "      .toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger base: Secp256k1Base;"
+      "witness add1(s: Secp256k1Base): Secp256k1Base;"
+      "export circuit test(s: Secp256k1Base): Secp256k1Base {"
+      "  base = disclose(add1(s));"
+      "  return base;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Base<Secp256k1>"))
+             ("Base<Secp256k1>")
+          (private_input "Base<Secp256k1>" %tmp.1)
+          (encode (%fld.2 %fld.3 %fld.4 %fld.5) %tmp.1)
+          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.2 %fld.3 %fld.4
+            %fld.5 145)
+          (public_input "Base<Secp256k1>" %t.6)
+          (encode (%fld.7 %fld.8 %fld.9 %fld.10) %t.6)
+          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.7 %fld.8 %fld.9
+            %fld.10)
+          (output %t.6))))
+    (stage-javascript
+      `("test('Secp256k1Base passing through witnesses', () => {"
+        "  const witnesses = {"
+        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
+        "      return [wc.privateState, s + 1n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = startContract(contractCode, witnesses, 0);"
+        "  var r = contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(1n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(1n);"
+        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(1001n);"
+        ,(format "  const MAX_SECP256K1_BASE = ~dn;" (max-secp256k1-base))
+        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_BASE))"
+        "      .toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
       "export ledger scalar: Secp256k1Scalar;"
       "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
       "  scalar = disclose(s);"
       "  return scalar;"
       "}"
       )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Scalar<Secp256k1>"))
+             ("Scalar<Secp256k1>")
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4) %s.0)
+          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.1 %fld.2 %fld.3
+            %fld.4 145)
+          (public_input "Scalar<Secp256k1>" %t.5)
+          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %t.5)
+          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.6 %fld.7 %fld.8
+            %fld.9)
+          (output %t.5))))
     (stage-javascript
       `("test('Secp256k1Scalar round tripping through the ledger', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
@@ -84967,6 +85063,49 @@ groups than for single tests.
         "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar)"
         "      .toEqual(MAX_SECP256K1_SCALAR);"
         "  expect(() => contract.circuits.test(context, MAX_SECP256K1_SCALAR + 1n))"
+        "      .toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger scalar: Secp256k1Scalar;"
+      "witness add1(s: Secp256k1Scalar): Secp256k1Scalar;"
+      "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
+      "  scalar = disclose(add1(s));"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Scalar<Secp256k1>"))
+             ("Scalar<Secp256k1>")
+          (private_input "Scalar<Secp256k1>" %tmp.1)
+          (encode (%fld.2 %fld.3 %fld.4 %fld.5) %tmp.1)
+          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.2 %fld.3 %fld.4
+            %fld.5 145)
+          (public_input "Scalar<Secp256k1>" %t.6)
+          (encode (%fld.7 %fld.8 %fld.9 %fld.10) %t.6)
+          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.7 %fld.8 %fld.9
+            %fld.10)
+          (output %t.6))))
+    (stage-javascript
+      `("test('Secp256k1Scalar passing through witnesses', () => {"
+        "  const witnesses = {"
+        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
+        "      return [wc.privateState, s + 1n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = startContract(contractCode, witnesses, 0);"
+        "  var r = contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(1n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1n);"
+        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1001n);"
+        ,(format "  const MAX_SECP256K1_SCALAR = ~dn;" (max-secp256k1-scalar))
+        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_SCALAR))"
         "      .toThrow(runtime.CompactError);"
         "});"
         ))
