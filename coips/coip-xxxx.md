@@ -33,7 +33,7 @@ limitations under the License.
 
 Compact has no mechanism for contracts to emit structured notifications about activity.
 
-This CoIP adds a `log` expression that accepts a struct instance.
+This CoIP adds a `emit` expression that accepts a struct instance.
 `log` is a disclosure site, the compiler enforces that all fields are already disclosed, same as ledger writes and circuit returns.
 The expression returns the struct passed to it.
 
