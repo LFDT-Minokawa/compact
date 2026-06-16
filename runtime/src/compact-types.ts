@@ -243,6 +243,9 @@ export const CompactTypeField: CompactType<bigint> = {
   },
 };
 
+/**
+ * Runtime type of the builtin `Secp256k1Base` type
+ */
 export const CompactTypeSecp256k1Base: CompactType<bigint> = {
   // Four 64-bit limbs in little-endian order.
   alignment(): ocrt.Alignment {
@@ -285,6 +288,9 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
   },
 };
 
+/**
+ * Runtime type of the builtin `Secp256k1Scalar` type
+ */
 export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
   // Four 64-bit limbs in little-endian order.
   alignment(): ocrt.Alignment {

@@ -379,6 +379,20 @@
                             (cons `(encode (,fld) ,(car (zkir-val-input* val)))
                               (zkir-instr*)))
                           (cons* fld -2 1 1 code*))]
+                       [(tfield (field-base (curve-secp256k1)))
+                        (let ([fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
+                                      (make-list 4))])
+                          (zkir-instr*
+                            (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
+                              (zkir-instr*)))
+                          (append (reverse fld*) (list 8 8 8 8 4 1) code*))]
+                       [(tfield (field-scalar (curve-secp256k1)))
+                        (let ([fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
+                                      (make-list 4))])
+                          (zkir-instr*
+                            (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
+                              (zkir-instr*)))
+                          (append (reverse fld*) (list 8 8 8 8 4 1) code*))]
                        [else (assemble-operand-acc (cons 1 code*) val)]))
                    (assemble-operand-acc (cons 1 code*) val))]
               [(VMstate-value-ADT val type)
@@ -492,6 +506,24 @@
                                   (make-public-input test-val (car var-name*) "Scalar<Jubjub>")
                                   (zkir-instr*)))
                               (values (list -2) (list fld)))]
+                           [(tfield (field-base (curve-secp256k1)))
+                            (let ([fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
+                                          (make-list 4))])
+                              (zkir-instr*
+                                (cons*
+                                  `(encode (,fld* ...) ,(car var-name*))
+                                  (make-public-input test-val (car var-name*) "Base<Secp256k1>")
+                                  (zkir-instr*)))
+                              (values (make-list 4 8) fld*))]
+                           [(tfield (field-scalar (curve-secp256k1)))
+                            (let ([fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
+                                          (make-list 4))])
+                              (zkir-instr*
+                                (cons*
+                                  `(encode (,fld* ...) ,(car var-name*))
+                                  (make-public-input test-val (car var-name*) "Scalar<Secp256k1>")
+                                  (zkir-instr*)))
+                              (values (make-list 4 8) fld*))]
                            [else
                              (for-each
                                (lambda (var-name)
@@ -993,8 +1025,9 @@
        `((op . "ec_mul") (output . ,outp) (a . ,inp0) (scalar . ,inp1))]
       [(ec_mul_generator ,[* outp] ,[* inp])
        `((op . "ec_mul_generator") (output . ,outp) (scalar . ,inp))]
-      [(encode (,[* outp*] ...) ,[* inp])
-       `((op . "encode") (outputs . ,(list->vector outp*)) (input . ,inp))]
+      [(encode (,outp* ...) ,[* inp])
+       (let ([outp* (maplr Output outp*)])
+         `((op . "encode") (outputs . ,(list->vector outp*)) (input . ,inp)))]
       [(hash_to_curve ,[* outp] ,[* inp*] ...)
        `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
       [(impact ,[* inp] ,[* inp*] ...)
