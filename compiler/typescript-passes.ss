@@ -1382,10 +1382,15 @@
                 (let ([type (subst-tcontract type)])
                   (nanopass-case (Ltypescript Type) type
                     [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
-                    [(tfield ,src (field-native))
-                     (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
-                    [(tfield ,src (field-scalar (curve-jubjub)))
-                     (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_JUBJUB_SCALAR" var)]
+                    [(tfield ,src ,ftype)
+                     (let ([field-name
+                             (nanopass-case (Ltypescript Field-Type) ftype
+                               [(field-native) "FIELD"]
+                               [(field-scalar (curve-jubjub)) "JUBJUB_SCALAR"]
+                               [(field-base (curve-secp256k1)) "SECP256K1_BASE"]
+                               [(field-scalar (curve-secp256k1)) "SECP256K1_SCALAR"])])
+                       (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_~a"
+                         var field-name))]
                     [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
                     [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
                     [(topaque ,src ,opaque-type) "true"]

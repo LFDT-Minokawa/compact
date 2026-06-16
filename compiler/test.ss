@@ -84788,14 +84788,15 @@ groups than for single tests.
         "  expect(C.circuits.testFtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
         "  expect(C.circuits.testFtoJ(Ctxt, 1000n).result).toEqual([1000n, 1000n, 1000n]);"
         ,(format "  const MAX_FIELD = ~dn;" (max-field))
-        ,(format "  var EXPECT = ~dn;" (if (feature-zkir-v3)
-                                           (mod (max-field) (1+ (max-jubjub-scalar)))
-                                           (max-field)))
+        ,(format "  const EXPECT = ~dn;" (if (feature-zkir-v3)
+                                             (mod (max-field) (1+ (max-jubjub-scalar)))
+                                             (max-field)))
         "  expect(C.circuits.testFtoJ(Ctxt, MAX_FIELD).result).toEqual([EXPECT, EXPECT, EXPECT]);"
         ""
         "  expect(C.circuits.testJtoF(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
         "  expect(C.circuits.testJtoF(Ctxt, 1001n).result).toEqual([1001n, 1001n, 1001n]);"
         ,(format "  const MAX_JUBJUB_SCALAR = ~dn;" (max-jubjub-scalar))
+        "  expect(runtime.MAX_JUBJUB_SCALAR).toEqual(MAX_JUBJUB_SCALAR);"
         "  expect(C.circuits.testJtoF(Ctxt, MAX_JUBJUB_SCALAR).result).toEqual("
         "    [MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR]);"
         ""
@@ -84936,5 +84937,38 @@ groups than for single tests.
     )
   )
 
+(run-javascript)
+)
+
+;;; Tests that are only run in ZKIR-v3 mode:
+(parameterize ([feature-zkir-v3 #t])
+(run-tests save-manifest
+  (test
+    '(
+      "export ledger scalar: Secp256k1Scalar;"
+      "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
+      "  scalar = disclose(s);"
+      "  return scalar;"
+      "}"
+      )
+    (stage-javascript
+      `("test('Secp256k1Scalar round tripping through the ledger', () => {"
+        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "  var r = contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(0n);"
+        ;; "  r = contract.circuits.test(context, 1000n);"
+        ;; "  expect(r.result).toEqual(1000n);"
+        ;; "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1000n);"
+        ;; ,(format "  const MAX_SECP256K1_SCALAR = ~dn;" (max-secp256k1-scalar))
+        ;; "  expect(runtime.MAX_SECP256K1_SCALAR).toEqual(MAX_SECP256K1_SCALAR);"
+        ;; "  r = contract.circuits.test(context, MAX_SECP256K1_SCALAR);"
+        ;; "  expect(r.result).toEqual(MAX_SECP256K1_SCALAR);"
+        ;; "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar)"
+        ;; "      .toEqual(MAX_SECP256K1_SCALAR);"
+        "});"
+        ))
+    )
+  )
 (run-javascript)
 )
