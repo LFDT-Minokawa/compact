@@ -212,7 +212,7 @@
             NODE_PATH = "";
             buildInputs = [
               pkgs.nodejs
-              pkgs.nodePackages.typescript
+              pkgs.typescript
               chez
             ];
             checkPhase = "";

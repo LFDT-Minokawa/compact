@@ -1295,16 +1295,22 @@
                   [(tboolean ,src)
                    "__compactRuntime.CompactTypeBoolean"]
                   [(tfield ,src ,ftype)
-                   "__compactRuntime.CompactTypeField"]
+                   (nanopass-case (Ltypescript Field-Type) ftype
+                     [(field-native) "__compactRuntime.CompactTypeField"]
+                     [(field-scalar (curve-jubjub)) "__compactRuntime.CompactTypeField"]
+                     [(field-base (curve-secp256k1))
+                      "__compactRuntime.CompactTypeSecp256k1Base"]
+                     [(field-scalar (curve-secp256k1))
+                      "__compactRuntime.CompactTypeSecp256k1Scalar"])]
                   [(tunsigned ,src ,nat)
                    (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)" nat (byte-length nat))]
                   [(tbytes ,src ,len)
                    (format "new __compactRuntime.CompactTypeBytes(~d)" len)]
                   [(topaque ,src ,opaque-type)
                    (case opaque-type
-                     [("string") (format "__compactRuntime.CompactTypeOpaqueString")]
-                     [("Uint8Array") (format "__compactRuntime.CompactTypeOpaqueUint8Array")]
-                     [("JubjubPoint") (format "__compactRuntime.CompactTypeJubjubPoint")]
+                     [("string") "__compactRuntime.CompactTypeOpaqueString"]
+                     [("Uint8Array") "__compactRuntime.CompactTypeOpaqueUint8Array"]
+                     [("JubjubPoint") "__compactRuntime.CompactTypeJubjubPoint"]
                      ; FIXME: what should happen with other opaque types?
                      [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                   [(tvector ,src ,len ,type)
