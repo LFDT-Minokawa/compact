@@ -275,7 +275,7 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
   },
 
   toValue(value: bigint): ocrt.Value {
-    if (value > MAX_SECP256K1_BASE) {
+    if (value < 0n || value > MAX_SECP256K1_BASE) {
       throw new CompactError('expected Secp256k1Base');
     }
     let res: ocrt.Value = [];
@@ -320,7 +320,7 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
   },
 
   toValue(value: bigint): ocrt.Value {
-    if (value > MAX_SECP256K1_SCALAR) {
+    if (value < 0n || value > MAX_SECP256K1_SCALAR) {
       throw new CompactError('expected Secp256k1Scalar');
     }
     let res: ocrt.Value = [];
