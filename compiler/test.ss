@@ -84957,15 +84957,17 @@ groups than for single tests.
         "  var r = contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(0n);"
-        ;; "  r = contract.circuits.test(context, 1000n);"
-        ;; "  expect(r.result).toEqual(1000n);"
-        ;; "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1000n);"
-        ;; ,(format "  const MAX_SECP256K1_SCALAR = ~dn;" (max-secp256k1-scalar))
-        ;; "  expect(runtime.MAX_SECP256K1_SCALAR).toEqual(MAX_SECP256K1_SCALAR);"
-        ;; "  r = contract.circuits.test(context, MAX_SECP256K1_SCALAR);"
-        ;; "  expect(r.result).toEqual(MAX_SECP256K1_SCALAR);"
-        ;; "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar)"
-        ;; "      .toEqual(MAX_SECP256K1_SCALAR);"
+        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1000n);"
+        ,(format "  const MAX_SECP256K1_SCALAR = ~dn;" (max-secp256k1-scalar))
+        "  expect(runtime.MAX_SECP256K1_SCALAR).toEqual(MAX_SECP256K1_SCALAR);"
+        "  r = contract.circuits.test(context, MAX_SECP256K1_SCALAR);"
+        "  expect(r.result).toEqual(MAX_SECP256K1_SCALAR);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar)"
+        "      .toEqual(MAX_SECP256K1_SCALAR);"
+        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_SCALAR + 1n))"
+        "      .toThrow(runtime.CompactError);"
         "});"
         ))
     )
