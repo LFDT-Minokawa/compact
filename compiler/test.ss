@@ -67341,7 +67341,7 @@ groups than for single tests.
   )
 
 (with-parameter-values ([feature-zkir-v3 #f #t])
-(run-tests print-typescript
+(run-tests save-manifest
   (test-group
     ((create-file "C1.compact"
        '(
@@ -67479,7 +67479,7 @@ groups than for single tests.
          "  calc = disclose(c);"
          "}"
         ))
-     (returns
+     (pass-returns print-typescript
        (program
          (type-descriptors
            (%descriptor.0 (tunsigned 18446744073709551615))
@@ -67516,7 +67516,7 @@ groups than for single tests.
       "  return foo(n+1) ? n - 1 : n + 1;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.45 (tfield))
@@ -67598,7 +67598,7 @@ groups than for single tests.
       "  return foo(n+1) ? n - 1 : n + 1;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.7 (tfield))
@@ -67679,7 +67679,7 @@ groups than for single tests.
       "  return foo(n - 1) ? n -1 : n - 2;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.14 (tunsigned 64))
@@ -67773,7 +67773,7 @@ groups than for single tests.
       "  return foo(n - 1) ? n -1 : n - 2;"
       "}"
       )
-   (returns
+   (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.14 (tunsigned 18446744073709551615))
@@ -68249,7 +68249,7 @@ groups than for single tests.
       "  return 1 + ((b, x) => x ? b - 1 : b + 1)(x + 1, !b);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.7 (tboolean))
@@ -69348,7 +69348,7 @@ groups than for single tests.
       "  return field1.read();"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tunsigned 18446744073709551615))
@@ -69467,7 +69467,7 @@ groups than for single tests.
       "  return field1.read();"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tunsigned 18446744073709551615))
@@ -72928,7 +72928,7 @@ groups than for single tests.
       "  fld.lookup(true).lookup(v);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.0 (tfield))
@@ -73156,7 +73156,7 @@ groups than for single tests.
 
   (test
     '()
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.1 (tunsigned 255))
@@ -74236,7 +74236,7 @@ groups than for single tests.
       "  return bar(x), bar(x - 1), bar(x - 2);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.10 (tfield))
@@ -74281,7 +74281,7 @@ groups than for single tests.
       "  return bar(x), bar(x - 1), bar(x - 2);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.2 (tfield))
@@ -74318,7 +74318,7 @@ groups than for single tests.
       "  bar(x), bar(x - 1), bar(x - 2);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.2 (tfield))
@@ -74429,7 +74429,7 @@ groups than for single tests.
       "    v);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.7 (tfield))
@@ -74470,7 +74470,7 @@ groups than for single tests.
       "    ,v);"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.18 (tfield))
@@ -75353,7 +75353,7 @@ groups than for single tests.
       "  return b ? y : 2 * y;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors
           (%descriptor.3 (tboolean))
@@ -77461,7 +77461,7 @@ groups than for single tests.
       "  return F;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors (%descriptor.108 (tbytes 32))
           (%descriptor.109 (tunsigned 255))
@@ -77721,7 +77721,7 @@ groups than for single tests.
       "  return F;"
       "}"
       )
-    (returns
+    (pass-returns print-typescript
       (program
         (type-descriptors (%descriptor.1086 (tbytes 70))
           (%descriptor.1087 (tunsigned 63))
@@ -80137,7 +80137,7 @@ groups than for single tests.
          "}"
          ))
      ; FIXME replace with stage-javascript checks for CC print-TS pass implementation
-     (returns
+     (pass-returns print-typescript
        (program
          (type-descriptors (%descriptor.5 (tunsigned 18446744073709551615))
            (%descriptor.6 (tboolean)) (%descriptor.7 (tbytes 32))
