@@ -358,25 +358,29 @@ export struct JubjubSchnorrSignature {
   response: Field,
 }
 
-// Schnorr signature over the native curve
+// Internal struct definition for hashing in jubjubSchnorrVerify
 struct JubjubSchnorrHashInput<#N> {
-  ann_x: Field,
-  ann_y: Field,
-  pk_x: Field,
-  pk_y: Field,
+  annX: Field,
+  annY: Field,
+  pkX: Field,
+  pkY: Field,
   msg: Vector<N, Field>
 }
 
-// Verify Schnorr signature over the native curve with a message of size #n.
-export circuit jubjubSchnorrVerify<#N>(msg: Vector<N, Field>, signature: JubjubSchnorrSignature, pk: JubjubPoint): Boolean {
+// Verify Schnorr signature over the native curve with a message of size #N.
+export circuit jubjubSchnorrVerify<#N>(
+                 msg: Vector<N, Field>,
+                 signature: JubjubSchnorrSignature,
+                 pk: JubjubPoint
+                 ): Boolean {
   const {announcement, response} = signature;
-  const cNative = transientHash<JubjubSchnorrHashInput<N>>(JubjubSchnorrHashInput<N>{
-    ann_x: jubjubPointX(announcement),
-    ann_y: jubjubPointY(announcement),
-    pk_x: jubjubPointX(pk),
-    pk_y: jubjubPointY(pk),
-    msg: msg
-  });
+  const cNative = transientHash<JubjubSchnorrHashInput<N>>(
+                    JubjubSchnorrHashInput<N> { annX: jubjubPointX(announcement),
+                                                annY: jubjubPointY(announcement),
+                                                pkX: jubjubPointX(pk),
+                                                pkY: jubjubPointY(pk),
+                                                msg: msg }
+                    );
   const c = cNative as JubjubScalar;
 
   const lhs = ecMulGenerator(response as JubjubScalar);

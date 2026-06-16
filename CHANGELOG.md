@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.31.107, language 0.23.104, runtime 0.16.101]
+
+### Fixed
+
+- Fix [issue #456](https://github.com/LFDT-Minokawa/compact/issues/456), a ZKIR
+  v2 bug in Schnorr signature verification.  This change also fixes a bug in
+  Schnorr signature verification for the experimental ZKIR v3 backend.
+
+### Internal notes
+
+- The Schnorr signature verification feature is unreleased (added in toolchain
+  0.31.104).
+
 ## [Toolchain 0.31.106, language 0.23.104, runtime 0.16.101]
 
 ### Added

@@ -15,6 +15,9 @@
 
 import CompactStandardLibrary;
 
+// Force proof generation.
+ledger result: Boolean;
+
 // Thin wrapper that calls the standard-library jubjubSchnorrVerify circuit.
 // Used to cross-test that signatures produced by the TypeScript runtime
 // satisfy the in-circuit verification equation.
@@ -23,5 +26,6 @@ export circuit verifySchnorrN3(
   sig: JubjubSchnorrSignature,
   pk: JubjubPoint
 ): Boolean {
-  return jubjubSchnorrVerify<3>(msg, sig, pk);
+  result = disclose(jubjubSchnorrVerify<3>(msg, sig, pk));
+  return result;
 }
