@@ -195,11 +195,6 @@ export interface CircuitResults<PS = any, R = any> {
    * The gas consumption of the circuit execution
    */
   gasCost: ocrt.RunningCost;
-  /**
-   * Events emitted by the on-chain VM during this circuit invocation.
-   * Same reference as `context.events` at the moment the circuit returned.
-   */
-  events: LogEvent[];
 }
 
 /**
