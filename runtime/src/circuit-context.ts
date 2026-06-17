@@ -26,7 +26,7 @@ import { CompactError } from './error.js';
 
 /** A `GatherResult` narrowed to log emissions;
  * `content` is the encoded `VersionedLogItem` array. */
-export type LogEvent = Extract<ocrt.GatherResult, { tag: 'log' }>;
+export type LogEvent = Extract<ocrt.GatherResult, { tag: 'log' }>['content'];
 
 /**
  * The external information accessible from within a Compact circuit call
@@ -230,7 +230,7 @@ export const queryLedgerState = (
     // to fill in popeq results in the public transcript.
     for (const ev of res.events) {
       if (ev.tag === 'log') {
-        circuitContext.events.push(ev);
+        circuitContext.events.push(ev.content);
       }
     }
 
