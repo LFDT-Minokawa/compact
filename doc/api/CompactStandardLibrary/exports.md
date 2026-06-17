@@ -347,15 +347,6 @@ This function extracts the Y coordinate from a [`JubjubPoint`](#jubjubpoint).
 circuit jubjubPointY(pt: JubjubPoint): Field;
 ```
 
-### `jubjubScalarFromNative`
-
-This function converts a native `Field` value into a `Field` value that is in
-the range of the Jubjub scalar field.
-
-```compact
-circuit jubjubScalarFromNative(x: Field): Field;
-```
-
 ### `ecAdd`
 
 This function adds two elliptic [`JubjubPoint`](#jubjubpoint)s.

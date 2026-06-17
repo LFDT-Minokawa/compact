@@ -117,9 +117,6 @@
               [(ecMulGenerator)
                (assert (= (length var-name*) 1))
                (cons `(ec_mul_generator ,(car var-name*) ,(car triv*)) instr*)]
-              [(jubjubScalarFromNative)
-               (assert (= (length var-name*) 1))
-               (cons `(jubjub_scalar_from_native ,(car var-name*) ,(car triv*)) instr*)]
               [(hashToCurve)
                (assert (= (length var-name*) 1))
                (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
@@ -906,7 +903,7 @@
        (with-output-language (Lzkir Instruction)
          (cons (nanopass-case (Lflattened Field-Type) ftype
                  [(field-native) `(encode (,var-name) ,triv)]
-                 [(field-scalar (curve-jubjub)) `(decode "Scalar<Jubjub>" ,var-name ,triv)])
+                 [(field-scalar (curve-jubjub)) `(jubjub_scalar_from_native ,var-name ,triv)])
            instr*))]
       [(cast-from-field ,src ,safe ,nat ,ftype ,triv)
        ;; TODO(kmillikin): This needs to be conditional on test.
