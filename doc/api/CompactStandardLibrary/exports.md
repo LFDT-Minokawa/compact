@@ -366,11 +366,11 @@ circuit ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint;
 
 ### `ecNeg`
 
-This function negates an elliptic [`NativePoint`](#nativepoint). On the JubJub
+This function negates an elliptic [`JubjubPoint`](#jubjubpoint). On the JubJub
 twisted Edwards curve, the negation of `(x, y)` is `(-x, y)`.
 
 ```compact
-circuit ecNeg(a: NativePoint): NativePoint;
+circuit ecNeg(a: JubjubPoint): JubjubPoint;
 ```
 
 ### `ecMul`
