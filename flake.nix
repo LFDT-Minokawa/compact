@@ -31,36 +31,31 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      # ledger-9.0.1.0-rc.1
-      # 5bb4595d46048d1d327ad8998e071d8618f83cc0
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-rc.1"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.2"; # zkir-v2
       inputs.zkir.follows = "zkir";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
     onchain-runtime-v4 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      # this has to take the ledger tag and not the onchain-runtime tag since
-      # since the onchain-runtime tag disables some of the dependencies that
-      # are required for compact's flake atm.
-      # ledger-9.0.1.0-rc.1
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-rc.1";
+      # NOTE: ledger-9.1.0.0-rc.2 is the first tag packaging the wasm under the
+      # published npm scope `@midnightntwrk` (earlier tags used `@midnight-ntwrk`,
+      # which was never published); it builds onchain-runtime-v4@4.0.0-rc.2.
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.2";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      # ledger-9.0.1.0-rc.1
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-rc.1";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.2";
       inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/3a7ae0361d03e6eed4fc91e31f6600f334f605d5"; # zkir-v3
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.2"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/3a7ae0361d03e6eed4fc91e31f6600f334f605d5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.2";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -114,6 +109,9 @@
             cp -r ${self.packages.${system}.runtime.node-modules}/node_modules node_modules
             chown $USER -R node_modules
             chmod u+w -R node_modules
+            # compact-runtime is published under the @midnight-ntwrk scope, but its nix-provided
+            # dependencies live under @midnightntwrk, so the parent directory must be created explicitly.
+            mkdir -p node_modules/@midnight-ntwrk
             cp -r ${self.packages.${system}.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime node_modules/@midnight-ntwrk/compact-runtime
             chown $USER -R node_modules
             chmod u+w -R node_modules
@@ -201,17 +199,17 @@
             src = ./test-center;
 
             nixDependenciesMap = {
-              "@midnight-ntwrk/zkir-v2" = let
+              "@midnightntwrk/zkir-v2" = let
                 pkg = zkir-wasm.packages.${system}.zkir-wasm;
               in {
                 tarPath = "${pkg}/lib/midnight-zkir-v2-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/zkir-v2";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v2";
               };
-              "@midnight-ntwrk/zkir-v3" = let
+              "@midnightntwrk/zkir-v3" = let
                 pkg = zkir-v3-wasm.packages.${system}.zkir-v3-wasm;
               in {
                 tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/zkir-v3";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";
               };
             };
           };
@@ -279,6 +277,7 @@
             checkPhase = ''
               cp -r ${packages.runtime.node-modules}/node_modules node_modules
               chmod -R +rw node_modules
+              mkdir -p node_modules/@midnight-ntwrk
               cp -r ${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime node_modules/@midnight-ntwrk/compact-runtime
               ./compiler/go
               ./srcMaps/test.sh
