@@ -1,21 +1,27 @@
+/* DO NOT REMOVE MARKERS: BEGIN_COMPACT_SYNC, END_COMPACT_SYNC */
+/* BEGIN_COMPACT_SYNC: geist-font */
 @font-face {
   font-family: "Geist Mono";
   src: url("https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-mono/GeistMono-Regular.woff2") format("woff2");
   font-weight: 400;
 }
+/* END_COMPACT_SYNC: geist-font */
 
+/* BEGIN_COMPACT_SYNC: root */
 :root {
   --ifm-font-family-monospace: "Geist Mono", monospace;
 }
+/* END_COMPACT_SYNC: root */
 
-code {
+/* BEGIN_COMPACT_SYNC: code-and-lang-ref */
+.lang-ref code {
   font-family: var(--ifm-font-family-monospace);
   font-variant-ligatures: none;
   overflow-wrap: break-word;
   white-space: pre-wrap;
   vertical-align: baseline !important;
   background-color: transparent;
-  padding: 0;
+  padding: 2px;
   border-radius: 0;
   border: none;
 }
@@ -49,4 +55,4 @@ code {
 .lang-ref-table td:nth-child(2) {
   text-align: center; /* Right-align the middle column */
 }
-
+/* END_COMPACT_SYNC: code-and-lang-ref */

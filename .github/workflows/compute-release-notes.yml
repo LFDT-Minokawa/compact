@@ -41,9 +41,13 @@ on:
       MIDNIGHTCI_REPO:
         required: true
 
+permissions: {}
+
 jobs:
   generate-docs:
     runs-on: ubuntu-latest-16-core-x64
+    permissions:
+      contents: read
     steps:
       - name: Checkout compact repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

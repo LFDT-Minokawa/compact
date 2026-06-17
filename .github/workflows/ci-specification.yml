@@ -3,6 +3,8 @@ name: Agda Formal Verification
 on:
   pull_request:
 
+permissions: {}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
   cancel-in-progress: true
@@ -11,12 +13,14 @@ jobs:
   verify:
     name: Verify Agda Specifications
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         name: Cache cabal packages
         id: cache-cabal
         with:
@@ -28,7 +32,7 @@ jobs:
           key: ${{ runner.os }}-cabal-packages
 
       - name: Set up Haskell (GHC and Cabal)
-        uses: haskell-actions/setup@f9150cb1d140e9a9271700670baa38991e6fa25c # v2.10.3
+        uses: haskell-actions/setup@cd0d9bdd65b20557f41bea4dbe43d0b5fbbfe553 # v2.11.0
         with:
           ghc-version: "9.4.8"
           cabal-version: "3.10.3.0"

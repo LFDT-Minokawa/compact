@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "types": ["node", "jest"],
     "target": "es6",
     "module": "commonjs",
     "outDir": "out",

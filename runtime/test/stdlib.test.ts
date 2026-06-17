@@ -166,6 +166,16 @@ describe('builtin hash functions', () => {
     expect(res.length).toBe(32);
   });
 
+  test('keccak256', () => {
+    const res = compactRuntime.keccak256(compactRuntime.CompactTypeField, 5n);
+    expect(res).toBeInstanceOf(Uint8Array);
+    expect(res.length).toBe(32);
+    // keccak256 must be deterministic
+    expect(compactRuntime.keccak256(compactRuntime.CompactTypeField, 5n)).toEqual(res);
+    // distinct inputs must produce distinct outputs
+    expect(compactRuntime.keccak256(compactRuntime.CompactTypeField, 6n)).not.toEqual(res);
+  });
+
   test('transientCommit', () => {
     expect(
       typeof compactRuntime.transientCommit(
