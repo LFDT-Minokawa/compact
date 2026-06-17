@@ -1311,6 +1311,7 @@
                      [("string") "__compactRuntime.CompactTypeOpaqueString"]
                      [("Uint8Array") "__compactRuntime.CompactTypeOpaqueUint8Array"]
                      [("JubjubPoint") "__compactRuntime.CompactTypeJubjubPoint"]
+                     [("Secp256k1Point") "__compactRuntime.CompactTypeSecp256k1Point"]
                      ; FIXME: what should happen with other opaque types?
                      [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                   [(tvector ,src ,len ,type)
@@ -2867,6 +2868,8 @@
                   [("string") "''"]
                   [("Uint8Array") "new Uint8Array(0)"]
                   [("JubjubPoint") "({x: 0n, y: 1n})"]
+                  ;; TODO(kmillikin): use a real default for Secp256k1Point.
+                  [("Secp256k1Point") "({x: 1n, y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n})"]
                   ; FIXME: what should happen with other opaque types?
                   [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                [(tvector ,src ,len ,type)
@@ -3410,6 +3413,7 @@
        (case opaque-type
          [("string" "Uint8Array") opaque-type]
          [("JubjubPoint") "__compactRuntime.JubjubPoint"]
+         [("Secp256k1Point") "__compactRuntime.Secp256k1Point"]
          ;; FIXME: what should happen with other opaque types?
          [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
       [(tvector ,src ,len ,[Type : type -> * type])

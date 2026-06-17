@@ -85048,8 +85048,8 @@ groups than for single tests.
   (test
     '(
       "export ledger base: Secp256k1Base;"
-      "export circuit test(s: Secp256k1Base): Secp256k1Base {"
-      "  base = disclose(s);"
+      "export circuit test(b: Secp256k1Base): Secp256k1Base {"
+      "  base = disclose(b);"
       "  return base;"
       "}"
       )
@@ -85089,9 +85089,9 @@ groups than for single tests.
   (test
     '(
       "export ledger base: Secp256k1Base;"
-      "witness add1(s: Secp256k1Base): Secp256k1Base;"
-      "export circuit test(s: Secp256k1Base): Secp256k1Base {"
-      "  base = disclose(add1(s));"
+      "witness add1(b: Secp256k1Base): Secp256k1Base;"
+      "export circuit test(b: Secp256k1Base): Secp256k1Base {"
+      "  base = disclose(add1(b));"
       "  return base;"
       "}"
       )
@@ -85209,6 +85209,150 @@ groups than for single tests.
         ,(format "  const MAX_SECP256K1_SCALAR = ~dn;" (max-secp256k1-scalar))
         "  expect(() => contract.circuits.test(context, MAX_SECP256K1_SCALAR))"
         "      .toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Secp256k1Point;"
+      "export circuit test0(pt: Secp256k1Point): Secp256k1Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "// TODO(kmillikin): test extracting x and y coordinates here when they"
+      "// are available in the ledger."
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test0) ((%pt.0 "Point<Secp256k1>"))
+             ("Point<Secp256k1>")
+          (encode
+            (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5 %fld.6 %fld.7 %fld.8)
+            %pt.0)
+          (impact 1 16 1 1 1 0 17 1 8 8 8 8 8 8 8 8 8 %fld.1 %fld.2
+           %fld.3 %fld.4 %fld.5 %fld.6 %fld.7 %fld.8 145)
+          (public_input "Point<Secp256k1>" %t.9)
+          (encode
+            (%fld.10 %fld.11 %fld.12 %fld.13 %fld.14 %fld.15 %fld.16
+              %fld.17)
+            %t.9)
+          (impact 1 48 80 1 1 0 12 8 8 8 8 8 8 8 8 8 %fld.10 %fld.11
+           %fld.12 %fld.13 %fld.14 %fld.15 %fld.16 %fld.17)
+          (output %t.9))))
+    (stage-javascript
+      `("test('Secp256k1Point round tripping through the ledger', () => {"
+        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "  // The point at X=1."
+        "  var pt = {"
+        "      x: 1n,"
+        "      y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
+        "  };"
+        "  var r = contract.circuits.test0(context, pt);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).point).toEqual(pt);"
+        "  // The point G."
+        "  pt = {"
+        "      x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
+        "      y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "  };"
+        "  r = contract.circuits.test0(context, pt);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).point).toEqual(pt);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Secp256k1Point;"
+      "witness point0(): Secp256k1Point;"
+      "witness point1(): Secp256k1Point;"
+      "export circuit test0(): Secp256k1Point {"
+      "  point = disclose(point0());"
+      "  return point;"
+      "}"
+      "export circuit test1(): Secp256k1Point {"
+      "  point = disclose(point1());"
+      "  return point;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test0) ()
+             ("Point<Secp256k1>")
+          (private_input "Point<Secp256k1>" %tmp.0)
+          (encode
+            (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5 %fld.6 %fld.7 %fld.8)
+            %tmp.0)
+          (impact 1 16 1 1 1 0 17 1 8 8 8 8 8 8 8 8 8 %fld.1 %fld.2
+           %fld.3 %fld.4 %fld.5 %fld.6 %fld.7 %fld.8 145)
+          (public_input "Point<Secp256k1>" %t.9)
+          (encode
+            (%fld.10 %fld.11 %fld.12 %fld.13 %fld.14 %fld.15 %fld.16
+              %fld.17)
+            %t.9)
+          (impact 1 48 80 1 1 0 12 8 8 8 8 8 8 8 8 8 %fld.10 %fld.11
+           %fld.12 %fld.13 %fld.14 %fld.15 %fld.16 %fld.17)
+          (output %t.9))
+        (circuit (test1) ()
+             ("Point<Secp256k1>")
+          (private_input "Point<Secp256k1>" %tmp.18)
+          (encode
+            (%fld.19 %fld.20 %fld.21 %fld.22 %fld.23 %fld.24 %fld.25
+              %fld.26)
+            %tmp.18)
+          (impact 1 16 1 1 1 0 17 1 8 8 8 8 8 8 8 8 8 %fld.19 %fld.20
+           %fld.21 %fld.22 %fld.23 %fld.24 %fld.25 %fld.26 145)
+          (public_input "Point<Secp256k1>" %t.27)
+          (encode
+            (%fld.28 %fld.29 %fld.30 %fld.31 %fld.32 %fld.33 %fld.34
+              %fld.35)
+            %t.27)
+          (impact 1 48 80 1 1 0 12 8 8 8 8 8 8 8 8 8 %fld.28 %fld.29
+           %fld.30 %fld.31 %fld.32 %fld.33 %fld.34 %fld.35)
+          (output %t.27))))
+    (stage-javascript
+      `("test('Secp256k1Point coming from witnesses', () => {"
+        "  const witnesses = {"
+        "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256k1Point] {"
+        "      return ["
+        "        wc.privateState,"
+        "        {"
+        "          x: 1n,"
+        "          y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
+        "        },"
+        "      ];"
+        "    },"
+        "    point1(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256k1Point] {"
+        "      return ["
+        "        wc.privateState,"
+        "        {"
+        "          x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
+        "          y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "        },"
+        "      ];"
+        "    },"
+        "  };"
+        "  const [contract, context] = startContract(contractCode, witnesses, 0);"
+        "  // The point at X=1."
+        "  var pt = {"
+        "      x: 1n,"
+        "      y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
+        "  };"
+        "  var r = contract.circuits.test0(context);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).point).toEqual(pt);"
+        "  // The point G."
+        "  pt = {"
+        "      x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
+        "      y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "  };"
+        "  r = contract.circuits.test1(context);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).point).toEqual(pt);"
         "});"
         ))
     )

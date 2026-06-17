@@ -206,14 +206,6 @@
 
       (define zkir-instr* (make-parameter '()))
 
-      (define (jubjub-point-alignment? alignment*)
-        (and (= (length alignment*) 1)
-             (nanopass-case (Lflattened Alignment) (car alignment*)
-               [(anative ,opaque-type)
-                (assert (string=? opaque-type "JubjubPoint"))
-                #t]
-               [else #f])))
-
       ;; Encode a VM operand, collecting codes in reverse.
       (define (assemble-operand-acc code* rand)
         ;; Encode a string in a field, return the immediate and the length of the UTF-8 encoding
@@ -383,6 +375,14 @@
                             (cons `(encode (,pt0 ,pt1) ,(car (zkir-val-input* val)))
                               (zkir-instr*)))
                           (cons* pt1 pt0 -2 -2 2 1 code*))]
+                       [(topaque ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
+                        (let* ([alignment* (make-list 8 8)]
+                               [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
+                                       alignment*)])
+                          (zkir-instr*
+                            (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
+                              (zkir-instr*)))
+                          (append (reverse fld*) alignment* '(8 1) code*))]
                        [(tfield (field-scalar (curve-jubjub)))
                         (let ([fld (make-temp-id default-src 'fld)])
                           (zkir-instr*
@@ -390,19 +390,21 @@
                               (zkir-instr*)))
                           (cons* fld -2 1 1 code*))]
                        [(tfield (field-base (curve-secp256k1)))
-                        (let ([fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
-                                      (make-list 4))])
+                        (let* ([alignment* (make-list 4 8)]
+                               [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
+                                       alignment*)])
                           (zkir-instr*
                             (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
                               (zkir-instr*)))
-                          (append (reverse fld*) (list 8 8 8 8 4 1) code*))]
+                          (append (reverse fld*) alignment* '(4 1) code*))]
                        [(tfield (field-scalar (curve-secp256k1)))
-                        (let ([fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
-                                      (make-list 4))])
+                        (let* ([alignment* (make-list 4 8)]
+                               [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
+                                       alignment*)])
                           (zkir-instr*
                             (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
                               (zkir-instr*)))
-                          (append (reverse fld*) (list 8 8 8 8 4 1) code*))]
+                          (append (reverse fld*) alignment* '(4 1) code*))]
                        [else (assemble-operand-acc (cons 1 code*) val)]))
                    (assemble-operand-acc (cons 1 code*) val))]
               [(VMstate-value-ADT val type)
@@ -508,6 +510,16 @@
                                   (make-public-input test-val (car var-name*) "Point<Jubjub>")
                                   (zkir-instr*)))
                               (values (list -2 -2) (list pt0 pt1)))]
+                           [(topaque ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
+                            (let* ([alignment* (make-list 8 8)]
+                                   [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
+                                           alignment*)])
+                              (zkir-instr*
+                                (cons*
+                                  `(encode (,fld* ...) ,(car var-name*))
+                                  (make-public-input test-val (car var-name*) "Point<Secp256k1>")
+                                  (zkir-instr*)))
+                              (values alignment* fld*))]
                            [(tfield (field-scalar (curve-jubjub)))
                             (let ([fld (make-temp-id default-src 'fld)])
                               (zkir-instr*
@@ -517,23 +529,25 @@
                                   (zkir-instr*)))
                               (values (list -2) (list fld)))]
                            [(tfield (field-base (curve-secp256k1)))
-                            (let ([fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
-                                          (make-list 4))])
+                            (let* ([alignment* (make-list 4 8)]
+                                   [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
+                                           alignment*)])
                               (zkir-instr*
                                 (cons*
                                   `(encode (,fld* ...) ,(car var-name*))
                                   (make-public-input test-val (car var-name*) "Base<Secp256k1>")
                                   (zkir-instr*)))
-                              (values (make-list 4 8) fld*))]
+                              (values alignment* fld*))]
                            [(tfield (field-scalar (curve-secp256k1)))
-                            (let ([fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
-                                          (make-list 4))])
+                            (let* ([alignment* (make-list 4 8)]
+                                   [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
+                                           alignment*)])
                               (zkir-instr*
                                 (cons*
                                   `(encode (,fld* ...) ,(car var-name*))
                                   (make-public-input test-val (car var-name*) "Scalar<Secp256k1>")
                                   (zkir-instr*)))
-                              (values (make-list 4 8) fld*))]
+                              (values alignment* fld*))]
                            [else
                              (for-each
                                (lambda (var-name)
