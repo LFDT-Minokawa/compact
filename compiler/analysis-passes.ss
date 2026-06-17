@@ -6002,7 +6002,8 @@
                                           (let ([pad (- len n)])
                                             (cons
                                               `(spread ,src ,pad
-                                                 (quote ,src ,(make-bytevector pad 0)))
+                                                 (bytes->vector ,src ,pad
+                                                   (quote ,src ,(make-bytevector pad 0))))
                                               rta*)))))
                                  ...))))))))))
 

@@ -34749,7 +34749,7 @@ groups than for single tests.
             (vector
               (spread 32
                 (bytes->vector 32 (elt-ref %value.2 nullifier 0)))
-              (spread 8 #vu8(0 0 0 0 0 0 0 0)))))
+              (spread 8 (bytes->vector 8 #vu8(0 0 0 0 0 0 0 0))))))
         (circuit %oversize_serialize.3 ([%s.4 (tstruct ShieldedSpend
                                                 (nullifier (tbytes 32)))])
              (tbytes 40)
