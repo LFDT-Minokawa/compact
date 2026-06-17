@@ -2694,6 +2694,21 @@
                      (make-Qconcat "..." (Expr expr (precedence add1 comma) outer-pure?))]))
                 tuple-arg*))
             "]"))
+        (define (downcast-unsigned src nat expr)
+          (let ([expr (Expr expr (precedence add1 comma) outer-pure?)])
+            (parenthesize level (precedence call)
+              (make-Qconcat
+                "((t1) => {"
+                2 (format "if (t1 > ~an) {" nat)
+                4 (format "throw new ~a('~a: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than ~a');"
+                    (compact-stdlib "CompactError")
+                    (format-source-object src)
+                    nat)
+                2 "}"
+                2 "return t1;"
+                0 "})("
+                expr
+                ")"))))
         (define (build-equal-helper! type equal-name)
           (define (build-equal-body type)
             (with-output-to-string
@@ -2744,6 +2759,22 @@
                          (printf "}\n"))
                        elt-name*
                        type*)]
+                    [(topaque ,src ,opaque-type)
+                     (guard (string=? opaque-type "JubjubPoint"))
+                     (for-each
+                       (lambda (elt-name)
+                         (print-indent indent)
+                         (printf "{\n")
+                         (let ([next-i (fx+ i 1)] [next-indent (fx+ indent 2)])
+                           (print-indent next-indent)
+                           (printf "let x~s = x~s.~s;\n" next-i i elt-name)
+                           (print-indent next-indent)
+                           (printf "let y~s = y~s.~s;\n" next-i i elt-name)
+                           (print-indent next-indent)
+                           (printf "if (x~s !== y~:*~s) { return false; }\n" next-i))
+                         (print-indent indent)
+                         (printf "}\n"))
+                       '(x y))]
                     [else
                      (print-indent indent)
                      (printf "if (x~s !== y~:*~s) { return false; }\n" i)])))))
@@ -2912,23 +2943,23 @@
        (parenthesize level (precedence *)
          ; infer-type guarantees that the result is in range via range analysis
          (make-Qconcat expr1 0 "*" 0 expr2))]
-      [(< ,src ,mbits ,[Expr : expr1 (precedence <) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 <) outer-pure? -> * expr2])
+      [(< ,src ,bits ,[Expr : expr1 (precedence <) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 <) outer-pure? -> * expr2])
        (parenthesize level (precedence <)
          (make-Qconcat expr1 0 "<" 0 expr2))]
-      [(<= ,src ,mbits ,[Expr : expr1 (precedence <=) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 <=) outer-pure? -> * expr2])
+      [(<= ,src ,bits ,[Expr : expr1 (precedence <=) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 <=) outer-pure? -> * expr2])
        (parenthesize level (precedence <=)
          (make-Qconcat expr1 0 "<=" 0 expr2))]
-      [(> ,src ,mbits ,[Expr : expr1 (precedence >) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 >) outer-pure? -> * expr2])
+      [(> ,src ,bits ,[Expr : expr1 (precedence >) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 >) outer-pure? -> * expr2])
        (parenthesize level (precedence >)
          (make-Qconcat expr1 0 ">" 0 expr2))]
-      [(>= ,src ,mbits ,[Expr : expr1 (precedence >=) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 >=) outer-pure? -> * expr2])
+      [(>= ,src ,bits ,[Expr : expr1 (precedence >=) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 >=) outer-pure? -> * expr2])
        (parenthesize level (precedence >=)
          (make-Qconcat expr1 0 ">=" 0 expr2))]
       [(== ,src ,type ,expr1 ,expr2)
        (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
              [(tfield ,src) #t]
-             [(topaque ,src ,opaque-type) #t]
+             [(topaque ,src ,opaque-type) (not (string=? opaque-type "JubjubPoint"))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
              [else #f])
            (parenthesize level (precedence ==)
@@ -2951,7 +2982,7 @@
        (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
              [(tfield ,src) #t]
-             [(topaque ,src ,opaque-type) #t]
+             [(topaque ,src ,opaque-type) (not (string=? opaque-type "JubjubPoint"))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
              [else #f])
            (parenthesize level (precedence ==)
@@ -3107,7 +3138,7 @@
             (make-Qconcat
               (compact-stdlib "convertBytesToUint")
               "("
-              ((make-Qsep ",") (format "~d" nat^) (format "~d" len) expr (format "'~a'" (format-source-object src)))
+              ((make-Qsep ",") (format "~dn" nat^) (format "~d" len) expr (format "'~a'" (format-source-object src)))
               ")")]
            [else (assert cannot-happen)]))]
       [(vector->bytes ,src ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
@@ -3174,21 +3205,8 @@
                  0 "})("
                  expr
                  ")"))))]
-      [(downcast-unsigned ,src ,nat ,expr)
-       (let ([expr (Expr expr (precedence add1 comma) outer-pure?)])
-         (parenthesize level (precedence call)
-           (make-Qconcat
-             "((t1) => {"
-             2 (format "if (t1 > ~an) {" nat)
-             4 (format "throw new ~a('~a: cast from Field or Uint value to smaller Uint value failed: ' + t1 + ' is greater than ~a');"
-                 (compact-stdlib "CompactError")
-                 (format-source-object src)
-                 nat)
-             2 "}"
-             2 "return t1;"
-             0 "})("
-             expr
-             ")")))]
+      [(downcast-unsigned ,src ,nat? ,nat ,expr)
+       (downcast-unsigned src nat expr)]
       [(safe-cast ,src ,type ,type^ ,expr)
        ; no checks needed for safe casts
        (Expr expr level outer-pure?)]

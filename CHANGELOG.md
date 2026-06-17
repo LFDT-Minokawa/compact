@@ -5,8 +5,279 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased toolchain 0.29.108, language 0.21.101, runtime 0.14.102]
+## [Toolchain 0.31.108, language 0.23.105, runtime 0.16.101]
 
+### Added
+
+- Add `ecNeg` to the standard library for JubJub point negation.
+
+## [Toolchain 0.31.107, language 0.23.104, runtime 0.16.101]
+
+### Fixed
+
+- Fix [issue #456](https://github.com/LFDT-Minokawa/compact/issues/456), a ZKIR
+  v2 bug in Schnorr signature verification.  This change also fixes a bug in
+  Schnorr signature verification for the experimental ZKIR v3 backend.
+
+### Internal notes
+
+- The Schnorr signature verification feature is unreleased (added in toolchain
+  0.31.104).
+
+## [Toolchain 0.31.106, language 0.23.104, runtime 0.16.101]
+
+### Added
+
+- The compiler now writes a manifest to the file `contract-manifest.json` in the
+  `compiler` subdirectory of the target directory.  The manifest contains sizes
+  and sha256 sums for each of the generated files except `contract-manifest.json`
+  itself.
+
+### Changed
+
+- The compiler now removes and recreates the `contract` subdirectory of target
+  directory.  While previous versions removed and recreated the `compiler`, `zkir`,
+  and `keys` directory they left the `contract` subdirectory _and its contents_
+  in place and instead replaced only the target files `index.dts`, `index.js`,
+  and `index.js.map`.
+
+- The compiler now always creates the `keys` subdirectory of the target
+  directory.  The `keys` directory will be empty, however, if the --skip-zk
+  flag is used, the zkir binary isn't found, or none of the contracts circuits
+  require proofs.
+
+## [Toolchain 0.31.105, language 0.23.104, runtime 0.16.101]
+
+- The ZKIR v3 format, behind the feature flag `--feature-zkir-v3`, has changed
+  so that:
+    - it contains an `outputs` field that is a list containing the type of each
+      output of the circuit
+    - it contains a single `output` instruction that specifies a list of output
+      operands and is the last instruction
+
+## [Toolchain 0.31.104, language 0.23.104, runtime 0.16.101]
+
+### Added
+
+- Schnorr signature verification over the JubJub embedded curve, via the new
+  `JubjubSchnorrSignature` struct and `jubjubSchnorrVerify` circuit in the
+  standard library.
+
+## [Toolchain 0.31.103, language 0.23.103, runtime 0.16.100]
+
+### Added
+
+- Adds `keccak256` to the standard library, with the same signature as
+  `persistentHash`.  Adds `keccak256` to the Compact runtime with the same
+  signature as `persistentHash`.  `keccak256` requires the experimental feature
+  flag `--feature-zkir-v3` to work in a circuit that directly or indirectly uses
+  the public ledger state.  It is a compiler error to use it in a such a circuit
+  using the ZKIR v2 backend.
+
+## [Toolchain 0.31.102, language 0.23.102, runtime 0.16.0]
+
+### Added
+
+- `eval` and `arguments` which are reserved words in strict mode of JavaScript are now
+  added as future reserved words in Compact. Previously Compact accepted a contract using
+  these as an identifier, resulting in producing an invalid JavaScript output.
+
+### Fixed
+
+- Lexer matches the convention used by
+  ECMAScript (https://tc39.es/ecma262/#sec-names-and-keywords) and
+  UAX #31 (https://www.unicode.org/reports/tr31/#Table_Lexical_Classes_for_Identifiers):
+  the lexer accepts Unicode `ID_Start` (`Lu Ll Lt Lm Lo Nl`) plus `_` and `$`.
+  Previously it accepted all alphabetic charactes which includes some non-`ID-Start`
+  characters which are invalid in JavaScript.
+  `identifier-subsequent?` now follows Unicode `ID_Continue` (`Lu Ll Lt Lm Lo Nl Mn Mc Nd Pc`).
+  Previously it included som non-`ID-Continue` characters.
+
+## [Toolchain 0.31.101, language 0.23.101, runtime 0.16.0]
+
+### Added
+
+Adds `event` and `log` as future keywords that are reserved.
+
+## [Toolchain 0.31.0, language 0.23.0, runtime 0.16.0]
+
+This release includes all changes for compiler versions in the range between
+0.30.100 and 0.31.0; language versions in the range between 0.22.100 and 0.23.0;
+and Compact runtime versions in the range between 0.15.100 and 0.16.0.
+
+## [Toolchain 0.30.107, language 0.22.101, runtime 0.15.101]
+
+### Fixed
+
+Various zkir operators that can result in assertion failures and thus should
+be executed conditionally do not have guards are thus actually executed
+unconditionally.  This can result in proof failures for correct transactions.
+For example, casting an unsigned integer value to a smaller unsigned type will
+always cause the proof to fail when the value is too big for that type, even if
+the cast occurs in a branch that is not taken in the Compact code.
+
+The intent is to add guards to these operators in the next version of zkir.
+In the meantime, the compiler implements workarounds that arrange to invoke
+these operators with inputs that cannot cause assertion failures when the
+guard would be false.
+
+The downside of these workarounds is that they can increase the size of the
+generated circuit.
+The size increase arises from conditional use (i.e., use in the `then` or
+`else` part of an `if` statement or expression) of:
+
+- downcasts from Uint types to smaller Uint types,
+- downcasts of Field to Uint types,
+- conversions of byte vectors to and from fields or unsigned integers,
+- conversions of vectors to byte vectors, and
+- uses of relational comparison expressions (<, <=, >=, and >) with inputs
+  that might be unknown.
+
+If the increase in circuit size is problematic for a particular contract, developers
+should consider moving downcasts, conversions, and relational comparisons outside
+of `if` expressions where possible until zkir supports the required guards and the
+compiler workarounds have been removed.
+
+## [Toolchain 0.30.106, language 0.22.101, runtime 0.15.101]
+
+### Added
+
+- Adds a `ledger` key to `contract-info.json` listing the contract's
+  ledger fields. Each entry contains the field name, path index,
+  export status, storage kind (Cell, Counter, Map, Set, List,
+  MerkleTree, HistoricMerkleTree), and fully-resolved type tree.
+  This enables language-agnostic tooling to discover a contract's
+  ledger layout from the compiler output alone. Both exported and
+  non-exported fields are included since the full layout is required
+  to navigate the on-chain state tree and construct initial states.
+
+## [Toolchain 0.30.105, language 0.22.101, runtime 0.15.101]
+
+### Added
+
+- Adds `--line-length` flag to fixup.
+
+### Fixed
+
+- JubjubPoint equality is now component-wise; it previously was reference
+  equality.
+
+## [Toolchain 0.30.104, language 0.22.101, runtime 0.15.101]
+
+### Changed
+
+- Renames `doc/lang-ref.mdx` and `compiler/lang-ref-proto.mdx` to
+  `doc/compact-reference.mdx` and `compiler/compact-reference-proto.mdx`,
+  respectively.  It also adopts some changes from midnight-docs PR changes
+  for lang-ref 1.0.
+
+## [Toolchain 0.30.103, language 0.22.101, runtime 0.15.101]
+
+### Changed
+
+- The language reference `doc/lang-ref.mdx` is now been fully revised and
+  is completely up-to-date with the Compact Version 1.0 language.  Grammar
+  snippets are automatically inserted into the document directly from parser.ss,
+  and several changes have been made to the presentation of the grammar to
+  make it more readable.
+
+## [Toolchain 0.30.102, language 0.22.101, runtime 0.15.101]
+
+### Changed
+
+- Extends the `for (const i of start..end) stmt` syntax to allow `start` and
+  `end` to be references to generic parameters.
+
+## [Toolchain 0.30.101, language 0.22.0, runtime 0.15.101]
+
+- Changes the format of the first argument passed to `convertBytesToUint` in `print-typescript` 
+- Improves format of error messages for `convertBytesToUint` and `convertBytesToField`
+- Changes the type of `maxval` to `bigint` to avoid JavaScript silently losing precision
+  when comparing `x > maxval` for larg `Uint`s
+
+## [Toolchain 0.30.0, language 0.22.0, runtime 0.15.0]
+
+This release includes all changes for compiler versions in the range between
+0.29.100 and 0.30.0; language versions in the range between 0.21.100 and 0.22.0;
+and Compact runtime versions in the range between 0.14.100 and 0.15.0.
+
+## [Unreleased toolchain 0.29.114, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- The language reference `doc/lang-ref.mdx` is now largely up-to-date with
+  the Compact 0.21.0 language.
+- The HTML version of the formal grammar in `doc/Compact.html` has been
+  replaced with a markdown (mdx) version in `doc/compact-grammar.mdx`.
+
+### Added
+
+- A list of Compact's keywords and reserved words, including those reserved
+  for future use, is given in `doc/compact-keywords.mdx`.
+
+## [Unreleased toolchain 0.29.113, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- It is now a compiler error to pass Compact values containing opaque JS values
+  (`Opaque<'string'>` or `Opaque<'Uint8Array'>`) to the standard library
+  circuits `persistentHash` and `persistentCommit`.  Hashing such values does
+  not work in circuit due to the representation of these types.  Previously,
+  such code would crash the `zkir` process if it tried to generate prover and
+  verifier keys.  Now it is a compiler error instead.
+  
+  This also affects the standard library operation `merkleTreePathRoot` (because
+  it calls `persistentHash` in its implementation), and ledger `MerkleTree`
+  insertion operations, because they implicitly use `persistentHash`.
+  
+  This is a **breaking** change because the error is signaled early, and so it
+  is now an error to use any of these circuits or ADT operations, even for
+  circuits that don't need prover and verifier key generation which would
+  compile successfully before.
+
+## [Unreleased toolchain 0.29.112, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- The fixup tool now replaces references to the old standard-library type names
+  `CurvePoint` and `NativePoint` with `JubJubPoint`.  It also does a better job
+  of renaming standard-library circuits when it is safe to do so and explaining
+  why when it is not safe to do so.
+
+### Internal notes
+
+- The expand-modules-and-types code for function lookup is more modular and
+  easier to read.
+
+## [Unreleased toolchain 0.29.111, language 0.21.101, runtime 0.14.102]
+
+### Fixed
+
+- The `<=` and `>` operand evaluation order in the proof circuit is incorrect
+  (right-to-left rather than left-to-right).  It also differs from the evaluation
+  order in the generated JavaScript code, which can result in proof failures
+  when the operands are non-trivial.  This fix modifies the common upstream path
+  `infer-types` to enforce the correct evaluation order.
+
+## [Unreleased toolchain 0.29.110, language 0.21.101, runtime 0.14.102]
+
+### Fixed
+
+- There was an unreleased bug in ZKIR circuits (not in JS) where the
+  representation of the default `JubjubPoint` was wrong.  Fixing this entailed
+  allowing `default` in compiler IR from `Lflattened` and downstream in both
+  ZKIR v2 and v3 backends.
+
+## [Unreleased toolchain 0.29.109, language 0.21.101, runtime 0.14.102]
+
+### Changed
+
+- The compiler binary can now report `--ledger-version` (and
+  `--feature-zkir-v3 --ledger-version`).  This is the version of the ledger that
+  is targeted by the generated code and used to produce the generated prover and
+  verifier keys.
+
+## [Unreleased toolchain 0.29.108, language 0.21.101, runtime 0.14.102]
 
 ### Fixed
 

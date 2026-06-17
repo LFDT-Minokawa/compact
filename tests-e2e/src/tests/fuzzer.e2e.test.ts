@@ -22,14 +22,23 @@ import { generate } from '../fuzzer/fuzzers.cjs';
 const contractsDir: string = createTempFolder();
 generate(contractsDir, process.env.NO_OF_FUZZER_TESTS || 1000);
 const generatedContracts = fs.readdirSync(contractsDir);
+const failDir = path.join(process.cwd(), 'failed-contracts');
 
 describe.skipIf(isRelease())('[E2E] Fuzzer tests for compiler', () => {
+    fs.mkdirSync(failDir, { recursive: true });
+
     generatedContracts.forEach((fileName) => {
         const filePath = path.join(contractsDir, fileName);
-        const contractContent = getFileContent(filePath);
 
         test(`should be able to compile synthetic contract: '${fileName}'`, async () => {
+            const contractContent = getFileContent(filePath);
             const outputDir = createTempFolder();
+
+            console.log(contractContent);
+
+            // Write the contract preemptively — remove it if the test passes
+            const failPath = path.join(failDir, fileName);
+            fs.writeFileSync(failPath, contractContent);
 
             const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
             expectCompilerResult(result, {
@@ -41,6 +50,9 @@ describe.skipIf(isRelease())('[E2E] Fuzzer tests for compiler', () => {
             if (result.exitCode == ExitCodes.Success) {
                 expectFiles(outputDir).thatGeneratedJSCodeIsValid();
             }
+
+            // Only reached if the test passed — clean up
+            fs.rmSync(failPath);
         });
     });
 });

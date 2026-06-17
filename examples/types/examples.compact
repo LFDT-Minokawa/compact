@@ -527,3 +527,53 @@ new type t39_qualified = QualifiedShieldedCoinInfo;
 export circuit test39(): [t39_coin_info, t39_qualified] {
   return [default<t39_coin_info>, default<t39_qualified>];
 }
+
+// Test 40: Types with generic Uint
+export type UX<#n> = Uint<n>;
+export type UY<#n> = Uint<0..n>;
+export struct SX<#n, T> { curidx: Uint<n> }
+export struct SY<#n, T> { curidx: Uint<0..n> }
+
+export circuit test40(): [] {
+  const a: UX<2> = 1;
+  const b: UY<2> = 1;
+  const c: SX<1, Field> = default<SX<1, Field>>;
+  const d: SY<1, Field> = default<SY<1, Field>>;
+  
+  const e: UX<248> = 1;
+  const f: UY<99999999999999999999999999999999999999999999999999999999999999999999999999> = 1;
+  const g: SX<248, Field> = default<SX<248, Field>>;
+  const h: SY<99999999999999999999999999999999999999999999999999999999999999999999999999, Field> = default<SY<99999999999999999999999999999999999999999999999999999999999999999999999999, Field>>;
+}
+
+// Test 41: for loop with end as generic natural-number parameter
+export ledger t41_sum: Uint<16>;
+
+circuit _test41<#N>(v: Vector<N, Uint<8>>): Uint<16> {
+  t41_sum = 0;
+  for (const i of 0..N) {
+      t41_sum = (t41_sum + (v[i] as Uint<16>)) as Uint<16>;
+  }
+  return t41_sum;
+}
+
+export circuit test41_1(): Uint<16> {
+  const v: Vector<4, Uint<8>> = [1, 2, 3, 4];
+  return _test41<4>(v);
+}
+
+// Test 42: for loop with start and end as generic natural-number parameters
+export ledger t42_sum: Uint<16>;
+
+circuit _test42<#N, #S, #E>(v: Vector<N, Uint<8>>): Uint<16> {
+  t42_sum = 0;
+  for (const i of S..E) {
+      t42_sum = (t42_sum + (v[i] as Uint<16>)) as Uint<16>;
+  }
+  return t42_sum;
+}
+
+export circuit test42(): Uint<16> {
+  const v: Vector<4, Uint<8>> = [1, 2, 3, 4];
+  return _test42<4, 1, 2>(v);
+}

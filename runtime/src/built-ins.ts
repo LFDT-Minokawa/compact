@@ -14,8 +14,9 @@
 // limitations under the License.
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
-import { MAX_FIELD } from './constants.js';
-import { CompactType, CompactTypeJubjubPoint, JubjubPoint } from './compact-types.js';
+import { keccak_256 } from '@noble/hashes/sha3.js';
+import { MAX_FIELD, JUBJUB_SCALAR_MODULUS } from './constants.js';
+import { CompactType, CompactTypeJubjubPoint, JubjubPoint, JubjubSchnorrSignature } from './compact-types.js';
 import { CompactError } from './error.js';
 
 const FIELD_MODULUS: bigint = MAX_FIELD + 1n;
@@ -59,7 +60,7 @@ export function mulField(x: bigint, y: bigint): bigint {
 }
 
 /**
- * The Compact builtin `transient_hash` function
+ * The Compact builtin `transientHash` function
  *
  * This function is a circuit-efficient compression function from arbitrary
  * data to field elements, which is not guaranteed to persist between upgrades.
@@ -71,7 +72,7 @@ export function transientHash<A>(rtType: CompactType<A>, value: A): bigint {
 }
 
 /**
- * The Compact builtin `transient_commit` function
+ * The Compact builtin `transientCommit` function
  *
  * This function is a circuit-efficient commitment function from arbitrary
  * values representable in Compact, and a field element commitment opening, to
@@ -86,7 +87,7 @@ export function transientCommit<A>(rtType: CompactType<A>, value: A, opening: bi
 }
 
 /**
- * The Compact builtin `persistent_hash` function
+ * The Compact builtin `persistentHash` function
  *
  * This function is a non-circuit-optimised hash function for mostly arbitrary
  * data. It is guaranteed to persist between upgrades, with the exception of
@@ -106,7 +107,7 @@ export function persistentHash<A>(rtType: CompactType<A>, value: A): Uint8Array 
 }
 
 /**
- * The Compact builtin `persistent_commit` function
+ * The Compact builtin `persistentCommit` function
  *
  * This function is a non-circuit-optimised commitment function from arbitrary
  * values representable in Compact, and a 256-bit bytestring opening, to a
@@ -131,7 +132,7 @@ export function persistentCommit<A>(rtType: CompactType<A>, value: A, opening: U
 }
 
 /**
- * The Compact builtin `degrade_to_transient` function
+ * The Compact builtin `degradeToTransient` function
  *
  * This function "degrades" the output of a {@link persistentHash} or
  * {@link persistentCommit} to a field element, which can then be used in
@@ -147,7 +148,7 @@ export function degradeToTransient(x: Uint8Array): bigint {
 }
 
 /**
- * The Compact builtin `upgrade_from_transient` function
+ * The Compact builtin `upgradeFromTransient` function
  *
  * This function "upgrades" the output of a {@link transientHash} or
  * {@link transientCommit} to 256-bit byte string, which can then be used in
@@ -162,6 +163,25 @@ export function upgradeFromTransient(x: bigint): Uint8Array {
   return res;
 }
 
+/**
+ * The Compact builtin `keccak256` function
+ *
+ * Hashes `value` using Keccak-256 and returns the 32-byte digest.
+ *
+ * @throws If `rtType` encodes a type containing Compact 'Opaque' types
+ */
+export function keccak256<A>(rtType: CompactType<A>, value: A): Uint8Array {
+  const chunks = rtType.toValue(value);
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const bytes = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return keccak_256(bytes);
+}
+
 export function jubjubPointX(pt: JubjubPoint): bigint {
   return pt.x;
 }
@@ -171,11 +191,11 @@ export function jubjubPointY(pt: JubjubPoint): bigint {
 }
 
 export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
-    return { x: x, y: y };
+  return { x, y };
 }
 
 /**
- * The Compact builtin `hash_to_curve` function
+ * The Compact builtin `hashToCurve` function
  *
  * This function maps arbitrary values representable in Compact to elliptic
  * curve points in the proof system's embedded curve.
@@ -192,7 +212,7 @@ export function hashToCurve<A>(rtType: CompactType<A>, x: A): JubjubPoint {
 }
 
 /**
- * The Compact builtin `ec_add` function
+ * The Compact builtin `ecAdd` function
  *
  * This function add two elliptic curve points (in multiplicative notation)
  */
@@ -201,7 +221,20 @@ export function ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint {
 }
 
 /**
- * The Compact builtin `ec_mul` function
+ * The Compact builtin `ecNeg` function
+ *
+ * This function negates an elliptic curve point. On the JubJub twisted
+ * Edwards curve, the negation of (x, y) is (-x, y).
+ */
+export function ecNeg(a: JubjubPoint): JubjubPoint {
+  return constructJubjubPoint(
+    a.x === 0n ? 0n : FIELD_MODULUS - a.x,
+    a.y
+  );
+}
+
+/**
+ * The Compact builtin `ecMul` function
  *
  * This function multiplies an elliptic curve point by a scalar (in
  * multiplicative notation)
@@ -211,7 +244,7 @@ export function ecMul(a: JubjubPoint, b: bigint): JubjubPoint {
 }
 
 /**
- * The Compact builtin `ec_mul_generator` function
+ * The Compact builtin `ecMulGenerator` function
  *
  * This function multiplies the primary group generator of the embedded curve
  * by a scalar (in multiplicative notation)
@@ -231,4 +264,99 @@ export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue
     res.alignment = res.alignment.concat(value.alignment);
   }
   return res;
+}
+
+/**
+ * Samples a random JubJub scalar.
+ *
+ * The returned value is in the range [0, JUBJUB_SCALAR_MODULUS).
+ */
+export function jubjubSampleScalar(): bigint {
+  return ocrt.valueToBigInt(ocrt.jubjubSampleScalar());
+}
+
+/**
+ * Alias for {@link jubjubSampleScalar}. Samples a random JubJub Schnorr signing key.
+ */
+export const sampleJubjubSchnorrSk = jubjubSampleScalar;
+
+/**
+ * Reduce modulo the JubJub scalar field order.
+ *
+ * The returned value is in the range [0, JUBJUB_SCALAR_MODULUS).
+ */
+export function reduceModJubjubOrder(value: bigint): bigint {
+  return value % JUBJUB_SCALAR_MODULUS;
+}
+
+/**
+ * Derives the Schnorr verifying key (public key) from a signing key.
+ *
+ * Equivalent to {@link ecMulGenerator}(signingKey).
+ */
+export function jubjubSchnorrVerifyingKey(signingKey: bigint): JubjubPoint {
+  return ecMulGenerator(reduceModJubjubOrder(signingKey));
+}
+
+/**
+ * Produces a Schnorr signature over the JubJub curve.
+ *
+ * - `rtType` / `msg`: the message as a typed Compact value
+ * - `sk`: signing key as a JubJub scalar (e.g. as returned by {@link jubjubSampleScalar})
+ *
+ * The signature scheme:
+ * - Nonce `r` sampled uniformly at random
+ * - Announcement `R = r·G`
+ * - Challenge `c = PoseidonHash(R.x, R.y, pk.x, pk.y, msg...)`
+ * - Response `s = r + c·sk` (in the JubJub scalar field)
+ */
+export function jubjubSchnorrSign<A>(rtType: CompactType<A>, msg: A, signingKey: bigint): JubjubSchnorrSignature {
+  const r = jubjubSampleScalar();
+  const announcement = ecMulGenerator(r);
+  const verifyingKey = ecMulGenerator(signingKey);
+
+  const challengeAlignment: ocrt.Alignment = [
+    ...CompactTypeJubjubPoint.alignment(),
+    ...CompactTypeJubjubPoint.alignment(),
+    ...rtType.alignment(),
+  ];
+  const challengeValue: ocrt.Value = [
+    ...CompactTypeJubjubPoint.toValue(announcement),
+    ...CompactTypeJubjubPoint.toValue(verifyingKey),
+    ...rtType.toValue(msg),
+  ];
+  const c = reduceModJubjubOrder(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
+
+  const response = reduceModJubjubOrder(r + c * signingKey);
+  return { announcement, response };
+}
+
+/**
+ * Verifies a Schnorr signature over the JubJub curve.
+ *
+ * - `rtType` / `msg`: the message as a typed Compact value
+ * - `pk`: verifying key (a JubJubPoint / EmbeddedGroupAffine)
+ * - `sig`: signature as returned by {@link jubjubSchnorrSign}
+ *
+ * Returns `true` if the signature is valid (i.e. `s·G == R + c·pk`).
+ */
+export function jubjubSchnorrVerify<A>(rtType: CompactType<A>, msg: A, verifyingKey: JubjubPoint, sig: JubjubSchnorrSignature): boolean {
+  const { announcement, response } = sig;
+
+  const challengeAlignment: ocrt.Alignment = [
+    ...CompactTypeJubjubPoint.alignment(),
+    ...CompactTypeJubjubPoint.alignment(),
+    ...rtType.alignment(),
+  ];
+  const challengeValue: ocrt.Value = [
+    ...CompactTypeJubjubPoint.toValue(announcement),
+    ...CompactTypeJubjubPoint.toValue(verifyingKey),
+    ...rtType.toValue(msg),
+  ];
+  const c = reduceModJubjubOrder(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
+
+  const lhs = ecMulGenerator(response);
+  const rhs = ecAdd(announcement, ecMul(verifyingKey, c));
+
+  return lhs.x === rhs.x && lhs.y === rhs.y;
 }

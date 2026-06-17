@@ -315,6 +315,10 @@ pub enum Target {
     #[value(name = "x86_64-unknown-linux-musl")]
     x86_64UnknownLinuxMusl,
 
+    #[cfg_attr(all(target_os = "linux", target_arch = "aarch64"), default)]
+    #[value(name = "aarch64-unknown-linux-musl")]
+    Aarch64UnknownLinuxMusl,
+
     #[cfg_attr(all(target_os = "macos", target_arch = "x86_64"), default)]
     #[value(name = "x86_64-apple-darwin")]
     x86_64AppleDarwin,
@@ -328,6 +332,7 @@ impl fmt::Display for Target {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Target::x86_64UnknownLinuxMusl => "x86_64-unknown-linux-musl".fmt(f),
+            Target::Aarch64UnknownLinuxMusl => "aarch64-unknown-linux-musl".fmt(f),
             Target::x86_64AppleDarwin => "x86_64-apple-darwin".fmt(f),
             Target::Aarch64AppleDarwin => "aarch64-darwin".fmt(f),
         }
@@ -342,6 +347,7 @@ impl FromStr for Target {
             "aarch64-darwin" => Ok(Self::Aarch64AppleDarwin),
 
             "x86_64-unknown-linux-musl" => Ok(Self::x86_64UnknownLinuxMusl),
+            "aarch64-unknown-linux-musl" => Ok(Self::Aarch64UnknownLinuxMusl),
 
             unknown => bail!("Unsupported target `{unknown}'"),
         }

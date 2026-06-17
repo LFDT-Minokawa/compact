@@ -166,6 +166,16 @@ describe('builtin hash functions', () => {
     expect(res.length).toBe(32);
   });
 
+  test('keccak256', () => {
+    const res = compactRuntime.keccak256(compactRuntime.CompactTypeField, 5n);
+    expect(res).toBeInstanceOf(Uint8Array);
+    expect(res.length).toBe(32);
+    // keccak256 must be deterministic
+    expect(compactRuntime.keccak256(compactRuntime.CompactTypeField, 5n)).toEqual(res);
+    // distinct inputs must produce distinct outputs
+    expect(compactRuntime.keccak256(compactRuntime.CompactTypeField, 6n)).not.toEqual(res);
+  });
+
   test('transientCommit', () => {
     expect(
       typeof compactRuntime.transientCommit(
@@ -207,6 +217,19 @@ describe('builtin hash functions', () => {
     expect(lhs).toEqual(rhs);
     expect(typeof lhs.x).toEqual('bigint');
     expect(typeof lhs.y).toEqual('bigint');
+  });
+
+  test('elliptic curve negation', () => {
+    const g = compactRuntime.ecMulGenerator(1n);
+    const neg_g = compactRuntime.ecNeg(g);
+    // neg(x, y) = (FIELD_MODULUS - x, y)
+    expect(neg_g.x).toEqual(compactRuntime.MAX_FIELD + 1n - g.x);
+    expect(neg_g.y).toEqual(g.y);
+    // neg(neg(g)) == g
+    expect(compactRuntime.ecNeg(neg_g)).toEqual(g);
+    // g + neg(g) should equal the identity point (0, 1)
+    const sum = compactRuntime.ecAdd(g, neg_g);
+    expect(sum).toEqual({ x: 0n, y: 1n });
   });
 });
 

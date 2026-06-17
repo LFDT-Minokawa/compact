@@ -1072,7 +1072,7 @@
        (// src
            (apply make-Qconcat #f
              (add-two-armed-if kwd lparen expr rparen stmt1 kwd-else stmt2)))]
-      [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,nat1 ,dotdot ,nat2 ,rparen ,stmt)
+      [(for ,src ,kwd ,lparen ,kwd-const ,var-name ,kwd-of ,tsize0 ,dotdot ,tsize1 ,rparen ,stmt)
        (// src
            (make-Qblock
              (apply make-Qconcat #f
@@ -1084,9 +1084,9 @@
                    (make-Qtoken kwd-const)
                    nbsp (make-Qtoken var-name)
                    nbsp (make-Qtoken kwd-of)
-                   nbsp (make-Qtoken nat1)
+                   nbsp (Type-Size tsize0)
                    (make-Qtoken dotdot)
-                   (make-Qtoken nat2)
+                   (Type-Size tsize1)
                    (add-closer 1 #f rparen '()))
                  '()))
              stmt))]

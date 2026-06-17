@@ -1,8 +1,10 @@
 {
   "version": { "major": 3, "minor": 0 },
-  "do_communications_commitment": false,
+  "do_communications_commitment": true,
   "inputs": [
     { "name": "%v.0", "type": "Scalar<BLS12-381>" }
+  ],
+  "outputs": [
   ],
   "instructions": [
     { "op": "public_input", "type": "Scalar<BLS12-381>", "output": "%t.1", "guard": null },

@@ -24,7 +24,7 @@ import js from '@eslint/js';
 export const tsFiles = [`contract/index.js`, `contract/index.js.map`, `contract/index.d.ts`];
 export const zkirFiles = ['zkir/bar.zkir'];
 export const keysFiles = ['keys/bar.prover', 'keys/bar.verifier', 'zkir/bar.bzkir'];
-export const contractInfoFiles = ['compiler/contract-info.json'];
+export const contractInfoFiles = ['compiler/contract-info.json', 'compiler/contract-manifest.json'];
 export const allExpectedFiles = [...tsFiles, ...zkirFiles, ...keysFiles, ...contractInfoFiles];
 
 export class AssertGeneratedFiles {
@@ -91,7 +91,9 @@ export class AssertGeneratedFiles {
 
     private async lintGeneratedJSCode(code: string): Promise<ESLint.LintResult[]> {
         // Full list: https://eslint.org/docs/latest/rules
-        const rules = js.configs.all.rules;
+        // using the recommended list of rules instead of disabling
+        // lots of them based on the result of testing artifacts upon a release
+        const rules = js.configs.recommended.rules;
         const eslint = new ESLint({
             overrideConfigFile: true,
             overrideConfig: {
@@ -101,21 +103,10 @@ export class AssertGeneratedFiles {
                 },
                 rules: {
                     ...rules,
-                    camelcase: 'off',
-                    'class-methods-use-this': 'off',
-                    curly: 'off',
+                    'no-unused-vars': 'warn',
                     eqeqeq: 'warn',
-                    'id-length': 'off',
-                    'max-classes-per-file': 'off',
-                    'max-lines': 'off',
-                    'max-lines-per-function': 'off',
-                    'no-magic-numbers': 'off',
-                    'no-underscore-dangle': 'off',
                     'no-var': 'warn',
-                    'one-var': 'off',
-                    'sort-keys': 'off',
-                    radix: 'off',
-                    'vars-on-top': 'off',
+                    'no-constant-condition': 'warn',
                 },
             },
         });

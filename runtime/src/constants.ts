@@ -23,6 +23,11 @@ import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
 export const MAX_FIELD: bigint = ocrt.maxField();
 
 /**
+ * The order of the JubJub scalar field.
+ */
+export const JUBJUB_SCALAR_MODULUS: bigint = 0xe7db4ea6533afa906673b0101343b00a6682093ccc81082d0970e5ed6f72cb7n;
+
+/**
  * A valid placeholder contract address
  *
  * @deprecated Cannot handle {@link NetworkId}s, use

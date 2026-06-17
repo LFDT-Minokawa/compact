@@ -25,34 +25,34 @@
   inputs = {
     zkir = {
       # dependency for compact-runtime release
-      # this is using a tag to pull in the correct zkir version from ledger-7.0.0 release
+      # this is using a tag to pull in the correct zkir version from the ledger
       # if for releasing the runtime, running nix flake update causes errors for authorization of cargo, use
       # the commit hash instead of the tag for this.
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/d36f02ce5988db16c3520fef7ab7cfd1d3231af5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v3 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/d36f02ce5988db16c3520fef7ab7cfd1d3231af5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-8";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/d36f02ce5988db16c3520fef7ab7cfd1d3231af5";
+      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2";
       inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-typed-inputs";
+      url = "github:midnightntwrk/midnight-ledger/3a7ae0361d03e6eed4fc91e31f6600f334f605d5"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/ambrona@zkirv3-typed-inputs";
+      url = "github:midnightntwrk/midnight-ledger/3a7ae0361d03e6eed4fc91e31f6600f334f605d5";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -220,15 +220,16 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.29.107"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.31.108"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
-              ./test-center
               ./compiler
-              ./third_party/compiler
               ./examples
-              ./srcMaps
+              ./flake.nix
               ./runtime/extract-version.ss
               ./runtime/package.json
+              ./srcMaps
+              ./test-center
+              ./third_party/compiler
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
@@ -298,13 +299,14 @@
             name = "compactc-binary-nixos";
             version = "0.0.1";
             src = inclusive.lib.inclusive ./. [
-              ./test-center
               ./compiler
-              ./third_party/compiler
               ./examples
-              ./srcMaps
+              ./flake.nix
               ./runtime/extract-version.ss
               ./runtime/package.json
+              ./srcMaps
+              ./test-center
+              ./third_party/compiler
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
@@ -339,8 +341,16 @@
             '' else "");
           };
 
+          # The upstream zkir-v3 package produces bin/zkir (same name as
+          # zkir v2).  Wrap it so the binary is available as bin/zkir-v3,
+          # which is the name the compiler invokes.
+          packages.zkir-v3-bin = pkgs.runCommand "zkir-v3-bin" {} ''
+            mkdir -p $out/bin
+            ln -s ${zkir-v3.packages.${system}.zkir-v3}/bin/zkir $out/bin/zkir-v3
+          '';
+
           packages.compactc-binaryWrapperScript-nixos = pkgs.writeShellScriptBin "run-compactc" ''
-            PATH=${pkgs.lib.makeBinPath [ packages.compactc-binary-nixos zkir.packages.${system}.zkir zkir-v3.packages.${system}.zkir-v3 ]} \
+            PATH=${pkgs.lib.makeBinPath [ packages.compactc-binary-nixos zkir.packages.${system}.zkir packages.zkir-v3-bin ]} \
             compactc $@
           '';
 
@@ -406,7 +416,7 @@
                 "PATH=${pkgs.lib.makeBinPath [
                   compactc
                   zkir.packages.${system}.zkir
-                  zkir-v3.packages.${system}.zkir-v3
+                  zkir-v3-bin
                 ]}"
               ];
             };
@@ -415,7 +425,7 @@
                 deps = [
                   compactc
                   zkir.packages.${system}.zkir
-                  zkir-v3.packages.${system}.zkir-v3
+                  zkir-v3-bin
                 ];
               })
             ];
@@ -507,7 +517,7 @@
             paths = [
               packages.compactc
               zkir.packages.${system}.zkir
-              zkir-v3.packages.${system}.zkir-v3
+              packages.zkir-v3-bin
               packages.compact-vscode-extension
             ];
           };
@@ -543,7 +553,7 @@
               packages.test-center.package
               packages.test-center.node-modules
               zkir.packages.${system}.zkir
-              zkir-v3.packages.${system}.zkir-v3
+              packages.zkir-v3-bin
             ];
             shellHook = combined-shell-hook;
 
@@ -556,7 +566,7 @@
               packages.compactc
               pkgs.yarn
               zkir.packages.${system}.zkir
-              zkir-v3.packages.${system}.zkir-v3
+              packages.zkir-v3-bin
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
@@ -576,7 +586,7 @@
               packages.runtime.package
               packages.runtime.node-modules
               zkir.packages.${system}.zkir
-              zkir-v3.packages.${system}.zkir-v3
+              packages.zkir-v3-bin
               pkgs.nodejs
               pkgs.yarn
             ];

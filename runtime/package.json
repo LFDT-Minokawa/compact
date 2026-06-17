@@ -1,6 +1,6 @@
 {
   "name": "@midnight-ntwrk/compact-runtime",
-  "version": "0.14.102",
+  "version": "0.16.101",
   "description": "Compact Runtime",
   "type": "module",
   "exports": {
@@ -33,25 +33,26 @@
     "@midnight-ntwrk/onchain-runtime-v3"
   ],
   "dependencies": {
-    "@midnight-ntwrk/onchain-runtime-v3": "^3.0.0-rc.1",
+    "@midnight-ntwrk/onchain-runtime-v3": "^3.0.0",
+    "@noble/hashes": "^2.0.1",
     "@types/object-inspect": "^1.8.1",
     "object-inspect": "^1.12.3"
   },
   "devDependencies": {
-    "@types/node": "^22.15.29",
-    "eslint": "^8.57.0",
-    "typescript-eslint": "^8.19.0",
+    "@types/node": "^25.5.0",
+    "eslint": "^10.1.0",
+    "typescript-eslint": "^8.58.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.2",
-    "glob": "^11.0.1",
+    "glob": "^13.0.6",
     "prettier": "^3.4.2",
-    "typedoc": "^0.28.1",
+    "typedoc": "^0.28.19",
     "typedoc-plugin-markdown": "4.6.4",
-    "typescript": "^5.8.3",
-    "vitest": "^3.2.1"
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/midnight-ntwrk/artifacts.git"
+    "url": "https://github.com/LFDT-Minokawa/compact.git"
   }
 }
