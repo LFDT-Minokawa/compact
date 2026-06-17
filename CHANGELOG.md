@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.31.108, language 0.23.105, runtime 0.16.103]
+## [Toolchain 0.31.110, language 0.23.106, runtime 0.16.103]
 
 ### Added
 
@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   multiple bindings properly but now do.  This was not previously a problem
   because the upstream passes did not produce such `let*` forms.
 
-## [Toolchain 0.31.107, language 0.23.104, runtime 0.16.102]
+## [Toolchain 0.31.109, language 0.23.105, runtime 0.16.102]
 
 ### Changed
 
@@ -50,6 +50,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in `runtime/package.json` remove the onchain-runtime dependency and update the
   onchain-runtime nixDependency, in `runtime` run
   `npm install --package-lock-only --ignore-scripts`, in `compact` run `nix build`
+
+## [Toolchain 0.31.108, language 0.23.105, runtime 0.16.101]
+
+### Added
+
+- Add `ecNeg` to the standard library for JubJub point negation.
+
+## [Toolchain 0.31.107, language 0.23.104, runtime 0.16.101]
+
+### Fixed
+
+- Fix [issue #456](https://github.com/LFDT-Minokawa/compact/issues/456), a ZKIR
+  v2 bug in Schnorr signature verification.  This change also fixes a bug in
+  Schnorr signature verification for the experimental ZKIR v3 backend.
+
+### Internal notes
+
+- The Schnorr signature verification feature is unreleased (added in toolchain
+  0.31.104).
 
 ## [Toolchain 0.31.106, language 0.23.104, runtime 0.16.101]
 

@@ -24,6 +24,7 @@ export circuit nativeMethods(): [] {
   const e: Field = degradeToTransient(default<Bytes<32>>);
   const f: Bytes<32> = upgradeFromTransient(default<Field>);
   const g: JubjubPoint = ecAdd(default<JubjubPoint>, default<JubjubPoint>);
+  const g2: JubjubPoint = ecNeg(default<JubjubPoint>);
   const h: JubjubPoint = ecMul(default<JubjubPoint>, default<Field>);
   const i: JubjubPoint = ecMulGenerator(default<Field>);
   const j: JubjubPoint = hashToCurve<Field>(default<Field>);
