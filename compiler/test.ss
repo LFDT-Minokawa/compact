@@ -66212,19 +66212,22 @@ groups than for single tests.
       '(
         "{"
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
-        "  \"do_communications_commitment\": false,"
+        "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Point<Jubjub>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
         "    { \"op\": \"encode\", \"outputs\": [\"%x.1\", \"%y.2\"], \"input\": \"%a.0\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.3\", \"a\": \"%x.1\" },"
         "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%t.4\", \"inputs\": [\"%neg.3\", \"%y.2\"] },"
-        "    { \"op\": \"output\", \"val\": \"%t.4\" }"
+        "    { \"op\": \"output\", \"vals\": [\"%t.4\"] }"
         "  ]"
-        "}")))
-
+        "}"))
+    )
 )
 )
 
@@ -83091,7 +83094,7 @@ groups than for single tests.
         ))
     )
 
-  ;; ecNeg: negate a JubjubPoint (print-typescript, both backends)
+  ;; ecNeg: negate a JubjubPoint
   (test
     '(
       "import CompactStandardLibrary;"
@@ -83103,7 +83106,17 @@ groups than for single tests.
       "  return ecNeg(a);"
       "}"
       )
-    (succeeds))
+    (stage-javascript
+      '(
+        "test('elliptic curve negation', () => {"
+        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "  const g = runtime.ecMulGenerator(1n);"
+        "  const neg = runtime.ecNeg(g);"
+        "  expect(contract.circuits.foo(context, g).result).toEqual(neg);"
+        "  expect(contract.circuits.foo(context, neg).result).toEqual(g);"
+        "});"
+        ))
+    )
 
   ; issue 226
   (test
