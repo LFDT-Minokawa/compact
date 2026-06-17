@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v4';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 
 /**
  * Encapsulates the data required to produce a zero-knowledge proof except the circuit output
