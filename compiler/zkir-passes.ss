@@ -182,6 +182,11 @@
                   (print-gate "ec_add" `[a_x ,ax] `[a_y ,ay] `[b_x ,bx] `[b_y ,by])
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
+              (register-handler! 'ecNeg
+                (lambda (src align res* ax ay)
+                  (print-gate "neg" `[a ,ax])
+                  (new-var! (car res*))
+                  (bind-var! (cadr res*) ay)))
               (register-handler! 'ecMul
                 (lambda (src align res* ax ay b)
                   (print-gate "ec_mul" `[a_x ,ax] `[a_y ,ay] `[scalar ,b])
