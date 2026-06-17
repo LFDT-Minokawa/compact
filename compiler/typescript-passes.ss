@@ -484,7 +484,9 @@
         (format "__compactContractsImport_~a" contract-name))
 
       (define (contract-import-path contract-name)
-        (format "../../~a/contract/index.js" contract-name))
+        (if (string=? (print-contract-name contract-name) (get-self-contract-name))
+            "."
+            (format "../../~a/contract/index.js" contract-name)))
 
       (define (pl-array->public-bindings pl-array)
         (let f ([pl-array pl-array] [pb* '()])

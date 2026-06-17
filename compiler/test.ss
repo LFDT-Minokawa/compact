@@ -69853,6 +69853,10 @@ groups than for single tests.
     "test-center/compact/threading.compact"
     (stage-javascript "test-center/ts/threading-hacky.ts"))
 
+  (test
+    "test-center/composable/Self/C.compact"
+    (stage-javascript "test-center/ts/composable/self.ts"))
+
   (test-group
     ((source-file "test-center/composable/Basic/Inner.compact")
      (stage-javascript innerCode '()))
