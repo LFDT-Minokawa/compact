@@ -223,7 +223,7 @@ describe('builtin hash functions', () => {
     const g = compactRuntime.ecMulGenerator(1n);
     const neg_g = compactRuntime.ecNeg(g);
     // neg(x, y) = (FIELD_MODULUS - x, y)
-    expect(neg_g.x).toEqual(compactRuntime.FIELD_MODULUS - g.x);
+    expect(neg_g.x).toEqual(compactRuntime.MAX_FIELD + 1n - g.x);
     expect(neg_g.y).toEqual(g.y);
     // neg(neg(g)) == g
     expect(compactRuntime.ecNeg(neg_g)).toEqual(g);
