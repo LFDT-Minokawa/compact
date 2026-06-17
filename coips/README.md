@@ -25,10 +25,14 @@ They can have several different statuses as they move through the lifecycle of a
 
 ## Accepted, Implemented, and Released CoIPs
 
+| CoIP | Title | Authors | Category | Status |
+| --- | --- | --- | --- | --- |
+| 1 | Compact Improvement Proposal Process | Bob Blessing-Hartley and Kevin Millikin | Process | Implemented |
+
 ## Draft and Submitted CoIPs
 
 | CoIP | Title | Authors | Category | Status |
 | --- | --- | --- | --- | --- |
-| 1 | Compact Improvement Proposal Process | Bob Blessing-Hartley and Kevin Millikin | Process | Draft |
+| 2 | Contract Interfaces, References, and Calls | Jonathan Sobel | Language | Draft |
 
 ## Rejected, Superseded, Obsolete, and Withdrown CoIPs
