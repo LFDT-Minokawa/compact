@@ -198,7 +198,7 @@
       (const src kwd (cbinding cbinding* ...) (comma* ...) semicolon) => (const #f cbinding #f cbinding* ...)
       (if src kwd lparen expr rparen stmt1 kwd-else stmt2) => (if expr 3 stmt1 3 stmt2)
       (if src kwd lparen expr rparen stmt) => (if expr 3 stmt)
-      (for src kwd lparen kwd-const var-name kwd-of start dotdot end rparen stmt) => (for var-name start end #f stmt)
+      (for src kwd lparen kwd-const var-name kwd-of tsize0 dotdot tsize1 rparen stmt) => (for var-name tsize0 tsize1 #f stmt)
       (for src kwd lparen kwd-const var-name kwd-of expr rparen stmt) => (for var-name expr #f stmt)
       blck
       )

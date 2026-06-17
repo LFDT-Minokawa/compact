@@ -63,24 +63,19 @@
       (define (make-witness alignment* primitive-type*)
         (lambda (var-name* src test triv* instr*)
           (with-output-language (Lzkir Instruction)
-            (define (make-private-input var-name)
+            (define (make-private-input var-name primitive-type)
               ;; The ZKIR v2 backend has this special case for literal true guards.
               (if (eq? test 1)
-                  `(private_input ,var-name)
-                  `(private_input ,var-name ,test)))
-            (if (jubjub-point-alignment? alignment*)
-                (let* ([pt0 (make-temp-id src 'pt)] [pt1 (make-temp-id src 'pt)])
-                  (assert (= (length var-name*) 1))
-                  (cons*
-                    `(decode "Point<Jubjub>" ,(car var-name*) ,pt0 ,pt1)
-                    (make-private-input pt1)
-                    (make-private-input pt0)
-                    instr*))
-                (fold-left
-                  (lambda (instr* var-name primitive-type)
-                    (emit-constraints-for var-name primitive-type
-                      (cons (make-private-input var-name) instr*)))
-                  instr* var-name* primitive-type*)))))
+                  `(private_input ,(type->string primitive-type) ,var-name)
+                  `(private_input ,(type->string primitive-type) ,var-name ,test)))
+            (fold-left
+              (lambda (instr* var-name primitive-type)
+                ; NB: the public inputs are 0 if a conditionally executed witness
+                ; call is not executed, and at present emit-constraints-for is always
+                ; okay with zero
+                (emit-constraints-for var-name primitive-type
+                  (cons (make-private-input var-name primitive-type) instr*)))
+              instr* var-name* primitive-type*))))
 
       (define (make-native name arg*)
         ;; Get the list of alignment atoms for a 0-based arg index.
@@ -92,28 +87,47 @@
           (with-output-language (Lzkir Instruction)
             ;; Generally assume that the arity is correct here.
             (case name
-              [(constructNativePoint)
+              [(constructJubjubPoint)
                (cons `(decode "Point<Jubjub>" ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
               [(degradeToTransient)
                (cons `(copy ,(car var-name*) ,(cadr triv*)) instr*)]
               [(ecAdd)
                (assert (= (length var-name*) 1))
                (cons `(add ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
+              [(ecNeg)
+               (assert (= (length var-name*) 1))
+               (let ([tmp-x (make-temp-id src 'x)]
+                     [tmp-y (make-temp-id src 'y)]
+                     [tmp-neg-x (make-temp-id src 'neg)])
+                 (cons*
+                   `(decode "Point<Jubjub>" ,(car var-name*) ,tmp-neg-x ,tmp-y)
+                   `(neg ,tmp-neg-x ,tmp-x)
+                   `(encode ,tmp-x ,tmp-y ,(car triv*))
+                   instr*))]
               [(ecMul)
                (assert (= (length var-name*) 1))
                (cons `(ec_mul ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
               [(ecMulGenerator)
                (assert (= (length var-name*) 1))
                (cons `(ec_mul_generator ,(car var-name*) ,(car triv*)) instr*)]
+              [(jubjubScalarFromNative)
+               (assert (= (length var-name*) 1))
+               (cons `(decode "Scalar<Jubjub>" ,(car var-name*) ,(car triv*)) instr*)]
               [(hashToCurve)
                (assert (= (length var-name*) 1))
                (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
-              [(nativePointX)
+              [(jubjubPointX)
                (assert (= (length var-name*) 1))
                (cons `(encode ,(car var-name*) ,(make-temp-id src 'ingore) ,(car triv*)) instr*)]
-              [(nativePointY)
+              [(jubjubPointY)
                (assert (= (length var-name*) 1))
                (cons `(encode ,(make-temp-id src 'ignore) ,(car var-name*) ,(car triv*)) instr*)]
+              [(keccak256)
+               (assert (= (length var-name*) 2))
+               (let ([alignment* (arg->alignment arg* 0)])
+                 (cons `(keccak256 ,(car var-name*) ,(cadr var-name*)
+                          (,alignment* ...) ,triv* ...)
+                   instr*))]
               [(persistentCommit)
                (assert (= (length var-name*) 2))
                ;; The two source arguments are swapped for the persistent_hash gate.  We assume
@@ -453,14 +467,12 @@
                          (let* ([pt0 (make-temp-id default-src 'pt)]
                                 [pt1 (make-temp-id default-src 'pt)])
                            (zkir-instr*
-                             (cons
-                               `(decode "Point<Jubjub>" ,(car var-name*) ,pt0 ,pt1)
+                             (cons*
+                               `(encode ,pt0 ,pt1 ,(car var-name*))
                                (if (eq? test-val 1)
-                                   (cons* `(public_input ,pt1) `(public_input ,pt0)
-                                     (zkir-instr*))
-                                   (cons* `(public_input ,pt1 ,test-val)
-                                     `(public_input ,pt0 ,test-val)
-                                     (zkir-instr*)))))
+                                   `(public_input "Point<Jubjub>" ,(car var-name*))
+                                   `(public_input "Point<Jubjub>" ,(car var-name*) ,test-val))
+                               (zkir-instr*)))
                            (values (list -2 -2) (list pt0 pt1)))
                          (begin
                            (for-each (lambda (var-name)
@@ -468,8 +480,8 @@
                                          (cons
                                            ;; A case duplicated from ZKIR v2.
                                            (if (eq? test-val 1)
-                                               `(public_input ,var-name)
-                                               `(public_input ,var-name ,test-val))
+                                               `(public_input "Scalar<BLS12-381>" ,var-name)
+                                               `(public_input "Scalar<BLS12-381>" ,var-name ,test-val))
                                            (zkir-instr*))))
                              var-name*)
                            (values (map assemble-alignment-atom alignment*) var-name*))))])
@@ -603,29 +615,11 @@
       ;; conversion instructions.
       (define (unzip-arguments arg*)
         (if (null? arg*)
-            (values '() '() '())
-            (let-values ([(name* type* instr*) (unzip-arguments (cdr arg*))])
+            (values '() '())
+            (let-values ([(name* type*) (unzip-arguments (cdr arg*))])
               (nanopass-case (Lflattened Argument) (car arg*)
                 [(argument (,var-name* ...) (ty (,alignment* ...) (,primitive-type* ...)))
-                 (if (= (length primitive-type*) 1)
-                     (nanopass-case (Lflattened Primitive-Type) (car primitive-type*)
-                       [(topaque ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
-                        ;; We have chosen not to flatten JubjubPoint into a pair of values (in
-                        ;; `flatten-datatype`) because we can't recover the ZKIR type from that.
-                        ;;
-                        ;; If it's a JubjubPoint the circuit will have a pair of field values as
-                        ;; inputs in the proof primage, because that's what the JS code will have
-                        ;; captured.  Expand the inputs into the pair of inputs and insert a
-                        ;; `decode` instruction.
-                        (let* ([x (make-temp-id default-src 'x)]
-                               [y (make-temp-id default-src 'y)])
-                          (values (cons* x y name*)
-                            (with-output-language (Lflattened Primitive-Type)
-                              (cons* `(tfield) `(tfield) type*))
-                            (with-output-language (Lzkir Instruction)
-                              (cons `(decode "Point<Jubjub>" ,(car var-name*) ,x ,y) instr*))))]
-                       [else (values (append var-name* name*) (append primitive-type* type*) instr*)])
-                     (values (append var-name* name*) (append primitive-type* type*) instr*))]))))
+                 (values (append var-name* name*) (append primitive-type* type*))]))))
 
       (define (type->string primitive-type)
         (nanopass-case (Lflattened Primitive-Type) primitive-type
@@ -662,38 +656,49 @@
              '() pelt*) ...)])
 
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-      [(circuit ,src ,function-name (,arg* ...) ,type ,stmt* ... (,triv* ...))
+      [(circuit ,src ,function-name (,arg* ...) (ty (,alignment* ...) (,primitive-type* ...))
+         ,stmt* ... (,triv* ...))
        ;; - Replace the internal name with the exported ones
        ;; - Insert type constraints for inputs
        ;; - Translate the statements in the body
-       ;; - Add instructions for the outputs
+       ;; - Emit an (output ...) terminator with the result trivs as operands.
        (fluid-let ([default-src src])
-         (let-values ([(var-name* type* instr*) (unzip-arguments arg*)])
+         (let-values ([(var-name* arg-type*) (unzip-arguments arg*)])
            (let* ([constraint*
                     (fold-left (lambda (constraint* var-name type)
                                  (emit-constraints-for var-name type constraint*))
-                      instr* var-name* type*)]
+                      '() var-name* arg-type*)]
                   [instr*
                     (fold-left (lambda (instr* stmt) (Statement stmt instr*))
                       constraint* stmt*)]
                   [body
-                    (fold-left (lambda (body triv)
-                                 (with-output-language (Lzkir Instruction)
-                                   (cons `(output ,triv) body)))
-                      instr* triv*)])
+                    (if (null? triv*)
+                        instr*
+                        (cons
+                          (with-output-language (Lzkir Instruction)
+                            `(output ,triv* ...))
+                          instr*))])
              `(circuit ,src (,(hashtable-ref export-ht function-name '()) ...)
-                ((,var-name* ,(map type->string type*)) ...)
+                ((,var-name* ,(map type->string arg-type*)) ...)
+                (,(map type->string primitive-type*) ...)
                 ,(reverse body) ...))))])
 
     (Statement : Statement (ir instr*) -> * (instr*)
-      [(= (,var-name* ...) (call ,src ,test ,function-name ,triv* ...))
+      [(= ,test (,var-name* ...) (call ,src ,function-name ,triv* ...))
        (let ([code-generator (hashtable-ref callable-ht function-name #f)])
          (assert code-generator)
          (code-generator var-name* src test triv* instr*))]
-      [(= (,var-name* ...) (contract-call ,src ,test ,elt-name (,triv ,primitive-type) ,triv* ...))
+      [(= ,test (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...))
        (source-errorf src "cross-contract calls are not yet supported")]
-      [(= (,var-name0 ,var-name1) (field->bytes ,src ,test ,len ,triv))
+      [(= ,test (,var-name) (default ,opaque-type))
+       (assert (string=? opaque-type "JubjubPoint"))
+       (with-output-language (Lzkir Instruction)
+         (cons `(decode "Point<Jubjub>" ,var-name 0 1) instr*))]
+      [(= ,test (,var-name0 ,var-name1) (field->bytes ,src ,len ,triv))
        ;; TODO(kmillikin): this needs to respect test because `constrain_bits` can fail.
+       ;; NB: missing-guard-workarounds now implements a workaround that ensures
+       ;; field->bytes receives a large enough length that it won't produce
+       ;; constrain_bits when the test might be false
        (with-output-language (Lzkir Instruction)
          (if (<= len (field-bytes))
              (cons*
@@ -702,7 +707,12 @@
                instr*)
              (cons `(div_mod_power_of_two ,var-name0 ,var-name1 ,triv ,(* (field-bytes) 8))
                instr*)))]
-      [(= (,var-name* ...) (bytes->vector ,triv))
+      [(= ,test (,var-name0 ,var-name1) (div-mod-power-of-two ,triv ,bits))
+       (with-output-language (Lzkir Instruction)
+         (cons
+           `(div_mod_power_of_two ,var-name0 ,var-name1 ,triv ,bits)
+           instr*))]
+      [(= ,test (,var-name* ...) (bytes->vector ,triv))
        (assert (not (null? var-name*)))
        (with-output-language (Lzkir Instruction)
          (let loop ([var-name* var-name*] [var triv] [instr* instr*])
@@ -711,7 +721,7 @@
                (let ([quo (make-temp-id default-src 'quo)])
                  (loop (cdr var-name*) quo
                    (cons `(div_mod_power_of_two ,quo ,(car var-name*) ,var ,8) instr*))))))]
-      [(= (,var-name* ...) (public-ledger ,src ,test ,ledger-field-name ,sugar? (,path-elt* ...)
+      [(= ,test (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...)
                              ,src^ ,adt-op ,triv* ...))
        (nanopass-case (Lflattened ADT-Op) adt-op
          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...)
@@ -744,7 +754,7 @@
                                  env)))])))])
             (assemble test alignment* var-name* src (map Path-Element path-elt*) env vm-code
               instr*))])]
-      [(= ,var-name ,single)
+      [(= ,test ,var-name ,single)
        (Single single var-name instr*)]
       [(assert ,src ,test ,mesg)
        (with-output-language (Lzkir Instruction)
@@ -767,9 +777,9 @@
       [(* ,mbits ,triv0 ,triv1)
        (with-output-language (Lzkir Instruction)
          (cons `(mul ,var-name ,triv0 ,triv1) instr*))]
-      [(< ,mbits ,triv0 ,triv1)
+      [(< ,bits ,triv0 ,triv1)
        (with-output-language (Lzkir Instruction)
-         (cons `(less_than ,var-name ,triv0 ,triv1 ,mbits) instr*))]
+         (cons `(less_than ,var-name ,triv0 ,triv1 ,bits) instr*))]
       [(== ,triv0 ,triv1)
        (with-output-language (Lzkir Instruction)
          (cons `(test_eq ,var-name ,triv0 ,triv1) instr*))]
@@ -785,8 +795,11 @@
              `(div_mod_power_of_two ,ig1 ,var-name ,quo ,8)
              `(div_mod_power_of_two ,quo ,ig0 ,triv ,(* nat 8))
              instr*)))]
-      [(bytes->field ,src ,test ,len ,triv0 ,triv1)
+      [(bytes->field ,src ,len ,triv0 ,triv1)
        ;; TODO(kmillikin): This should respect test and be conditional in the ZKIR output.
+       ;; NB: missing-guard-workarounds now implements a workaround that ensures
+       ;; bytes->field receives inputs that can't cause reconstitute_field
+       ;; to fail when test turns out to be false
        (with-output-language (Lzkir Instruction)
          ;; flatten-datatype takes care of this case.
          (assert (> len (field-bytes)))
@@ -801,15 +814,22 @@
                                  (values (car triv+) instr*)
                                  (let ([div (make-temp-id default-src 'div)])
                                    (values div (recur div (car triv+) (cdr triv+) instr*))))])
+                   ; TODO: use of reconstitute_field should be conditioned on test
+                   ; NB: missing-guard-workarounds now implements a workaround that ensures
+                   ; vector->bytes gets valid inputs when test turns out to be false
                    (cons `(reconstitute_field ,result ,div ,current ,8) instr*)))))]
-      [(downcast-unsigned ,src ,test ,nat ,triv)
+      [(downcast-unsigned ,src ,safe ,nat? ,nat ,triv)
        ;; TODO(kmillikin): This needs to be conditional on test.
+       ;; NB: missing-guard-workarounds now implements a workaround that ensures
+       ;; downcast-unsigned's safe flag is #t whenever the test might be false.
        (with-output-language (Lzkir Instruction)
          ;; TODO(kmillikin): The `copy` here is unnecessary.  Remove it.
          (cons `(copy ,var-name ,triv)
-           (emit-constraints-for triv
-             (with-output-language (Lflattened Primitive-Type) `(tfield ,nat))
-             instr*)))]
+           (if safe
+               instr*
+               (emit-constraints-for triv
+                 (with-output-language (Lflattened Primitive-Type) `(tfield ,nat))
+                 instr*))))]
       [else
         (fprintf (current-error-port) "unimplemented: ~s\n" ir)
         (assert cannot-happen)])
@@ -856,7 +876,7 @@
        (for-each Circuit-Definition cdefn*)
        ir])
     (Circuit-Definition : Circuit-Definition (ir) -> * ()
-      [(circuit ,src (,name* ...) ((,var-name* ,zkir-type*) ...) ,instr* ...)
+      [(circuit ,src (,name* ...) ((,var-name* ,zkir-type*) ...) (,zkir-type0* ...) ,instr* ...)
        (define (print-circuit op)
          (print-json-compact op
            (with-var-table
@@ -864,10 +884,12 @@
                                                    `((name . ,(var->string var-name))
                                                      (type . ,zkir-type)))
                                             var-name* zkir-type*))]
-                    [instructions (list->vector (maplr Instruction instr*))])
+                    [instructions (list->vector (maplr Instruction instr*))]
+                    [outputs (list->vector zkir-type0*)])
                `((version . ((major . 3) (minor . 0)))
-                 (do_communications_commitment . #f)
+                 (do_communications_commitment . #t)
                  (inputs . ,inputs)
+                 (outputs . ,outputs)
                  (instructions . ,instructions))))))
        (let ([output-port*
                (fold-left (lambda (output-port* name)
@@ -909,36 +931,40 @@
       [(ec_mul ,[* outp] ,[* inp0] ,[* inp1])
        `((op . "ec_mul") (output . ,outp) (a . ,inp0) (scalar . ,inp1))]
       [(ec_mul_generator ,[* outp] ,[* inp])
-       `((op . "ec_mul_generator") (outputs . ,outp) (scalar . ,inp))]
+       `((op . "ec_mul_generator") (output . ,outp) (scalar . ,inp))]
       [(encode ,outp0 ,outp1 ,[* inp])
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
          `((op . "encode") (outputs . ,(vector outp0 outp1)) (input . ,inp)))]
       [(hash_to_curve ,[* outp] ,[* inp*] ...)
        `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
+      [(keccak256 ,outp0 ,outp1 (,alignment* ...) ,[* inp*] ...)
+       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
+         `((op . "keccak256") (outputs . ,(vector outp0 outp1))
+           (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*))))]
       [(less_than ,[* outp] ,[* inp0] ,[* inp1] ,imm)
        `((op . "less_than") (output . ,outp) (a . ,inp0) (b . ,inp1) (bits . ,imm))]
       [(mul ,[* outp] ,[* inp0] ,[* inp1])
        `((op . "mul") (output . ,outp) (a . ,inp0) (b . ,inp1))]
       [(neg ,[* outp] ,[* inp])
        `((op . "neg") (output . ,outp) (a . ,inp))]
-      [(output ,[* inp])
-       `((op . "output") (val . ,inp))]
+      [(output ,[* inp*] ...)
+       `((op . "output") (vals . ,(list->vector inp*)))]
       [(persistent_hash ,outp0 ,outp1 (,alignment* ...) ,[* inp*] ...)
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
          `((op . "persistent_hash") (outputs . ,(vector outp0 outp1))
            (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*))))]
-      [(private_input ,[* outp])
+      [(private_input ,zkir-type ,[* outp])
        ;; Kind of warty: rather than a literal true guard or making it truly optional by leaving it
        ;; out of the JSON representation, ZKIR wants to put a JSON null value there.
-       `((op . "private_input") (output . ,outp) (guard . ,(void)))]
-      [(private_input ,[* outp] ,[* inp])
-       `((op . "private_input") (output . ,outp) (guard . ,inp))]
-      [(public_input ,[* outp])
+       `((op . "private_input") (type . ,zkir-type) (output . ,outp) (guard . ,(void)))]
+      [(private_input ,zkir-type ,[* outp] ,[* inp])
+       `((op . "private_input") (type . ,zkir-type) (output . ,outp) (guard . ,inp))]
+      [(public_input ,zkir-type ,[* outp])
        ;; Kind of warty: rather than a literal true guard or making it truly optional by leaving it
        ;; out of the JSON representation, ZKIR wants to put a JSON null value there.
-       `((op . "public_input") (output . ,outp) (guard . ,(void)))]
-      [(public_input ,[* outp] ,[* inp])
-       `((op . "public_input") (output . ,outp) (guard . ,inp))]
+       `((op . "public_input") (type . ,zkir-type) (output . ,outp) (guard . ,(void)))]
+      [(public_input ,zkir-type ,[* outp] ,[* inp])
+       `((op . "public_input") (type . ,zkir-type) (output . ,outp) (guard . ,inp))]
       [(impact ,[* inp] ,[* inp*] ...)
        `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
       [(reconstitute_field ,[* outp] ,[* inp0] ,[* inp1] ,imm)

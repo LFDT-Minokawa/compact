@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v2';
+import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
 import { CompactError } from './error.js';
 
 /**
@@ -188,6 +188,39 @@ export class CompactTypeMerkleTreePath<A> implements CompactType<MerkleTreePath<
     return this.leaf.toValue(value.leaf).concat(this.path.toValue(value.path));
   }
 }
+
+/**
+ * A Schnorr signature over the JubJub curve. TypeScript representation of the
+ * Compact type of the same name.
+ */
+export interface JubjubSchnorrSignature {
+  readonly announcement: JubjubPoint;
+  readonly response: bigint;
+}
+
+/**
+ * Runtime type of {@link JubjubSchnorrSignature}
+ */
+export const CompactTypeJubjubSchnorrSignature: CompactType<JubjubSchnorrSignature> = {
+  alignment(): ocrt.Alignment {
+    return [
+      { tag: 'atom', value: { tag: 'field' } },
+      { tag: 'atom', value: { tag: 'field' } },
+      { tag: 'atom', value: { tag: 'field' } },
+    ];
+  },
+  fromValue(value: ocrt.Value): JubjubSchnorrSignature {
+    const announcement = CompactTypeJubjubPoint.fromValue(value);
+    const responseVal = value.shift();
+    if (responseVal == undefined) {
+      throw new CompactError('expected JubjubSchnorrSignature');
+    }
+    return { announcement, response: ocrt.valueToBigInt([responseVal]) };
+  },
+  toValue(value: JubjubSchnorrSignature): ocrt.Value {
+    return CompactTypeJubjubPoint.toValue(value.announcement).concat(ocrt.bigIntToValue(value.response));
+  },
+};
 
 /**
  * Runtime type of the builtin `Field` type

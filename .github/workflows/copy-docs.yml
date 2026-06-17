@@ -1,0 +1,43 @@
+name: Copy Compact docs to midnight-docs
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to use for doc generation'
+        required: true
+        type: choice
+        default: 'release/midnight'
+        options:
+          - main
+          - release/midnight
+      docs_branch:
+        description: 'Branch to merge with in midnight-docs'
+        required: true
+        type: string
+        default: "main"
+      pr_description:
+        description: 'PR description for docs'
+        required: true
+        type: string
+        default: 'Compact toolchain docs copied to midnight-docs'
+      draft_pr:
+        description: 'Create PR as draft'
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  copy-docs:
+    name: Create branch in midnight-docs with latest documentation
+    permissions:
+      contents: read
+    uses: ./.github/workflows/generate-docs.yml
+    secrets: inherit
+    with:
+      branch: ${{ inputs.branch }}
+      docs_branch: ${{ inputs.docs_branch }}
+      pr_description: ${{ inputs.pr_description }}
+      draft_pr: ${{ inputs.draft_pr }}

@@ -31,11 +31,11 @@
 			"patterns": [
 				{
 					"name": "keyword.control.compact",
-					"match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|enum|fold|for|if|include|ledger|map|new|of|pad|pragma|prefix|return|struct|type|witness|pure|sealed|slice)\\b"
+					"match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|enum|fold|for|if|include|ledger|map|new|of|pad|pragma|return|struct|type|witness|pure|sealed|slice)\\b"
 				},
 				{
 					"name": "keyword.control.import.compact",
-					"match": "\\b(import|from|module|export)\\b"
+					"match": "\\b(import|from|module|export|prefix)\\b"
 				},
 				{
 					"name": "constant.language.boolean.compact",
