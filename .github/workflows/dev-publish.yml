@@ -1,0 +1,285 @@
+# On-demand ("dev") publish of the Compact toolchain.
+#
+# Purpose
+#   Produce an INSTALLABLE compactc binary + @midnight-ntwrk/compact-runtime npm
+#   package for ANY branch/commit, without waiting for a tagged release. Lets
+#   downstream consumers (midnight-js, midnight-node, compact-js, midnight-toolkit)
+#   pin a dev coordinate instead of cloning + Nix-building compactc per CI run.
+#
+# Trigger contract
+#   - Manual only (workflow_dispatch). Runnable by anyone with write access to
+#     this repository. Not on push/PR/schedule -- this is opt-in, on demand.
+#   - Input `branch` selects the ref to build and publish from.
+#
+# Coordinates produced (stable, pinnable)
+#   - npm:    @midnight-ntwrk/compact-runtime@<base>-dev.<sha>  (dist-tag `dev`)
+#             registry https://npm.pkg.github.com/  (scope @midnight-ntwrk)
+#   - binary: GitHub *prerelease* on this repo, tag `compactc-dev-<sha>`,
+#             assets compactc_dev-<sha>_<arch>.zip
+#   <sha> is the full 40-char commit SHA.
+#
+# Retention
+#   - npm `dev.*` prereleases publish under dist-tag `dev` and never move `latest`.
+#   - See doc/dev-builds.md for the documented retention/cleanup policy.
+name: On-demand dev publish of compact toolchain
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch or ref to build and publish from'
+        required: true
+        type: string
+      publish_runtime:
+        description: 'Publish @midnight-ntwrk/compact-runtime to GitHub Packages'
+        required: true
+        type: boolean
+        default: true
+      publish_compiler:
+        description: 'Publish compactc binary as a GitHub prerelease'
+        required: true
+        type: boolean
+        default: true
+      include_linux_arm:
+        description: 'Also build the Linux aarch64 binary'
+        required: true
+        type: boolean
+        default: true
+      include_macos_arm:
+        description: 'Also build the macOS aarch64 (Apple silicon) binary'
+        required: true
+        type: boolean
+        default: false
+      include_macos_intel:
+        description: 'Also build the macOS x86_64 (Intel) binary'
+        required: true
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: dev-publish-${{ github.workflow }}-${{ inputs.branch }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    name: Resolve commit and compute coordinates
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      branch: ${{ inputs.branch }}
+      sha: ${{ steps.coord.outputs.sha }}
+      bin_tag: ${{ steps.coord.outputs.bin_tag }}
+      runtime_version: ${{ steps.coord.outputs.runtime_version }}
+      linux_arm: aarch64-unknown-linux-musl
+      linux_x86: x86_64-unknown-linux-musl
+      macos_arm: aarch64-darwin
+      macos_x86: x86_64-darwin
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Compute coordinates
+        id: coord
+        run: |
+          set -euo pipefail
+          # Use the full 40-char commit SHA so the coordinate is unambiguous and
+          # cannot collide (short SHAs can, in a repo this size).
+          SHA="$(git rev-parse HEAD)"
+          BASE_VERSION="$(node -p "require('./runtime/package.json').version")"
+          RUNTIME_VERSION="${BASE_VERSION}-dev.${SHA}"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "bin_tag=dev-${SHA}" >> "$GITHUB_OUTPUT"
+          echo "runtime_version=${RUNTIME_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "compactc binary tag: dev-${SHA}"
+          echo "runtime npm version:  ${RUNTIME_VERSION}"
+
+  build-linux-x86:
+    name: Build compactc binary for Linux x86_64 (Intel)
+    uses: ./.github/workflows/release-build.yml
+    needs: [ setup ]
+    if: ${{ inputs.publish_compiler }}
+    permissions:
+      contents: read
+    secrets: inherit
+    with:
+      tag: ${{ needs.setup.outputs.bin_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
+      artifact: dev-linux-x86_64
+      platform: ubuntu-latest
+      architecture: ${{ needs.setup.outputs.linux_x86 }}
+      buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: false
+      skipCache: false
+
+  build-linux-arm:
+    name: Build compactc binary for Linux aarch64 (Arm)
+    uses: ./.github/workflows/release-build.yml
+    needs: [ setup ]
+    if: ${{ inputs.publish_compiler && inputs.include_linux_arm }}
+    permissions:
+      contents: read
+    secrets: inherit
+    with:
+      tag: ${{ needs.setup.outputs.bin_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
+      artifact: dev-linux-aarch64
+      platform: ubuntu-24.04-arm
+      architecture: ${{ needs.setup.outputs.linux_arm }}
+      buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: false
+      skipCache: false
+
+  build-macos-arm:
+    name: Build compactc binary for macOS aarch64 (Arm)
+    uses: ./.github/workflows/release-build.yml
+    needs: [ setup ]
+    if: ${{ inputs.publish_compiler && inputs.include_macos_arm }}
+    permissions:
+      contents: read
+    secrets: inherit
+    with:
+      tag: ${{ needs.setup.outputs.bin_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
+      artifact: dev-macos-aarch64
+      platform: macos-latest-xlarge
+      architecture: ${{ needs.setup.outputs.macos_arm }}
+      buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: false
+      skipCache: true
+
+  build-macos-intel:
+    name: Build compactc binary for macOS x86_64 (Intel)
+    uses: ./.github/workflows/release-build.yml
+    needs: [ setup ]
+    if: ${{ inputs.publish_compiler && inputs.include_macos_intel }}
+    permissions:
+      contents: read
+    secrets: inherit
+    with:
+      tag: ${{ needs.setup.outputs.bin_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
+      artifact: dev-macos-x86_64
+      platform: macos-15-intel
+      architecture: ${{ needs.setup.outputs.macos_x86 }}
+      buildCommand: nix build .\#compactc-binary -L
+      include_release_notes: false
+      skipCache: true
+
+  test-linux-x86:
+    name: Test compactc on Linux x86_64 (Intel)
+    uses: ./.github/workflows/release-test.yml
+    needs: [ setup, build-linux-x86 ]
+    if: ${{ inputs.publish_compiler }}
+    permissions:
+      contents: read
+    secrets: inherit
+    with:
+      tag: ${{ needs.setup.outputs.bin_tag }}
+      branch: ${{ needs.setup.outputs.branch }}
+      artifact: dev-linux-x86_64
+      platform: ubuntu-latest
+      architecture: ${{ needs.setup.outputs.linux_x86 }}
+
+  publish-compiler:
+    name: Publish compactc binary as a dev prerelease
+    if: ${{ inputs.publish_compiler }}
+    runs-on: ubuntu-latest
+    # The prerelease is created on LFDT-Minokawa/compact with the MIDNIGHTCI_REPO
+    # PAT (see step below), not GITHUB_TOKEN, so GITHUB_TOKEN needs only read here.
+    permissions:
+      contents: read
+    needs: [ setup, build-linux-x86, build-linux-arm, build-macos-arm, build-macos-intel, test-linux-x86 ]
+    steps:
+      - name: Verify required Linux x86_64 build/test passed
+        env:
+          RESULT_BUILD: ${{ needs.build-linux-x86.result }}
+          RESULT_TEST: ${{ needs.test-linux-x86.result }}
+        run: |
+          if [ "$RESULT_BUILD" != "success" ] || [ "$RESULT_TEST" != "success" ]; then
+            echo "::error::Required Linux x86_64 build/test did not pass."
+            exit 1
+          fi
+          echo "Required Linux x86_64 build/test passed."
+
+      - name: Fetch dev binary assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: dev-*
+          merge-multiple: true
+
+      - name: Create dev prerelease on LFDT-Minokawa/compact
+        id: create_release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        with:
+          repository: LFDT-Minokawa/compact
+          tag_name: compactc-${{ needs.setup.outputs.bin_tag }}
+          target_commitish: ${{ needs.setup.outputs.sha }}
+          name: Compact toolchain dev ${{ needs.setup.outputs.sha }}
+          draft: false
+          prerelease: true
+          fail_on_unmatched_files: true
+          files: compactc_${{ needs.setup.outputs.bin_tag }}_*.zip
+          token: ${{ secrets.MIDNIGHTCI_REPO }}
+          body: |
+            On-demand dev build of the Compact toolchain.
+
+            - Source ref: `${{ needs.setup.outputs.branch }}` @ `${{ needs.setup.outputs.sha }}`
+            - Runtime npm: `@midnight-ntwrk/compact-runtime@${{ needs.setup.outputs.runtime_version }}` (dist-tag `dev`)
+
+            Not a supported release. See doc/dev-builds.md for the retention policy.
+
+  publish-runtime:
+    name: Publish compact-runtime dev npm package
+    if: ${{ inputs.publish_runtime }}
+    runs-on: ubuntu-latest
+    # npm publish authenticates with the MIDNIGHTCI_PACKAGES_WRITE PAT against the
+    # @midnight-ntwrk scope (a different org than this repo), so GITHUB_TOKEN's
+    # packages scope does not apply -- contents:read (for checkout) is sufficient.
+    permissions:
+      contents: read
+    needs: [ setup ]
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.setup.outputs.branch }}
+
+      - name: Setup Nix with cache
+        uses: ./.github/actions/setup-nix-cache
+        with:
+          attic_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          always-auth: true
+          registry-url: https://npm.pkg.github.com/
+          scope: '@midnight-ntwrk'
+          node-version-file: '.nvmrc'
+
+      - name: Build publishable runtime tarball
+        run: nix build .#runtime.forPublish -L
+
+      - name: Repack with dev version and publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+          DEV_VERSION: ${{ needs.setup.outputs.runtime_version }}
+        run: |
+          set -euo pipefail
+          TGZ="$(ls result/lib/*.tgz)"
+          echo "Built tarball: $TGZ"
+          rm -rf stage && mkdir stage
+          tar -xzf "$TGZ" -C stage          # extracts ./package/
+          cd stage/package
+          # Override only the version string; dist/ from forPublish is untouched.
+          # (flake.nix warns not to bump runtime/package.json in-repo for prereleases,
+          #  so the dev version is applied here at publish time instead.)
+          npm version --no-git-tag-version --allow-same-version "$DEV_VERSION"
+          # Publish under dist-tag `dev` so `latest` is never moved to a dev build.
+          npm publish --tag dev --registry https://npm.pkg.github.com/
+          echo "Published @midnight-ntwrk/compact-runtime@${DEV_VERSION} (dist-tag dev)"
