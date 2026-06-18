@@ -1,66 +1,74 @@
-# Midnight Foundation Security Policy
 
-This document outlines security procedures and general policies for the Midnight Foundation.
 
-This policy adheres to the [vulnerability management guidance](https://www.linuxfoundation.org/security)
-for Linux Foundation projects.
+# Security Policy
 
-- [Disclosing a security issue](#disclosing-a-security-issue)
-- [Vulnerability management](#vulnerability-management)
-- [Suggesting changes](#suggesting-changes)
+The Compact programming language is an open-source project hosted by the Linux Foundation Decentralized Trust (LFDT) under the Minokawa project. The security and integrity of the Compact language are paramount, as it serves as the foundation for privacy-preserving smart contracts on live, high-value decentralized networks.
 
-## Disclosing a security issue
+This document outlines how to securely report vulnerabilities, our coordinated disclosure policy, and how we collaborate with core maintainers and network operators to protect users.
 
-The Midnight foundation takes all security issues seriously, which includes all source code repositories managed
-through our [GitHub organization](https://github.com/midnightntwrk). If you believe you have found a security vulnerability in any Midnight Foundation
-owned repository, *please report it using GitHub's private vulnerability reporting* and not through public GitHub issues. To learn more about GitHub's
-private vulnerability reporting and how to submit a vulnerability report, please review [GitHub's documentation on private reporting](https://docs.github.com/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability).
+## Reporting a Vulnerability
 
-Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
+**Please do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.**
 
-- The repository name or URL
-- Type of issue (buffer overflow, SQL injection, cross-site scripting, etc.)
-- Full paths of the source file(s) related to the manifestation of the issue
-- The location of the affected source code (tag/branch/commit or direct URL)
-- Any particular configuration required to reproduce the issue
-- Step-by-step instructions to reproduce the issue
-- Proof-of-concept or exploit code (if possible)
-- Impact of the issue, including how an attacker might exploit the issue
-- This information will help us triage your report more quickly
+If you believe you have found a security vulnerability in Compact, please report it privately to the core maintainers.
 
-A maintainer will acknowledge the report within three (3) business days, and
-will send a more detailed response within an additional three (3) business days
-indicating the next steps in handling your report.
+1. Navigate to the **[Security Advisories tab](https://github.com/LFDT-Minokawa/compact/security/advisories)** in this repository.
+2. Click **"Report a vulnerability"** to open a private draft advisory.
+3. Provide a detailed description of the issue, the steps to reproduce it, and any potential impact on zero-knowledge circuit generation, contract execution, or state transition.
 
-If you've been unable to successfully draft a vulnerability report via GitHub
-or have not received a response during the alloted response window, please
-reach out via the [Midnight foundation security contact email](mailto:security@midnight.foundation).
+Our maintainer team (led by Shielded Technologies) will acknowledge receipt of your vulnerability report within **48 hours** and provide a timeline for triage and resolution.
 
-After the initial reply to your report, the maintainers will endeavor to keep
-you informed of the progress towards a fix and full announcement, and may ask
-for additional information or guidance.
+## Supported Versions
 
-Thank you for improving the security of Midnight. We appreciate your dedication to responsible disclosure and will
-make every effort to acknowledge your contributions.
+Only the most recent major and minor releases receive active security updates.
 
-## Vulnerability management
+| Version | Supported |
+| --- | --- |
+| 1.x.x | :white_check_mark: |
+| < 1.0 | :x: |
 
-When the maintainers receive a disclosure report, they will assign it to a
-primary handler.
+*(Note: Pre-release and beta versions are strictly for testing and are not covered by prioritized security SLAs.)*
 
-This person will coordinate the fix and release process, which involves the
-following steps:
+---
 
-- confirming the issue
-- determining affected versions of the project
-- auditing code to find any potential similar problems
-- preparing fixes for all releases under maintenance
+## Governance & Coordinated Disclosure Policy
 
-## Preferred Languages
+Because Compact operates within a decentralized ecosystem, fixing a vulnerability requires more than just pushing a patch. Live networks must be upgraded carefully before a zero-day exploit becomes public.
 
-We prefer all communications to be in English.
+Under LFDT governance, we separate the responsibilities of **code maintenance** and **network operations**.
 
-## Suggesting changes
+### 1. Maintainer Triage & Patching
 
-If you have suggestions on how this process could be improved please submit an
-issue or pull request.
+The repository maintainers (primarily engineers from Shielded Technologies) are responsible for technical triage, zero-knowledge cryptographic review, and writing the mitigation code. All vulnerability resolution takes place in a private fork attached to the GitHub Security Advisory.
+
+### 2. The Pre-Disclosure Embargo List
+
+To protect live networks that rely on Compact for their consensus and smart contract execution, this project operates a strict **Coordinated Disclosure Embargo List**.
+
+Major network operators and ecosystem stewards—such as the **[Midnight Foundation](https://midnight.network)**—are granted advanced, private notification of high-severity vulnerabilities before a CVE is published or the patch is merged into the public `main` branch.
+
+**Purpose of the Embargo List:**
+
+* To allow operators of live, high-value infrastructure to prepare node operators and validators for an emergency network upgrade.
+* To prevent zero-day exploitation against live blockchain state while the patch is finalized.
+
+**Criteria for Inclusion:**
+Entities may request addition to the Embargo List if they operate a public, live network utilizing Compact in production where a vulnerability poses a systemic risk to user funds or data privacy. Additions to the list are approved by the LFDT Minokawa Technical Steering Committee (TSC).
+
+### 3. Confidentiality Requirements
+
+Access to the Embargo List is a privilege governed by strict confidentiality.
+
+Entities on the pre-disclosure list (including the Midnight Foundation and any future approved network operators) must agree to the following:
+
+* **Zero Leakage:** Vulnerability details, exploit mechanics, and patch code must not be shared outside of the designated security contacts within the operator's organization.
+* **Operational Use Only:** Information is provided strictly for the purpose of coordinating a secure network upgrade.
+* **Enforcement:** If an organization leaks embargoed vulnerability details—intentionally or accidentally—prior to the coordinated public disclosure date, they will be immediately and permanently removed from the Embargo List.
+
+## Disclosure Timeline
+
+1. **Triage:** Maintainers confirm the vulnerability and assess severity.
+2. **Embargo Notification:** For critical and high-severity issues, the maintainers notify the Pre-Disclosure Embargo List via encrypted channels, providing a secure summary and an estimated timeline for the patch.
+3. **Patch Preparation:** Maintainers develop and test the fix in a private repository fork. Select security contacts from major network operators may be temporarily invited as GitHub Advisory Collaborators to view the specific patch details if necessary for node compatibility.
+4. **Coordinated Upgrade:** Network operators utilize the embargo period (typically 7 to 30 days, depending on severity) to stage updates.
+5. **Public Release:** The patch is merged to `main`, a new version is released, and the GitHub Security Advisory / CVE is published.
