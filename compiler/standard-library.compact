@@ -357,29 +357,33 @@ export struct JubjubSchnorrSignature {
   response: Field,
 }
 
-// Schnorr signature over the native curve
-struct JubjubSchnorrHashInput<#n> {
-  ann_x: Field,
-  ann_y: Field,
-  pk_x: Field,
-  pk_y: Field,
-  msg: Vector<n, Field>
+// Internal struct definition for hashing in jubjubSchnorrVerify
+struct JubjubSchnorrHashInput<#N> {
+  annX: Field,
+  annY: Field,
+  pkX: Field,
+  pkY: Field,
+  msg: Vector<N, Field>
 }
 
-// Verify Schnorr signature over the native curve with a message of size #n.
-export circuit jubjubSchnorrVerify<#n>(msg: Vector<n, Field>, signature: JubjubSchnorrSignature, pk: JubjubPoint): Boolean {
+// Verify Schnorr signature over the native curve with a message of size #N.
+export circuit jubjubSchnorrVerify<#N>(
+                 msg: Vector<N, Field>,
+                 signature: JubjubSchnorrSignature,
+                 pk: JubjubPoint
+                 ): Boolean {
   const {announcement, response} = signature;
-  const cNative: Field = transientHash<JubjubSchnorrHashInput<n>>(JubjubSchnorrHashInput<n>{
-    ann_x: jubjubPointX(announcement),
-    ann_y: jubjubPointY(announcement),
-    pk_x: jubjubPointX(pk),
-    pk_y: jubjubPointY(pk),
-    msg: msg
-  });
-  const c: Field = jubjubScalarFromNative(cNative);
+  const cNative = transientHash<JubjubSchnorrHashInput<N>>(
+                    JubjubSchnorrHashInput<N> { annX: jubjubPointX(announcement),
+                                                annY: jubjubPointY(announcement),
+                                                pkX: jubjubPointX(pk),
+                                                pkY: jubjubPointY(pk),
+                                                msg: msg }
+                    );
+  const c = jubjubScalarFromNative(cNative);
 
-  const lhs: JubjubPoint = ecMulGenerator(jubjubScalarFromNative(response));
-  const rhs: JubjubPoint = ecAdd(announcement, ecMul(pk, c));
+  const lhs = ecMulGenerator(jubjubScalarFromNative(response));
+  const rhs = ecAdd(announcement, ecMul(pk, c));
 
   return lhs == rhs;
 }
