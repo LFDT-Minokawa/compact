@@ -187,7 +187,10 @@ jobs:
 
   publish-compiler:
     name: Publish compactc binary as a dev prerelease
-    if: ${{ inputs.publish_compiler }}
+    # always(): the optional build jobs (e.g. macOS x86_64) are skipped when their
+    # input is off, and a skipped `needs` job would otherwise skip this one too.
+    # The required Linux x86_64 build+test are still enforced by the verify step.
+    if: ${{ always() && inputs.publish_compiler }}
     runs-on: ubuntu-latest
     # The prerelease is created on LFDT-Minokawa/compact with the MIDNIGHTCI_REPO
     # PAT (see step below), not GITHUB_TOKEN, so GITHUB_TOKEN needs only read here.
@@ -293,6 +296,13 @@ jobs:
           # Apply the dev version (flake.nix warns not to bump package.json in-repo
           # for prereleases, so it is done here at publish time).
           npm pkg set version="$DEV_VERSION"
-          # Publish under dist-tag `dev` so `latest` is never moved to a dev build.
-          npm publish --tag dev --ignore-scripts --registry https://npm.pkg.github.com/
-          echo "Published @midnight-ntwrk/compact-runtime@${DEV_VERSION} (dist-tag dev)"
+          REGISTRY="https://npm.pkg.github.com/"
+          # Idempotent: registry versions are immutable, so a re-run on the same
+          # commit would 409. Skip if this exact dev version is already published.
+          if npm view "@midnight-ntwrk/compact-runtime@${DEV_VERSION}" version --registry "$REGISTRY" >/dev/null 2>&1; then
+            echo "::notice::@midnight-ntwrk/compact-runtime@${DEV_VERSION} already published; skipping."
+          else
+            # Publish under dist-tag `dev` so `latest` is never moved to a dev build.
+            npm publish --tag dev --ignore-scripts --registry "$REGISTRY"
+            echo "Published @midnight-ntwrk/compact-runtime@${DEV_VERSION} (dist-tag dev)"
+          fi
