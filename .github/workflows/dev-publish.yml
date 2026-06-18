@@ -280,12 +280,16 @@ jobs:
             find result/lib -maxdepth 4 -name package.json -print || true
             exit 1
           fi
-          # Copy out of the read-only nix store so `npm version` can rewrite package.json.
+          # Copy out of the read-only nix store so we can rewrite package.json.
           rm -rf stage && cp -rL "$PKG_DIR" stage && chmod -R u+w stage
           cd stage
           # Apply the dev version at publish time -- flake.nix warns not to bump
-          # runtime/package.json in-repo for prereleases.
-          npm version --no-git-tag-version --allow-same-version "$DEV_VERSION"
+          # runtime/package.json in-repo for prereleases. --ignore-scripts: the
+          # package.json still carries a prepare/build lifecycle, but forPublish
+          # already built dist/; rebuilding here would invoke the Scheme/tsc
+          # toolchain (absent in this step) and fail with "scheme: not found".
+          npm version --no-git-tag-version --allow-same-version --ignore-scripts "$DEV_VERSION"
           # Publish under dist-tag `dev` so `latest` is never moved to a dev build.
-          npm publish --tag dev --registry https://npm.pkg.github.com/
+          # --ignore-scripts for the same reason (skips prepare/prepack rebuild).
+          npm publish --tag dev --ignore-scripts --registry https://npm.pkg.github.com/
           echo "Published @midnight-ntwrk/compact-runtime@${DEV_VERSION} (dist-tag dev)"
