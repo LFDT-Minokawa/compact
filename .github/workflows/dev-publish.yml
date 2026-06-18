@@ -49,9 +49,9 @@ on:
         description: 'Also build the macOS aarch64 (Apple silicon) binary'
         required: true
         type: boolean
-        default: false
+        default: true
       include_macos_intel:
-        description: 'Also build the macOS x86_64 (Intel) binary'
+        description: 'Also build the macOS x86_64 (Intel) binary (slow; rarely needed)'
         required: true
         type: boolean
         default: false
@@ -187,12 +187,14 @@ jobs:
 
   publish-compiler:
     name: Publish compactc binary as a dev prerelease
-    if: ${{ inputs.publish_compiler }}
+    # always(): the optional build jobs (e.g. macOS x86_64) are skipped when their
+    # input is off, and a skipped `needs` job would otherwise skip this one too.
+    # The required Linux x86_64 build+test are still enforced by the verify step.
+    if: ${{ always() && inputs.publish_compiler }}
     runs-on: ubuntu-latest
-    # The prerelease is created on LFDT-Minokawa/compact with the MIDNIGHTCI_REPO
-    # PAT (see step below), not GITHUB_TOKEN, so GITHUB_TOKEN needs only read here.
+    # contents:write so the checkout token can push the dev tag (see below).
     permissions:
-      contents: read
+      contents: write
     needs: [ setup, build-linux-x86, build-linux-arm, build-macos-arm, build-macos-intel, test-linux-x86 ]
     steps:
       - name: Verify required Linux x86_64 build/test passed
@@ -206,21 +208,50 @@ jobs:
           fi
           echo "Required Linux x86_64 build/test passed."
 
+      - name: Checkout target commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.setup.outputs.sha }}
+
+      # This repo has immutable releases: a published release's tag is permanent.
+      # Publishing a draft would try to *create* the tag, which the release-tag
+      # protection blocks ("creations being restricted"). So push the tag first
+      # via git (same as internal-release.yml), then publish onto the existing tag.
+      # Idempotent: if the tag already exists (re-run on the same commit), skip --
+      # an immutable dev release for this commit is already published.
+      - name: Create and push dev tag
+        id: tag
+        env:
+          TAG: compactc-${{ needs.setup.outputs.bin_tag }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "::notice::tag ${TAG} already exists; binary prerelease already published, skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            git tag "${TAG}"
+            git push origin "${TAG}"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Fetch dev binary assets
+        if: ${{ steps.tag.outputs.skip == 'false' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: dev-*
           merge-multiple: true
 
-      - name: Create dev prerelease on LFDT-Minokawa/compact
+      # Immutable releases only accept assets while still a draft, so create as a
+      # draft (uploading the assets) onto the tag pushed above, then publish it.
+      - name: Create dev prerelease draft
         id: create_release
+        if: ${{ steps.tag.outputs.skip == 'false' }}
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           repository: LFDT-Minokawa/compact
           tag_name: compactc-${{ needs.setup.outputs.bin_tag }}
-          target_commitish: ${{ needs.setup.outputs.sha }}
           name: Compact toolchain dev ${{ needs.setup.outputs.sha }}
-          draft: false
+          draft: true
           prerelease: true
           fail_on_unmatched_files: true
           files: compactc_${{ needs.setup.outputs.bin_tag }}_*.zip
@@ -232,6 +263,16 @@ jobs:
             - Runtime npm: `@midnight-ntwrk/compact-runtime@${{ needs.setup.outputs.runtime_version }}` (dist-tag `dev`)
 
             Not a supported release. See doc/dev-builds.md for the retention policy.
+
+      - name: Publish the dev prerelease
+        if: ${{ steps.tag.outputs.skip == 'false' }}
+        env:
+          GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
+          RELEASE_ID: ${{ steps.create_release.outputs.id }}
+        run: |
+          gh api --method PATCH \
+            /repos/LFDT-Minokawa/compact/releases/${RELEASE_ID} \
+            -F draft=false -F prerelease=true
 
   publish-runtime:
     name: Publish compact-runtime dev npm package
@@ -283,13 +324,23 @@ jobs:
           # Copy out of the read-only nix store so we can rewrite package.json.
           rm -rf stage && cp -rL "$PKG_DIR" stage && chmod -R u+w stage
           cd stage
-          # Apply the dev version at publish time -- flake.nix warns not to bump
-          # runtime/package.json in-repo for prereleases. --ignore-scripts: the
-          # package.json still carries a prepare/build lifecycle, but forPublish
-          # already built dist/; rebuilding here would invoke the Scheme/tsc
-          # toolchain (absent in this step) and fail with "scheme: not found".
-          npm version --no-git-tag-version --allow-same-version --ignore-scripts "$DEV_VERSION"
-          # Publish under dist-tag `dev` so `latest` is never moved to a dev build.
-          # --ignore-scripts for the same reason (skips prepare/prepack rebuild).
-          npm publish --tag dev --ignore-scripts --registry https://npm.pkg.github.com/
-          echo "Published @midnight-ntwrk/compact-runtime@${DEV_VERSION} (dist-tag dev)"
+          # forPublish already built dist/, but the publish package.json keeps a
+          # prepare->build lifecycle that recompiles via the Scheme/tsc toolchain
+          # (absent in this step -> "scheme: not found"). --ignore-scripts proved
+          # insufficient (prepare still fired), so strip the build scripts outright;
+          # a published registry tarball needs none of them. `npm pkg` edits
+          # package.json without running any lifecycle.
+          npm pkg delete scripts.prepare scripts.prepack scripts.prepublishOnly scripts.build scripts.clean
+          # Apply the dev version (flake.nix warns not to bump package.json in-repo
+          # for prereleases, so it is done here at publish time).
+          npm pkg set version="$DEV_VERSION"
+          REGISTRY="https://npm.pkg.github.com/"
+          # Idempotent: registry versions are immutable, so a re-run on the same
+          # commit would 409. Skip if this exact dev version is already published.
+          if npm view "@midnight-ntwrk/compact-runtime@${DEV_VERSION}" version --registry "$REGISTRY" >/dev/null 2>&1; then
+            echo "::notice::@midnight-ntwrk/compact-runtime@${DEV_VERSION} already published; skipping."
+          else
+            # Publish under dist-tag `dev` so `latest` is never moved to a dev build.
+            npm publish --tag dev --ignore-scripts --registry "$REGISTRY"
+            echo "Published @midnight-ntwrk/compact-runtime@${DEV_VERSION} (dist-tag dev)"
+          fi
