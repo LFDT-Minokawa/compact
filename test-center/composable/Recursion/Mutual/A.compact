@@ -1,0 +1,20 @@
+import CompactStandardLibrary;
+
+export ledger called: Counter;
+export ledger b: B;
+
+contract B {
+  circuit isEven(x: Field): Boolean;
+}
+
+export circuit set(b_param: B): [] {
+  b = disclose(b_param);
+}
+
+export circuit isOdd(x: Field): Boolean {
+  called.increment(1);
+  if (disclose(x) == 0) {
+    return false;
+  }
+  return disclose(b).isEven(disclose(x - 1));
+}

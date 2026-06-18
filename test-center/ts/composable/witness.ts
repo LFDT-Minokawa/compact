@@ -23,62 +23,67 @@ const bytesEqual = (a: Uint8Array, b: Uint8Array): boolean => {
 
 describe('Witnesses can return contract values', () => {
   test('pickViaWitness returns the contract value the witness chose', async () => {
-    const inner = await deployDependency({ module: innerCode, args: [] });
-    const [outer, ctxt0] = await startContractGroup(
-      {
-        module: outerCode,
-        witnesses: {
-          chooseInner: ({ privateState }: any) => [
-            privateState,
-            inner.encodedAddress,
-          ],
-          inspectInner: ({ privateState }: any, _i: any) => [privateState, 0n],
-        },
-        initialPrivateState: 0,
-        args: [],
-      },
-      [inner],
-    );
+    const chain = new TestChain();
+    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
 
-    const { result } = await outer.circuits.pickViaWitness(ctxt0);
+    const witnesses = {
+      chooseInner: ({ privateState }: any): [any, any] => [privateState, inner.encodedAddress],
+      inspectInner: ({ privateState }: any, _i: any): [any, any] => [privateState, 0n],
+    };
+
+    const outer = await chain.deploy({
+      module: outerCode,
+      args: [],
+      initialPrivateState: 0,
+      witnesses,
+    });
+
+    const { result } = (await chain.call({
+      module: outerCode,
+      address: outer.address,
+      witnesses,
+      privateState: 0,
+      circuitId: 'pickViaWitness',
+      args: [],
+    })) as { result: any };
     expect(bytesEqual(result.bytes, inner.encodedAddress.bytes)).toEqual(true);
   });
 });
 
 describe('Witnesses can accept contract values', () => {
   test('inspectViaWitness passes a contract value into the witness', async () => {
-    const inner = await deployDependency({ module: innerCode, args: [] });
+    const chain = new TestChain();
+    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+
     let received: Uint8Array | undefined;
-    const [outer, ctxt0] = await startContractGroup(
-      {
-        module: outerCode,
-        witnesses: {
-          chooseInner: ({ privateState }: any) => [
-            privateState,
-            inner.encodedAddress,
-          ],
-          inspectInner: ({ privateState }: any, i: any) => {
-            received = i.bytes;
-            // Derive a Field from the contract value so we can assert on it.
-            return [privateState, BigInt(i.bytes[0])];
-          },
-        },
-        initialPrivateState: 0,
-        args: [],
+    const witnesses = {
+      chooseInner: ({ privateState }: any): [any, any] => [privateState, inner.encodedAddress],
+      inspectInner: ({ privateState }: any, i: any): [any, any] => {
+        received = i.bytes;
+        // Derive a Field from the contract value so we can assert on it.
+        return [privateState, BigInt(i.bytes[0])];
       },
-      [inner],
-    );
+    };
+
+    const outer = await chain.deploy({
+      module: outerCode,
+      args: [],
+      initialPrivateState: 0,
+      witnesses,
+    });
 
     const expectedFirst = BigInt(inner.encodedAddress.bytes[0]);
-    const { result } = await outer.circuits.inspectViaWitness(
-      ctxt0,
-      inner.encodedAddress,
-    );
+    const { result } = (await chain.call({
+      module: outerCode,
+      address: outer.address,
+      witnesses,
+      privateState: 0,
+      circuitId: 'inspectViaWitness',
+      args: [inner.encodedAddress],
+    })) as { result: any };
 
     expect(received !== undefined).toEqual(true);
-    expect(
-      bytesEqual(received as Uint8Array, inner.encodedAddress.bytes),
-    ).toEqual(true);
+    expect(bytesEqual(received as Uint8Array, inner.encodedAddress.bytes)).toEqual(true);
     expect(result).toEqual(expectedFirst);
   });
 });

@@ -19,7 +19,6 @@ import * as path from 'node:path';
 import {
   CircuitContext,
   CallProofData,
-  CallProofDataTrace,
   CircuitResults,
   ConstructorResult,
   ContractStateProvider,
@@ -29,7 +28,6 @@ import {
 } from '@midnight-ntwrk/compact-runtime';
 import { checkProofData } from './key-provider.js';
 import {
-  Circuit,
   Circuits,
   Contract,
   InitialStateParams,
@@ -52,163 +50,6 @@ export type {
 const DEFAULT_COIN_PUBLIC_KEY: ocrt.CoinPublicKey = '0'.repeat(64);
 
 const DEFAULT_PARENT_BLOCK_HASH = '0'.repeat(64);
-
-export class RecordContractStateProvider implements ContractStateProvider {
-  private readonly states: Record<ocrt.ContractAddress, ocrt.ContractState>;
-
-  constructor(initial: Record<ocrt.ContractAddress, ocrt.ContractState> = {}) {
-    // Shallow copy so later mutations to `initial` don't affect us.
-    this.states = { ...initial };
-  }
-
-  async getContractState(_blockHash: string, address: ocrt.ContractAddress): Promise<ocrt.ContractState | undefined> {
-    return this.states[address];
-  }
-}
-
-/**
- * Specification for deploying a single non-root contract.
- */
-export interface DependencyDeployment<C extends Contract<any, any>> {
-  module: Module<C, any>;
-  args: InitialStateParams<C>;
-  address?: ocrt.ContractAddress;
-  coinPublicKey?: ocrt.CoinPublicKey;
-  initialPrivateState?: unknown;
-}
-
-/**
- * The result of deploying a single dependency
- */
-export interface DeployedDependency<C extends Contract<any, any> = Contract<any, any>> {
-  contract: C;
-  module: Module<C, any>;
-  address: ocrt.ContractAddress;
-  encodedAddress: EncodedContractAddress;
-  constructorResult: ConstructorResult<unknown>;
-}
-
-/**
- * Specification for the root contract — the only contract permitted to declare witnesses
- */
-export interface RootDeployment<PS, W extends Witnesses<PS>, C extends Contract<PS, W>> {
-  module: Module<C, W>;
-  witnesses: W;
-  initialPrivateState: PS;
-  args: InitialStateParams<C>;
-  address?: ocrt.ContractAddress;
-  coinPublicKey?: ocrt.CoinPublicKey;
-  stateProvider?: ContractStateProvider;
-  gasLimit?: ocrt.RunningCost;
-  costModel?: ocrt.CostModel;
-  time?: number;
-  parentBlockHash?: string;
-}
-
-/**
- * Deploy a single dependency contract.
- */
-export const deployDependency = async <C extends Contract<any, any>>(
-  spec: DependencyDeployment<C>,
-): Promise<DeployedDependency<C>> => {
-  const contract = new spec.module.Contract({} as Record<string, never>);
-  const constructorContext = createConstructorContext(
-    spec.initialPrivateState,
-    spec.coinPublicKey ?? DEFAULT_COIN_PUBLIC_KEY,
-  );
-  const constructorResult = (await contract.initialState(
-    constructorContext,
-    ...(spec.args as unknown[]),
-  )) as ConstructorResult<unknown>;
-  const address = spec.address ?? ocrt.sampleContractAddress();
-  return {
-    contract,
-    module: spec.module,
-    address,
-    encodedAddress: { bytes: ocrt.encodeContractAddress(address) },
-    constructorResult,
-  };
-};
-
-/**
- * Start a CCC-aware test environment.
- */
-export const startContractGroup = async <
-  PS,
-  W extends Witnesses<PS>,
-  C extends Contract<PS, W>
->(
-  root: RootDeployment<PS, W, C>,
-  deps: ReadonlyArray<DeployedDependency> = [],
-): Promise<readonly [C, CircuitContext<PS>]> => {
-
-  const now = root.time ?? Math.floor(Date.now() / 1_000);
-
-  const contract = new root.module.Contract(root.witnesses);
-  const constructorContext = createConstructorContext(
-    root.initialPrivateState,
-    root.coinPublicKey ?? DEFAULT_COIN_PUBLIC_KEY,
-  );
-  const constructorResult = await contract.initialState(
-    constructorContext,
-    ...(root.args as unknown[]),
-  );
-
-  const rootAddress = root.address ?? ocrt.sampleContractAddress();
-
-  const stateProvider: ContractStateProvider =
-    root.stateProvider ??
-    new RecordContractStateProvider(
-      Object.fromEntries(
-        deps.map((dep) => [
-          dep.address,
-          dep.constructorResult.currentContractState,
-        ]),
-      ),
-    );
-
-  const parentBlockHash = root.parentBlockHash ?? DEFAULT_PARENT_BLOCK_HASH;
-  const circuitContext = createCircuitContext(
-    'constructor',
-    rootAddress,
-    constructorResult.currentZswapLocalState.coinPublicKey,
-    constructorResult.currentContractState,
-    constructorResult.currentPrivateState,
-    stateProvider,
-    root.gasLimit,
-    root.costModel,
-    now,
-    parentBlockHash,
-  );
-
-  const contractDirByAddress = new Map<ocrt.ContractAddress, string>();
-  contractDirByAddress.set(rootAddress, root.module.contractDir);
-  for (const dep of deps) {
-    contractDirByAddress.set(dep.address, dep.module.contractDir);
-  }
-
-  const wrappedImpureCircuits = {} as Circuits<PS>;
-  for (const [circuitId, circuit] of Object.entries(contract.impureCircuits)) {
-    const wrapped: Circuit<PS> = async (context, ...cArgs) => {
-      context.callContext.circuitId = circuitId;
-      const traceLengthBefore = context.callProofDataTrace.length;
-      const circuitResult = await (circuit as Circuit<PS>)(context, ...cArgs);
-      scheduleProofChecks(circuitResult, traceLengthBefore, contractDirByAddress);
-      return circuitResult;
-    };
-    (wrappedImpureCircuits as Record<string, Circuit<PS>>)[circuitId] = wrapped;
-  }
-  const wrappedCircuits = {
-    ...contract.circuits,
-    ...wrappedImpureCircuits,
-  } as Circuits<PS>;
-  Object.assign(contract, {
-    impureCircuits: wrappedImpureCircuits,
-    circuits: wrappedCircuits,
-  });
-
-  return [contract as C, circuitContext as CircuitContext<PS>] as const;
-};
 
 export const scheduleProofChecks = (
   circuitResults: CircuitResults<unknown, unknown>,
@@ -246,3 +87,205 @@ export const checkCallProofData = async (
 ): Promise<void> => {
   await checkProofData(contractDir, entry.circuitId, entry);
 };
+
+/**
+ * A deployed contract, as returned by {@link TestChain.deploy}. Mirrors the
+ * subset of {@link DeployedDependency} a caller needs to reference the contract
+ * in subsequent transactions: its address (how `compact-runtime` identifies a
+ * contract) and the encoded form used to pass it as a contract-typed argument.
+ */
+export interface DeployedContract<C extends Contract<any, any> = Contract<any, any>> {
+  module: Module<C, any>;
+  address: ocrt.ContractAddress;
+  encodedAddress: EncodedContractAddress;
+}
+
+/**
+ * A deploy transaction: run a contract's constructor and persist the resulting
+ * ledger state on the chain. Only the root of a call tree may declare witnesses,
+ * so `witnesses` defaults to empty.
+ */
+export interface DeployTransaction<C extends Contract<any, any>> {
+  module: Module<C, any>;
+  args: InitialStateParams<C>;
+  initialPrivateState: unknown;
+  address?: ocrt.ContractAddress;
+  witnesses?: Witnesses<any>;
+  coinPublicKey?: ocrt.CoinPublicKey;
+}
+
+/**
+ * A call transaction: invoke `circuitId` on the contract deployed at `address`,
+ * starting from that contract's *currently persisted* ledger state.
+ *
+ * `coinPublicKey`, `gasLimit`, `costModel`, `time` and `parentBlockHash` are the
+ * usual transaction-context knobs forwarded to {@link createCircuitContext}.
+ */
+export interface CallTransaction<PS, W extends Witnesses<PS>, C extends Contract<PS, W>> {
+  module: Module<C, W>;
+  address: ocrt.ContractAddress;
+  circuitId: string;
+  args: readonly unknown[];
+  witnesses: W;
+  privateState: PS;
+  coinPublicKey?: ocrt.CoinPublicKey;
+  gasLimit?: ocrt.RunningCost;
+  costModel?: ocrt.CostModel;
+  time?: number;
+  parentBlockHash?: string;
+}
+
+/**
+ * An in-memory simulation of the chain for cross-contract-call tests.
+ *
+ * `TestChain` models a *sequence of independent transactions* against *mutable*
+ * persisted state:
+ *
+ *   - {@link deploy} corresponds to a deploy transaction: it runs a contract's
+ *     constructor and stores the resulting {@link ocrt.ContractState}.
+ *   - {@link call} corresponds to a call transaction: it builds a fresh
+ *     {@link CircuitContext} seeded from the entry contract's *currently
+ *     persisted* state, executes the circuit, and then **commits** the
+ *     post-execution state of every contract the transaction touched back into
+ *     the store. A later transaction therefore observes the effects of an
+ *     earlier one.
+ *
+ * The chain doubles as the {@link ContractStateProvider}: during a call, any
+ * *cross-contract* callee not already present in `queryContexts` is fetched via
+ * {@link getContractState}. Note that the runtime always seeds `queryContexts`
+ * with the *entry* contract's address (see `createCircuitContext`), so the entry
+ * contract's state is taken from the seed passed to {@link createCircuitContext}
+ * and is never re-fetched from the provider; only genuine cross-contract callees
+ * are. The `blockHash` argument is ignored: the chain holds a single, latest
+ * snapshot per address rather than a history.
+ */
+export class TestChain implements ContractStateProvider {
+  private readonly states = new Map<ocrt.ContractAddress, ocrt.ContractState>();
+  private readonly contractDirByAddress = new Map<ocrt.ContractAddress, string>();
+
+  /** Number of cross-contract state fetches served, keyed by callee address. */
+  private readonly fetchCounts = new Map<ocrt.ContractAddress, number>();
+
+  /**
+   * {@link ContractStateProvider} implementation. Used by the runtime to resolve
+   * cross-contract callees. Records the fetch so tests can assert that a callee's
+   * state genuinely came from the provider rather than from a seeded heap entry.
+   */
+  async getContractState(
+    _blockHash: string,
+    address: ocrt.ContractAddress,
+  ): Promise<ocrt.ContractState | undefined> {
+    const state = this.states.get(address);
+    if (state !== undefined) {
+      this.fetchCounts.set(address, (this.fetchCounts.get(address) ?? 0) + 1);
+    }
+    return state;
+  }
+
+  /** Fail-fast read of a contract's persisted state for use by the harness/tests. */
+  getContractStateOrThrow(address: ocrt.ContractAddress): ocrt.ContractState {
+    const state = this.states.get(address);
+    if (state === undefined) {
+      throw new Error(`No contract deployed at address ${address}`);
+    }
+    return state;
+  }
+
+  /** How many times the provider served a fetch for `address` (0 if never). */
+  fetchCount(address: ocrt.ContractAddress): number {
+    return this.fetchCounts.get(address) ?? 0;
+  }
+
+  /**
+   * Execute a deploy transaction and persist the contract's initial ledger state.
+   */
+  async deploy<C extends Contract<any, any>>(
+    tx: DeployTransaction<C>,
+  ): Promise<DeployedContract<C>> {
+    const contract = new tx.module.Contract(
+      (tx.witnesses ?? {}) as Record<string, never>,
+    );
+    const constructorContext = createConstructorContext(
+      tx.initialPrivateState,
+      tx.coinPublicKey ?? DEFAULT_COIN_PUBLIC_KEY,
+    );
+    const constructorResult = (await contract.initialState(
+      constructorContext,
+      ...(tx.args as unknown[]),
+    )) as ConstructorResult<unknown>;
+
+    const address = tx.address ?? ocrt.sampleContractAddress();
+    this.states.set(address, constructorResult.currentContractState);
+    this.contractDirByAddress.set(address, tx.module.contractDir);
+
+    return {
+      module: tx.module,
+      address,
+      encodedAddress: { bytes: ocrt.encodeContractAddress(address) },
+    };
+  }
+
+  /**
+   * Execute a call transaction. Builds a fresh {@link CircuitContext} seeded from
+   * the entry contract's persisted state, runs the circuit, schedules proof checks
+   * for the whole call tree, then commits every touched contract's post-execution
+   * state back to the store.
+   */
+  async call<PS, W extends Witnesses<PS>, C extends Contract<PS, W>>(
+    tx: CallTransaction<PS, W, C>,
+  ): Promise<CircuitResults<PS, unknown>> {
+    const entryState = this.getContractStateOrThrow(tx.address);
+    const contract = new tx.module.Contract(tx.witnesses);
+
+    const now = tx.time ?? Math.floor(Date.now() / 1_000);
+    const context = createCircuitContext(
+      tx.circuitId,
+      tx.address,
+      tx.coinPublicKey ?? DEFAULT_COIN_PUBLIC_KEY,
+      entryState,
+      tx.privateState,
+      this,
+      tx.gasLimit,
+      tx.costModel,
+      now,
+      tx.parentBlockHash ?? DEFAULT_PARENT_BLOCK_HASH,
+    ) as CircuitContext<PS>;
+
+    const circuits = contract.circuits as Circuits<PS>;
+    const impureCircuits = contract.impureCircuits as Circuits<PS>;
+    const circuit = impureCircuits[tx.circuitId] ?? circuits[tx.circuitId];
+    if (circuit === undefined) {
+      throw new Error(
+        `Circuit '${tx.circuitId}' not found on contract deployed at ${tx.address}`,
+      );
+    }
+
+    const result = (await circuit(
+      context,
+      ...tx.args,
+    )) as CircuitResults<PS, unknown>;
+
+    // The fresh context starts with an empty trace, so every entry the call
+    // produced — the root circuit plus every cross-contract sub-call — is checked.
+    scheduleProofChecks(result, 0, this.contractDirByAddress);
+
+    this.commit(result.context);
+
+    return result;
+  }
+
+  /**
+   * Persist the post-execution ledger state of every contract the transaction
+   * touched. After a circuit finishes, `queryContexts[address].state` holds that
+   * contract's final {@link ocrt.ChargedState} (the root via
+   * `finalizeCallProofData`, each callee via the same path on return). We splice
+   * that charged state into the contract's stored {@link ocrt.ContractState}.
+   */
+  private commit(context: CircuitContext<any>): void {
+    for (const [address, queryContext] of Object.entries(context.queryContexts)) {
+      const state = this.getContractStateOrThrow(address);
+      state.data = queryContext.state;
+      this.states.set(address, state);
+    }
+  }
+}

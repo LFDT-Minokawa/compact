@@ -21,109 +21,97 @@ const bytesEqual = (a: Uint8Array, b: Uint8Array): boolean => {
   return true;
 };
 
+/** Invoke a circuit on the Outer contract as a call transaction. */
+const callOuter = (
+  chain: TestChain,
+  address: any,
+  circuitId: string,
+  ...args: readonly unknown[]
+): Promise<{ result: any; context: any }> =>
+  chain.call({
+    module: outerCode,
+    address,
+    witnesses: {},
+    privateState: 0,
+    circuitId,
+    args,
+  }) as unknown as Promise<{ result: any; context: any }>;
+
 describe('Contract values stored in Map<Field, Inner>', () => {
   test('register then read the stored contract value back out', async () => {
-    const inner = await deployDependency({ module: innerCode, args: [] });
-    const [outer, ctxt0] = await startContractGroup(
-      { module: outerCode, witnesses: {}, initialPrivateState: 0, args: [] },
-      [inner],
-    );
+    const chain = new TestChain();
+    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
 
-    const { context: c1 } = await outer.circuits.register(
-      ctxt0,
-      1n,
-      inner.encodedAddress,
-    );
-    expect((await outer.circuits.isRegistered(c1, 1n)).result).toEqual(true);
+    await callOuter(chain, outer.address, 'register', 1n, inner.encodedAddress);
+    expect((await callOuter(chain, outer.address, 'isRegistered', 1n)).result).toEqual(true);
 
-    const { result } = await outer.circuits.getRegistered(c1, 1n);
+    const { result } = await callOuter(chain, outer.address, 'getRegistered', 1n);
     expect(bytesEqual(result.bytes, inner.encodedAddress.bytes)).toEqual(true);
   });
 
   test('distinct keys map to distinct contract values', async () => {
-    const innerA = await deployDependency({ module: innerCode, args: [] });
-    const innerB = await deployDependency({ module: innerCode, args: [] });
-    const [outer, ctxt0] = await startContractGroup(
-      { module: outerCode, witnesses: {}, initialPrivateState: 0, args: [] },
-      [innerA, innerB],
-    );
+    const chain = new TestChain();
+    const innerA = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const innerB = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
 
-    let ctxt = (
-      await outer.circuits.register(ctxt0, 1n, innerA.encodedAddress)
-    ).context;
-    ctxt = (await outer.circuits.register(ctxt, 2n, innerB.encodedAddress))
-      .context;
+    await callOuter(chain, outer.address, 'register', 1n, innerA.encodedAddress);
+    await callOuter(chain, outer.address, 'register', 2n, innerB.encodedAddress);
 
-    const a = (await outer.circuits.getRegistered(ctxt, 1n)).result;
-    const b = (await outer.circuits.getRegistered(ctxt, 2n)).result;
+    const a = (await callOuter(chain, outer.address, 'getRegistered', 1n)).result;
+    const b = (await callOuter(chain, outer.address, 'getRegistered', 2n)).result;
     expect(bytesEqual(a.bytes, innerA.encodedAddress.bytes)).toEqual(true);
     expect(bytesEqual(b.bytes, innerB.encodedAddress.bytes)).toEqual(true);
   });
 
   test('absent key is reported as not a member', async () => {
-    const inner = await deployDependency({ module: innerCode, args: [] });
-    const [outer, ctxt0] = await startContractGroup(
-      { module: outerCode, witnesses: {}, initialPrivateState: 0, args: [] },
-      [inner],
-    );
+    const chain = new TestChain();
+    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
 
-    const { context: c1 } = await outer.circuits.register(
-      ctxt0,
-      1n,
-      inner.encodedAddress,
-    );
-    expect((await outer.circuits.isRegistered(c1, 99n)).result).toEqual(false);
+    await callOuter(chain, outer.address, 'register', 1n, inner.encodedAddress);
+    expect((await callOuter(chain, outer.address, 'isRegistered', 99n)).result).toEqual(false);
   });
 });
 
 describe('Contract values stored in List<Inner>', () => {
   test('enqueue then peek returns the contract value at the head', async () => {
-    const inner = await deployDependency({ module: innerCode, args: [] });
-    const [outer, ctxt0] = await startContractGroup(
-      { module: outerCode, witnesses: {}, initialPrivateState: 0, args: [] },
-      [inner],
-    );
+    const chain = new TestChain();
+    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
 
-    const { context: c1 } = await outer.circuits.enqueue(
-      ctxt0,
-      inner.encodedAddress,
-    );
-    const { result } = await outer.circuits.peek(c1);
+    await callOuter(chain, outer.address, 'enqueue', inner.encodedAddress);
+    const { result } = await callOuter(chain, outer.address, 'peek');
     expect(bytesEqual(result.bytes, inner.encodedAddress.bytes)).toEqual(true);
   });
 
   test('most-recently pushed contract value is at the head', async () => {
-    const innerA = await deployDependency({ module: innerCode, args: [] });
-    const innerB = await deployDependency({ module: innerCode, args: [] });
-    const [outer, ctxt0] = await startContractGroup(
-      { module: outerCode, witnesses: {}, initialPrivateState: 0, args: [] },
-      [innerA, innerB],
-    );
+    const chain = new TestChain();
+    const innerA = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const innerB = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
 
-    let ctxt = (await outer.circuits.enqueue(ctxt0, innerA.encodedAddress))
-      .context;
-    ctxt = (await outer.circuits.enqueue(ctxt, innerB.encodedAddress)).context;
+    await callOuter(chain, outer.address, 'enqueue', innerA.encodedAddress);
+    await callOuter(chain, outer.address, 'enqueue', innerB.encodedAddress);
 
-    const { result } = await outer.circuits.peek(ctxt);
+    const { result } = await callOuter(chain, outer.address, 'peek');
     expect(bytesEqual(result.bytes, innerB.encodedAddress.bytes)).toEqual(true);
   });
 });
 
 describe('Contract values stored in MerkleTree<2, Inner>', () => {
   test('a contract value can be inserted as a leaf and the tree fills', async () => {
-    const inner = await deployDependency({ module: innerCode, args: [] });
-    const [outer, ctxt0] = await startContractGroup(
-      { module: outerCode, witnesses: {}, initialPrivateState: 0, args: [] },
-      [inner],
-    );
+    const chain = new TestChain();
+    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const outer = await chain.deploy({ module: outerCode, args: [], initialPrivateState: 0 });
 
     // A depth-2 tree holds 4 leaves.
-    expect((await outer.circuits.treeFull(ctxt0)).result).toEqual(false);
+    expect((await callOuter(chain, outer.address, 'treeFull')).result).toEqual(false);
 
-    let ctxt = ctxt0;
     for (let i = 0; i < 4; i++) {
-      ctxt = (await outer.circuits.store(ctxt, inner.encodedAddress)).context;
+      await callOuter(chain, outer.address, 'store', inner.encodedAddress);
     }
-    expect((await outer.circuits.treeFull(ctxt)).result).toEqual(true);
+    expect((await callOuter(chain, outer.address, 'treeFull')).result).toEqual(true);
   });
 });

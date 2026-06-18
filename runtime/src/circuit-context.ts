@@ -223,9 +223,6 @@ export const finalizeCallProofData = (circuitContext: CircuitContext, proofData:
   assertDefined(initialQueryContext, `initial ledger context for contract '${contractAddress}'`);
   assertDefined(currentQueryContext, `current ledger context for contract '${contractAddress}'`);
 
-  circuitContext.queryContexts[contractAddress] = currentQueryContext;
-  circuitContext.gasCosts[contractAddress] = circuitContext.callContext.currentGasCost;
-
   circuitContext.callProofDataTrace.push({
     ...proofData,
     circuitId: circuitContext.callContext.circuitId,
@@ -410,6 +407,17 @@ export const queryLedgerState = (
     const res = circuitContext.callContext.currentQueryContext.query(program, circuitContext.costModel, circuitContext.gasLimit);
     circuitContext.callContext.currentQueryContext = res.context;
     circuitContext.callContext.currentGasCost = addRunningCost(circuitContext.callContext.currentGasCost, res.gasCost);
+
+    // The generated ledger read-accessors (`contract.ledger(state).field`) also run read queries through this function,
+    // but with a minimal synthetic context that has no `queryContexts`/`gasCosts` maps and no `callContext.contractAddress`.
+    // Only thread the per-address cells when we are in a real circuit context.
+    const liveAddress = circuitContext.callContext.contractAddress;
+    if (liveAddress !== undefined && circuitContext.queryContexts !== undefined) {
+      circuitContext.queryContexts[liveAddress] = res.context;
+      const current_gas = circuitContext.gasCosts[liveAddress] ?? emptyRunningCost()
+      circuitContext.gasCosts[liveAddress] = addRunningCost(current_gas, res.gasCost);
+    }
+
     const reads = res.events.filter((e) => e.tag === 'read');
     let i = 0;
     partialProofData.publicTranscript = partialProofData.publicTranscript.concat(

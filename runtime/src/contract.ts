@@ -168,9 +168,15 @@ const restoreCallContext = (
 };
 
 /**
- * Restores the circuit context to match the caller's context just before a cross-contract call occurred.
- * Circuit contexts are copied when a function is invoked to keep the JS interfaces immutable. That means
- * we must copy the top level values like `queryContexts` explicitly from the callee.
+ * Restores the caller's circuit context after a cross-contract sub-call returns.
+ * Circuit contexts are copied when a function is invoked to keep the JS interfaces immutable, so we must
+ * copy the top-level values (`queryContexts`, `gasCosts`, `callProofDataTrace`) explicitly from the
+ * callee. The caller's `callContext` is otherwise reset to its pre-call snapshot — except for its
+ * `currentQueryContext`, which we re-point at the (possibly advanced) threaded state for the caller's
+ * own contract. That matters when the sub-call re-entered the caller's contract (direct self-recursion,
+ * or indirect A -> B -> A): the caller's remaining ops — notably the kernel `claimContractCall` emitted
+ * by `crossContractCall` — must build on the re-entrant writes rather than the pre-call snapshot, which
+ * would otherwise be written back over the deeper turns' writes on commit.
  *
  * @internal
  */
@@ -183,6 +189,10 @@ const restoreCircuitContext = (
   callerCircuitContext.queryContexts = calleeCircuitContext.queryContexts;
   callerCircuitContext.gasCosts = calleeCircuitContext.gasCosts;
   callerCircuitContext.callProofDataTrace = calleeCircuitContext.callProofDataTrace;
+  // Re-point the caller's `currentQueryContext` at the threaded state for its own
+  // contract (advanced if the sub-call re-entered the caller).
+  const callerAddress = callerCircuitContext.callContext.contractAddress;
+  callerCircuitContext.callContext.currentQueryContext = callerCircuitContext.queryContexts[callerAddress];
 };
 
 const contractAddressToValue = (address: ocrt.ContractAddress): ocrt.AlignedValue => ({

@@ -787,7 +787,7 @@ groups than for single tests.
                     '(
                       "import * as runtime from '@midnight-ntwrk/compact-runtime';\n"
                       "import { startContract, flushProofChecks } from './util.js';\n"
-                      "import { deployDependency, startContractGroup } from './ccc-util.js';\n"
+                      "import { TestChain } from './ccc-util.js';\n"
                       "import { describe, expect, test, afterEach } from 'vitest';\n"
                       "\n"
                       "afterEach(async () => {\n"
@@ -69854,8 +69854,14 @@ groups than for single tests.
     (stage-javascript "test-center/ts/threading-hacky.ts"))
 
   (test
-    "test-center/composable/Self/C.compact"
-    (stage-javascript "test-center/ts/composable/self.ts"))
+    "test-center/composable/Recursion/Single/Self.compact"
+    (stage-javascript "test-center/ts/composable/self-recursion.ts"))
+
+  (test-group
+    ((source-file "test-center/composable/Recursion/Mutual/A.compact")
+     (stage-javascript aCode '()))
+    ((source-file "test-center/composable/Recursion/Mutual/B.compact")
+     (stage-javascript bCode "test-center/ts/composable/mutual-recursion.ts")))
 
   (test-group
     ((source-file "test-center/composable/Basic/Inner.compact")
@@ -69874,6 +69880,12 @@ groups than for single tests.
      (stage-javascript innerCode '()))
     ((source-file "test-center/composable/Witness/Outer.compact")
      (stage-javascript outerCode "test-center/ts/composable/witness.ts")))
+
+  (test-group
+    ((source-file "test-center/composable/Recursion/Mutual/A.compact")
+     (stage-javascript aCode '()))
+    ((source-file "test-center/composable/Recursion/Mutual/B.compact")
+     (stage-javascript bCode "test-center/ts/composable/mutual-recursion.ts")))
 
   (test
     "examples/tiny.compact"

@@ -1,25 +1,23 @@
 
-export ledger c: C;
+export ledger self: Self;
 export ledger b: Boolean;
 
-contract C {
+contract Self {
   circuit foo(x: Field): Field;
 }
-
-contract implements C;
 
 constructor () {
   b = true;
 }
 
-export circuit set(c_param: C): [] {
-  c = disclose(c_param);
+export circuit set(self_param: Self): [] {
+  self = disclose(self_param);
 }
 
 export circuit foo(x: Field): Field {
   if (b) {
     b = false;
-    return disclose(c).foo(disclose(x));
+    return disclose(self).foo(disclose(x));
   } else {
     return x + 1;
   }
