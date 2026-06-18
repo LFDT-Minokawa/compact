@@ -30,9 +30,12 @@ The binary release is flagged `prerelease`, so it never becomes "Latest release"
   - `branch` (required) -- branch or ref to build and publish from.
   - `publish_runtime` (default true) -- publish the runtime npm package.
   - `publish_compiler` (default true) -- publish the compactc binary prerelease.
-  - `include_linux_arm` (default true), `include_macos_arm` (default false),
+  - `include_linux_arm` (default true), `include_macos_arm` (default true),
     `include_macos_intel` (default false) -- extra binary targets. Linux x86_64
-    is always built and is the gate for publishing the binary prerelease.
+    is always built and is the gate for publishing the binary prerelease. The
+    defaults cover the platforms consumers actually need (Linux x86_64 + aarch64
+    for Docker, macOS aarch64 for local dev); macOS x86_64 is off as it is slow
+    and rarely used.
 
 ## How to consume
 

@@ -49,9 +49,9 @@ on:
         description: 'Also build the macOS aarch64 (Apple silicon) binary'
         required: true
         type: boolean
-        default: false
+        default: true
       include_macos_intel:
-        description: 'Also build the macOS x86_64 (Intel) binary'
+        description: 'Also build the macOS x86_64 (Intel) binary (slow; rarely needed)'
         required: true
         type: boolean
         default: false
@@ -283,13 +283,16 @@ jobs:
           # Copy out of the read-only nix store so we can rewrite package.json.
           rm -rf stage && cp -rL "$PKG_DIR" stage && chmod -R u+w stage
           cd stage
-          # Apply the dev version at publish time -- flake.nix warns not to bump
-          # runtime/package.json in-repo for prereleases. --ignore-scripts: the
-          # package.json still carries a prepare/build lifecycle, but forPublish
-          # already built dist/; rebuilding here would invoke the Scheme/tsc
-          # toolchain (absent in this step) and fail with "scheme: not found".
-          npm version --no-git-tag-version --allow-same-version --ignore-scripts "$DEV_VERSION"
+          # forPublish already built dist/, but the publish package.json keeps a
+          # prepare->build lifecycle that recompiles via the Scheme/tsc toolchain
+          # (absent in this step -> "scheme: not found"). --ignore-scripts proved
+          # insufficient (prepare still fired), so strip the build scripts outright;
+          # a published registry tarball needs none of them. `npm pkg` edits
+          # package.json without running any lifecycle.
+          npm pkg delete scripts.prepare scripts.prepack scripts.prepublishOnly scripts.build scripts.clean
+          # Apply the dev version (flake.nix warns not to bump package.json in-repo
+          # for prereleases, so it is done here at publish time).
+          npm pkg set version="$DEV_VERSION"
           # Publish under dist-tag `dev` so `latest` is never moved to a dev build.
-          # --ignore-scripts for the same reason (skips prepare/prepack rebuild).
           npm publish --tag dev --ignore-scripts --registry https://npm.pkg.github.com/
           echo "Published @midnight-ntwrk/compact-runtime@${DEV_VERSION} (dist-tag dev)"
