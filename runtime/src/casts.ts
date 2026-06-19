@@ -50,28 +50,16 @@ export function convertFieldToBytes(n: number, x: bigint, src: string): Uint8Arr
  * Compiler internal for typecasts
  * @internal
  */
-export function convertBytesToField(n: number, a: Uint8Array, src: string): bigint {
-  let x = 0n;
-  for (let i = n - 1; i >= 0; i -= 1) {
-    x = x * 0x100n + BigInt(a[i]);
-    if (x > MAX_FIELD) {
-      const msg = `range error at ${src}: byte vector [${Array.from(a.slice(0, n)).join(',')}] exceeds maximum value ${MAX_FIELD} of Field type`;
-      throw new CompactError(msg);
-    }
-  }
-  return x;
-}
-
-/**
- * Compiler internal for typecasts
- * @internal
- */
-export function convertBytesToUint(maxval: bigint, n: number, a: Uint8Array, src: string): bigint {
+export function convertBytesToBigint(maxval: bigint,
+                                     n: number,
+                                     a: Uint8Array,
+                                     name: string,
+                                     src: string): bigint {
   let x = 0n;
   for (let i = n - 1; i >= 0; i -= 1) {
     x = x * 0x100n + BigInt(a[i]);
     if (x > maxval) {
-      const msg = `range error at ${src}: byte vector [${Array.from(a.slice(0, n)).join(',')}] exceeds maximum value ${maxval} of target Uint type`;
+      const msg = `range error at ${src}: byte vector [${Array.from(a.slice(0, n)).join(',')}] exceeds maximum value ${maxval} of ${name} type`;
       throw new CompactError(msg);
     }
   }

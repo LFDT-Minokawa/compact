@@ -926,8 +926,8 @@
          (>= src bits expr1 expr2)
          (!= src type expr1 expr2)
          (cast-from-bytes src type len expr))
-      (+ (elt-ref src expr elt-name) => (elt-ref expr elt-name)
-         (bytes->field src len expr) => (bytes->field len expr)))
+      (+ (elt-ref src expr elt-name)       => (elt-ref expr elt-name)
+         (bytes->field src ftype len expr) => (bytes->field ftype len expr)))
     (Type (type)
       (- tvar-name
          (talias src nominal? type-name type)
@@ -1058,7 +1058,7 @@
       (contract-call src elt-name (triv type) triv* ...) =>
         (contract-call elt-name 4 (triv 0 type) #f triv* ...)
       (field->bytes src len triv)            => (field->bytes len triv)
-      (bytes->field src len triv)            => (bytes->field len triv)
+      (bytes->field src ftype len triv)      => (bytes->field ftype len triv)
       (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv)
       (cast-from-field src nat ftype triv)   => (cast-from-field nat ftype #f triv)
       (downcast-unsigned src nat2 nat1 triv) => (downcast-unsigned nat2 nat1 triv)
@@ -1151,7 +1151,7 @@
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...)
          (contract-call src elt-name (triv type) triv* ...)
          (field->bytes src len triv)
-         (bytes->field src len triv)
+         (bytes->field src ftype len triv)
          (downcast-unsigned src nat2 nat1 triv)))
     (Single (single)
       (+ triv
@@ -1162,7 +1162,7 @@
          (== triv1 triv2)                            => (== triv1 3 triv2)
          (select triv0 triv1 triv2)                  => (select triv0 triv1 triv2)
          (bytes-ref triv nat)
-         (bytes->field src len triv1 triv2)          => (bytes->field len #f triv1 #f triv2)
+         (bytes->field src ftype len triv1 triv2)    => (bytes->field ftype len #f triv1 #f triv2)
          (vector->bytes triv triv* ...)              => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
          (cast-to-field ftype primitive-type triv)
          (cast-from-field src safe nat ftype triv)   => (cast-from-field safe nat ftype triv)

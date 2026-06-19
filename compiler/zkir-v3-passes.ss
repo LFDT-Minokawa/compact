@@ -887,15 +887,39 @@
              `(div_mod_power_of_two ,ig1 ,var-name ,quo ,8)
              `(div_mod_power_of_two ,quo ,ig0 ,triv ,(* nat 8))
              instr*)))]
-      [(bytes->field ,src ,len ,triv0 ,triv1)
-       ;; TODO(kmillikin): This should respect test and be conditional in the ZKIR output.
-       ;; NB: missing-guard-workarounds now implements a workaround that ensures
-       ;; bytes->field receives inputs that can't cause reconstitute_field
-       ;; to fail when test turns out to be false
+      [(bytes->field ,src ,ftype ,len ,triv0 ,triv1)
        (with-output-language (Lzkir Instruction)
-         ;; flatten-datatype takes care of this case.
-         (assert (> len (field-bytes)))
-         (cons `(reconstitute_field ,var-name ,triv0 ,triv1 ,(* 8 (field-bytes))) instr*))]
+         (define (make-secp256k1-cast type)
+           ;; The fields are decoded from four 64-bit limbs in little-endian order.
+           ;; (tmp0, fld0) = div_mod_power_of_two(triv1, 64)
+           ;; (tmp1, fld1) = div_mod_power_of_two(tmp0, 64)
+           ;; (tmp2, fld2) = div_mod_power_of_two(tmp1, 64)
+           ;; fld3 = reconstitute_field(triv0, tmp2, 56)
+           ;; var-name = decode("F", fld0, fld1, fld2, fld3)
+           (assert (= (field-bytes) 31))
+           (let loop ([limb-count 0] [limb-names '()] [triv triv1] [instr* instr*])
+             (if (= 3 limb-count)
+                 (let ([fld (make-temp-id src 'fld)])
+                   (cons*
+                     `(decode ,type ,var-name ,(reverse (cons fld limb-names)) ...)
+                     `(reconstitute_field ,fld ,triv0 ,triv 56)
+                     instr*))
+                 (let* ([tmp (make-temp-id src 'tmp)]
+                        [fld (make-temp-id src 'fld)])
+                   (loop (1+ limb-count) (cons fld limb-names) tmp
+                     (cons `(div_mod_power_of_two ,tmp ,fld ,triv 64) instr*))))))
+         (nanopass-case (Lflattened Field-Type) ftype
+           [(field-base (curve-secp256k1)) (make-secp256k1-cast "Base<Secp256k1>")]
+           [(field-scalar (curve-secp256k1)) (make-secp256k1-cast "Scalar<Secp256k1>")]
+           [(field-native)
+            ;; TODO(kmillikin): This should respect test and be conditional in the ZKIR output.
+            ;; NB: missing-guard-workarounds now implements a workaround that ensures
+            ;; bytes->field receives inputs that can't cause reconstitute_field
+            ;; to fail when test turns out to be false
+            (with-output-language (Lzkir Instruction)
+              ;; flatten-datatype takes care of this case.
+              (assert (> len (field-bytes)))
+              (cons `(reconstitute_field ,var-name ,triv0 ,triv1 ,(* 8 (field-bytes))) instr*))]))]
       [(vector->bytes ,triv ,triv* ...)
        (with-output-language (Lzkir Instruction)
          (if (null? triv*)

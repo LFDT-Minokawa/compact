@@ -759,7 +759,10 @@
           ; NB: missing-guard-workarounds now implements a workaround that ensures
           ; bytes->field receives inputs that can't cause reconstitute_field
           ; to fail when test turns out to be false
-          [(bytes->field ,src ,len ,[* triv1] ,[* triv2])
+          [(bytes->field ,src ,ftype ,len ,[* triv1] ,[* triv2])
+           (assert (nanopass-case (Lflattened Field-Type) ftype
+                     [(field-native) #t]
+                     [else #f]))
            (if (<= len (field-bytes))
                ; flattened-datatype takes care of this case, so this line can't presently be reached
                (print-gate "copy" `[var ,triv2])
