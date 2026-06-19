@@ -884,6 +884,73 @@ groups than for single tests.
                      (next-value (cdr v*))))))))]))
 )
 
+(parameterize ([feature-zkir-v3 #t])
+(run-tests save-manifest
+  (test
+    '(
+      "ledger wantProof: Boolean;"
+      "export circuit test(b: Bytes<32>, s: Bytes<32>): [Secp256k1Base, Secp256k1Scalar] {"
+      "  wantProof = true;"
+      "  return [b as Secp256k1Base, s as Secp256k1Scalar];"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
+                         (%b.0 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>"))
+             ("Base<Secp256k1>" "Scalar<Secp256k1>")
+          (constrain_bits %b.1 8)
+          (constrain_bits %b.0 248)
+          (constrain_bits %s.3 8)
+          (constrain_bits %s.2 248)
+          (impact 1 16 1 1 1 0 17 1 1 1 1 145)
+          (div_mod_power_of_two %tmp.4 %fld.5 %b.0 64)
+          (div_mod_power_of_two %tmp.6 %fld.7 %tmp.4 64)
+          (div_mod_power_of_two %tmp.8 %fld.9 %tmp.6 64)
+          (reconstitute_field %fld.10 %b.1 %tmp.8 56)
+          (decode "Base<Secp256k1>" %t.11 %fld.5 %fld.7 %fld.9
+            %fld.10)
+          (div_mod_power_of_two %tmp.12 %fld.13 %s.2 64)
+          (div_mod_power_of_two %tmp.14 %fld.15 %tmp.12 64)
+          (div_mod_power_of_two %tmp.16 %fld.17 %tmp.14 64)
+          (reconstitute_field %fld.18 %s.3 %tmp.16 56)
+          (decode "Scalar<Secp256k1>" %t.19 %fld.13 %fld.15 %fld.17
+            %fld.18)
+          (output %t.11 %t.19))))
+    (stage-javascript
+      `("test('Bytes to secp256k1 field casts', () => {"
+        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "  // Some random field values in range."
+        "  const base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  const scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  // Little-endian byte encodings."
+        "  const baseBytes = new Uint8Array(["
+        "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
+        "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
+        "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
+        "  ]);"
+        "  const scalarBytes = new Uint8Array(["
+        "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
+        "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
+        "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  var res = contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(res.result[0]).toEqual(base);"
+        "  expect(res.result[1]).toEqual(scalar);"
+        "});"
+        ))
+    )
+  )
+
+(run-javascript)
+)
+
+#!eof
+
 (run-tests parse-file/format/reparse
   (test
     '(
