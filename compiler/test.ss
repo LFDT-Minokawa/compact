@@ -18095,7 +18095,7 @@ groups than for single tests.
   (test
     '(
       "import {keccak256} from CompactStandardLibrary;"
-      "export circuit foo(): Field { return keccak256<Bytes<32>>(42); }"
+      "export circuit foo(): Bytes<32> { return keccak256<Bytes<32>>(42); }"
       )
     (oops
       message: "~a:\n  ~?"
