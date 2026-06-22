@@ -944,17 +944,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1781680064,
-        "narHash": "sha256-u5TdGJIKrB70VvHTIvzEOfIc+KqTuglvaiDQIf/PlvI=",
+        "lastModified": 1782135141,
+        "narHash": "sha256-0SOFJ+52SnExaHZA9epEg1kYjmcreyu8fAJKA1T+OSA=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "343f176752f635ba89427d7e0c3eeef5305dc124",
+        "rev": "ca37d378043f19abc3778c8d171b05df5825459c",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
+        "ref": "ambrona@zkirv3-bytes32",
         "repo": "midnight-ledger",
-        "rev": "343f176752f635ba89427d7e0c3eeef5305dc124",
         "type": "github"
       }
     },
@@ -969,17 +969,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1781680064,
-        "narHash": "sha256-u5TdGJIKrB70VvHTIvzEOfIc+KqTuglvaiDQIf/PlvI=",
+        "lastModified": 1782135141,
+        "narHash": "sha256-0SOFJ+52SnExaHZA9epEg1kYjmcreyu8fAJKA1T+OSA=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "343f176752f635ba89427d7e0c3eeef5305dc124",
+        "rev": "ca37d378043f19abc3778c8d171b05df5825459c",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
+        "ref": "ambrona@zkirv3-bytes32",
         "repo": "midnight-ledger",
-        "rev": "343f176752f635ba89427d7e0c3eeef5305dc124",
         "type": "github"
       }
     },

@@ -349,9 +349,8 @@
            "typeError"
            "assert"
            "convertNumericToJubjubScalar"
-           "convertFieldToBytes"
-           "convertBytesToField"
-           "convertBytesToUint"
+           "convertBigintToBytes"
+           "convertBytesToBigint"
            "addField"
            "subField"
            "mulField"
@@ -1218,6 +1217,42 @@
               (display-string "export declare const pureCircuits: PureCircuits;\n")
               ))))
 
+      (define (format-field-type ftype)
+        (nanopass-case (Ltypescript Field-Type) ftype
+          [(field-native) "Field"]
+          [(field-scalar (curve-jubjub)) "JubjubScalar"]
+          [(field-base (curve-secp256k1)) "Secp256k1Base"]
+          [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+      (define (format-type type)
+        (nanopass-case (Ltypescript Type) (de-alias type)
+          [(tboolean ,src) "Boolean"]
+          [(tfield ,src ,ftype) (format-field-type ftype)]
+          [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
+          [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
+          [(tunknown) "Unknown"]
+          [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
+          [(tbytes ,src ,len) (format "Bytes<~s>" len)]
+          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+           (format "contract ~a[~{~a~^, ~}]" contract-name
+             (map (lambda (elt-name pure-dcl type* type)
+                    (if pure-dcl
+                        (format "pure ~a(~{~a~^, ~}): ~a" elt-name
+                          (map format-type type*) (format-type type))
+                        (format "~a(~{~a~^, ~}): ~a" elt-name
+                          (map format-type type*) (format-type type))))
+               elt-name* pure-dcl* type** type*))]
+          [(ttuple ,src ,type* ...)
+           (format "[~{~a~^, ~}]" (map format-type type*))]
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+           (format "struct ~a<~{~a~^, ~}>" struct-name
+             (map (lambda (elt-name type)
+                    (format "~a: ~a" elt-name (format-type type)))
+               elt-name* type*))]
+          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+           (format "Enum<~a, ~s~{, ~s~}>" enum-name elt-name elt-name*)]
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           (assert cannot-happen)]))
+
       (module (print-contract.js)
         (define (print-contract-header)
           (display-string "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';\n")
@@ -1421,41 +1456,6 @@
                     [(tunknown) (assert cannot-happen)]
                     [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                      (assert cannot-happen)]))))
-
-            (define (format-type type)
-              (nanopass-case (Ltypescript Type) (de-alias type)
-                [(tboolean ,src) "Boolean"]
-                [(tfield ,src ,ftype)
-                 (nanopass-case (Ltypescript Field-Type) ftype
-                   [(field-native) "Field"]
-                   [(field-scalar (curve-jubjub)) "JubjubScalar"]
-                   [(field-base (curve-secp256k1)) "Secp256k1Base"]
-                   [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
-                [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
-                [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
-                [(tunknown) "Unknown"]
-                [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
-                [(tbytes ,src ,len) (format "Bytes<~s>" len)]
-                [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                 (format "contract ~a[~{~a~^, ~}]" contract-name
-                   (map (lambda (elt-name pure-dcl type* type)
-                          (if pure-dcl
-                              (format "pure ~a(~{~a~^, ~}): ~a" elt-name
-                                (map format-type type*) (format-type type))
-                              (format "~a(~{~a~^, ~}): ~a" elt-name
-                                (map format-type type*) (format-type type))))
-                     elt-name* pure-dcl* type** type*))]
-                [(ttuple ,src ,type* ...)
-                 (format "[~{~a~^, ~}]" (map format-type type*))]
-                [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-                 (format "struct ~a<~{~a~^, ~}>" struct-name
-                   (map (lambda (elt-name type)
-                          (format "~a: ~a" elt-name (format-type type)))
-                        elt-name* type*))]
-                [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-                 (format "Enum<~a, ~s~{, ~s~}>" enum-name elt-name elt-name*)]
-                [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                 (assert cannot-happen)]))
 
             (define (argument-type-checks src what extra-arguments var-name* type* q*)
               (fold-right
@@ -3173,35 +3173,29 @@
              expr
              (format-javascript-string mesg))
            ")"))]
-      [(field->bytes ,src ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
+      [(field->bytes ,src ,len ,ftype ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (make-Qconcat
-           (compact-stdlib "convertFieldToBytes")
+           (compact-stdlib "convertBigintToBytes")
            "("
            ((make-Qsep ",") (format "~d" len) expr (format "'~a'" (format-source-object src)))
            ")"))]
       [(cast-from-bytes ,src ,type ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
-         (nanopass-case (Ltypescript Type) (de-alias type)
-           [(tfield ,src^ (field-native))
-            (make-Qconcat
-              (compact-stdlib "convertBytesToField")
-              "("
-              ((make-Qsep ",") (format "~d" len) expr (format "'~a'" (format-source-object src)))
-              ")")]
-           [(tfield ,src^ (field-scalar (curve-jubjub)))
-            (make-Qconcat
-              (compact-stdlib "convertBytesToJubjubScalar")
-              "("
-              ((make-Qsep ",") (format "~d" len) expr (format "'~a'" (format-source-object src)))
-              ")")]
-           [(tunsigned ,src^ ,nat^)
-            (make-Qconcat
-              (compact-stdlib "convertBytesToUint")
-              "("
-              ((make-Qsep ",") (format "~dn" nat^) (format "~d" len) expr (format "'~a'" (format-source-object src)))
-              ")")]
-           [else (assert cannot-happen)]))]
+         (let ([max (nanopass-case (Ltypescript Type) (de-alias type)
+                      [(tfield ,src^ (field-native)) (max-field)]
+                      [(tfield ,src^ (field-scalar (curve-jubjub))) (max-jubjub-scalar)]
+                      [(tfield ,src^ (field-base (curve-secp256k1))) (max-secp256k1-base)]
+                      [(tfield ,src^ (field-scalar (curve-secp256k1))) (max-secp256k1-scalar)]
+                      [(tunsigned ,src^ ,nat) nat])])
+           (make-Qconcat (compact-stdlib "convertBytesToBigint") "("
+             ((make-Qsep ",")
+              (format "~dn" max)
+              (format "~d" len)
+              expr
+              (format "'~a'" (format-type type))
+              (format "'~a'" (format-source-object src)))
+             ")")))]
       [(vector->bytes ,src ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (make-Qconcat

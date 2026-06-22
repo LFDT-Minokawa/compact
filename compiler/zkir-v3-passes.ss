@@ -20,6 +20,7 @@
   (import (except (chezscheme) errorf)
           (config-params)
           (utils)
+          (field)
           (datatype)
           (nanopass)
           (langs)
@@ -95,7 +96,7 @@
             ;; Generally assume that the arity is correct here.
             (case name
               [(constructJubjubPoint)
-               (cons `(decode "Point<Jubjub>" ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
+               (cons `(from_coordinates ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
               [(degradeToTransient)
                (cons `(copy ,(car var-name*) ,(cadr triv*)) instr*)]
               [(ecAdd)
@@ -107,9 +108,9 @@
                      [tmp-y (make-temp-id src 'y)]
                      [tmp-neg-x (make-temp-id src 'neg)])
                  (cons*
-                   `(decode "Point<Jubjub>" ,(car var-name*) ,tmp-neg-x ,tmp-y)
+                   `(from_coordinates ,(car var-name*) ,tmp-neg-x ,tmp-y)
                    `(neg ,tmp-neg-x ,tmp-x)
-                   `(encode (,tmp-x ,tmp-y) ,(car triv*))
+                   `(into_coordinates ,tmp-x ,tmp-y ,(car triv*))
                    instr*))]
               [(ecMul)
                (assert (= (length var-name*) 1))
@@ -125,10 +126,12 @@
                (cons `(inv ,(car var-name*) ,(car triv*)) instr*)]
               [(jubjubPointX)
                (assert (= (length var-name*) 1))
-               (cons `(encode (,(car var-name*) ,(make-temp-id src 'ingore)) ,(car triv*)) instr*)]
+               (let ([y (make-temp-id src 'ignore)])
+                 (cons `(into_coordinates ,(car var-name*) ,y ,(car triv*)) instr*))]
               [(jubjubPointY)
                (assert (= (length var-name*) 1))
-               (cons `(encode (,(make-temp-id src 'ignore) ,(car var-name*)) ,(car triv*)) instr*)]
+               (let ([x (make-temp-id src 'ignore)])
+                 (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
               [(keccak256)
                (assert (= (length var-name*) 2))
                (let ([alignment* (arg->alignment arg* 0)])
@@ -155,6 +158,14 @@
                  (cons `(persistent_hash ,(car var-name*) ,(cadr var-name*)
                           (,alignment* ...) ,triv* ...)
                    instr*))]
+              [(secp256k1PointX)
+               (assert (= (length var-name*) 1))
+               (let ([y (make-temp-id src 'ignore)])
+                 (cons `(into_coordinates ,(car var-name*) ,y ,(car triv*)) instr*))]
+              [(secp256k1PointY)
+               (assert (= (length var-name*) 1))
+               (let ([x (make-temp-id src 'ignore)])
+                 (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
               [(transientCommit)
                (assert (= (length var-name*) 1))
                ;; The last input needs to be moved first.
@@ -704,14 +715,16 @@
                 [(argument (,var-name* ...) (ty (,alignment* ...) (,primitive-type* ...)))
                  (values (append var-name* name*) (append primitive-type* type*))]))))
 
+      (define (field-type->string ftype)
+        (nanopass-case (Lflattened Field-Type) ftype
+          [(field-native) "Scalar<BLS12-381>"]
+          [(field-scalar (curve-jubjub)) "Scalar<Jubjub>"]
+          [(field-base (curve-secp256k1)) "Base<Secp256k1>"]
+          [(field-scalar (curve-secp256k1)) "Scalar<Secp256k1>"]))
+
       (define (type->string primitive-type)
         (nanopass-case (Lflattened Primitive-Type) primitive-type
-          [(tfield ,ftype)
-           (nanopass-case (Lflattened Field-Type) ftype
-             [(field-native) "Scalar<BLS12-381>"]
-             [(field-scalar (curve-jubjub)) "Scalar<Jubjub>"]
-             [(field-base (curve-secp256k1)) "Base<Secp256k1>"]
-             [(field-scalar (curve-secp256k1)) "Scalar<Secp256k1>"])]
+          [(tfield ,ftype) (field-type->string ftype)]
           [(tunsigned ,nat) "Scalar<BLS12-381>"]
           [(topaque ,opaque-type)
            (case opaque-type
@@ -782,20 +795,30 @@
       [(= ,test (,var-name) (default ,opaque-type))
        (assert (string=? opaque-type "JubjubPoint"))
        (with-output-language (Lzkir Instruction)
-         (cons `(decode "Point<Jubjub>" ,var-name 0 1) instr*))]
-      [(= ,test (,var-name0 ,var-name1) (field->bytes ,src ,len ,triv))
+         (cons `(from_coordinates ,var-name 0 1) instr*))]
+      [(= ,test (,var-name0 ,var-name1) (field->bytes ,src ,len ,ftype ,triv))
        ;; TODO(kmillikin): this needs to respect test because `constrain_bits` can fail.
        ;; NB: missing-guard-workarounds now implements a workaround that ensures
        ;; field->bytes receives a large enough length that it won't produce
        ;; constrain_bits when the test might be false
        (with-output-language (Lzkir Instruction)
-         (if (<= len (field-bytes))
+         (define (handle-secp256k1-field)
+           (let ([tmp (make-temp-id src 'tmp)])
              (cons*
-               `(constrain_bits ,var-name1 ,(* len 8))
-               `(copy ,var-name1 ,triv)
-               instr*)
-             (cons `(div_mod_power_of_two ,var-name0 ,var-name1 ,triv ,(* (field-bytes) 8))
-               instr*)))]
+               `(bytes32_into_low_high ,var-name1 ,var-name0 ,tmp)
+               `(into_bytes32 ,tmp ,triv)
+               instr*)))
+         (nanopass-case (Lflattened Field-Type) ftype
+           [(field-base (curve-secp256k1)) (handle-secp256k1-field)]
+           [(field-scalar (curve-secp256k1)) (handle-secp256k1-field)]
+           [(field-native)
+            (if (<= len (field-bytes))
+                (cons*
+                  `(constrain_bits ,var-name1 ,(* len 8))
+                  `(copy ,var-name1 ,triv)
+                  instr*)
+                (cons `(div_mod_power_of_two ,var-name0 ,var-name1 ,triv ,(* (field-bytes) 8))
+                  instr*))]))]
       [(= ,test (,var-name0 ,var-name1) (div-mod-power-of-two ,triv ,bits))
        (with-output-language (Lzkir Instruction)
          (cons
@@ -887,15 +910,26 @@
              `(div_mod_power_of_two ,ig1 ,var-name ,quo ,8)
              `(div_mod_power_of_two ,quo ,ig0 ,triv ,(* nat 8))
              instr*)))]
-      [(bytes->field ,src ,len ,triv0 ,triv1)
-       ;; TODO(kmillikin): This should respect test and be conditional in the ZKIR output.
-       ;; NB: missing-guard-workarounds now implements a workaround that ensures
-       ;; bytes->field receives inputs that can't cause reconstitute_field
-       ;; to fail when test turns out to be false
+      [(bytes->field ,src ,ftype ,len ,triv0 ,triv1)
        (with-output-language (Lzkir Instruction)
-         ;; flatten-datatype takes care of this case.
-         (assert (> len (field-bytes)))
-         (cons `(reconstitute_field ,var-name ,triv0 ,triv1 ,(* 8 (field-bytes))) instr*))]
+         (define (handle-secp256k1-field)
+           (let ([tmp (make-temp-id src 'tmp)])
+             (cons*
+               `(from_bytes32 ,(field-type->string ftype) ,var-name ,tmp)
+               `(bytes32_from_low_high ,tmp ,triv1 ,triv0)
+               instr*)))
+         (nanopass-case (Lflattened Field-Type) ftype
+           [(field-base (curve-secp256k1)) (handle-secp256k1-field)]
+           [(field-scalar (curve-secp256k1)) (handle-secp256k1-field)]
+           [(field-native)
+            ;; TODO(kmillikin): This should respect test and be conditional in the ZKIR output.
+            ;; NB: missing-guard-workarounds now implements a workaround that ensures
+            ;; bytes->field receives inputs that can't cause reconstitute_field
+            ;; to fail when test turns out to be false
+            (with-output-language (Lzkir Instruction)
+              ;; flatten-datatype takes care of this case.
+              (assert (> len (field-bytes)))
+              (cons `(reconstitute_field ,var-name ,triv0 ,triv1 ,(* 8 (field-bytes))) instr*))]))]
       [(vector->bytes ,triv ,triv* ...)
        (with-output-language (Lzkir Instruction)
          (if (null? triv*)
@@ -1030,6 +1064,11 @@
        `((op . "add") (output . ,outp) (a . ,inp0) (b . ,inp1))]
       [(assert ,[* inp])
        `((op . "assert") (cond . ,inp))]
+      [(bytes32_from_low_high ,[* outp] ,[* inp0] ,[* inp1])
+       `((op . "bytes32_from_low_high") (output . ,outp) (inputs . ,(vector inp0 inp1)))]
+      [(bytes32_into_low_high ,outp0 ,outp1 ,[* inp])
+       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
+         `((op . "bytes32_into_low_high") (outputs . ,(vector outp0 outp1)) (bytes . ,inp)))]
       [(cond_select ,[* outp] ,[* inp0] ,[* inp1] ,[* inp2])
        `((op . "cond_select") (output . ,outp) (bit . ,inp0) (a . ,inp1) (b . ,inp2))]
       [(constrain_bits ,[* inp] ,imm)
@@ -1040,8 +1079,6 @@
        `((op . "constrain_to_boolean") (val . ,inp))]
       [(copy ,[* outp] ,[* inp])
        `((op . "copy") (output . ,outp) (val . ,inp))]
-      [(decode ,zkir-type ,[* outp] ,[* inp*] ...)
-       `((op . "decode") (type . ,zkir-type) (output . ,outp) (inputs . ,(list->vector inp*)))]
       [(div_mod_power_of_two ,[* outp0] ,[* outp1] ,[* inp] ,imm)
        `((op . "div_mod_power_of_two") (outputs . ,(vector outp0 outp1)) (val . ,inp)
          (bits . ,imm))]
@@ -1052,10 +1089,19 @@
       [(encode (,outp* ...) ,[* inp])
        (let ([outp* (maplr Output outp*)])
          `((op . "encode") (outputs . ,(list->vector outp*)) (input . ,inp)))]
+      [(from_bytes32 ,zkir-type ,[* outp] ,[* inp])
+       `((op . "from_bytes32") (type . ,zkir-type) (output . ,outp) (bytes . ,inp))]
+      [(from_coordinates ,[* outp] ,[* inp0] ,[* inp1])
+       `((op . "from_coordinates") (output . ,outp) (inputs . ,(vector inp0 inp1)))]
       [(hash_to_curve ,[* outp] ,[* inp*] ...)
        `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
       [(impact ,[* inp] ,[* inp*] ...)
        `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
+      [(into_bytes32 ,[* outp] ,[* inp])
+       `((op . "into_bytes32") (output . ,outp) (input . ,inp))]
+      [(into_coordinates ,outp0 ,outp1 ,[* inp])
+       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
+         `((op . "into_coordinates") (outputs . ,(vector outp0 outp1)) (point . ,inp)))]
       [(inv ,[* outp] ,[* inp])
        `((op . "inv") (output . ,outp) (a . ,inp))]
       [(jubjub_scalar_from_native ,[* outp] ,[* inp])
@@ -1070,6 +1116,10 @@
        `((op . "mul") (output . ,outp) (a . ,inp0) (b . ,inp1))]
       [(neg ,[* outp] ,[* inp])
        `((op . "neg") (output . ,outp) (a . ,inp))]
+      ;; TODO(kmillikin): we don't actually use this instruction, we use (cond_select t 0 1).  But
+      ;; we should use this one instead.
+      [(not ,[* outp] ,[* inp])
+       `((op . "not") (output . ,outp) (a . ,inp))]
       [(output ,[* inp*] ...)
        `((op . "output") (vals . ,(list->vector inp*)))]
       [(persistent_hash ,[* outp0] ,[* outp1] (,alignment* ...) ,[* inp*] ...)

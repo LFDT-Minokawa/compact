@@ -1339,6 +1339,12 @@
       (define (arg->type arg)
         (nanopass-case (Ltypes Argument) arg
           [(,var-name ,type) type]))
+      (define (format-field-type ftype)
+        (nanopass-case (Ltypes Field-Type) ftype
+          [(field-native) "Field"]
+          [(field-scalar (curve-jubjub)) "JubjubScalar"]
+          [(field-base (curve-secp256k1)) "Secp256k1Base"]
+          [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
       (define (format-adt-arg adt-arg)
         (nanopass-case (Ltypes Public-Ledger-ADT-Arg) adt-arg
           [,nat (format "~d" nat)]
@@ -1352,12 +1358,7 @@
       (define (format-type type)
         (nanopass-case (Ltypes Type) type
           [(tboolean ,src) "Boolean"]
-          [(tfield ,src ,ftype)
-           (nanopass-case (Ltypes Field-Type) ftype
-             [(field-native) "Field"]
-             [(field-scalar (curve-jubjub)) "JubjubScalar"]
-             [(field-base (curve-secp256k1)) "Secp256k1Base"]
-             [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
+          [(tfield ,src ,ftype) (format-field-type ftype)]
           [(tunsigned ,src ,nat)
            (or (and (> nat 0)
                     (let ([bits (integer-length nat)])
@@ -3098,7 +3099,7 @@
          `(quote ,src^ ,datum)
          (Type type))]
       [(cast ,src ,[type] ,[Care : expr type^])
-       (define (handle-unaliased type type^ expr)
+       (define (handle-unaliased target-type source-type expr)
          (define (u8-subtype? type)
            (nanopass-case (Ltypes Type) (de-alias type #t)
              [(tunsigned ,src ,nat) (<= nat 255)]
@@ -3108,67 +3109,84 @@
              [(tunsigned ,src ,nat) (>= nat 255)]
              [(tfield ,src ,ftype) #t]
              [else #f]))
-         (or (and (subtype? type^ type)
-                  (maybe-safecast src type type^ expr))
-             (T type
+         (or (and (subtype? source-type target-type)
+                  (maybe-safecast src target-type source-type expr))
+             (T target-type
                 [(tfield ,src1 ,ftype1)
-                 (T type^
+                 (T source-type
                     [(tfield ,src2 ,ftype2)
-                     ;; We know that the field types are distinct because of `subtype?` above.
+                     ;; We know that the field types are distinct because of `subtype?` above, and
+                     ;; there is (currently) no field subtyping.
                      (nanopass-case (Ltypes Field-Type) ftype1
-                       [(field-native) ; JubujubScalar as Field.
-                        `(cast-to-field ,src ,ftype1 ,type^ ,expr)]
-                       [(field-scalar (curve-jubjub)) ; Field as JubjubScalar.
-                        `(cast-to-field ,src ,ftype1 ,type^ ,expr)])]
+                       [(field-native)
+                        (nanopass-case (Ltypes Field-Type) ftype2
+                          [(field-scalar (curve-jubjub))
+                           `(cast-to-field ,src ,ftype1 ,source-type ,expr)]
+                          [else #f])]
+                       [(field-scalar (curve-jubjub))
+                        (nanopass-case (Ltypes Field-Type) ftype2
+                          [(field-native)
+                           `(cast-to-field ,src ,ftype1 ,source-type ,expr)]
+                          [else #f])])]
                     [(tunsigned ,src2 ,nat)
                      (nanopass-case (Ltypes Field-Type) ftype1
                        [(field-native)
-                        `(safe-cast ,src ,type ,type^ ,expr)]
+                        `(safe-cast ,src ,target-type ,source-type ,expr)]
                        [(field-scalar (curve-jubjub))
-                        `(cast-to-field ,src ,ftype1 ,type^ ,expr)])]
+                        `(cast-to-field ,src ,ftype1 ,source-type ,expr)])]
                     [(tbytes ,src2 ,len2)
-                     (guard (not (= len2 0)))
-                     `(cast-from-bytes ,src ,type ,len2 ,expr)]
+                     (guard (not (eqv? len2 0)))
+                     (and (nanopass-case (Ltypes Field-Type) ftype1
+                            [(field-native) #t]
+                            [(field-base (curve-secp256k1)) (eqv? len2 32)]
+                            [(field-scalar (curve-secp256k1)) (eqv? len2 32)]
+                            [else #f])
+                          `(cast-from-bytes ,src ,target-type ,len2 ,expr))]
                     [(tenum ,src2 ,enum-name ,elt-name ,elt-name* ...)
-                     `(cast-from-enum ,src ,type ,type^ ,expr)]
+                     `(cast-from-enum ,src ,target-type ,source-type ,expr)]
                     [(tboolean ,src2)
                      `(if ,src ,expr
-                          (safe-cast ,src ,type (tunsigned ,src 1) (quote ,src 1))
-                          (safe-cast ,src ,type (tunsigned ,src 0) (quote ,src 0)))])]
+                          (safe-cast ,src ,target-type (tunsigned ,src 1) (quote ,src 1))
+                          (safe-cast ,src ,target-type (tunsigned ,src 0) (quote ,src 0)))])]
                 [(tbytes ,src1 ,len1)
-                 (T type^
+                 (T source-type
                     [(tfield ,src2 ,ftype)
                      (guard (not (= len1 0)))
-                     `(field->bytes ,src ,len1 ,expr)]
+                     (and (nanopass-case (Ltypes Field-Type) ftype
+                            [(field-native) #t]
+                            [(field-base (curve-secp256k1)) (eqv? len1 32)]
+                            [(field-scalar (curve-secp256k1)) (eqv? len1 32)])
+                          `(field->bytes ,src ,len1 ,ftype ,expr))]
                     [(tunsigned ,src2 ,nat2)
                      (guard (not (= len1 0)))
-                     `(field->bytes ,src ,len1 (safe-cast ,src (tfield ,src2 (field-native)) ,type^ ,expr))]
-                    [(ttuple ,src2 ,type2* ...)
+                     `(field->bytes ,src ,len1 (field-native)
+                        (safe-cast ,src (tfield ,src2 (field-native)) ,source-type ,expr))]
+                    [(ttuple ,src2 ,type* ...)
                      (guard
-                       (= (length type2*) len1)
-                       (andmap u8-subtype? type2*))
+                       (= (length type*) len1)
+                       (andmap u8-subtype? type*))
                      `(vector->bytes ,src ,len1 ,expr)]
                     [(tvector ,src2 ,len2 ,type2)
                      (guard (= len2 len1) (u8-subtype? type2))
                      `(vector->bytes ,src ,len1 ,expr)])]
-                [(ttuple ,src1 ,type^* ...)
-                 (T type^
+                [(ttuple ,src1 ,type* ...)
+                 (T source-type
                     [(tbytes ,src2 ,len2)
-                     (guard (= len2 (length type^*)) (andmap u8-supertype? type^*))
-                     (maybe-safecast src type
+                     (guard (= len2 (length type*)) (andmap u8-supertype? type*))
+                     (maybe-safecast src target-type
                        (with-output-language (Ltypes Type)
                          `(tvector ,src ,len2 (tunsigned ,src 255)))
                        `(bytes->vector ,src ,len2 ,expr))])]
-                [(tvector ,src1 ,len1 ,type^^)
-                 (T type^
+                [(tvector ,src1 ,len1 ,type)
+                 (T source-type
                     [(tbytes ,src2 ,len2)
-                     (guard (= len2 len1) (u8-supertype? type^^))
-                     (maybe-safecast src type
+                     (guard (= len2 len1) (u8-supertype? type))
+                     (maybe-safecast src target-type
                        (with-output-language (Ltypes Type)
                          `(tvector ,src ,len2 (tunsigned ,src 255)))
                        `(bytes->vector ,src ,len1 ,expr))])]
                 [(tunsigned ,src1 ,nat1)
-                 (T type^
+                 (T source-type
                     [(tfield ,src2 ,ftype)
                      `(cast-from-field ,src ,nat1 ,ftype ,expr)]
                     [(tunsigned ,src2 ,nat2)
@@ -3176,9 +3194,9 @@
                      `(downcast-unsigned ,src ,nat2 ,nat1 ,expr)]
                     [(tbytes ,src2 ,len2)
                      (guard (not (= len2 0)))
-                     `(cast-from-bytes ,src ,type ,len2 ,expr)]
+                     `(cast-from-bytes ,src ,target-type ,len2 ,expr)]
                     [(tenum ,src2 ,enum-name ,elt-name ,elt-name* ...)
-                     `(cast-from-enum ,src ,type ,type^ ,expr)]
+                     `(cast-from-enum ,src ,target-type ,source-type ,expr)]
                     [(tboolean ,src2)
                      (if (= nat1 0)
                          `(if ,src ,expr
@@ -3187,32 +3205,36 @@
                          `(if ,src ,expr
                               ,(if (eqv? nat1 1)
                                    `(quote ,src 1)
-                                   `(safe-cast ,src ,type (tunsigned ,src 1) (quote ,src 1)))
-                              (safe-cast ,src ,type (tunsigned ,src 0) (quote ,src 0))))])]
+                                   `(safe-cast ,src ,target-type (tunsigned ,src 1) (quote ,src 1)))
+                              (safe-cast ,src ,target-type (tunsigned ,src 0) (quote ,src 0))))])]
                 [(tboolean ,src1)
-                 (T type^
+                 (T source-type
                     [(tfield ,src2 ,ftype)
                      `(if ,src
-                          (== ,src ,type^ ,expr (safe-cast ,src ,type^ (tunsigned ,src 0) (quote ,src 0)))
+                          (== ,src ,source-type ,expr
+                            (safe-cast ,src ,source-type (tunsigned ,src 0) (quote ,src 0)))
                           (quote ,src #f)
                           (quote ,src #t))]
                     [(tunsigned ,src2 ,nat2)
                      (if (eqv? nat2 0)
                          `(quote ,src #f)
                          `(if ,src
-                              (== ,src ,type^ ,expr (safe-cast ,src ,type^ (tunsigned ,src 0) (quote ,src 0)))
+                              (== ,src ,source-type ,expr
+                                (safe-cast ,src ,source-type (tunsigned ,src 0) (quote ,src 0)))
                               (quote ,src #f)
                               (quote ,src #t)))])]
                 [(tenum ,src1 ,enum-name ,elt-name ,elt-name* ...)
-                 (guard (T type^ [(tfield ,src ,ftype) #t] [(tunsigned ,src ,nat) #t]))
-                 `(cast-to-enum ,src ,type ,type^ ,expr)])
+                 (guard (T source-type [(tfield ,src ,ftype) #t] [(tunsigned ,src ,nat) #t]))
+                 `(cast-to-enum ,src ,target-type ,source-type ,expr)])
              (source-errorf src "cannot cast from type ~a to type ~a"
-                            (format-type type^)
-                            (format-type type))))
+                            (format-type source-type)
+                            (format-type target-type))))
        (values
-         (let ([unaliased-type (de-alias type #t)] [unaliased-type^ (de-alias type^ #t)])
-           (let ([expr (maybe-safecast src unaliased-type^ type^ expr)])
-             (maybe-safecast src type unaliased-type (handle-unaliased unaliased-type unaliased-type^ expr))))
+         (let ([unaliased-target-type (de-alias type #t)]
+               [unaliased-source-type (de-alias type^ #t)])
+           (let ([expr (maybe-safecast src unaliased-source-type type^ expr)])
+             (maybe-safecast src type unaliased-target-type
+               (handle-unaliased unaliased-target-type unaliased-source-type expr))))
          type)]
       [(disclose ,src ,[Care : expr type])
        (values
@@ -3521,6 +3543,12 @@
       (define (arg->type arg)
         (nanopass-case (Lnodca Argument) arg
           [(,var-name ,type) type]))
+      (define (format-field-type ftype)
+        (nanopass-case (Lnodca Field-Type) ftype
+          [(field-native) "Field"]
+          [(field-scalar (curve-jubjub)) "JubjubScalar"]
+          [(field-base (curve-secp256k1)) "Secp256k1Base"]
+          [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
       (define (format-type type)
         (define (format-adt-arg adt-arg)
           (nanopass-case (Lnodca Public-Ledger-ADT-Arg) adt-arg
@@ -3528,12 +3556,7 @@
             [,type (format-type type)]))
         (nanopass-case (Lnodca Type) type
           [(tboolean ,src) "Boolean"]
-          [(tfield ,src ,ftype)
-           (nanopass-case (Lnodca Field-Type) ftype
-             [(field-native) "Field"]
-             [(field-scalar (curve-jubjub)) "JubjubScalar"]
-             [(field-base (curve-secp256k1)) "Secp256k1Base"]
-             [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
+          [(tfield ,src ,ftype) (format-field-type ftype)]
           [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
           [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tunknown) "Unknown"]
@@ -4174,13 +4197,20 @@
                               len 
                               (format-type type^))])
        type]
-      [(field->bytes ,src ,len ,[Care : expr -> * type])
+      [(field->bytes ,src ,len ,ftype ,[Care : expr -> * type])
        (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
        (unless (nanopass-case (Lnodca Type) (de-alias type)
-                 [(tfield ,src ,ftype) #t]
+                 [(tfield ,src^ ,ftype^)
+                  (and (same-field-type? ftype ftype^)
+                       (nanopass-case (Lnodca Field-Type) ftype
+                         [(field-native) #t]
+                         [(field-base (curve-secp256k1)) (eqv? len 32)]
+                         [(field-scalar (curve-secp256k1)) (eqv? len 32)]
+                         [else #f]))]
                  [else #f])
-         (source-errorf src "expected a field type for field->bytes call, received ~a"
-                        (format-type type)))
+         (source-errorf src "actual type ~a is an invalid argument to field->bytes for field ~a"
+           (format-type type)
+           (format-field-type ftype)))
        (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
       [(bytes->vector ,src ,len ,[Care : expr -> * type])
        (unless (nanopass-case (Lnodca Type) (de-alias type)
@@ -5662,7 +5692,7 @@
       [(cast-from-enum ,src ,type ,type^ ,[* abs]) abs]
       [(cast-to-enum ,src ,type ,type^ ,[* abs]) abs]
       [(cast-from-bytes ,src ,type ,len ,[* abs]) abs]
-      [(field->bytes ,src ,len ,[* abs]) abs]
+      [(field->bytes ,src ,len ,ftype ,[* abs]) abs]
       [(bytes->vector ,src ,len ,[* abs]) (Abs-single (Abs-atomic (abs->witnesses abs)))]
       [(vector->bytes ,src ,len ,[* abs]) (Abs-atomic (abs->witnesses abs))]
       [(cast-to-field ,src ,ftype ,type ,[* abs]) abs]
