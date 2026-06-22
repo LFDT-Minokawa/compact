@@ -34,11 +34,11 @@ export circuit toby(a: Field): Field {
 // must be disclosed since the parameter can be back tracked from the changes
 // to the ledger.
 export circuit bob(b: Boolean) :[] {
-  if (disclose(b) || bool == disclose(b)) maps.remove(1);
-  if (disclose(b) != disclose(b)) maps.insert(1, 1);
-  if (disclose(b) == disclose(b)) maps.insertDefault(2);
-  if (disclose(b != b)) maps.lookup(2);
-  if (disclose(b || b)) maps.member(2);
+  if (disclose(b) || bool == disclose(b)) maps.remove(1 as Field);
+  if (disclose(b) != disclose(b)) maps.insert(1 as Field, 1 as Field);
+  if (disclose(b) == disclose(b)) maps.insertDefault(2 as Field);
+  if (disclose(b != b)) maps.lookup(2 as Field);
+  if (disclose(b || b)) maps.member(2 as Field);
   if (disclose(b && b)) maps.size();
   if (disclose(!b)) maps.resetToDefault();
 }
@@ -50,7 +50,7 @@ export circuit greg(b: Boolean): Field {
     counter.increment(p[1]);
   }
 
-  return p[0] + p[1];
+  return (p[0] + p[1]) as Field;
 }
 
 export circuit alan(a: Uint<8>, b: Uint<8>) :[] {
@@ -62,7 +62,7 @@ export circuit alan(a: Uint<8>, b: Uint<8>) :[] {
   if (disclose(b * a * b) < 0) list.pushFrontCoin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
   if (disclose(b - b - a) < 0) list.resetToDefault();
 
-  const z = disclose(a) + disclose(b) > 0 ? field.write(1) : field.write(2);
+  const z = disclose(a) + disclose(b) > 0 ? field.write(1 as Field) : field.write(2 as Field);
   const f = disclose(antonio()) ? field.read() : field.read();
 }
 

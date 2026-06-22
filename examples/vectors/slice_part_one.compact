@@ -27,9 +27,9 @@ export circuit test1(vector: Vector<0xffff, Field>): [Field, Field] {
 
 // test2: tuple and vector equality + default
 export circuit test2(vector: Vector<8, Field>): Boolean {
-  const a = [0b00, 0x00];
-  const b = a == slice<0x2>(vector, 0x0) && slice<2>(vector, 0o0) == [0o0, 0b0];
-  assert([0x0, 0] == slice<2>(default<Vector<4, Field>>, 0x0), "equal");
+  const a = [0b00 as Field, 0x00 as Field];
+  const b = a == slice<0x2>(vector, 0x0) && slice<2>(vector, 0o0) == [0o0 as Field, 0b0 as Field];
+  assert([0x0 as Field, 0 as Field] == slice<2>(default<Vector<4, Field>>, 0x0), "equal");
 
   return b;
 }
@@ -53,7 +53,8 @@ export circuit test4(vector: Vector<8, Field>): Vector<2, Field> {
 // test5: slice with different types
 export circuit test5(): [Field, Boolean] {
   const a = [5 as Uint<64>, 4 as Uint<8>, true, default<Bytes<8>>];
-  return slice<2>(a, 1);
+  const [b, c] = slice<2>(a, 1);
+  return [b as Field, c];
 }
 
 // test6: same but from circuit
@@ -90,13 +91,13 @@ export circuit test8(vector: Vector<4, Field>): [] {
   const j = slice<4>(g as Vector<8, Uint<8>>, 0);
   const k = slice<4>(default<Vector<8, Uint<8>>>, 0);
   const l = "adadsadadadasdadadadadadsadsadsadsadasdas";
-  const m = [var8.lookup(0), var8.lookup(1)];
+  const m = [var8.lookup(0 as Field), var8.lookup(1 as Field)];
 
   if(0x00 > 0b0) {
     assert(0B1 != 0X01, "no");
     assert(0O1 != 1, "no");
     assert(j == k, "no");
-    assert(m == [1, 2], "yes");
+    assert(m == [1 as Field, 2 as Field], "yes");
   }
 }
 
@@ -173,7 +174,7 @@ module m12<#size, #size2> {
   }
 
   circuit method4<#index>(bytes: Bytes<size>): Vector<size, Field> {
-    return slice<size>(bytes as Vector<size, Uint<8>>, 0);
+    return map((v) => v as Field, slice<size>(bytes as Vector<size, Uint<8>>, 0));
   }
 
   export circuit method5(bytes: Bytes<size>): Vector<size, Field> {
@@ -194,7 +195,7 @@ export { method3, method5, method7 };
 
 export circuit test12(): Vector<16, Field> {
   const a = method3(default<Vector<16, Field>>);
-  const b = method3([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);
+  const b = method3([1 as Field,2 as Field,3 as Field,4 as Field,5 as Field,6 as Field,7 as Field,8 as Field,9 as Field,10 as Field,11 as Field,12 as Field,13 as Field,14 as Field,15 as Field,16 as Field]);
   const c = method7(default<Bytes<4>>);
   return method5('abcdefghijklmnou');
 }
@@ -213,7 +214,7 @@ struct var13a {
 
 export circuit test13(vector: Vector<8, var13>): [Field, Bytes<2>, Boolean, Bytes<1>] {
   const a = slice<2>(vector, 0);
-  const b = var13 { a: 1, b: "ab", c: true, d: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"] };
+  const b = var13 { a: 1 as Field, b: "ab", c: true, d: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"] };
   const c = slice<0>(b.d, 1);
   const d = var13a { a: [b] };
   const e = slice<0>(d.a[0].d, 0);
@@ -311,7 +312,7 @@ circuit test16a(vector: Vector<4, Field>): Field {
   // const e = w16(vector[(a - 5) as Uint<8>]);
   // const f = w16(vector[round.read() as Uint<8>]);
   // const g = [][0];
-  const [h, _ ] = slice<4>(w16a(0), 0);
+  const [h, _ ] = slice<4>(w16a(0 as Field), 0);
   const i = _ + _ * _;
 
   for (const i of slice<0>([], 0)) {
@@ -363,7 +364,7 @@ export circuit test17(vector: Vector<10, Bytes<10>>): Bytes<1> {
 export ledger var18: Field;
 
 export circuit test18(v: Vector<0xfff, Field>): Field {
-  for (const i of ["1" as Field, 2, 3, 4, "2" as Field]) {
+  for (const i of ["1" as Field, 2 as Field, 3 as Field, 4 as Field, "2" as Field]) {
     var18 = var18 + disclose(v)[(i as Field as Uint<8>) * (i as Field as Uint<8>)];
 
     for(const i of 1..10) {

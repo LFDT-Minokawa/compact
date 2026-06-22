@@ -16,7 +16,7 @@
 ;;; limitations under the License.
 
 (library (langs)
-  (export max-field field-bytes max-unsigned unsigned-bits field? datum? path-index?
+  (export field-bytes max-unsigned unsigned-bits datum? path-index?
           max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth
           zkir-field-rep?
           maximum-ledger-segment-length 
@@ -69,7 +69,7 @@
   (define (bits? x)
     (and (integer? x)
          (exact? x)
-         (<= 1 x (unsigned-bits))))
+         (<= 1 x (integer-length (max-field)))))
 
   (define (maybe-bits? x)
     (or (not x)
@@ -280,7 +280,7 @@
     (Type (type)
       tref
       (tboolean src)                         => (tboolean)
-      (tfield src)                           => (tfield)
+      (tfield src ftype)                     => (tfield ftype)
       (tunsigned src tsize)                  => (tunsigned tsize)        ; range from 0 to 2^{tsize}-1
       (tunsigned src tsize tsize^)           => (tunsigned tsize tsize^) ; range from tsize (inclusive) to tsize^ (exclusive)
       (tbytes src tsize)                     => (tbytes tsize)
@@ -300,6 +300,13 @@
       (targ-size src nat)                    => nat
       (targ-type src type)                   => type
       )
+    (Field-Type (ftype)
+      (field-native)
+      (field-base ctype)
+      (field-scalar ctype))
+    (Curve-Type (ctype)
+      (curve-jubjub)
+      (curve-secp256k1))
   )
 
   (define-language/pretty Lnoinclude (extends Lsrc)
@@ -715,11 +722,23 @@
       (cast-from-bytes src type len expr)     => (cast-from-bytes type len #f expr)
       (vector->bytes src len expr)            => (vector->bytes len expr)
       (bytes->vector src len expr)            => (bytes->vector len expr)
-      (cast-from-enum src type type^ expr)    => (cast-from-enum type type^ #f expr) ; type is tfield or tunsigned, type^ is tenum
-      (cast-to-enum src type type^ expr)      => (cast-to-enum type type^ #f expr) ; type is tenum, type^ is tfield or tunsigned
+
+      ;; type is numeric (tfield or tunsigned), type^ is tenum
+      (cast-from-enum src type type^ expr)    => (cast-from-enum type type^ #f expr)
+
+      ;; type is tenum, type^ is numeric
+      (cast-to-enum src type type^ expr)      => (cast-to-enum type type^ #f expr)
+
+      ;; Cast from `type` to a distinct type `(tfield ftype)`, `type` is numeric (tfield or tunsigned).
+      (cast-to-field src ftype type expr)     => (cast-to-field ftype type #f expr)
+
+      ;; Cast from `(tfield ftype)` to `(tunsigned nat)`.
+      (cast-from-field src nat ftype expr)    => (cast-from-field nat ftype #f expr)
       (safe-cast src type type^ expr)         => (safe-cast type 10 type^ #f expr)
-      (downcast-unsigned src (maybe nat?) nat expr) =>
-        (downcast-unsigned nat? nat #f expr)
+
+      ;; Cast from `(tunsigned nat2)` to `(tunsigned nat1)` where nat2 > nat1.
+      ;; TODO(kmillikin): the order of these is reversed from other casting operations.  Flip them.
+      (downcast-unsigned src nat2 nat1 expr)  => (downcast-unsigned nat2 nat1 #f expr)
       (disclose src expr)                     => (disclose expr)
       (ledger-call src ledger-op (maybe sugar) expr expr* ...) =>
         (ledger-call ledger-op #f expr #f expr* ...)
@@ -741,7 +760,7 @@
     (Type (type)
       tvar-name
       (tboolean src)                         => (tboolean)
-      (tfield src)                           => (tfield)
+      (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
@@ -758,7 +777,15 @@
       (talias src nominal? type-name type) =>
         (talias nominal? type-name #f type)
       (tundeclared)
-      (tunknown)))
+      (tunknown))
+    (Field-Type (ftype)
+      (field-native)
+      (field-base ctype)
+      (field-scalar ctype))
+    (Curve-Type (ctype)
+      (curve-jubjub)
+      (curve-secp256k1))
+    )
 
   (define-language/pretty Lnotundeclared (extends Ltypes)
     (Type (type)
@@ -1032,8 +1059,10 @@
         (contract-call elt-name 4 (triv 0 type) #f triv* ...)
       (field->bytes src len triv)            => (field->bytes len triv)
       (bytes->field src len triv)            => (bytes->field len triv)
-      (downcast-unsigned src (maybe nat?) nat triv) =>
-        (downcast-unsigned nat? nat triv))
+      (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv)
+      (cast-from-field src nat ftype triv)   => (cast-from-field nat ftype #f triv)
+      (downcast-unsigned src nat2 nat1 triv) => (downcast-unsigned nat2 nat1 triv)
+      )
     (Triv (triv test)
       var-name
       (quote datum)                          => datum
@@ -1047,7 +1076,7 @@
       (src type triv) => (type triv))
     (Type (type)
       (tboolean src)                         => (tboolean)
-      (tfield src)                           => (tfield)
+      (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
@@ -1059,7 +1088,15 @@
         (tstruct struct-name #f (elt-name* type*) ...)
       (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...)) =>
         (adt-name #f adt-arg* ...)
-      (tunknown)))
+      (tunknown))
+    (Field-Type (ftype)
+      (field-native)
+      (field-base ctype)
+      (field-scalar ctype))
+    (Curve-Type (ctype)
+      (curve-jubjub)
+      (curve-secp256k1))
+    )
 
   (define-language/pretty Lflattened (extends Lcircuit)
     (terminals
@@ -1115,25 +1152,27 @@
          (contract-call src elt-name (triv type) triv* ...)
          (field->bytes src len triv)
          (bytes->field src len triv)
-         (downcast-unsigned src (maybe nat?) nat triv)))
+         (downcast-unsigned src nat2 nat1 triv)))
     (Single (single)
       (+ triv
          (+ mbits triv1 triv2)
          (- mbits triv1 triv2)
          (* mbits triv1 triv2)
          (< bits triv1 triv2)
-         (== triv1 triv2)                        => (== triv1 3 triv2)
-         (select triv0 triv1 triv2)              => (select triv0 triv1 triv2)
+         (== triv1 triv2)                            => (== triv1 3 triv2)
+         (select triv0 triv1 triv2)                  => (select triv0 triv1 triv2)
          (bytes-ref triv nat)
-         (bytes->field src len triv1 triv2)      => (bytes->field len #f triv1 #f triv2)
-         (vector->bytes triv triv* ...)          => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
-         (downcast-unsigned src safe (maybe nat?) nat triv) =>
-           (downcast-unsigned safe nat? nat triv)))
+         (bytes->field src len triv1 triv2)          => (bytes->field len #f triv1 #f triv2)
+         (vector->bytes triv triv* ...)              => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
+         (cast-to-field ftype primitive-type triv)
+         (cast-from-field src safe nat ftype triv)   => (cast-from-field safe nat ftype triv)
+         (downcast-unsigned src safe nat2 nat1 triv) => (downcast-unsigned safe nat2 nat1 triv)
+         ))
     (Multiple (multiple)
-      (+ (call src function-name triv* ...)      => (call function-name #f triv* ...)
+      (+ (call src function-name triv* ...)        => (call function-name #f triv* ...)
          (default opaque-type)
-         (field->bytes src len triv)             => (field->bytes len #f triv)
-         (bytes->vector triv)                    => (bytes->vector #f triv) ; triv holds one field's worth of bytes
+         (field->bytes src len triv)               => (field->bytes len #f triv)
+         (bytes->vector triv)                      => (bytes->vector #f triv) ; triv holds one field's worth of bytes
          (div-mod-power-of-two triv bits)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
            (public-ledger ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
@@ -1157,7 +1196,7 @@
          (anative opaque-type)))
     (Type (type)
       (- (tboolean src)
-         (tfield src)
+         (tfield src ftype)
          (tunsigned src nat)
          (tbytes src len)
          (topaque src opaque-type)
@@ -1168,8 +1207,8 @@
          (tunknown))
       (+ (ty (alignment* ...) (primitive-type* ...))))
     (Primitive-Type (primitive-type)
-      (+ (tfield)
-         (tfield nat)
+      (+ (tfield ftype)
+         (tunsigned nat)
          (topaque opaque-type)
          (tcontract contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
            (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
@@ -1202,9 +1241,11 @@
       (div_mod_power_of_two outp0 outp1 inp imm)  ;; outps=(quotient remainder)
       (ec_mul outp inp0 inp1)
       (ec_mul_generator outp0 inp)
-      (encode outp0 outp1 inp)
+      (encode (outp* ...) inp)
       (hash_to_curve outp inp* ...)
       (impact inp inp* ...)
+      (inv outp inp)
+      (jubjub_scalar_from_native outp inp)
       (keccak256 outp0 outp1 (alignment* ...) inp* ...)
       (less_than outp inp0 inp1 imm)
       (mul outp inp0 inp1)

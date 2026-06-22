@@ -19,6 +19,8 @@
   (export typescript-passes)
   (import (except (chezscheme) errorf)
           (utils)
+          (config-params)
+          (field)
           (datatype)
           (nanopass)
           (langs)
@@ -63,7 +65,12 @@
             (if (fixnum? nat) nat (modulo nat (most-positive-fixnum))))
           (nanopass-case (Ltypescript Type) (de-alias type)
             [(tboolean ,src) 523634023]
-            [(tfield ,src) 22268065]
+            [(tfield ,src ,ftype)
+             (nanopass-case (Ltypescript Field-Type) ftype
+               [(field-native) 22268065]
+               [(field-scalar (curve-jubjub)) 474914719]
+               [(field-base (curve-secp256k1)) 952780025]
+               [(field-scalar (curve-secp256k1)) 817054627])]
             [(tunsigned ,src ,nat) (update 149561537 (nat-hash nat))]
             [(tbytes ,src ,len) (update 38297147 (nat-hash len))]
             [(topaque ,src ,opaque-type) (update 145867104 (string-hash opaque-type))]
@@ -94,12 +101,37 @@
                (cons elt-name elt-name*))]
             [(tunknown) 241715055]
             [else (assert cannot-happen)]))
+        (define (curve-type=? ctype1 ctype2)
+          (nanopass-case (Ltypescript Curve-Type) ctype1
+            [(curve-jubjub)
+             (nanopass-case (Ltypescript Curve-Type) ctype2
+               [(curve-jubjub) #t]
+               [else #f])]
+            [(curve-secp256k1)
+             (nanopass-case (Ltypescript Curve-Type) ctype2
+               [(curve-secp256k1) #t]
+               [else #f])]))
+        (define (field-type=? ftype1 ftype2)
+          (nanopass-case (Ltypescript Field-Type) ftype1
+            [(field-native)
+             (nanopass-case (Ltypescript Field-Type) ftype2
+               [(field-native) #t]
+               [else #f])]
+            [(field-base ,ctype1)
+             (nanopass-case (Ltypescript Field-Type) ftype2
+               [(field-base ,ctype2) (curve-type=? ctype1 ctype2)]
+               [else #f])]
+            [(field-scalar ,ctype1)
+             (nanopass-case (Ltypescript Field-Type) ftype2
+               [(field-scalar ,ctype2) (curve-type=? ctype1 ctype2)]
+               [else #f])]))
         (define (type=? type1 type2)
           (let ([type1 (de-alias type1)] [type2 (de-alias type2)])
             (let ([type1 (subst-tcontract type1)] [type2 (subst-tcontract type2)])
               (T type1
                  [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-                 [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
+                 [(tfield ,src1 ,ftype1)
+                  (T type2 [(tfield ,src2 ,ftype2) (field-type=? ftype1 ftype2)])]
                  [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
                  [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                  [(topaque ,src1 ,opaque-type1)
@@ -316,6 +348,7 @@
            "CompactError"
            "typeError"
            "assert"
+           "convertNumericToJubjubScalar"
            "convertFieldToBytes"
            "convertBytesToField"
            "convertBytesToUint"
@@ -1261,17 +1294,23 @@
                 (nanopass-case (Ltypescript Type) (de-alias type)
                   [(tboolean ,src)
                    "__compactRuntime.CompactTypeBoolean"]
-                  [(tfield ,src)
-                   "__compactRuntime.CompactTypeField"]
+                  [(tfield ,src ,ftype)
+                   (nanopass-case (Ltypescript Field-Type) ftype
+                     [(field-native) "__compactRuntime.CompactTypeField"]
+                     [(field-scalar (curve-jubjub)) "__compactRuntime.CompactTypeField"]
+                     [(field-base (curve-secp256k1))
+                      "__compactRuntime.CompactTypeSecp256k1Base"]
+                     [(field-scalar (curve-secp256k1))
+                      "__compactRuntime.CompactTypeSecp256k1Scalar"])]
                   [(tunsigned ,src ,nat)
                    (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)" nat (byte-length nat))]
                   [(tbytes ,src ,len)
                    (format "new __compactRuntime.CompactTypeBytes(~d)" len)]
                   [(topaque ,src ,opaque-type)
                    (case opaque-type
-                     [("string") (format "__compactRuntime.CompactTypeOpaqueString")]
-                     [("Uint8Array") (format "__compactRuntime.CompactTypeOpaqueUint8Array")]
-                     [("JubjubPoint") (format "__compactRuntime.CompactTypeJubjubPoint")]
+                     [("string") "__compactRuntime.CompactTypeOpaqueString"]
+                     [("Uint8Array") "__compactRuntime.CompactTypeOpaqueUint8Array"]
+                     [("JubjubPoint") "__compactRuntime.CompactTypeJubjubPoint"]
                      ; FIXME: what should happen with other opaque types?
                      [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                   [(tvector ,src ,len ,type)
@@ -1349,7 +1388,15 @@
                 (let ([type (subst-tcontract type)])
                   (nanopass-case (Ltypescript Type) type
                     [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
-                    [(tfield ,src) (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
+                    [(tfield ,src ,ftype)
+                     (let ([field-name
+                             (nanopass-case (Ltypescript Field-Type) ftype
+                               [(field-native) "FIELD"]
+                               [(field-scalar (curve-jubjub)) "JUBJUB_SCALAR"]
+                               [(field-base (curve-secp256k1)) "SECP256K1_BASE"]
+                               [(field-scalar (curve-secp256k1)) "SECP256K1_SCALAR"])])
+                       (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_~a"
+                         var field-name))]
                     [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
                     [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
                     [(topaque ,src ,opaque-type) "true"]
@@ -1377,7 +1424,12 @@
             (define (format-type type)
               (nanopass-case (Ltypescript Type) (de-alias type)
                 [(tboolean ,src) "Boolean"]
-                [(tfield ,src) "Field"]
+                [(tfield ,src ,ftype)
+                 (nanopass-case (Ltypescript Field-Type) ftype
+                   [(field-native) "Field"]
+                   [(field-scalar (curve-jubjub)) "JubjubScalar"]
+                   [(field-base (curve-secp256k1)) "Secp256k1Base"]
+                   [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
                 [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
                 [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
                 [(tunknown) "Unknown"]
@@ -2805,7 +2857,7 @@
            (let ([type (subst-tcontract type)])
              (nanopass-case (Ltypescript Type) type
                [(tboolean ,src) "false"]
-               [(tfield ,src) "0n"]
+               [(tfield ,src ,ftype) "0n"]
                [(tunsigned ,src ,nat) "0n"]
                [(tbytes ,src ,len)
                 (parenthesize level (precedence new)
@@ -2958,7 +3010,7 @@
       [(== ,src ,type ,expr1 ,expr2)
        (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
-             [(tfield ,src) #t]
+             [(tfield ,src ,ftype) #t]
              [(topaque ,src ,opaque-type) (not (string=? opaque-type "JubjubPoint"))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
              [else #f])
@@ -2981,7 +3033,7 @@
       [(!= ,src ,type ,expr1 ,expr2)
        (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
-             [(tfield ,src) #t]
+             [(tfield ,src ,ftype) #t]
              [(topaque ,src ,opaque-type) (not (string=? opaque-type "JubjubPoint"))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
              [else #f])
@@ -3128,9 +3180,15 @@
       [(cast-from-bytes ,src ,type ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (nanopass-case (Ltypescript Type) (de-alias type)
-           [(tfield ,src^)
+           [(tfield ,src^ (field-native))
             (make-Qconcat
               (compact-stdlib "convertBytesToField")
+              "("
+              ((make-Qsep ",") (format "~d" len) expr (format "'~a'" (format-source-object src)))
+              ")")]
+           [(tfield ,src^ (field-scalar (curve-jubjub)))
+            (make-Qconcat
+              (compact-stdlib "convertBytesToJubjubScalar")
               "("
               ((make-Qsep ",") (format "~d" len) expr (format "'~a'" (format-source-object src)))
               ")")]
@@ -3162,7 +3220,7 @@
                          [else (assert cannot-happen)])])
            (cond
              [(nanopass-case (Ltypescript Type) (de-alias type)
-                [(tfield ,src) #f]
+                [(tfield ,src ,ftype) #f]
                 [(tunsigned ,src ,nat) (guard (< nat maxval)) nat]
                 [else #f]) =>
               (lambda (nat)
@@ -3205,6 +3263,23 @@
                  0 "})("
                  expr
                  ")"))))]
+      [(cast-to-field ,src (field-native) ,type ,expr)
+       ;; Foreign fields and unsigned integers are the same type as the native field (bigint), and
+       ;; all possible values are smaller than the native field modulus.
+       (Expr expr level outer-pure?)]
+      [(cast-to-field ,src (field-scalar (curve-jubjub)) ,type ,expr)
+       (if (feature-zkir-v3)
+           (parenthesize level (precedence call)
+             (make-Qconcat
+               (compact-stdlib "convertNumericToJubjubScalar")
+               "("
+               (Expr expr (precedence add1 comma) outer-pure?)
+               ")"))
+           (Expr expr level outer-pure?))]
+      [(cast-to-field ,src ,ftype ,type ,expr)
+       (assert cannot-happen)]
+      [(cast-from-field ,src ,nat ,ftype ,expr)
+       (downcast-unsigned src nat expr)]
       [(downcast-unsigned ,src ,nat? ,nat ,expr)
        (downcast-unsigned src nat expr)]
       [(safe-cast ,src ,type ,type^ ,expr)
@@ -3274,8 +3349,14 @@
                           ; can't happen at present, since type2 should not contain tvar refs
                           (T type2 [,tvar-name2 (eq? tvar-name1 tvar-name2)])])]
                       [(tboolean ,src) (T type2 [(tboolean ,src) #t])]
-                      [(tfield ,src) (T type2 [(tfield ,src) #t] [(tunsigned ,src ,nat2) #t])]
-                      [(tunsigned ,src ,nat1) (T type2 [(tunsigned ,src ,nat2) #t] [(tfield ,src) #t])]
+                      [(tfield ,src ,ftype1)
+                       (T type2
+                         [(tfield ,src ,ftype2) #t]
+                         [(tunsigned ,src ,nat) #t])]
+                      [(tunsigned ,src ,nat1)
+                       (T type2
+                         [(tunsigned ,src ,nat2) #t]
+                         [(tfield ,src ,ftype) #t])]
                       [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
                       [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
                       [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]
@@ -3322,7 +3403,7 @@
                  (map cdr subst*)))))
       [,tvar-name (symbol->string tvar-name)]
       [(tboolean ,src) "boolean"]
-      [(tfield ,src) "bigint"]
+      [(tfield ,src ,ftype) "bigint"]
       [(tunsigned ,src ,nat) "bigint"]
       [(tbytes ,src ,len) "Uint8Array"]
       [(topaque ,src ,opaque-type)
