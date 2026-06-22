@@ -17200,7 +17200,7 @@ groups than for single tests.
       (program
         (circuit %foo.0 ([%arg.1 (tfield (field-native))])
              (tbytes 20)
-          (field->bytes 20 %arg.1))))
+          (field->bytes 20 (field-native) %arg.1))))
     )
 
   (test
@@ -28029,7 +28029,7 @@ groups than for single tests.
         (public-ledger-declaration (constructor () (tuple)))
         (circuit %foo.0 ([%arg.1 (tfield (field-native))])
              (tbytes 20)
-          (field->bytes 20 %arg.1))))
+          (field->bytes 20 (field-native) %arg.1))))
     )
 
   (test
@@ -39202,18 +39202,18 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo2.0 ([%arg.1 (tbytes 20)])
              (tfield (field-native))
-          (bytes->field 20 %arg.1)))))
+          (bytes->field (field-native) 20 %arg.1)))))
 
     (test
     '(
        "export circuit foo(arg: Field) : Bytes<20> { return arg as Bytes<20>; }"
      )
-     (returns
+    (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %foo.0 ([%arg.1 (tfield (field-native))])
              (tbytes 20)
-          (field->bytes 20 %arg.1))))
+          (field->bytes 20 (field-native) %arg.1))))
     )
 
   (test
@@ -39776,9 +39776,9 @@ groups than for single tests.
              (ttuple)
           (seq
             (let* ([[%k1.4 (tbytes 31)]
-                    (field->bytes 31 (- #f %x.3 1))])
+                    (field->bytes 31 (field-native) (- #f %x.3 1))])
               (seq
-                (field->bytes 31 (+ #f %x.3 1))
+                (field->bytes 31 (field-native) (+ #f %x.3 1))
                 (public-ledger %bv.1 (0) write %k1.4)))
             (tuple)))))
     )
@@ -39800,15 +39800,15 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%bv.2 (0) (__compact_Cell (tbytes 32)))))
-        (circuit %foo.3 ([%x.0 (tfield (field-native))])
+          ((%bv.1 (0) (__compact_Cell (tbytes 32)))))
+        (circuit %foo.2 ([%x.3 (tfield (field-native))])
              (ttuple)
           (seq
             (let* ([[%k1.4 (tbytes 32)]
-                    (field->bytes 32 (- #f %x.0 1))])
-              (public-ledger %bv.2 (0) write %k1.4))
+                    (field->bytes 32 (field-native) (- #f %x.3 1))])
+              (public-ledger %bv.1 (0) write %k1.4))
             (tuple)))))
     )
 
@@ -39830,14 +39830,15 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%x.2 (0) (__compact_Cell (tfield (field-native))))))
-        (circuit %foo.3 ([%bv1.4 (tbytes 31)] [%bv2.0 (tbytes 31)])
+          ((%x.1 (0) (__compact_Cell (tfield (field-native))))))
+        (circuit %foo.2 ([%bv1.3 (tbytes 31)] [%bv2.4 (tbytes 31)])
              (ttuple)
           (seq
-            (let* ([[%k1.5 (tfield (field-native))] (- #f (bytes->field 31 %bv1.4) 1)])
-              (public-ledger %x.2 (0) write %k1.5))
+            (let* ([[%k1.5 (tfield (field-native))]
+                    (- #f (bytes->field (field-native) 31 %bv1.3) 1)])
+              (public-ledger %x.1 (0) write %k1.5))
             (tuple)))))
     )
 
@@ -39865,9 +39866,10 @@ groups than for single tests.
         (circuit %foo.2 ([%bv1.3 (tbytes 32)] [%bv2.4 (tbytes 32)])
              (ttuple)
           (seq
-            (let* ([[%k1.5 (tfield (field-native))] (- #f (bytes->field 32 %bv1.3) 1)])
+            (let* ([[%k1.5 (tfield (field-native))]
+                    (- #f (bytes->field (field-native) 32 %bv1.3) 1)])
               (seq
-                (bytes->field 32 %bv2.4)
+                (bytes->field (field-native) 32 %bv2.4)
                 (public-ledger %x.1 (0) write %k1.5)))
             (tuple)))))
     )
@@ -40053,11 +40055,13 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%forceField.1 (0) (__compact_Cell (tfield (field-native))))))
+          ((%forceField.1
+             (0)
+             (__compact_Cell (tfield (field-native))))))
         (circuit %baz.2 ([%arg.3 (tbytes 20)])
              (tfield (field-native))
           (= #t %t.4 (public-ledger %forceField.1 (0) write 7))
-          (= #t %t.5 (bytes->field 20 %arg.3))
+          (= #t %t.5 (bytes->field (field-native) 20 %arg.3))
           %t.5))))
 
   (test
@@ -40069,11 +40073,13 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%forceField.1 (0) (__compact_Cell (tfield (field-native))))))
+          ((%forceField.1
+             (0)
+             (__compact_Cell (tfield (field-native))))))
         (circuit %foo.2 ([%arg.3 (tfield (field-native))])
              (tbytes 20)
           (= #t %t.4 (public-ledger %forceField.1 (0) write 7))
-          (= #t %t.5 (field->bytes 20 %arg.3))
+          (= #t %t.5 (field->bytes 20 (field-native) %arg.3))
           %t.5))))
 
   (test
@@ -41547,7 +41553,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %baz.2 ((argument
                            (%arg.3 %arg.4)
                            (ty ((abytes 32))
@@ -41556,7 +41563,7 @@ groups than for single tests.
                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t.5 (bytes->field 32 %arg.3 %arg.4))
+          (= 1 %t.5 (bytes->field (field-native) 32 %arg.3 %arg.4))
           (%t.5))))
     )
 
@@ -41578,7 +41585,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %baz.2 ((argument
                            (%arg.3 %arg.4 %arg.5)
                            (ty ((abytes 80))
@@ -41593,7 +41601,7 @@ groups than for single tests.
           (= 1 %t1.6 (== %arg.3 0))
           (= 1 %t2.7 (select 1 %t1.6 1))
           (assert %t2.7 "bytes value is too big to fit in a field")
-          (= 1 %t.8 (bytes->field 80 %arg.4 %arg.5))
+          (= 1 %t.8 (bytes->field (field-native) 80 %arg.4 %arg.5))
           (%t.8))))
     )
 
@@ -41617,7 +41625,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ((argument
                            (%arg.3)
                            (ty ((afield)) ((tfield (field-native))))))
@@ -41625,7 +41634,7 @@ groups than for single tests.
                  ((tunsigned
                     1461501637330902918203684832716283019655932542975)))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 (%t.4 %t.5) (field->bytes 20 %arg.3))
+          (= 1 (%t.4 %t.5) (field->bytes 20 (field-native) %arg.3))
           (%t.5))))
     )
 
@@ -41647,7 +41656,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ((argument
                            (%arg.3)
                            (ty ((afield)) ((tfield (field-native))))))
@@ -41658,7 +41668,7 @@ groups than for single tests.
                    (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 (%t.4 %t.5) (field->bytes 80 %arg.3))
+          (= 1 (%t.4 %t.5) (field->bytes 80 (field-native) %arg.3))
           (0 %t.4 %t.5))))
     )
 
@@ -44863,7 +44873,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.2
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (witness %bar.3 ((argument
                            (%bv1.4 %bv1.5 %bv1.6)
                            (ty ((abytes 80))
@@ -44910,7 +44921,7 @@ groups than for single tests.
                    (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
           (= 1 () (public-ledger %forceField.2 (0) write 7))
-          (= 1 (%t.11 %t.12) (field->bytes 80 %arg.0))
+          (= 1 (%t.11 %t.12) (field->bytes 80 (field-native) %arg.0))
           (= 1 (%t.13 %t.14 %t.15 %t.16 %t.17 %t.18)
              (call %bar.3 0 %t.11 %t.12 0 %t.11 %t.12))
           (%t.13 %t.14 %t.15 %t.16 %t.17 %t.18))))
@@ -44927,7 +44938,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.6
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %baz.7 ((argument
                            (%arg.0 %arg.3 %arg.2)
                            (ty ((abytes 80))
@@ -44939,9 +44951,9 @@ groups than for single tests.
                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.6 (0) write 7))
-          (= 1 %t.1 (== %arg.0 0))
-          (assert %t.1 "bytes value is too big to fit in a field")
-          (= 1 %t.4 (bytes->field 80 %arg.3 %arg.2))
+          (= 1 %t1.1 (== %arg.0 0))
+          (assert %t1.1 "bytes value is too big to fit in a field")
+          (= 1 %t.4 (bytes->field (field-native) 80 %arg.3 %arg.2))
           (= 1 %t.8 (+ #f %t.4 %t.4))
           (%t.8))))
     )
@@ -45421,8 +45433,8 @@ groups than for single tests.
           (assert %t1.13 "bytes value is too big to fit in a field")
           (= 1 %t1.15 (== %z.14 0))
           (assert %t1.15 "bytes value is too big to fit in a field")
-          (= 1 %t.24 (bytes->field 256 %z.17 %z.16))
-          (= 1 (%t.25 %t.26) (field->bytes 8 %y.1))
+          (= 1 %t.24 (bytes->field (field-native) 256 %z.17 %z.16))
+          (= 1 (%t.25 %t.26) (field->bytes 8 (field-native) %y.1))
           (1))))
     )
 
@@ -45780,7 +45792,8 @@ groups than for single tests.
         (circuit %foo.3 ()
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.2 (0) write 7))
-          (= 1 (%t2.4 %t2.0) (field->bytes 4 123456789123456789))
+          (= 1 (%t2.4 %t2.0)
+             (field->bytes 4 (field-native) 123456789123456789))
           (= 1 %t4.5
              (cast-from-field #f 123456789123456789
                (field-native)
@@ -45890,7 +45903,7 @@ groups than for single tests.
           (= 1 () (public-ledger %forceField.2 (0) write 7))
           (assert 0 "bytes value is too big to fit in a field")
           (= 1 %t3.0
-             (bytes->field 256
+             (bytes->field (field-native) 256
                63855931564696431299763410850379360948494476837669428698230285298481505316
                63855931564696431299763410850379360948494476837669428698230285298481505316))
           (= 1 %t4.4
@@ -46406,7 +46419,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.2
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (witness %W.3 () (ty ((afield)) ((tfield (field-native)))))
         (circuit %bar.4 ((argument
                            (%x.0)
@@ -46416,7 +46430,7 @@ groups than for single tests.
                    (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655)))
           (= 1 () (public-ledger %forceField.2 (0) write 7))
-          (= 1 (%t.5 %t.6) (field->bytes 32 %x.0))
+          (= 1 (%t.5 %t.6) (field->bytes 32 (field-native) %x.0))
           (%t.5 %t.6))))
     )
 
@@ -60841,8 +60855,8 @@ groups than for single tests.
         "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"encode\", \"outputs\": [\"%t.2\", \"%ingore.3\"], \"input\": \"%p1.0\" },"
-        "    { \"op\": \"encode\", \"outputs\": [\"%t.4\", \"%ingore.5\"], \"input\": \"%p2.1\" },"
+        "    { \"op\": \"into_coordinates\", \"outputs\": [\"%t.2\", \"%ignore.3\"], \"point\": \"%p1.0\" },"
+        "    { \"op\": \"into_coordinates\", \"outputs\": [\"%t.4\", \"%ignore.5\"], \"point\": \"%p2.1\" },"
         "    { \"op\": \"transient_hash\", \"output\": \"%t.6\", \"inputs\": [\"%t.2\", \"%t.4\"] },"
         "    { \"op\": \"jubjub_scalar_from_native\", \"output\": \"%t.7\", \"native\": \"%t.6\" },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.8\", \"a\": \"%p1.0\", \"scalar\": \"%t.7\" },"
@@ -67201,7 +67215,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%pt.0\", \"inputs\": [\"0x00\", \"0x01\"] },"
+        "    { \"op\": \"from_coordinates\", \"output\": \"%pt.0\", \"inputs\": [\"0x00\", \"0x01\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%pt.0\", \"b\": \"%pt.0\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
@@ -67485,9 +67499,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"encode\", \"outputs\": [\"%x.1\", \"%y.2\"], \"input\": \"%a.0\" },"
+        "    { \"op\": \"into_coordinates\", \"outputs\": [\"%x.1\", \"%y.2\"], \"point\": \"%a.0\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.3\", \"a\": \"%x.1\" },"
-        "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%t.4\", \"inputs\": [\"%neg.3\", \"%y.2\"] },"
+        "    { \"op\": \"from_coordinates\", \"output\": \"%t.4\", \"inputs\": [\"%neg.3\", \"%y.2\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.4\"] }"
         "  ]"
         "}"))
@@ -70729,7 +70743,7 @@ groups than for single tests.
         "});"
         "test('check 2b', () => {"
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(() => C.circuits.foo(Ctxt, 0x060504030201n)).toThrow('range error at testfile.compact line 1 char 52: Field or Uint value 6618611909121 does not fit into 5 bytes');"
+        "  expect(() => C.circuits.foo(Ctxt, 0x060504030201n)).toThrow('range error at testfile.compact line 1 char 52: field or Uint value 6618611909121 does not fit into 5 bytes');"
         "});"
         ))
     )
@@ -82039,7 +82053,7 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt, 0x0201n).result).toEqual(new Uint8Array([ 1, 2, 0 ]));"
         "  expect(C.circuits.foo(Ctxt, 0x030201n).result).toEqual(new Uint8Array([ 1, 2, 3 ]));"
         "  expect(() => C.circuits.foo(Ctxt, 0x04030201n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, 0x04030201n)).toThrow('range error at testfile.compact line 3 char 7: Field or Uint value 67305985 does not fit into 3 bytes');"
+        "  expect(() => C.circuits.foo(Ctxt, 0x04030201n)).toThrow('range error at testfile.compact line 3 char 7: field or Uint value 67305985 does not fit into 3 bytes');"
         "});"
         ))
     )
@@ -82059,7 +82073,7 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt, 0x0201n).result).toEqual(new Uint8Array([ 1, 2, 0 ]));"
         "  expect(C.circuits.foo(Ctxt, 0x030201n).result).toEqual(new Uint8Array([ 1, 2, 3 ]));"
         "  expect(() => C.circuits.foo(Ctxt, 0x04030201n)).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, 0x04030201n)).toThrow('range error at testfile.compact line 3 char 7: Field or Uint value 67305985 does not fit into 3 bytes');"
+        "  expect(() => C.circuits.foo(Ctxt, 0x04030201n)).toThrow('range error at testfile.compact line 3 char 7: field or Uint value 67305985 does not fit into 3 bytes');"
         "});"
         ))
     )
@@ -82098,7 +82112,7 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         ,(format "  expect(C.circuits.foo(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])).result).toEqual(~dn);" #x09080706)
         "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow(runtime.CompactError);"
-        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow('range error at testfile.compact line 3 char 7: byte vector [9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4] exceeds maximum value 4294967295 of target Uint type');"
+        "  expect(() => C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).toThrow('range error at testfile.compact line 3 char 7: byte vector [9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4] exceeds maximum value 4294967295 of Uint<0..4294967296> type');"
         "});"
         ))
     )
@@ -85356,6 +85370,213 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '("export circuit test(b: Secp256k1Base): Bytes<31> { return b as Bytes<31>; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 59" "cannot cast from type ~a to type ~a" ("Secp256k1Base" "Bytes<31>"))))
+
+  (test
+    '("export circuit test(s: Secp256k1Scalar): Bytes<33> { return s as Bytes<33>; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 61" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Bytes<33>"))))
+
+  (test
+    '("export circuit test(bs: Bytes<33>): Secp256k1Base { return bs as Secp256k1Base; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 60" "cannot cast from type ~a to type ~a" ("Bytes<33>" "Secp256k1Base"))))
+
+  (test
+    '("export circuit test(bs: Bytes<31>): Secp256k1Scalar { return bs as Secp256k1Scalar; }")
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 62" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Secp256k1Scalar"))))
+
+  (test
+    '(
+      "export ledger base: Secp256k1Base;"
+      "export ledger scalar: Secp256k1Scalar;"
+      "export circuit test(b: Bytes<32>, s: Bytes<32>): [] {"
+      "  base = disclose(b as Secp256k1Base);"
+      "  scalar = disclose(s as Secp256k1Scalar);"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
+                         (%b.0 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>"))
+             ()
+          (constrain_bits %b.1 8)
+          (constrain_bits %b.0 248)
+          (constrain_bits %s.3 8)
+          (constrain_bits %s.2 248)
+          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
+          (from_bytes32 "Base<Secp256k1>" %tmp.5 %tmp.4)
+          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %tmp.5)
+          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.6 %fld.7 %fld.8
+            %fld.9 145)
+          (bytes32_from_low_high %tmp.10 %s.2 %s.3)
+          (from_bytes32 "Scalar<Secp256k1>" %tmp.11 %tmp.10)
+          (encode (%fld.12 %fld.13 %fld.14 %fld.15) %tmp.11)
+          (impact 1 16 1 1 1 1 17 1 4 8 8 8 8 %fld.12 %fld.13 %fld.14
+            %fld.15 145))))
+    (stage-javascript
+      `("test('Bytes to secp256k1 field casts', () => {"
+        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  var baseBytes = new Uint8Array(["
+        "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
+        "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
+        "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
+        "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
+        "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  var r = contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  base = 0n;"
+        "  scalar = runtime.MAX_SECP256K1_SCALAR;"
+        "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
+        "  scalarBytes = new Uint8Array(["
+        "    0x40, 0x41, 0x36, 0xd0, 0x8c, 0x5e, 0xd2, 0xbf,"
+        "    0x3b, 0xa0, 0x48, 0xaf, 0xe6, 0xdc, 0xae, 0xba,"
+        "    0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "  ]);"
+        "  r = contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  base = runtime.MAX_SECP256K1_BASE;"
+        "  scalar = 0n;"
+        "  baseBytes = new Uint8Array(["
+        "    0x2e, 0xfc, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "  ]);"
+        "  scalarBytes = new Uint8Array(32);"
+        "  r = contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger base: Bytes<32>;"
+      "export ledger scalar: Bytes<32>;"
+      "export circuit test(b: Secp256k1Base, s: Secp256k1Scalar): [] {"
+      "  base = disclose(b as Bytes<32>);"
+      "  scalar = disclose(s as Bytes<32>);"
+      "}"
+      )
+    (pass-returns optimize-circuit2
+      (program
+        (kernel-declaration (%kernel.2 () (Kernel)))
+        (public-ledger-declaration
+          ((%base.3
+             (0)
+             (__compact_Cell
+               (ty ((abytes 32))
+                   ((tunsigned 255)
+                     (tunsigned
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+           (%scalar.4
+             (1)
+             (__compact_Cell
+               (ty ((abytes 32))
+                   ((tunsigned 255)
+                     (tunsigned
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
+        (circuit %test.5 ((argument
+                            (%b.0)
+                            (ty ((afield))
+                                ((tfield (field-base (curve-secp256k1))))))
+                          (argument
+                            (%s.1)
+                            (ty ((afield))
+                                ((tfield (field-scalar (curve-secp256k1)))))))
+             (ty () ())
+          (= 1 (%tmp.6 %tmp.7)
+             (field->bytes 32 (field-base (curve-secp256k1)) %b.0))
+          (= 1 () (public-ledger %base.3 (0) write %tmp.6 %tmp.7))
+          (= 1 (%tmp.8 %tmp.9)
+             (field->bytes 32 (field-scalar (curve-secp256k1)) %s.1))
+          (= 1 () (public-ledger %scalar.4 (1) write %tmp.8 %tmp.9))
+          ())))
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Base<Secp256k1>")
+                         (%s.1 "Scalar<Secp256k1>"))
+             ()
+          (into_bytes32 %tmp.10 %b.0)
+          (bytes32_into_low_high %tmp.7 %tmp.6 %tmp.10)
+          (impact 1 16 1 1 1 0 17 1 1 32 %tmp.6 %tmp.7 145)
+          (into_bytes32 %tmp.11 %s.1)
+          (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
+          (impact 1 16 1 1 1 1 17 1 1 32 %tmp.8 %tmp.9 145))))
+    (stage-javascript
+      `("test('Bytes to secp256k1 field casts', () => {"
+        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  var baseBytes = new Uint8Array(["
+        "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
+        "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
+        "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
+        "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
+        "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  var r = contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  base = 0n;"
+        "  scalar = runtime.MAX_SECP256K1_SCALAR;"
+        "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
+        "  scalarBytes = new Uint8Array(["
+        "    0x40, 0x41, 0x36, 0xd0, 0x8c, 0x5e, 0xd2, 0xbf,"
+        "    0x3b, 0xa0, 0x48, 0xaf, 0xe6, 0xdc, 0xae, 0xba,"
+        "    0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "  ]);"
+        "  r = contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  base = runtime.MAX_SECP256K1_BASE;"
+        "  scalar = 0n;"
+        "  baseBytes = new Uint8Array(["
+        "    0x2e, 0xfc, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "  ]);"
+        "  scalarBytes = new Uint8Array(32);"
+        "  r = contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "});"
+        ))
+    )
   )
+
 (run-javascript)
 )
