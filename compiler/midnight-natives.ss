@@ -91,7 +91,7 @@
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit ecAdd
-  "__compactRuntime.ecAdd"
+  "__compactRuntime.secp256k1Add"
   ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")]
    [b (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")])
   (TypeRef Secp256k1Point))
@@ -108,7 +108,7 @@
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit ecMul
-  "__compactRuntime.ecMul"
+  "__compactRuntime.secp256k1Mul"
   ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve product including")]
    [b Secp256k1Scalar (discloses "an elliptic curve product including")])
   (TypeRef Secp256k1Point))
@@ -119,7 +119,7 @@
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit ecMulGenerator
-  "__compactRuntime.ecMulGenerator"
+  "__compactRuntime.secp256k1MulGenerator"
   ([b Secp256k1Scalar (discloses "the product of the embedded group generator with")])
   (TypeRef Secp256k1Point))
 
