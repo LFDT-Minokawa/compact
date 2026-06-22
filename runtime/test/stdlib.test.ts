@@ -91,16 +91,16 @@ describe('__compact.typeError', () => {
   });
 });
 
-describe('__compact.convertFieldToBytes', () => {
+describe('__compact.convertBigintToBytes', () => {
   const x = 256n;
 
   test('Check for success', () => {
-    const a = compactRuntime.convertFieldToBytes(2, x, 'source');
+    const a = compactRuntime.convertBigintToBytes(2, x, 'source');
     expect(a).toEqual(new Uint8Array([0, 1]));
   });
 
   const f = () => {
-    compactRuntime.convertFieldToBytes(1, x, 'source');
+    compactRuntime.convertBigintToBytes(1, x, 'source');
   };
 
   test('Check for error type', () => {

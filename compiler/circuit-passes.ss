@@ -953,13 +953,13 @@
            [(field-native) `(tfield ,src ,ftype)]
            [(field-base (curve-secp256k1))
             (unless (eqv? len 32)
-              (source-errorf src "expected Bytes<~d>, got ~a for bytes->field"
-                len (format-type type)))
+              (source-errorf src "expected Bytes<32>, got ~a for bytes->field"
+                (format-type type)))
             `(tfield ,src ,ftype)]
            [(field-scalar (curve-secp256k1))
             (unless (eqv? len 32)
-              (source-errorf src "expected Bytes<~d>, got ~a for bytes->field"
-                len (format-type type)))
+              (source-errorf src "expected Bytes<32>, got ~a for bytes->field"
+                (format-type type)))
             `(tfield ,src ,ftype)]
            [else (source-errorf src "invalid target field type ~a for bytes->field"
                    (format-type `(tfield ,src ,ftype)))]))]
