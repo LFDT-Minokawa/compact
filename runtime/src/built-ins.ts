@@ -15,8 +15,19 @@
 
 import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
 import { keccak_256 } from '@noble/hashes/sha3.js';
-import { FIELD_MODULUS, JUBJUB_SCALAR_MODULUS } from './constants.js';
-import { CompactType, CompactTypeJubjubPoint, JubjubPoint, JubjubSchnorrSignature } from './compact-types.js';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import {
+  FIELD_MODULUS,
+  JUBJUB_SCALAR_MODULUS,
+  SECP256K1_SCALAR_MODULUS,
+} from './constants.js';
+import {
+  CompactType,
+  CompactTypeJubjubPoint,
+  JubjubPoint,
+  JubjubSchnorrSignature,
+  Secp256k1Point,
+} from './compact-types.js';
 import { convertNumericToJubjubScalar } from './casts.js';
 import { CompactError } from './error.js';
 
@@ -181,14 +192,31 @@ export function keccak256<A>(rtType: CompactType<A>, value: A): Uint8Array {
   return keccak_256(bytes);
 }
 
+/**
+ * The Compact builtin `jubjubPointX` function
+ *
+ * This function extracts the X-coordinate of a Compact `JubjubPoint`.
+ */
 export function jubjubPointX(pt: JubjubPoint): bigint {
   return pt.x;
 }
 
+/**
+ * The Compact builtin `jubjubPointY` function
+ *
+ * This function extracts the Y-coordinate of a Compact `JubjubPoint`.
+ */
 export function jubjubPointY(pt: JubjubPoint): bigint {
   return pt.y;
 }
 
+/**
+ * The Compact builtin `constructJubjubPoint` function
+ *
+ * This function constructs a Compact `JubjubPoint` from the X- and
+ * Y-coordinates.  NOTE that it does not check that the coordinates represent a
+ * valid point on the Jubjub curve.
+ */
 export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
   return { x, y };
 }
@@ -250,6 +278,102 @@ export function ecMul(a: JubjubPoint, b: bigint): JubjubPoint {
  */
 export function ecMulGenerator(b: bigint): JubjubPoint {
   return CompactTypeJubjubPoint.fromValue(ocrt.ecMulGenerator(ocrt.bigIntToValue(b)));
+}
+
+/**
+ * Secp256k1 scalar field negation
+ *
+ * This function returns the negation of x in the secp256k1 scalar field.  That
+ * is, a value y such that x + y = 0 (modulo SECP256K1_SCALAR_MODULUS).  x is
+ * assumed to be in the range [0, SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarNeg(x: bigint): bigint {
+  return x == 0n ? x : SECP256K1_SCALAR_MODULUS - x;
+}
+
+/**
+ * Secp256k1 scalar field inverse
+ *
+ * This function returns the multiplicative inverse of x in the secp256k1 scalar
+ * field.  That is, a value y such that x * y = 1 (modulo
+ * SECP256K1_SCALAR_MODULUS).  x is assumed to be in the range [0,
+ * SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarInv(x: bigint): bigint {
+  // TODO!
+  return x;
+}
+
+/**
+ * The Compact builtin `secp256k1PointX` function
+ *
+ * This function extracts the affine X-coordinate of a Compact `Secp256k1Point`.
+ */
+export function secp256k1PointX(pt: Secp256k1Point): bigint {
+  return pt.x;
+}
+
+/**
+ * The Compact builtin `secp256k1PointY` function
+ *
+ * This function extracts the affine Y-coordinate of a Compact `Secp256k1Point`.
+ */
+export function secp256k1PointY(pt: Secp256k1Point): bigint {
+  return pt.y;
+}
+
+/**
+ * Lift the simple affine `Secp256k1Point` representation into a noble-curves
+ * projective point. The identity (0, 0) maps to `Point.ZERO`; every other
+ * input is validated to lie on the curve by `fromAffine`.
+ */
+function secp256k1ToProjective(p: Secp256k1Point): ReturnType<typeof secp256k1.Point.fromAffine> {
+  // TODO: How are we actually representing the identity in Secp256k1Point? In noble
+  // they do use (0,0)
+  if (p.x === 0n && p.y === 0n) {
+    return secp256k1.Point.ZERO;
+  }
+  return secp256k1.Point.fromAffine({ x: p.x, y: p.y });
+}
+
+/**
+ * Project a noble-curves point back down to the simple affine
+ * `Secp256k1Point` representation.
+ */
+function secp256k1FromProjective(p: ReturnType<typeof secp256k1.Point.fromAffine>): Secp256k1Point {
+  const { x, y } = p.toAffine();
+  return { x, y };
+}
+
+/**
+ * The Compact builtin `ecAdd` function for secp256k1 points.
+ *
+ * This function adds two elliptic curve points.
+ */
+export function secp256k1Add(a: Secp256k1Point, b: Secp256k1Point): Secp256k1Point {
+  return secp256k1FromProjective(secp256k1ToProjective(a).add(secp256k1ToProjective(b)));
+}
+
+/**
+ * The Compact builtin `ecMul` function for secp256k1 points.
+ *
+ * `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects a zero scalar; the
+ * "unsafe" (variable-time) is due to non-constant time operations, which we don't guarantee
+ * anyways.
+ */
+export function secp256k1Mul(a: Secp256k1Point, b: bigint): Secp256k1Point {
+  return secp256k1FromProjective(secp256k1ToProjective(a).multiplyUnsafe(b));
+}
+
+/**
+ * The Compact builtin `ecMulGenerator` function for secp256k1 points.
+ *
+ * `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects a zero scalar; the
+ * "unsafe" (variable-time) is due to non-constant time operations, which we don't guarantee
+ * anyways.
+ */
+export function secp256k1MulGenerator(b: bigint): Secp256k1Point {
+  return secp256k1FromProjective(secp256k1.Point.BASE.multiplyUnsafe(b));
 }
 
 /**

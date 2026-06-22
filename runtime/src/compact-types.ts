@@ -50,6 +50,15 @@ export interface JubjubPoint {
 }
 
 /**
+ * A point in the foreign secp256k1 elliptic curve. TypeScript representation of the
+ * Compact type of the same name
+ */
+export interface Secp256k1Point {
+  readonly x: bigint;
+  readonly y: bigint;
+}
+
+/**
  * The hash value of a Merkle tree. TypeScript representation of the Compact
  * type of the same name
  */
@@ -117,6 +126,30 @@ export const CompactTypeJubjubPoint: CompactType<JubjubPoint> = {
   },
   toValue(value: JubjubPoint): ocrt.Value {
     return ocrt.bigIntToValue(value.x).concat(ocrt.bigIntToValue(value.y));
+  },
+};
+
+/**
+ * Runtime type of {@link Secp256k1Point}
+ */
+export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
+  alignment(): ocrt.Alignment {
+    return CompactTypeSecp256k1Base.alignment()
+      .concat(CompactTypeSecp256k1Base.alignment());
+  },
+  fromValue(value: ocrt.Value): Secp256k1Point {
+    if (value.length != 8) {
+      throw new CompactError('expected Secp256k1Point');
+    }
+    // This might throw CompactError('expected Secp256k1Base').
+    return {
+      x: CompactTypeSecp256k1Base.fromValue(value.slice(0, 4)),
+      y: CompactTypeSecp256k1Base.fromValue(value.slice(4)),
+    };
+  },
+  toValue(value: Secp256k1Point): ocrt.Value {
+    return CompactTypeSecp256k1Base.toValue(value.x)
+      .concat(CompactTypeSecp256k1Base.toValue(value.y));
   },
 };
 
@@ -268,6 +301,8 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
       }
       res = (res << 64n) | ocrt.valueToBigInt([value[i]]);
     }
+    // The ZKIR representation subtracts 1 from the value.
+    res = (res == MAX_SECP256K1_BASE) ? 0n : res + 1n;
     if (res > MAX_SECP256K1_BASE) {
       throw new CompactError('expected Secp256k1Base');
     }
@@ -278,6 +313,8 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
     if (value < 0n || value > MAX_SECP256K1_BASE) {
       throw new CompactError('expected Secp256k1Base');
     }
+    // The ZKIR representation subtracts 1 from the value.
+    value = (value == 0n) ? MAX_SECP256K1_BASE : value - 1n;
     let res: ocrt.Value = [];
     const mask = (1n << 64n) - 1n;
     for (let i = 0; i < 4; ++i) {
@@ -313,6 +350,8 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
       }
       res = (res << 64n) | ocrt.valueToBigInt([value[i]]);
     }
+    // The ZKIR representation subtracts 1 from the value.
+    res = (res == MAX_SECP256K1_SCALAR) ? 0n : res + 1n;
     if (res > MAX_SECP256K1_SCALAR) {
       throw new CompactError('expected Secp256k1Scalar');
     }
@@ -323,6 +362,8 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
     if (value < 0n || value > MAX_SECP256K1_SCALAR) {
       throw new CompactError('expected Secp256k1Scalar');
     }
+    // The ZKIR representation subtracts 1 from the value.
+    value = (value == 0n) ? MAX_SECP256K1_SCALAR : value - 1n;
     let res: ocrt.Value = [];
     const mask = (1n << 64n) - 1n;
     for (let i = 0; i < 4; ++i) {
