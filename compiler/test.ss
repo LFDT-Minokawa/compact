@@ -888,51 +888,61 @@ groups than for single tests.
 (run-tests save-manifest
   (test
     '(
-      "ledger base: Secp256k1Base;"
-      "export circuit test(b: Bytes<32>): [] {"
-      "  base = disclose(b as Secp256k1Base);"
+      "export ledger base: Bytes<32>;"
+      ;; "export ledger scalar: Bytes<32>;"
+      "export circuit test(b: Secp256k1Base, s: Secp256k1Scalar): [] {"
+      "  base = disclose(b as Bytes<32>);"
+      ;; "  scalar = disclose(s as Secp256k1Scalar);"
       "}"
       )
     (pass-returns reduce-to-zkir
       (program
-        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
-                         (%b.0 "Scalar<BLS12-381>"))
-             ()
-          (constrain_bits %b.1 8)
-          (constrain_bits %b.0 248)
-          (div_mod_power_of_two %tmp.2 %fld.3 %b.0 64)
-          (div_mod_power_of_two %tmp.4 %fld.5 %tmp.2 64)
-          (div_mod_power_of_two %tmp.6 %fld.7 %tmp.4 64)
-          (reconstitute_field %fld.8 %b.1 %tmp.6 56)
-          (test_eq %z.9 %fld.3 0)
-          (test_eq %z.10 %fld.5 0)
-          (test_eq %z.11 %fld.7 0)
-          (test_eq %z.12 %fld.8 0)
-          (cond_select %c.13 %z.10 %z.9 0)
-          (cond_select %c.14 %z.11 %c.13 0)
-          (cond_select %c.15 %z.12 %c.14 0)
-          (neg %m1.16 1)
-          (add %low.17 %fld.3 %m1.16)
-          (decode "Base<Secp256k1>" %z.18 18446744069414583342
-            18446744073709551615 18446744073709551615
-            18446744073709551615)
-          (decode "Base<Secp256k1>" %nz.19 %low.17 %fld.5 %fld.7
-            %fld.8)
-          (cond_select %tmp.20 %c.15 %z.18 %nz.19)
-          (encode (%fld.21 %fld.22 %fld.23 %fld.24) %tmp.20)
-          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.21 %fld.22 %fld.23
-            %fld.24 145))))
+        ()))
     (stage-javascript
       `("test('Bytes to secp256k1 field casts', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
-        "  const base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
-        "  const baseBytes = new Uint8Array(["
+        "  // Random values in range."
+        "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  var baseBytes = new Uint8Array(["
         "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
         "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
         "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
         "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
         "  ]);"
-        "  contract.circuits.test(context, baseBytes);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
+        "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
+        "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  var r = contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(baseBytes);"
+        ;; "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
+        ;; "  base = 0n;"
+        ;; "  scalar = runtime.MAX_SECP256K1_SCALAR;"
+        ;; "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
+        ;; "  scalarBytes = new Uint8Array(["
+        ;; "    0x40, 0x41, 0x36, 0xd0, 0x8c, 0x5e, 0xd2, 0xbf,"
+        ;; "    0x3b, 0xa0, 0x48, 0xaf, 0xe6, 0xdc, 0xae, 0xba,"
+        ;; "    0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        ;; "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        ;; "  ]);"
+        ;; "  r = contract.circuits.test(context, baseBytes, scalarBytes);"
+        ;; "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
+        ;; "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
+        ;; "  base = runtime.MAX_SECP256K1_BASE;"
+        ;; "  scalar = 0n;"
+        ;; "  baseBytes = new Uint8Array(["
+        ;; "    0x2e, 0xfc, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff,"
+        ;; "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        ;; "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        ;; "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        ;; "  ]);"
+        ;; "  scalarBytes = new Uint8Array(32);"
+        ;; "  r = contract.circuits.test(context, baseBytes, scalarBytes);"
+        ;; "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
+        ;; "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
         "});"
         ))
     )
@@ -85447,12 +85457,13 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 62" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Secp256k1Scalar"))))
 
-  (test
+(test
     '(
-      "ledger wantProof: Boolean;"
-      "export circuit test(b: Bytes<32>, s: Bytes<32>): [Secp256k1Base, Secp256k1Scalar] {"
-      "  wantProof = true;"
-      "  return [b as Secp256k1Base, s as Secp256k1Scalar];"
+      "export ledger base: Secp256k1Base;"
+      "export ledger scalar: Secp256k1Scalar;"
+      "export circuit test(b: Bytes<32>, s: Bytes<32>): [] {"
+      "  base = disclose(b as Secp256k1Base);"
+      "  scalar = disclose(s as Secp256k1Scalar);"
       "}"
       )
     (pass-returns reduce-to-zkir
@@ -85461,47 +85472,100 @@ groups than for single tests.
                          (%b.0 "Scalar<BLS12-381>")
                          (%s.3 "Scalar<BLS12-381>")
                          (%s.2 "Scalar<BLS12-381>"))
-             ("Base<Secp256k1>" "Scalar<Secp256k1>")
+             ()
           (constrain_bits %b.1 8)
           (constrain_bits %b.0 248)
           (constrain_bits %s.3 8)
           (constrain_bits %s.2 248)
-          (impact 1 16 1 1 1 0 17 1 1 1 1 145)
           (div_mod_power_of_two %tmp.4 %fld.5 %b.0 64)
           (div_mod_power_of_two %tmp.6 %fld.7 %tmp.4 64)
           (div_mod_power_of_two %tmp.8 %fld.9 %tmp.6 64)
           (reconstitute_field %fld.10 %b.1 %tmp.8 56)
-          (decode "Base<Secp256k1>" %t.11 %fld.5 %fld.7 %fld.9
+          (test_eq %z.11 %fld.5 0)
+          (test_eq %z.12 %fld.7 0)
+          (test_eq %z.13 %fld.9 0)
+          (test_eq %z.14 %fld.10 0)
+          (cond_select %c.15 %z.12 %z.11 0)
+          (cond_select %c.16 %z.13 %c.15 0)
+          (cond_select %c.17 %z.14 %c.16 0)
+          (neg %m1.18 1)
+          (add %low.19 %fld.5 %m1.18)
+          (decode "Base<Secp256k1>" %z.20 18446744069414583342
+            18446744073709551615 18446744073709551615
+            18446744073709551615)
+          (decode "Base<Secp256k1>" %nz.21 %low.19 %fld.7 %fld.9
             %fld.10)
-          (div_mod_power_of_two %tmp.12 %fld.13 %s.2 64)
-          (div_mod_power_of_two %tmp.14 %fld.15 %tmp.12 64)
-          (div_mod_power_of_two %tmp.16 %fld.17 %tmp.14 64)
-          (reconstitute_field %fld.18 %s.3 %tmp.16 56)
-          (decode "Scalar<Secp256k1>" %t.19 %fld.13 %fld.15 %fld.17
-            %fld.18)
-          (output %t.11 %t.19))))
+          (cond_select %tmp.22 %c.17 %z.20 %nz.21)
+          (encode (%fld.23 %fld.24 %fld.25 %fld.26) %tmp.22)
+          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.23 %fld.24 %fld.25
+            %fld.26 145)
+          (div_mod_power_of_two %tmp.27 %fld.28 %s.2 64)
+          (div_mod_power_of_two %tmp.29 %fld.30 %tmp.27 64)
+          (div_mod_power_of_two %tmp.31 %fld.32 %tmp.29 64)
+          (reconstitute_field %fld.33 %s.3 %tmp.31 56)
+          (test_eq %z.34 %fld.28 0)
+          (test_eq %z.35 %fld.30 0)
+          (test_eq %z.36 %fld.32 0)
+          (test_eq %z.37 %fld.33 0)
+          (cond_select %c.38 %z.35 %z.34 0)
+          (cond_select %c.39 %z.36 %c.38 0)
+          (cond_select %c.40 %z.37 %c.39 0)
+          (neg %m1.41 1)
+          (add %low.42 %fld.28 %m1.41)
+          (decode "Scalar<Secp256k1>" %z.43 13822214165235122496
+            13451932020343611451 18446744073709551614
+            18446744073709551615)
+          (decode "Scalar<Secp256k1>" %nz.44 %low.42 %fld.30 %fld.32
+            %fld.33)
+          (cond_select %tmp.45 %c.40 %z.43 %nz.44)
+          (encode (%fld.46 %fld.47 %fld.48 %fld.49) %tmp.45)
+          (impact 1 16 1 1 1 1 17 1 4 8 8 8 8 %fld.46 %fld.47 %fld.48
+            %fld.49 145))))
     (stage-javascript
       `("test('Bytes to secp256k1 field casts', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
-        "  // Some random field values in range."
-        "  const base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
-        "  const scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
-        "  // Little-endian byte encodings."
-        "  const baseBytes = new Uint8Array(["
+        "  // Random values in range."
+        "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  var baseBytes = new Uint8Array(["
         "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
         "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
         "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
         "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
         "  ]);"
-        "  const scalarBytes = new Uint8Array(["
+        "  var scalarBytes = new Uint8Array(["
         "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
         "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
         "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
         "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
         "  ]);"
-        "  var res = contract.circuits.test(context, baseBytes, scalarBytes);"
-        "  expect(res.result[0]).toEqual(base);"
-        "  expect(res.result[1]).toEqual(scalar);"
+        "  var r = contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  base = 0n;"
+        "  scalar = runtime.MAX_SECP256K1_SCALAR;"
+        "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
+        "  scalarBytes = new Uint8Array(["
+        "    0x40, 0x41, 0x36, 0xd0, 0x8c, 0x5e, 0xd2, 0xbf,"
+        "    0x3b, 0xa0, 0x48, 0xaf, 0xe6, 0xdc, 0xae, 0xba,"
+        "    0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "  ]);"
+        "  r = contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  base = runtime.MAX_SECP256K1_BASE;"
+        "  scalar = 0n;"
+        "  baseBytes = new Uint8Array(["
+        "    0x2e, 0xfc, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "  ]);"
+        "  scalarBytes = new Uint8Array(32);"
+        "  r = contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
         "});"
         ))
     )
