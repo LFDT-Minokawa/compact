@@ -431,6 +431,12 @@
       (define (arg->type arg)
         (nanopass-case (Linlined Argument) arg
           [(,var-name ,type) type]))
+      (define (format-field-type ftype)
+        (nanopass-case (Linlined Field-Type) ftype
+          [(field-native) "Field"]
+          [(field-scalar (curve-jubjub)) "JubjubScalar"]
+          [(field-base (curve-secp256k1)) "Secp256k1Base"]
+          [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
       (define (format-type type)
         (define (format-adt-arg adt-arg)
           (nanopass-case (Linlined Public-Ledger-ADT-Arg) adt-arg
@@ -438,12 +444,7 @@
             [,type (format-type type)]))
         (nanopass-case (Linlined Type) type
           [(tboolean ,src) "Boolean"]
-          [(tfield ,src ,ftype)
-           (nanopass-case (Linlined Field-Type) ftype
-             [(field-native) "Field"]
-             [(field-scalar (curve-jubjub)) "JubjubScalar"]
-             [(field-base (curve-secp256k1)) "Secp256k1Base"]
-             [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
+          [(tfield ,src ,ftype) (format-field-type)]
           [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
           [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tunknown) "Unknown"]
@@ -962,13 +963,19 @@
             `(tfield ,src ,ftype)]
            [else (source-errorf src "invalid target field type ~a for bytes->field"
                    (format-type `(tfield ,src ,ftype)))]))]
-      [(field->bytes ,src ,len ,[Care : expr -> * type])
+      [(field->bytes ,src ,len ,ftype ,[Care : expr -> * type])
        (unless (nanopass-case (Linlined Type) type
-                 [(tfield ,src (field-native)) #t]
+                 [(tfield ,src^ ,ftype^)
+                  (and (same-field-type? ftype ftype^)
+                       (nanopass-case (Linlined Field-Type) ftype
+                         [(field-native) #t]
+                         [(field-base (curve-secp256k1)) (eqv? len 32)]
+                         [(field-scalar (curve-secp256k1)) (eqv? len 32)]
+                         [else #f]))]
                  [else #f])
-         (source-errorf src
-           "actual type ~a must be a field type for argument to field->bytes"
-           type))
+         (source-errorf src "actual type ~a is an invalid argument to field->bytes for field ~a"
+           (format-type type)
+           (format-field-type ftype)))
        (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
        (with-output-language (Linlined Type) `(tbytes ,src ,len))]
       [(bytes->vector ,src ,len ,[Care : expr -> * type])
@@ -1575,7 +1582,7 @@
        (values
          `(assert ,src ,expr ,mesg)
          (CTV-tuple no-var-name '()))]
-      [(field->bytes ,src ,len ,[expr ctv])
+      [(field->bytes ,src ,len ,[ftype] ,[expr ctv])
        (assert (not (= len 0)))
        (cond
          [(ifconstant ctv
@@ -1587,7 +1594,7 @@
                      bv)))) =>
           (lambda (bv) (values `(quote ,src ,bv) (CTV-const no-var-name bv)))]
          [else (values
-                 `(field->bytes ,src ,len ,expr)
+                 `(field->bytes ,src ,len ,ftype ,expr)
                  (CTV-unknown no-var-name))])]
       [(bytes->field ,src ,[ftype] ,len ,[expr ctv])
        (cond
@@ -1824,9 +1831,9 @@
              `(tuple ,src)
              `(assert ,src ,expr ,mesg))
          idset)]
-      [(field->bytes ,src ,len ,[Value : expr idset])
+      [(field->bytes ,src ,len ,ftype ,[Value : expr idset])
        (values
-         `(field->bytes ,src ,len ,expr)
+         `(field->bytes ,src ,len ,ftype ,expr)
          idset)]
       [(bytes->field ,src ,ftype ,len ,[Value : expr idset])
        (values
@@ -1927,12 +1934,14 @@
        (values
          (make-seq #t src expr* expr)
          (idset-union-all (cons idset idset*)))]
-      [(field->bytes ,src ,len ,expr)
-       (if (> len (field-bytes))
+      [(field->bytes ,src ,len ,ftype ,expr)
+       (if (nanopass-case (Lnovectorref Field-Type) ftype
+             [(field-native) (> len (field-bytes))]
+             [else #f])
            (Effect expr)
            (let-values ([(expr idset) (Value expr)])
              (values
-               `(field->bytes ,src ,len ,expr)
+               `(field->bytes ,src ,len ,ftype ,expr)
                idset)))]
       [(bytes->field ,src ,ftype ,len ,expr)
        (nanopass-case (Lnovectorref Field-Type) ftype
@@ -2216,11 +2225,11 @@
          (lambda (triv)
            (k (with-output-language (Lcircuit Rhs)
                 `(bytes->field ,src ,ftype ,len ,triv)))))]
-      [(field->bytes ,src ,len ,expr)
+      [(field->bytes ,src ,len ,[ftype] ,expr)
        (Triv expr test
          (lambda (triv)
            (k (with-output-language (Lcircuit Rhs)
-                `(field->bytes ,src ,len ,triv)))))]
+                `(field->bytes ,src ,len ,ftype ,triv)))))]
       [(bytes->vector ,src ,len ,expr)
        (Triv expr test
          (lambda (triv)
@@ -2635,7 +2644,7 @@
                         (let-values ([(triv1 triv2) (apply values (list-tail triv* n))])
                           (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv1 ,triv2))))
                         (list-head triv* n)))]))])))]
-      [(field->bytes ,src ,len ,[Single-Triv : triv])
+      [(field->bytes ,src ,len ,[ftype] ,[Single-Triv : triv])
        (assert (not (= len 0)))
        (let ([var-name1 (make-new-id var-name)]
              [var-name2 (make-new-id var-name)])
@@ -2650,7 +2659,7 @@
                    (list var-name2)
                    (f (- len (fx* 2 (field-bytes))) (list var-name1 var-name2))))))
          (with-output-language (Lflattened Statement)
-           (list `(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,triv)))))]
+           (list `(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,triv)))))]
       [(bytes->vector ,len ,[* wump])
        (let loop ([len len] [triv* (reverse (wump->elts wump))] [rvar-name** '()] [stmt* '()])
          (if (fx= len 0)
@@ -3076,7 +3085,7 @@
       [(default ,opaque-type)
        (with-output-language (Lflattened Statement)
          (cons `(= ,test (,var-name* ...) (default ,opaque-type)) rstmt*))]
-      [(field->bytes ,src ,len ,[FWD-Triv : triv])
+      [(field->bytes ,src ,len ,ftype ,[FWD-Triv : triv])
        (assert (fx= (length var-name*) 2))
        (assert (not (= len 0)))
        (with-output-language (Lflattened Statement)
@@ -3098,7 +3107,7 @@
                       rstmt*)]
                    [else
                     (set-cdr! a (cons var-name1 var-name2))
-                    (cons `(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,triv)) rstmt*)])))))]
+                    (cons `(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,triv)) rstmt*)])))))]
       [(div-mod-power-of-two ,[FWD-Triv : triv] ,bits)
        (assert (fx= (length var-name*) 2))
        (with-output-language (Lflattened Statement)
@@ -3374,14 +3383,15 @@
        stmt*]
       [(= ,[BWD-Triv : test] (,var-name* ...) (default ,opaque-type))
        (cons `(= ,test (,var-name* ...) (default ,opaque-type)) stmt*)]
-      [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,triv))
+      [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,triv))
        (guard
          (>= len (field-bytes))
          (not (hashtable-contains? ref-ht var-name1))
          (not (hashtable-contains? ref-ht var-name2)))
        stmt*]
-      [(= ,[BWD-Triv : test] (,var-name1 ,var-name2) (field->bytes ,src ,len ,[BWD-Triv : triv]))
-       (cons `(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,triv)) stmt*)]
+      [(= ,[BWD-Triv : test] (,var-name1 ,var-name2)
+         (field->bytes ,src ,len ,ftype ,[BWD-Triv : triv]))
+       (cons `(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,triv)) stmt*)]
       [(= ,test (,var-name1 ,var-name2) (div-mod-power-of-two ,triv ,bits))
        (guard
          (not (hashtable-contains? ref-ht var-name1))
@@ -3483,8 +3493,13 @@
        (if (eqv? test 1)
            (list ir)
            (Single single test var-name))]
-      [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,triv))
-       (if (or (eqv? test 1) (> len (field-bytes)))
+      [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,triv))
+       (if (or (eqv? test 1)
+               (nanopass-case (Lflattened Field-Type) ftype
+                 [(field-native) (> len (field-bytes))]
+                 [(field-base (curve-secp256k1)) #t]
+                 [(field-scalar (curve-secp256k1)) #t]
+                 [else #f]))
            (list ir)
            (with-output-language (Lflattened Statement)
              (with-temp-ids (id-src var-name1) (q t1 t2)
@@ -3647,6 +3662,12 @@
       (define (arg->types arg)
         (nanopass-case (Lflattened Argument) arg
           [(argument (,var-name* ...) ,type) (type->primitive-types type)]))
+      (define (format-field-type ftype)
+        (nanopass-case (Lflattened Field-Type) ftype
+          [(field-native) "Field"]
+          [(field-scalar (curve-jubjub)) "JubjubScalar"]
+          [(field-base (curve-secp256k1)) "Secp256k1Base"]
+          [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
       (define (format-primitive-type primitive-type)
         (define (format-type type)
           (format "(~{~a~^, ~})" (map format-primitive-type (type->primitive-types type))))
@@ -3655,12 +3676,7 @@
             [,nat (format "~d" nat)]
             [,type (format-type type)]))
         (nanopass-case (Lflattened Primitive-Type) primitive-type
-          [(tfield ,ftype)
-           (nanopass-case (Lflattened Field-Type) ftype
-             [(field-native) "Field"]
-             [(field-scalar (curve-jubjub)) "JubjubScalar"]
-             [(field-base (curve-secp256k1)) "Secp256k1Base"]
-             [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])]
+          [(tfield ,ftype) (format-field-type ftype)]
           [(tunsigned ,nat) (format "Uint<0..~d>" (1+ nat))]
           [(topaque ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
@@ -3892,13 +3908,17 @@
             (assert (= (length var-name*) 1))
             (set-idtype! (car var-name*) (Idtype-Base `(topaque "Secp256k1Point")))]
            [else (assert cannot-happen)]))]
-      [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,[* primitive-type]))
+      [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,[* primitive-type]))
        (verify-test src test)
-       (unless (T primitive-type
-                 [(tfield (field-native)) #t]
-                 [(tunsigned ,nat) #t])
+       (unless (nanopass-case (Lflattened Field-Type) ftype
+                 [(field-native)
+                  [T primitive-type [(tfield (field-native)) #t] [(tunsigned ,nat) #t]]]
+                 [(field-base (curve-secp256k1))
+                  (T primitive-type [(tfield (field-base (curve-secp256k1))) #t])]
+                 [(field-scalar (curve-secp256k1))
+                  (T primitive-type [(tfield (field-scalar (curve-secp256k1))) #t])])
          (type-error (format "argument to field->bytes at ~a" (format-source-object src))
-           (with-output-language (Lflattened Primitive-Type) `(tfield (field-native)))
+           (with-output-language (Lflattened Primitive-Type) `(tfield ,ftype))
            primitive-type))
        (assert (not (= len 0)))
        (with-output-language (Lflattened Primitive-Type)
@@ -4005,7 +4025,6 @@
          (source-errorf program-src "expected Field or Uint for bytes-ref, recieved ~a"
            (format-primitive-type primitive-type)))
        (with-output-language (Lflattened Primitive-Type) `(tunsigned 255))]
-      ;; TODO(kmillikin) we need to support conversion of bytes to JubjubScalar
       [(bytes->field ,src ,ftype ,len ,[* type1] ,[* type2])
        (nanopass-case (Lflattened Primitive-Type) type1
          [(tunsigned ,nat) #t]

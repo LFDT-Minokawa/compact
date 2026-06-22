@@ -32,7 +32,7 @@ export function convertNumericToJubjubScalar(x: bigint): bigint {
  * Compiler internal for typecasts
  * @internal
  */
-export function convertFieldToBytes(n: number, x: bigint, src: string): Uint8Array {
+export function convertBigintToBytes(n: number, x: bigint, src: string): Uint8Array {
   const x_0 = x;
   const a = new Uint8Array(n);
   // counting on new Uint8Array setting all elements to zero; those not set are
@@ -42,7 +42,7 @@ export function convertFieldToBytes(n: number, x: bigint, src: string): Uint8Arr
     x = x / 0x100n;
     if (x == 0n) return a;
   }
-  const msg = `range error at ${src}: Field or Uint value ${x_0} does not fit into ${n} bytes`;
+  const msg = `range error at ${src}: field or Uint value ${x_0} does not fit into ${n} bytes`;
   throw new CompactError(msg);
 }
 

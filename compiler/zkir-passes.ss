@@ -417,7 +417,7 @@
                        (set! ctr (add1 ctr))
                        (new-var! var-name)
                        (loop var-name* q))))))]
-          [(= ,[* test] (,var-name1 ,var-name2) (field->bytes ,src ,len ,[* triv]))
+          [(= ,[* test] (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,[* triv]))
            ; FIXME: need to respect test: constrain_bits shouldn't happen if test is false
            ; NB: missing-guard-workarounds now implements a workaround that ensures
            ; field->bytes receives a large enough length that it won't produce

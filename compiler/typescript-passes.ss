@@ -349,7 +349,7 @@
            "typeError"
            "assert"
            "convertNumericToJubjubScalar"
-           "convertFieldToBytes"
+           "convertBigintToBytes"
            "convertBytesToBigint"
            "addField"
            "subField"
@@ -3173,10 +3173,10 @@
              expr
              (format-javascript-string mesg))
            ")"))]
-      [(field->bytes ,src ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
+      [(field->bytes ,src ,len ,ftype ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (make-Qconcat
-           (compact-stdlib "convertFieldToBytes")
+           (compact-stdlib "convertBigintToBytes")
            "("
            ((make-Qsep ",") (format "~d" len) expr (format "'~a'" (format-source-object src)))
            ")"))]
