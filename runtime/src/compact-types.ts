@@ -512,64 +512,6 @@ export const CompactTypeBoolean: CompactType<boolean> = {
   },
 };
 
-// Secp256k1 types. Mock representations: scalar and each point coordinate are
-// stored as a single native field element. Values exceeding the native field
-// size will be truncated; this is acceptable until real circuit gates land.
-
-export interface Secp256k1Point {
-  readonly x: bigint;
-  readonly y: bigint;
-}
-
-export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
-  // TODO (see https://github.com/LFDT-Minokawa/compact/pull/500)
-};
-
-export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
-  // TODO (see https://github.com/LFDT-Minokawa/compact/pull/500)
-};
-
-export const CompactTypeSecp256k1Base: CompactType<bigint> = {
-  // TODO (https://github.com/LFDT-Minokawa/compact/pull/500)
-};
-
-export const CompactTypeSecp256k1EcdsaSignature: CompactType<Secp256k1EcdsaSignature> = {
-  alignment(): ocrt.Alignment {
-    return [...CompactTypeSecp256k1Scalar.alignment(), ...CompactTypeSecp256k1Scalar.alignment()];
-  },
-  fromValue(value: ocrt.Value): Secp256k1EcdsaSignature {
-    const r = CompactTypeSecp256k1Scalar.fromValue(value);
-    const s = CompactTypeSecp256k1Scalar.fromValue(value);
-    return { r, s };
-  },
-  toValue(value: Secp256k1EcdsaSignature): ocrt.Value {
-    return [...CompactTypeSecp256k1Scalar.toValue(value.r), ...CompactTypeSecp256k1Scalar.toValue(value.s)];
-  },
-};
-
-export const CompactTypeSecp256k1EcdsaSignatureWithRecovery: CompactType<Secp256k1EcdsaSignatureWithRecovery> = {
-  alignment(): ocrt.Alignment {
-    return [
-      ...CompactTypeSecp256k1Scalar.alignment(),
-      ...CompactTypeSecp256k1Scalar.alignment(),
-      ...CompactTypeSecp256k1Point.alignment(),
-    ];
-  },
-  fromValue(value: ocrt.Value): Secp256k1EcdsaSignatureWithRecovery {
-    const r = CompactTypeSecp256k1Scalar.fromValue(value);
-    const s = CompactTypeSecp256k1Scalar.fromValue(value);
-    const R = CompactTypeSecp256k1Point.fromValue(value);
-    return { r, s, R };
-  },
-  toValue(value: Secp256k1EcdsaSignatureWithRecovery): ocrt.Value {
-    return [
-      ...CompactTypeSecp256k1Scalar.toValue(value.r),
-      ...CompactTypeSecp256k1Scalar.toValue(value.s),
-      ...CompactTypeSecp256k1Point.toValue(value.R),
-    ];
-  },
-};
-
 /**
  * Runtime type of the builtin `Bytes` types
  */

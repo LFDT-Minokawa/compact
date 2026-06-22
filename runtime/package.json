@@ -40,7 +40,6 @@
     "object-inspect": "^1.12.3"
   },
   "devDependencies": {
-    "@noble/curves": "^1.8.1",
     "@types/node": "^25.5.0",
     "eslint": "^10.1.0",
     "typescript-eslint": "^8.58.0",
