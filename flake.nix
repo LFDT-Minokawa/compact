@@ -31,18 +31,18 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/ledger-8.1.0"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v3 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8";
+      url = "github:midnightntwrk/midnight-ledger/ledger-8.1.0";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2";
+      url = "github:midnightntwrk/midnight-ledger/ledger-8.1.0";
       inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
