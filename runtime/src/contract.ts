@@ -24,7 +24,7 @@ import {
   queryLedgerState,
   CommunicationCommitmentData,
 } from './circuit-context.js';
-import { assertDefined } from './error.js';
+import { assertDefined, assertUndefined } from './error.js';
 import { assertIsContractAddress, fromHex } from './utils.js';
 import { CompactError } from './error.js';
 import { PartialProofData } from './proof-data.js';
@@ -44,6 +44,16 @@ type ProvableCircuits = Record<CircuitId, ProvableCircuit>;
 /**
  * @internal
  */
+type PureCircuit = (...args: any[]) => any;
+
+/**
+ * @internal
+ */
+type PureCircuits = Record<CircuitId, PureCircuit>;
+
+/**
+ * @internal
+ */
 type Contract = {
   provableCircuits: ProvableCircuits;
 };
@@ -52,6 +62,14 @@ type Contract = {
  * @internal
  */
 type ContractCtor = new (witnesses: Record<string, never>) => Contract;
+
+/**
+ * @internal
+ */
+type Module = {
+  Contract: ContractCtor;
+  pureCircuits: PureCircuits;
+}
 
 /**
  * @internal
@@ -305,13 +323,24 @@ const assertNotDefaultContractAddress = (address: ocrt.ContractAddress): void =>
   }
 };
 
+const assertPurityMatches = (module: Module, calleeCircuitId: CircuitId, calleeAddress: ocrt.ContractAddress, calleeIsPure: boolean): void => {
+  const pureCircuit = module.pureCircuits[calleeCircuitId];
+  const errMsg = `pure circuit '${calleeCircuitId}' for callee '${calleeAddress}'`;
+  if (calleeIsPure) {
+    assertDefined(pureCircuit, errMsg);
+  } else {
+    assertUndefined(pureCircuit, errMsg);
+  }
+}
+
 /**
  * Calls a circuit defined in another contract from the currently executing contract and returns the result.
  *
  * @param circuitContext The current circuit context.
- * @param calleeContractCtor The 'Contract' class constructor defined in the callee module
+ * @param calleeModule The callee module containing TS executables.
  * @param calleeCircuitId The name of the circuit to be called in the contract to be called.
  * @param calleeAddress The address of the contract to be called.
+ * @param calleeIsPure A flag indicating whether the circuit being called is pure.
  * @param callerProofData The proof data instance created when the caller circuit was initialized.
  * @param args The arguments to the circuit to be called.
  *
@@ -319,15 +348,17 @@ const assertNotDefaultContractAddress = (address: ocrt.ContractAddress): void =>
  */
 export const crossContractCall = async (
   circuitContext: CircuitContext,
-  calleeContractCtor: ContractCtor,
+  calleeModule: Module,
   calleeCircuitId: CircuitId,
   calleeAddress: ocrt.ContractAddress,
+  calleeIsPure: boolean,
   callerProofData: PartialProofData,
   ...args: any[]
 ): Promise<any> => {
   assertIsContractAddress(calleeAddress);
   assertNotDefaultContractAddress(calleeAddress);
-  const provableCircuit = new calleeContractCtor({}).provableCircuits[calleeCircuitId];
+  assertPurityMatches(calleeModule, calleeCircuitId, calleeAddress, calleeIsPure);
+  const provableCircuit = new calleeModule.Contract({}).provableCircuits[calleeCircuitId];
   assertDefined(provableCircuit, `'${calleeCircuitId}' for callee '${calleeAddress}'`);
   const calleeQueryContext = await resolveQueryContext(circuitContext, calleeAddress);
   const calleeGasCosts = resolveGasCost(circuitContext, calleeAddress);

@@ -3256,16 +3256,26 @@
        ;; Lower a cross-contract call to:
        ;;   await __compactRuntime.crossContractCall(
        ;;     context,                                     // caller CircuitContext
-       ;;     <import-binding>.Contract,                   // callee ContractCtor
+       ;;     <import-binding>,                            // callee Module (Contract + pureCircuits)
        ;;     '<elt-name>',                                // callee CircuitId
        ;;     <receiver-expr>,                             // callee address from the ledger
+       ;;     <callee-is-pure>,                            // declared purity of the callee circuit
        ;;     partialProofData,                            // caller PartialProofData
        ;;     <args>...)
        (when outer-pure?
          (source-errorf src "cross-contract call from a pure circuit is not yet supported"))
        (nanopass-case (Ltypescript Type) (de-alias type)
          [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-          (let ([callee-address
+          (let ([callee-is-pure
+                 (let loop ([names elt-name*] [pures pure-dcl*])
+                   (cond
+                     [(null? names)
+                      (internal-errorf 'print-typescript
+                        "contract-call references unknown circuit ~s on contract ~s"
+                        elt-name contract-name)]
+                     [(eq? (car names) elt-name) (car pures)]
+                     [else (loop (cdr names) (cdr pures))]))]
+                [callee-address
                  (make-Qconcat
                    (format "~a((" (compact-stdlib "decodeContractAddress"))
                    expr
@@ -3275,9 +3285,10 @@
                 (format "await ~a(" (compact-stdlib "crossContractCall"))
                 (apply (make-Qsep ",")
                   (cons* "context"
-                         (format "~a.Contract" (contract-import-binding contract-name))
+                         (format "~a" (contract-import-binding contract-name))
                          (format "'~a'" elt-name)
                          callee-address
+                         (if callee-is-pure "true" "false")
                          "partialProofData"
                          expr*))
                 ")")))]

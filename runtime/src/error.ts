@@ -47,6 +47,16 @@ export function assertDefined<T>(t: T | undefined, name: string): asserts t is N
 }
 
 /**
+ * Compiler internal for asserting an object is nullable.
+ * @internal
+ */
+export function assertUndefined(t: any, name: string): void {
+  if (t !== undefined && t !== null) {
+    throw new CompactError(`Expected ${name} to be undefined`);
+  }
+}
+
+/**
  * Compiler internal for type errors
  * @internal
  */
