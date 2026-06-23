@@ -81,7 +81,7 @@ impl BinaryHashRepr for OpaqueString {
         self.0.as_bytes().binary_repr(writer);
     }
     fn binary_len(&self) -> usize {
-        self.0.as_bytes().len()
+        self.0.len()
     }
 }
 
