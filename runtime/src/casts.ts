@@ -56,7 +56,11 @@ export function convertBytesToBigint(maxval: bigint,
                                      name: string,
                                      src: string): bigint {
   let x = 0n;
-  for (let i = n - 1; i >= 0; i -= 1) {
+  // secp256k1 scalars and base-field elements are serialized big-endian (SEC1);
+  // every other Bytes->field cast uses Compact's little-endian convention.
+  const bigEndian = name === 'Secp256k1Scalar' || name === 'Secp256k1Base';
+  for (let k = 0; k < n; k += 1) {
+    const i = bigEndian ? k : n - 1 - k;
     x = x * 0x100n + BigInt(a[i]);
     if (x > maxval) {
       const msg = `range error at ${src}: byte vector [${Array.from(a.slice(0, n)).join(',')}] exceeds maximum value ${maxval} of ${name} type`;
