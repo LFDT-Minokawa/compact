@@ -192,6 +192,17 @@
                                          native-id-ht witness-id-ht circuit-id-ht)
                          (ctor-expr-rust expr2 local-binds
                                          native-id-ht witness-id-ht circuit-id-ht))))]
+            [(!= ,src ,type ,expr1 ,expr2)
+             ;; A9: inequality — same typed-enum threading as `==`.
+             (let ([typed?
+                    (or (operand-typed-enum? expr1 witness-id-ht)
+                        (operand-typed-enum? expr2 witness-id-ht))])
+               (parameterize ([current-enum-ref-typed? typed?])
+                 (format "(~a != ~a)"
+                         (ctor-expr-rust expr1 local-binds
+                                         native-id-ht witness-id-ht circuit-id-ht)
+                         (ctor-expr-rust expr2 local-binds
+                                         native-id-ht witness-id-ht circuit-id-ht))))]
             [(not ,src ,expr)
              ;; F1.2: Boolean negation. Recurse through ctor-expr-rust to
              ;; keep local-binds threading. Parenthesise the operand so
@@ -619,6 +630,16 @@
              (default-supported? type)]
             [(== ,src ,type ,expr1 ,expr2)
              ;; I3b/3: equality. Recurse into both operands.
+             (and (expr-supported? expr1 native-id-ht
+                                   witness-id-ht circuit-id-ht)
+                  (expr-supported? expr2 native-id-ht
+                                   witness-id-ht circuit-id-ht))]
+            [(!= ,src ,type ,expr1 ,expr2)
+             ;; A9: inequality. The IR has `!=` as its own node, not
+             ;; lowered to `(not (== ...))`. did.compact's
+             ;; `rotateControllerKey` body asserts
+             ;; `disclosedNewControllerPublicKey != controllerPublicKey`.
+             ;; Same recursion shape as `==`.
              (and (expr-supported? expr1 native-id-ht
                                    witness-id-ht circuit-id-ht)
                   (expr-supported? expr2 native-id-ht
