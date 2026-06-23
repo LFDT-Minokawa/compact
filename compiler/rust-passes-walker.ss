@@ -1790,8 +1790,31 @@
                               (cons bind-line (cons call-line pre-lines))
                               writes))]
                      [(pure-circuit)
+                      ;; A6: witness sub-calls inside pure-circuit args.
+                      ;; did.compact's `controllerKey(localSecretKey())`
+                      ;; lowers to a const-binding RHS whose pargs
+                      ;; embeds a witness call. Mirror the assert
+                      ;; clause's hoister: collect witness sub-calls
+                      ;; first, emit `let _w_<name>_N = ...` lines
+                      ;; before the const-binding's own let, and
+                      ;; parameterize `current-witness-call-binds` so
+                      ;; the arg rendering finds the hoisted names.
                       (let* ([pname (cadr classified)]
                              [pargs (caddr classified)]
+                             [subcalls
+                              ;; Walk the full RHS expression (not
+                              ;; just the args) so a witness call
+                              ;; nested anywhere — including inside
+                              ;; an elt-ref / cast / arithmetic — is
+                              ;; caught.
+                              (collect-witness-subcalls rhs witness-id-ht)]
+                             [hoist (emit-hoisted-witnesses
+                                      subcalls (length pre-lines) mode
+                                      local-binds witness-emitted?
+                                      native-id-ht witness-id-ht circuit-id-ht)]
+                             [hoist-lines (car hoist)]
+                             [hoist-binds (cadr hoist)]
+                             [we2 (caddr hoist)]
                              ;; F2.2: peek at the callee's formal types so
                              ;; per-arg rendering can coerce tenum ledger
                              ;; reads to the actual enum variant.
@@ -1802,20 +1825,23 @@
                                 [else #f])]
                              [formal-types (circuit-formal-arg-types callee)]
                              [arg-strs
-                              (let loop ([as pargs] [fs formal-types] [acc '()])
-                                (cond
-                                  [(null? as) (reverse acc)]
-                                  [else
-                                   (let* ([ft (and (pair? fs) (car fs))]
-                                          [s (if ft
-                                                 (render-pure-circuit-arg
-                                                   (car as) ft local-binds
-                                                   native-id-ht witness-id-ht circuit-id-ht)
-                                                 (arg-rust-clone-if-var (car as) local-binds
-                                                                        native-id-ht witness-id-ht circuit-id-ht))])
-                                     (loop (cdr as)
-                                           (if (pair? fs) (cdr fs) '())
-                                           (cons s acc)))]))]
+                              (parameterize ([current-witness-call-binds
+                                               (append hoist-binds
+                                                       (current-witness-call-binds))])
+                                (let loop ([as pargs] [fs formal-types] [acc '()])
+                                  (cond
+                                    [(null? as) (reverse acc)]
+                                    [else
+                                     (let* ([ft (and (pair? fs) (car fs))]
+                                            [s (if ft
+                                                   (render-pure-circuit-arg
+                                                     (car as) ft local-binds
+                                                     native-id-ht witness-id-ht circuit-id-ht)
+                                                   (arg-rust-clone-if-var (car as) local-binds
+                                                                          native-id-ht witness-id-ht circuit-id-ht))])
+                                       (loop (cdr as)
+                                             (if (pair? fs) (cdr fs) '())
+                                             (cons s acc)))])))]
                              [bind-line
                               (format "        let ~a = pure_circuits::~a(~a);\n"
                                       rust-name pname
@@ -1827,8 +1853,8 @@
                                                       (string-append acc (car xs) ", "))])))])
                         (loop (cdr stmts)
                               (cons (cons var-name rust-name) local-binds)
-                              witness-emitted?
-                              (cons bind-line pre-lines)
+                              we2
+                              (cons bind-line (append hoist-lines pre-lines))
                               writes))]
                      [(impure-exported)
                       ;; E5: const binding whose RHS is a call to an
