@@ -19,6 +19,7 @@ import { secp256k1 } from '@noble/curves/secp256k1.js';
 import {
   FIELD_MODULUS,
   JUBJUB_SCALAR_MODULUS,
+  SECP256K1_BASE_MODULUS,
   SECP256K1_SCALAR_MODULUS,
 } from './constants.js';
 import {
@@ -281,6 +282,16 @@ export function ecMulGenerator(b: bigint): JubjubPoint {
 }
 
 /**
+ * Secp256k1 scalar field addition
+ *
+ * This function returns x + y in the secp256k1 scalar field (modulo
+ * SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarAdd(x: bigint, y: bigint): bigint {
+  return (x + y) % SECP256K1_SCALAR_MODULUS;
+}
+
+/**
  * Secp256k1 scalar field negation
  *
  * This function returns the negation of x in the secp256k1 scalar field.  That
@@ -292,16 +303,73 @@ export function secp256k1ScalarNeg(x: bigint): bigint {
 }
 
 /**
+ * Secp256k1 scalar field multiplication
+ *
+ * This function returns x * y in the secp256k1 scalar field (modulo
+ * SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarMul(x: bigint, y: bigint): bigint {
+  return (x * y) % SECP256K1_SCALAR_MODULUS;
+}
+
+/**
  * Secp256k1 scalar field inverse
  *
  * This function returns the multiplicative inverse of x in the secp256k1 scalar
  * field.  That is, a value y such that x * y = 1 (modulo
- * SECP256K1_SCALAR_MODULUS).  x is assumed to be in the range [0,
- * SECP256K1_SCALAR_MODULUS).
+ * SECP256K1_SCALAR_MODULUS).  x is assumed to be in the range 
+ * (0, SECP256K1_SCALAR_MODULUS).
  */
 export function secp256k1ScalarInv(x: bigint): bigint {
-  // TODO!
-  return x;
+  if (x === 0n) {
+    throw new CompactError('Cannot compute inverse on input 0');
+  }
+  return secp256k1.Point.Fn.inv(x);
+}
+
+/**
+ * Secp256k1 base field addition
+ *
+ * This function returns x + y in the secp256k1 base field (modulo
+ * SECP256K1_BASE_MODULUS). 
+ */
+export function secp256k1BaseAdd(x: bigint, y: bigint): bigint {
+  return (x + y) % SECP256K1_BASE_MODULUS;
+}
+
+/**
+ * Secp256k1 base field negation
+ *
+ * This function returns the negation of x in the secp256k1 base field.  That
+ * is, a value y such that x + y = 0 (modulo SECP256K1_BASE_MODULUS).  x is
+ * assumed to be in the range [0, SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseNeg(x: bigint): bigint {
+  return x == 0n ? x : SECP256K1_BASE_MODULUS - x;
+}
+
+/**
+ * Secp256k1 base field multiplication
+ *
+ * This function returns x * y in the secp256k1 base field (modulo
+ * SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseMul(x: bigint, y: bigint): bigint {
+  return (x * y) % SECP256K1_BASE_MODULUS;
+}
+
+/**
+ * Secp256k1 base field inverse
+ *
+ * This function returns the multiplicative inverse of x in the secp256k1 base
+ * field.  That is, a value y such that x * y = 1 (modulo SECP256K1_BASE_MODULUS).
+ * x is assumed to be in the range (0, SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseInv(x: bigint): bigint {
+  if (x === 0n) {
+    throw new CompactError('secp256k1 scalar field has no inverse for 0');
+  }
+  return secp256k1.Point.Fp.inv(x);
 }
 
 /**

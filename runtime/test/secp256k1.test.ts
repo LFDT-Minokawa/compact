@@ -41,3 +41,51 @@ describe('secp256k1 group operations', () => {
     expect(runtime.secp256k1Mul(G, 0n)).toEqual(IDENTITY);
   });
 });
+
+describe('secp256k1 scalar field operations', () => {
+  const N = runtime.SECP256K1_SCALAR_MODULUS;
+  const a = 123456789n;
+  const b = N - 7n;
+
+  test('add reduces modulo the scalar modulus', () => {
+    expect(runtime.secp256k1ScalarAdd(a, b)).toEqual((a + b) % N);
+    expect(runtime.secp256k1ScalarAdd(a, N - a)).toEqual(0n);
+  });
+
+  test('neg is the additive inverse', () => {
+    expect(runtime.secp256k1ScalarAdd(a, runtime.secp256k1ScalarNeg(a))).toEqual(0n);
+    expect(runtime.secp256k1ScalarNeg(0n)).toEqual(0n);
+  });
+
+  test('mul reduces modulo the scalar modulus', () => {
+    expect(runtime.secp256k1ScalarMul(a, b)).toEqual((a * b) % N);
+  });
+
+  test('inv is the multiplicative inverse', () => {
+    expect(runtime.secp256k1ScalarMul(a, runtime.secp256k1ScalarInv(a))).toEqual(1n);
+  });
+});
+
+describe('secp256k1 base field operations', () => {
+  const P = runtime.SECP256K1_BASE_MODULUS;
+  const a = 987654321n;
+  const b = P - 11n;
+
+  test('add reduces modulo the base modulus', () => {
+    expect(runtime.secp256k1BaseAdd(a, b)).toEqual((a + b) % P);
+    expect(runtime.secp256k1BaseAdd(a, P - a)).toEqual(0n);
+  });
+
+  test('neg is the additive inverse', () => {
+    expect(runtime.secp256k1BaseAdd(a, runtime.secp256k1BaseNeg(a))).toEqual(0n);
+    expect(runtime.secp256k1BaseNeg(0n)).toEqual(0n);
+  });
+
+  test('mul reduces modulo the base modulus', () => {
+    expect(runtime.secp256k1BaseMul(a, b)).toEqual((a * b) % P);
+  });
+
+  test('inv is the multiplicative inverse', () => {
+    expect(runtime.secp256k1BaseMul(a, runtime.secp256k1BaseInv(a))).toEqual(1n);
+  });
+});
