@@ -13,7 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-test('self-recursion terminates and threads ledger state: foo(1) === 2', async () => {
+// TODO: Enable when contract re-entrancy is supported
+// Skipped: direct self-recursion (`foo` -> `self.foo`) re-enters a contract that is
+// already executing, which the re-entrancy guard (on by default) now rejects. Kept
+// as documentation of the previous threaded-state behaviour.
+test.skip('self-recursion terminates and threads ledger state: foo(1) === 2', async () => {
   const chain = new TestChain();
   const self = await chain.deploy({ module: contractCode, args: [], initialPrivateState: 0 });
 
@@ -42,4 +46,33 @@ test('self-recursion terminates and threads ledger state: foo(1) === 2', async (
 
   const ledger = contractCode.ledger(chain.getContractStateOrThrow(self.address).data);
   expect(ledger.b).toEqual(false);
+});
+
+test('self-recursion (foo -> self.foo) is rejected by the re-entrancy guard', async () => {
+  const chain = new TestChain();
+  const self = await chain.deploy({ module: contractCode, args: [], initialPrivateState: 0 });
+
+  // Point `self` at its own address; `set` performs no cross-contract call.
+  await chain.call({
+    module: contractCode,
+    address: self.address,
+    witnesses: {},
+    privateState: 0,
+    circuitId: 'set',
+    args: [self.encodedAddress],
+  });
+
+  // foo's first turn (b === true) calls back into the same contract while it is
+  // still executing, so the guard refuses to re-enter it and the call rejects.
+  await expect(
+    chain.call({
+      module: contractCode,
+      address: self.address,
+      witnesses: {},
+      privateState: 0,
+      circuitId: 'foo',
+      args: [1n],
+    }),
+    // The message names the re-entered contract: `self` calling back into itself.
+  ).rejects.toThrow(`Contract re-entrancy detected: '${self.address}'`);
 });

@@ -75,7 +75,10 @@ describe('Mutually recursive contracts across independent transactions', () => {
     expect(bytesEqual(bLedger.a.bytes, a.encodedAddress.bytes)).toEqual(true);
   });
 
-  test('A.isOdd descends through B.isEven and back; B is fetched from the provider', async () => {
+  // TODO: Enable when contract re-entrancy is supported
+  // Skipped: this descends A -> B -> A, re-entering A while it is still executing,
+  // which the re-entrancy guard (on by default) now rejects. See the guard tests below.
+  test.skip('A.isOdd descends through B.isEven and back; B is fetched from the provider', async () => {
     const { chain, a, b } = await buildWiredChain();
 
     const { result } = await chain.call({
@@ -96,8 +99,9 @@ describe('Mutually recursive contracts across independent transactions', () => {
     expect(chain.fetchCount(a.address)).toEqual(0);
   });
 
-  // The state-threading test
-  test('re-entrant turns thread ledger state: per-contract counters accumulate', async () => {
+  // TODO: Enable when contract re-entrancy is supported
+  // Skipped: re-enters A (A -> B -> A), now rejected by the re-entrancy guard.
+  test.skip('re-entrant turns thread ledger state: per-contract counters accumulate', async () => {
     const { chain, a, b } = await buildWiredChain();
 
     const { result } = await chain.call({
@@ -114,7 +118,10 @@ describe('Mutually recursive contracts across independent transactions', () => {
     expect(bCalled(chain, b.address)).toEqual(3n);
   });
 
-  test('an even argument returns false', async () => {
+  // TODO: Enable when contract re-entrancy is supported
+  // Skipped: isOdd(4) descends A -> B -> A before reaching the base case, re-entering
+  // A — now rejected by the re-entrancy guard.
+  test.skip('an even argument returns false', async () => {
     const { chain, a } = await buildWiredChain();
 
     const { result } = await chain.call({
@@ -146,7 +153,9 @@ describe('Mutually recursive contracts across independent transactions', () => {
     expect(chain.fetchCount(b.address)).toEqual(0);
   });
 
-  test('starting from B: B.isEven composes symmetrically', async () => {
+  // TODO: Enable when contract re-entrancy is supported
+  // Skipped: B.isEven(6) descends B -> A -> B, re-entering B — now rejected by the guard.
+  test.skip('starting from B: B.isEven composes symmetrically', async () => {
     const { chain, a, b } = await buildWiredChain();
 
     const { result } = await chain.call({
@@ -165,5 +174,60 @@ describe('Mutually recursive contracts across independent transactions', () => {
     // Threading holds with B as the entry point and A resolved from the provider.
     expect(bCalled(chain, b.address)).toEqual(4n);
     expect(aCalled(chain, a.address)).toEqual(3n);
+  });
+
+  // The re-entrancy guard (on by default) rejects any chain that re-enters an
+  // already-executing contract. A single non-re-entrant hop is still allowed.
+
+  test('a single non-re-entrant hop A.isOdd(1) -> B.isEven(0) still composes', async () => {
+    const { chain, a, b } = await buildWiredChain();
+
+    const { result } = await chain.call({
+      module: aCode,
+      address: a.address,
+      witnesses: {},
+      privateState: 0,
+      circuitId: 'isOdd',
+      args: [1n],
+    });
+
+    // isOdd(1) -> isEven(0): B hits its base case without calling back into A, so no
+    // contract is re-entered and the cross-contract call is permitted.
+    expect(result).toEqual(true);
+    expect(aCalled(chain, a.address)).toEqual(1n);
+    expect(bCalled(chain, b.address)).toEqual(1n);
+    expect(chain.fetchCount(b.address)).toBeGreaterThan(0);
+  });
+
+  test('A.isOdd(5) is rejected: the chain re-enters A (A -> B -> A)', async () => {
+    const { chain, a } = await buildWiredChain();
+
+    await expect(
+      chain.call({
+        module: aCode,
+        address: a.address,
+        witnesses: {},
+        privateState: 0,
+        circuitId: 'isOdd',
+        args: [5n],
+      }),
+      // A is the contract re-entered (isOdd(5) -> isEven(4) -> isOdd(3)).
+    ).rejects.toThrow(`Contract re-entrancy detected: '${a.address}'`);
+  });
+
+  test('B.isEven(6) is rejected: the symmetric chain re-enters B (B -> A -> B)', async () => {
+    const { chain, b } = await buildWiredChain();
+
+    await expect(
+      chain.call({
+        module: bCode,
+        address: b.address,
+        witnesses: {},
+        privateState: 0,
+        circuitId: 'isEven',
+        args: [6n],
+      }),
+      // B is the contract re-entered (isEven(6) -> isOdd(5) -> isEven(4)).
+    ).rejects.toThrow(`Contract re-entrancy detected: '${b.address}'`);
   });
 });

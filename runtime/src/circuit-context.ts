@@ -140,6 +140,23 @@ export interface CircuitContext<PS = any> {
    * Can fetch the current state of a contract from the blockchain.
    */
   stateProvider?: ContractStateProvider;
+  /**
+   * When `true`, {@link crossContractCall} refuses to enter a contract that is
+   * already executing on the current call stack — i.e. a re-entrant cross-contract
+   * call (`A -> A`, or `A -> B -> A`) — and throws instead. On by default (the
+   * upstream ledger can mis-apply transcripts on re-entry). Pass `false` to
+   * {@link createCircuitContext} to opt out, e.g. for tests that deliberately
+   * exercise recursion.
+   */
+  reentrancyGuard?: boolean;
+  /**
+   * The set of contract addresses currently executing on the cross-contract call
+   * stack: the entry contract plus every callee whose call has not yet returned.
+   * Maintained by {@link crossContractCall} and shared by reference across the call
+   * tree (via {@link copyCircuitContext}). Only consulted when {@link reentrancyGuard}
+   * is set.
+   */
+  activeContracts?: Set<ocrt.ContractAddress>;
 }
 
 /**
@@ -160,6 +177,9 @@ export interface CircuitContext<PS = any> {
  * @param time The current time. Used to execute the block time related kernel operations.
  * @param parentBlockHash The hash of the block the transaction is being built on. Also passed to {@link ContractStateProvider}
  *                        to fetch the correct contract states when executing cross-contract calls.
+ * @param reentrancyGuard When `true`, cross-contract calls that re-enter a contract already executing on the call
+ *                        stack (`A -> A`, or `A -> B -> A`) throw instead of running. On by default; pass `false`
+ *                        to opt out.
  */
 export const createCircuitContext = <PS>(
   circuitId: CircuitId,
@@ -172,6 +192,7 @@ export const createCircuitContext = <PS>(
   costModel?: ocrt.CostModel,
   time?: number,
   parentBlockHash?: string,
+  reentrancyGuard?: boolean,
 ): CircuitContext<PS> => {
   const callContext = createCallContext(
     circuitId,
@@ -198,6 +219,9 @@ export const createCircuitContext = <PS>(
     callProofDataTrace: [],
     gasLimit,
     stateProvider,
+    reentrancyGuard: reentrancyGuard ?? true,
+    // The entry contract is on the call stack for the whole transaction.
+    activeContracts: new Set([contractAddress]),
   };
 };
 
@@ -205,6 +229,10 @@ export const createCircuitContext = <PS>(
  * @internal
  */
 export const copyCircuitContext = (context: CircuitContext): CircuitContext => ({
+  // `reentrancyGuard` and `activeContracts` fall through the spread: the guard
+  // flag is copied by value and the active-contract set is intentionally shared
+  // *by reference* across the whole call tree so `crossContractCall` sees one
+  // coherent call stack. Do not deep-copy `activeContracts` here.
   ...context,
   callContext: { ...context.callContext },
   queryContexts: { ...context.queryContexts },

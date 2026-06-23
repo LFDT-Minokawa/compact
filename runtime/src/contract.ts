@@ -75,8 +75,12 @@ type Module = {
  * @internal
  */
 const resolveQueryContext = async (context: CircuitContext, callee: ocrt.ContractAddress): Promise<ocrt.QueryContext> => {
+  const caller: ocrt.PublicAddress = { tag: 'contract', address: context.callContext.contractAddress };
   if (callee in context.queryContexts) {
-    return context.queryContexts[callee];
+    const cached = context.queryContexts[callee];
+    // Keep the callee's accumulated state/effects; only rewrite the caller.
+    cached.block = { ...cached.block, caller };
+    return cached;
   }
   assertDefined(context.stateProvider, `state provider for call to '${callee}'`);
   assertDefined(context.callContext.parentBlockHash, `parent block hash to fetch state for callee '${callee}'`);
@@ -87,7 +91,7 @@ const resolveQueryContext = async (context: CircuitContext, callee: ocrt.Contrac
     callee,
     context.callContext.time,
     context.callContext.parentBlockHash,
-    { tag: 'contract', address: context.callContext.contractAddress },
+    caller,
   );
   context.queryContexts[callee] = initialQueryContext;
   context.gasCosts[callee] = emptyRunningCost();
@@ -334,6 +338,30 @@ const assertPurityMatches = (module: Module, calleeCircuitId: CircuitId, calleeA
 }
 
 /**
+ * Enforces the re-entrancy guard for a cross-contract call and records the callee as
+ * active on the call stack. When {@link CircuitContext.reentrancyGuard} is set, throws
+ * if `calleeAddress` is already executing (a re-entrant call such as `A -> A` or
+ * `A -> B -> A`); otherwise it adds the callee to {@link CircuitContext.activeContracts}
+ * so a deeper sub-call can detect re-entry. The matching removal happens once the call
+ * returns — see the `finally` in {@link crossContractCall}.
+ *
+ * @internal
+ */
+const assertNoReentrancy = (circuitContext: CircuitContext, calleeAddress: ocrt.ContractAddress): void => {
+  const guardReentrancy = circuitContext.reentrancyGuard === true;
+  if (guardReentrancy) {
+    assertDefined(circuitContext.activeContracts, 'active-contract set for the re-entrancy guard');
+    if (circuitContext.activeContracts.has(calleeAddress)) {
+      throw new CompactError(
+        `Contract re-entrancy detected: '${calleeAddress}' is already executing on the call stack; ` +
+          `re-entrant cross-contract calls are not permitted`,
+      );
+    }
+    circuitContext.activeContracts.add(calleeAddress);
+  }
+};
+
+/**
  * Calls a circuit defined in another contract from the currently executing contract and returns the result.
  *
  * @param circuitContext The current circuit context.
@@ -358,22 +386,31 @@ export const crossContractCall = async (
   assertIsContractAddress(calleeAddress);
   assertNotDefaultContractAddress(calleeAddress);
   assertPurityMatches(calleeModule, calleeCircuitId, calleeAddress, calleeIsPure);
-  const provableCircuit = new calleeModule.Contract({}).provableCircuits[calleeCircuitId];
-  assertDefined(provableCircuit, `'${calleeCircuitId}' for callee '${calleeAddress}'`);
-  const calleeQueryContext = await resolveQueryContext(circuitContext, calleeAddress);
-  const calleeGasCosts = resolveGasCost(circuitContext, calleeAddress);
-  const callerCallContext = copyCallContext(circuitContext.callContext);
-  setupCallContext(circuitContext, calleeCircuitId, calleeAddress, calleeQueryContext, calleeGasCosts);
-  const circuitResult = await provableCircuit(circuitContext, ...args);
-  restoreCircuitContext(circuitContext, callerCallContext, circuitResult.context);
+  assertNoReentrancy(circuitContext, calleeAddress);
+  try {
+    const provableCircuit = new calleeModule.Contract({}).provableCircuits[calleeCircuitId];
+    assertDefined(provableCircuit, `'${calleeCircuitId}' for callee '${calleeAddress}'`);
+    const calleeQueryContext = await resolveQueryContext(circuitContext, calleeAddress);
+    const calleeGasCosts = resolveGasCost(circuitContext, calleeAddress);
+    const callerCallContext = copyCallContext(circuitContext.callContext);
+    setupCallContext(circuitContext, calleeCircuitId, calleeAddress, calleeQueryContext, calleeGasCosts);
+    const circuitResult = await provableCircuit(circuitContext, ...args);
+    restoreCircuitContext(circuitContext, callerCallContext, circuitResult.context);
 
-  const calleeCallProofData = circuitContext.callProofDataTrace[circuitContext.callProofDataTrace.length - 1];
-  const commCommData = createCommCommData(calleeCallProofData.input, calleeCallProofData.output);
-  calleeCallProofData.commCommData = commCommData;
-  callerProofData.privateTranscriptOutputs.push(calleeCallProofData.output);
-  callerProofData.privateTranscriptOutputs.push(frHexToAlignedValue(commCommData.commCommRand));
-  callerProofData.privateTranscriptOutputs.push(circuitIdToValue(calleeCircuitId));
-  kernelClaimContractCall(circuitContext, callerProofData, calleeAddress, calleeCircuitId, commCommData.commComm);
+    const calleeCallProofData = circuitContext.callProofDataTrace[circuitContext.callProofDataTrace.length - 1];
+    const commCommData = createCommCommData(calleeCallProofData.input, calleeCallProofData.output);
+    calleeCallProofData.commCommData = commCommData;
+    callerProofData.privateTranscriptOutputs.push(calleeCallProofData.output);
+    callerProofData.privateTranscriptOutputs.push(frHexToAlignedValue(commCommData.commCommRand));
+    callerProofData.privateTranscriptOutputs.push(circuitIdToValue(calleeCircuitId));
+    kernelClaimContractCall(circuitContext, callerProofData, calleeAddress, calleeCircuitId, commCommData.commComm);
 
-  return circuitResult.result;
+    return circuitResult.result;
+  } finally {
+    // Pop the callee off the active stack once its call returns (or throws), so a
+    // later *sequential* call to the same contract is permitted.
+    if (circuitContext.reentrancyGuard === true) {
+      circuitContext.activeContracts?.delete(calleeAddress);
+    }
+  }
 };
