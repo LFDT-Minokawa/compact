@@ -803,6 +803,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "compact-contract-multi-pl-call-fixture"
+version = "0.1.0"
+dependencies = [
+ "compact-runtime",
+]
+
+[[package]]
 name = "compact-contract-nested-map-fixture"
 version = "0.1.0"
 dependencies = [

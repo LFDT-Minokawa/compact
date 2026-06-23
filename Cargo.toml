@@ -43,6 +43,7 @@ members = [
     "tests-e2e-rust/contracts/pure-circuit-fixture",
     "tests-e2e-rust/contracts/nested-map-fixture",
     "tests-e2e-rust/contracts/hash-to-curve-fixture",
+    "tests-e2e-rust/contracts/multi-pl-call-fixture",
 ]
 
 [workspace.dependencies]

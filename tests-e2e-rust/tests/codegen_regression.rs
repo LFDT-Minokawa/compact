@@ -61,6 +61,7 @@ const FIXTURES: &[(&str, &str)] = &[
     ("map_fn_fixture.compact", "map-fn-fixture"),
     ("map_lambda_fixture.compact", "map-lambda-fixture"),
     ("module_fixture.compact", "module-fixture"),
+    ("multi_pl_call_fixture.compact", "multi-pl-call-fixture"),
     ("nested_map_fixture.compact", "nested-map-fixture"),
     ("pure_circuit_fixture.compact", "pure-circuit-fixture"),
     ("sealed_ledger_fixture.compact", "sealed-ledger-fixture"),

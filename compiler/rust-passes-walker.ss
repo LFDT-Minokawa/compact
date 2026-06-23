@@ -1283,6 +1283,39 @@
                                      e native-id-ht witness-id-ht circuit-id-ht))
                                  arg*)
                         (loop (cdr stmts)))))]
+              ;; A4: non-write `public-ledger` call (ADT update op like
+              ;; Counter.increment) in NON-TERMINAL position. did.compact's
+              ;; `recordUpdate` body is the canonical example:
+              ;;
+              ;;   operationCount.increment(1);   <- non-terminal PL call
+              ;;   version.increment(1);           <- non-terminal PL call
+              ;;   updated = disclose(timestamp);  <- Cell.write (terminal)
+              ;;
+              ;; emit-body-or-fallback accumulates these into the same
+              ;; tagged `mutations` chain as Cell.writes; emit-body-mutations
+              ;; lays them out in source order on a single OpProgramVerify.
+              ;; Same constraints as the terminal-PL-call clause below
+              ;; (single-index path; supported arg expressions); the only
+              ;; difference is `(pair? (cdr stmts))` instead of
+              ;; `(null? (cdr stmts))`.
+              [(and (pair? (cdr stmts))
+                    (let ([parts (stmt->public-ledger-call (car stmts))])
+                      (and parts
+                           (not (stmt->public-ledger-write (car stmts)))
+                           parts))) =>
+               (lambda (parts)
+                 (let ([adt-op (cadr parts)]
+                       [path-elt* (caddr parts)]
+                       [expr* (cadddr parts)])
+                   (and (fx= (length path-elt*) 1)
+                        (nanopass-case (Ltypescript Path-Element) (car path-elt*)
+                          [,path-index #t]
+                          [else #f])
+                        (for-all (lambda (e)
+                                   (expr-supported?
+                                     e native-id-ht witness-id-ht circuit-id-ht))
+                                 expr*)
+                        (loop (cdr stmts)))))]
               ;; E4.3: terminal `public-ledger` call. The legacy
               ;; stmt->public-ledger-write handles Cell.write specifically;
               ;; for ADT update ops (e.g. HistoricMerkleTree.insert) we
@@ -1529,17 +1562,30 @@
                      [local-binds '()]     ; (var-name . rust-name)
                      [witness-emitted? #f] ; have we emitted any witness call?
                      [pre-lines '()]       ; reverse-accumulated Rust lines
-                     [writes '()])         ; reverse-accumulated (path-idx . expr)
+                     [writes '()])         ; reverse-accumulated tagged
+                                           ; mutations: each entry is
+                                           ; ('cell-write idx . expr) for
+                                           ; a Cell.write OR ('pl-call src
+                                           ; adt-op path-elt* expr*) for a
+                                           ; non-write public-ledger ADT
+                                           ; update call (A4).
             (cond
               [(null? stmts)
                (cond
                  [(null? writes) #f]
                  [else
+                  ;; Prelude must emit BEFORE we know whether
+                  ;; emit-body-mutations succeeds — we've already
+                  ;; committed the function-body opening brace by
+                  ;; getting here. If mutations emission fails, the
+                  ;; caller (emit-impure-circuit / emit-initial-state)
+                  ;; sees #f and triggers `rust-feature-error` rather
+                  ;; than silently producing an unclosed body. Propagate
+                  ;; the return value directly.
                   (emit-ctor-prelude (reverse pre-lines))
-                  (emit-body-writes (reverse writes) mode local-binds
-                                    native-id-ht witness-id-ht circuit-id-ht
-                                    witness-emitted?)
-                  #t])]
+                  (emit-body-mutations (reverse writes) mode local-binds
+                                       native-id-ht witness-id-ht circuit-id-ht
+                                       witness-emitted?)])]
               ;; E4.3: a TERMINAL `public-ledger` call whose op-class is
               ;; not `write` (e.g. HistoricMerkleTree.insert). The vm-code
               ;; expansion path renders it via expand-vm-code +
@@ -1953,12 +1999,39 @@
                               (cons ctx-line (cons call-line pre-lines))
                               writes))]
                      [else #f])))]
+              ;; A4: non-write `public-ledger` call (ADT update op like
+              ;; Counter.increment) at ANY position. Accumulated into the
+              ;; tagged `writes` chain as ('pl-call src adt-op path-elt*
+              ;; expr*). emit-body-mutations dispatches per tag at body
+              ;; finalization, emitting one OpProgramVerify chain that
+              ;; interleaves cell-writes and pl-calls in source order.
+              ;;
+              ;; Position-wise this matches both non-terminal and terminal
+              ;; non-write PL-calls. The earlier terminal-PL-call clause
+              ;; (above) wins for sole-statement bodies via its `(null?
+              ;; writes)` guard — preserving counter.compact byte-parity —
+              ;; so we reach this clause only when writes is non-empty
+              ;; (i.e. the multi-stmt did.compact recordUpdate shape).
+              [(let ([parts (stmt->public-ledger-call (car stmts))])
+                 (and parts
+                      (not (stmt->public-ledger-write (car stmts)))
+                      parts)) =>
+               (lambda (parts)
+                 (let ([src (car parts)]
+                       [adt-op (cadr parts)]
+                       [path-elt* (caddr parts)]
+                       [expr* (cadddr parts)])
+                   (loop (cdr stmts) local-binds witness-emitted?
+                         pre-lines
+                         (cons (list 'pl-call src adt-op path-elt* expr*)
+                               writes))))]
               [else
                ;; Expect a `(statement-expression (public-ledger ... write expr))`.
                (let ([w (stmt->public-ledger-write (car stmts))])
                  (cond
                    [w (loop (cdr stmts) local-binds witness-emitted?
-                            pre-lines (cons w writes))]
+                            pre-lines
+                            (cons (cons 'cell-write w) writes))]
                    [else #f]))]))))
 
       ;; emit-ctor-body-or-fallback: backwards-compatible wrapper that calls
@@ -2542,6 +2615,163 @@
         (emit-body-writes writes 'ctor local-binds
                           native-id-ht witness-id-ht circuit-id-ht
                           witness-emitted?))
+
+      ;; emit-body-mutations: A4 generalisation of emit-body-writes that
+      ;; handles a mixed source-ordered list of mutations on the ledger
+      ;; state. Each entry is either:
+      ;;   ('cell-write idx . val-expr)         — same shape emit-body-writes
+      ;;                                          consumes; emitted as the
+      ;;                                          legacy push/push/ins triad.
+      ;;   ('pl-call src adt-op path-elt* exprs) — non-write public-ledger
+      ;;                                          ADT update call (e.g.
+      ;;                                          Counter.increment); lowered
+      ;;                                          via expand-vm-code +
+      ;;                                          vminstr->builder-call into
+      ;;                                          a sequence of builder lines.
+      ;;
+      ;; A single OpProgramVerify chain is built that splices the per-entry
+      ;; builder lines in source order, followed by one `.build()` and the
+      ;; same query_for_verify + return shape emit-body-writes produces.
+      ;;
+      ;; Returns #t on success. Falls back to #f only if any pl-call
+      ;; lowering produces #f lines — same failure semantics as the
+      ;; terminal emit-non-write-public-ledger-terminal helper.
+      (define (emit-body-mutations mutations mode local-binds
+                                   native-id-ht witness-id-ht circuit-id-ht
+                                   witness-emitted?)
+        (let ([all-lines
+               (let loop ([ms mutations] [acc '()])
+                 (cond
+                   [(null? ms) (apply append (reverse acc))]
+                   [else
+                    (let ([m (car ms)])
+                      (case (car m)
+                        [(cell-write)
+                         ;; m = ('cell-write idx . val-expr)
+                         (let* ([idx (cadr m)]
+                                [val-expr (cddr m)]
+                                [rust-val (arg-rust-clone-if-var
+                                            val-expr local-binds
+                                            native-id-ht witness-id-ht circuit-id-ht)]
+                                ;; Iter 7: Vector<N,T> ledger fields require
+                                ;; `new_cell_array([T; N])` (orphan-rule
+                                ;; workaround). Look up the destination
+                                ;; field's binding-type via the path-idx
+                                ;; → Type map populated by emit-initial-state.
+                                [dest-type
+                                 (let ([ht (current-ledger-field-types)])
+                                   (and ht (hashtable-ref ht idx #f)))]
+                                [dest-read-type
+                                 (and dest-type
+                                      (guard (c [#t #f])
+                                        (tadt-read-op-type dest-type)))]
+                                [use-cell-array?
+                                 (and dest-read-type
+                                      (type-is-tvector? dest-read-type))]
+                                [cell-builder
+                                 (if use-cell-array? "new_cell_array" "new_cell")]
+                                [lines
+                                 (list
+                                   (format "            .push(false, new_cell(~au8))\n" idx)
+                                   (format "            .push(true, ~a(~a))\n"
+                                           cell-builder rust-val)
+                                   "            .ins(false, 1)\n")])
+                           (loop (cdr ms) (cons lines acc)))]
+                        [(pl-call)
+                         ;; m = ('pl-call src adt-op path-elt* expr*)
+                         (let* ([src (cadr m)]
+                                [adt-op (caddr m)]
+                                [path-elt* (cadddr m)]
+                                [expr* (car (cddddr m))]
+                                [lines
+                                 (pl-call-builder-lines
+                                   src adt-op path-elt* expr*
+                                   local-binds
+                                   native-id-ht witness-id-ht circuit-id-ht)])
+                           (and lines (loop (cdr ms) (cons lines acc))))]))]))])
+          (cond
+            [(not all-lines) #f]
+            [else
+             (out "        let ops = OpProgramVerify::<DefaultDB>::new()\n")
+             (for-each out all-lines)
+             (out "            .build();\n")
+             (out "\n")
+             (cond
+               [(eq? mode 'ctor)
+                (out "        let results = query_for_verify(&qctx, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?;\n")
+                (out "\n")
+                (out "        Ok(ConstructorResult {\n")
+                (out "            current_contract_state: results.context.state,\n")
+                (out (if witness-emitted?
+                         "            current_private_state,\n"
+                         "            current_private_state: ctx.initial_private_state,\n"))
+                (out "            current_zswap_local_state: ctx.empty_zswap_local_state,\n")
+                (out "        })\n")]
+               [else
+                (out "        let results = query_for_verify(\n")
+                (out "            &ctx.current_query_context,\n")
+                (out "            &ops,\n")
+                (out "            ctx.gas_limit.clone(),\n")
+                (out "            &ctx.cost_model,\n")
+                (out "        )?;\n")
+                (out "\n")
+                (out "        Ok(CircuitResults {\n")
+                (out "            result: (),\n")
+                (out "            context: CircuitContext {\n")
+                (out "                current_query_context: results.context,\n")
+                (when witness-emitted?
+                  (out "                current_private_state,\n"))
+                (out "                ..ctx\n")
+                (out "            },\n")
+                (out "            gas_cost: results.gas_cost,\n")
+                (out "        })\n")])
+             #t])))
+
+      ;; pl-call-builder-lines: shared lowering of a non-write public-ledger
+      ;; ADT update call into builder-call lines. Mirrors the inner pipeline
+      ;; of emit-non-write-public-ledger-terminal — lift each arg expression
+      ;; to a vm-rust-expr carrier, expand the vm-code, render each vminstr
+      ;; as a builder-call line. Returns the list of rendered Rust line
+      ;; strings on success, #f if any step fails.
+      ;;
+      ;; Used by emit-body-mutations to interleave non-write PL calls with
+      ;; cell-writes on a single OpProgramVerify chain (the A4 walker
+      ;; extension).
+      (define (pl-call-builder-lines
+                src adt-op path-elt* expr* local-binds
+                native-id-ht witness-id-ht circuit-id-ht)
+        (nanopass-case (Ltypescript ADT-Op) adt-op
+          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+           (cond
+             [(not (fx= (length expr*) (length var-name*))) #f]
+             [else
+              (let ([path-vals (map path-elt->vm-value path-elt*)]
+                    [expr-vals
+                     (map (lambda (e)
+                            (let ([rendered
+                                   (guard (c [#t #f])
+                                     (arg-rust-clone-if-var
+                                       e local-binds
+                                       native-id-ht witness-id-ht circuit-id-ht))])
+                              (and rendered (make-vm-rust-expr rendered))))
+                          expr*)])
+                (cond
+                  [(memv #f path-vals) #f]
+                  [(memv #f expr-vals) #f]
+                  [else
+                   (let* ([arg-alist
+                           (append (map cons adt-formal* adt-arg*)
+                                   (map (lambda (vn v)
+                                          (cons (id-sym vn) v))
+                                        var-name* expr-vals))]
+                          [vminstr*
+                           (guard (c [#t #f])
+                             (expand-vm-code src path-vals #f arg-alist
+                               (vm-code-code vm-code)))]
+                          [lines (and vminstr* (map vminstr->builder-call vminstr*))])
+                     (cond
+                       [(or (not lines) (memv #f lines)) #f]
+                       [else lines]))]))])]))
 
       ;; emit-non-write-public-ledger-terminal: emit a terminal
       ;; `(public-ledger field (idx) <op> expr*)` whose op-class is NOT

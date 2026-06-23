@@ -791,8 +791,44 @@
                (cond
                  [(not imm-pair) #f]
                  [else
-                  (let ([n (vm-immediate->int (cdr imm-pair))])
-                    (and n (format "            .addi(~a)\n" n)))]))]
+                  (let* ([imm (cdr imm-pair)]
+                         [n (vm-immediate->int imm)])
+                    (cond
+                      ;; Literal integer (counter's `round.increment(1)`
+                      ;; lowers the `1` to a Scheme exact int that
+                      ;; vm-immediate->int unwraps directly).
+                      [n (format "            .addi(~a)\n" n)]
+                      ;; A4: when a multi-stmt body lowers an integer
+                      ;; literal arg through a const-binding (Prod-14's
+                      ;; `let tmp = 1u16; ops.increment(tmp);` shape),
+                      ;; the `addi` immediate carries a vm-rust-expr
+                      ;; whose `.text` is the rendered Rust reference
+                      ;; (e.g. "tmp.clone()"). Emit it as a Rust
+                      ;; expression cast to u32 (the addi parameter
+                      ;; width per runtime-rs/src/op_builder.rs:61).
+                      ;; The const-binding's source type might be
+                      ;; u8/u16/u32/u64 depending on the literal's
+                      ;; declared Uint<N> bound; `as u32` is the
+                      ;; conservative target. Counter.increment's amount
+                      ;; is typed Uint<32> on the runtime side, so this
+                      ;; cast never silently truncates valid inputs.
+                      [(vm-rust-expr? imm)
+                       (format "            .addi(~a as u32)\n"
+                               (vm-rust-expr-text imm))]
+                      ;; Some `(VMvalue->int <vm-rust-expr>)` wrapping is
+                      ;; also possible if the immediate went through the
+                      ;; full vm-value path. Unwrap once.
+                      [(and (VMop? imm)
+                            (VMop-case imm
+                              [(VMvalue->int x) (vm-rust-expr? x)]
+                              [else #f]))
+                       (let ([inner
+                              (VMop-case imm
+                                [(VMvalue->int x) x]
+                                [else #f])])
+                         (format "            .addi(~a as u32)\n"
+                                 (vm-rust-expr-text inner)))]
+                      [else #f]))]))]
             [(string=? op "ins")
              (let ([cached-pair (assoc "cached" args)]
                    [n-pair (assoc "n" args)])
