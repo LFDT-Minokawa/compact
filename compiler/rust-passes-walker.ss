@@ -2517,27 +2517,63 @@
                       (list src adt-op path-elt* resolved-expr*))))]
             [else #f])))
 
-      ;; branch->assert-and-pl-call: A12 sibling of branch->single-pl-call
-      ;; that admits a single leading `(assert ...)` before the terminal
-      ;; pl-call. Used by the streaming walker's nested-if/else-if dispatch
-      ;; (did.compact's setAlsoKnownAs / setVerificationMethodRelation
-      ;; shapes). Returns (list assert-pair src adt-op path-elt* resolved-expr*)
-      ;; on match where `assert-pair` is `(cons assert-expr msg)` or #f for
-      ;; an assert-less branch. Returns #f on any structural mismatch so
-      ;; the caller can fall back.
+      ;; branch->assert-and-pl-call: A12/A14 sibling of branch->single-pl-call.
+      ;; Admits a sequence inside an if-branch of:
+      ;;   - const-decl-only (skipped — no Rust emission needed)
+      ;;   - stmt->assignment (lifted-let initializer; tracked as pre-stmt)
+      ;;   - const-binding (tracked as pre-stmt)
+      ;;   - one optional `(assert ...)` (captured as assert-pair)
+      ;; ...followed by EITHER a terminal pl-call (A12) OR nothing (A14:
+      ;; assert-only branch, e.g. setVerificationMethod's Insert arm).
       ;;
-      ;; Const-bindings before the assert (and between assert and pl-call)
-      ;; are accumulated into `binds` and used to resolve var-refs in the
-      ;; pl-call's args via expr-resolve, mirroring branch->single-pl-call.
+      ;; Returns
+      ;;   (list assert-pair pre-stmts src adt-op path-elt* resolved-expr*)
+      ;; on success, #f on structural mismatch. Fields:
+      ;;   - assert-pair: (cons assert-expr msg) or #f
+      ;;   - pre-stmts: ordered list of (var-name . expr) bindings, to be
+      ;;     emitted as `let <name> = <expr>;` inside the branch body
+      ;;     BEFORE the assert and pl-call chain. Rendering relies on
+      ;;     ctor-expr-rust's var-ref fallback to produce the same
+      ;;     `(camel->snake id-sym)` name when the assert / pl-call
+      ;;     references the lifted local.
+      ;;   - src/adt-op/path-elt*/resolved-expr*: pl-call details, or
+      ;;     src=#f (and the rest empty) for an assert-only branch.
+      ;;
+      ;; A14 motivating shape (did.compact setVerificationMethod's Update
+      ;; branch):
+      ;;   (seq (seq (const ((%tmp.262)))           ; const-decl-only
+      ;;             (assert (seq (= %tmp.262 ...)  ; assignment, lifted from
+      ;;                          (pl-read member))  ; the assert's cond seq
+      ;;                     msg))
+      ;;        (seq (const %tmp.264 (elt-ref ...))  ; const-binding
+      ;;             (pl-call remove %tmp.264)))
       (define (branch->assert-and-pl-call stmt)
-        (let loop ([stmts (stmt-flatten stmt)] [binds '()] [assert-pair #f])
+        (let loop ([stmts (stmt-flatten stmt)]
+                   [pre-stmts '()]
+                   [binds '()]
+                   [assert-pair #f])
           (cond
-            [(null? stmts) #f]
+            [(null? stmts)
+             ;; A14: assert-only branch is valid if we captured one.
+             (and assert-pair
+                  (list assert-pair (reverse pre-stmts) #f #f '() '()))]
+            [(const-decl-only? (car stmts))
+             (loop (cdr stmts) pre-stmts binds assert-pair)]
+            [(stmt->assignment (car stmts)) =>
+             (lambda (a)
+               (loop (cdr stmts)
+                     (cons a pre-stmts)
+                     (cons a binds)
+                     assert-pair))]
             [(const-binding (car stmts)) =>
-             (lambda (b) (loop (cdr stmts) (cons b binds) assert-pair))]
+             (lambda (b)
+               (loop (cdr stmts)
+                     (cons b pre-stmts)
+                     (cons b binds)
+                     assert-pair))]
             [(and (not assert-pair)
                   (stmt->assert (car stmts))) =>
-             (lambda (a) (loop (cdr stmts) binds a))]
+             (lambda (a) (loop (cdr stmts) pre-stmts binds a))]
             [(and (null? (cdr stmts))
                   (stmt->public-ledger-call (car stmts))) =>
              (lambda (parts)
@@ -2548,7 +2584,8 @@
                       [resolved-expr* (map (lambda (e) (expr-resolve e binds))
                                            expr*)])
                  (and (not (memv #f resolved-expr*))
-                      (list assert-pair src adt-op path-elt* resolved-expr*))))]
+                      (list assert-pair (reverse pre-stmts) src adt-op
+                            path-elt* resolved-expr*))))]
             [else #f])))
 
       ;; compute-pl-builder-lines: given a public-ledger ADT-op + path +

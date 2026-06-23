@@ -569,16 +569,26 @@
                                                branch-stmt)])
                                      (and b
                                           (let* ([assert-pair (car b)]
-                                                 [src (cadr b)]
-                                                 [adt-op (caddr b)]
-                                                 [path-elt* (cadddr b)]
-                                                 [expr* (car (cddddr b))]
+                                                 [pre-stmts (cadr b)]
+                                                 [src (caddr b)]
+                                                 [adt-op (cadddr b)]
+                                                 [path-elt* (car (cddddr b))]
+                                                 [expr* (cadr (cddddr b))]
+                                                 ;; A14: src=#f marks an
+                                                 ;; assert-only branch — emit
+                                                 ;; an empty OpProgramVerify
+                                                 ;; chain (no-op verify) so
+                                                 ;; all branches return a
+                                                 ;; uniform QueryResults.
                                                  [lines
-                                                  (compute-pl-builder-lines
-                                                    src adt-op path-elt* expr*
-                                                    local-binds
-                                                    native-id-ht witness-id-ht
-                                                    circuit-id-ht)]
+                                                  (cond
+                                                    [(not src) '()]
+                                                    [else
+                                                     (compute-pl-builder-lines
+                                                       src adt-op path-elt* expr*
+                                                       local-binds
+                                                       native-id-ht witness-id-ht
+                                                       circuit-id-ht)])]
                                                  [cond-str
                                                   (guard (c [#t #f])
                                                     (cond-rust cond-expr
@@ -590,24 +600,28 @@
                                                  (not (rendered-has-todo?
                                                         cond-str))
                                                  (list cond-str assert-pair
-                                                       lines))))))
+                                                       lines pre-stmts))))))
                                  source-arms)]
                            [else-info
                             (and final-else
                                  (let* ([b (branch->assert-and-pl-call
                                              final-else)]
                                         [assert-pair (car b)]
-                                        [src (cadr b)]
-                                        [adt-op (caddr b)]
-                                        [path-elt* (cadddr b)]
-                                        [expr* (car (cddddr b))]
+                                        [pre-stmts (cadr b)]
+                                        [src (caddr b)]
+                                        [adt-op (cadddr b)]
+                                        [path-elt* (car (cddddr b))]
+                                        [expr* (cadr (cddddr b))]
                                         [lines
-                                         (compute-pl-builder-lines
-                                           src adt-op path-elt* expr*
-                                           local-binds
-                                           native-id-ht witness-id-ht
-                                           circuit-id-ht)])
-                                   (and lines (list assert-pair lines))))])
+                                         (cond
+                                           [(not src) '()]
+                                           [else
+                                            (compute-pl-builder-lines
+                                              src adt-op path-elt* expr*
+                                              local-binds
+                                              native-id-ht witness-id-ht
+                                              circuit-id-ht)])])
+                                   (and lines (list assert-pair lines pre-stmts))))])
                       (cond
                         [(memv #f arm-info) #f]
                         [(and final-else (not else-info)) #f]
@@ -621,13 +635,37 @@
                                 (let* ([a (car xs)]
                                        [cond-str (car a)]
                                        [assert-pair (cadr a)]
-                                       [lines (caddr a)])
+                                       [lines (caddr a)]
+                                       [pre-stmts (cadddr a)])
                                   (out (format "        ~a~a ~a {\n"
                                                (if first? "let " "} else ")
                                                (if first?
                                                    (format "~a = if" res-name)
                                                    "if")
                                                cond-str))
+                                  ;; A14: render in-branch let-bindings
+                                  ;; (lifted-let assignments + branch-local
+                                  ;; const-bindings) before the assert /
+                                  ;; OpProgramVerify chain. Naming uses
+                                  ;; ctor-expr-rust's `(camel->snake id-sym)`
+                                  ;; var-ref fallback so subsequent
+                                  ;; references resolve via Rust scoping.
+                                  (for-each
+                                    (lambda (b)
+                                      (let* ([var-name (car b)]
+                                             [expr (cdr b)]
+                                             [rust-name (symbol->string
+                                                          (camel->snake
+                                                            (id-sym var-name)))]
+                                             [rendered
+                                              (guard (c [#t "/* TODO A14 */"])
+                                                (ctor-expr-rust expr local-binds
+                                                                native-id-ht
+                                                                witness-id-ht
+                                                                circuit-id-ht))])
+                                        (out (format "            let ~a = ~a;\n"
+                                                     rust-name rendered))))
+                                    pre-stmts)
                                   (when assert-pair
                                     (let ([ae (car assert-pair)]
                                           [msg (cdr assert-pair)])
@@ -648,7 +686,24 @@
                            (cond
                              [else-info
                               (let ([assert-pair (car else-info)]
-                                    [lines (cadr else-info)])
+                                    [lines (cadr else-info)]
+                                    [pre-stmts (caddr else-info)])
+                                (for-each
+                                  (lambda (b)
+                                    (let* ([var-name (car b)]
+                                           [expr (cdr b)]
+                                           [rust-name (symbol->string
+                                                        (camel->snake
+                                                          (id-sym var-name)))]
+                                           [rendered
+                                            (guard (c [#t "/* TODO A14 */"])
+                                              (ctor-expr-rust expr local-binds
+                                                              native-id-ht
+                                                              witness-id-ht
+                                                              circuit-id-ht))])
+                                      (out (format "            let ~a = ~a;\n"
+                                                   rust-name rendered))))
+                                  pre-stmts)
                                 (when assert-pair
                                   (let ([ae (car assert-pair)]
                                         [msg (cdr assert-pair)])
