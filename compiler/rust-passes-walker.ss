@@ -1322,7 +1322,11 @@
               [(and (pair? (cdr stmts))
                     (let ([parts (stmt->public-ledger-call (car stmts))])
                       (and parts
-                           (not (single-index-cell-write? (car stmts)))
+                           ;; A10: exclude only the legacy single-index
+                           ;; Cell.write shape (handled by the cell-write
+                           ;; template path below); multi-index writes flow
+                           ;; through this pl-call clause and use vm-code.
+                           (not (stmt->public-ledger-write (car stmts)))
                            parts))) =>
                (lambda (parts)
                  (let ([path-elt* (caddr parts)]
@@ -2083,10 +2087,10 @@
               ;; (i.e. the multi-stmt did.compact recordUpdate shape).
               [(let ([parts (stmt->public-ledger-call (car stmts))])
                  (and parts
-                      ;; A10: multi-index Cell.writes also flow through here.
-                      ;; Only the single-index legacy template path stays on
-                      ;; the cell-write tag below.
-                      (not (single-index-cell-write? (car stmts)))
+                      ;; A10: multi-index Cell.writes route here too;
+                      ;; only the legacy single-index template path falls
+                      ;; through to the cell-write tag below.
+                      (not (stmt->public-ledger-write (car stmts)))
                       parts)) =>
                (lambda (parts)
                  (let ([src (car parts)]
@@ -2171,22 +2175,6 @@
                       (and path-idx (cons path-idx (car expr*))))])])]
              [else #f])]
           [else #f]))
-
-      ;; single-index-cell-write?: predicate-form of stmt->public-ledger-write.
-      ;; Returns #t iff `stmt` is the legacy single-index Cell.write shape
-      ;; that emit-body-mutations + cell-write-builder-lines render via the
-      ;; hardcoded push(idx)/push(val)/ins(1) triad. Multi-index Cell.writes
-      ;; deliberately return #f here so the walker routes them through the
-      ;; pl-call mutation tag (vm-code expansion via expand-vm-code +
-      ;; vminstr->builder-call), which handles arbitrary path depths.
-      ;;
-      ;; A10: introduced when did.compact's rotateControllerKey surfaced a
-      ;; `controllerPublicKey` write at path (0 1) — two indices because the
-      ;; storage layout puts cell fields under a nested ledger struct. The
-      ;; legacy single-idx template can't express that nesting; the vm-code
-      ;; path already does.
-      (define (single-index-cell-write? stmt)
-        (and (stmt->public-ledger-write stmt) #t))
 
       ;; stmt->public-ledger-call: detect a single statement of shape
       ;; `(statement-expression (public-ledger field (idx) <op> expr*))` for

@@ -889,18 +889,12 @@
                  [else
                   (let ([indices (vm-path->indices (cdr path-pair))]
                         [push-path (cdr push-pair)])
+                    ;; A8: emit one `.idx_at_index(N, push)` per index.
+                    ;; Single- and multi-index paths share the loop; the
+                    ;; one-index case is just the n=1 specialisation
+                    ;; (Map<K,V>.member etc. need n>1).
                     (cond
-                      [(and indices (= (length indices) 1))
-                       (format "                .idx_at_index(~au8, ~a)\n"
-                               (car indices)
-                               (if push-path "true" "false"))]
-                      ;; A8: multi-index path (e.g. Map<K, V>.member(k)
-                      ;; uses a two-level idx into the storage container's
-                      ;; slot + the per-key Sub-structure). Emit one
-                      ;; `.idx_at_index(N, push)` per index — same call
-                      ;; pattern as the no-args fallback in
-                      ;; emit-ledger-read-expr's else branch.
-                      [(and indices (> (length indices) 1))
+                      [(and indices (pair? indices))
                        (let loop ([is indices] [acc ""])
                          (cond
                            [(null? is) acc]
