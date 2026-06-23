@@ -356,40 +356,49 @@
                             witness-emitted? (+ step 1) ctx-expr))]
                    [(impure-exported)
                     ;; Cross-circuit call. The callee takes/returns a
-                    ;; CircuitContext, but our streaming walker is now
-                    ;; operating on a QueryContext (ctx-expr might be
-                    ;; `_results_N.context`). We can only invoke nested
-                    ;; impure circuits when ctx-expr is still the original
-                    ;; `&ctx.current_query_context` (no flushes happened
-                    ;; yet) — bail otherwise.
-                    (cond
-                      [(not (string=? ctx-expr "&ctx.current_query_context")) #f]
-                      [else
-                       (let* ([cname (cadr classified)]
-                              [cargs (caddr classified)]
-                              [cr-name (format "_cr_~a" step)]
-                              [arg-strs
-                               (map (lambda (e)
-                                      (arg-rust-clone-if-var
-                                        e local-binds
-                                        native-id-ht witness-id-ht circuit-id-ht))
-                                    cargs)]
-                              [arg-tail
-                               (let join ([xs arg-strs] [acc ""])
-                                 (cond
-                                   [(null? xs) acc]
-                                   [else (join (cdr xs)
-                                               (string-append acc ", " (car xs)))]))])
+                    ;; CircuitContext, but our streaming walker may now be
+                    ;; operating on a drifted QueryContext (ctx-expr ==
+                    ;; `&_results_N.context`). When ctx-expr is the original
+                    ;; `&ctx.current_query_context`, move ctx directly; when
+                    ;; drifted (A17), splice the latest QueryContext into a
+                    ;; cloned CircuitContext before the call.
+                    (let* ([cname (cadr classified)]
+                           [cargs (caddr classified)]
+                           [cr-name (format "_cr_~a" step)]
+                           [arg-strs
+                            (map (lambda (e)
+                                   (arg-rust-clone-if-var
+                                     e local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht))
+                                 cargs)]
+                           [arg-tail
+                            (let join ([xs arg-strs] [acc ""])
+                              (cond
+                                [(null? xs) acc]
+                                [else (join (cdr xs)
+                                            (string-append acc ", " (car xs)))]))]
+                           [direct? (string=? ctx-expr "&ctx.current_query_context")]
+                           [qc-src
+                            (if (and (> (string-length ctx-expr) 0)
+                                     (char=? (string-ref ctx-expr 0) #\&))
+                                (substring ctx-expr 1 (string-length ctx-expr))
+                                ctx-expr)]
+                           [ctx-for-call-name (format "_ctx_for_~a" step)])
+                      (cond
+                        [direct?
                          (out (format "        let ~a = self.~a(ctx~a)?;\n"
-                                      cr-name cname arg-tail))
-                         (out (format "        let ctx = ~a.context;\n" cr-name))
-                         (out (format "        let ~a = ~a.result;\n" rust-name cr-name))
-                         ;; After this, ctx is a NEW CircuitContext; reset
-                         ;; ctx-expr to point into it.
-                         (loop (cdr stmts)
-                               (cons (cons var-name rust-name) local-binds)
-                               witness-emitted? (+ step 3)
-                               "&ctx.current_query_context"))])]
+                                      cr-name cname arg-tail))]
+                        [else
+                         (out (format "        let ~a = CircuitContext { current_query_context: ~a.clone(), ..ctx.clone() };\n"
+                                      ctx-for-call-name qc-src))
+                         (out (format "        let ~a = self.~a(~a~a)?;\n"
+                                      cr-name cname ctx-for-call-name arg-tail))])
+                      (out (format "        let ctx = ~a.context;\n" cr-name))
+                      (out (format "        let ~a = ~a.result;\n" rust-name cr-name))
+                      (loop (cdr stmts)
+                            (cons (cons var-name rust-name) local-binds)
+                            witness-emitted? (+ step 3)
+                            "&ctx.current_query_context"))]
                    [else
                     (let ([rendered
                            (guard (c [#t #f])
@@ -587,14 +596,21 @@
                                                  [adt-op (cadddr b)]
                                                  [path-elt* (car (cddddr b))]
                                                  [expr* (cadr (cddddr b))]
-                                                 ;; A14: src=#f marks an
-                                                 ;; assert-only branch — emit
-                                                 ;; an empty OpProgramVerify
-                                                 ;; chain (no-op verify) so
-                                                 ;; all branches return a
-                                                 ;; uniform QueryResults.
+                                                 [bare-call-info (caddr (cddddr b))]
+                                                 ;; A14: src=#f, bare-call=#f
+                                                 ;; marks an assert-only branch
+                                                 ;; — emit empty OpProgramVerify.
+                                                 ;; A17: bare-call-info truthy
+                                                 ;; marks a `(assert)(bare-call)`
+                                                 ;; branch — emission swaps
+                                                 ;; the OpProgramVerify chain
+                                                 ;; for `self.<helper>(ctx, ...)?`
+                                                 ;; + an empty no-op verify to
+                                                 ;; unify the if-expr's
+                                                 ;; QueryResults type.
                                                  [lines
                                                   (cond
+                                                    [bare-call-info '()]
                                                     [(not src) '()]
                                                     [else
                                                      (compute-pl-builder-lines
@@ -613,7 +629,8 @@
                                                  (not (rendered-has-todo?
                                                         cond-str))
                                                  (list cond-str assert-pair
-                                                       lines pre-stmts))))))
+                                                       lines pre-stmts
+                                                       bare-call-info))))))
                                  source-arms)]
                            [else-info
                             (and final-else
@@ -625,8 +642,10 @@
                                         [adt-op (cadddr b)]
                                         [path-elt* (car (cddddr b))]
                                         [expr* (cadr (cddddr b))]
+                                        [bare-call-info (caddr (cddddr b))]
                                         [lines
                                          (cond
+                                           [bare-call-info '()]
                                            [(not src) '()]
                                            [else
                                             (compute-pl-builder-lines
@@ -634,7 +653,8 @@
                                               local-binds
                                               native-id-ht witness-id-ht
                                               circuit-id-ht)])])
-                                   (and lines (list assert-pair lines pre-stmts))))])
+                                   (and lines (list assert-pair lines pre-stmts
+                                                    bare-call-info))))])
                       (cond
                         [(memv #f arm-info) #f]
                         [(and final-else (not else-info)) #f]
@@ -649,7 +669,8 @@
                                        [cond-str (car a)]
                                        [assert-pair (cadr a)]
                                        [lines (caddr a)]
-                                       [pre-stmts (cadddr a)])
+                                       [pre-stmts (cadddr a)]
+                                       [bare-call-info (car (cddddr a))])
                                   (out (format "        ~a~a ~a {\n"
                                                (if first? "let " "} else ")
                                                (if first?
@@ -682,11 +703,6 @@
                                   (when assert-pair
                                     (let* ([ae (car assert-pair)]
                                            [msg (cdr assert-pair)]
-                                           ;; A15: hoist impure user-circuit
-                                           ;; calls in the assert cond before
-                                           ;; rendering. The hoisted binds
-                                           ;; are consulted by ctor-call-rust
-                                           ;; via current-impure-call-binds.
                                            [impure-subs
                                             (collect-impure-call-subcalls
                                               ae witness-id-ht circuit-id-ht
@@ -712,19 +728,54 @@
                                       (for-each out (reverse hoist-lines))
                                       (out (format "            compact_assert!(~a, ~s);\n"
                                                    cond-str msg))))
-                                  (out "            let ops = OpProgramVerify::<DefaultDB>::new()\n")
-                                  (for-each (lambda (l) (out (format "    ~a" l)))
-                                            lines)
-                                  (out "                .build();\n")
-                                  (out (format "            query_for_verify(~a, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
-                                               ctx-expr))
+                                  (cond
+                                    [bare-call-info
+                                     ;; A17: emit `self.<helper>(ctx.clone(), ...)?`
+                                     ;; + an empty no-op `query_for_verify` so the
+                                     ;; if-expr's QueryResults type unifies across
+                                     ;; arms. ctx.clone() because pl-call arms only
+                                     ;; borrow ctx via `&ctx.current_query_context`,
+                                     ;; so we can't move ctx here.
+                                     (let* ([fn-id (car bare-call-info)]
+                                            [arg-exprs (cdr bare-call-info)]
+                                            [cname (symbol->string
+                                                     (camel->snake (id-sym fn-id)))]
+                                            [arg-strs
+                                             (map (lambda (e)
+                                                    (arg-rust-clone-if-var
+                                                      e local-binds
+                                                      native-id-ht witness-id-ht
+                                                      circuit-id-ht))
+                                                  arg-exprs)]
+                                            [arg-tail
+                                             (let join ([xs arg-strs] [acc ""])
+                                               (cond
+                                                 [(null? xs) acc]
+                                                 [else (join (cdr xs)
+                                                             (string-append acc ", " (car xs)))]))]
+                                            [cr-name (format "_cr_arm~a" step)])
+                                       (out (format "            let ~a = self.~a(ctx.clone()~a)?;\n"
+                                                    cr-name cname arg-tail))
+                                       (out (format "            __gas_acc += ~a.gas_cost.clone();\n"
+                                                    cr-name))
+                                       (out "            let _empty_ops = OpProgramVerify::<DefaultDB>::new().build();\n")
+                                       (out (format "            query_for_verify(&~a.context.current_query_context, &_empty_ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
+                                                    cr-name)))]
+                                    [else
+                                     (out "            let ops = OpProgramVerify::<DefaultDB>::new()\n")
+                                     (for-each (lambda (l) (out (format "    ~a" l)))
+                                               lines)
+                                     (out "                .build();\n")
+                                     (out (format "            query_for_verify(~a, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
+                                                  ctx-expr))])
                                   (loop-emit (cdr xs) #f))]))
                            (out "        } else {\n")
                            (cond
                              [else-info
                               (let ([assert-pair (car else-info)]
                                     [lines (cadr else-info)]
-                                    [pre-stmts (caddr else-info)])
+                                    [pre-stmts (caddr else-info)]
+                                    [bare-call-info (cadddr else-info)])
                                 (for-each
                                   (lambda (b)
                                     (let* ([var-name (car b)]
@@ -770,12 +821,41 @@
                                     (for-each out (reverse hoist-lines))
                                     (out (format "            compact_assert!(~a, ~s);\n"
                                                  cond-str msg))))
-                                (out "            let ops = OpProgramVerify::<DefaultDB>::new()\n")
-                                (for-each (lambda (l) (out (format "    ~a" l)))
-                                          lines)
-                                (out "                .build();\n")
-                                (out (format "            query_for_verify(~a, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
-                                             ctx-expr)))]
+                                (cond
+                                  [bare-call-info
+                                   ;; A17: final else with a bare-call.
+                                   (let* ([fn-id (car bare-call-info)]
+                                          [arg-exprs (cdr bare-call-info)]
+                                          [cname (symbol->string
+                                                   (camel->snake (id-sym fn-id)))]
+                                          [arg-strs
+                                           (map (lambda (e)
+                                                  (arg-rust-clone-if-var
+                                                    e local-binds
+                                                    native-id-ht witness-id-ht
+                                                    circuit-id-ht))
+                                                arg-exprs)]
+                                          [arg-tail
+                                           (let join ([xs arg-strs] [acc ""])
+                                             (cond
+                                               [(null? xs) acc]
+                                               [else (join (cdr xs)
+                                                           (string-append acc ", " (car xs)))]))]
+                                          [cr-name (format "_cr_arm~a_else" step)])
+                                     (out (format "            let ~a = self.~a(ctx.clone()~a)?;\n"
+                                                  cr-name cname arg-tail))
+                                     (out (format "            __gas_acc += ~a.gas_cost.clone();\n"
+                                                  cr-name))
+                                     (out "            let _empty_ops = OpProgramVerify::<DefaultDB>::new().build();\n")
+                                     (out (format "            query_for_verify(&~a.context.current_query_context, &_empty_ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
+                                                  cr-name)))]
+                                  [else
+                                   (out "            let ops = OpProgramVerify::<DefaultDB>::new()\n")
+                                   (for-each (lambda (l) (out (format "    ~a" l)))
+                                             lines)
+                                   (out "                .build();\n")
+                                   (out (format "            query_for_verify(~a, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
+                                                ctx-expr))]))]
                              [else
                               (out "            let ops = OpProgramVerify::<DefaultDB>::new().build();\n")
                               (out (format "            query_for_verify(~a, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"

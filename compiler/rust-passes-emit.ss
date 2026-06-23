@@ -1780,39 +1780,95 @@
       ;;     if/else-if/else chain emits nested Rust `if … else { if … }`)
       ;; Returns the Rust expression string on success, #f to signal the
       ;; caller should fall back to `unimplemented!()`.
+      ;; pure-stmt-rust: render one statement of a pure circuit body. Used by
+      ;; stmt-pure-body-rust to walk multi-statement bodies. Returns a Rust
+      ;; source string (terminated by `;` for statements, no terminator for
+      ;; an expression-as-final), or #f on shapes we don't support.
+      (define (pure-stmt-rust stmt native-id-ht last?)
+        (nanopass-case (Ltypescript Statement) stmt
+          [(if ,src ,expr0 ,stmt1 ,stmt2)
+           (let ([cond-str (guard (c [#t #f])
+                             (cond-rust expr0 '()
+                                        native-id-ht
+                                        (make-eq-hashtable)
+                                        (make-eq-hashtable)))]
+                 [then-str (stmt-pure-body-rust stmt1 native-id-ht)]
+                 [else-str (stmt-pure-body-rust stmt2 native-id-ht)])
+             (cond
+               [(or (not cond-str) (not then-str) (not else-str)) #f]
+               [(or (rendered-has-todo? cond-str)
+                    (rendered-has-todo? then-str)
+                    (rendered-has-todo? else-str)) #f]
+               [else
+                (format "if ~a {\n            ~a\n        } else {\n            ~a\n        }"
+                        cond-str then-str else-str)]))]
+          [(if ,src ,expr0 ,stmt1)
+           (let ([cond-str (guard (c [#t #f])
+                             (cond-rust expr0 '()
+                                        native-id-ht
+                                        (make-eq-hashtable)
+                                        (make-eq-hashtable)))]
+                 [then-str (stmt-pure-body-rust stmt1 native-id-ht)])
+             (cond
+               [(or (not cond-str) (not then-str)) #f]
+               [(or (rendered-has-todo? cond-str)
+                    (rendered-has-todo? then-str)) #f]
+               [else
+                (format "if ~a {\n            ~a\n        }"
+                        cond-str then-str)]))]
+          [(statement-expression ,expr)
+           (nanopass-case (Ltypescript Expression) expr
+             [(assert ,src ,expr0 ,mesg)
+              (let ([cond-str
+                     (guard (c [#t #f])
+                       (cond-rust expr0 '()
+                                  native-id-ht
+                                  (make-eq-hashtable)
+                                  (make-eq-hashtable)))])
+                (cond
+                  [(or (not cond-str) (rendered-has-todo? cond-str)) #f]
+                  [else
+                   (format "assert!(~a, ~s);" cond-str
+                           (if (string? mesg) mesg ""))]))]
+             [else
+              (let ([s (guard (c [#t #f]) (expr-rust expr native-id-ht))])
+                (cond
+                  [(or (not s) (rendered-has-todo? s)) #f]
+                  [last? s]
+                  [else (string-append s ";")]))])]
+          [else #f]))
+
       (define (stmt-pure-body-rust stmt native-id-ht)
         (let ([stmts (stmt-flatten stmt)])
           (cond
-            [(or (null? stmts) (not (null? (cdr stmts)))) #f]
+            [(null? stmts) #f]
+            [(null? (cdr stmts))
+             (pure-stmt-rust (car stmts) native-id-ht #t)]
             [else
-             (nanopass-case (Ltypescript Statement) (car stmts)
-               [(if ,src ,expr0 ,stmt1 ,stmt2)
-                ;; E6: statement-position if-then-else. Render the cond via
-                ;; expr-rust and recurse into each branch. A failing branch
-                ;; (returns #f) propagates so the whole body falls back to
-                ;; `unimplemented!()` rather than emitting a half-built if.
-                (let ([cond-str (expr-rust expr0 native-id-ht)]
-                      [then-str (stmt-pure-body-rust stmt1 native-id-ht)]
-                      [else-str (stmt-pure-body-rust stmt2 native-id-ht)])
-                  (cond
-                    [(or (not then-str) (not else-str)) #f]
-                    [(or (rendered-has-todo? cond-str)
-                         (rendered-has-todo? then-str)
-                         (rendered-has-todo? else-str))
-                     #f]
-                    [else
-                     (format "if ~a {\n            ~a\n        } else {\n            ~a\n        }"
-                             cond-str then-str else-str)]))]
-               [(statement-expression ,expr)
-                ;; Render the trailing expression through expr-rust. Any
-                ;; variant expr-rust can't handle falls through to its
-                ;; TODO placeholder, which rendered-has-todo? catches at
-                ;; the caller (or here, for nested if branches).
-                (let ([s (expr-rust expr native-id-ht)])
-                  (cond
-                    [(rendered-has-todo? s) #f]
-                    [else s]))]
-               [else #f])])))
+             ;; A18: multi-statement pure body (assertSupportedVerificationMethod,
+             ;; verificationMethodRelationMember). Render leading stmts as
+             ;; `<rendered>;` (or block) and the final stmt as an
+             ;; expression-or-statement.
+             (let loop ([xs stmts] [acc '()])
+               (cond
+                 [(null? (cdr xs))
+                  (let ([s (pure-stmt-rust (car xs) native-id-ht #t)])
+                    (cond
+                      [(not s) #f]
+                      [else
+                       (let join ([rs (reverse (cons s acc))] [out ""])
+                         (cond
+                           [(null? rs) out]
+                           [(null? (cdr rs)) (string-append out (car rs))]
+                           [else
+                            (join (cdr rs)
+                                  (string-append out (car rs)
+                                                 "\n        "))]))]))]
+                 [else
+                  (let ([s (pure-stmt-rust (car xs) native-id-ht #f)])
+                    (cond
+                      [(not s) #f]
+                      [else (loop (cdr xs) (cons s acc))]))]))])))
 
       ;; emit-pure-circuit: emit a pure circuit as a free function inside
       ;; `mod pure_circuits`. No ctx — just the declared args and a direct

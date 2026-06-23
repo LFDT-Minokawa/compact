@@ -2252,12 +2252,13 @@
                 (list 'pure-circuit
                       (camel->snake (id-sym function-name))
                       expr*)]
-               ;; E5: exported impure circuit. The callee is emitted as
-               ;; `pub fn <name>(&self, ctx, ...) -> Result<CircuitResults<PS,T>>`
-               ;; on the Contract impl, so the call shape is
-               ;; `self.<snake>(ctx, args)?` returning a CircuitResults.
+               ;; E5 / A17: impure circuit (exported or internal). The
+               ;; callee is emitted as a method on the Contract impl
+               ;; (visibility per emit-impure-circuit), so the call shape
+               ;; is `self.<snake>(ctx, args)?` returning CircuitResults.
+               ;; Tag stays 'impure-exported to keep downstream emit
+               ;; clauses uniform.
                [(and (eq-hashtable-ref circuit-id-ht function-name #f)
-                     (id-exported? function-name)
                      (not (id-pure? function-name)))
                 (list 'impure-exported
                       (camel->snake (id-sym function-name))
@@ -2630,18 +2631,23 @@
                       (list src adt-op path-elt* resolved-expr*))))]
             [else #f])))
 
-      ;; branch->assert-and-pl-call: A12/A14 sibling of branch->single-pl-call.
+      ;; branch->assert-and-pl-call: A12/A14/A17 sibling of branch->single-pl-call.
       ;; Admits a sequence inside an if-branch of:
       ;;   - const-decl-only (skipped — no Rust emission needed)
       ;;   - stmt->assignment (lifted-let initializer; tracked as pre-stmt)
       ;;   - const-binding (tracked as pre-stmt)
       ;;   - one optional `(assert ...)` (captured as assert-pair)
-      ;; ...followed by EITHER a terminal pl-call (A12) OR nothing (A14:
-      ;; assert-only branch, e.g. setVerificationMethod's Insert arm).
+      ;; ...followed by ONE of:
+      ;;   (a) a terminal pl-call (A12: setAlsoKnownAs's Insert arm)
+      ;;   (b) nothing (A14: setVerificationMethod's Insert arm — assert-only)
+      ;;   (c) a terminal bare-call to a non-pure user circuit
+      ;;       (A17: setVerificationMethodRelation's branches call
+      ;;       insertVerificationMethodRelation / removeVerificationMethodRelationFromLedger).
       ;;
       ;; Returns
-      ;;   (list assert-pair pre-stmts src adt-op path-elt* resolved-expr*)
-      ;; on success, #f on structural mismatch. Fields:
+      ;;   (list assert-pair pre-stmts src adt-op path-elt* resolved-expr* bare-call-info)
+      ;; on success, #f on structural mismatch. `bare-call-info` is
+      ;; `(cons fn-id arg-exprs)` for the A17 bare-call case, #f otherwise. Fields:
       ;;   - assert-pair: (cons assert-expr msg) or #f
       ;;   - pre-stmts: ordered list of (var-name . expr) bindings, to be
       ;;     emitted as `let <name> = <expr>;` inside the branch body
@@ -2669,7 +2675,7 @@
             [(null? stmts)
              ;; A14: assert-only branch is valid if we captured one.
              (and assert-pair
-                  (list assert-pair (reverse pre-stmts) #f #f '() '()))]
+                  (list assert-pair (reverse pre-stmts) #f #f '() '() #f))]
             [(const-decl-only? (car stmts))
              (loop (cdr stmts) pre-stmts binds assert-pair)]
             [(stmt->assignment (car stmts)) =>
@@ -2698,7 +2704,24 @@
                                            expr*)])
                  (and (not (memv #f resolved-expr*))
                       (list assert-pair (reverse pre-stmts) src adt-op
-                            path-elt* resolved-expr*))))]
+                            path-elt* resolved-expr* #f))))]
+            [(and (null? (cdr stmts))
+                  (stmt->bare-call (car stmts))) =>
+             ;; A17: terminal bare-call to a non-pure user circuit
+             ;; (e.g. setVerificationMethodRelation's
+             ;; `insertVerificationMethodRelation(...)` /
+             ;; `removeVerificationMethodRelationFromLedger(...)` calls).
+             ;; classify-call must accept it as impure-exported / witness /
+             ;; pure-circuit for the emit clause to render it; the helper
+             ;; here just admits the shape and lets emission validate.
+             (lambda (c)
+               (let* ([fn-id (car c)]
+                      [arg-exprs (cdr c)]
+                      [resolved-args
+                       (map (lambda (e) (expr-resolve e binds)) arg-exprs)])
+                 (and (not (memv #f resolved-args))
+                      (list assert-pair (reverse pre-stmts) #f #f '() '()
+                            (cons fn-id resolved-args)))))]
             [else #f])))
 
       ;; compute-pl-builder-lines: given a public-ledger ADT-op + path +
