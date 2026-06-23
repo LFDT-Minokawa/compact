@@ -894,6 +894,23 @@
                        (format "                .idx_at_index(~au8, ~a)\n"
                                (car indices)
                                (if push-path "true" "false"))]
+                      ;; A8: multi-index path (e.g. Map<K, V>.member(k)
+                      ;; uses a two-level idx into the storage container's
+                      ;; slot + the per-key Sub-structure). Emit one
+                      ;; `.idx_at_index(N, push)` per index — same call
+                      ;; pattern as the no-args fallback in
+                      ;; emit-ledger-read-expr's else branch.
+                      [(and indices (> (length indices) 1))
+                       (let loop ([is indices] [acc ""])
+                         (cond
+                           [(null? is) acc]
+                           [else
+                            (loop (cdr is)
+                                  (string-append
+                                    acc
+                                    (format "                .idx_at_index(~au8, ~a)\n"
+                                            (car is)
+                                            (if push-path "true" "false"))))]))]
                       [else #f]))]))]
             [(string=? op "dup")
              (let ([n-pair (assoc "n" args)])
