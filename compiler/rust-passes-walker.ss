@@ -556,16 +556,21 @@
                            [else (join (cdr xs)
                                        (string-append acc (car xs) ", "))]))))]
             [else
-             ;; Native or unrecognised — defer to existing call-rust. It
-             ;; expects to receive expressions, so first transform var-refs
-             ;; in expr* through local-binds. We do that by rendering each
-             ;; arg through ctor-expr-rust and wrapping the result back as
-             ;; the existing call-rust does after expr-rust on its args.
-             ;; Simplest: only support natives whose args are var-refs we
-             ;; can resolve. For tiny.compact, the constructor's only call
-             ;; sites are witness + pure circuit, so this branch is just a
-             ;; safety net.
-             (call-rust src function-name expr* native-id-ht)])))
+             ;; A15: if this call was hoisted before the surrounding
+             ;; assert (the streaming walker's assert clause and the A12
+             ;; if-then-else emit clause scan for non-pure user-circuit
+             ;; calls in assert conds and lift them to `let _cr_hN =
+             ;; self.X(ctx, ...)?` bindings), render as a reference to
+             ;; the hoisted result. Otherwise fall to existing call-rust
+             ;; (which errors with "non-native-call" on a non-pure user
+             ;; circuit — the same diagnostic compactc used pre-A15).
+             (cond
+               [(impure-call-bound function-name expr*
+                                   (current-impure-call-binds))
+                => (lambda (rust-name)
+                     (format "~a.result.clone()" rust-name))]
+               [else
+                (call-rust src function-name expr* native-id-ht)])])))
 
       ;; expr-supported?: predicate that returns #t when an Expression is
       ;; in a shape our body emitter can render cleanly (no
@@ -1072,6 +1077,114 @@
                       [else #f])
                     (loop (cdr xs)))]))
              (and (decoder-for-type type) #t))]))
+
+      ;; impure-call-bound: A15 alist lookup for current-impure-call-binds.
+      ;; Same shape as witness-call-bound — each entry is (list function-name
+      ;; arg-expr* rust-name). Returns the rust-name (a let-bound variable
+      ;; holding `CircuitResults<PS,T>`) on hit, #f otherwise. ctor-call-rust
+      ;; renders the call as `<rust-name>.result.clone()` when matched.
+      (define (impure-call-bound function-name expr* binds)
+        (let loop ([bs binds])
+          (cond
+            [(null? bs) #f]
+            [(and (eq? (car (car bs)) function-name)
+                  (let walk ([as (cadr (car bs))] [bs2 expr*])
+                    (cond
+                      [(and (null? as) (null? bs2)) #t]
+                      [(or (null? as) (null? bs2)) #f]
+                      [(eq? (car as) (car bs2))
+                       (walk (cdr as) (cdr bs2))]
+                      [else #f])))
+             (caddr (car bs))]
+            [else (loop (cdr bs))])))
+
+      ;; collect-impure-call-subcalls: A15 sibling of collect-witness-subcalls.
+      ;; Walk an Expression and return the list of (call <non-pure-user-circuit>
+      ;; args*) sub-expressions in source order. Each call must be to a
+      ;; user-defined circuit (in circuit-id-ht) that is NOT pure, NOT a
+      ;; witness, NOT native. Duplicates dropped via eq? identity.
+      (define (collect-impure-call-subcalls expr witness-id-ht circuit-id-ht
+                                            native-id-ht)
+        (let ([seen '()])
+          (let walk ([e expr])
+            (let ([e (expr-strip-cast e)])
+              (nanopass-case (Ltypescript Expression) e
+                [(call ,src ,function-name ,expr* ...)
+                 (let ([w (eq-hashtable-ref witness-id-ht function-name #f)]
+                       [c (eq-hashtable-ref circuit-id-ht function-name #f)]
+                       [ne (eq-hashtable-ref native-id-ht function-name #f)])
+                   (when (and c
+                              (not (id-pure? function-name))
+                              (not w)
+                              (not ne))
+                     (unless (memq e seen)
+                       (set! seen (cons e seen)))))
+                 (for-each walk expr*)]
+                [(not ,src ,expr) (walk expr)]
+                [(and ,src ,expr1 ,expr2) (walk expr1) (walk expr2)]
+                [(or ,src ,expr1 ,expr2) (walk expr1) (walk expr2)]
+                [(== ,src ,type ,expr1 ,expr2) (walk expr1) (walk expr2)]
+                [(elt-ref ,src ,expr ,elt-name ,nat) (walk expr)]
+                [else (void)])))
+          (reverse seen)))
+
+      ;; emit-hoisted-impure-calls: A15 sibling of emit-hoisted-witnesses.
+      ;; For each impure circuit call in `subcalls`, emit the
+      ;;   let _cr_h<N> = self.<name>(ctx, args)?;
+      ;;   let ctx = _cr_h<N>.context;
+      ;; lines and return (list lines binds), where lines is in reverse
+      ;; (caller prepends) and binds is the list of
+      ;; (list function-name arg-expr* rust-name) entries to feed
+      ;; current-impure-call-binds.
+      ;;
+      ;; The hoisted call's `ctx` rebind threads the post-call QueryContext
+      ;; through subsequent statements in the same Rust scope (the if-arm
+      ;; body, or the streaming walker step). For read-only impure helpers
+      ;; (e.g. did.compact's `verificationMethodExists`), the rebind's
+      ;; effect on the result-of-verify is semantically a no-op (no state
+      ;; mutation), but the threading keeps the type uniform and the gas
+      ;; accounting honest.
+      (define (emit-hoisted-impure-calls subcalls counter-start
+                                         local-binds
+                                         native-id-ht witness-id-ht circuit-id-ht
+                                         indent)
+        (let loop ([subs subcalls]
+                   [counter counter-start]
+                   [rev-lines '()]
+                   [binds '()])
+          (cond
+            [(null? subs) (list rev-lines binds)]
+            [else
+             (let* ([call-expr (car subs)]
+                    [function-name
+                     (nanopass-case (Ltypescript Expression) call-expr
+                       [(call ,src ,function-name ,expr* ...) function-name])]
+                    [arg-exprs
+                     (nanopass-case (Ltypescript Expression) call-expr
+                       [(call ,src ,function-name ,expr* ...) expr*])]
+                    [cname (camel->snake (id-sym function-name))]
+                    [rust-name (format "_cr_h~a" counter)]
+                    [arg-strs
+                     (map (lambda (e)
+                            (arg-rust-clone-if-var
+                              e local-binds
+                              native-id-ht witness-id-ht circuit-id-ht))
+                          arg-exprs)]
+                    [arg-tail
+                     (let join ([xs arg-strs] [acc ""])
+                       (cond
+                         [(null? xs) acc]
+                         [else (join (cdr xs)
+                                     (string-append acc ", " (car xs)))]))]
+                    [call-line
+                     (format "~alet ~a = self.~a(ctx~a)?;\n"
+                             indent rust-name cname arg-tail)]
+                    [ctx-line
+                     (format "~alet ctx = ~a.context;\n" indent rust-name)])
+               (loop (cdr subs)
+                     (+ counter 1)
+                     (cons ctx-line (cons call-line rev-lines))
+                     (cons (list function-name arg-exprs rust-name) binds)))])))
 
       ;; witness-call-bound: alist lookup for current-witness-call-binds.
       ;; Each entry is (list function-name arg-expr* rust-name). Match by

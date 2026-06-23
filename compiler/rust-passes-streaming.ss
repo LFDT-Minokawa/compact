@@ -458,29 +458,42 @@
                                                    (string-append acc (car xs) ", "))]))))
                       (loop (cdr stmts) local-binds witness-emitted? (+ step 1) ctx-expr))]
                    [(impure-exported)
-                    (cond
-                      [(not (string=? ctx-expr "&ctx.current_query_context")) #f]
-                      [else
-                       (let* ([cname (cadr classified)]
-                              [cargs (caddr classified)]
-                              [cr-name (format "_cr_~a" step)]
-                              [arg-strs
-                               (map (lambda (e)
-                                      (arg-rust-clone-if-var
-                                        e local-binds
-                                        native-id-ht witness-id-ht circuit-id-ht))
-                                    cargs)]
-                              [arg-tail
-                               (let join ([xs arg-strs] [acc ""])
-                                 (cond
-                                   [(null? xs) acc]
-                                   [else (join (cdr xs)
-                                               (string-append acc ", " (car xs)))]))])
-                         (out (format "        let ~a = self.~a(ctx~a)?;\n"
-                                      cr-name cname arg-tail))
-                         (out (format "        let ctx = ~a.context;\n" cr-name))
-                         (loop (cdr stmts) local-binds witness-emitted?
-                               (+ step 2) "&ctx.current_query_context"))])]
+                    (let* ([cname (cadr classified)]
+                           [cargs (caddr classified)]
+                           [cr-name (format "_cr_~a" step)]
+                           [arg-strs
+                            (map (lambda (e)
+                                   (arg-rust-clone-if-var
+                                     e local-binds
+                                     native-id-ht witness-id-ht circuit-id-ht))
+                                 cargs)]
+                           [arg-tail
+                            (let join ([xs arg-strs] [acc ""])
+                              (cond
+                                [(null? xs) acc]
+                                [else (join (cdr xs)
+                                            (string-append acc ", " (car xs)))]))])
+                      ;; A15: when ctx-expr is `&_results_N.context` (after
+                      ;; a pl-call) or any non-default form, rebind ctx
+                      ;; first so the inner `self.<name>(ctx, ...)` sees
+                      ;; the updated context. The previous strict
+                      ;; equality check rejected this case outright; we
+                      ;; now emit
+                      ;;     let ctx = CircuitContext {
+                      ;;         current_query_context: <referent>.clone(),
+                      ;;         ..ctx
+                      ;;     };
+                      ;; mirroring the post-if rebind A14 introduced.
+                      (unless (string=? ctx-expr "&ctx.current_query_context")
+                        (let ([referent
+                               (substring ctx-expr 1 (string-length ctx-expr))])
+                          (out (format "        let ctx = CircuitContext { current_query_context: ~a.clone(), ..ctx };\n"
+                                       referent))))
+                      (out (format "        let ~a = self.~a(ctx~a)?;\n"
+                                   cr-name cname arg-tail))
+                      (out (format "        let ctx = ~a.context;\n" cr-name))
+                      (loop (cdr stmts) local-binds witness-emitted?
+                            (+ step 2) "&ctx.current_query_context"))]
                    [else #f])))]
             [(stmt->public-ledger-call (car stmts)) =>
              (lambda (parts)
@@ -667,14 +680,38 @@
                                                      rust-name rendered))))
                                     pre-stmts)
                                   (when assert-pair
-                                    (let ([ae (car assert-pair)]
-                                          [msg (cdr assert-pair)])
+                                    (let* ([ae (car assert-pair)]
+                                           [msg (cdr assert-pair)]
+                                           ;; A15: hoist impure user-circuit
+                                           ;; calls in the assert cond before
+                                           ;; rendering. The hoisted binds
+                                           ;; are consulted by ctor-call-rust
+                                           ;; via current-impure-call-binds.
+                                           [impure-subs
+                                            (collect-impure-call-subcalls
+                                              ae witness-id-ht circuit-id-ht
+                                              native-id-ht)]
+                                           [hoist
+                                            (emit-hoisted-impure-calls
+                                              impure-subs 0
+                                              local-binds
+                                              native-id-ht witness-id-ht
+                                              circuit-id-ht
+                                              "            ")]
+                                           [hoist-lines (car hoist)]
+                                           [hoist-binds (cadr hoist)]
+                                           [cond-str
+                                            (parameterize
+                                                ([current-impure-call-binds
+                                                  (append hoist-binds
+                                                          (current-impure-call-binds))])
+                                              (assert-cond-rust
+                                                ae local-binds
+                                                native-id-ht witness-id-ht
+                                                circuit-id-ht))])
+                                      (for-each out (reverse hoist-lines))
                                       (out (format "            compact_assert!(~a, ~s);\n"
-                                                   (assert-cond-rust
-                                                     ae local-binds
-                                                     native-id-ht witness-id-ht
-                                                     circuit-id-ht)
-                                                   msg))))
+                                                   cond-str msg))))
                                   (out "            let ops = OpProgramVerify::<DefaultDB>::new()\n")
                                   (for-each (lambda (l) (out (format "    ~a" l)))
                                             lines)
@@ -705,14 +742,34 @@
                                                    rust-name rendered))))
                                   pre-stmts)
                                 (when assert-pair
-                                  (let ([ae (car assert-pair)]
-                                        [msg (cdr assert-pair)])
+                                  (let* ([ae (car assert-pair)]
+                                         [msg (cdr assert-pair)]
+                                         ;; A15: same hoist as the arm path.
+                                         [impure-subs
+                                          (collect-impure-call-subcalls
+                                            ae witness-id-ht circuit-id-ht
+                                            native-id-ht)]
+                                         [hoist
+                                          (emit-hoisted-impure-calls
+                                            impure-subs 0
+                                            local-binds
+                                            native-id-ht witness-id-ht
+                                            circuit-id-ht
+                                            "            ")]
+                                         [hoist-lines (car hoist)]
+                                         [hoist-binds (cadr hoist)]
+                                         [cond-str
+                                          (parameterize
+                                              ([current-impure-call-binds
+                                                (append hoist-binds
+                                                        (current-impure-call-binds))])
+                                            (assert-cond-rust
+                                              ae local-binds
+                                              native-id-ht witness-id-ht
+                                              circuit-id-ht))])
+                                    (for-each out (reverse hoist-lines))
                                     (out (format "            compact_assert!(~a, ~s);\n"
-                                                 (assert-cond-rust
-                                                   ae local-binds
-                                                   native-id-ht witness-id-ht
-                                                   circuit-id-ht)
-                                                 msg))))
+                                                 cond-str msg))))
                                 (out "            let ops = OpProgramVerify::<DefaultDB>::new()\n")
                                 (for-each (lambda (l) (out (format "    ~a" l)))
                                           lines)

@@ -58,6 +58,18 @@
       (define current-witness-call-binds
         (make-parameter '()))
 
+      ;; current-impure-call-binds: A15 sibling of current-witness-call-binds
+      ;; for non-pure user-circuit calls hoisted out of an assert/condition.
+      ;; did.compact's `assert(!verificationMethodExists(id), ...)` shape is
+      ;; the canonical case. Each entry is `(list function-name arg-expr*
+      ;; rust-name)` mirroring the witness binds. Consulted by
+      ;; ctor-call-rust's else branch BEFORE falling to call-rust (which
+      ;; would error with "non-native-call"): on hit, the call renders as
+      ;; `<rust-name>.result.clone()` referring to the hoisted
+      ;; `let <rust-name> = self.<X>(ctx, args)?;` binding.
+      (define current-impure-call-binds
+        (make-parameter '()))
+
       ;; current-enum-ref-typed?: when #t, ctor-expr-rust renders an
       ;; `enum-ref` as `EnumName::r#variant` instead of the integer
       ;; discriminant. Used inside an `==` comparison whose other operand
