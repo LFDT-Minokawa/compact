@@ -14,9 +14,9 @@
 // limitations under the License.
 
 import { describe, expect, test } from 'vitest';
-import { secp256k1 } from '@noble/curves/secp256k1';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { keccak_256 } from '@noble/hashes/sha3.js';
-import { sha256 } from '@noble/hashes/sha256.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 import * as runtime from '../src/index.js';
 
 const SECP256K1_N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
@@ -28,50 +28,80 @@ interface NobleSignature {
   recoverPublicKey(msgHash: Uint8Array): { readonly x: bigint; readonly y: bigint };
 }
 
-const PRIV_KEY = secp256k1.utils.randomPrivateKey();
-const PUB_KEY_POINT = secp256k1.ProjectivePoint.fromPrivateKey(PRIV_KEY);
+interface NobleSignature {
+  readonly r: bigint;
+  readonly s: bigint;
+  readonly recovery?: number;
+  recoverPublicKey(msgHash: Uint8Array): { readonly x: bigint; readonly y: bigint };
+}
+
+function toNobleSignature(bytes: Uint8Array): NobleSignature {
+  // What sign() emits: 64 = compact (r||s), 65 = recovered (recoveryByte || r || s).
+  // In v2 the recovery byte is FIRST (recovered.slice(1) === compact).
+  const format =
+    bytes.length === 65
+      ? 'recovered'
+      : bytes.length === 64
+        ? 'compact'
+        : (() => {
+            throw new Error(`unexpected sig length ${bytes.length}`);
+          })();
+
+  const sig = secp256k1.Signature.fromBytes(bytes, format);
+
+  return {
+    r: sig.r,
+    s: sig.s,
+    recovery: sig.recovery,
+    recoverPublicKey(msgHash) {
+      // Instance method expects an already-hashed digest (per the v2 source comment),
+      // so pass ETH_MSG_HASH directly — no internal prehash here.
+      return sig.recoverPublicKey(msgHash).toAffine(); // Point -> { x, y }
+    },
+  };
+}
+
+const PRIV_KEY = secp256k1.utils.randomSecretKey();
+const PUB_KEY = secp256k1.getPublicKey(PRIV_KEY);
+const PUB_KEY_POINT = secp256k1.Point.fromBytes(PUB_KEY).toAffine();
 
 // Ethereum: keccak256(msg)
 const ETH_MSG = new Uint8Array(32).fill(0xab);
 const ETH_MSG_HASH = keccak_256(ETH_MSG);
-const ETH_SIG: NobleSignature = secp256k1.sign(ETH_MSG_HASH, PRIV_KEY);
+const ETH_SIG: NobleSignature = toNobleSignature(secp256k1.sign(ETH_MSG_HASH, PRIV_KEY));
 
 // Bitcoin: sha256(msg)
 const BTC_MSG = new Uint8Array(32).fill(0xcd);
 const BTC_MSG_HASH = sha256(BTC_MSG);
-const BTC_SIG: NobleSignature = secp256k1.sign(BTC_MSG_HASH, PRIV_KEY);
+const BTC_SIG: NobleSignature = toNobleSignature(secp256k1.sign(BTC_MSG_HASH, PRIV_KEY));
 
 function toSecp256k1Point(pt: { x: bigint; y: bigint }): runtime.Secp256k1Point {
   return { x: pt.x, y: pt.y };
 }
 
 function toSecp256k1Sig(sig: { r: bigint; s: bigint }): runtime.Secp256k1EcdsaSignature {
-  return { r: { value: sig.r }, s: { value: sig.s } };
+  return { r: sig.r, s: sig.s };
 }
 
 // R is lifted from r and the recovery bit off-circuit to avoid an in-circuit square root.
 function toSecp256k1SigWithRecovery(sig: NobleSignature): runtime.Secp256k1EcdsaSignatureWithRecovery {
   const prefix = sig.recovery === 0 ? '02' : '03';
-  const R = secp256k1.ProjectivePoint.fromHex(prefix + sig.r.toString(16).padStart(64, '0')).toAffine();
-  return { r: { value: sig.r }, s: { value: sig.s }, R: { x: R.x, y: R.y } };
+  const R = secp256k1.Point.fromHex(prefix + sig.r.toString(16).padStart(64, '0')).toAffine();
+  return { r: sig.r, s: sig.s, R: { x: R.x, y: R.y } };
 }
 
 // ==== Type descriptor tests ====
 
 describe('Secp256k1 type descriptors', () => {
   test('Secp256k1Scalar round-trips through CompactType', () => {
-    const scalar: runtime.Secp256k1Scalar = { value: 0xdeadbeefn };
-    const recovered = runtime.CompactTypeSecp256k1Scalar.fromValue([
-      ...runtime.CompactTypeSecp256k1Scalar.toValue(scalar),
-    ]);
-    expect(recovered.value).toBe(scalar.value);
+    const scalar = 0xdeadbeefn;
+    const recovered = runtime.CompactTypeSecp256k1Scalar.fromValue([...runtime.CompactTypeSecp256k1Scalar.toValue(scalar)]);
+    expect(recovered).toBe(scalar);
   });
 
   test('Secp256k1Point round-trips through CompactType', () => {
     const point = toSecp256k1Point(PUB_KEY_POINT);
-    const roundTripped = runtime.CompactTypeSecp256k1Point.fromValue([
-      ...runtime.CompactTypeSecp256k1Point.toValue(point),
-    ]);
+    const roundTripped = runtime.CompactTypeSecp256k1Point.fromValue([...runtime.CompactTypeSecp256k1Point.toValue(point)]);
     expect(typeof roundTripped.x).toBe('bigint');
     expect(typeof roundTripped.y).toBe('bigint');
   });
@@ -81,8 +111,8 @@ describe('Secp256k1 type descriptors', () => {
     const roundTripped = runtime.CompactTypeSecp256k1EcdsaSignature.fromValue([
       ...runtime.CompactTypeSecp256k1EcdsaSignature.toValue(sig),
     ]);
-    expect(typeof roundTripped.r.value).toBe('bigint');
-    expect(typeof roundTripped.s.value).toBe('bigint');
+    expect(typeof roundTripped.r).toBe('bigint');
+    expect(typeof roundTripped.s).toBe('bigint');
   });
 
   test('Secp256k1EcdsaSignatureWithRecovery round-trips through CompactType', () => {
@@ -90,8 +120,8 @@ describe('Secp256k1 type descriptors', () => {
     const roundTripped = runtime.CompactTypeSecp256k1EcdsaSignatureWithRecovery.fromValue([
       ...runtime.CompactTypeSecp256k1EcdsaSignatureWithRecovery.toValue(sig),
     ]);
-    expect(typeof roundTripped.r.value).toBe('bigint');
-    expect(typeof roundTripped.s.value).toBe('bigint');
+    expect(typeof roundTripped.r).toBe('bigint');
+    expect(typeof roundTripped.s).toBe('bigint');
     expect(typeof roundTripped.R.x).toBe('bigint');
     expect(typeof roundTripped.R.y).toBe('bigint');
   });
@@ -111,8 +141,8 @@ describe('Ethereum signature (secp256k1 + keccak256)', () => {
   test('proveEthereumSignature: rejects a tampered signature', () => {
     const _pk = toSecp256k1Point(PUB_KEY_POINT);
     const _tamperedSig: runtime.Secp256k1EcdsaSignature = {
-      r: { value: ETH_SIG.r },
-      s: { value: (ETH_SIG.s + 1n) % SECP256K1_N },
+      r: ETH_SIG.r,
+      s: (ETH_SIG.s + 1n) % SECP256K1_N,
     };
 
     // const result = <call proveEthereumSignature circuit>(ETH_MSG, _tamperedSig, _pk);
@@ -148,8 +178,8 @@ describe('Bitcoin signature (secp256k1 + sha256)', () => {
   test('proveBitcoinSignature: rejects a tampered signature', () => {
     const _pk = toSecp256k1Point(PUB_KEY_POINT);
     const _tamperedSig: runtime.Secp256k1EcdsaSignature = {
-      r: { value: BTC_SIG.r },
-      s: { value: (BTC_SIG.s + 1n) % SECP256K1_N },
+      r: BTC_SIG.r,
+      s: (BTC_SIG.s + 1n) % SECP256K1_N,
     };
 
     // const result = <call proveBitcoinSignature circuit>(BTC_MSG, _tamperedSig, _pk);

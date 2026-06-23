@@ -134,8 +134,7 @@ export const CompactTypeJubjubPoint: CompactType<JubjubPoint> = {
  */
 export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
   alignment(): ocrt.Alignment {
-    return CompactTypeSecp256k1Base.alignment()
-      .concat(CompactTypeSecp256k1Base.alignment());
+    return CompactTypeSecp256k1Base.alignment().concat(CompactTypeSecp256k1Base.alignment());
   },
   fromValue(value: ocrt.Value): Secp256k1Point {
     if (value.length != 8) {
@@ -148,8 +147,7 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
     };
   },
   toValue(value: Secp256k1Point): ocrt.Value {
-    return CompactTypeSecp256k1Base.toValue(value.x)
-      .concat(CompactTypeSecp256k1Base.toValue(value.y));
+    return CompactTypeSecp256k1Base.toValue(value.x).concat(CompactTypeSecp256k1Base.toValue(value.y));
   },
 };
 
@@ -302,7 +300,7 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
       res = (res << 64n) | ocrt.valueToBigInt([value[i]]);
     }
     // The ZKIR representation subtracts 1 from the value.
-    res = (res == MAX_SECP256K1_BASE) ? 0n : res + 1n;
+    res = res == MAX_SECP256K1_BASE ? 0n : res + 1n;
     if (res > MAX_SECP256K1_BASE) {
       throw new CompactError('expected Secp256k1Base');
     }
@@ -314,7 +312,7 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
       throw new CompactError('expected Secp256k1Base');
     }
     // The ZKIR representation subtracts 1 from the value.
-    value = (value == 0n) ? MAX_SECP256K1_BASE : value - 1n;
+    value = value == 0n ? MAX_SECP256K1_BASE : value - 1n;
     let res: ocrt.Value = [];
     const mask = (1n << 64n) - 1n;
     for (let i = 0; i < 4; ++i) {
@@ -351,7 +349,7 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
       res = (res << 64n) | ocrt.valueToBigInt([value[i]]);
     }
     // The ZKIR representation subtracts 1 from the value.
-    res = (res == MAX_SECP256K1_SCALAR) ? 0n : res + 1n;
+    res = res == MAX_SECP256K1_SCALAR ? 0n : res + 1n;
     if (res > MAX_SECP256K1_SCALAR) {
       throw new CompactError('expected Secp256k1Scalar');
     }
@@ -363,7 +361,7 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
       throw new CompactError('expected Secp256k1Scalar');
     }
     // The ZKIR representation subtracts 1 from the value.
-    value = (value == 0n) ? MAX_SECP256K1_SCALAR : value - 1n;
+    value = value == 0n ? MAX_SECP256K1_SCALAR : value - 1n;
     let res: ocrt.Value = [];
     const mask = (1n << 64n) - 1n;
     for (let i = 0; i < 4; ++i) {
@@ -371,6 +369,75 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
       value = value >> 64n;
     }
     return res;
+  },
+};
+
+/**
+ * An ECDSA signature over the foreign secp256k1 curve. TypeScript representation
+ * of the Compact type of the same name.
+ */
+export interface Secp256k1EcdsaSignature {
+  readonly r: bigint;
+  readonly s: bigint;
+}
+
+/**
+ * Runtime type of {@link Secp256k1EcdsaSignature}
+ */
+export const CompactTypeSecp256k1EcdsaSignature: CompactType<Secp256k1EcdsaSignature> = {
+  alignment(): ocrt.Alignment {
+    return CompactTypeSecp256k1Scalar.alignment().concat(CompactTypeSecp256k1Scalar.alignment());
+  },
+  fromValue(value: ocrt.Value): Secp256k1EcdsaSignature {
+    if (value.length != 8) {
+      throw new CompactError('expected Secp256k1EcdsaSignature');
+    }
+    // Each Secp256k1Scalar occupies four 64-bit limbs.
+    return {
+      r: CompactTypeSecp256k1Scalar.fromValue(value.slice(0, 4)),
+      s: CompactTypeSecp256k1Scalar.fromValue(value.slice(4)),
+    };
+  },
+  toValue(value: Secp256k1EcdsaSignature): ocrt.Value {
+    return CompactTypeSecp256k1Scalar.toValue(value.r).concat(CompactTypeSecp256k1Scalar.toValue(value.s));
+  },
+};
+
+/**
+ * An ECDSA signature over the foreign secp256k1 curve carrying a recoverable
+ * nonce commitment `R`. TypeScript representation of the Compact type of the
+ * same name.
+ */
+export interface Secp256k1EcdsaSignatureWithRecovery {
+  readonly r: bigint;
+  readonly s: bigint;
+  readonly R: Secp256k1Point;
+}
+
+/**
+ * Runtime type of {@link Secp256k1EcdsaSignatureWithRecovery}
+ */
+export const CompactTypeSecp256k1EcdsaSignatureWithRecovery: CompactType<Secp256k1EcdsaSignatureWithRecovery> = {
+  alignment(): ocrt.Alignment {
+    return CompactTypeSecp256k1Scalar.alignment()
+      .concat(CompactTypeSecp256k1Scalar.alignment())
+      .concat(CompactTypeSecp256k1Point.alignment());
+  },
+  fromValue(value: ocrt.Value): Secp256k1EcdsaSignatureWithRecovery {
+    if (value.length != 16) {
+      throw new CompactError('expected Secp256k1EcdsaSignatureWithRecovery');
+    }
+    // Two Secp256k1Scalar limbs (4 each) followed by a Secp256k1Point (8 limbs).
+    return {
+      r: CompactTypeSecp256k1Scalar.fromValue(value.slice(0, 4)),
+      s: CompactTypeSecp256k1Scalar.fromValue(value.slice(4, 8)),
+      R: CompactTypeSecp256k1Point.fromValue(value.slice(8)),
+    };
+  },
+  toValue(value: Secp256k1EcdsaSignatureWithRecovery): ocrt.Value {
+    return CompactTypeSecp256k1Scalar.toValue(value.r)
+      .concat(CompactTypeSecp256k1Scalar.toValue(value.s))
+      .concat(CompactTypeSecp256k1Point.toValue(value.R));
   },
 };
 
