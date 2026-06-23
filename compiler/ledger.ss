@@ -28,7 +28,7 @@
 
   (define (ledger-adt-definitions)
     (define ledger-adt* '())
-    (define ledger-type-src (make-source-object (assert (stdlib-sfd)) 0 0 1 1))
+    (define ledger-type-src (make-source-object (get-stdlib-sfd) 0 0 1 1))
 
     (meta define ledger-type-marker (cons 'ledger 'type))
 

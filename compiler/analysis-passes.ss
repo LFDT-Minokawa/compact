@@ -41,6 +41,7 @@
   ;;; a full description of the pass and how it works is in ../compiler.md.
 
   (define-syntax standard-library-path (identifier-syntax "compiler/standard-library.compact"))
+  (define-syntax zkir-v3-library-path (identifier-syntax "compiler/zkir-v3-library.compact"))
 
   (define-pass expand-modules-and-types : Lpreexpand (ir) -> Lexpanded ()
     (definitions
@@ -54,7 +55,7 @@
                    x*))
                (list x)
                passes))]))
-      (module (standard-library-pelt*)
+      (module (zkir-v3-library-pelt* standard-library-pelt*)
         (define standard-library-pelt*
           (let-syntax ([a (nanopass-case (Lpreexpand Program) (run-passes
                                                                 frontend-passes
@@ -65,10 +66,24 @@
                              (#%$require-include standard-library-path)
                              (with-syntax ([(pelt ...) (datum->syntax #'* pelt*)]
                                            [sfd (datum->syntax #'* (source-object-sfd src))])
-                               (lambda (ignore) #'(begin (stdlib-sfd 'sfd) '(pelt ...))))])])
+                               (lambda (ignore) #'(begin (register-stdlib-sfd! 'sfd) '(pelt ...))))])])
+            a))
+        (define zkir-v3-library-pelt*
+          (let-syntax ([a (nanopass-case (Lpreexpand Program) (run-passes
+                                                                frontend-passes
+                                                                (run-passes
+                                                                  parser-passes
+                                                                  zkir-v3-library-path))
+                            [(program ,src ,pelt* ...)
+                             (#%$require-include zkir-v3-library-path)
+                             (with-syntax ([(pelt ...) (datum->syntax #'* pelt*)]
+                                           [sfd (datum->syntax #'* (source-object-sfd src))])
+                               (lambda (ignore) #'(begin (register-stdlib-sfd! 'sfd) '(pelt ...))))])])
             a))
         (unless (member standard-library-path (registered-source-pathnames))
-          (register-source-pathname! standard-library-path)))
+          (register-source-pathname! standard-library-path))
+        (unless (member zkir-v3-library-path (registered-source-pathnames))
+          (register-source-pathname! zkir-v3-library-path)))
       (define program-src)
       (module (make-instance-table instance-table-cell)
         (define (combine hash*)
@@ -639,7 +654,11 @@
                                     (let ([info (Info-module
                                                   '()
                                                   (append standard-library-pelt*
-                                                          (native-declarations)
+                                                          (if (feature-zkir-v3) zkir-v3-library-pelt* '())
+                                                          (let-values ([(native* zkir-v3-native*) (native-declarations)])
+                                                            (if (feature-zkir-v3)
+                                                                (append native* zkir-v3-native*)
+                                                                native*))
                                                           (map (lambda (adt-defn)
                                                                   (nanopass-case (Lpreexpand ADT-Definition) adt-defn
                                                                     [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -837,7 +856,7 @@
                                  export*)
                              unresolved-export*))]
                     [(fixup-alias ,function-name^ ,function-name)
-                     (let ([src (make-source-object (assert (stdlib-sfd)) 0 0 1 1)]
+                     (let ([src (make-source-object (get-stdlib-sfd) 0 0 1 1)]
                            [info (Info-fixup-alias function-name (assert (lookup/no-error p function-name)))])
                        (env-insert! p src function-name^ info)
                        (loop pelt* seqno*

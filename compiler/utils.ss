@@ -30,7 +30,7 @@
           source-error-condition?
           make-halt-condition halt-condition?
           pending-conditions
-          stdlib-sfd stdlib-src?
+          register-stdlib-sfd! get-stdlib-sfd stdlib-src?
           renaming-table record-alias!
           pretty-print/formats
           split-search-path)
@@ -48,8 +48,11 @@
                        "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a"
                        old-name new-name)]))
 
-  (define stdlib-sfd (make-parameter #f))
-  (define (stdlib-src? src) (eq? (source-object-sfd src) (stdlib-sfd)))
+  (module (register-stdlib-sfd! get-stdlib-sfd stdlib-src?)
+    (define stdlib-sfd* '())
+    (define (register-stdlib-sfd! sfd) (set! stdlib-sfd* (cons sfd stdlib-sfd*)))
+    (define (get-stdlib-sfd) (assert (not (null? stdlib-sfd*))) (car stdlib-sfd*))
+    (define (stdlib-src? src) (and (memq (source-object-sfd src) stdlib-sfd*) #t)))
 
   (define pending-conditions (make-parameter '()))
 

@@ -25,8 +25,8 @@
           (langs))
 
   (define (native-declarations)
-    (define ndecl* '())
-    (define native-src (make-source-object (assert (stdlib-sfd)) 0 0 1 1))
+    (define ndecl*)
+    (define native-src (make-source-object (get-stdlib-sfd) 0 0 1 1))
 
     (define-syntax declare-native-entry
       (lambda (q)
@@ -88,6 +88,11 @@
            (f #'class #'name #'(type-param ...) #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)]
           [(_ class name function ([argument-name argument-type disclosure] ...) result-type)
            (f #'class #'name '() #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)])))
-    (include "midnight-natives.ss")
-    (reverse ndecl*))
+    (values
+      (fluid-let ([ndecl* '()])
+        (include "midnight-natives.ss")
+        (reverse ndecl*))
+      (fluid-let ([ndecl* '()])
+        (include "zkir-v3-natives.ss")
+        (reverse ndecl*))))
 )
