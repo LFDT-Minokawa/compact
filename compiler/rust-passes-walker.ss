@@ -1571,17 +1571,33 @@
                                            ; update call (A4).
             (cond
               [(null? stmts)
+               ;; A7: bodies with no mutations (e.g. did.compact's
+               ;; `assertController()` is a single assert with no
+               ;; state writes) still need to emit the pre-lines +
+               ;; a unit-return wrapper. emit-body-mutations on an
+               ;; empty mutations list emits an empty OpProgramVerify
+               ;; chain — query_for_verify on a build()-only chain
+               ;; succeeds and threads ctx through unchanged, which
+               ;; is the correct "side-effect-free" semantics for an
+               ;; assert-only body. Pre-v0.2 this returned #f and
+               ;; threw a hard "no walker shape matched" error.
+               ;;
+               ;; Bodies with absolutely no pre-lines AND no writes
+               ;; (an empty function body) still return #f — there's
+               ;; literally nothing for the walker to emit. Those
+               ;; fall through to the streaming walker / error path
+               ;; per the existing chain.
                (cond
-                 [(null? writes) #f]
+                 [(and (null? writes) (null? pre-lines)) #f]
                  [else
-                  ;; Prelude must emit BEFORE we know whether
+                  ;; Prelude emits BEFORE we know whether
                   ;; emit-body-mutations succeeds — we've already
                   ;; committed the function-body opening brace by
                   ;; getting here. If mutations emission fails, the
                   ;; caller (emit-impure-circuit / emit-initial-state)
                   ;; sees #f and triggers `rust-feature-error` rather
-                  ;; than silently producing an unclosed body. Propagate
-                  ;; the return value directly.
+                  ;; than silently producing an unclosed body.
+                  ;; Propagate the return value directly.
                   (emit-ctor-prelude (reverse pre-lines))
                   (emit-body-mutations (reverse writes) mode local-binds
                                        native-id-ht witness-id-ht circuit-id-ht
