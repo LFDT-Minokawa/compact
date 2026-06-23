@@ -166,12 +166,27 @@
                                 (zkir-warning-issued #t)
                                 (fprintf (console-error-port)
                                   "Warning: ZKIR not found; skipping final circuit compilation.\n"))))
-                        (with-target-ports
-                         '((contract.js . "contract/index.js")
-                           (contract.d.ts . "contract/index.d.ts")
-                           (contract.js.map . "contract/index.js.map"))
-                         (parameterize ([proof-circuit-names proof-circuit-name*])
-                           (run-passes typescript-passes analyzed-ir)))
+                        ;; Fingerprint each proof circuit's compiled verifier key (its
+                        ;; `keys/<name>.verifier`, produced by the zkir step above) so the TypeScript
+                        ;; pass can embed `expectedVk` in the contract module. A `--skip-zk` build
+                        ;; generates no keys, leaving the alist empty.
+                        (let ([verifier-key-hash*
+                               (fold-right
+                                 (lambda (name acc)
+                                   (let ([vk-pathname
+                                          (format "~a/keys/~a.verifier" output-directory-pathname name)])
+                                     (if (file-exists? vk-pathname)
+                                         (cons (cons (symbol->string name) (sha256-file vk-pathname)) acc)
+                                         acc)))
+                                 '()
+                                 proof-circuit-name*)])
+                          (with-target-ports
+                           '((contract.js . "contract/index.js")
+                             (contract.d.ts . "contract/index.d.ts")
+                             (contract.js.map . "contract/index.js.map"))
+                           (parameterize ([proof-circuit-names proof-circuit-name*]
+                                          [verifier-key-hashes verifier-key-hash*])
+                             (run-passes typescript-passes analyzed-ir))))
                         (let ([manifest-pathname* created-file*])
                           (with-target-ports
                             '((contract-manifest.json . "compiler/contract-manifest.json"))

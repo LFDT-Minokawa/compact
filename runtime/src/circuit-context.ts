@@ -125,6 +125,15 @@ export interface CircuitContext<PS = any> {
    */
   gasCosts: Record<ocrt.ContractAddress, ocrt.RunningCost>;
   /**
+   * The deployed {@link ocrt.ContractState} of every cross-contract callee resolved during the
+   * execution, keyed by address. Populated by {@link crossContractCall} (via the state provider)
+   * the first time a callee is reached. Retained — unlike the cached query context, which keeps only
+   * ledger data — so the implementation-binding guard can read a callee's deployed verifier key for
+   * *any* of its circuits on *every* call, including later calls to a different circuit of an
+   * already-resolved callee. The entry contract is not recorded here; only fetched callees are.
+   */
+  calleeContractStates?: Record<ocrt.ContractAddress, ocrt.ContractState>;
+  /**
    * The cost model to use for the execution.
    */
   costModel: ocrt.CostModel;
@@ -215,6 +224,7 @@ export const createCircuitContext = <PS>(
     ),
     queryContexts: { [contractAddress]: callContext.currentQueryContext },
     gasCosts: { [contractAddress]: callContext.currentGasCost },
+    calleeContractStates: {},
     costModel: costModel ?? ocrt.CostModel.initialCostModel(),
     callProofDataTrace: [],
     gasLimit,
@@ -237,6 +247,7 @@ export const copyCircuitContext = (context: CircuitContext): CircuitContext => (
   callContext: { ...context.callContext },
   queryContexts: { ...context.queryContexts },
   gasCosts: { ...context.gasCosts },
+  calleeContractStates: { ...context.calleeContractStates },
   callProofDataTrace: [...context.callProofDataTrace],
 });
 

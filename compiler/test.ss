@@ -67364,7 +67364,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -67446,7 +67447,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -67540,7 +67542,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -67634,7 +67637,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -70056,7 +70060,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
     (output-file "compiler/testdir/contract/index.js"
@@ -70563,6 +70568,8 @@ groups than for single tests.
         "};"
         "export const contractReferenceLocations ="
         "  { tag: 'publicLedgerArray', indices: { } };"
+        "export const expectedVk = {};"
+        ""
         "//# sourceMappingURL=index.js.map"))
     (output-file "compiler/testdir/contract/index.js.map"
       '(
@@ -70572,8 +70579,8 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
-        "}"))
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;\""        "}"
+        ))
     (stage-javascript "test-center/ts/tiny.ts")
   )
 
@@ -71028,7 +71035,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -71094,7 +71102,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -71153,7 +71162,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -71244,7 +71254,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       `(
         "const witnesses = { witnesses(private_state: any, witnesses: bigint): [any, bigint] { return [private_state, witnesses + 11n]; } };"
@@ -71997,7 +72008,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     )
 
   (test
@@ -72304,7 +72316,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     )
 
   (test
@@ -72987,7 +73000,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     )
 
   (test
@@ -73905,7 +73919,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -81195,7 +81210,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -81257,7 +81273,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -81319,7 +81336,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -81378,7 +81396,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -81443,7 +81462,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -81531,7 +81551,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -82613,7 +82634,8 @@ groups than for single tests.
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
-        "export declare const pureCircuits: PureCircuits;"))
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
     )
 
   (test

@@ -14,6 +14,8 @@
 // limitations under the License.
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 import {
   CircuitId,
   CallContext,
@@ -26,7 +28,7 @@ import {
 } from './circuit-context.js';
 import { assertDefined, assertUndefined } from './error.js';
 import { assertIsContractAddress, fromHex } from './utils.js';
-import { CompactError } from './error.js';
+import { CompactError, ContractInterfaceMismatchError } from './error.js';
 import { PartialProofData } from './proof-data.js';
 import { CompactTypeField, CompactTypeUnsignedInteger, Bytes32Descriptor } from './compact-types.js';
 import { alignedConcat } from './built-ins.js';
@@ -69,33 +71,87 @@ type ContractCtor = new (witnesses: Record<string, never>) => Contract;
 type Module = {
   Contract: ContractCtor;
   pureCircuits: PureCircuits;
+  /**
+   * Per-circuit verifier-key fingerprints (lowercase SHA-256 hex of the compiled `.verifier`),
+   * emitted into the generated contract module by `compactc`. Keyed by external circuit name. Used
+   * by the cross-contract implementation-binding guard to detect when the contract deployed at a
+   * call target does not match the implementation this module was compiled against.
+   */
+  expectedVk: Record<string, string>;
+};
+
+/**
+ * Asserts that the contract deployed at `calleeAddress` is the implementation `calleeModule` was
+ * compiled against, by hashing the deployed verifier key for `calleeCircuitId` and comparing it to
+ * the fingerprint the compiler recorded on the module (`expectedVk`). Both sides are the lowercase
+ * SHA-256 hex of the same `.verifier` bytes — the compiler emits `sha256sum`(verifier file) and the
+ * deployed `operation.verifierKey` is byte-identical to that file — so an honest match is exact and
+ * a substituted contract is rejected here rather than at the proof server.
+ *
+ * @internal
+ */
+const assertImplementationMatches = (
+  contractState: ocrt.ContractState,
+  calleeModule: Module,
+  calleeCircuitId: CircuitId,
+  calleeAddress: ocrt.ContractAddress,
+): void => {
+  const operation = contractState.operation(calleeCircuitId);
+  const deployedVerifierKey = operation?.verifierKey;
+  // No deployed verifier key means the circuit carries no proof obligation at this address.
+  if (deployedVerifierKey === undefined || deployedVerifierKey.length === 0) {
+    return;
+  }
+  const expected = calleeModule.expectedVk?.[calleeCircuitId];
+  assertDefined(
+    expected,
+    `verifier-key fingerprint for circuit '${calleeCircuitId}' on the callee module`,
+  );
+  const actual = bytesToHex(sha256(deployedVerifierKey));
+  if (actual !== expected) {
+    throw new ContractInterfaceMismatchError(calleeAddress, calleeCircuitId, expected, actual);
+  }
 };
 
 /**
  * @internal
  */
-const resolveQueryContext = async (context: CircuitContext, callee: ocrt.ContractAddress): Promise<ocrt.QueryContext> => {
+const resolveQueryContext = async (
+  context: CircuitContext,
+  callee: ocrt.ContractAddress,
+  calleeModule: Module,
+  calleeCircuitId: CircuitId,
+): Promise<ocrt.QueryContext> => {
   const caller: ocrt.PublicAddress = { tag: 'contract', address: context.callContext.contractAddress };
+  let queryContext: ocrt.QueryContext;
   if (callee in context.queryContexts) {
     const cached = context.queryContexts[callee];
     // Keep the callee's accumulated state/effects; only rewrite the caller.
     cached.block = { ...cached.block, caller };
-    return cached;
+    queryContext = cached;
+  } else {
+    assertDefined(context.stateProvider, `state provider for call to '${callee}'`);
+    assertDefined(context.callContext.parentBlockHash, `parent block hash to fetch state for callee '${callee}'`);
+    const contractState = await context.stateProvider.getContractState(context.callContext.parentBlockHash, callee);
+    assertDefined(contractState, `contract state for callee '${callee}'`);
+    // Retain the full deployed state. The cached query context keeps only ledger data, not the
+    // operations' verifier keys, so stashing it here is what lets the implementation-binding guard
+    // below run on every call — including a later call to a *different* circuit of this same callee.
+    (context.calleeContractStates ??= {})[callee] = contractState;
+    queryContext = createInitialQueryContext(
+      contractState,
+      callee,
+      context.callContext.time,
+      context.callContext.parentBlockHash,
+      caller,
+    );
+    context.queryContexts[callee] = queryContext;
+    context.gasCosts[callee] = emptyRunningCost();
   }
-  assertDefined(context.stateProvider, `state provider for call to '${callee}'`);
-  assertDefined(context.callContext.parentBlockHash, `parent block hash to fetch state for callee '${callee}'`);
-  const contractState = await context.stateProvider.getContractState(context.callContext.parentBlockHash, callee);
-  assertDefined(contractState, `contract state for callee '${callee}'`);
-  const initialQueryContext = createInitialQueryContext(
-    contractState,
-    callee,
-    context.callContext.time,
-    context.callContext.parentBlockHash,
-    caller,
-  );
-  context.queryContexts[callee] = initialQueryContext;
-  context.gasCosts[callee] = emptyRunningCost();
-  return initialQueryContext;
+  const deployedState = context.calleeContractStates?.[callee];
+  assertDefined(deployedState, `deployed contract state for callee '${callee}'`);
+  assertImplementationMatches(deployedState, calleeModule, calleeCircuitId, callee);
+  return queryContext;
 };
 
 /**
@@ -420,7 +476,7 @@ export const crossContractCall = async (
   try {
     const provableCircuit = new calleeModule.Contract(forbiddenCalleeWitnesses(calleeAddress)).provableCircuits[calleeCircuitId];
     assertDefined(provableCircuit, `'${calleeCircuitId}' for callee '${calleeAddress}'`);
-    const calleeQueryContext = await resolveQueryContext(circuitContext, calleeAddress);
+    const calleeQueryContext = await resolveQueryContext(circuitContext, calleeAddress, calleeModule, calleeCircuitId);
     const calleeGasCosts = resolveGasCost(circuitContext, calleeAddress);
     const callerCallContext = copyCallContext(circuitContext.callContext);
     setupCallContext(circuitContext, calleeCircuitId, calleeAddress, calleeQueryContext, calleeGasCosts);

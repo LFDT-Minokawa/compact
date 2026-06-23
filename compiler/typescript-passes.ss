@@ -1170,6 +1170,7 @@
               (newline)
               (display-string "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;\n")
               (display-string "export declare const pureCircuits: PureCircuits;\n")
+              (display-string "export declare const expectedVk: Record<string, string>;\n")
               ))))
 
       (module (print-contract.js)
@@ -2360,6 +2361,25 @@
                (newline)]
               [else (void)])))
 
+        ;; Emit the per-circuit verifier-key fingerprints computed in passes.ss after key
+        ;; generation. A caller's cross-contract guard reads the callee module's `expectedVk` to
+        ;; detect a contract deployed at the call target that does not match the implementation this
+        ;; module was compiled against. Empty (`{}`) for builds that generate no keys (e.g. --skip-zk).
+        (define (print-expected-vk)
+          (let ([vk* (verifier-key-hashes)])
+            (if (null? vk*)
+                (display-string "export const expectedVk = {};\n")
+                (begin
+                  (display-string "export const expectedVk = {\n")
+                  (for-each
+                    (lambda (pair)
+                      (printf "  ~a: ~a,\n"
+                        (format-javascript-string (car pair))
+                        (format-javascript-string (cdr pair))))
+                    vk*)
+                  (display-string "};\n")))
+            (newline)))
+
         (define (print-contract-footer)
           (display-string "//# sourceMappingURL=index.js.map\n"))
 
@@ -2371,6 +2391,7 @@
               (print-contract-descriptors src descriptor-id* type*)
               (print-contract-class src xpelt* uname*)
               (for-each print-contract-reference-locations xpelt*)
+              (print-expected-vk)
               (print-contract-footer)
               (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
               (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map))))))
