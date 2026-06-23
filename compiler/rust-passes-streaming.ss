@@ -101,10 +101,14 @@
                (lambda (parts)
                  (let ([path-elt* (caddr parts)]
                        [expr* (cadddr parts)])
-                   (and (fx= (length path-elt*) 1)
-                        (nanopass-case (Ltypescript Path-Element) (car path-elt*)
-                          [,path-index #t]
-                          [else #f])
+                   ;; A10: admit any path depth. Each element must still be a
+                   ;; path-index (numeric ledger-field index); path-elt->vm-value
+                   ;; rejects runtime-keyed paths with #f at emission.
+                   (and (for-all (lambda (pe)
+                                   (nanopass-case (Ltypescript Path-Element) pe
+                                     [,path-index #t]
+                                     [else #f]))
+                                 path-elt*)
                         (for-all (lambda (e)
                                    (expr-supported?
                                      e native-id-ht witness-id-ht circuit-id-ht))

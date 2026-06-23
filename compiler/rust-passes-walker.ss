@@ -1322,16 +1322,20 @@
               [(and (pair? (cdr stmts))
                     (let ([parts (stmt->public-ledger-call (car stmts))])
                       (and parts
-                           (not (stmt->public-ledger-write (car stmts)))
+                           (not (single-index-cell-write? (car stmts)))
                            parts))) =>
                (lambda (parts)
-                 (let ([adt-op (cadr parts)]
-                       [path-elt* (caddr parts)]
+                 (let ([path-elt* (caddr parts)]
                        [expr* (cadddr parts)])
-                   (and (fx= (length path-elt*) 1)
-                        (nanopass-case (Ltypescript Path-Element) (car path-elt*)
-                          [,path-index #t]
-                          [else #f])
+                   ;; A10: admit multi-index paths. Each path-elt must still
+                   ;; be a path-index (numeric); path-elt->vm-value rejects
+                   ;; runtime-keyed paths with #f and the emitter falls back
+                   ;; to `unimplemented!()`.
+                   (and (for-all (lambda (pe)
+                                   (nanopass-case (Ltypescript Path-Element) pe
+                                     [,path-index #t]
+                                     [else #f]))
+                                 path-elt*)
                         (for-all (lambda (e)
                                    (expr-supported?
                                      e native-id-ht witness-id-ht circuit-id-ht))
@@ -1347,13 +1351,15 @@
               [(and (null? (cdr stmts))
                     (stmt->public-ledger-call (car stmts))) =>
                (lambda (parts)
-                 (let ([adt-op (cadr parts)]
-                       [path-elt* (caddr parts)]
+                 (let ([path-elt* (caddr parts)]
                        [expr* (cadddr parts)])
-                   (and (fx= (length path-elt*) 1)
-                        (nanopass-case (Ltypescript Path-Element) (car path-elt*)
-                          [,path-index #t]
-                          [else #f])
+                   ;; A10: admit multi-index paths (same rationale as the
+                   ;; non-terminal pl-call clause above).
+                   (and (for-all (lambda (pe)
+                                   (nanopass-case (Ltypescript Path-Element) pe
+                                     [,path-index #t]
+                                     [else #f]))
+                                 path-elt*)
                         (for-all (lambda (e)
                                    (expr-supported?
                                      e native-id-ht witness-id-ht circuit-id-ht))
@@ -2077,7 +2083,10 @@
               ;; (i.e. the multi-stmt did.compact recordUpdate shape).
               [(let ([parts (stmt->public-ledger-call (car stmts))])
                  (and parts
-                      (not (stmt->public-ledger-write (car stmts)))
+                      ;; A10: multi-index Cell.writes also flow through here.
+                      ;; Only the single-index legacy template path stays on
+                      ;; the cell-write tag below.
+                      (not (single-index-cell-write? (car stmts)))
                       parts)) =>
                (lambda (parts)
                  (let ([src (car parts)]
@@ -2162,6 +2171,22 @@
                       (and path-idx (cons path-idx (car expr*))))])])]
              [else #f])]
           [else #f]))
+
+      ;; single-index-cell-write?: predicate-form of stmt->public-ledger-write.
+      ;; Returns #t iff `stmt` is the legacy single-index Cell.write shape
+      ;; that emit-body-mutations + cell-write-builder-lines render via the
+      ;; hardcoded push(idx)/push(val)/ins(1) triad. Multi-index Cell.writes
+      ;; deliberately return #f here so the walker routes them through the
+      ;; pl-call mutation tag (vm-code expansion via expand-vm-code +
+      ;; vminstr->builder-call), which handles arbitrary path depths.
+      ;;
+      ;; A10: introduced when did.compact's rotateControllerKey surfaced a
+      ;; `controllerPublicKey` write at path (0 1) — two indices because the
+      ;; storage layout puts cell fields under a nested ledger struct. The
+      ;; legacy single-idx template can't express that nesting; the vm-code
+      ;; path already does.
+      (define (single-index-cell-write? stmt)
+        (and (stmt->public-ledger-write stmt) #t))
 
       ;; stmt->public-ledger-call: detect a single statement of shape
       ;; `(statement-expression (public-ledger field (idx) <op> expr*))` for
