@@ -775,8 +775,15 @@
                (cond
                  [(not (and cached-pair push-pair path-pair)) #f]
                  [else
-                  (let ([indices (vm-path->indices (cdr path-pair))]
-                        [push-path (cdr push-pair)])
+                  (let* ([indices (vm-path->indices (cdr path-pair))]
+                         [push-path (cdr push-pair)]
+                         [path-val (cdr path-pair)]
+                         [runtime-key
+                          (and (list? path-val)
+                               (pair? path-val)
+                               (null? (cdr path-val))
+                               (vm-rust-expr? (car path-val))
+                               (car path-val))])
                     ;; A11: emit one `.idx_at_index(N, push)` per index.
                     ;; Single- and multi-index paths share the loop — the
                     ;; n=1 case (Counter et al. at top-level) is just the
@@ -784,7 +791,16 @@
                     ;; under a nested ledger struct (path `(1 6)`) needs
                     ;; n>1; A8 already did this for vminstr->gather-builder-call,
                     ;; this mirrors it for the Verify pipeline.
+                    ;;
+                    ;; A16: handle runtime-keyed paths (single vm-rust-expr
+                    ;; in a 1-element list) for Map.insert / Map.lookup
+                    ;; key indexing.
                     (cond
+                      [runtime-key
+                       (format "            .idx(~a, ~a, vec![compact_runtime::Key::Value(compact_runtime::AlignedValue::from(~a))])\n"
+                               (if (cdr cached-pair) "true" "false")
+                               (if push-path "true" "false")
+                               (vm-rust-expr-text runtime-key))]
                       [(and indices (pair? indices))
                        (let loop ([is indices] [acc ""])
                          (cond
@@ -908,13 +924,31 @@
                (cond
                  [(not (and cached-pair push-pair path-pair)) #f]
                  [else
-                  (let ([indices (vm-path->indices (cdr path-pair))]
-                        [push-path (cdr push-pair)])
+                  (let* ([indices (vm-path->indices (cdr path-pair))]
+                         [push-path (cdr push-pair)]
+                         [path-val (cdr path-pair)]
+                         ;; A16: runtime-keyed idx — path is a 1-element
+                         ;; list containing a vm-rust-expr (Map.lookup's
+                         ;; second idx with `disclosed_method_id.clone()`).
+                         [runtime-key
+                          (and (list? path-val)
+                               (pair? path-val)
+                               (null? (cdr path-val))
+                               (vm-rust-expr? (car path-val))
+                               (car path-val))])
                     ;; A8: emit one `.idx_at_index(N, push)` per index.
                     ;; Single- and multi-index paths share the loop; the
                     ;; one-index case is just the n=1 specialisation
                     ;; (Map<K,V>.member etc. need n>1).
+                    ;;
+                    ;; A16: also handle runtime-keyed paths — emit
+                    ;; `.idx(cached, push, vec![Key::Value(AlignedValue::from(<expr>))])`.
                     (cond
+                      [runtime-key
+                       (format "                .idx(~a, ~a, vec![compact_runtime::Key::Value(compact_runtime::AlignedValue::from(~a))])\n"
+                               (if (cdr cached-pair) "true" "false")
+                               (if push-path "true" "false")
+                               (vm-rust-expr-text runtime-key))]
                       [(and indices (pair? indices))
                        (let loop ([is indices] [acc ""])
                          (cond
