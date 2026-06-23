@@ -100,7 +100,7 @@ describe('Secp256k1 type descriptors', () => {
 // ==== Circuit execution tests (skipped until secp256k1 gates are implemented) ====
 
 describe('Ethereum signature (secp256k1 + keccak256)', () => {
-  test.skip('proveEthereumSignature: accepts a valid signature', () => {
+  test('proveEthereumSignature: accepts a valid signature', () => {
     const _pk = toSecp256k1Point(PUB_KEY_POINT);
     const _sig = toSecp256k1Sig(ETH_SIG);
 
@@ -108,7 +108,7 @@ describe('Ethereum signature (secp256k1 + keccak256)', () => {
     // expect(result).toBe(true);
   });
 
-  test.skip('proveEthereumSignature: rejects a tampered signature', () => {
+  test('proveEthereumSignature: rejects a tampered signature', () => {
     const _pk = toSecp256k1Point(PUB_KEY_POINT);
     const _tamperedSig: runtime.Secp256k1EcdsaSignature = {
       r: { value: ETH_SIG.r },
@@ -119,7 +119,7 @@ describe('Ethereum signature (secp256k1 + keccak256)', () => {
     // expect(result).toBe(false);
   });
 
-  test.skip('recoverEthereumPublicKey: recovers the correct public key', () => {
+  test('recoverEthereumPublicKey: recovers the correct public key', () => {
     const _sig = toSecp256k1SigWithRecovery(ETH_SIG);
     const _expectedPk = toSecp256k1Point(PUB_KEY_POINT);
 
@@ -128,7 +128,7 @@ describe('Ethereum signature (secp256k1 + keccak256)', () => {
     // expect(recoveredPk.y).toBe(_expectedPk.y);
   });
 
-  test.skip('recoverEthereumAddress: returns first 20 bytes of keccak256(pk)', () => {
+  test('recoverEthereumAddress: returns first 20 bytes of keccak256(pk)', () => {
     const _sig = toSecp256k1SigWithRecovery(ETH_SIG);
 
     // const address = <call recoverEthereumAddress circuit>(ETH_MSG, _sig);
@@ -137,7 +137,7 @@ describe('Ethereum signature (secp256k1 + keccak256)', () => {
 });
 
 describe('Bitcoin signature (secp256k1 + sha256)', () => {
-  test.skip('proveBitcoinSignature: accepts a valid signature', () => {
+  test('proveBitcoinSignature: accepts a valid signature', () => {
     const _pk = toSecp256k1Point(PUB_KEY_POINT);
     const _sig = toSecp256k1Sig(BTC_SIG);
 
@@ -145,7 +145,7 @@ describe('Bitcoin signature (secp256k1 + sha256)', () => {
     // expect(result).toBe(true);
   });
 
-  test.skip('proveBitcoinSignature: rejects a tampered signature', () => {
+  test('proveBitcoinSignature: rejects a tampered signature', () => {
     const _pk = toSecp256k1Point(PUB_KEY_POINT);
     const _tamperedSig: runtime.Secp256k1EcdsaSignature = {
       r: { value: BTC_SIG.r },

@@ -884,6 +884,86 @@ groups than for single tests.
                      (next-value (cdr v*))))))))]))
 )
 
+#|
+(parameterize ([feature-zkir-v3 #t])
+(run-tests save-manifest
+  (test
+    '(
+      "module ecdsa_tests {"
+      "  import CompactStandardLibrary;"
+      "  "
+      "  // Prove knowledge of an Ethereum-style ECDSA signature."
+      "  // msg is hashed with keccak256 in-circuit before verification, binding the"
+      "  // proof to the actual message content."
+      "  export circuit proveEthereumSignature("
+      "    msg: Bytes<32>,"
+      "    sig: Secp256k1EcdsaSignature,"
+      "    pk: Secp256k1Point"
+      "  ): Boolean {"
+      "    return secp256k1EcdsaVerify(keccak256<Bytes<32>>(msg), sig, pk);"
+      "  }"
+      "  "
+      "  // Recover the public key from an Ethereum-style ECDSA signature."
+      "  // msg is hashed with keccak256 in-circuit before recovery, binding the"
+      "  // proof to the actual message content."
+      "  // R (the signing nonce point) must be provided by the prover; the circuit"
+      "  // asserts that R.x matches r as bytes, avoiding an in-circuit square root."
+      "  export circuit recoverEthereumPublicKey("
+      "    msg: Bytes<32>,"
+      "    sig: Secp256k1EcdsaSignatureWithRecovery"
+      "  ): Secp256k1Point {"
+      "    return secp256k1EcdsaRecover(keccak256<Bytes<32>>(msg), sig);"
+      "  }"
+      "  "
+      "  // Recover the public key from an Ethereum-style ECDSA signature and return"
+      "  // the first 20 bytes of keccak256 of the recovered key."
+      "  export circuit recoverEthereumAddress("
+      "    msg: Bytes<32>,"
+      "    sig: Secp256k1EcdsaSignatureWithRecovery"
+      "  ): Bytes<20> {"
+      "    const pk: Secp256k1Point = secp256k1EcdsaRecover(keccak256<Bytes<32>>(msg), sig);"
+      "    return slice<20>(keccak256<Secp256k1Point>(pk), 0);"
+      "  }"
+      "  "
+      "  // Prove knowledge of a Bitcoin-style ECDSA signature."
+      "  // msg is hashed with SHA-256 in-circuit before verification, binding the"
+      "  // proof to the actual message content."
+      "  export circuit proveBitcoinSignature("
+      "    msg: Bytes<32>,"
+      "    sig: Secp256k1EcdsaSignature,"
+      "    pk: Secp256k1Point"
+      "  ): Boolean {"
+      "    return secp256k1EcdsaVerify(persistentHash<Bytes<32>>(msg), sig, pk);"
+      "  }"
+      "}"
+      "import CompactStandardLibrary;"
+      "import ecdsa_tests;"
+      "ledger B: Boolean;"
+      "export circuit foo(msg: Bytes<32>, "
+      "                   sig: Secp256k1EcdsaSignature,"
+      "                   pk: Secp256k1Point): Boolean {"
+      "  B = disclose(proveEthereumSignature(msg, sig, pk));"
+      "  return B;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  const msg = new Uint8Array(32).fill(0xab);"
+        "  const sig = {r: 17n, s: 31n};"
+        "  const pk = new Uint8Array(32).fill(0xc7);"
+        "  expect(C.circuits.foo(Ctxt, msg, sig, pk).result).toEqual(false);"
+        "});"
+        ))
+    )
+  )
+
+(run-javascript)
+)
+#!eof
+|#
+
 (run-tests parse-file/format/reparse
   (test
     '(
@@ -60250,6 +60330,7 @@ groups than for single tests.
         "}"))
     )
 
+  #| TODO(dyb) reenable with zkir v2 check is reinstated
   (test
     '(
       "ledger wantProof: Boolean;"
@@ -60324,6 +60405,7 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
     )
+  |#
 
   ;; ecNeg: negate a JubjubPoint (ZKIR v2)
   (test

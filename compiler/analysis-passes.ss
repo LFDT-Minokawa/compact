@@ -2285,14 +2285,14 @@
          (source-errorf src "invalid type ~a for witness ~a return value:\n  witness return values cannot include contract values"
                         (format-type type)
                         (id-sym function-name)))
-       (when (and (not (feature-zkir-v3)) (contains-secp256k1? type))
+       #;(when (and (not (feature-zkir-v3)) (contains-secp256k1? type))
          (source-errorf src "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`"))
        (build-function 'witness #f function-name arg* type)]
       [(public-ledger-declaration ,src ,ledger-field-name ,[type])
        (unless (public-adt? type)
          (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
                             (format-type type)))
-       (when (and (not (feature-zkir-v3)) (contains-secp256k1? type))
+       #;(when (and (not (feature-zkir-v3)) (contains-secp256k1? type))
          (source-errorf src "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`"))
        (set-idtype! ledger-field-name (Idtype-Base type))]
       [else (void)])
@@ -2328,7 +2328,7 @@
                               (fx1+ argno))))
            (map arg->type arg*)
            (enumerate arg*)))
-       (when (and (not (feature-zkir-v3))
+       #;(when (and (not (feature-zkir-v3))
                   (or (contains-secp256k1? type)
                       (ormap (lambda (arg) (contains-secp256k1? (arg->type arg))) arg*)))
          (source-errorf src "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`"))
