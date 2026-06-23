@@ -117,25 +117,58 @@
               [(stmt->if-then-else (car stmts)) =>
                (lambda (parts)
                  (let* ([cond-expr (car parts)]
-                        [then-call (branch->single-pl-call (cadr parts))]
-                        [else-call (branch->single-pl-call (caddr parts))])
-                   (and then-call else-call
-                        (expr-supported? cond-expr native-id-ht witness-id-ht circuit-id-ht)
-                        (let ([then-path (caddr then-call)]
-                              [then-exprs (cadddr then-call)]
-                              [else-path (caddr else-call)]
-                              [else-exprs (cadddr else-call)])
-                          (and (fx= (length then-path) 1)
-                               (fx= (length else-path) 1)
-                               (for-all (lambda (e)
-                                          (expr-supported?
-                                            e native-id-ht witness-id-ht circuit-id-ht))
-                                        then-exprs)
-                               (for-all (lambda (e)
-                                          (expr-supported?
-                                            e native-id-ht witness-id-ht circuit-id-ht))
-                                        else-exprs)
-                               (loop (cdr stmts)))))))]
+                        [then-stmt (cadr parts)]
+                        [else-stmt (caddr parts)]
+                        [then-call (branch->single-pl-call then-stmt)]
+                        [else-call (branch->single-pl-call else-stmt)])
+                   (cond
+                     ;; Existing E6.2 shape: both branches are single
+                     ;; non-write pl-calls.
+                     [(and then-call else-call)
+                      (and (expr-supported? cond-expr native-id-ht
+                                            witness-id-ht circuit-id-ht)
+                           (let ([then-path (caddr then-call)]
+                                 [else-path (caddr else-call)])
+                             (and (for-all (lambda (pe)
+                                             (nanopass-case (Ltypescript Path-Element) pe
+                                               [,path-index #t]
+                                               [else #f]))
+                                           then-path)
+                                  (for-all (lambda (pe)
+                                             (nanopass-case (Ltypescript Path-Element) pe
+                                               [,path-index #t]
+                                               [else #f]))
+                                           else-path)
+                                  (loop (cdr stmts)))))]
+                     ;; A12 shape: every arm is an assert+pl-call,
+                     ;; chained via else-if; optional final else also of
+                     ;; the same shape, OR no final else.
+                     [(branch->assert-and-pl-call then-stmt)
+                      (and (expr-supported? cond-expr native-id-ht
+                                            witness-id-ht circuit-id-ht)
+                           (let walk-tail ([t else-stmt])
+                             (cond
+                               [(branch->assert-and-pl-call t) #t]
+                               [(let ([inner (stmt->if-then-else t)])
+                                  (and inner
+                                       (branch->assert-and-pl-call (cadr inner))
+                                       inner)) =>
+                                (lambda (inner)
+                                  (and (expr-supported?
+                                         (car inner) native-id-ht
+                                         witness-id-ht circuit-id-ht)
+                                       (walk-tail (caddr inner))))]
+                               [else
+                                ;; No final else: accept iff the tail is
+                                ;; a "no body" marker. In the current IR
+                                ;; that's `(tuple #f)` rendered as an
+                                ;; empty unit; conservatively we accept
+                                ;; if branch->assert-and-pl-call returns
+                                ;; #f *and* stmt->if-then-else returns
+                                ;; #f — i.e. no else.
+                                (not (stmt->if-then-else t))]))
+                           (loop (cdr stmts)))]
+                     [else #f])))]
               [else #f]))))
 
       ;; Cell.write builder lines: emit the hardcoded
@@ -488,6 +521,167 @@
                       (loop (cdr stmts) local-binds witness-emitted?
                             (+ step 1)
                             (format "&~a.context" res-name)))])))]
+            ;; A12: if/else-if chain where at least one arm carries a
+            ;; leading `(assert ...)` OR the else-branch is itself a
+            ;; nested if-then-else (else-if pattern). did.compact's
+            ;; setAlsoKnownAs / setVerificationMethodRelation are the
+            ;; canonical cases. We accept N arms with optional final
+            ;; else. Emission: a Rust `if cond1 { ... } else if cond2
+            ;; { ... } else { ... };` chain, each branch laying its
+            ;; own `compact_assert!(...)` then OpProgramVerify chain.
+            ;;
+            ;; This clause runs BEFORE the legacy E6.2 clause below;
+            ;; both fall through to the legacy clause when both branches
+            ;; are E6.2-shaped (single non-write pl-call, no assert),
+            ;; preserving byte-parity on if_stmt_fixture / election /
+            ;; zerocash.spend.
+            [(let ([p (stmt->if-then-else (car stmts))])
+               (and p
+                    ;; Defer to E6.2 when both branches match the older
+                    ;; single-pl-call shape.
+                    (not (and (if-then-else-branch-pl-call?
+                                (cadr p) local-binds
+                                native-id-ht witness-id-ht circuit-id-ht)
+                              (if-then-else-branch-pl-call?
+                                (caddr p) local-binds
+                                native-id-ht witness-id-ht circuit-id-ht)))
+                    p)) =>
+             (lambda (parts)
+               (let loop-arms ([arms (list (cons (car parts) (cadr parts)))]
+                               [tail (caddr parts)])
+                 (cond
+                   [(let ([inner (stmt->if-then-else tail)])
+                      (and inner
+                           (branch->assert-and-pl-call (cadr inner))
+                           inner)) =>
+                    (lambda (inner)
+                      (loop-arms (cons (cons (car inner) (cadr inner)) arms)
+                                 (caddr inner)))]
+                   [else
+                    (let* ([source-arms (reverse arms)]
+                           [final-else
+                            (and (branch->assert-and-pl-call tail) tail)]
+                           [arm-info
+                            (map (lambda (a)
+                                   (let* ([cond-expr (car a)]
+                                          [branch-stmt (cdr a)]
+                                          [b (branch->assert-and-pl-call
+                                               branch-stmt)])
+                                     (and b
+                                          (let* ([assert-pair (car b)]
+                                                 [src (cadr b)]
+                                                 [adt-op (caddr b)]
+                                                 [path-elt* (cadddr b)]
+                                                 [expr* (car (cddddr b))]
+                                                 [lines
+                                                  (compute-pl-builder-lines
+                                                    src adt-op path-elt* expr*
+                                                    local-binds
+                                                    native-id-ht witness-id-ht
+                                                    circuit-id-ht)]
+                                                 [cond-str
+                                                  (guard (c [#t #f])
+                                                    (cond-rust cond-expr
+                                                               local-binds
+                                                               native-id-ht
+                                                               witness-id-ht
+                                                               circuit-id-ht))])
+                                            (and lines cond-str
+                                                 (not (rendered-has-todo?
+                                                        cond-str))
+                                                 (list cond-str assert-pair
+                                                       lines))))))
+                                 source-arms)]
+                           [else-info
+                            (and final-else
+                                 (let* ([b (branch->assert-and-pl-call
+                                             final-else)]
+                                        [assert-pair (car b)]
+                                        [src (cadr b)]
+                                        [adt-op (caddr b)]
+                                        [path-elt* (cadddr b)]
+                                        [expr* (car (cddddr b))]
+                                        [lines
+                                         (compute-pl-builder-lines
+                                           src adt-op path-elt* expr*
+                                           local-binds
+                                           native-id-ht witness-id-ht
+                                           circuit-id-ht)])
+                                   (and lines (list assert-pair lines))))])
+                      (cond
+                        [(memv #f arm-info) #f]
+                        [(and final-else (not else-info)) #f]
+                        [else
+                         (let ([res-name (format "_if_results_~a" step)])
+                           (out "\n")
+                           (let loop-emit ([xs arm-info] [first? #t])
+                             (cond
+                               [(null? xs) (void)]
+                               [else
+                                (let* ([a (car xs)]
+                                       [cond-str (car a)]
+                                       [assert-pair (cadr a)]
+                                       [lines (caddr a)])
+                                  (out (format "        ~a~a ~a {\n"
+                                               (if first? "let " "} else ")
+                                               (if first?
+                                                   (format "~a = if" res-name)
+                                                   "if")
+                                               cond-str))
+                                  (when assert-pair
+                                    (let ([ae (car assert-pair)]
+                                          [msg (cdr assert-pair)])
+                                      (out (format "            compact_assert!(~a, ~s);\n"
+                                                   (assert-cond-rust
+                                                     ae local-binds
+                                                     native-id-ht witness-id-ht
+                                                     circuit-id-ht)
+                                                   msg))))
+                                  (out "            let ops = OpProgramVerify::<DefaultDB>::new()\n")
+                                  (for-each (lambda (l) (out (format "    ~a" l)))
+                                            lines)
+                                  (out "                .build();\n")
+                                  (out (format "            query_for_verify(~a, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
+                                               ctx-expr))
+                                  (loop-emit (cdr xs) #f))]))
+                           (out "        } else {\n")
+                           (cond
+                             [else-info
+                              (let ([assert-pair (car else-info)]
+                                    [lines (cadr else-info)])
+                                (when assert-pair
+                                  (let ([ae (car assert-pair)]
+                                        [msg (cdr assert-pair)])
+                                    (out (format "            compact_assert!(~a, ~s);\n"
+                                                 (assert-cond-rust
+                                                   ae local-binds
+                                                   native-id-ht witness-id-ht
+                                                   circuit-id-ht)
+                                                 msg))))
+                                (out "            let ops = OpProgramVerify::<DefaultDB>::new()\n")
+                                (for-each (lambda (l) (out (format "    ~a" l)))
+                                          lines)
+                                (out "                .build();\n")
+                                (out (format "            query_for_verify(~a, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
+                                             ctx-expr)))]
+                             [else
+                              (out "            let ops = OpProgramVerify::<DefaultDB>::new().build();\n")
+                              (out (format "            query_for_verify(~a, &ops, ctx.gas_limit.clone(), &ctx.cost_model)?\n"
+                                           ctx-expr))])
+                           (out "        };\n")
+                           (out (format "        __gas_acc += ~a.gas_cost.clone();\n" res-name))
+                           ;; A12: rebind ctx so subsequent stmts (e.g.
+                           ;; the `recordUpdate()` call after the if in
+                           ;; did.compact's setAlsoKnownAs) see the
+                           ;; updated context through the default
+                           ;; `&ctx.current_query_context` ctx-expr.
+                           ;; `_if_results_N.context` is a QueryContext;
+                           ;; wrap it in CircuitContext via `..ctx`.
+                           (out (format "        let ctx = CircuitContext { current_query_context: ~a.context, ..ctx };\n"
+                                        res-name))
+                           (loop (cdr stmts) local-binds witness-emitted?
+                                 (+ step 1)
+                                 "&ctx.current_query_context"))]))])))]
             [(stmt->if-then-else (car stmts)) =>
              (lambda (parts)
                (let* ([cond-expr (car parts)]

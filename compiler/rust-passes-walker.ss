@@ -2504,6 +2504,40 @@
                       (list src adt-op path-elt* resolved-expr*))))]
             [else #f])))
 
+      ;; branch->assert-and-pl-call: A12 sibling of branch->single-pl-call
+      ;; that admits a single leading `(assert ...)` before the terminal
+      ;; pl-call. Used by the streaming walker's nested-if/else-if dispatch
+      ;; (did.compact's setAlsoKnownAs / setVerificationMethodRelation
+      ;; shapes). Returns (list assert-pair src adt-op path-elt* resolved-expr*)
+      ;; on match where `assert-pair` is `(cons assert-expr msg)` or #f for
+      ;; an assert-less branch. Returns #f on any structural mismatch so
+      ;; the caller can fall back.
+      ;;
+      ;; Const-bindings before the assert (and between assert and pl-call)
+      ;; are accumulated into `binds` and used to resolve var-refs in the
+      ;; pl-call's args via expr-resolve, mirroring branch->single-pl-call.
+      (define (branch->assert-and-pl-call stmt)
+        (let loop ([stmts (stmt-flatten stmt)] [binds '()] [assert-pair #f])
+          (cond
+            [(null? stmts) #f]
+            [(const-binding (car stmts)) =>
+             (lambda (b) (loop (cdr stmts) (cons b binds) assert-pair))]
+            [(and (not assert-pair)
+                  (stmt->assert (car stmts))) =>
+             (lambda (a) (loop (cdr stmts) binds a))]
+            [(and (null? (cdr stmts))
+                  (stmt->public-ledger-call (car stmts))) =>
+             (lambda (parts)
+               (let* ([src (car parts)]
+                      [adt-op (cadr parts)]
+                      [path-elt* (caddr parts)]
+                      [expr* (cadddr parts)]
+                      [resolved-expr* (map (lambda (e) (expr-resolve e binds))
+                                           expr*)])
+                 (and (not (memv #f resolved-expr*))
+                      (list assert-pair src adt-op path-elt* resolved-expr*))))]
+            [else #f])))
+
       ;; compute-pl-builder-lines: given a public-ledger ADT-op + path +
       ;; arg expressions + local bindings, compute the list of builder-
       ;; call lines for the OpProgramVerify chain (push/idx/ins/...) via
