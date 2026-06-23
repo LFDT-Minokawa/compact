@@ -1952,6 +1952,17 @@
                 [else #f])]
              [else #f])]
           [(talias ,src ,nominal? ,type-name ,type) (decoder-for-type type)]
+          ;; A5: struct types (user-defined or stdlib like
+          ;; `ContractAddress`) decode via the FromFieldRepr trait —
+          ;; the H6/H7 emitter derives it for user structs, and
+          ;; upstream stdlib structs in midnight-coin-structure /
+          ;; midnight-base-crypto derive it natively. The Rust type
+          ;; name comes through unqualified — it must already be in
+          ;; scope at the call site (the codegen's `use
+          ;; compact_runtime::*` import covers re-exported stdlib
+          ;; types; user structs are emitted at module scope).
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+           (format "compact_runtime::std_lib::decode_via_field_repr::<~a>" struct-name)]
           [else #f]))
 
       ;; adt-is-collection?: ADTs whose `read` op-class is a per-element
