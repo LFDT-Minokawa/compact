@@ -1183,6 +1183,31 @@
             [else
              (expr-supported? e native-id-ht witness-id-ht circuit-id-ht)])))
 
+      ;; impure-circuit-body-walkable?: pre-validate whether
+      ;; emit-impure-circuit will succeed on a circuit's body. Mirrors
+      ;; the body-shape dispatch inside emit-impure-circuit (rust-passes-
+      ;; emit.ss:1068) — the body emits iff one of these predicates
+      ;; matches:
+      ;;   - if-expression-body (any return type)
+      ;;   - unit-type AND (single-public-ledger-call OR body-walkable?
+      ;;     OR body-streaming-walkable?)
+      ;; Used by rust-passes.ss's emission filter to decide whether a
+      ;; non-exported impure circuit is safe to emit as a method.
+      (define (impure-circuit-body-walkable?
+                cdefn native-id-ht witness-id-ht circuit-id-ht)
+        (nanopass-case (Ltypescript Program-Element) cdefn
+          [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
+           (or (stmt->if-expression-body stmt)
+               (and (unit-type? type)
+                    (or (stmt->single-public-ledger-call stmt)
+                        (body-walkable?
+                          stmt native-id-ht witness-id-ht circuit-id-ht)
+                        (and (body-streaming-walkable?
+                               stmt native-id-ht witness-id-ht circuit-id-ht)
+                             (body-needs-streaming?
+                               stmt native-id-ht witness-id-ht circuit-id-ht)))))]
+          [else #f]))
+
       ;; body-walkable?: pre-validate that the flat statement sequence is
       ;; one our walker can emit without producing TODO/unimplemented
       ;; markers. Mirrors emit-body-or-fallback's case analysis but only
@@ -1225,13 +1250,19 @@
               ;; const binding). zerocash_mint's `private$add_coin(coin);`
               ;; takes this shape — the return value is discarded but the
               ;; call still has side effects (witness updates private state).
-              ;; Only accept non-terminal positions: a bare call at the end
-              ;; would leave us without a ledger-write to anchor the
-              ;; OpProgramVerify chain, which we can't currently emit.
               ;; Pure-circuit callees must additionally be exported (only
               ;; exported pure circuits land in the `pure_circuits` mod).
-              [(and (pair? (cdr stmts))
-                    (stmt->bare-call (car stmts))) =>
+              ;;
+              ;; DID-walker-A: terminal bare-calls are also accepted (e.g.
+              ;; rotateControllerKey ends with `recordUpdate();`). The
+              ;; emit-body-or-fallback loop's bare-call clause already
+              ;; handles terminal positions by accumulating the call's
+              ;; ctx-rebind into pre-lines and then exiting at the
+              ;; (null? stmts) tail. The accumulated writes from earlier
+              ;; statements anchor the OpProgramVerify chain — bodies
+              ;; with no writes at all still drop to #f at that tail
+              ;; and fall through to the streaming walker / error path.
+              [(stmt->bare-call (car stmts)) =>
                (lambda (c)
                  (let* ([fn-id (car c)]
                         [arg* (cdr c)]
@@ -1242,10 +1273,10 @@
                             ;; bare-call callees, exported or not — both
                             ;; now land in pure_circuits.
                             (eq? (car classified) 'pure-circuit)
-                            ;; M3.5-E5: accept bare calls to exported
-                            ;; impure circuits — emitted as
-                            ;; `self.<name>(ctx, ...)?` with context
-                            ;; rebound from the returned CircuitResults.
+                            ;; M3.5-E5 / DID-walker-A: accept bare calls
+                            ;; to any user impure circuit (exported as
+                            ;; pub fn, non-exported as pub(crate) fn).
+                            ;; Both emit as `self.<name>(ctx, ...)?`.
                             (eq? (car classified) 'impure-exported))
                         (for-all (lambda (e)
                                    (expr-supported?
@@ -2040,11 +2071,13 @@
           [(and (eq-hashtable-ref circuit-id-ht fn-id #f)
                 (id-pure? fn-id))
            (list 'pure-circuit (camel->snake (id-sym fn-id)) arg*)]
-          ;; E5: bare-call to an exported impure circuit (statement
-          ;; position, return value discarded). Emit `self.<snake>(ctx, ...)`
-          ;; and thread the returned context into a rebound `ctx`.
+          ;; E5 / DID-walker-A: bare-call to an impure circuit (exported
+          ;; or not — both are emitted as methods on the contract impl,
+          ;; with `pub` vs `pub(crate)` visibility per emit-impure-circuit).
+          ;; Emitted as `self.<snake>(ctx, ...)?` with the returned context
+          ;; threaded into a rebound `ctx`. The tag stays 'impure-exported
+          ;; to keep the downstream emit clauses unchanged.
           [(and (eq-hashtable-ref circuit-id-ht fn-id #f)
-                (id-exported? fn-id)
                 (not (id-pure? fn-id)))
            (list 'impure-exported (camel->snake (id-sym fn-id)) arg*)]
           [else (list 'unknown)]))

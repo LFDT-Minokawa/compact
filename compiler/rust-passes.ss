@@ -94,10 +94,31 @@
                 [native-id-ht (build-native-id-ht pelt*)]
                 [witness-id-ht (build-witness-id-ht pelt*)]
                 [circuit-id-ht (build-circuit-id-ht pelt*)])
+           ;; Emit impure circuits as methods on the contract impl.
+           ;;
+           ;; EXPORTED impure circuits are part of the contract's public
+           ;; surface and always emit (the emitter's per-circuit body
+           ;; dispatch may still throw "no walker shape matched" if its
+           ;; body shape isn't supported — that's the failure surface
+           ;; users see as the codegen-rust frontier).
+           ;;
+           ;; NON-EXPORTED impure circuits are private helpers, e.g.
+           ;; did.compact's `recordUpdate`, `assertController`,
+           ;; `assertControllerCanUpdate`. They emit ONLY if their body
+           ;; is walkable in the current dispatcher — otherwise we skip
+           ;; them silently (their callers inline them via the
+           ;; assert-cond-rust inline-circuit-call path, or the caller's
+           ;; body itself isn't walkable and the failure surfaces there).
+           ;; This keeps non-exported helpers like tiny.compact's
+           ;; `in_state` (non-unit single return-expression — not yet a
+           ;; supported body shape) from forcing a hard error before
+           ;; their callers ever invoke them.
            (for-each
              (lambda (c)
                (when (and (not (id-pure? (circuit-function-name c)))
-                          (id-exported? (circuit-function-name c)))
+                          (or (id-exported? (circuit-function-name c))
+                              (impure-circuit-body-walkable?
+                                c native-id-ht witness-id-ht circuit-id-ht)))
                  (emit-impure-circuit c native-id-ht witness-id-ht circuit-id-ht)))
              circuit*)
            (close-contract-struct)

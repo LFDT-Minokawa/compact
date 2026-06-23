@@ -1058,7 +1058,14 @@
       (define (emit-impure-circuit cdefn native-id-ht witness-id-ht circuit-id-ht)
         (nanopass-case (Ltypescript Program-Element) cdefn
           [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
-           (out (format "    pub fn ~a(\n" (camel->snake (id-sym function-name))))
+           ;; Exported impure circuits land on the public Contract API.
+           ;; Non-exported ones are private helpers callable from bare-call
+           ;; statements in other circuit bodies — same emission shape, but
+           ;; `pub(crate)` so downstream crates don't see them. Mirrors the
+           ;; pure-circuit visibility convention in emit-pure-circuit.
+           (out (format "    ~a fn ~a(\n"
+                        (if (id-exported? function-name) "pub" "pub(crate)")
+                        (camel->snake (id-sym function-name))))
            (out "        &self,\n")
            (out "        ctx: CircuitContext<PS>")
            (emit-circuit-args arg*)
