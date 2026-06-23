@@ -72,6 +72,14 @@ impl<D: DB> OpProgramVerify<D> {
         self
     }
 
+    /// `rem` — remove the top stack value's key from the container below
+    /// it on the stack (Set.remove / Map.remove). Mirrors the
+    /// `(rem [cached ...])` vminstruction emitted for ADT `remove` ops.
+    pub fn rem(mut self, cached: bool) -> Self {
+        self.ops.push(Op::Rem { cached });
+        self
+    }
+
     /// `push` — pushes a `StateValue` onto the VM stack. The `storage` flag
     /// distinguishes pushes that introduce new storage cells (the value being
     /// written, `storage = true`) from pushes that supply path keys or

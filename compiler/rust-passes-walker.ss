@@ -2234,9 +2234,22 @@
       ;; stmt->if-then-else: detect a `(if cond then-stmt else-stmt)`
       ;; statement and return (list cond then-stmt else-stmt). Used by
       ;; E6.2's impure if-mid-body walker extension.
+      ;;
+      ;; A13: Ltypescript Statement has BOTH a 3-arg `(if cond stmt1 stmt2)`
+      ;; form AND a 2-arg `(if cond stmt1)` no-else form (langs.ss:875).
+      ;; Normalise the 2-arg form by synthesising a unit `(tuple)`
+      ;; statement-expression as the else, so downstream code can rely
+      ;; on a uniform 3-element shape.
       (define (stmt->if-then-else stmt)
         (nanopass-case (Ltypescript Statement) stmt
           [(if ,src ,expr0 ,stmt1 ,stmt2) (list expr0 stmt1 stmt2)]
+          [(if ,src ,expr0 ,stmt1)
+           (list expr0
+                 stmt1
+                 (with-output-language (Ltypescript Statement)
+                   `(statement-expression
+                      ,(with-output-language (Ltypescript Expression)
+                         `(tuple ,src)))))]
           [else #f]))
 
       ;; tsize->int / stmt->for-range: HISTORICAL — the original Iter 4

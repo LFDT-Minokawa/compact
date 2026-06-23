@@ -840,6 +840,16 @@
                          (format "            .addi(~a as u32)\n"
                                  (vm-rust-expr-text inner)))]
                       [else #f]))]))]
+            [(string=? op "rem")
+             ;; A13: Set.remove / Map.remove vm-code op. Renders as
+             ;; `.rem(<cached>)` on OpProgramVerify; the runtime
+             ;; builder method was added alongside this change.
+             (let ([cached-pair (assoc "cached" args)])
+               (cond
+                 [(not cached-pair) #f]
+                 [else
+                  (format "            .rem(~a)\n"
+                          (if (cdr cached-pair) "true" "false"))]))]
             [(string=? op "ins")
              (let ([cached-pair (assoc "cached" args)]
                    [n-pair (assoc "n" args)])
