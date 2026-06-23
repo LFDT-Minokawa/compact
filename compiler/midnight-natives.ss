@@ -59,20 +59,10 @@
    [y Secp256k1Scalar (discloses "a sum including")])
   Secp256k1Scalar)
 
-(declare-native-entry circuit neg
-  "__compactRuntime.secp256k1ScalarNeg"
-  ([s Secp256k1Scalar (discloses "the negation of")])
-  Secp256k1Scalar)
-
 (declare-native-entry circuit mul
   "__compactRuntime.secp256k1ScalarMul"
   ([x Secp256k1Scalar (discloses "a product including")]
    [y Secp256k1Scalar (discloses "a product including")])
-  Secp256k1Scalar)
-
-(declare-native-entry circuit inv
-  "__compactRuntime.secp256k1ScalarInv"
-  ([s Secp256k1Scalar (discloses "the inverse of")])
   Secp256k1Scalar)
 
 (declare-native-entry circuit add

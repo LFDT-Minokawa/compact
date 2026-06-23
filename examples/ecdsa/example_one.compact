@@ -58,3 +58,13 @@ export circuit proveBitcoinSignature(
 ): Boolean {
   return secp256k1EcdsaVerify(persistentHash<Bytes<32>>(msg), sig, pk);
 }
+
+// Multiply two secp256k1 scalars.
+// The native `mul` is the special case that reduces the product modulo the
+// secp256k1 group order n (SECP256K1_SCALAR_MODULUS), which is the correct
+// modulus for the scalar field. The bare `*` operator would instead lower to
+// the runtime's `mulField`, reducing modulo the proof system's BLS12-381 field
+// modulus -- the wrong modulus for a Secp256k1Scalar.
+export circuit scalarMul(x: Secp256k1Scalar, y: Secp256k1Scalar): Secp256k1Scalar {
+  return mul(x, y);
+}
