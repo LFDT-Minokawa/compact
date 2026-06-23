@@ -777,14 +777,25 @@
                  [else
                   (let ([indices (vm-path->indices (cdr path-pair))]
                         [push-path (cdr push-pair)])
+                    ;; A11: emit one `.idx_at_index(N, push)` per index.
+                    ;; Single- and multi-index paths share the loop — the
+                    ;; n=1 case (Counter et al. at top-level) is just the
+                    ;; specialisation. did.compact's recordUpdate writes
+                    ;; under a nested ledger struct (path `(1 6)`) needs
+                    ;; n>1; A8 already did this for vminstr->gather-builder-call,
+                    ;; this mirrors it for the Verify pipeline.
                     (cond
-                      ;; Single-element path → use the .idx_at_index
-                      ;; shorthand (matches the existing read template;
-                      ;; restores byte-parity with counter's snapshot).
-                      [(and indices (= (length indices) 1))
-                       (format "            .idx_at_index(~au8, ~a)\n"
-                               (car indices)
-                               (if push-path "true" "false"))]
+                      [(and indices (pair? indices))
+                       (let loop ([is indices] [acc ""])
+                         (cond
+                           [(null? is) acc]
+                           [else
+                            (loop (cdr is)
+                                  (string-append
+                                    acc
+                                    (format "            .idx_at_index(~au8, ~a)\n"
+                                            (car is)
+                                            (if push-path "true" "false"))))]))]
                       [else #f]))]))]
             [(string=? op "addi")
              (let ([imm-pair (assoc "immediate" args)])
