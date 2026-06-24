@@ -370,6 +370,17 @@
             #t)
           (MerkleTreePathEntry
             ,(lambda (elt-name* type*) "compact_runtime::MerklePathEntry")
+            #t)
+          ;; Module-1: the Compact-side `Schnorr.SchnorrSignature` struct
+          ;; (`announcement: JubjubPoint`, `response: Field`) is sourced
+          ;; from the jubjub-schnorr import chain and consumed by
+          ;; `compact_runtime::schnorr_verify_jubjub`. To make the call
+          ;; site type-check we elide the codegen-emitted struct + impls
+          ;; entirely and route the type to the runtime's mirror
+          ;; (`compact_runtime::SchnorrSignature`) which has the
+          ;; matching layout.
+          (SchnorrSignature
+            ,(lambda (elt-name* type*) "compact_runtime::SchnorrSignature")
             #t)))
 
       (define stdlib-circuit-mappings
