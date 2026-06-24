@@ -1194,9 +1194,17 @@
                          [(null? xs) acc]
                          [else (join (cdr xs)
                                      (string-append acc ", " (car xs)))]))]
+                    ;; Bug-7: when this hoist runs inside a non-top-level
+                     ;; arm (indent depth > 8 spaces), the surrounding code
+                     ;; still needs `ctx` for the post-arm rebind. Pass
+                     ;; `ctx.clone()` so the outer ctx remains usable. At
+                     ;; the top-level body the ctx rebind that follows
+                     ;; absorbs the move so the extra clone is harmless.
+                     [arm-context? (> (string-length indent) 8)]
+                     [ctx-arg (if arm-context? "ctx.clone()" "ctx")]
                     [call-line
-                     (format "~alet ~a = self.~a(ctx~a)?;\n"
-                             indent rust-name cname arg-tail)]
+                     (format "~alet ~a = self.~a(~a~a)?;\n"
+                             indent rust-name cname ctx-arg arg-tail)]
                     [ctx-line
                      (format "~alet ctx = ~a.context;\n" indent rust-name)])
                (loop (cdr subs)
@@ -2095,10 +2103,19 @@
                       ;; emit `let tmp = 42;` and fail to compile.
                       (let* ([decl-type (const-binding-decl-type (car stmts))]
                              [coerced (coerce-literal-rhs-rendered decl-type rhs)]
-                             [rendered
+                             [raw
                               (or coerced
                                   (ctor-expr-rust rhs local-binds
-                                                  native-id-ht witness-id-ht circuit-id-ht))])
+                                                  native-id-ht witness-id-ht circuit-id-ht))]
+                             ;; Bug-6: clone non-Copy var-ref / elt-ref RHS so
+                             ;; the source struct/local stays usable after the
+                             ;; lift. Skip the clone wrap when the coerced
+                             ;; literal renamed the RHS (the literal path
+                             ;; produced a copy already).
+                             [rendered
+                              (cond
+                                [coerced raw]
+                                [else (expr-rust-arg-cloned rhs raw)])])
                         (loop (cdr stmts)
                               (cons (cons var-name rust-name) local-binds)
                               witness-emitted?

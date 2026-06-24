@@ -238,10 +238,14 @@
                (let* ([var-name (car a)]
                       [rhs (cdr a)]
                       [rust-name (symbol->string (camel->snake (id-sym var-name)))]
-                      [rendered
+                      [raw
                        (guard (c [#t #f])
                          (ctor-expr-rust rhs local-binds
-                                         native-id-ht witness-id-ht circuit-id-ht))])
+                                         native-id-ht witness-id-ht circuit-id-ht))]
+                      ;; Bug-6: clone non-Copy var-ref / elt-ref RHS so the
+                      ;; source struct/local stays usable after the lift.
+                      [rendered
+                       (and raw (expr-rust-arg-cloned rhs raw))])
                  (cond
                    [(not rendered) #f]
                    [else
@@ -400,10 +404,13 @@
                             witness-emitted? (+ step 3)
                             "&ctx.current_query_context"))]
                    [else
-                    (let ([rendered
-                           (guard (c [#t #f])
-                             (ctor-expr-rust rhs local-binds
-                                             native-id-ht witness-id-ht circuit-id-ht))])
+                    (let* ([raw
+                            (guard (c [#t #f])
+                              (ctor-expr-rust rhs local-binds
+                                              native-id-ht witness-id-ht circuit-id-ht))]
+                           ;; Bug-6: clone non-Copy var-ref / elt-ref RHS so
+                           ;; the source struct/local stays usable after.
+                           [rendered (and raw (expr-rust-arg-cloned rhs raw))])
                       (cond
                         [(not rendered) #f]
                         [else
@@ -684,22 +691,45 @@
                                   ;; ctor-expr-rust's `(camel->snake id-sym)`
                                   ;; var-ref fallback so subsequent
                                   ;; references resolve via Rust scoping.
-                                  (for-each
-                                    (lambda (b)
-                                      (let* ([var-name (car b)]
-                                             [expr (cdr b)]
-                                             [rust-name (symbol->string
-                                                          (camel->snake
-                                                            (id-sym var-name)))]
-                                             [rendered
-                                              (guard (c [#t "/* TODO A14 */"])
-                                                (ctor-expr-rust expr local-binds
-                                                                native-id-ht
-                                                                witness-id-ht
-                                                                circuit-id-ht))])
-                                        (out (format "            let ~a = ~a;\n"
-                                                     rust-name rendered))))
-                                    pre-stmts)
+                                  ;;
+                                  ;; Bug-5 (2026-06-24): the frontend lift can
+                                  ;; emit the same `(= tmp expr)` twice when
+                                  ;; the same elt-ref / arg expression is
+                                  ;; referenced in both the arm's assert cond
+                                  ;; and its terminal pl-call — Rust then
+                                  ;; rejects the second `let tmp = ...` with
+                                  ;; E0382 (move). Dedupe by var-name; the
+                                  ;; second occurrence is structurally
+                                  ;; identical (same lift, same expr) so
+                                  ;; skipping it preserves semantics.
+                                  (let loop ([xs pre-stmts] [seen '()])
+                                    (cond
+                                      [(null? xs) (void)]
+                                      [else
+                                       (let* ([var-name (car (car xs))]
+                                              [expr (cdr (car xs))]
+                                              [rust-name (symbol->string
+                                                           (camel->snake
+                                                             (id-sym var-name)))])
+                                         (cond
+                                           [(member rust-name seen)
+                                            (loop (cdr xs) seen)]
+                                           [else
+                                            (let* ([raw
+                                                    (guard (c [#t "/* TODO A14 */"])
+                                                      (ctor-expr-rust expr local-binds
+                                                                      native-id-ht
+                                                                      witness-id-ht
+                                                                      circuit-id-ht))]
+                                                   ;; Bug-6: clone non-Copy
+                                                   ;; var-ref / elt-ref RHS so
+                                                   ;; the source struct stays
+                                                   ;; usable after the lift.
+                                                   [rendered
+                                                    (expr-rust-arg-cloned expr raw)])
+                                              (out (format "            let ~a = ~a;\n"
+                                                           rust-name rendered))
+                                              (loop (cdr xs) (cons rust-name seen)))]))]))
                                   (when assert-pair
                                     (let* ([ae (car assert-pair)]
                                            [msg (cdr assert-pair)]
