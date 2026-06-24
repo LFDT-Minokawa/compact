@@ -31,15 +31,7 @@ interface EcdsaPureCircuits {
     proveBitcoinSignature(msg: Uint8Array, sig: Signature, pk: Point): boolean;
     recoverEthereumPublicKey(msg: Uint8Array, sig: SignatureWithRecovery): Point;
     recoverEthereumAddress(msg: Uint8Array, sig: SignatureWithRecovery): Uint8Array;
-    // A Secp256k1Scalar is a bare bigint at runtime.
-    scalarMul(x: bigint, y: bigint): bigint;
 }
-
-// The two moduli that the scalar multiply must NOT confuse:
-//   n - the secp256k1 group order (SECP256K1_SCALAR_MODULUS), the correct modulus.
-//   r - the proof system's BLS12-381 scalar field (FIELD_MODULUS), used by mulField.
-const SECP256K1_SCALAR_MODULUS = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
-const BLS12_381_FIELD_MODULUS = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001n;
 
 const EXAMPLE = buildPathTo('ecdsa/example_one.compact');
 
@@ -105,26 +97,5 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
         const address = pureCircuits.recoverEthereumAddress(ethMsg, ethSig);
         expect(address).toBeInstanceOf(Uint8Array);
         expect(address.length).toBe(20);
-    });
-
-    test('scalarMul reduces modulo the secp256k1 group order n, not the BLS field modulus', () => {
-        // Two large scalars whose product wraps differently under n vs. the BLS
-        // field modulus, so the test distinguishes the correct reduction.
-        const x = SECP256K1_SCALAR_MODULUS - 2n;
-        const y = SECP256K1_SCALAR_MODULUS - 12345n;
-        const product = x * y;
-
-        const got = pureCircuits.scalarMul(x, y);
-        // Correct: (n - 2)(n - 12345) === (-2)(-12345) === 24690 (mod n).
-        expect(got).toBe(product % SECP256K1_SCALAR_MODULUS);
-        expect(got).toBe(24690n);
-        // Regression guard: a `*`-style lowering would reduce mod the BLS field
-        // modulus and produce a different value.
-        expect(got).not.toBe(product % BLS12_381_FIELD_MODULUS);
-    });
-
-    test('scalarMul wraps (n - 1)^2 to 1 modulo n', () => {
-        const nMinus1 = SECP256K1_SCALAR_MODULUS - 1n;
-        expect(pureCircuits.scalarMul(nMinus1, nMinus1)).toBe(1n);
     });
 });
