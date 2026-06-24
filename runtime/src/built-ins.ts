@@ -463,8 +463,7 @@ export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue
  * The returned value is in the range [0, JUBJUB_SCALAR_MODULUS).
  */
 export function jubjubSampleScalar(): bigint {
-  return 0n;
-  // return ocrt.valueToBigInt(ocrt.jubjubSampleScalar());
+  return ocrt.valueToBigInt(ocrt.jubjubSampleScalar());
 }
 
 /**
