@@ -2074,8 +2074,8 @@
                                   [else (join (cdr xs)
                                               (string-append acc ", " (car xs)))]))]
                              [call-line
-                              (format "        let ~a = self.~a(ctx~a)?;\n"
-                                      cr-name cname arg-tail)]
+                              (format "        let ~a = ~a(ctx~a)?;\n"
+                                      cr-name (impure-call-target cname) arg-tail)]
                              [ctx-line
                               (format "        let ctx = ~a.context;\n" cr-name)]
                              [bind-line
@@ -2216,8 +2216,8 @@
                                   [else (join (cdr xs)
                                               (string-append acc ", " (car xs)))]))]
                              [call-line
-                              (format "        let ~a = self.~a(ctx~a)?;\n"
-                                      cr-name cname arg-tail)]
+                              (format "        let ~a = ~a(ctx~a)?;\n"
+                                      cr-name (impure-call-target cname) arg-tail)]
                              [ctx-line
                               (format "        let ctx = ~a.context;\n" cr-name)])
                         (loop (cdr stmts)

@@ -390,13 +390,13 @@
                            [ctx-for-call-name (format "_ctx_for_~a" step)])
                       (cond
                         [direct?
-                         (out (format "        let ~a = self.~a(ctx~a)?;\n"
-                                      cr-name cname arg-tail))]
+                         (out (format "        let ~a = ~a(ctx~a)?;\n"
+                                      cr-name (impure-call-target cname) arg-tail))]
                         [else
                          (out (format "        let ~a = CircuitContext { current_query_context: ~a.clone(), ..ctx.clone() };\n"
                                       ctx-for-call-name qc-src))
-                         (out (format "        let ~a = self.~a(~a~a)?;\n"
-                                      cr-name cname ctx-for-call-name arg-tail))])
+                         (out (format "        let ~a = ~a(~a~a)?;\n"
+                                      cr-name (impure-call-target cname) ctx-for-call-name arg-tail))])
                       (out (format "        let ctx = ~a.context;\n" cr-name))
                       (out (format "        let ~a = ~a.result;\n" rust-name cr-name))
                       (loop (cdr stmts)
@@ -505,8 +505,8 @@
                                (substring ctx-expr 1 (string-length ctx-expr))])
                           (out (format "        let ctx = CircuitContext { current_query_context: ~a.clone(), ..ctx };\n"
                                        referent))))
-                      (out (format "        let ~a = self.~a(ctx~a)?;\n"
-                                   cr-name cname arg-tail))
+                      (out (format "        let ~a = ~a(ctx~a)?;\n"
+                                   cr-name (impure-call-target cname) arg-tail))
                       (out (format "        let ctx = ~a.context;\n" cr-name))
                       (loop (cdr stmts) local-binds witness-emitted?
                             (+ step 2) "&ctx.current_query_context"))]
@@ -784,8 +784,8 @@
                                                  [else (join (cdr xs)
                                                              (string-append acc ", " (car xs)))]))]
                                             [cr-name (format "_cr_arm~a" step)])
-                                       (out (format "            let ~a = self.~a(ctx.clone()~a)?;\n"
-                                                    cr-name cname arg-tail))
+                                       (out (format "            let ~a = ~a(ctx.clone()~a)?;\n"
+                                                    cr-name (impure-call-target cname) arg-tail))
                                        (out (format "            __gas_acc += ~a.gas_cost.clone();\n"
                                                     cr-name))
                                        (out "            let _empty_ops = OpProgramVerify::<DefaultDB>::new().build();\n")
@@ -872,8 +872,8 @@
                                                [else (join (cdr xs)
                                                            (string-append acc ", " (car xs)))]))]
                                           [cr-name (format "_cr_arm~a_else" step)])
-                                     (out (format "            let ~a = self.~a(ctx.clone()~a)?;\n"
-                                                  cr-name cname arg-tail))
+                                     (out (format "            let ~a = ~a(ctx.clone()~a)?;\n"
+                                                  cr-name (impure-call-target cname) arg-tail))
                                      (out (format "            __gas_acc += ~a.gas_cost.clone();\n"
                                                   cr-name))
                                      (out "            let _empty_ops = OpProgramVerify::<DefaultDB>::new().build();\n")

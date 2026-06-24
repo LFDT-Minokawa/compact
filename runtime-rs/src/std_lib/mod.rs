@@ -30,6 +30,7 @@ mod jubjub;
 mod maybe;
 mod merkle_path;
 mod opaque;
+mod schnorr;
 
 pub use adts::{
     decode_bool, decode_bytes, decode_fr, decode_u128, decode_u16, decode_u32, decode_u64,
@@ -55,3 +56,4 @@ pub use merkle_path::{
     default_merkle_path, merkle_tree_path_root, merkle_tree_path_root_no_leaf_hash,
 };
 pub use opaque::OpaqueString;
+pub use schnorr::{schnorr_verify_jubjub, verify as schnorr_verify, SchnorrSignature};

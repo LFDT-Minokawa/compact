@@ -70,6 +70,31 @@
       (define current-impure-call-binds
         (make-parameter '()))
 
+      ;; Module-1: when a generated `self.<cname>(ctx, args)?` call into
+      ;; an impure circuit resolves to a stdlib-provided Rust impl,
+      ;; redirect to that path so the caller never tries to look up a
+      ;; method that doesn't exist on `Contract<PS, W>`. Currently
+      ;; covers the Schnorr-on-Jubjub generic verifier from the
+      ;; jubjub-schnorr import chain — `Schnorr_schnorrVerify<#n>` snake-
+      ;; cases to `schnorr_verify`, which doesn't appear in the
+      ;; generated contract methods (the Compact body lowering for a
+      ;; generic impure circuit isn't supported); the inner schnorr
+      ;; module's body would otherwise need to be lowered. Instead we
+      ;; reuse the orphan-safe `compact_runtime::schnorr_verify_jubjub`
+      ;; wrapper (see runtime-rs/src/std_lib/schnorr.rs) which calls the
+      ;; vendored off-circuit verifier.
+      (define (impure-call-target cname)
+        (let ([cname-str
+               (cond
+                 [(string? cname) cname]
+                 [(symbol? cname) (symbol->string cname)]
+                 [else (format "~a" cname)])])
+          (cond
+            [(string=? cname-str "schnorr_verify")
+             "compact_runtime::schnorr_verify_jubjub"]
+            [else
+             (format "self.~a" cname-str)])))
+
       ;; current-var-substitution: alist of (var-name . rust-rendered-string),
       ;; threaded dynamically by ctor-expr-rust so that downstream callees
       ;; reachable only through `expr-rust` (e.g. emit-ledger-read-expr →
